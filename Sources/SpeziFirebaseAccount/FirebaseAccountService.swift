@@ -246,26 +246,48 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
         }
 
         Task { @MainActor in
+            guard Auth.auth().currentUser != nil else {
+                // no cached user; noone logged in; nothing to refresh
+                return
+            }
             // if there is a cached user, we trigger a refresh to make sure everything is up to date and correct.
-            // if the refresh fails for a non-network-connectivity-related reason, we log the user out of the app.
-            // this also covers issues such as there being a (valid) logged-in user, but the app connecting to an incorrect firebase deployment.
+            // if the refresh fails, we either accept it and simply return, or remove the user account,
+            // depending on the specific failure reason.
+            // the idea being that transient errors (eg no network connection) are silently ignored
+            // but terminal errors (eg the user no longer existing, having been disabled, etc) lead to a log out.
             do {
                 try await self.refresh()
-            } catch FirebaseAccountError.notSignedIn {
-                // ok
-            } catch FirebaseAccountError.unknown(.networkError) {
-                // we make sure that we don't remove the account when we don't have network (e.g., flight mode)
             } catch {
-                logger.error("Error trying to refresh user: \(error). Will log out. (IsLoggedIn: \(Auth.auth().currentUser != nil))")
+                // errors we consider terminal for the purposes of this operation.
+                // i.e., errors that should result in the user being forcefully logged out.
+                let terminalErrors: Set<FirebaseAccountError> = [
+                    .invalidCredentials, // user was deleted or disabled
+                    .unknown(.userTokenExpired), // refresh token revoked (e.g., password reset elsewhere)
+                    .unknown(.invalidUserToken)  // ID token rejected (e.g., different Firebase deployment)
+                ]
+                /// FirebaseAuth force-signed-out during the refresh
+                let sessionInvalidated = Auth.auth().currentUser == nil
+                let isTerminalError = (error as? FirebaseAccountError).map { terminalErrors.contains($0) } ?? false
+                guard sessionInvalidated || isTerminalError else {
+                    // this most likely is a transient error (eg: network connection-related, etc);
+                    // we DO NOT want to lose the login in this case, so we simply don't do anything.
+                    // a later refresh will bring eberything back in sync.
+                    logger.error("User refresh failed; keeping the local account: \(error)")
+                    return
+                }
+                logger.error("User refresh failed with an invalidated session: \(error). Logging out. (IsLoggedIn: \(Auth.auth().currentUser != nil))")
                 do {
                     // the refresh() call, for some errors, already triggers an automatic log out,
-                    // meaning that the user might already be signed out when we call `logout()` above.
+                    // meaning that the user might already be signed out when we call `logout()` below.
                     // we nonetheless call it unconditionally, since it will in both cases notify the Account module of the account removal.
+                    
+                    // FirebaseAuth typically will already have signed the user out at this point, but we still call logout explicitly to be safe.
+                    // In either case, `logout()` will notify the Account module (and by extension the app) of the account removal.
                     try await self.logout()
                 } catch FirebaseAccountError.notSignedIn {
-                    // ok
+                    // ok (nothing was signed in locally either)
                 } catch {
-                    logger.error("Error trying to log out after failed reload: \(error)")
+                    logger.error("Error trying to log out after failed refresh: \(error)")
                 }
             }
         }
