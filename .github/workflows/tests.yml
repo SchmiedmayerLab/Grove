@@ -149,15 +149,15 @@ jobs:
             esac
           done
           echo "All required unit + UI tests passed (or no packages were affected)."
-  uploadcoveragereport:
-    name: Upload Coverage Report
-    needs: [test, test-ui]
-    uses: SchmiedmayerLab/.github/.github/workflows/coverage.yml@v0.2
-    permissions:
-      actions: read
-      contents: read
-    with:
-      coveragereports: *.xcresult
-      coveragereports_lcov: *.lcov
-    secrets:
-      token: ${{ secrets.CODECOV_TOKEN }}
+  # uploadcoveragereport:
+  #   name: Upload Coverage Report
+  #   needs: [test, test-ui]
+  #   uses: SchmiedmayerLab/.github/.github/workflows/coverage.yml@v0.2
+  #   permissions:
+  #     actions: read
+  #     contents: read
+  #   with:
+  #     coveragereports: *.xcresult
+  #     coveragereports_lcov: *.lcov
+  #   secrets:
+  #     token: ${{ secrets.CODECOV_TOKEN }}
