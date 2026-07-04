@@ -19,8 +19,16 @@ class FirebaseAccountModel {
     var isPresentingReauthentication = false
     var reauthenticationContext: ReauthenticationContext?
 
+    var isPresentingEmailChangeNotice = false
+    private(set) var pendingEmailAddress: String?
+
     nonisolated init() {}
 
+
+    func presentEmailChangeNotice(for newEmail: String) {
+        pendingEmailAddress = newEmail
+        isPresentingEmailChangeNotice = true
+    }
 
     func reauthenticateUser(userId: String) async -> ReauthenticationResult {
         defer {
