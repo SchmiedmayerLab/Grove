@@ -90,7 +90,6 @@ private class TestNotificationApplicationDelegate: SpeziAppDelegate {
 
     init(_ injectedModule: TestNotificationHandler) {
         self.injectedModule = injectedModule
-        super.init()
     }
 }
 
