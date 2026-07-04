@@ -97,6 +97,17 @@ open class SpeziAppDelegate: _ResponderBaseClass, ApplicationDelegate, Sendable 
     open var configuration: Configuration {
         Configuration { }
     }
+    
+    #if os(macOS)
+    @available(*, unavailable)
+    public required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    public override init() {
+        super.init()
+    }
+    #endif
 
     // MARK: - Will Finish Launching
 
