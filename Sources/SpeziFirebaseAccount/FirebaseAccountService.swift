@@ -608,7 +608,7 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
 
         if modifications.modifiedDetails.contains(AccountKeys.userId) {
             // the email change is pending until the user opens the verification link; make sure they know about it
-            await firebaseModel.presentEmailChangeNotice(for: modifications.modifiedDetails.userId)
+            firebaseModel.presentEmailChangeNotice(for: modifications.modifiedDetails.userId)
         }
     }
 
