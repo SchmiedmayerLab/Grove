@@ -104,7 +104,7 @@ open class SpeziAppDelegate: _ResponderBaseClass, ApplicationDelegate, Sendable 
         fatalError("init(coder:) has not been implemented")
     }
     
-    public override init() {
+    override public init() {
         super.init()
     }
     #endif
