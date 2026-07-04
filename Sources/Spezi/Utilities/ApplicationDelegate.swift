@@ -6,15 +6,21 @@
 // SPDX-License-Identifier: MIT
 //
 
+// swiftlint:disable file_types_order type_name missing_docs
+
 #if canImport(SwiftUI)
 import SwiftUI
 
 
 #if os(iOS) || os(visionOS) || os(tvOS)
-typealias ApplicationDelegate = UIApplicationDelegate // swiftlint:disable:this file_types_order
+public typealias _ResponderBaseClass = UIResponder
+public typealias ApplicationDelegate = UIApplicationDelegate
 #elseif os(macOS)
-typealias ApplicationDelegate = NSApplicationDelegate
+public typealias _ResponderBaseClass = NSResponder
+public typealias ApplicationDelegate = NSApplicationDelegate
 #elseif os(watchOS)
-typealias ApplicationDelegate = WKApplicationDelegate
+public typealias _ResponderBaseClass = NSObject
+public typealias ApplicationDelegate = WKApplicationDelegate
 #endif
+
 #endif
