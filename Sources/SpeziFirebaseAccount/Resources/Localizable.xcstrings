@@ -512,6 +512,38 @@
           }
         }
       }
+    },
+    "Verify Your New Email Address" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätige deine neue E-Mail Adresse"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verify Your New Email Address"
+          }
+        }
+      }
+    },
+    "We sent a confirmation link to %@. Your email address will change once you open the link. You may need to sign in again." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wir haben einen Bestätigungslink an %@ gesendet. Deine E-Mail Adresse ändert sich, sobald du den Link öffnest. Danach musst du dich möglicherweise erneut anmelden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We sent a confirmation link to %@. Your email address will change once you open the link. You may need to sign in again."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
