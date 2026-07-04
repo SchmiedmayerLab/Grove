@@ -553,6 +553,12 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
     ///   Otherwise, an alert will be presented to enter the password credential. Make sure that the ``securityAlert`` modifier is injected from the point your are calling
     ///   this method. This is automatically done with native SpeziAccount views.
     ///
+    /// - Note: Changing the userId (the account's email address) does not take effect immediately. Firebase sends a verification link to the
+    ///   new email address and only applies the change once the user opens that link. Until then, the account details continue to report the
+    ///   old email address. Once the change takes effect, Firebase revokes the user's tokens on all devices; the user will be signed out and
+    ///   has to log in again with the new email address. An alert informing the user about the verification email is presented through the
+    ///   ``securityAlert`` modifier.
+    ///
     /// - Throws: Throws an ``FirebaseAccountError`` if the operation fails. A ``FirebaseAccountError/notSignedIn`` is thrown if delete
     ///     is called when no user was logged in.
     public func updateAccountDetails(_ modifications: AccountModifications) async throws {
@@ -574,9 +580,11 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
 
         try await mapFirebaseAccountError {
             if modifications.modifiedDetails.contains(AccountKeys.userId) {
-                logger.debug("updateEmail(to:) for user.")
-                try await currentUser.updateEmail(to: modifications.modifiedDetails.userId)
-                try await currentUser.reload()
+                logger.debug("sendEmailVerification(beforeUpdatingEmail:) for user.")
+                // `updateEmail(to:)` is deprecated and fails when email enumeration protection is enabled (the default).
+                // This call only sends a verification link to the new address; the email is updated once the user opens it,
+                // at which point Firebase revokes the user's tokens and the user has to sign in again.
+                try await currentUser.sendEmailVerification(beforeUpdatingEmail: modifications.modifiedDetails.userId)
             }
 
             if let password = modifications.modifiedDetails.password {
@@ -597,6 +605,11 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
 
         // None of the above requests will trigger our state change listener, therefore, we just call it manually.
         await supplyUserDetails(for: currentUser)
+
+        if modifications.modifiedDetails.contains(AccountKeys.userId) {
+            // the email change is pending until the user opens the verification link; make sure they know about it
+            await firebaseModel.presentEmailChangeNotice(for: modifications.modifiedDetails.userId)
+        }
     }
 
     private func reauthenticateUser(user: User) async throws -> ReauthenticationOperation {
