@@ -44,7 +44,6 @@ struct StandardInjectionTests {
         
         init(expectation: TestExpectation) {
             self.expectation = expectation
-            super.init()
         }
     }
     

@@ -55,7 +55,6 @@ private class TestLifecycleHandlerApplicationDelegate: SpeziAppDelegate {
 
     init(injectedModule: TestLifecycleHandler) {
         self.injectedModule = injectedModule
-        super.init()
     }
 }
 

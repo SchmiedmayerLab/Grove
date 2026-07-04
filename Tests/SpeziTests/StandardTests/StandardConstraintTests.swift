@@ -87,7 +87,6 @@ private final class TestAppDelegate<S: Standard>: SpeziAppDelegate {
     init(standard: S, @ModuleBuilder modules: () -> ModuleCollection) {
         self.standard = standard
         self.modules = modules()
-        super.init()
     }
 }
 
