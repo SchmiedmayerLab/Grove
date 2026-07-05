@@ -28,6 +28,10 @@ struct AccountDisplayModel {
         }
     }
 
+    var pendingUserId: String? {
+        accountDetails.pendingUserId
+    }
+
     var accountSubheadline: String? {
         if accountDetails.name != nil {
             if !accountDetails.contains(AccountKeys.userId) {
