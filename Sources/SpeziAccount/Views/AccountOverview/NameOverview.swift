@@ -51,6 +51,11 @@ struct NameOverview: View {
                        let title = AccountKeys.name.category.categoryTitle {
                         Text(title)
                     }
+                } footer: {
+                    if wrapper.accountKey == AccountKeys.userId,
+                       let pendingUserId = accountDetails.pendingUserId {
+                        Text("USER_ID_CHANGE_PENDING \(pendingUserId)", bundle: .module)
+                    }
                 }
             }
         }
