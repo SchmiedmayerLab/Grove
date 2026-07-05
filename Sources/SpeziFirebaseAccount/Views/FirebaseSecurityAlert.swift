@@ -95,10 +95,11 @@ public struct FirebaseSecurityAlert: ViewModifier {
             .alert(
                 Text("Verify Your New Email Address", bundle: .module),
                 isPresented: isEmailChangeNoticePresented,
-                presenting: firebaseModel.pendingEmailAddress
+                presenting: firebaseModel.pendingEmailChange
             ) { _ in
                 // the system provides a default OK button
-            } message: { email in
+            } message: { change in
+                let email = change.emailAddress
                 Text(
                     "We sent a confirmation link to \(email). Your email address will change once you open the link. You may need to sign in again.",
                     bundle: .module
