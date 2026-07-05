@@ -24,34 +24,7 @@ struct NameOverview: View {
                 .map { ForEachAccountKeyWrapper($0) }
 
             ForEach(forEachWrappers, id: \.id) { wrapper in
-                Section {
-                    NavigationLink {
-                        wrapper.accountKey.singleEditView(model: model, details: accountDetails)
-                            .anyModifiers(account.securityRelatedModifiers.map { $0.anyViewModifier })
-                    } label: {
-                        if let view = wrapper.accountKey.dataDisplayViewWithCurrentStoredValue(from: accountDetails) {
-                            view
-                        } else {
-                            let name = wrapper.accountKey == AccountKeys.userId
-                                ? accountDetails.userIdType.localizedStringResource
-                                : wrapper.accountKey.name
-
-                            HStack {
-                                Text(name)
-                                    .accessibilityHidden(true)
-                                Spacer()
-                                Text("VALUE_ADD \(name)", bundle: .module)
-                                    .foregroundColor(.secondary)
-                            }
-                                .accessibilityElement(children: .combine)
-                        }
-                    }
-                } header: {
-                    if wrapper.accountKey == AccountKeys.name,
-                       let title = AccountKeys.name.category.categoryTitle {
-                        Text(title)
-                    }
-                }
+                section(for: wrapper.accountKey)
             }
         }
             .navigationTitle(model.accountIdentifierLabel(configuration: account.configuration, accountDetails))
@@ -62,10 +35,47 @@ struct NameOverview: View {
             .environment(\.accountViewType, .overview(mode: .display))
     }
 
-
     init(model: AccountOverviewFormViewModel, details accountDetails: AccountDetails) {
         self.model = model
         self.accountDetails = accountDetails
+    }
+
+
+    @ViewBuilder
+    private func section(for accountKey: any AccountKey.Type) -> some View {
+        Section {
+            NavigationLink {
+                accountKey.singleEditView(model: model, details: accountDetails)
+                    .anyModifiers(account.securityRelatedModifiers.map { $0.anyViewModifier })
+            } label: {
+                if let view = accountKey.dataDisplayViewWithCurrentStoredValue(from: accountDetails) {
+                    view
+                } else {
+                    let name = accountKey == AccountKeys.userId
+                        ? accountDetails.userIdType.localizedStringResource
+                        : accountKey.name
+
+                    HStack {
+                        Text(name)
+                            .accessibilityHidden(true)
+                        Spacer()
+                        Text("VALUE_ADD \(name)", bundle: .module)
+                            .foregroundColor(.secondary)
+                    }
+                        .accessibilityElement(children: .combine)
+                }
+            }
+        } header: {
+            if accountKey == AccountKeys.name,
+               let title = AccountKeys.name.category.categoryTitle {
+                Text(title)
+            }
+        } footer: {
+            if accountKey == AccountKeys.userId,
+               let pendingUserId = accountDetails.pendingUserId {
+                Text("USER_ID_CHANGE_PENDING \(pendingUserId)", bundle: .module)
+            }
+        }
     }
 }
 

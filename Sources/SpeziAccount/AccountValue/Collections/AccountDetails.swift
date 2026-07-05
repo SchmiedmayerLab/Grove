@@ -123,6 +123,7 @@ private struct CopyKeyVisitor: AccountKeyVisitor {
 /// - ``isNewUser``
 /// - ``isIncomplete``
 /// - ``isVerified``
+/// - ``pendingUserId``
 /// - ``accountServiceConfiguration``
 /// - ``userIdType``
 ///
