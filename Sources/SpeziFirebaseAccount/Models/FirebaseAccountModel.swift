@@ -11,6 +11,15 @@ import Observation
 import SwiftUI
 
 
+/// An email address change that was requested but is still pending verification through the confirmation link.
+struct PendingEmailChange: Equatable, Sendable {
+    /// The Firebase user identifier (`uid`) of the account the change was requested for.
+    let accountId: String
+    /// The new email address that is pending verification.
+    let emailAddress: String
+}
+
+
 @Observable
 @MainActor
 class FirebaseAccountModel {
@@ -20,14 +29,21 @@ class FirebaseAccountModel {
     var reauthenticationContext: ReauthenticationContext?
 
     var isPresentingEmailChangeNotice = false
-    private(set) var pendingEmailAddress: String?
+    private(set) var pendingEmailChange: PendingEmailChange?
 
     nonisolated init() {}
 
 
-    func presentEmailChangeNotice(for newEmail: String) {
-        pendingEmailAddress = newEmail
+    func presentEmailChangeNotice(_ change: PendingEmailChange) {
+        pendingEmailChange = change
         isPresentingEmailChangeNotice = true
+    }
+
+    func clearPendingEmailChange(for accountId: String) {
+        guard pendingEmailChange?.accountId == accountId else {
+            return
+        }
+        pendingEmailChange = nil
     }
 
     func reauthenticateUser(userId: String) async -> ReauthenticationResult {
