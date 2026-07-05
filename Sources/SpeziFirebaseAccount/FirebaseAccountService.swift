@@ -555,9 +555,10 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
     ///
     /// - Note: Changing the userId (the account's email address) does not take effect immediately. Firebase sends a verification link to the
     ///   new email address and only applies the change once the user opens that link. Until then, the account details continue to report the
-    ///   old email address. Once the change takes effect, Firebase revokes the user's tokens on all devices; the user will be signed out and
-    ///   has to log in again with the new email address. An alert informing the user about the verification email is presented through the
-    ///   ``securityAlert`` modifier.
+    ///   old email address and expose the new one via the `AccountDetails/pendingUserId` property, which is displayed by views like
+    ///   `AccountOverview`. The pending state is kept in memory only and is not persisted across app launches. Once the change takes effect,
+    ///   Firebase revokes the user's tokens on all devices; the user will be signed out and has to log in again with the new email address.
+    ///   An alert informing the user about the verification email is presented through the ``securityAlert`` modifier.
     ///
     /// - Throws: Throws an ``FirebaseAccountError`` if the operation fails. A ``FirebaseAccountError/notSignedIn`` is thrown if delete
     ///     is called when no user was logged in.
@@ -597,6 +598,14 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
             }
         }
 
+        if modifications.modifiedDetails.contains(AccountKeys.userId) {
+            // the email change is pending until the user opens the verification link; present a notice and track the
+            // pending state so that views can display it alongside the current email address (see `withPendingEmailChange`)
+            firebaseModel.presentEmailChangeNotice(
+                PendingEmailChange(accountId: currentUser.uid, emailAddress: modifications.modifiedDetails.userId)
+            )
+        }
+
         var externalModifications = modifications
         externalModifications.removeModifications(for: Self.supportedAccountKeys)
         if !externalModifications.isEmpty {
@@ -605,11 +614,6 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
 
         // None of the above requests will trigger our state change listener, therefore, we just call it manually.
         await supplyUserDetails(for: currentUser)
-
-        if modifications.modifiedDetails.contains(AccountKeys.userId) {
-            // the email change is pending until the user opens the verification link; make sure they know about it
-            firebaseModel.presentEmailChangeNotice(for: modifications.modifiedDetails.userId)
-        }
     }
 
     private func reauthenticateUser(user: User) async throws -> ReauthenticationOperation {
@@ -758,7 +762,7 @@ extension FirebaseAccountService {
 
         let details = buildUser(user, isNewUser: consideredNewUser, mergeWith: details)
         logger.debug("Update user details due to updates in the externally stored account details.")
-        account.supplyUserDetails(details)
+        account.supplyUserDetails(withPendingEmailChange(details, for: user))
     }
 }
 
@@ -1073,7 +1077,24 @@ extension FirebaseAccountService {
         let isNewUser = isNewUser ?? account.details?.isNewUser ?? false
         let details = await buildUserQueryingStorageProvider(user: user, isNewUser: isNewUser)
         logger.debug("Notifying SpeziAccount with updated user details.")
-        account.supplyUserDetails(details)
+        account.supplyUserDetails(withPendingEmailChange(details, for: user))
+    }
+
+    /// Attach a pending email address change to the account details, if one exists for the user.
+    ///
+    /// The pending state is kept in memory only. It is cleared once we observe that the change took effect
+    /// (the user's email address matches the previously requested one).
+    private func withPendingEmailChange(_ details: AccountDetails, for user: User) -> AccountDetails {
+        guard let change = firebaseModel.pendingEmailChange, change.accountId == user.uid else {
+            return details
+        }
+        guard change.emailAddress != user.email else {
+            firebaseModel.clearPendingEmailChange(for: user.uid)
+            return details
+        }
+        var details = details
+        details.pendingUserId = change.emailAddress
+        return details
     }
 
     func notifyUserRemoval() {
