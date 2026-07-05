@@ -45,6 +45,13 @@ struct AccountOverviewHeader: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
+
+            if let pendingUserId = model.pendingUserId {
+                Text("USER_ID_CHANGE_PENDING \(pendingUserId)", bundle: .module)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
         }
             .accessibilityElement(children: .combine)
             .frame(maxWidth: .infinity, alignment: .center)
