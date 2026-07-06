@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+import Foundation
+import SpeziFoundation
 import SpeziScheduler
 
 

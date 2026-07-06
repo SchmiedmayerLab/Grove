@@ -94,6 +94,8 @@ private struct MockSecurityAlert: ViewModifier {
         }
     }
 
+    nonisolated init() {}
+
     func body(content: Content) -> some View {
         content
             .onAppear {
@@ -194,7 +196,7 @@ public final class InMemoryAccountService: AccountService {
 
     public func configure() {
         let subscription = externalStorage.updatedDetails
-        Task { [weak self] in
+        _ = Task { [weak self] in
             for await updatedDetails in subscription {
                 guard let self else {
                     return

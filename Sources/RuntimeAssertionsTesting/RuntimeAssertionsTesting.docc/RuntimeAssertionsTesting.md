@@ -20,8 +20,8 @@ This package allows developers to test assertions and preconditions in tests usi
 
 ### Testing Runtime Assertions
 
-In your unit tests you can use the ``expectRuntimeAssertion(expectedCount:_:assertion:sourceLocation:_:)-62s7y`` and
-``expectRuntimePrecondition(timeout:_:precondition:sourceLocation:_:)-96i1f`` functions to test a block of code for which you expect
+In your unit tests you can use the ``expectRuntimeAssertion(_:expectedCount:sourceLocation:_:assertion:)-25h24`` and
+``expectRuntimePrecondition(timeout:_:sourceLocation:_:precondition:)-5w4q1`` functions to test a block of code for which you expect
 a runtime assertion to occur.
 
 Below is a short code example demonstrating this for assertions:
@@ -59,11 +59,10 @@ func testPrecondition() {
 
 ### Testing Assertions
 
-- ``expectRuntimeAssertion(expectedCount:_:assertion:sourceLocation:_:)-62s7y``
-- ``expectRuntimeAssertion(expectedCount:_:assertion:sourceLocation:_:)-8hn1j``
+- ``expectRuntimeAssertion(_:expectedCount:sourceLocation:_:assertion:)-25h24``
+- ``expectRuntimePrecondition(timeout:_:sourceLocation:_:precondition:)-5w4q1``
 
 ### Testing Preconditions
 
-- ``expectRuntimePrecondition(timeout:_:precondition:sourceLocation:_:)-96i1f``
-- ``expectRuntimePrecondition(timeout:_:precondition:sourceLocation:_:)-60tb0``
-
+- ``expectRuntimePrecondition(timeout:_:sourceLocation:_:precondition:)-5w4q1``
+- ``expectNoRuntimePrecondition(timeout:_:sourceLocation:_:precondition:)-kae3``

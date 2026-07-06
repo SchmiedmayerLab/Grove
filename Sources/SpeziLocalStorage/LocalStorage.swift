@@ -95,6 +95,7 @@ public final class LocalStorage: Module, DefaultInitializable, EnvironmentAccess
     ///
     /// - parameter value: The value which should be persisted. Passing `nil` will delete the most-recently-stored value.
     /// - parameter key: The ``LocalStorageKey`` with which the value should be associated.
+    /// - parameter configuration: The encoding configuration used to encode the value.
     ///
     /// - Note: This operation will overwrite any previously-stored values for this key.
     public func store<Value>(
@@ -312,6 +313,8 @@ public final class LocalStorage: Module, DefaultInitializable, EnvironmentAccess
     /// - parameter transform: A mapping closure, which will be called with the current value stored for `key` (or `nil`, if no value is stored).
     ///     The value after the closure invocation will be stored into the `LocalStorage`, for the entry identified by `key`.
     ///     If the closure sets `value` to `nil`, the entry will be removed from the `LocalStorage`.
+    /// - parameter decodingConfiguration: The decoding configuration used to decode the stored value.
+    /// - parameter encodingConfiguration: The encoding configuration used to encode the updated value.
     ///
     /// - throws: if `transform` throws,
     public func modify<Value: CodableWithConfiguration>(

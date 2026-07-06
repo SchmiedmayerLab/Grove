@@ -36,7 +36,7 @@ The ``BulkHealthExporter/session(withId:for:startDate:endDate:batchSize:using:)`
 
 - Important: Ensure that your app has sufficient HealthKit access permissions before starting bulk export sessions. The session itself will *not* prompt the user for access; instead, it will fail to fetch and process any sample types for which no HealthKit permission is granted.
 
-It is possible to ``BulkExportSession/pause()`` an export session, which can then be resumed using the ``BulkExportSession/start(retryFailedBatches:)`` function.
+It is possible to ``BulkExportSession/pause()`` an export session, which can then be resumed using the ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` function.
 
 
 ### Example 1: Bulk-Upload of Historical Health Data to Firebase
@@ -76,7 +76,7 @@ try session.start()
 
 This Bulk Export Session will, in the background, go through all historical Health data for the Active Energy, Heart Rate, and Step Count quantity types, fetch the data from HealthKit, and pass it to the Batch Processor, which will then upload it to Firebase.
 
-In this example, since the `FirebaseUploader`'s `Output` type is `Void`, we simply can call ``BulkExportSession/start(retryFailedBatches:)`` and don't need to do anything beyond that.
+In this example, since the `FirebaseUploader`'s `Output` type is `Void`, we simply can call ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` and don't need to do anything beyond that.
 
 
 
@@ -116,7 +116,7 @@ Task {
 }
 ```
 
-Since the `FHIREncodedExporter` returns a `URL` (rather than `Void`, as with the `FirebaseUploader`), the ``BulkExportSession/start(retryFailedBatches:)`` function's return type will be an `AsyncStream<URL>` which gives us access to the individual batch processing results (in this case the urls of the exported JSON files).
+Since the `FHIREncodedExporter` returns a `URL` (rather than `Void`, as with the `FirebaseUploader`), the ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` function's return type will be an `AsyncStream<URL>` which gives us access to the individual batch processing results (in this case the urls of the exported JSON files).
 
 
 ### Performance Considerations

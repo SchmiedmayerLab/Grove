@@ -15,11 +15,42 @@ import ModelsR4
 @available(macOS 13, *)
 protocol FHIRCodingConvertible {
     static var system: FHIRPrimitive<FHIRURI> { get }
-    
+
     var code: String { get }
     var display: String? { get }
-    
+
     init?(rawValue: Int)
+}
+
+@available(macOS 13, *)
+protocol FHIRCodingConvertibleHKEnum: FHIRCodingConvertible {}
+
+@available(macOS 13, *)
+enum MenstrualFlowCategoryValue: Int, FHIRCodingConvertible {
+    case unspecified = 1
+    case light = 2
+    case medium = 3
+    case heavy = 4
+    case none = 5
+
+    static var system: FHIRPrimitive<FHIRURI> {
+        "https://developer.apple.com/documentation/healthkit/hkcategoryvaluemenstrualflow"
+    }
+
+    var display: String? {
+        switch self {
+        case .unspecified:
+            "unspecified"
+        case .light:
+            "light"
+        case .medium:
+            "medium"
+        case .heavy:
+            "heavy"
+        case .none:
+            "none"
+        }
+    }
 }
 
 @available(macOS 13, *)
@@ -41,9 +72,6 @@ extension FHIRCodingConvertible where Self: RawRepresentable, RawValue == Int {
     }
 }
 
-
-@available(macOS 13, *)
-protocol FHIRCodingConvertibleHKEnum: FHIRCodingConvertible {}
 
 @available(macOS 13, *)
 extension FHIRCodingConvertibleHKEnum {
@@ -70,13 +98,6 @@ extension HKCategoryValueVaginalBleeding: FHIRCodingConvertibleHKEnum {}
 )
 @available(macOS 13, *)
 extension HKCategoryValueCervicalMucusQuality: FHIRCodingConvertibleHKEnum {}
-
-@SynthesizeDisplayProperty(
-    HKCategoryValueMenstrualFlow.self,
-    .unspecified, .light, .medium, .heavy, .none
-)
-@available(macOS 13, *)
-extension HKCategoryValueMenstrualFlow: FHIRCodingConvertibleHKEnum {}
 
 @SynthesizeDisplayProperty(
     HKCategoryValueOvulationTestResult.self,

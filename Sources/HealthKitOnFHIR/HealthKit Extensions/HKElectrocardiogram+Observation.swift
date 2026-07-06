@@ -47,7 +47,7 @@ extension HKElectrocardiogram {
     ///   - voltageMeasurements: The URL pointing to the raw voltage measurement data corrolated ot the FHIR observation.
     ///   - mapping: The ``HKSampleMapping`` used to populate the FHIR observation.
     ///   - issuedDate: `Instant` specifying when this version of the resource was made available. Defaults to `Date.now`.
-    ///   - extensions: ``FHIRExtensionBuilder``s that should be applied to the resulting `Observation`.
+    ///   - extensions: `FHIRExtensionBuilder`s that should be applied to the resulting `Observation`.
     @available(iOS 17, macOS 14, watchOS 10, *)
     public func observation(
         symptoms: Symptoms,

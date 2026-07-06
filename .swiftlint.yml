@@ -4,7 +4,7 @@
 # SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 #
 # SPDX-License-Identifier: MIT
-# 
+#
 
 # The whitelist_rules configuration also includes rules that are enabled by default to provide a good overview of all rules.
 only_rules:
@@ -12,6 +12,8 @@ only_rules:
   - accessibility_label_for_image
   # Prefer using Array(seq) over seq.map { $0 } to convert a sequence into an Array.
   - array_init
+  # Attribute names should be followed by at most one balanced set of parentheses.
+  - attribute_name_spacing
   # Prefer the new block based KVO API with keypaths when using Swift 3.2 or later.
   - block_based_kvo
   # Non-constant variables should not be listed in a closure’s capture list to avoid confusion about closures capturing variables at creation time.
@@ -74,6 +76,10 @@ only_rules:
   - duplicated_key_in_dictionary_literal
   # Duplicate Imports
   - duplicate_imports
+  # Condition lists should not contain duplicated conditions.
+  - duplicate_conditions
+  # Enum cases should not be duplicated.
+  - duplicate_enum_cases
   # Avoid using 'dynamic' and '@inline(__always)' together.
   - dynamic_inline
   # Prefer checking isEmpty over comparing collection to an empty array or dictionary literal.
@@ -139,6 +145,10 @@ only_rules:
   - implicitly_unwrapped_optional
   # Identifiers should use inclusive language that avoids discrimination against groups of people based on race, gender, or socioeconomic status
   - inclusive_language
+  # SwiftLint commands should be valid.
+  - invalid_swiftlint_command
+  # Files should not contain invisible characters.
+  - invisible_character
   # Prefer using Set.isDisjoint(with:) over Set.intersection(_:).isEmpty.
   - is_disjoint
   # Discouraged explicit usage of the default separator.
@@ -204,6 +214,10 @@ only_rules:
   - notification_center_detachment
   # Static strings should be used as key in NSLocalizedString in order to genstrings work.
   - nslocalizedstring_key
+  # Prefer non-optional Data initializers when converting Strings to Data.
+  - non_optional_string_data_conversion
+  # Prefer NSNumber initializer references over as-function references.
+  - ns_number_init_as_function_reference
   # NSObject subclasses should implement isEqual instead of ==.
   - nsobject_prefer_isequal
   # Prefer object literals over image and color inits.
@@ -214,6 +228,8 @@ only_rules:
   - operator_usage_whitespace
   # Matching an enum case against an optional enum without ‘?’ is supported on Swift 5.1 and above.
   - optional_enum_case_matching
+  # Prefer failable String initializers when converting Data to Strings.
+  - optional_data_string_conversion
   # A doc comment should be attached to a declaration.
   - orphaned_doc_comment
   # Extensions shouldn’t override declarations.
@@ -224,6 +240,8 @@ only_rules:
   - pattern_matching_keywords
   # Prefer Self over type(of: self) when accessing properties or calling methods.
   - prefer_self_type_over_type_of_self
+  # Prefer `is` and `as?` over comparing type names.
+  - prefer_type_checking
   # Prefer .zero over explicit init with zero parameters (e.g. CGPoint(x: 0, y: 0))
   - prefer_zero_over_explicit_init
   # Prefer private over fileprivate declarations.
@@ -266,6 +284,8 @@ only_rules:
   - return_value_from_void_function
   # Re-bind self to a consistent identifier name.
   - self_binding
+  # `self` should not be used before all stored properties are initialized.
+  - self_in_property_initialization
   # Prefer shorthand operators (+=, -=, *=, /=) over doing the operation and assigning.
   - shorthand_operator
   # Test files should contain a single QuickSpec or XCTestCase class.
@@ -278,6 +298,8 @@ only_rules:
   - statement_position
   # Operators should be declared as static functions, not free functions.
   - static_operator
+  # Prefer `static` members over `class` members on final classes.
+  - static_over_final_class
   # SwiftLint ‘disable’ commands are superfluous when the disabled rule would not have triggered a violation in the disabled region. Use “ - ” if you wish to document a command.
   - superfluous_disable_command
   # Case statements should vertically align with their enclosing switch statement, or indented if configured otherwise.
@@ -315,6 +337,8 @@ only_rules:
   - unavailable_function
   # Avoid using unneeded break statements.
   - unneeded_break_in_switch
+  # Unneeded overrides should be removed.
+  - unneeded_override
   # Parentheses are not needed when declaring closure arguments.
   - unneeded_parentheses_in_closure_argument
   # Prefer capturing references as weak to avoid potential crashes.
@@ -378,6 +402,7 @@ deployment_target: # Availability checks or attributes shouldn’t be using olde
 excluded: # paths to ignore during linting. Takes precedence over `included`.
   - .incoming # temporary during monorepo construction
   - .build
+  - .build-codex
   - .swiftpm
   - .xcodebuild
   - .derivedData

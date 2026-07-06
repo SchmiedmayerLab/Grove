@@ -15,18 +15,18 @@ import Spezi
 /// Adopt this protocol in your Standard to implement phone number verification services.
 /// This protocol defines the interface for starting and completing phone verification processes.
 ///
-/// - Note: The `data` parameter in both methods typically contains:
-///   - For `startVerification`: The phone number to verify
-///   - For `completeVerification`: The verification code to validate
+/// - Note: The `number` parameter in both methods identifies the phone number being verified.
 @available(iOS 17, macOS 14, *)
 public protocol PhoneVerificationConstraint: Standard {
     /// Starts the phone verification process.
-    /// - Parameter data: Dictionary containing verification data, typically including the phone number.
+    /// - Parameter number: The phone number to verify.
     /// - Throws: An error if the verification process cannot be started.
     func startVerification(_ number: PhoneNumber) async throws
     
     /// Completes the phone verification process.
-    /// - Parameter data: Dictionary containing verification data, typically including the verification code.
+    /// - Parameters:
+    ///   - number: The phone number being verified.
+    ///   - code: The verification code to validate.
     /// - Throws: An error if the verification process cannot be completed.
     func completeVerification(_ number: PhoneNumber, _ code: String) async throws
     

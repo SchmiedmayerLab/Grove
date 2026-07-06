@@ -122,7 +122,7 @@ extension FHIRStore {
     ///
     /// Any resources that already exist in the store will be skipped; only new resources will be inserted
     ///
-    /// - Parameter resources: The `FHIRResource`s to be inserted.
+    /// - Parameter resourcesToInsert: The `FHIRResource`s to be inserted.
     @MainActor
     public func insert(contentsOf resourcesToInsert: some Sequence<FHIRResource>) {
         let resourcesToInsert = resourcesToInsert.filter { !self._resources.contains($0) }

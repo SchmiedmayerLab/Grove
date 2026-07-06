@@ -57,7 +57,7 @@ struct LLMOpenAIFunctionCallingParameterDSLTests { // swiftlint:disable:this typ
     @Test("Test Primitive Type Parameters")
     func testLLMFunctionPrimitiveParameters() async throws {
         let llm = LLMOpenAISchema(
-            parameters: .init(modelType: "gpt-4o")
+            parameters: .init(modelType: .gpt4o)
         ) {
             LLMFunctionTestPrimitive(someInitArg: "testArg")
         }

@@ -371,7 +371,7 @@ extension LabeledExprSyntax {
 
 extension SyntaxProtocol {
     var forceToText: String {
-        String(decoding: syntaxTextBytes, as: UTF8.self)
+        String(bytes: syntaxTextBytes, encoding: .utf8) ?? ""
     }
 }
 

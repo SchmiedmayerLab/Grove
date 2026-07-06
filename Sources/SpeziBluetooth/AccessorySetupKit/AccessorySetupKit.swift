@@ -294,6 +294,8 @@ public final class AccessorySetupKit {
             }
             state.withMutation(keyPath: \.accessories) {}
             callHandler(with: .changed(accessory))
+        case .accessoryDiscovered:
+            state.withMutation(keyPath: \.accessories) {}
         case .pickerDidPresent:
             Task { @MainActor in
                 state.pickerPresented = true

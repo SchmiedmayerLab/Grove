@@ -97,6 +97,7 @@ public final class PairedDeviceInfo {
     ///   - name: The device name.
     ///   - model: A model string.
     ///   - icon: The device icon.
+    ///   - variantIdentifier: An optional identifier for the device variant.
     ///   - lastSeen: The date the device was last seen.
     ///   - batteryPercentage: The last known battery percentage of the device.
     public init(

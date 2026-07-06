@@ -28,7 +28,7 @@ extension AnchoredFetcher {
         private let anchor: ManagedQueryAnchor
         private let quarantineCutoff: Date
         private let batchSize: TimeInterval
-        nonisolated(unsafe) private let device: SRDevice
+        private let device: SRDevice
         private var state: State = .initial
         
         init(

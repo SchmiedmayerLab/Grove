@@ -31,8 +31,8 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
         /// The test should use ``Scheduler/deleteAllVersions(ofTask:)`` API.
         case viaId
     }
-    
-    
+
+
     @Test
     func scheduler() throws {
         guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
@@ -199,7 +199,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
 
         try module.deleteAllVersions(ofTask: "test-task")
     }
-    
+
     @Test
     func nonTrivialTaskContextCoding() throws {
         guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
@@ -210,7 +210,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
         withDependencyResolution {
             module
         }
-        
+
         let value = NonTrivialTaskContext(
             field0: .random(in: 0..<100),
             field1: .random(in: 0..<100),
@@ -223,7 +223,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             field8: .random(in: 0..<100),
             field9: .random(in: 0..<100)
         )
-        
+
         let createTask = {
             try module.createOrUpdateTask(
                 id: #function,
@@ -235,12 +235,12 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
                 }
             )
         }
-        
+
         #expect(try createTask().didChange)
         #expect(try !createTask().didChange)
     }
-    
-    
+
+
     @Test
     func fetchingEventsAfterCompletion() async throws {
         guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
@@ -252,19 +252,19 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
         withDependencyResolution {
             module
         }
-        
+
         try module.eraseDatabase()
         #expect(try module.queryAllTasks().isEmpty)
         #expect(try module.queryAllOutcomes().isEmpty)
         #expect(try module.queryEvents(for: todayRange).isEmpty)
-        
+
         let task = try module.createOrUpdateTask(
             id: "test-task",
             title: "Test Task",
             instructions: "",
             schedule: .daily(hour: 0, minute: 0, startingAt: .now)
         ).task
-        
+
         let events = try module.queryEvents(for: todayRange)
         #expect(events.allSatisfy { todayRange.contains($0.occurrence.start) })
         #expect(events.count == 1)
@@ -282,8 +282,8 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             })
         }
     }
-    
-    
+
+
     @Test
     func deleteAllVersions() async throws {
         guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
@@ -295,36 +295,36 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             module
         }
         try module.eraseDatabase()
-        
+
         func addTask(_ id: String, schedule: Schedule) throws -> Task {
             try module.createOrUpdateTask(id: id, title: "", instructions: "", schedule: schedule, completionPolicy: .anytime).task
         }
-        
+
         let task = try addTask("task", schedule: .daily(hour: 0, minute: 0, startingAt: .now))
-        
+
         do {
             let events = try module.queryEvents(forTaskWithId: "task", in: Calendar.current.rangeOfDay(for: .now))
             #expect(events.count == 1)
             try #require(events.first).complete()
         }
-        
+
         // update the task (this will create a new version)
         let task2 = try addTask("task", schedule: .daily(hour: 23, minute: 59, second: 59, startingAt: .now))
         #expect(task2 == task.nextVersion)
         #expect(task2.previousVersion == task)
-        
+
         do {
             let events = try module.queryEvents(forTaskWithId: "task", in: Calendar.current.rangeOfDay(for: .now))
             #expect(events.count == 1)
             try #require(events.first).complete()
         }
-        
+
         try module.deleteAllVersions(of: task2)
-        
+
         #expect(try module.queryAllTasks().isEmpty)
     }
-    
-    
+
+
     @Test
     func deleteTaskSingleVersionNoOutcomes() async throws {
         guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
@@ -337,7 +337,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             module
         }
         try module.eraseDatabase()
-        
+
         @discardableResult
         func addTask(_ id: String, startingAt startDate: Date) throws -> Task {
             let (task, didChange) = try module.createOrUpdateTask(
@@ -351,16 +351,16 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             #expect(didChange)
             return task
         }
-        
+
         let task = try addTask("task", startingAt: cal.startOfMonth(for: .now))
-        
+
         try module.deleteTasks(task)
-        
+
         #expect(try module.queryAllTasks().isEmpty)
         #expect(try module.queryAllOutcomes().isEmpty)
     }
-    
-    
+
+
     @Test
     func deleteTaskSingleVersionSomeOutcomes() async throws {
         guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
@@ -373,7 +373,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             module
         }
         try module.eraseDatabase()
-        
+
         @discardableResult
         func addTask(_ id: String, startingAt startDate: Date) throws -> Task {
             let (task, didChange) = try module.createOrUpdateTask(
@@ -387,23 +387,23 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             #expect(didChange)
             return task
         }
-        
+
         let task = try addTask("task", startingAt: cal.startOfMonth(for: .now))
-        
+
         for event in try module.queryEvents(for: cal.rangeOfMonth(for: .now)) {
             try event.complete()
         }
-        
+
         #expect(try module.queryAllTasks() == [task])
         #expect(try module.queryAllOutcomes().count == cal.numberOfDaysInMonth(for: .now))
-        
+
         try module.deleteTasks(task)
-        
+
         #expect(try module.queryAllTasks().isEmpty)
         #expect(try module.queryAllOutcomes().isEmpty)
     }
-    
-    
+
+
     @Test(arguments: DeleteAllTaskVersionsApproach.allCases)
     func deleteTaskMultipleVersionsNoOutcomes(deleteAllVersionsApproach: DeleteAllTaskVersionsApproach) async throws {
         guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
@@ -416,7 +416,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             module
         }
         try module.eraseDatabase()
-        
+
         @discardableResult
         func addTask(_ id: String, startingAt startDate: Date) throws -> Task {
             let (task, didChange) = try module.createOrUpdateTask(
@@ -430,13 +430,13 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             #expect(didChange)
             return task
         }
-        
+
         let taskV1 = try addTask("task", startingAt: cal.startOfMonth(for: .now))
         let taskV2 = try addTask("task", startingAt: cal.startOfNextMonth(for: .now))
-        
+
         #expect(try Set(module.queryAllTasks()) == [taskV1, taskV2])
         #expect(try module.queryAllOutcomes().isEmpty)
-        
+
         switch deleteAllVersionsApproach {
         case .viaFirst:
             try module.deleteTasks(taskV1)
@@ -448,8 +448,8 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
         #expect(try module.queryAllTasks().isEmpty)
         #expect(try module.queryAllOutcomes().isEmpty)
     }
-    
-    
+
+
     @Test(arguments: DeleteAllTaskVersionsApproach.allCases)
     func deleteTaskMultipleVersionsSomeOutcomes(deleteAllVersionsApproach: DeleteAllTaskVersionsApproach) async throws {
         guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
@@ -462,7 +462,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             module
         }
         try module.eraseDatabase()
-        
+
         @discardableResult
         func addTask(_ id: String, title: String, startingAt startDate: Date) throws -> Task {
             let (task, didChange) = try module.createOrUpdateTask(
@@ -476,20 +476,20 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             #expect(didChange)
             return task
         }
-        
+
         let taskV1 = try addTask("task", title: "V1", startingAt: cal.startOfMonth(for: .now))
         for event in try module.queryEvents(for: cal.rangeOfMonth(for: .now)) {
             try event.complete()
         }
-        
+
         let taskV2 = try addTask("task", title: "V2", startingAt: cal.startOfNextMonth(for: .now))
         for event in try module.queryEvents(for: cal.rangeOfMonth(for: cal.startOfNextMonth(for: .now))) {
             try event.complete()
         }
-        
+
         #expect(try Set(module.queryAllTasks()) == [taskV1, taskV2])
         #expect(try module.queryAllOutcomes().count == cal.numberOfDaysInMonth(for: .now) + cal.numberOfDaysInMonth(for: cal.startOfNextMonth(for: .now))) // swiftlint:disable:this line_length
-        
+
         try module.deleteTasks(taskV1)
         switch deleteAllVersionsApproach {
         case .viaFirst:
@@ -502,8 +502,8 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
         #expect(try module.queryAllTasks().isEmpty)
         #expect(try module.queryAllOutcomes().isEmpty)
     }
-    
-    
+
+
     @Test(arguments: DeleteAllTaskVersionsApproach.allCases)
     func deleteTask(deleteAllVersionsApproach: DeleteAllTaskVersionsApproach) async throws {
         guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
@@ -516,7 +516,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             module
         }
         try module.eraseDatabase()
-        
+
         @discardableResult
         func addTask(_ id: String, startingAt startDate: Date) throws -> Task {
             let (task, didChange) = try module.createOrUpdateTask(
@@ -530,9 +530,9 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             #expect(didChange)
             return task
         }
-        
+
         try addTask("task", startingAt: cal.startOfMonth(for: .now))
-        
+
         for idx in 0..<12 {
             let task = try #require(module.queryAllTasks().max { $1.effectiveFrom > $0.effectiveFrom })
             let timeRange = cal.rangeOfMonth(for: task.schedule.start)
@@ -550,9 +550,9 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             )
             try addTask("task", startingAt: cal.startOfNextMonth(for: task.schedule.start))
         }
-        
+
         let allTasks = try module.queryAllTasks().sorted(using: KeyPathComparator(\.effectiveFrom))
-        
+
         switch deleteAllVersionsApproach {
         case .viaFirst:
             try module.deleteTasks(try #require(allTasks.first))
@@ -564,8 +564,8 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
         #expect(try module.queryAllTasks().isEmpty)
         #expect(try module.queryAllOutcomes().isEmpty)
     }
-    
-    
+
+
     // Ensures that the state of the Scheduler's underlying ModelContext is correct when performing multiple operations within a single
     // run loop iteration, i.e. before the context is saved.
     // See also: FB17583572 and FB18429335.
@@ -580,7 +580,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             module
         }
         try module.eraseDatabase()
-        
+
         let (task1A, didCreateTask1A) = try module.createOrUpdateTask(
             id: "task1",
             title: "",
@@ -590,7 +590,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
         )
         #expect(didCreateTask1A)
         #expect(try module.queryTasks(for: Calendar.current.rangeOfDay(for: .today)) == [task1A])
-        
+
         let (task1B, didCreateTask1B) = try module.createOrUpdateTask(
             id: "task1",
             title: "",
@@ -600,11 +600,11 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
         #expect(didCreateTask1B)
         #expect(try module.queryTasks(for: Calendar.current.rangeOfDay(for: .today)).count == 2)
         #expect(try module.queryTasks(for: Calendar.current.rangeOfDay(for: .today)) == [task1A, task1B])
-        
+
         let context = try module.context
         #expect(context.hasChanges)
         #expect(try context.fetchCount(FetchDescriptor<Task>()) == 2)
-        
+
         #expect(try context.fetchCount(FetchDescriptor<Task>()) == 2)
         #expect(context.hasChanges)
         try context.save()
@@ -625,7 +625,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
         #expect(try context.fetchCount(FetchDescriptor<Task>()) == 0)
         #expect(try context.fetchCount(FetchDescriptor<Task>()) == 0)
     }
-    
+
     // regression test around a bug where the context save would take place too late
     // and the notification scheduling would end up accessing an old state of the context, and crash.
     // was likely in part caused by using `ModelContext.delete(model:where:)` instead of `ModelContext.delete(_:)`.
@@ -651,7 +651,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
         try scheduler.deleteAllVersions(of: task)
         try #expect(scheduler.queryTasks(for: allTime).isEmpty)
     }
-    
+
     @Test
     func hourlyTask() throws {
         guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
@@ -686,7 +686,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             #expect(event.occurrence.start == expectedDate)
         }
     }
-    
+
     @Test
     func hourlyTask12HourInterval() throws {
         guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
@@ -732,7 +732,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             #expect(event.occurrence.start == expectedDate)
         }
     }
-    
+
     @Test
     func monthlyTask() throws {
         guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
@@ -780,7 +780,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             #expect(event.occurrence.start == expectedDate)
         }
     }
-    
+
     @Test
     func monthlyTask3MonthInterval() throws {
         guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
@@ -821,7 +821,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             #expect(event.occurrence.start == expectedDate)
         }
     }
-    
+
     @Test
     func yearlyTask() throws {
         guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
@@ -857,7 +857,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             #expect(event.occurrence.start == expectedDate)
         }
     }
-    
+
     @Test
     func yearlyTask3YearInterval() throws {
         guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
@@ -895,7 +895,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             #expect(event.occurrence.start == expectedDate)
         }
     }
-    
+
     @Test
     func iOS26Migration() throws {
         guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
@@ -942,8 +942,8 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
         )
         #expect(String(localized: task3.instructions) == "Task 3")
     }
-    
-    
+
+
     @Test
     func userInfoPersistance() throws {
         guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
@@ -968,7 +968,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             try storage.set(TaskContextKey.self, value: 52, cache: &cache)
             #expect(storage.userInfo == ["tKey1": Data(#"{"value":52}"#.utf8)])
             let storageJson = try jsonEncoder.encode(storage)
-            #expect(String(decoding: storageJson, as: UTF8.self) == #"{"userInfo":{"tKey1":"\#(Data(#"{"value":52}"#.utf8).base64EncodedString())"}}"#)
+            #expect(String(data: storageJson, encoding: .utf8) == #"{"userInfo":{"tKey1":"\#(Data(#"{"value":52}"#.utf8).base64EncodedString())"}}"#)
         }
         let scheduler = Scheduler(persistence: .inMemory)
         withDependencyResolution {
@@ -1019,34 +1019,34 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             static let identifier = "tKey2"
             static let coding = UserStorageCoding.json
         }
-        
+
         // Per-key inner encodings (driven by each key's `coding`; independent of the container's `Codable`).
         let innerInt = Data(#"{"value":52}"#.utf8)
         let innerString = Data(#"{"value":"hello"}"#.utf8)
         let rawUserInfo = ["tKey1": innerInt, "tKey2": innerString]
-        
+
         // The canonical, frozen wire format: a single keyed container `{ "userInfo": <[String: Data]> }`, with the
         // `Data` values base64-encoded. Changing this string means changing the on-disk format -- which would make
         // existing persisted `Task`/`Outcome` `userInfo` undecodable, i.e. a breaking migration.
         let golden = #"{"userInfo":{"tKey1":"\#(innerInt.base64EncodedString())","tKey2":"\#(innerString.base64EncodedString())"}}"#
-        
+
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         let decoder = JSONDecoder()
-        
+
         // b) Format lock: the current implementation encodes to exactly the canonical format.
         var storage = UserInfoStorage<TaskAnchor>()
         var cache = UserInfoStorage<TaskAnchor>.RepositoryCache()
         try storage.set(IntKey.self, value: 52, cache: &cache)
         try storage.set(StringKey.self, value: "hello", cache: &cache)
         #expect(storage.userInfo == rawUserInfo)
-        #expect(String(decoding: try encoder.encode(storage), as: UTF8.self) == golden)
-        
+        #expect(String(data: try encoder.encode(storage), encoding: .utf8) == golden)
+
         // a) Backward compatibility: bytes produced by the previous (`RawRepresentable`-based) implementation still
         // decode -- and round-trip the typed values -- with the current implementation.
         let legacyEncoded = try encoder.encode(LegacyUserInfoStorage(rawValue: rawUserInfo))
-        #expect(String(decoding: legacyEncoded, as: UTF8.self) == golden) // the previous impl emitted these exact bytes
-        
+        #expect(String(data: legacyEncoded, encoding: .utf8) == golden) // the previous impl emitted these exact bytes
+
         for persisted in [legacyEncoded, Data(golden.utf8)] { // legacy-produced bytes, and a frozen literal blob
             let decoded = try decoder.decode(UserInfoStorage<TaskAnchor>.self, from: persisted)
             var decodedCache = UserInfoStorage<TaskAnchor>.RepositoryCache()
@@ -1054,7 +1054,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             #expect(try decoded.get(IntKey.self, cache: &decodedCache) == 52)
             #expect(try decoded.get(StringKey.self, cache: &decodedCache) == "hello")
         }
-        
+
         // The same compatibility must hold through a binary property list (SwiftData persists via a plist-backed store).
         let plistEncoder = PropertyListEncoder()
         plistEncoder.outputFormat = .binary
@@ -1103,7 +1103,7 @@ extension LegacyUserInfoStorage: RawRepresentable {
     var rawValue: [String: Data] {
         userInfo
     }
-    
+
     init(rawValue: [String: Data]) {
         self.userInfo = rawValue
     }

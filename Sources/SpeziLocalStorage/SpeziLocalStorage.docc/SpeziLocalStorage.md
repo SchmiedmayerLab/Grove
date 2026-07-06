@@ -92,7 +92,7 @@ do {
 }
 ```
 
-See ``LocalStorage/store(_:encoder:storageKey:settings:)`` for more details.
+See ``LocalStorage/store(_:for:configuration:)`` for more details.
 
 
 
@@ -109,7 +109,7 @@ do {
 }
 ```
 
-See ``LocalStorage/read(_:decoder:storageKey:settings:)`` for more details.
+See ``LocalStorage/load(_:configuration:)`` for more details.
 
 
 ### Deleting Data
@@ -124,7 +124,7 @@ do {
 }
 ```
 
-See ``LocalStorage/delete(_:)`` or ``LocalStorage/delete(storageKey:)`` for more details.
+See ``LocalStorage/delete(_:)`` for more details.
 
 If you need to fully delete the entire local storage, use ``LocalStorage/deleteAll()``.
 

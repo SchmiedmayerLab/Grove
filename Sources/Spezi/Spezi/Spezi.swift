@@ -98,10 +98,11 @@ public final class Spezi: Sendable { // swiftlint:disable:this type_body_length
 
     private let serviceGroup = ServiceModuleGroup(logger: Spezi.logger)
 
+    // nonisolated: writes are isolated to @MainActor; reads are nonisolated.
     /// A shared repository to store any `KnowledgeSource`s restricted to the ``SpeziAnchor``.
     ///
     /// Every `Module` automatically conforms to `KnowledgeSource` and is stored within this storage object.
-    nonisolated(unsafe) var storage: SpeziStorage // nonisolated, writes are all isolated to @MainActor, just reads are non-isolated
+    @ObservationIgnored nonisolated(unsafe) var storage: SpeziStorage
 
 #if canImport(SwiftUI)
     /// Key is either a UUID for `@Modifier` or `@Model` property wrappers, or a `ModuleReference` for `EnvironmentAccessible` modifiers.

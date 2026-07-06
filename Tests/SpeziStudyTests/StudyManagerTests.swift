@@ -67,9 +67,10 @@ final class StudyManagerTests {
     private static let welcomeArticleComponentId = UUID()
     private static let sixMinuteWalkTestComponentId = UUID()
     private static let twelveMinuteRunTestComponentId = UUID()
-    
+
     private let studyBundle: StudyBundle
-    
+
+    // swiftlint:disable:next function_body_length
     init() throws {
         let testStudy = StudyDefinition(
             studyRevision: 0,
@@ -146,8 +147,8 @@ final class StudyManagerTests {
             ]
         )
     }
-    
-    
+
+
     @Test
     func enrollment() async throws {
         guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
@@ -163,15 +164,15 @@ final class StudyManagerTests {
         let next4Weeks = try cal.startOfDay(for: .now)..<#require(cal.date(byAdding: .weekOfYear, value: 4, to: cal.startOfDay(for: .now)))
         #expect(try scheduler.queryAllTasks().isEmpty)
         #expect(try scheduler.queryEvents(for: next4Weeks).isEmpty)
-        
+
         try await studyManager.enroll(in: studyBundle)
-        
+
         #expect(studyManager.studyEnrollments.count == 1)
         let enrollment = try #require(studyManager.studyEnrollments.first)
         #expect(enrollment.studyId == studyBundle.id)
         #expect(enrollment.studyId == studyBundle.studyDefinition.id)
         #expect(try #require(enrollment.studyBundle).studyDefinition == studyBundle.studyDefinition)
-        
+
         #expect(try scheduler.queryAllTasks().count == 3)
         #expect(try scheduler.queryEvents(for: cal.rangeOfDay(for: .now)).mapIntoSet { String(localized: $0.task.title) } == [
             "Welcome to our Study!", "Six-Minute Walk Test"
@@ -180,8 +181,8 @@ final class StudyManagerTests {
             String(localized: $0.task.title)
         } == ["12-Minute Run Test"])
     }
-    
-    
+
+
     @Test
     func retroactiveEnrollment() async throws {
         guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
@@ -197,7 +198,7 @@ final class StudyManagerTests {
         let next4Weeks = try cal.startOfDay(for: .now)..<#require(cal.date(byAdding: .weekOfYear, value: 4, to: cal.startOfDay(for: .now)))
         #expect(try scheduler.queryAllTasks().isEmpty)
         #expect(try scheduler.queryEvents(for: next4Weeks).isEmpty)
-        
+
         try await studyManager.enroll(in: studyBundle, enrollmentDate: cal.startOfPrevDay(for: .now))
         #expect(studyManager.studyEnrollments.count == 1)
         let enrollment = try #require(studyManager.studyEnrollments.first)
@@ -212,8 +213,8 @@ final class StudyManagerTests {
             String(localized: $0.task.title)
         } == ["Six-Minute Walk Test"])
     }
-    
-    
+
+
     @Test
     func orphanTaskHandling() async throws {
         guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
@@ -226,7 +227,7 @@ final class StudyManagerTests {
             studyManager
         }
         try await studyManager.enroll(in: studyBundle)
-        
+
         #expect(studyManager.studyEnrollments.count == 1)
         let enrollment = try #require(studyManager.studyEnrollments.first)
         #expect(enrollment.studyId == studyBundle.id)
@@ -236,12 +237,12 @@ final class StudyManagerTests {
         studyManager.modelContext.delete(enrollment)
         try #expect(studyManager.scheduler.queryTasks(for: allTime).count == 3)
         try studyManager.removeOrphanedTasks()
-        
+
         try await _Concurrency.Task.sleep(for: .seconds(0.2))
         try #expect(studyManager.scheduler.queryTasks(for: allTime).isEmpty)
     }
-    
-    
+
+
     @Test
     func orphanStudyBundleHandling() async throws {
         guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
@@ -254,7 +255,7 @@ final class StudyManagerTests {
             studyManager
         }
         try await studyManager.enroll(in: studyBundle)
-        
+
         #expect(studyManager.studyEnrollments.count == 1)
         let enrollment = try #require(studyManager.studyEnrollments.first)
         #expect(enrollment.studyId == studyBundle.id)
@@ -267,16 +268,16 @@ final class StudyManagerTests {
         try studyManager.removeOrphanedStudyBundles()
         #expect(try !fileManager.contents(of: StudyManager.studyBundlesDirectory).contains(enrollment.studyBundleUrl))
     }
-    
-    
+
+
     @Test
     func localeMatching() throws {
         #expect(LocalizationKey(language: .english, region: .unitedStates).score(against: Locale(identifier: "en_US"), using: .default) == 1)
         #expect(LocalizationKey(language: .spanish, region: .unitedStates).score(against: Locale(identifier: "es_US"), using: .default) == 1)
         #expect(LocalizationKey(language: .german, region: .unitedStates).score(against: Locale(identifier: "es_US"), using: .default) == 0.75)
     }
-    
-    
+
+
     /// Tests that the StudyManager properly updates itself when the preferred locale changes.
     @Test
     func localeUpdate() async throws {
@@ -295,7 +296,7 @@ final class StudyManagerTests {
         try await studyManager.enroll(in: studyBundle)
         #expect(studyManager.studyEnrollments.count == 1)
         let enrollment = try #require(studyManager.studyEnrollments.first)
-        
+
         do {
             let tasks = try scheduler.queryAllTasks()
             #expect(tasks.count == 3)
@@ -334,20 +335,20 @@ final class StudyManagerTests {
         }
         try await studyManager.unenroll(from: enrollment)
     }
-    
-    
+
+
     @Test
     func localeUtils() {
         let locale1 = Locale(language: .english, region: .germany)
         #expect(locale1.language == .english)
         #expect(locale1.region == .germany)
-        
+
         let locale2 = Locale(language: .spanish, region: .antarctica)
         #expect(locale2.language == .spanish)
         #expect(locale2.region == .antarctica)
     }
-    
-    
+
+
     @Test
     func schedules() throws {
         guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
@@ -358,7 +359,7 @@ final class StudyManagerTests {
         cal.timeZone = .losAngeles
         let enrollmentDate = try #require(cal.date(from: .init(year: 2025, month: 7, day: 31)))
         #expect(cal.component(.weekday, from: enrollmentDate) == 5)
-        
+
         let schedule1: Schedule = .fromRepeated(
             .repeated(.daily(hour: 0, minute: 0)),
             in: cal,
@@ -399,9 +400,10 @@ final class StudyManagerTests {
         #expect(try #require(nextOccurrence(schedule5)) == #require(cal.date(from: .init(year: 2025, month: 8, day: 2))))
         #expect(try #require(nextOccurrence(schedule6)) == #require(cal.date(from: .init(year: 2025, month: 8, day: 5))))
     }
-    
-    
+
+
     @Test
+    // swiftlint:disable:next function_body_length
     func taskVersionDeduplication() async throws {
         guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
             return
@@ -417,7 +419,7 @@ final class StudyManagerTests {
         let initialTasks = try scheduler.queryAllTasks()
         #expect(initialTasks.count == 3)
         #expect(initialTasks.allSatisfy { $0.previousVersion == nil && $0.nextVersion == nil })
-        
+
         // pick the 12-min run, which has its first occurrence tomorrow (per the test study bundle's `offset: 1 day`).
         // this lets us complete an event in a time window that any of V1/V2/V3 can be responsible for, as long as
         // their `effectiveFrom` dates are still today.
@@ -425,7 +427,7 @@ final class StudyManagerTests {
         let originalStudyContext = try #require(v1.studyContext)
         let originalAction = try #require(v1.studyScheduledTaskAction)
         #expect(v1.outcomes.isEmpty)
-        
+
         // we manufacture duplicates by mutating each version's userInfo to add a marker that the next
         // -createOrUpdateTask call won't reproduce. that forces a new version (userInfo differs) while keeping
         // `studyContext` and `studyScheduledTaskAction` equal across versions -- which is exactly the shape that
@@ -465,7 +467,7 @@ final class StudyManagerTests {
         #expect(v3.firstVersion == v1)
         #expect(v1.latestVersion == v3)
         #expect(try scheduler.queryAllTasks().count == 5) // 2 untouched tasks + the 3 versions of the 12-min run
-        
+
         // complete an event on V3 so we have an outcome that the dedup logic must reassign to V1.
         let nextDayRange = cal.rangeOfDay(for: cal.startOfNextDay(for: .now))
         let v3Events = try scheduler.queryEvents(for: v3, in: nextDayRange)
@@ -476,9 +478,9 @@ final class StudyManagerTests {
         #expect(v3.outcomes.contains { $0.id == outcomeId })
         #expect(v1.outcomes.isEmpty)
         #expect(v2.outcomes.isEmpty)
-        
+
         try studyManager.fixTaskContextAndDuplicateVersions()
-        
+
         // after the migration: only the 3 original tasks remain (V2 and V3 of the run task got merged into V1),
         // V1's chain is collapsed, and the outcome we created on V3 was reassigned to V1.
         let postTasks = try scheduler.queryAllTasks()
@@ -496,8 +498,8 @@ final class StudyManagerTests {
             #expect(task.nextVersion == nil)
         }
     }
-    
-    
+
+
     @Test
     func taskContextMigration() async throws {
         guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
@@ -513,13 +515,13 @@ final class StudyManagerTests {
         let enrollment = try #require(studyManager.studyEnrollments.first)
         let allTasks = try scheduler.queryAllTasks()
         #expect(allTasks.count == 3)
-        
+
         // capture the original UUID-based study contexts so we can verify the migration restores them.
         let originalContexts: [Task.ID: Task.Context.StudyContext] = allTasks.reduce(into: [:]) { dict, task in
             dict[task.id] = task.studyContext
         }
         #expect(originalContexts.count == 3)
-        
+
         // simulate the legacy on-disk state: rewrite each task so the shared "studyContext" storage slot holds
         // the old `PersistentIdentifier`-keyed encoding rather than the new UUID-keyed one.
         // both @Property declarations target the same storage identifier, so the latter write wins, but the
@@ -540,9 +542,9 @@ final class StudyManagerTests {
             #expect(task.studyContextOld != nil)
         }
         try scheduler.context.save()
-        
+
         try studyManager.fixTaskContextAndDuplicateVersions()
-        
+
         // after the migration: every task has its UUID-based studyContext set (matching the pre-simulation values),
         // with the legacy enrollment id (PersistentIdentifier) swapped out for the enrollment's UUID id,
         // and the legacy studyContextOld cleared.
@@ -558,8 +560,8 @@ final class StudyManagerTests {
             #expect(newContext.enrollmentId == enrollment.id)
         }
     }
-    
-    
+
+
     /// Strong end-to-end equivalence test for the destructive dedup migration.
     ///
     /// Builds a realistic production-shaped history: a run of three equal duplicate versions (V1 -> V2 -> V3), each
@@ -571,6 +573,7 @@ final class StudyManagerTests {
     /// - leaves every other task untouched, and
     /// - is idempotent (a second run changes nothing).
     @Test
+    // swiftlint:disable:next function_body_length
     func taskVersionDeduplicationPreservesObservableState() async throws {
         guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
             return
@@ -586,7 +589,7 @@ final class StudyManagerTests {
         let rangeEnd = try #require(cal.date(byAdding: .day, value: 14, to: cal.startOfDay(for: .now)))
         let wideRange = enrollmentDate..<rangeEnd
         try await studyManager.enroll(in: studyBundle, enrollmentDate: enrollmentDate)
-        
+
         func snapshotEvents() throws -> Set<EventSnapshot> {
             Set(try scheduler.queryEvents(for: wideRange).map { event in
                 EventSnapshot(
@@ -609,14 +612,14 @@ final class StudyManagerTests {
                 )
             })
         }
-        
+
         // the recurring 6-minute walk task (daily, interval 2) gives us several occurrences to spread versions/outcomes across.
         let runTask = try #require(try scheduler.queryAllTasks().first { $0.studyContext?.componentId == Self.sixMinuteWalkTestComponentId })
         let runTaskId = runTask.id
         let origContext = try #require(runTask.studyContext)
         let origAction = try #require(runTask.studyScheduledTaskAction)
         let origEffectiveFrom = runTask.firstVersion.effectiveFrom
-        
+
         func runEventsSorted() throws -> [Event] {
             try scheduler.queryEvents(for: wideRange, predicate: #Predicate { $0.id == runTaskId })
         }
@@ -652,11 +655,11 @@ final class StudyManagerTests {
                 }
             )
         }
-        
+
         // capture the first four occurrence start dates (all owned by V1 at this point).
         let occStarts = try runEventsSorted().prefix(4).map(\.occurrence.start)
         try #require(occStarts.count == 4)
-        
+
         // build V1 -> V2 -> V3, completing a distinct occurrence in each version's responsibility window.
         let o1 = try completeEvent(at: occStarts[0]) // owned by V1
         try makeEqualNextVersion(marker: "m1", effectiveFrom: try #require(cal.date(byAdding: .second, value: 1, to: occStarts[0])))
@@ -664,20 +667,20 @@ final class StudyManagerTests {
         try makeEqualNextVersion(marker: "m2", effectiveFrom: try #require(cal.date(byAdding: .second, value: 1, to: occStarts[1])))
         let o3 = try completeEvent(at: occStarts[2]) // owned by V3
         // occStarts[3] is intentionally left incomplete, to prove incomplete events also survive unchanged.
-        
+
         // precondition: the three outcomes really are scattered across three distinct version objects.
         let runOutcomes = try scheduler.queryAllOutcomes().filter { $0.task.id == runTaskId }
         try #require(runOutcomes.count == 3)
         try #require(Set(runOutcomes.map { ObjectIdentifier($0.task) }).count == 3)
         try #require(try scheduler.queryAllTasks().filter { $0.id == runTaskId }.count == 3)
-        
+
         let eventsBefore = try snapshotEvents()
         let outcomesBefore = try snapshotOutcomes()
         let orderedEventsBefore = try scheduler.queryEvents(for: wideRange).count
         let totalTasksBefore = try scheduler.queryAllTasks().count
-        
+
         try studyManager.fixTaskContextAndDuplicateVersions()
-        
+
         // 1. the observable event stream is byte-for-byte identical (occurrences, titles, completion, outcome identity).
         #expect(try snapshotEvents() == eventsBefore)
         #expect(try scheduler.queryEvents(for: wideRange).count == orderedEventsBefore)
@@ -696,18 +699,19 @@ final class StudyManagerTests {
         #expect(survivingOutcomeIds == expectedOutcomeIds)
         #expect(surviving.studyContext == origContext)
         #expect(surviving.studyScheduledTaskAction == origAction)
-        
+
         // 4. idempotency: a second run is a complete no-op.
         try studyManager.fixTaskContextAndDuplicateVersions()
         #expect(try snapshotEvents() == eventsBefore)
         #expect(try snapshotOutcomes() == outcomesBefore)
         #expect(try scheduler.queryAllTasks().count == totalTasksBefore - 2)
     }
-    
-    
+
+
     /// Guards the other direction: the dedup must NEVER merge versions that genuinely differ (here, by title).
     /// Over-merging would silently delete a version the app still renders distinctly -- i.e. data loss.
     @Test
+    // swiftlint:disable:next function_body_length
     func taskVersionDeduplicationKeepsGenuinelyDistinctVersions() async throws {
         guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
             return
@@ -723,7 +727,7 @@ final class StudyManagerTests {
         let rangeEnd = try #require(cal.date(byAdding: .day, value: 14, to: cal.startOfDay(for: .now)))
         let wideRange = enrollmentDate..<rangeEnd
         try await studyManager.enroll(in: studyBundle, enrollmentDate: enrollmentDate)
-        
+
         func snapshotEvents() throws -> Set<EventSnapshot> {
             Set(try scheduler.queryEvents(for: wideRange).map { event in
                 EventSnapshot(
@@ -736,12 +740,12 @@ final class StudyManagerTests {
                 )
             })
         }
-        
+
         let runTask = try #require(try scheduler.queryAllTasks().first { $0.studyContext?.componentId == Self.sixMinuteWalkTestComponentId })
         let runTaskId = runTask.id
         let origContext = try #require(runTask.studyContext)
         let origAction = try #require(runTask.studyScheduledTaskAction)
-        
+
         // V2 differs from V1 by an observable property (title) -> subsumes() must return false -> no merge.
         _ = try scheduler.createOrUpdateTask(
             id: runTaskId,
@@ -762,19 +766,19 @@ final class StudyManagerTests {
             }
         )
         try #require(try scheduler.queryAllTasks().filter { $0.id == runTaskId }.count == 2)
-        
+
         let eventsBefore = try snapshotEvents()
         let totalTasksBefore = try scheduler.queryAllTasks().count
-        
+
         try studyManager.fixTaskContextAndDuplicateVersions()
-        
+
         // nothing merged, nothing deleted, observable stream unchanged (V1's window keeps its title, V2's window keeps the new one).
         #expect(try scheduler.queryAllTasks().count == totalTasksBefore)
         #expect(try scheduler.queryAllTasks().filter { $0.id == runTaskId }.count == 2)
         #expect(try snapshotEvents() == eventsBefore)
     }
-    
-    
+
+
     deinit {
         try? FileManager.default.removeItem(at: studyBundle.bundleUrl)
         if #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) {

@@ -20,5 +20,5 @@ This package provides several utilities that make your life easier when testing 
 
 ### Testing Byte Codable
 
-- ``testIdentity(from:)``
-- ``testIdentity(of:from:)``
+- ``testIdentity(from:sourceLocation:)``
+- ``testIdentity(of:from:sourceLocation:)``

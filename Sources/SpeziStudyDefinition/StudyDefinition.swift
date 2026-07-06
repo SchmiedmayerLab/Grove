@@ -80,7 +80,7 @@ public typealias StudyDefinitionElement = Hashable & Codable & Sendable
 /// - ``allCollectedHealthData(includingOptionalSampleTypes:)``
 /// - ``component(withId:)``
 /// - ``removeComponent(at:)``
-/// - ``validate()``
+/// - ``validate(in:)``
 @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 public struct StudyDefinition: Identifiable, Hashable, Sendable, Encodable, DecodableWithConfiguration {
     /// The ``StudyDefinition`` type's current schema version.

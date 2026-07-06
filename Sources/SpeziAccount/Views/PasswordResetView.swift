@@ -159,7 +159,7 @@ public struct PasswordResetView<SuccessView: View>: View {
             didReset = true
         }
 
-        Task {
+        _ = Task {
             // we are creating a detached task, as otherwise this one might be cancelled
             // as the view update above results in our current ask getting freed
             try await Task.sleep(for: .milliseconds(515))

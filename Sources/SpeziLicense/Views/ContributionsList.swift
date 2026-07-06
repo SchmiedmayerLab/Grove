@@ -85,6 +85,7 @@ public struct ContributionsList: View {
     /// - parameter appName: The name of the app to be rendered in the information text at the top of the view.
     ///     Defaults to ``AppName/automatic``, which reads the name from the main Bundle.
     /// - parameter projectLicense: Optional SPDX-License-Identifier to inform user about the project's license.
+    /// - parameter projectUrl: Optional URL to the project whose contributions are displayed.
     /// - parameter additionalPackages: Additional entries that should be displayed in the list but are not present in the app's SPM dependencies.
     ///     Intended for non-SPM dependencies.
     public init(

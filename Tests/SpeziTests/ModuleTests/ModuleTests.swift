@@ -61,13 +61,11 @@ struct ModuleTests {
         // manually patch environment variable for running within Xcode preview window
         setenv(ProcessInfo.xcodeRunningForPreviewKey, "1", 1)
 
-        try await confirmation { confirmation in
-            _ = try #require(
-                Text("Spezi")
-                    .previewWith {
-                        TestModule(confirmation: confirmation)
-                    }
-            )
+        await confirmation { confirmation in
+            _ = Text("Spezi")
+                .previewWith {
+                    TestModule(confirmation: confirmation)
+                }
         }
 
         unsetenv(ProcessInfo.xcodeRunningForPreviewKey)

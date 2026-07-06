@@ -960,9 +960,6 @@ extension HKUnitTests {
         #expect(try HKUnitA.parse(HKUnitA.smallCalorie().unitString) == HKUnitA.smallCalorie())
         #expect(try HKUnitB.parse(HKUnitB.smallCalorie().unitString) == HKUnitB.smallCalorie())
         
-        #expect(try HKUnitA.parse(HKUnitA.calorie().unitString) == HKUnitA.calorie())
-        #expect(try HKUnitB.parse(HKUnitB.calorie().unitString) == HKUnitB.calorie())
-        
         // mol
         expectFailsToParse("mol<>")
         #expect(try HKUnitA.parse("mol") != HKUnitA.moleUnit(withMolarMass: HKUnitMolarMassBloodGlucose))

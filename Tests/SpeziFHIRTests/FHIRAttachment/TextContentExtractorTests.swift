@@ -18,7 +18,7 @@ struct TextContentExtractorTests {
 
     @Test("Successfully extracts content from text data")
     func testTextExtraction() throws {
-        let textData = "Welcome to SpeziFHIR".data(using: .utf8) ?? Data()
+        let textData = Data("Welcome to SpeziFHIR".utf8)
         let content = try textExtractor.extractContent(from: textData)
 
         #expect(content == "Welcome to SpeziFHIR")

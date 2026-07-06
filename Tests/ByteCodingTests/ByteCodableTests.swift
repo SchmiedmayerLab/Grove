@@ -46,7 +46,7 @@ struct ByteCodableTests {
         #expect(value == 3333)
 
         // BYTE CODABLE
-        let stringData = try #require("Hello World".data(using: .utf8))
+        let stringData = Data("Hello World".utf8)
         let stringValue = try #require(String(data: stringData))
         #expect(stringValue == "Hello World")
     }
@@ -75,7 +75,7 @@ struct ByteCodableTests {
 
     @Test("String")
     func testString() throws {
-        let data = try #require("Hello World".data(using: .utf8))
+        let data = Data("Hello World".utf8)
         try testIdentity(of: String.self, from: data)
 
         var empty = ByteBuffer()

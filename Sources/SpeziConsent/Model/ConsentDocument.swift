@@ -123,8 +123,9 @@ import SwiftUI
 /// ## Topics
 ///
 /// ### Creating Consent Documents
-/// - ``init(markdown:initialName:enableCustomElements:)-(String,_,_)``
-/// - ``init(contentsOf:initialName:enableCustomElements:)``
+/// - ``init(markdown:initialName:)-(String,_)``
+/// - ``init(markdown:initialName:)-(Data,_)``
+/// - ``init(contentsOf:initialName:)``
 /// - ``LoadError``
 ///
 /// ### Accessing Form Contents
@@ -160,8 +161,6 @@ public final class ConsentDocument: Sendable {
     /// - ``failedToParse(_:)``
     /// - ``duplicateCustomElementId(_:)``
     /// 
-    /// ### Other
-    /// - ``ConsentParseError``
     public enum LoadError: Error {
         /// The input was not valid UTF-8-encoded text.
         case inputNotUTF8

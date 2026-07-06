@@ -150,7 +150,7 @@ private final class DevicesFetcherDelegate: NSObject, SRSensorReaderDelegate {
     }
     
     func sensorReader(_ reader: SRSensorReader, didFetch devices: [SRDevice]) {
-        nonisolated(unsafe) let devices = devices
+        let devices = devices
         continuation?.resume(returning: devices)
         continuation = nil
     }

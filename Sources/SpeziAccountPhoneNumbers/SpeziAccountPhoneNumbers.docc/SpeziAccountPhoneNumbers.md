@@ -102,20 +102,8 @@ actor YourStandard: PhoneVerificationConstraint {
 
 ## Topics
 
-### Storage
+### Phone Verification
 
 - ``PhoneVerificationProvider``
 - ``PhoneVerificationConstraint``
-
-### Views
-
-- ``PhoneNumbersDetailView``
-- ``PhoneNumberSteps``
-- ``PhoneNumberEntryField``
-- ``CountryListSheet``
-
-### Models
-
-- ``PhoneNumberViewModel``
-- ``StartVerificationRequest``
-- ``CompleteVerificationRequest``
+- ``SpeziAccount/AccountDetails/PhoneNumbersArray``

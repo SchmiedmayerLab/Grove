@@ -145,5 +145,4 @@ The following example generates the following FHIR observation:
 - <doc:SupportedHKCorrelationTypes>
 
 ### Working with FHIR Extensions
-- ``FHIRExtensionBuilder``
-- ``FHIRTypeWithExtensions``
+- ``FHIRModelsExtensions``

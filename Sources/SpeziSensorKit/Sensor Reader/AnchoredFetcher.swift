@@ -26,7 +26,7 @@ public struct AnchoredFetcher<Sample: SensorKitSampleProtocol>: AsyncSequence {
     private let sensor: Sensor<Sample>
     private let queryAnchorProvider: (SensorKit.QueryAnchorKey) -> ManagedQueryAnchor
     private let batchSize: BatchSize
-    nonisolated(unsafe) private let devices: [SRDevice]
+    private let devices: [SRDevice]
     
     public init(
         sensor: some AnySensor<Sample>,
@@ -47,7 +47,7 @@ public struct AnchoredFetcher<Sample: SensorKitSampleProtocol>: AsyncSequence {
             switch batchSize {
             case .numberOfSamples(let limit):
                 for device in devices {
-                    nonisolated(unsafe) let device = device
+                    let device = device
                     SampleCountBasedFetcher(
                         sensor: sensor,
                         batchSize: limit,
@@ -64,7 +64,7 @@ public struct AnchoredFetcher<Sample: SensorKitSampleProtocol>: AsyncSequence {
     @_AsyncIteratorBuilder<Element, Failure>
     private func timeIntervalBasedIterator(batchDuration duration: Duration) -> some AsyncIteratorProtocol<Element, Failure> {
         for device in devices {
-            nonisolated(unsafe) let device = device
+            let device = device
             TimeIntervalBasedFetcher(
                 sensor: sensor,
                 anchor: queryAnchorProvider(SensorKit.QueryAnchorKey(sensor: sensor, deviceProductType: device.productType)),

@@ -41,6 +41,7 @@ public struct NewHealthSampleInput {
 
 extension NewHealthSampleInput.EnterSampleValueHandler {
     /// Creates a new sample value input handler that inserts a numeric value into a text field.
+    /// - parameter value: The numeric value to insert.
     /// - parameter textFieldPredicate: optional predicate allowing the caller to specify which exact text field the value should be inserted into
     public static func enterSimpleNumericValue(_ value: Double, inTextField textFieldPredicate: NSPredicate? = nil) -> Self {
         nonisolated(unsafe) let textFieldPredicate = textFieldPredicate

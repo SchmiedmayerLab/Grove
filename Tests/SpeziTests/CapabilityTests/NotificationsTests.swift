@@ -106,7 +106,7 @@ struct NotificationsTests {
 
         let action = module.registerRemoteNotifications
 
-        let data = try #require("Hello World".data(using: .utf8))
+        let data = Data("Hello World".utf8)
         async let registrationCallback: Void = deliverSuccessfulRegistration(using: delegate, data: data)
 
         _ = try await action()

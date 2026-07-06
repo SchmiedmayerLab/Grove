@@ -31,7 +31,7 @@ struct ValueCoding: Equatable, Codable, RawRepresentable {
             return "{}"
         }
         
-        return String(decoding: data, as: UTF8.self)
+        return String(bytes: data, encoding: .utf8) ?? "{}"
     }
     
     

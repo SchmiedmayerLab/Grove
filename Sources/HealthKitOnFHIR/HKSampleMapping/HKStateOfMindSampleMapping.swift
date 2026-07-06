@@ -36,6 +36,11 @@ public struct HKStateOfMindMapping: Decodable, Sendable {
     /// - Parameters:
     ///   - codings: The FHIR codings defined as ``MappedCode``s used for the `HKStateOfMind` sample
     ///   - categories: The FHIR categories defined as ``MappedCode``s used for the `HKStateOfMind` sample
+    ///   - kind: The mapping for the state-of-mind kind.
+    ///   - valence: The mapping for the state-of-mind valence.
+    ///   - valenceClassification: The mapping for the state-of-mind valence classification.
+    ///   - label: The mapping for the state-of-mind labels.
+    ///   - association: The mapping for the state-of-mind associations.
     public init(
         codings: [MappedCode] = Self.default.codings,
         categories: [MappedCode] = Self.default.categories,

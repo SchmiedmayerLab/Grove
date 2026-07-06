@@ -54,7 +54,7 @@ import SwiftUI
 /// ### Configuration
 /// - ``CloseBehavior``
 /// - ``AccountDeletionBehavior``
-/// - ``init(close:deletion:additionalSections:)``
+/// - ``init(close:logout:deletion:additionalSections:)``
 @available(macOS, unavailable)
 @available(watchOS, unavailable)
 @available(iOS 17, macOS 14, *)
@@ -66,13 +66,13 @@ public struct AccountOverview<AdditionalSections: View>: View {
         /// A close button is shown that calls the `dismiss` action.
         case showCloseButton
     }
-    
-    
+
+
     /// How an account operation (i.e., logout or deletion) via the ``AccountOverview`` should be handled.
     public enum AccountOperationHandler {
         /// The operation should be handled normally via SpeziAccount.
         case `default`
-        
+
         /// The operation should be handled via a custom closure.
         ///
         /// - parameter labels: The labels that should be used for UI related to the operation.
@@ -82,22 +82,22 @@ public struct AccountOverview<AdditionalSections: View>: View {
             _ handler: @Sendable () async throws -> Void
         )
     }
-    
-    
+
+
     /// Defines the behavior of logging out of the account.
     public enum AccountLogoutBehavior: AccountOverviewDestructiveAccountOperation {
         /// Account logout is not available.
         case disabled
         /// Account logout is available.
         case enabled(AccountOperationHandler)
-        
+
         typealias ExtraSections = AdditionalSections
-        
+
         /// The default behavior, where logout is available and uses the SpeziAccount-defined labels and handler.
         public static var enabled: Self {
             .enabled(.default)
         }
-        
+
         var labels: AccountOverviewOperationLabels {
             switch self {
             case .disabled, .enabled(.default):
@@ -106,7 +106,7 @@ public struct AccountOverview<AdditionalSections: View>: View {
                 labels
             }
         }
-        
+
         var handler: AccountOperationHandler? {
             switch self {
             case .disabled:
@@ -116,8 +116,8 @@ public struct AccountOverview<AdditionalSections: View>: View {
             }
         }
     }
-    
-    
+
+
     /// Defines the behavior of deleting the account.
     public enum AccountDeletionBehavior: AccountOverviewDestructiveAccountOperation {
         /// Account deletion is not available.
@@ -126,19 +126,19 @@ public struct AccountOverview<AdditionalSections: View>: View {
         case inEditMode(AccountOperationHandler)
         /// Show the delete button below the logout button.
         case belowLogout(AccountOperationHandler)
-        
+
         typealias ExtraSections = AdditionalSections
-        
+
         /// When entering the edit mode, the logout button turns into a delete account button.
         public static var inEditMode: Self {
             .inEditMode(.default)
         }
-        
+
         /// Show the delete button below the logout button.
         public static var belowLogout: Self {
             .belowLogout(.default)
         }
-        
+
         /// The labels that should be used for account-deletion-related UI elements.
         /// Exists to allow user customization.
         var labels: AccountOverviewOperationLabels {
@@ -149,7 +149,7 @@ public struct AccountOverview<AdditionalSections: View>: View {
                 labels
             }
         }
-        
+
         var handler: AccountOperationHandler? {
             switch self {
             case .disabled:
@@ -159,8 +159,8 @@ public struct AccountOverview<AdditionalSections: View>: View {
             }
         }
     }
-    
-    
+
+
     private let closeBehavior: CloseBehavior
     private let logoutBehavior: AccountLogoutBehavior
     private let deletionBehavior: AccountDeletionBehavior
@@ -196,24 +196,45 @@ public struct AccountOverview<AdditionalSections: View>: View {
             }
         }
     }
-    
-    
+
+
     /// Display a new Account Overview.
     /// - Parameters:
     ///   - closeBehavior: Define the behavior of the close button that can be rendered in the toolbar. This is useful when presenting the AccountOverview
     ///     as a sheet. Disabled by default.
+    ///   - logoutBehavior: Define how the Account Overview offers the user to log out. Enabled by default.
     ///   - deletionBehavior: Define how the Account Overview offers the user to delete their account. By default the Logout button turns into a delete button when entering edit mode.
     ///   - additionalSections: Optional additional sections displayed between the other AccountOverview information and the log out button.
     public init(
         close closeBehavior: CloseBehavior = .disabled,
         logout logoutBehavior: AccountLogoutBehavior = .enabled,
         deletion deletionBehavior: AccountDeletionBehavior = .inEditMode,
-        @ViewBuilder additionalSections: () -> AdditionalSections = { EmptyView() }
+        @ViewBuilder additionalSections: () -> AdditionalSections
     ) {
         self.closeBehavior = closeBehavior
         self.logoutBehavior = logoutBehavior
         self.deletionBehavior = deletionBehavior
         self.additionalSections = additionalSections()
+    }
+
+
+    /// Display a new Account Overview.
+    /// - Parameters:
+    ///   - closeBehavior: Define the behavior of the close button that can be rendered in the toolbar. This is useful when presenting the AccountOverview
+    ///     as a sheet. Disabled by default.
+    ///   - logoutBehavior: Define how the Account Overview offers the user to log out. Enabled by default.
+    ///   - deletionBehavior: Define how the Account Overview offers the user to delete their account. By default the Logout button turns into a delete button when entering edit mode.
+    public init(
+        close closeBehavior: CloseBehavior = .disabled,
+        logout logoutBehavior: AccountLogoutBehavior = .enabled,
+        deletion deletionBehavior: AccountDeletionBehavior = .inEditMode
+    ) where AdditionalSections == EmptyView {
+        self.init(
+            close: closeBehavior,
+            logout: logoutBehavior,
+            deletion: deletionBehavior,
+            additionalSections: EmptyView.init
+        )
     }
 }
 

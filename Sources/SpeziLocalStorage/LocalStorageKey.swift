@@ -57,7 +57,7 @@ public class LocalStorageKeys {
 /// ## Topics
 /// ### Creating Storage Keys
 /// - ``init(_:setting:)-21oqu``
-/// - ``init(_:setting:encoder:decoder:)``
+/// - ``init(_:setting:encoder:decoder:)-4yhmm``
 /// - ``init(_:setting:)-1sf9p``
 /// - ``init(_:setting:)-9t3s8``
 /// - ``init(key:setting:encode:decode:)``
@@ -100,11 +100,11 @@ public final class LocalStorageKey<Value>: LocalStorageKeys, @unchecked Sendable
     }
     
     func withReadLock<Result>(_ block: () throws -> Result) rethrows -> Result {
-        try lock.withReadLock(body: block)
+        try lock.withReadLock(block)
     }
     
     func withWriteLock<Result>(_ block: () throws -> Result) rethrows -> Result {
-        try lock.withWriteLock(body: block)
+        try lock.withWriteLock(block)
     }
     
     func informSubscribersAboutNewValue(_ newValue: Value?) {

@@ -46,17 +46,17 @@ extension UTType {
 /// - ``studyDefinition``
 ///
 /// ### Accessing the Bundle's Contents
-/// - ``consentText(for:in:using:)``
-/// - ``questionnaire(for:in:using:)``
+/// - ``consentText(for:in:using:fallbackLocale:)``
+/// - ``questionnaire(for:in:using:fallback:)``
 /// - ``displayTitle(for:in:using:)``
-/// - ``resolve(_:in:using:)``
+/// - ``resolve(_:in:using:fallback:)``
 ///
 /// ### Operations
 /// - ``copy(to:)``
 ///
 /// ### Creating Study Bundles
 /// - ``writeToDisk(at:definition:files:)``
-/// - ``FileInput``
+/// - ``FileResourceInput``
 ///
 /// ### Other
 /// - ``fileExtension``

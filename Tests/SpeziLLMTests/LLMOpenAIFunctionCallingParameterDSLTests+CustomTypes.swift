@@ -78,7 +78,7 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
     @Test("Test Custom Type Parameters")
     func testLLMFunctionCustomParameters() async throws {
         let llm = LLMOpenAISchema(
-            parameters: .init(modelType: "gpt-4o")
+            parameters: .init(modelType: .gpt4o)
         ) {
             LLMFunctionTestCustom(someInitArg: "testArg")
         }

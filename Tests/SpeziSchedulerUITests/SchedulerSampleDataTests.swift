@@ -6,10 +6,12 @@
 // SPDX-License-Identifier: MIT
 //
 
+import SpeziFoundation
 @_spi(TestingSupport)
 import SpeziScheduler
 @_spi(TestingSupport)
 @testable import SpeziSchedulerUI
+import SpeziTesting
 import XCTest
 import XCTSpezi
 
@@ -21,7 +23,7 @@ final class SchedulerSampleDataTests: XCTestCase {
         let container = try SchedulerSampleData.makeSharedContext()
 
         let scheduler = Scheduler(persistence: .testingContainer(container))
-        withDependencyResolution {
+        SpeziTesting.withDependencyResolution {
             scheduler
         }
 

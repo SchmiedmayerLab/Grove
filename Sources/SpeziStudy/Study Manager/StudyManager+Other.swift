@@ -8,6 +8,7 @@
 
 import Foundation
 import class ModelsR4.Questionnaire
+import SpeziFoundation
 import SpeziScheduler
 import SpeziStudyDefinition
 import SwiftData

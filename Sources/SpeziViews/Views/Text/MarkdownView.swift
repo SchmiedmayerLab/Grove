@@ -151,13 +151,27 @@ public struct MarkdownView<CustomElementView: View>: View {
     public init(
         document: MarkdownDocument,
         dividerRule: DividerRule = .never,
-        @ViewBuilder _ customElementViewProvider: @escaping CustomElementViewProvider = { _, _ in EmptyView() }
+        @ViewBuilder _ customElementViewProvider: @escaping CustomElementViewProvider
     ) {
         self.init(
             loadingState: .loaded(document),
             dividerRule: dividerRule,
             customElementViewProvider: customElementViewProvider
         )
+    }
+
+
+    /// Creates a new MarkdownView.
+    ///
+    /// - parameter document: The [`MarkdownDocument`](../../../SpeziFoundation/SpeziFoundation.docc/SpeziFoundation.md) the view should display.
+    /// - parameter dividerRule: Defines when the view should place a `Divider` between two sections. Defaults to ``DividerRule/never``.
+    public init(
+        document: MarkdownDocument,
+        dividerRule: DividerRule = .never
+    ) where CustomElementView == EmptyView {
+        self.init(document: document, dividerRule: dividerRule) { _, _ in
+            EmptyView()
+        }
     }
 
 
@@ -203,13 +217,27 @@ extension MarkdownView {
     public init(
         markdownDocument: MarkdownDocument,
         dividerRule: DividerRule = .never,
-        @ViewBuilder customElementViewProvider: @escaping CustomElementViewProvider = { _, _ in EmptyView() }
+        @ViewBuilder customElementViewProvider: @escaping CustomElementViewProvider
     ) {
         self.init(
             loadingState: .loaded(markdownDocument),
             dividerRule: dividerRule,
             customElementViewProvider: customElementViewProvider
         )
+    }
+
+    /// Creates a new MarkdownView.
+    ///
+    /// - parameter markdownDocument: The [`MarkdownDocument`](../../../SpeziFoundation/SpeziFoundation.docc/SpeziFoundation.md) the view should display.
+    /// - parameter dividerRule: Defines when the view should place a `Divider` between two sections. Defaults to ``DividerRule/never``.
+    @available(*, deprecated, renamed: "init(document:dividerRule:)")
+    public init(
+        markdownDocument: MarkdownDocument,
+        dividerRule: DividerRule = .never
+    ) where CustomElementView == EmptyView {
+        self.init(markdownDocument: markdownDocument, dividerRule: dividerRule) { _, _ in
+            EmptyView()
+        }
     }
 
     /// Creates a ``MarkdownView`` that displays the content of a markdown file as an UTF-8 representation that is loaded asynchronously.

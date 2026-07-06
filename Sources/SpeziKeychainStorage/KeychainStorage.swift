@@ -34,9 +34,6 @@ import Spezi
 /// -  ``retrieveAllInternetCredentials(forServer:)``
 /// - ``retrieveAllCredentials()``
 /// - ``deleteCredentials(withUsername:for:)``
-/// - ``deleteAllGenericCredentials(service:accessGroup:)``
-/// - ``deleteAllInternetCredentials(server:accessGroup:)``
-/// - ``deleteAllCredentials(accessGroup:)``
 ///
 /// ### Cryptographic Key Storage
 /// - ``CryptographicKeyTag``
@@ -46,7 +43,6 @@ import Spezi
 /// - ``retrieveAllKeys(_:accessGroup:)``
 /// - ``deleteKey(for:)``
 /// - ``deleteKey(_:)``
-/// - ``deleteAllKeys(accessGroup:)``
 /// - ``Security/SecKey``
 ///
 /// ### Other

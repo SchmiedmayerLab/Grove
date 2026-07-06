@@ -9,6 +9,9 @@
 //
 
 import CompilerPluginSupport
+import class Foundation.FileManager
+import class Foundation.ProcessInfo
+import struct Foundation.URL
 import PackageDescription
 
 
@@ -33,6 +36,60 @@ let packagePlatforms: [SupportedPlatform] = [
     .watchOS(.v8)
 ]
 
+let packageDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+
+let reusableTargetExcludes = [
+    "CITATION.cff",
+    "CONTRIBUTORS.md",
+    "LICENSE",
+    "LICENSE.md",
+    "LICENSES",
+    "README.md",
+    "REUSE.toml"
+]
+
+func targetExcludes(_ targetName: String, additional: [String] = []) -> [String] {
+    reusableExcludes(in: "Sources/\(targetName)", additional: additional)
+}
+
+func testTargetExcludes(_ targetName: String, additional: [String] = []) -> [String] {
+    reusableExcludes(in: "Tests/\(targetName)", additional: additional)
+}
+
+func reusableExcludes(in targetPath: String, additional: [String] = []) -> [String] {
+    let existingAdditionalExcludes = existingExcludes(in: targetPath, matching: additional)
+    let excludes = existingExcludes(in: targetPath, matching: reusableTargetExcludes)
+        + licenseExcludes(in: targetPath, skipping: existingAdditionalExcludes)
+        + existingAdditionalExcludes
+
+    var seenExcludes: Set<String> = []
+    return excludes.filter { seenExcludes.insert($0).inserted }
+}
+
+func existingExcludes(in targetPath: String, matching candidates: [String]) -> [String] {
+    let targetDirectory = packageDirectory.appendingPathComponent(targetPath, isDirectory: true)
+    return candidates.filter { FileManager.default.fileExists(atPath: targetDirectory.appendingPathComponent($0).path) }
+}
+
+func licenseExcludes(in targetPath: String, skipping skippedExcludes: [String]) -> [String] {
+    let targetDirectory = packageDirectory.appendingPathComponent(targetPath, isDirectory: true)
+    guard let enumerator = FileManager.default.enumerator(atPath: targetDirectory.path) else {
+        return []
+    }
+
+    var excludes: [String] = []
+    while let relativePath = enumerator.nextObject() as? String {
+        guard !skippedExcludes.contains(where: { relativePath == $0 || relativePath.hasPrefix("\($0)/") }) else {
+            enumerator.skipDescendants()
+            continue
+        }
+
+        if relativePath.hasSuffix(".license") {
+            excludes.append(relativePath)
+        }
+    }
+    return excludes.sorted()
+}
 
 var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/antlr/antlr4.git", from: "4.13.1"),
@@ -177,7 +234,7 @@ var products: [Product] = [
     .library(name: "XCTRuntimeAssertions", targets: ["XCTRuntimeAssertions"]),
     // MARK: XCTestExtensions
     .library(name: "XCTestApp", targets: ["XCTestApp"]),
-    .library(name: "XCTestExtensions", targets: ["XCTestExtensions"]),
+    .library(name: "XCTestExtensions", targets: ["XCTestExtensions"])
 ]
 
 #if canImport(Darwin)
@@ -185,7 +242,7 @@ products += [
     // MARK: SpeziScheduler
     .library(name: "SpeziSchedulerUI", targets: ["SpeziSchedulerUI"]),
     // MARK: SpeziStudy
-    .library(name: "SpeziStudy", targets: ["SpeziStudy"]),
+    .library(name: "SpeziStudy", targets: ["SpeziStudy"])
 ]
 #endif
 
@@ -198,13 +255,7 @@ var targets: [Target] = [
             .target(name: "FHIRPathParser"),
             .product(name: "ModelsR4", package: "FHIRModels")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md",
-            "REUSE.toml"
-        ],
+        exclude: targetExcludes("FHIRModelsExtensions"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny"),
             .enableUpcomingFeature("InternalImportsByDefault")
@@ -216,9 +267,7 @@ var targets: [Target] = [
         dependencies: [
             .product(name: "Antlr4", package: "antlr4")
         ],
-        exclude: [
-            "ANTLUtils"
-        ],
+        exclude: targetExcludes("FHIRPathParser", additional: ["ANTLUtils"]),
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -274,13 +323,7 @@ var targets: [Target] = [
             .product(name: "ModelsR4", package: "FHIRModels"),
             .target(name: "FHIRModelsExtensions")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md",
-            "Scripts"
-        ],
+        exclude: targetExcludes("HealthKitOnFHIR", additional: ["Scripts"]),
         resources: [
             .process("Resources")
         ],
@@ -295,9 +338,7 @@ var targets: [Target] = [
             .target(name: "HealthKitOnFHIR"),
             .target(name: "SpeziFoundation")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("HealthKitOnFHIRTests", additional: ["UITests"]),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -324,12 +365,7 @@ var targets: [Target] = [
             .target(name: "FHIRModelsExtensions"),
             .target(name: "FHIRPathParser")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("ResearchKitOnFHIR"),
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -338,9 +374,7 @@ var targets: [Target] = [
             .target(name: "ResearchKitOnFHIR", condition: .when(traits: [researchKitTrait])),
             .target(name: "FHIRQuestionnaires")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("ResearchKitOnFHIRTests", additional: ["UITests"]),
         plugins: [] + defaultPlugins
     ),
     // MARK: Spezi
@@ -351,12 +385,7 @@ var targets: [Target] = [
             .target(name: "RuntimeAssertions"),
             .product(name: "OrderedCollections", package: "swift-collections")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("Spezi"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -391,9 +420,7 @@ var targets: [Target] = [
             .target(name: "RuntimeAssertionsTesting"),
             .product(name: "TestingExpectation", package: "swift-testing-expectation")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziTests", additional: ["UITests"]),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny"),
             .define("DEBUG", .when(configuration: .debug))
@@ -409,13 +436,7 @@ var targets: [Target] = [
             .target(name: "SpeziViews"),
             .target(name: "SpeziFoundation")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md",
-            "REUSE.toml"
-        ],
+        exclude: targetExcludes("SpeziAccessGuard"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny"),
             .enableUpcomingFeature("InternalImportsByDefault")
@@ -429,9 +450,7 @@ var targets: [Target] = [
             .target(name: "SpeziTesting"),
             .product(name: "SnapshotTesting", package: "swift-snapshot-testing", condition: .when(platforms: [.iOS]))
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziAccessGuardTests", additional: ["UITests"]),
         resources: [
             .process("__Snapshots__")
         ],
@@ -467,12 +486,7 @@ var targets: [Target] = [
             .product(name: "Atomics", package: "swift-atomics"),
             .target(name: "SpeziAccountMacros")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("SpeziAccount"),
         resources: [
             .process("Resources")
         ],
@@ -498,6 +512,7 @@ var targets: [Target] = [
             .target(name: "SpeziAccount"),
             .product(name: "PhoneNumberKit", package: "PhoneNumberKit")
         ],
+        exclude: targetExcludes("SpeziAccountPhoneNumbers"),
         resources: [
             .process("Resources")
         ],
@@ -516,9 +531,7 @@ var targets: [Target] = [
             .target(name: "SpeziTesting"),
             .product(name: "SnapshotTesting", package: "swift-snapshot-testing", condition: .when(platforms: [.iOS]))
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziAccountTests", additional: ["UITests"]),
         resources: [
             .process("__Snapshots__")
         ],
@@ -551,13 +564,7 @@ var targets: [Target] = [
             .target(name: "ByteCoding"),
             .product(name: "Atomics", package: "swift-atomics")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md",
-            "bin"
-        ],
+        exclude: targetExcludes("SpeziBluetooth", additional: ["bin"]),
         resources: [
             .process("Resources")
         ],
@@ -587,9 +594,7 @@ var targets: [Target] = [
             .target(name: "SpeziBluetooth"),
             .target(name: "SpeziBluetoothServices")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziBluetoothTests", additional: ["UITests"]),
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -612,12 +617,7 @@ var targets: [Target] = [
             .target(name: "SpeziViews"),
             .product(name: "Textual", package: "textual", condition: .when(traits: [textualTrait]))
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("SpeziChat"),
         resources: [
             .process("Resources")
         ],
@@ -631,9 +631,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "SpeziChat")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziChatTests", additional: ["UITests"]),
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziConsent
@@ -648,13 +646,7 @@ var targets: [Target] = [
             .product(name: "TPPDF", package: "TPPDF"),
             .product(name: "MarkdownUI", package: "swift-markdown-ui")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md",
-            "REUSE.toml"
-        ],
+        exclude: targetExcludes("SpeziConsent"),
         resources: [
             .process("Resources")
         ],
@@ -671,9 +663,7 @@ var targets: [Target] = [
             .target(name: "SpeziFoundation"),
             .product(name: "SnapshotTesting", package: "swift-snapshot-testing", condition: .when(platforms: [.iOS]))
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziConsentTests", additional: ["UITests"]),
         resources: [
             .process("Resources"),
             .process("__Snapshots__")
@@ -690,12 +680,7 @@ var targets: [Target] = [
             .target(name: "SpeziViews"),
             .target(name: "SpeziPersonalInfo")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("SpeziContact"),
         swiftSettings: [
             .enableExperimentalFeature("StrictConcurrency")
         ],
@@ -706,9 +691,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "SpeziContact")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziContactTests", additional: ["UITests"]),
         swiftSettings: [
             .enableExperimentalFeature("StrictConcurrency")
         ],
@@ -725,12 +708,7 @@ var targets: [Target] = [
             .target(name: "SpeziViews"),
             .target(name: "Spezi")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("SpeziDevices"),
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -741,6 +719,7 @@ var targets: [Target] = [
             .target(name: "SpeziValidation"),
             .target(name: "SpeziBluetooth")
         ],
+        exclude: targetExcludes("SpeziDevicesUI"),
         resources: [
             .process("Resources")
         ],
@@ -753,6 +732,7 @@ var targets: [Target] = [
             .target(name: "SpeziBluetooth"),
             .target(name: "SpeziBluetoothServices")
         ],
+        exclude: targetExcludes("SpeziOmron"),
         resources: [
             .process("Resources")
         ],
@@ -767,9 +747,7 @@ var targets: [Target] = [
             .target(name: "SpeziBluetooth"),
             .target(name: "SpeziBluetoothServices")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziDevicesTests", additional: ["UITests"]),
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -791,12 +769,7 @@ var targets: [Target] = [
             .target(name: "HealthKitOnFHIR"),
             .target(name: "SpeziHealthKit")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("SpeziFHIR"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -820,6 +793,7 @@ var targets: [Target] = [
             .target(name: "SpeziFHIR"),
             .product(name: "ModelsR4", package: "FHIRModels")
         ],
+        exclude: targetExcludes("SpeziFHIRMockPatients"),
         resources: [
             .process("Resources")
         ],
@@ -836,9 +810,7 @@ var targets: [Target] = [
             .target(name: "HealthKitOnFHIR"),
             .target(name: "SpeziHealthKit")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziFHIRTests", additional: ["UITests"]),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -847,12 +819,7 @@ var targets: [Target] = [
     // MARK: SpeziFileFormats
     .target(
         name: "SpeziFileFormats",
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("SpeziFileFormats"),
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -880,12 +847,7 @@ var targets: [Target] = [
     // MARK: SpeziFirebase
     .target(
         name: "SpeziFirebase",
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("SpeziFirebase"),
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -900,6 +862,7 @@ var targets: [Target] = [
             .target(name: "SpeziKeychainStorage"),
             .product(name: "FirebaseAuth", package: "firebase-ios-sdk")
         ],
+        exclude: targetExcludes("SpeziFirebaseAccount"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -924,6 +887,7 @@ var targets: [Target] = [
             .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
             .product(name: "Atomics", package: "swift-atomics")
         ],
+        exclude: targetExcludes("SpeziFirestore"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -961,9 +925,7 @@ var targets: [Target] = [
             .target(name: "SpeziFirebaseConfiguration"),
             .target(name: "SpeziFirestore")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziFirebaseTests", additional: ["UITests"]),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -1024,13 +986,7 @@ var targets: [Target] = [
             .product(name: "Logging", package: "swift-log"),
             .target(name: "ThreadLocal")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "Dockerfile",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("SpeziFoundation", additional: ["Dockerfile"]),
         resources: [
             .process("Resources")
         ],
@@ -1050,6 +1006,7 @@ var targets: [Target] = [
             .target(name: "SpeziFoundation"),
             .product(name: "Algorithms", package: "swift-algorithms")
         ],
+        exclude: targetExcludes("SpeziLocalization"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny"),
             .enableUpcomingFeature("InternalImportsByDefault")
@@ -1062,9 +1019,7 @@ var targets: [Target] = [
             .target(name: "SpeziFoundation"),
             .target(name: "RuntimeAssertionsTesting")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziFoundationTests", additional: ["UITests"]),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -1076,6 +1031,7 @@ var targets: [Target] = [
             .target(name: "SpeziLocalization"),
             .target(name: "SpeziFoundation")
         ],
+        exclude: testTargetExcludes("SpeziLocalizationTests"),
         resources: [
             .process("Resources")
         ],
@@ -1094,17 +1050,12 @@ var targets: [Target] = [
             .product(name: "Algorithms", package: "swift-algorithms"),
             .product(name: "AsyncAlgorithms", package: "swift-async-algorithms")
         ],
-        exclude: [
+        exclude: targetExcludes("SpeziHealthKit", additional: [
             "Sample Types/SampleTypeDefs.py",
             "Sample Types/SampleTypes.swift.gyb",
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md",
-            "REUSE.toml",
             "codecov.yml",
             "useGYB"
-        ],
+        ]),
         resources: [
             .process("Resources")
         ],
@@ -1148,9 +1099,7 @@ var targets: [Target] = [
             .target(name: "SpeziHealthKitUI"),
             .product(name: "SnapshotTesting", package: "swift-snapshot-testing", condition: .when(platforms: [.iOS]))
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziHealthKitTests", additional: ["UITests"]),
         resources: [
             .process("__Snapshots__")
         ],
@@ -1167,13 +1116,7 @@ var targets: [Target] = [
             .target(name: "SpeziChat"),
             .target(name: "SpeziViews")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "FogNode",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("SpeziLLM", additional: ["FogNode"]),
         resources: [
             .process("Resources")
         ],
@@ -1193,6 +1136,7 @@ var targets: [Target] = [
             .product(name: "Transformers", package: "swift-transformers", condition: .when(traits: [mlxTrait])),
             .product(name: "MLXLLM", package: "mlx-swift-examples", condition: .when(traits: [mlxTrait]))
         ],
+        exclude: targetExcludes("SpeziLLMLocal"),
         resources: [
             .process("Resources")
         ],
@@ -1209,6 +1153,7 @@ var targets: [Target] = [
             .target(name: "SpeziLLMLocal"),
             .product(name: "MLXLLM", package: "mlx-swift-examples", condition: .when(traits: [mlxTrait]))
         ],
+        exclude: targetExcludes("SpeziLLMLocalDownload"),
         resources: [
             .process("Resources")
         ],
@@ -1230,6 +1175,7 @@ var targets: [Target] = [
             .target(name: "SpeziKeychainStorage"),
             .target(name: "SpeziOnboarding")
         ],
+        exclude: targetExcludes("SpeziLLMOpenAI"),
         resources: [
             .process("Resources")
         ],
@@ -1252,6 +1198,7 @@ var targets: [Target] = [
             .target(name: "SpeziKeychainStorage"),
             .target(name: "SpeziOnboarding")
         ],
+        exclude: targetExcludes("SpeziLLMOpenAIRealtime"),
         resources: [
             .process("Resources")
         ],
@@ -1292,6 +1239,7 @@ var targets: [Target] = [
             .target(name: "Spezi"),
             .target(name: "SpeziOnboarding")
         ],
+        exclude: targetExcludes("SpeziLLMFog"),
         resources: [
             .process("Resources")
         ],
@@ -1308,14 +1256,11 @@ var targets: [Target] = [
             .target(name: "SpeziOnboarding"),
             .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime")
         ],
-        exclude: [
+        exclude: targetExcludes("GeneratedOpenAIClient", additional: [
             "package.json",
-            "package.json.license",
             "preprocess-openapi-spec.js",
-            "package-lock.json",
-            "README.md",
-            "package-lock.json.license"
-        ],
+            "package-lock.json"
+        ]),
         resources: [
             .process("Resources")
         ],
@@ -1333,9 +1278,7 @@ var targets: [Target] = [
             .target(name: "SpeziLLM"),
             .target(name: "SpeziLLMOpenAI")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziLLMTests", additional: ["UITests"]),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -1347,13 +1290,7 @@ var targets: [Target] = [
         dependencies: [
             .product(name: "SwiftPackageList", package: "swift-package-list")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md",
-            "REUSE.toml"
-        ],
+        exclude: targetExcludes("SpeziLicense"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -1365,9 +1302,7 @@ var targets: [Target] = [
             .target(name: "SpeziLicense"),
             .target(name: "Spezi")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziLicenseTests", additional: ["UITests"]),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -1379,12 +1314,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "Spezi")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("SpeziLocation"),
         swiftSettings: [
             .swiftLanguageMode(.v5)
         ],
@@ -1395,9 +1325,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "SpeziLocation")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziLocationTests", additional: ["UITests"]),
         swiftSettings: [
             .swiftLanguageMode(.v5)
         ],
@@ -1406,12 +1334,7 @@ var targets: [Target] = [
     // MARK: SpeziNetworking
     .target(
         name: "SpeziNetworking",
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("SpeziNetworking"),
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1468,12 +1391,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "Spezi")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("SpeziNotifications"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -1495,6 +1413,7 @@ var targets: [Target] = [
             .target(name: "SpeziNotifications"),
             .target(name: "SpeziViews")
         ],
+        exclude: targetExcludes("XCTSpeziNotificationsUI"),
         resources: [
             .process("Resources")
         ],
@@ -1510,9 +1429,7 @@ var targets: [Target] = [
             .target(name: "Spezi"),
             .target(name: "XCTSpezi")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziNotificationsTests", additional: ["UITests"]),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -1525,13 +1442,7 @@ var targets: [Target] = [
             .target(name: "Spezi"),
             .target(name: "SpeziViews")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md",
-            "REUSE.toml"
-        ],
+        exclude: targetExcludes("SpeziOnboarding"),
         resources: [
             .process("Resources")
         ],
@@ -1545,9 +1456,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "SpeziOnboarding")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziOnboardingTests", additional: ["UITests"]),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -1562,13 +1471,7 @@ var targets: [Target] = [
             .product(name: "MarkdownUI", package: "swift-markdown-ui"),
             .product(name: "Numerics", package: "swift-numerics")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md",
-            "REUSE.toml"
-        ],
+        exclude: targetExcludes("SpeziQuestionnaire"),
         resources: [
             .process("Resources")
         ],
@@ -1639,9 +1542,7 @@ var targets: [Target] = [
             .target(name: "FHIRModelsExtensions"),
             .target(name: "FHIRQuestionnaires")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziQuestionnaireTests", additional: ["UITests"]),
         resources: [
             .process("Resources")
         ],
@@ -1668,13 +1569,7 @@ var targets: [Target] = [
             #endif
             return deps
         }(),
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md",
-            "REUSE.toml"
-        ],
+        exclude: targetExcludes("SpeziScheduler"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -1688,12 +1583,7 @@ var targets: [Target] = [
             .target(name: "SpeziFoundation"),
             .target(name: "SpeziLocalStorage")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("SpeziSensorKit"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny"),
             .enableUpcomingFeature("InternalImportsByDefault")
@@ -1705,20 +1595,13 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "SpeziSensorKit")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziSensorKitTests", additional: ["UITests"]),
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziSpeech
     .target(
         name: "SpeziSpeech",
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("SpeziSpeech"),
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1741,20 +1624,13 @@ var targets: [Target] = [
             .target(name: "SpeziSpeechRecognizer"),
             .target(name: "SpeziSpeechSynthesizer")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziSpeechTests", additional: ["UITests"]),
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziStorage
     .target(
         name: "SpeziStorage",
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("SpeziStorage"),
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1786,9 +1662,7 @@ var targets: [Target] = [
             .target(name: "SpeziLocalStorage"),
             .target(name: "XCTSpezi")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziStorageTests", additional: ["UITests"]),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -1807,6 +1681,7 @@ var targets: [Target] = [
             .product(name: "DequeModule", package: "swift-collections"),
             .product(name: "Logging", package: "swift-log")
         ],
+        exclude: targetExcludes("SpeziStudyDefinition"),
         resources: [
             .process("Resources")
         ],
@@ -1830,9 +1705,7 @@ var targets: [Target] = [
             #endif
             return deps
         }(),
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziStudyTests", additional: ["UITests"]),
         resources: [
             .process("Resources/questionnaires"),
             .copy("Resources/assets")
@@ -1851,13 +1724,7 @@ var targets: [Target] = [
             .target(name: "SpeziLocalization"),
             .product(name: "MarkdownUI", package: "swift-markdown-ui")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md",
-            "REUSE.toml"
-        ],
+        exclude: targetExcludes("SpeziViews"),
         resources: [
             .process("Resources")
         ],
@@ -1868,6 +1735,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "SpeziViews")
         ],
+        exclude: targetExcludes("SpeziPersonalInfo"),
         resources: [
             .process("Resources")
         ],
@@ -1880,6 +1748,7 @@ var targets: [Target] = [
             .target(name: "SpeziFoundation"),
             .product(name: "OrderedCollections", package: "swift-collections")
         ],
+        exclude: targetExcludes("SpeziValidation"),
         resources: [
             .process("Resources")
         ],
@@ -1892,20 +1761,16 @@ var targets: [Target] = [
             .target(name: "SpeziValidation"),
             .product(name: "SnapshotTesting", package: "swift-snapshot-testing", condition: .when(platforms: [.iOS]))
         ],
-        exclude: [
-            "UITests"
+        exclude: testTargetExcludes("SpeziViewsTests", additional: ["UITests"]),
+        resources: [
+            .process("__Snapshots__")
         ],
         plugins: [] + defaultPlugins
     ),
     // MARK: XCTHealthKit
     .target(
         name: "XCTHealthKit",
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("XCTHealthKit"),
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1913,20 +1778,13 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "XCTHealthKit")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("XCTHealthKitTests", additional: ["UITests"]),
         plugins: [] + defaultPlugins
     ),
     // MARK: XCTRuntimeAssertions
     .target(
         name: "RuntimeAssertions",
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("RuntimeAssertions"),
         swiftSettings: [
             .swiftLanguageMode(.v5)
         ],
@@ -1980,12 +1838,7 @@ var targets: [Target] = [
     ),
     .target(
         name: "XCTestExtensions",
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
+        exclude: targetExcludes("XCTestExtensions"),
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1993,9 +1846,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "XCTestExtensions")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("XCTestExtensionsTests", additional: ["UITests"]),
         plugins: [] + defaultPlugins
     ),
 ]
@@ -2022,6 +1873,7 @@ targets += [
             .target(name: "SpeziScheduler"),
             .target(name: "SpeziViews")
         ],
+        exclude: targetExcludes("SpeziSchedulerUI"),
         resources: [
             .process("Resources")
         ],
@@ -2042,9 +1894,7 @@ targets += [
             .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
             .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
         ],
-        exclude: [
-            "UITests"
-        ],
+        exclude: testTargetExcludes("SpeziSchedulerTests", additional: ["UITests"]),
         resources: [
             .process("Resources")
         ],
@@ -2059,6 +1909,7 @@ targets += [
         dependencies: [
             .target(name: "SpeziScheduler"),
             .target(name: "SpeziSchedulerUI"),
+            .target(name: "SpeziTesting"),
             .target(name: "XCTSpezi"),
             .product(name: "SnapshotTesting", package: "swift-snapshot-testing", condition: .when(platforms: [.iOS]))
         ],
@@ -2083,13 +1934,7 @@ targets += [
             .target(name: "SpeziSchedulerUI"),
             .product(name: "Algorithms", package: "swift-algorithms")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md",
-            "REUSE.toml"
-        ],
+        exclude: targetExcludes("SpeziStudy"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -2116,9 +1961,7 @@ targets += [
             .target(name: "SpeziHealthKit"),
             .product(name: "ArgumentParser", package: "swift-argument-parser")
         ],
-        exclude: [
-            "HKTypeIdentifierDefs+Linux.swift.gyb"
-        ],
+        exclude: targetExcludes("Codegen", additional: ["HKTypeIdentifierDefs+Linux.swift.gyb"]),
         plugins: [] + defaultPlugins
     ),
 ]

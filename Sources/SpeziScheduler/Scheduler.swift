@@ -25,7 +25,7 @@ import SwiftUI
 /// for tasks. It allows to modify the properties (e.g., schedule) of future events without affecting occurrences of the past.
 ///
 /// You create and automatically update your tasks
-/// using ``createOrUpdateTask(id:title:instructions:category:schedule:completionPolicy:scheduleNotifications:notificationThread:tags:effectiveFrom:shadowedOutcomesHandling:with:)``.
+/// using ``createOrUpdateTask(id:title:instructions:category:schedule:completionPolicy:scheduleNotifications:notificationThread:notificationTime:tags:effectiveFrom:shadowedOutcomesHandling:with:)``.
 ///
 /// Below is a example on how to create your own [`Module`](../Spezi/Spezi.docc/Module/Module.md)
 /// to manage your tasks and ensure they are always up to date.
@@ -64,7 +64,7 @@ import SwiftUI
 /// - ``init()``
 ///
 /// ### Creating and Updating Tasks
-/// - ``createOrUpdateTask(id:title:instructions:category:schedule:completionPolicy:scheduleNotifications:notificationThread:tags:effectiveFrom:shadowedOutcomesHandling:with:)``
+/// - ``createOrUpdateTask(id:title:instructions:category:schedule:completionPolicy:scheduleNotifications:notificationThread:notificationTime:tags:effectiveFrom:shadowedOutcomesHandling:with:)``
 ///
 /// ### Query Tasks
 /// - ``queryTasks(for:predicate:sortBy:fetchLimit:prefetchOutcomes:)-8z86i``

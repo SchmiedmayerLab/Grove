@@ -44,7 +44,7 @@ class MyAppDelegate: SpeziAppDelegate {
 }
 ```
 
-> Note: You may also use the ``ConfiguredAccountKey/supports(_:)-7wwdi`` configuration to mark a ``AccountKey`` as
+> Note: You may also use the ``ConfiguredAccountKey/supports(_:file:line:)-5n6kv`` configuration to mark a ``AccountKey`` as
     ``AccountKeyRequirement/supported``. Such account keys are not collected during signup but may be added when
     editing your account information later on in the account overview.
 

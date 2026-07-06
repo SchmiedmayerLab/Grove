@@ -217,6 +217,8 @@ public struct MessageInputView: View {
                             message = result.bestTranscription.formattedString
                         }
                     }
+                } catch {
+                    // Treat speech recognition failures as a stopped recording session.
                 }
             }
         }
