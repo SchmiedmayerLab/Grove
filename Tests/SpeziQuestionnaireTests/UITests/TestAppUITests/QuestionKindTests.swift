@@ -23,20 +23,21 @@ final class QuestionKindTests: TestAppUITests, @unchecked Sendable {
         XCTAssertFalse(navigator.isContinueButtonEnabled)
         
         navigator.task(withId: "t0").selectFilePickerOption(.selectPhoto)
+        // The photo picker is a separate system process; give it time to present on slow CI runners.
         let image = app.otherElements["Photos"].scrollViews.otherElements["photos_sectioned_layout"].images.firstMatch
-        XCTAssert(image.waitForExistence(timeout: 2))
+        XCTAssert(image.waitForExistence(timeout: 30))
         image.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         do {
             let task0 = app.otherElements["Task:t0"]
             XCTAssert(
                 task0.staticTexts.element(
                     matching: "identifier = %@ AND label MATCHES %@", "FileAttachmentFilename", "IMG_.*.jpeg"
-                ).waitForExistence(timeout: 2)
+                ).waitForExistence(timeout: 10)
             )
             XCTAssert(
                 task0.staticTexts.element(
                     matching: "identifier = %@ AND label MATCHES %@", "FileAttachmentFilesize", ".* MB"
-                ).waitForExistence(timeout: 2)
+                ).waitForExistence(timeout: 10)
             )
         }
     }
