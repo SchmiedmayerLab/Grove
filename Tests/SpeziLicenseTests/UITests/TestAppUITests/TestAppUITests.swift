@@ -25,12 +25,14 @@ class TestAppUITests: XCTestCase {
         XCTAssertTrue(app.buttons["TestApp, MIT, Version: 1.0"].waitForExistence(timeout: 2))
 
         do {
+            // zstd is owned by us and pinned exact in the monorepo manifest, so its list entry is
+            // fully deterministic. (It also is the last of ~50 rows, hence the generous scroll budget.)
             let button = app.buttons.matching(NSPredicate(
-                format: "label LIKE 'ThreadLocal, MIT, Version: 0.1.*'"
+                format: "label == 'zstd, BSD-2-Clause, Version: 1.5.8-beta.1'"
             )).element
             var numScrolls = 0
             while true {
-                guard numScrolls < 10 else {
+                guard numScrolls < 20 else {
                     throw XCTestError(.failureWhileWaiting, userInfo: [
                         NSLocalizedDescriptionKey: "Unable to find button"
                     ])
@@ -44,18 +46,19 @@ class TestAppUITests: XCTestCase {
                 }
             }
         }
-        
+
         sleep(1)
         print(app.debugDescription)
         let licensePred = NSPredicate(
-            format: "label CONTAINS 'Copyright (c) 2025 Stanford University and the project authors (see CONTRIBUTORS.md)'"
+            format: "label CONTAINS 'Copyright (c) Meta Platforms, Inc. and affiliates. All rights reserved.'"
         )
         XCTAssert(app.staticTexts.matching(licensePred).element.exists)
         app.navigationBars.buttons["Open in Browser"].tap()
-        
+
         let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
+        // GitHub renders fork pages without a standalone description element, so assert on the repo header.
         XCTAssert(
-            safari.staticTexts["Thread-local variables for Swift."].waitForExistence(timeout: 20)
+            safari.staticTexts["SchmiedmayerLab/zstd"].waitForExistence(timeout: 20)
         )
     }
 }
