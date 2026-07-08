@@ -22,6 +22,9 @@ struct FHIRConversionCustomTasksTests {
     @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     @Test
     func simpleCustomTask() throws {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *) else {
+            return
+        }
         struct Config: QuestionKindConfig {
             let options: [String]
         }
@@ -192,6 +195,9 @@ struct FHIRConversionCustomTasksTests {
     @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     @Test
     func annotationTask() throws {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *) else {
+            return
+        }
         let input = Data("""
             {
               "title": "Test",

@@ -49,7 +49,7 @@ var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/gonzalezreal/swift-markdown-ui.git", from: "2.4.1"),
     .package(url: "https://github.com/apple/swift-nio.git", from: "2.59.0"),
     .package(url: "https://github.com/apple/swift-numerics.git", from: "1.1.1"),
-    .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.8.0"),
+    .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.13.0"),
     .package(url: "https://github.com/apple/swift-openapi-runtime.git", from: "1.8.0"),
     .package(url: "https://github.com/apple/swift-openapi-urlsession.git", from: "1.1.0"),
     .package(url: "https://github.com/FelixHerrmann/swift-package-list.git", from: "4.8.0"),

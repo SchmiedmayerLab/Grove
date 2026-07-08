@@ -16,9 +16,11 @@ import Testing
 
 @Suite("SpeziHealthKitTests")
 struct SpeziHealthKitTests {
-    @available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
     @Test("Equal Time Ranges")
     func equalTimeRanges() {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *) else {
+            return
+        }
         #expect(HealthKitQueryTimeRange.last(hours: 1) == .currentHour)
         #expect(HealthKitQueryTimeRange.last(days: 1) == .today)
         #expect(HealthKitQueryTimeRange.last(weeks: 1) == .currentWeek)
@@ -26,9 +28,11 @@ struct SpeziHealthKitTests {
         #expect(HealthKitQueryTimeRange.last(years: 1) == .currentYear)
     }
 
-    @available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
     @Test("Equal Well Known Identifiers")
     func equalWellKnownIdentifiers() {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *) else {
+            return
+        }
         #expect(HKQuantityType.allKnownQuantities.count == HKQuantityTypeIdentifier.allKnownIdentifiers.count)
         #expect(HKCorrelationType.allKnownCorrelations.count == HKCorrelationTypeIdentifier.allKnownIdentifiers.count)
         #expect(HKCategoryType.allKnownCategories.count == HKCategoryTypeIdentifier.allKnownIdentifiers.count)
@@ -36,20 +40,26 @@ struct SpeziHealthKitTests {
     }
 
 
-    @available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
-    @Test("Query anchors codable", arguments: [
-        QueryAnchor(HKQueryAnchor(fromValue: 5734987678924)),
-        QueryAnchor()
-    ])
-    func equalQueryAnchorCoding2(_ anchor: QueryAnchor) throws {
-        let encoded = try JSONEncoder().encode(anchor)
-        let decoded = try JSONDecoder().decode(QueryAnchor.self, from: encoded)
-        #expect(anchor == decoded)
+    @Test("Query anchors codable")
+    func equalQueryAnchorCoding2() throws {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *) else {
+            return
+        }
+        for anchor in [
+            QueryAnchor(HKQueryAnchor(fromValue: 5734987678924)),
+            QueryAnchor()
+        ] {
+            let encoded = try JSONEncoder().encode(anchor)
+            let decoded = try JSONDecoder().decode(QueryAnchor.self, from: encoded)
+            #expect(anchor == decoded)
+        }
     }
     
-    @available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
     @Test
     func sourceFilter() throws {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *) else {
+            return
+        }
         typealias Filter = HealthKit.SourceFilter
         
         let healthAppSource = try #require(HKSource.make(name: "Health", bundleId: "com.apple.health"))

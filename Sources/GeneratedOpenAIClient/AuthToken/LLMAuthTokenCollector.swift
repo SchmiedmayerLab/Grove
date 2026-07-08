@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+package import Foundation
 import Spezi
 package import SpeziKeychainStorage
 import SpeziOnboarding

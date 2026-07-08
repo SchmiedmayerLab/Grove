@@ -47,6 +47,9 @@ struct BluetoothDeviceTestingSupportTests {
     @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     @Test("Automatic DeviceState Injection")
     func testDeviceStateInjectionArtificialValue() {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *) else {
+            return
+        }
         let device = MockDevice()
 
         #expect(device.name == nil)
@@ -62,6 +65,9 @@ struct BluetoothDeviceTestingSupportTests {
     @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     @Test("Manual DeviceState Injection")
     func testDeviceStateValueInjection() {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *) else {
+            return
+        }
         let device = MockDevice()
 
         let id = UUID()
@@ -74,6 +80,9 @@ struct BluetoothDeviceTestingSupportTests {
     @MainActor
     @Test("DeviceState onChange Injection")
     func testDeviceStateOnChangeInjection() async throws {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *) else {
+            return
+        }
         let device = MockDevice()
 
         let id1 = UUID()
@@ -97,6 +106,9 @@ struct BluetoothDeviceTestingSupportTests {
 
     @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     func testDeviceActionInjection() async throws {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *) else {
+            return
+        }
         let device = MockDevice()
 
         try await confirmation { confirmation in
@@ -112,6 +124,9 @@ struct BluetoothDeviceTestingSupportTests {
     @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     @Test("Characteristic Value Injection")
     func testCharacteristicInjection() {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *) else {
+            return
+        }
         let device = MockDevice()
 
         device.deviceInformation.$manufacturerName.inject("Hello World")
@@ -123,6 +138,9 @@ struct BluetoothDeviceTestingSupportTests {
     @MainActor
     @Test("Characteristic onChange Injection")
     func testCharacteristicOnChangeInjection() async throws {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *) else {
+            return
+        }
         let device = MockDevice()
 
         let service = device.deviceInformation
@@ -153,6 +171,9 @@ struct BluetoothDeviceTestingSupportTests {
     @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     @Test("Characteristic Peripheral Simulation")
     func testCharacteristicPeripheralSimulation() async throws {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *) else {
+            return
+        }
         let device = MockDevice()
         let service = device.deviceInformation
 
@@ -175,6 +196,9 @@ struct BluetoothDeviceTestingSupportTests {
 
     @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     func testCharacteristicClosureInjection() async throws {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *) else {
+            return
+        }
         let device = MockDevice()
         let service = device.deviceInformation
 

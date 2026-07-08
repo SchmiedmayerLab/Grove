@@ -65,9 +65,14 @@ extension ViewsTests {
         }
         
         app.scrollViews.firstMatch.swipeUp()
-        // we can check for Bean2 bc that's a non-inline image;
-        // Bean1 is inline and as a result gets subsumed into the AttributedString, and is not represented in the accessibility tree.
-        XCTAssert(app.images["Bean2"].exists)
+        let trailingMarkdownText = app.staticTexts.containing(
+            NSPredicate(format: "label CONTAINS %@", "that's a wrap")
+        ).firstMatch
+        for _ in 0..<3 where !trailingMarkdownText.exists {
+            app.scrollViews.firstMatch.swipeUp()
+        }
+        XCTAssert(trailingMarkdownText.waitForExistence(timeout: 2))
+        XCTAssertGreaterThan(trailingMarkdownText.frame.height, 100)
     }
 }
 

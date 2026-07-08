@@ -21,6 +21,9 @@ struct PairedDevicesTests {
     @available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
     @Test
     func pairDevice() async throws {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *) else {
+            return
+        }
         let device = MockDevice.createMockDevice()
         let devices = PairedDevices()
 
@@ -106,6 +109,9 @@ struct PairedDevicesTests {
     @available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
     @Test
     func pairingErrors() async throws {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *) else {
+            return
+        }
         let device = MockDevice.createMockDevice()
         let devices = PairedDevices()
 
@@ -140,6 +146,9 @@ struct PairedDevicesTests {
     @available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
     @Test
     func pairingCancellation() async throws {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *) else {
+            return
+        }
         let device = MockDevice.createMockDevice()
         let devices = PairedDevices()
 
@@ -167,6 +176,9 @@ struct PairedDevicesTests {
     @available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
     @Test
     func failedPairing() async throws {
+        guard #available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *) else {
+            return
+        }
         let device = MockDevice.createMockDevice()
         let devices = PairedDevices()
 

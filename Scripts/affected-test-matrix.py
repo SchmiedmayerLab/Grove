@@ -17,7 +17,7 @@
 #   platforms      = the platforms its unit tests run on (subject to the temporary CI_PLATFORMS limit)
 #   uiTests        = the platforms its UI tests run on, straight from the UITests project's Xcode config
 #                    (NOT subject to CI_PLATFORMS — absent for packages with no UITests project)
-#   traitBuilds    = true when package-trait product build checks should run for the package
+#   traitBuilds    = package-trait product build checks CI should run for the package
 #   self-hosted-ci = which test kinds run on the self-hosted runner (vs GitHub-hosted): a subset of
 #                    ["unit", "ui"]. Optional; default ["ui"] (= today's behavior). Linux unit jobs
 #                    always run on GitHub-hosted ubuntu regardless (the self-hosted runner is macOS).
@@ -30,7 +30,7 @@
 # Emits (to stdout, GITHUB_OUTPUT format):
 #   matrix={"include":[{"package":"SpeziAccount","platform":"macOS","selfHosted":false}, ...]}   # unit
 #   ui_matrix={"include":[{"package":"SpeziViews","platform":"iOS","selfHosted":true}, ...]}      # UI
-#   trait_matrix={"include":[{"package":"SpeziChat"}, ...]}                                      # traits
+#   trait_matrix={"include":[{"package":"SpeziChat","product":"SpeziChat", ...}, ...]}            # traits
 #   has_jobs=true|false
 #   has_ui_jobs=true|false
 #   has_trait_jobs=true|false
@@ -100,8 +100,8 @@ def main():
             if platform not in UI_PLATFORMS:  # TEMPORARY UI-test platform limit (see UI_PLATFORMS above)
                 continue
             ui.append({"package": pkg, "platform": platform, "selfHosted": "ui" in self_hosted})
-        if info.get("traitBuilds", False):
-            trait.append({"package": pkg})
+        for build in info.get("traitBuilds", []):
+            trait.append({"package": pkg, **build})
 
     lines = [
         f'matrix={json.dumps({"include": unit})}',

@@ -17,6 +17,9 @@ struct NotificationsModuleUnitTestBehaviour {
     @Test
     @MainActor
     func testNotificationsModuleIsNonFunctional() async throws {
+        guard #available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *) else {
+            return
+        }
         let module = Notifications()
         #if !os(watchOS)
         try await module.setBadgeCount(12)

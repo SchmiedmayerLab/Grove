@@ -25,6 +25,9 @@ struct StudyBundleTests {
     @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     @Test
     func displayTitles() throws {
+        guard #available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *) else {
+            return
+        }
         let bundle = try Self.testStudyBundle
         let components = bundle.studyDefinition.components
         let expectedNames: [String?] = Array {
@@ -49,6 +52,9 @@ struct StudyBundleTests {
     @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     @Test
     func bundleEquality() throws {
+        guard #available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *) else {
+            return
+        }
         let bundle1 = try Self.testStudyBundle
         let bundle2 = try Self.testStudyBundle
         #expect(bundle1 == bundle2)
@@ -62,6 +68,9 @@ struct StudyBundleTests {
     @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     @Test
     func filenameLocalizationParsing() throws {
+        guard #available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *) else {
+            return
+        }
         typealias LocalizedFileRef = StudyBundle.LocalizedFileReference
         #expect(StudyBundle.parse(filename: "Welcome+en-US.md", in: .informationalArticle) == LocalizedFileRef(
             fileRef: .init(category: .informationalArticle, filename: "Welcome", fileExtension: "md"),
@@ -101,6 +110,9 @@ struct StudyBundleTests {
     @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     @Test
     func resourceFetching() throws {
+        guard #available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *) else {
+            return
+        }
         let studyBundle = try Self.testStudyBundle
         #expect(studyBundle.consentText(
             for: .init(category: .consent, filename: "Consent", fileExtension: "md"),
@@ -112,6 +124,9 @@ struct StudyBundleTests {
     @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     @Test
     func wholeFolderBundling() throws {
+        guard #available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *) else {
+            return
+        }
         let studyBundle = try Self.testStudyBundle
         for filename in ["PM5544.png", "jellybeans_USC-SIPI.tiff"] {
             let url = URL(filePath: filename, relativeTo: studyBundle.bundleUrl.appending(path: "assets/"))

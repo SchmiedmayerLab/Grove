@@ -110,7 +110,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   package_trait_builds:
-    name: ${{ matrix.package }} package traits
+    name: ${{ matrix.package }} traits (${{ matrix.product }}, ${{ matrix.platform }} ${{ matrix.deploymentTarget }})
     needs: detect
     if: needs.detect.outputs.has_trait_jobs == 'true'
     runs-on: macOS-26
@@ -119,8 +119,13 @@ jobs:
       matrix: ${{ fromJSON(needs.detect.outputs.trait_matrix) }}
     steps:
       - uses: actions/checkout@v4
-      - name: Build ${{ matrix.package }} package trait products
-        run: Scripts/check-package-traits.py "${{ matrix.package }}"
+      - name: Build ${{ matrix.package }} package trait product
+        run: |
+          Scripts/check-package-traits.py \
+            --product "${{ matrix.product }}" \
+            --platform "${{ matrix.platform }}" \
+            --deployment-target "${{ matrix.deploymentTarget }}" \
+            "${{ matrix.package }}"
       - name: Clean generated artifacts
         if: always()
         run: bash Scripts/cleanup-generated-artifacts.sh

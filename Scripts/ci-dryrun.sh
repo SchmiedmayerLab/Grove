@@ -89,7 +89,20 @@ if [ "$HAS_TRAIT_JOBS" = "true" ]; then
 import json,sys
 inc=json.load(sys.stdin)["include"]
 for e in inc:
-    print("  - package_trait_builds (%s)  ->  Scripts/check-package-traits.py %s" % (e["package"], e["package"]))
+    print(
+        "  - package_trait_builds (%s / %s / %s %s)  ->  "
+        "Scripts/check-package-traits.py --product %s --platform %s --deployment-target %s %s"
+        % (
+            e["package"],
+            e["product"],
+            e["platform"],
+            e["deploymentTarget"],
+            e["product"],
+            e["platform"],
+            e["deploymentTarget"],
+            e["package"]
+        )
+    )
 print("\n  total package trait jobs scheduled: %d" % len(inc))
 '
 else

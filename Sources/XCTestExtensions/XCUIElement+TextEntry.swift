@@ -231,7 +231,13 @@ extension XCUIElement {
         let app = try self.app
         if options.contains(._tapFromRight) {
             // Select the text field, see https://stackoverflow.com/questions/38523125/place-cursor-at-the-end-of-uitextview-under-uitest
-            XCTAssertFalse(app.keyboards.firstMatch.exists, "Keyboard must not exist when selecting text field from the right.")
+            if app.keyboards.firstMatch.exists {
+                app.dismissKeyboard()
+                XCTAssert(
+                    app.keyboards.firstMatch.waitForNonExistence(timeout: 2.0),
+                    "Keyboard must not exist when selecting text field from the right."
+                )
+            }
             var offset = 0.99
             repeat {
                 coordinate(withNormalizedOffset: CGVector(dx: offset, dy: 0.5)).tap()

@@ -65,7 +65,10 @@ class TestAppUITests: XCTestCase {
             guard app.buttons["Send Message"].waitForExistence(timeout: 5) else { continue }
             app.buttons["Send Message"].tap()
 
-            sleep(1)
+            let typingIndicator = app.otherElements["Typing Indicator"]
+            if typingIndicator.waitForExistence(timeout: 2) {
+                guard typingIndicator.waitForNonExistence(timeout: 12) else { continue }
+            }
             guard app.staticTexts["Assistant Message Response!"].waitForExistence(timeout: 5) else { continue }
 
             // Export chat via share sheet button

@@ -16,7 +16,7 @@
 #   targets   = its source target directories  (Sources/<name>)
 #   tests     = its test target directories     (Tests/<name>; a Tests/<name>/UITests/ subfolder counts too)
 #   uiTests   = the platforms its UITests Xcode project runs on (absent = no UI tests).
-#   traitBuilds = true when CI should run package-trait product build checks for this package.
+#   traitBuilds = package-trait product build checks CI should run for this package.
 #   self-hosted-ci = which test kinds run on the self-hosted runner (vs GitHub-hosted): a subset of
 #               ["unit", "ui"]. Optional; defaults to ["ui"] — UI tests on the self-hosted runner,
 #               unit tests on GitHub-hosted (today's behavior). Add "unit" (e.g. ["unit", "ui"]) to
@@ -42,7 +42,10 @@ platforms = ["iOS"]
 targets = ["ResearchKitOnFHIR"]
 tests = ["ResearchKitOnFHIRTests"]
 uiTests = ["iOS"]
-traitBuilds = true
+traitBuilds = [
+  { product = "ResearchKitOnFHIR", platform = "iOS", deploymentTarget = "15.0", reason = "ResearchKit-disabled lower-floor FHIR conversion baseline." },
+  { product = "ResearchKitOnFHIR", platform = "iOS", deploymentTarget = "18.0", reason = "ResearchKit-disabled current deployment-target baseline." },
+]
 
 [Spezi]
 platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "tvOS", "Linux"]
@@ -73,7 +76,10 @@ platforms = ["iOS", "macOS", "visionOS"]
 targets = ["SpeziChat"]
 tests = ["SpeziChatTests"]
 uiTests = ["iOS", "visionOS"]
-traitBuilds = true
+traitBuilds = [
+  { product = "SpeziChat", platform = "iOS", deploymentTarget = "15.0", reason = "Textual-disabled lower-floor consumer baseline." },
+  { product = "SpeziChat", platform = "iOS", deploymentTarget = "18.0", reason = "Textual-disabled current deployment-target baseline." },
+]
 
 [SpeziConsent]
 platforms = ["iOS", "macOS", "visionOS"]
@@ -132,7 +138,10 @@ platforms = ["iOS", "macOS", "visionOS"]
 targets = ["SpeziLLM", "GeneratedOpenAIClient", "SpeziLLMAnthropic", "SpeziLLMFog", "SpeziLLMGemini", "SpeziLLMLocal", "SpeziLLMLocalDownload", "SpeziLLMOpenAI", "SpeziLLMOpenAIRealtime"]
 tests = ["SpeziLLMTests"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
-traitBuilds = true
+traitBuilds = [
+  { product = "SpeziLLMLocalDownload", platform = "iOS", deploymentTarget = "17.0", reason = "MLX-disabled lower-floor local LLM consumer baseline." },
+  { product = "SpeziLLMLocalDownload", platform = "iOS", deploymentTarget = "18.0", reason = "MLX-disabled current deployment-target baseline." },
+]
 
 [SpeziLicense]
 platforms = ["iOS"]
@@ -168,7 +177,10 @@ platforms = ["iOS"]
 targets = ["SpeziQuestionnaire", "SpeziQuestionnaireCatalog", "SpeziQuestionnaireFHIR", "SpeziQuestionnaireLegacy", "XCTSpeziQuestionnaire"]
 tests = ["SpeziQuestionnaireTests"]
 uiTests = ["iOS", "iPadOS"]
-traitBuilds = true
+traitBuilds = [
+  { product = "SpeziQuestionnaire", platform = "iOS", deploymentTarget = "17.0", reason = "ResearchKit-disabled lower-floor questionnaire baseline." },
+  { product = "SpeziQuestionnaire", platform = "iOS", deploymentTarget = "18.0", reason = "ResearchKit-disabled current deployment-target baseline." },
+]
 
 [SpeziScheduler]
 platforms = ["iOS", "macOS", "watchOS", "visionOS"]

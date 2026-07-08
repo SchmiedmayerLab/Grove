@@ -8,6 +8,7 @@
 
 # Swift Package Manager
 Package.resolved
+!Tests/SpeziLicenseTests/UITests/UITests.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 *.xcodeproj
 # Ignore .swiftpm, but keep shared schemes (e.g. the Spezi-Tests test-plan host scheme) tracked.
 .swiftpm/*

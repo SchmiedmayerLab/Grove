@@ -49,7 +49,11 @@ extension ContentView {
             case .llmFog:
                 LLMFogTestView()
             case .llmOpenAIRealtime:
-                LLMOpenAIRealtimeTestView()
+                if FeatureFlags.mockMode {
+                    Text("LLMOpenAIRealtime")
+                } else {
+                    LLMOpenAIRealtimeTestView()
+                }
             case .llmAnthropic:
                 LLMOpenAILikeChatTestView<AnthropicPlatformDefinition>(model: .opus4_6)
             case .llmGemini:

@@ -131,7 +131,7 @@ platforms_for() { case "$1" in
     SpeziSensorKit) echo "iOS" ;;
     SpeziSpeech) echo "iOS visionOS macOS" ;;
     SpeziStorage) echo "iOS macOS macCatalyst watchOS visionOS" ;;
-    SpeziStudy) echo "iOS macOS macCatalyst watchOS visionOS" ;;
+    SpeziStudy) echo "iOS macOS macCatalyst watchOS visionOS Linux" ;;
     SpeziViews) echo "iOS visionOS tvOS watchOS macOS" ;;
     XCTHealthKit) echo "iOS" ;;
     XCTRuntimeAssertions) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
@@ -369,14 +369,13 @@ run() { # <package> <platform> [mode: "ui"]
     return
   fi
   if [ "$2" = "Linux" ]; then
-    # Linux has no Xcode test plans, and SwiftPM builds ONE combined <Package>PackageTests.xctest
-    # per package (so a subset can't be run). Instead compile-check each of the package's test
-    # targets (scoped via --target) on GitHub-hosted Linux — verifies the package still builds there.
+    # Linux has no Xcode test plans. Use SwiftPM's filter syntax to build and run the package's
+    # test targets without pulling unrelated Xcode-only test plans into the job.
     local tts
     tts="$(python3 -c "import tomllib; print(' '.join(tomllib.load(open('packages.toml','rb'))['$1']['tests']))")"
     for tt in $tts; do
-      echo "==> $1 on Linux: swift build --target $tt (compile-check)"
-      swift build --target "$tt"
+      echo "==> $1 on Linux: swift test --filter $tt"
+      swift test --filter "$tt"
     done
     return
   fi
