@@ -18,11 +18,11 @@ import SpeziHealthKitBulkExport
 import Testing
 
 
-@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 @Suite
 struct StudyBundleTests {
     static let locale = Locale(identifier: "en_US")
     
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     @Test
     func displayTitles() throws {
         let bundle = try Self.testStudyBundle
@@ -46,6 +46,7 @@ struct StudyBundleTests {
         }
     }
     
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     @Test
     func bundleEquality() throws {
         let bundle1 = try Self.testStudyBundle
@@ -58,6 +59,7 @@ struct StudyBundleTests {
         #expect(bundle3 != bundle2)
     }
     
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     @Test
     func filenameLocalizationParsing() throws {
         typealias LocalizedFileRef = StudyBundle.LocalizedFileReference
@@ -96,6 +98,7 @@ struct StudyBundleTests {
         ))
     }
     
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     @Test
     func resourceFetching() throws {
         let studyBundle = try Self.testStudyBundle
@@ -106,6 +109,7 @@ struct StudyBundleTests {
         ) == "---\ntitle: Study Consent\n---\n\n# Consent")
     }
     
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     @Test
     func wholeFolderBundling() throws {
         let studyBundle = try Self.testStudyBundle
@@ -120,12 +124,14 @@ struct StudyBundleTests {
     
 // MARK: Test Study
     
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     static var testStudyBundle: StudyBundle {
         get throws {
             try _testStudyBundle.get()
         }
     }
 
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     private static let _testStudyBundle: Result<StudyBundle, any Error> = .init { // swiftlint:disable:this closure_body_length
         // swiftlint:disable force_unwrapping
         let studyId = UUID(uuidString: "1E82CA84-E031-43C1-9CA4-9F68B5F246B8")!

@@ -14,9 +14,9 @@ import SpeziHealthKitUI
 import Testing
 
 
-@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 @Suite("SpeziHealthKitTests")
 struct SpeziHealthKitTests {
+    @available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
     @Test("Equal Time Ranges")
     func equalTimeRanges() {
         #expect(HealthKitQueryTimeRange.last(hours: 1) == .currentHour)
@@ -26,6 +26,7 @@ struct SpeziHealthKitTests {
         #expect(HealthKitQueryTimeRange.last(years: 1) == .currentYear)
     }
 
+    @available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
     @Test("Equal Well Known Identifiers")
     func equalWellKnownIdentifiers() {
         #expect(HKQuantityType.allKnownQuantities.count == HKQuantityTypeIdentifier.allKnownIdentifiers.count)
@@ -35,6 +36,7 @@ struct SpeziHealthKitTests {
     }
 
 
+    @available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
     @Test("Query anchors codable", arguments: [
         QueryAnchor(HKQueryAnchor(fromValue: 5734987678924)),
         QueryAnchor()
@@ -45,6 +47,7 @@ struct SpeziHealthKitTests {
         #expect(anchor == decoded)
     }
     
+    @available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
     @Test
     func sourceFilter() throws {
         typealias Filter = HealthKit.SourceFilter

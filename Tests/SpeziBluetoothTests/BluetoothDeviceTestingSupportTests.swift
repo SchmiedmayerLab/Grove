@@ -37,7 +37,6 @@ final class MockDevice: BluetoothDevice, @unchecked Sendable {
 }
 
 
-@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 @Suite("Device Testing Support")
 struct BluetoothDeviceTestingSupportTests {
     @MainActor
@@ -45,6 +44,7 @@ struct BluetoothDeviceTestingSupportTests {
         var received: [Value] = []
     }
 
+    @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     @Test("Automatic DeviceState Injection")
     func testDeviceStateInjectionArtificialValue() {
         let device = MockDevice()
@@ -59,6 +59,7 @@ struct BluetoothDeviceTestingSupportTests {
         #expect(device.lastActivity >= now)
     }
 
+    @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     @Test("Manual DeviceState Injection")
     func testDeviceStateValueInjection() {
         let device = MockDevice()
@@ -69,6 +70,7 @@ struct BluetoothDeviceTestingSupportTests {
         #expect(device.id == id)
     }
 
+    @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     @MainActor
     @Test("DeviceState onChange Injection")
     func testDeviceStateOnChangeInjection() async throws {
@@ -93,6 +95,7 @@ struct BluetoothDeviceTestingSupportTests {
         #expect(results.received == [id1, id2])
     }
 
+    @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     func testDeviceActionInjection() async throws {
         let device = MockDevice()
 
@@ -106,6 +109,7 @@ struct BluetoothDeviceTestingSupportTests {
         }
     }
 
+    @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     @Test("Characteristic Value Injection")
     func testCharacteristicInjection() {
         let device = MockDevice()
@@ -115,6 +119,7 @@ struct BluetoothDeviceTestingSupportTests {
         #expect(device.deviceInformation.manufacturerName == "Hello World")
     }
 
+    @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     @MainActor
     @Test("Characteristic onChange Injection")
     func testCharacteristicOnChangeInjection() async throws {
@@ -145,6 +150,7 @@ struct BluetoothDeviceTestingSupportTests {
         #expect(results.received == [value1, value2, value3])
     }
 
+    @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     @Test("Characteristic Peripheral Simulation")
     func testCharacteristicPeripheralSimulation() async throws {
         let device = MockDevice()
@@ -167,6 +173,7 @@ struct BluetoothDeviceTestingSupportTests {
         #expect(service.manufacturerName == value3)
     }
 
+    @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     func testCharacteristicClosureInjection() async throws {
         let device = MockDevice()
         let service = device.deviceInformation

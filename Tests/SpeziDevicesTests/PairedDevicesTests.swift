@@ -16,9 +16,9 @@ import SpeziTesting
 import Testing
 
 @MainActor
-@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 @Suite
 struct PairedDevicesTests {
+    @available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
     @Test
     func pairDevice() async throws {
         let device = MockDevice.createMockDevice()
@@ -103,6 +103,7 @@ struct PairedDevicesTests {
         #expect(devices.discoveredDevices.isEmpty)
     }
 
+    @available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
     @Test
     func pairingErrors() async throws {
         let device = MockDevice.createMockDevice()
@@ -136,6 +137,7 @@ struct PairedDevicesTests {
         try await #require(throws: TimeoutError.self) { try await devices.pair(with: device, timeout: .milliseconds(200)) }
     }
     
+    @available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
     @Test
     func pairingCancellation() async throws {
         let device = MockDevice.createMockDevice()
@@ -162,6 +164,7 @@ struct PairedDevicesTests {
         #expect(device.state == .disconnected)
     }
 
+    @available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
     @Test
     func failedPairing() async throws {
         let device = MockDevice.createMockDevice()

@@ -11,9 +11,9 @@ import Testing
 import UserNotifications
 
 
-@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 @Suite
 struct NotificationsModuleUnitTestBehaviour {
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     @Test
     @MainActor
     func testNotificationsModuleIsNonFunctional() async throws {

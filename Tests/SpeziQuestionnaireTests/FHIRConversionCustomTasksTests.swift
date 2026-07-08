@@ -17,9 +17,9 @@ import SwiftUI
 import Testing
 
 
-@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 @Suite
 struct FHIRConversionCustomTasksTests {
+    @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     @Test
     func simpleCustomTask() throws {
         struct Config: QuestionKindConfig {
@@ -189,6 +189,7 @@ struct FHIRConversionCustomTasksTests {
     }
     
     
+    @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     @Test
     func annotationTask() throws {
         let input = Data("""
