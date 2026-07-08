@@ -230,25 +230,69 @@ esac; }
 # Pretty-print xcodebuild output via xcbeautify; emit GitHub annotations when running in CI.
 beautify() { if [ -n "${GITHUB_ACTIONS:-}" ]; then xcbeautify --renderer github-actions; else xcbeautify; fi; }
 
+# On CI, stage .xcresult bundles outside the checkout too (same rationale as DERIVED_DATA_PATH):
+# xcodebuild assembles the bundle at -resultBundlePath DURING the run, and writes inside the
+# checkout can trigger the package-graph re-resolution that crashes Xcode 26's xcodebuild.
+# retry_xcodebuild_crash moves the staged bundle to its final path on the way out.
+staged_result_path() { # <final-result-bundle>
+  if [ -n "${RUNNER_TEMP:-}" ]; then
+    echo "$RUNNER_TEMP/$(basename "$1")"
+  else
+    echo "$1"
+  fi
+}
+
+# The raw xcodebuild log is authoritative when the exit code is a teardown crash: XCTest prints
+# "Test Suite 'All tests' passed" per test bundle and swift-testing prints "Test run with N tests
+# passed", while a run with failures prints "** TEST FAILED **" / "Failing tests:". (A crash
+# between two test bundles of a multi-bundle plan could in principle be accepted here with the
+# later bundles never run — accepted risk: the observed crash class fires after the test phase.)
+tests_passed_in_log() { # <xcodebuild-log>
+  [ -s "$1" ] || return 1
+  if grep -q -e '\*\* TEST FAILED \*\*' -e 'Failing tests:' -e 'Test run with .* failed' "$1" \
+    || grep -q -E "Test Suite '[^']+' failed" "$1"; then
+    return 1
+  fi
+  grep -q -e "Test Suite 'All tests' passed" "$1" || grep -q -E 'Test run with [0-9]+ tests? passed' "$1"
+}
+
 # Xcode 26 sometimes re-resolves the package graph after all test suites have passed and crashes with
 # "Message sent to invalidated object: IDESwiftPackageTestBundleProductBuildable" (SIGABRT, exit 134).
-# Runs "<command...> | beautify" and, when the command itself exits 134, removes the partial result
-# bundle and retries once; any other failure (or a second 134) propagates as before.
-retry_xcodebuild_crash() { # <result-bundle> <command...>
-  local result="$1"; shift
-  local attempt status xcodebuild_status
+# Runs "<command...> | beautify" with the raw xcodebuild output teed to a temp log. When the command
+# exits 134 even though the log shows every test passed, the crash happened in Xcode's post-test
+# teardown and the run is accepted as green. (The .xcresult cannot be consulted for this instead:
+# the crash interrupts bundle finalization, leaving it without an Info.plist.) Otherwise a first 134
+# removes the partial result bundle and retries once; any other failure (or a second failing 134)
+# propagates as before. The command must write its result bundle to <staged-result-bundle>.
+retry_xcodebuild_crash() { # <staged-result-bundle> <final-result-bundle> <command...>
+  local staged="$1" result="$2"; shift 2
+  local xcodebuild_log; xcodebuild_log="$(mktemp "${TMPDIR:-/tmp}/spezi-xcodebuild.XXXXXX")"
+  local attempt rc xcodebuild_status
   for attempt in 1 2; do
     set +e
-    "$@" | beautify
-    status=$? xcodebuild_status="${PIPESTATUS[0]}"
+    "$@" | tee "$xcodebuild_log" | beautify
+    rc=$? xcodebuild_status="${PIPESTATUS[0]}"
     set -e
-    if [ "$xcodebuild_status" -eq 134 ] && [ "$attempt" -eq 1 ]; then
-      echo '::warning::xcodebuild crashed (exit 134, IDESwiftPackageCore invalidation) — retrying once'
-      rm -rf "$result"
-      continue
+    if [ "$xcodebuild_status" -eq 134 ]; then
+      if tests_passed_in_log "$xcodebuild_log"; then
+        echo '::warning::xcodebuild crashed (exit 134, IDESwiftPackageCore invalidation) after every test passed — accepting the test verdict from the log'
+        rc=0
+        break
+      fi
+      if [ "$attempt" -eq 1 ]; then
+        echo '::warning::xcodebuild crashed (exit 134, IDESwiftPackageCore invalidation) — retrying once'
+        rm -rf "$staged"
+        continue
+      fi
     fi
-    return "$status"
+    break
   done
+  if [ "$staged" != "$result" ] && [ -e "$staged" ]; then
+    rm -rf "$result"
+    mv "$staged" "$result"
+  fi
+  rm -f "$xcodebuild_log"
+  return "$rc"
 }
 
 firebase_emulators_exec() { # <dir> <xcodebuild command string>
@@ -266,15 +310,16 @@ run() { # <package> <platform> [mode: "ui"]
     local deployment_target_argument; deployment_target_argument="$(ui_deployment_target_argument "$1" "$2")"
     local root; root="$(pwd)"
     local derived_data_path_absolute; derived_data_path_absolute="$(absolute_path "$DERIVED_DATA_PATH")"
-    rm -rf "$result"   # self-hosted runners reuse the workspace — avoid a stale bundle path
+    local staged_result; staged_result="$(staged_result_path "$root/$result")"
+    rm -rf "$result" "$staged_result"   # self-hosted runners reuse the workspace — avoid a stale bundle path
     echo "==> $1 UI tests on $2"
     if [ -f "$uidir/firebase.json" ]; then
       # This package's UITests need the Firebase emulator (e.g. SpeziFirebase). Run the test inside
       # `firebase emulators:exec` from the UITests dir (so firebase.json/.firebaserc/rules resolve),
       # writing the .xcresult back to the repo root (absolute path) so the test-ui upload step finds it.
       # Requires the `firebase` CLI (firebase-tools) on the runner — as the upstream CI also relied on.
-      retry_xcodebuild_crash "$root/$result" firebase_emulators_exec "$uidir" \
-        "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -resultBundlePath '$root/$result' -derivedDataPath '$derived_data_path_absolute' -skipMacroValidation -skipPackagePluginValidation -skipPackageUpdates${deployment_target_argument:+ $deployment_target_argument}"
+      retry_xcodebuild_crash "$staged_result" "$root/$result" firebase_emulators_exec "$uidir" \
+        "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -resultBundlePath '$staged_result' -derivedDataPath '$derived_data_path_absolute' -skipMacroValidation -skipPackagePluginValidation -skipPackageUpdates${deployment_target_argument:+ $deployment_target_argument}"
       return
     fi
 
@@ -284,7 +329,7 @@ run() { # <package> <platform> [mode: "ui"]
       -scheme TestApp
       -configuration Debug
       -destination "$(dest "$2")"
-      -resultBundlePath "$result"
+      -resultBundlePath "$staged_result"
       -skipMacroValidation
       -skipPackagePluginValidation
       -skipPackageUpdates
@@ -293,7 +338,7 @@ run() { # <package> <platform> [mode: "ui"]
     if [ -n "$deployment_target_argument" ]; then
       xcodebuild_arguments+=("$deployment_target_argument")
     fi
-    retry_xcodebuild_crash "$result" xcodebuild "${xcodebuild_arguments[@]}"
+    retry_xcodebuild_crash "$staged_result" "$root/$result" xcodebuild "${xcodebuild_arguments[@]}"
     return
   fi
   if [ "$2" = "Linux" ]; then
@@ -313,13 +358,14 @@ run() { # <package> <platform> [mode: "ui"]
   # Writes an .xcresult bundle that the `test` CI job uploads as an artifact on failure.
   local result="${1}-${2}-Tests.xcresult"
   local deployment_target_argument; deployment_target_argument="$(ci_deployment_target_argument "$2")"
-  rm -rf "$result"
+  local staged_result; staged_result="$(staged_result_path "$result")"
+  rm -rf "$result" "$staged_result"
   local xcodebuild_arguments=(
     test
     -scheme Spezi-Tests
     -testPlan "$1"
     -destination "$(dest "$2")"
-    -resultBundlePath "$result"
+    -resultBundlePath "$staged_result"
     -skipMacroValidation
     -skipPackagePluginValidation
     -skipPackageUpdates
@@ -328,7 +374,7 @@ run() { # <package> <platform> [mode: "ui"]
   if [ -n "$deployment_target_argument" ]; then
     xcodebuild_arguments+=("$deployment_target_argument")
   fi
-  retry_xcodebuild_crash "$result" xcodebuild "${xcodebuild_arguments[@]}"
+  retry_xcodebuild_crash "$staged_result" "$result" xcodebuild "${xcodebuild_arguments[@]}"
 }
 
 case "${1:-}" in
