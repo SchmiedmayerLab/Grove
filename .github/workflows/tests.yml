@@ -56,7 +56,7 @@ jobs:
           # --only-targets/--only-job-kinds narrows CI to specific target names while debugging failing checks.
           # Never merge these arguments into main; remove them before the final PR validation.
           python3 Scripts/affected-test-matrix.py changed.txt \
-            --only-targets ResearchKitOnFHIR SpeziAccount SpeziChat SpeziNotifications SpeziScheduler XCTestExtensions \
+            --only-targets SpeziAccount SpeziChat \
             --only-job-kinds ui >> "$GITHUB_OUTPUT"
       - name: Dump matrix (debug)
         env:

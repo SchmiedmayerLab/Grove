@@ -586,22 +586,42 @@ extension XCUIApplication {
         countryCode.tap()
         
         let phoneField = textFields["Phone Number"].firstMatch
-        XCTAssertTrue(phoneField.waitForExistence(timeout: timeout))
-        phoneField.tap()
-        phoneField.typeText(phoneNumber)
+        enterText(phoneNumber, into: phoneField, timeout: timeout)
         
         tapButton("Send Verification Message", timeout: timeout)
         
         let codeField = textFields["Verification code entry"].firstMatch
-        XCTAssertTrue(codeField.waitForExistence(timeout: timeout))
-        
-        codeField.tap()
-        codeField.typeText(otc)
+        enterText(otc, into: codeField, timeout: timeout)
         
         let verifyButton = buttons["Verify Phone Number"].firstMatch
         XCTAssertTrue(verifyButton.waitForExistence(timeout: timeout))
         XCTAssertTrue(verifyButton.wait(for: \.isEnabled, toEqual: true, timeout: timeout))
         verifyButton.tap()
+    }
+
+    fileprivate func enterText(
+        _ text: String,
+        into textField: XCUIElement,
+        timeout: TimeInterval,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertTrue(textField.waitForExistence(timeout: timeout), "Missing text field.", file: file, line: line)
+        textField.tap()
+
+        let focusExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "hasKeyboardFocus == YES"),
+            object: textField
+        )
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [focusExpectation], timeout: timeout),
+            .completed,
+            "Text field did not gain keyboard focus.",
+            file: file,
+            line: line
+        )
+
+        textField.typeText(text)
     }
 
     fileprivate func tapButton(

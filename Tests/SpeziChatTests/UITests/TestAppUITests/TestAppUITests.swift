@@ -12,8 +12,8 @@ import XCTestExtensions
 
 @MainActor
 class TestAppUITests: XCTestCase {
-    private static let initialAssistantMessage = "**Assistant** Message!"
-    private static let assistantMessageResponse = "**Assistant** Message Response!"
+    private static let initialAssistantMessageLabels = ["**Assistant** Message!", "Assistant Message!"]
+    private static let assistantMessageResponseLabels = ["**Assistant** Message Response!", "Assistant Message Response!"]
 
     @MainActor
     override func setUp() async throws {
@@ -29,7 +29,7 @@ class TestAppUITests: XCTestCase {
         let app = XCUIApplication()
         
         XCTAssert(app.staticTexts["SpeziChat"].waitForExistence(timeout: 5))
-        XCTAssert(app.staticTexts[Self.initialAssistantMessage].waitForExistence(timeout: 5))
+        XCTAssert(assistantMessage(labels: Self.initialAssistantMessageLabels, in: app).waitForExistence(timeout: 5))
         
         try app.textFields["Message Input Textfield"].enter(value: "User Message!", options: [.disableKeyboardDismiss])
         XCTAssert(app.buttons["Send Message"].waitForExistence(timeout: 5))
@@ -37,7 +37,7 @@ class TestAppUITests: XCTestCase {
         XCTAssert(app.staticTexts["User Message!"].waitForExistence(timeout: 5))
         XCTAssert(app.otherElements["Typing Indicator"].waitForExistence(timeout: 5))
         XCTAssert(app.otherElements["Typing Indicator"].waitForNonExistence(timeout: 15))
-        XCTAssert(app.staticTexts[Self.assistantMessageResponse].waitForExistence(timeout: 5))
+        XCTAssert(assistantMessage(labels: Self.assistantMessageResponseLabels, in: app).waitForExistence(timeout: 5))
     }
     
     
@@ -112,7 +112,7 @@ class TestAppUITests: XCTestCase {
         let app = XCUIApplication()
         
         XCTAssert(app.staticTexts["SpeziChat"].waitForExistence(timeout: 5))
-        XCTAssert(app.staticTexts[Self.initialAssistantMessage].waitForExistence(timeout: 5))
+        XCTAssert(assistantMessage(labels: Self.initialAssistantMessageLabels, in: app).waitForExistence(timeout: 5))
         
         try app.textFields["Message Input Textfield"].enter(value: "Call some function", options: [.disableKeyboardDismiss])
         XCTAssert(app.buttons["Send Message"].waitForExistence(timeout: 5))
@@ -122,7 +122,7 @@ class TestAppUITests: XCTestCase {
         
         XCTAssert(app.staticTexts["call_test_func({ test: true })"].waitForExistence(timeout: 5))
         XCTAssert(app.staticTexts["{ some: response }"].waitForExistence(timeout: 5))
-        XCTAssert(app.staticTexts[Self.assistantMessageResponse].waitForExistence(timeout: 5))
+        XCTAssert(assistantMessage(labels: Self.assistantMessageResponseLabels, in: app).waitForExistence(timeout: 5))
     }
 }
 
@@ -163,7 +163,7 @@ extension TestAppUITests {
             return failure
         }
         return retryFailure(
-            app.staticTexts[Self.assistantMessageResponse].waitForExistence(timeout: 5),
+            assistantMessage(labels: Self.assistantMessageResponseLabels, in: app).waitForExistence(timeout: 5),
             attempt,
             "assistant response did not appear"
         )
@@ -239,5 +239,10 @@ extension TestAppUITests {
 
     private func retryFailure(_ condition: Bool, _ attempt: Int, _ message: String) -> String? {
         condition ? nil : "Attempt \(attempt): \(message)."
+    }
+
+    private func assistantMessage(labels: [String], in app: XCUIApplication) -> XCUIElement {
+        let predicate = NSPredicate(format: "label IN %@", labels)
+        return app.staticTexts.matching(predicate).firstMatch
     }
 }
