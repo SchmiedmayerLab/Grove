@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+package import Foundation
 
 
 @available(iOS 17, macOS 14, visionOS 1, *)

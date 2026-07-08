@@ -7,9 +7,9 @@
 //
 
 import Spezi
-import SpeziKeychainStorage
+package import SpeziKeychainStorage
 import SpeziOnboarding
-import SwiftUI
+package import SwiftUI
 
 
 /// `View` for the user to enter an auth token for remote LLM inference.

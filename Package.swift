@@ -1320,7 +1320,8 @@ var targets: [Target] = [
             .process("Resources")
         ],
         swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
+            .enableUpcomingFeature("ExistentialAny"),
+            .enableUpcomingFeature("InternalImportsByDefault")
         ],
         plugins: [.plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")] + defaultPlugins
     ),
