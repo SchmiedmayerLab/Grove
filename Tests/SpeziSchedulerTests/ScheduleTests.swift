@@ -11,6 +11,7 @@ import XCTest
 import XCTSpezi
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 final class ScheduleTests: XCTestCase {
     func testOnceSchedule() throws {
         let startDate: Date = try .withTestDate(hour: 9, minute: 23, second: 25)

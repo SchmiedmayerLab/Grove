@@ -65,6 +65,7 @@ import SpeziLLM
 ///     }
 /// }
 /// ```
+@available(iOS 17, macOS 14, visionOS 1, *)
 @Observable
 public final class LLMFogSession: LLMSession, Sendable {
     /// A Swift Logger that logs important information from the ``LLMFogSession``.

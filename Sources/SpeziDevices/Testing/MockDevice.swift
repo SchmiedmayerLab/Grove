@@ -14,6 +14,7 @@ import SpeziNumerics
 
 
 @_spi(TestingSupport)
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 public final class MockDevice: PairableDevice, HealthDevice, BatteryPoweredDevice, @unchecked Sendable {
     public static let appearance: DeviceAppearance = .appearance(Appearance(name: "My Mock Device"))
 
@@ -73,6 +74,7 @@ public final class MockDevice: PairableDevice, HealthDevice, BatteryPoweredDevic
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension MockDevice {
     /// Create a new Mock Device instance.
     ///
@@ -157,6 +159,7 @@ extension MockDevice {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension BloodPressureMeasurement {
     /// Create a mock blood pressure measurement.
     /// - Parameters:
@@ -194,6 +197,7 @@ extension BloodPressureMeasurement {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension WeightMeasurement {
     /// Create a mock weight measurement.
     /// - Parameters:

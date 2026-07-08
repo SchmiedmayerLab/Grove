@@ -12,6 +12,7 @@ import OpenAPIRuntime
 
 
 /// Middleware to set the expected host name of the request, required for proper custom TLS verification.
+@available(iOS 17, macOS 14, visionOS 1, *)
 struct ExpectedHostMiddleware: ClientMiddleware {
     private let hostHeaderKey: HTTPField.Name = {
         guard let hostHeader = HTTPField.Name("Host") else {

@@ -15,6 +15,7 @@ import Foundation
 /// track of a on-change handler and cancel the registration at a later point.
 ///
 /// - Tip: The on-change handler will be automatically unregistered when this object is deallocated.
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public final class OnChangeRegistration {
     // reference counting is atomic, so non-isolated(unsafe) is fine, we never mutate
     nonisolated(unsafe) private weak var peripheral: BluetoothPeripheral?
@@ -51,4 +52,5 @@ public final class OnChangeRegistration {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension OnChangeRegistration: Sendable {}

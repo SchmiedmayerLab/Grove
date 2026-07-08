@@ -9,6 +9,7 @@
 import ModelsR4
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension Extension.ValueX {
     var isInteger: Bool {
         switch self {

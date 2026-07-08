@@ -11,6 +11,7 @@ import SpeziFoundation
 import SwiftUI
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 @MainActor
 @_spi(APISupport)
 public final class RemoteNotificationRegistrationSupport: KnowledgeSource, Sendable {
@@ -71,6 +72,7 @@ public final class RemoteNotificationRegistrationSupport: KnowledgeSource, Senda
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Spezi {
     /// Provides support to call the `registerForRemoteNotifications()` method on the application.
     ///

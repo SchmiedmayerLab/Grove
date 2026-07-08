@@ -35,6 +35,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     
     @Test
     func scheduler() throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         // test simple scheduler initialization test
         let module = Scheduler(persistence: .inMemory)
         withDependencyResolution {
@@ -47,6 +51,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
 
     @Test
     func simpleTaskCreation() throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let module = Scheduler(persistence: .inMemory)
         withDependencyResolution {
             module
@@ -86,6 +94,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
 
     @Test
     func simpleTaskVersioning() throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let module = Scheduler(persistence: .inMemory)
         withDependencyResolution {
             module
@@ -190,6 +202,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     
     @Test
     func nonTrivialTaskContextCoding() throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let module = Scheduler(persistence: .inMemory)
         withDependencyResolution {
             module
@@ -227,6 +243,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     
     @Test
     func fetchingEventsAfterCompletion() async throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let todayRange = Date.today..<Date.tomorrow
         let module = Scheduler(persistence: .inMemory)
         withDependencyResolution {
@@ -266,6 +286,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     
     @Test
     func deleteAllVersions() async throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let module = Scheduler(persistence: .inMemory)
         withDependencyResolution {
             module
@@ -303,6 +327,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     
     @Test
     func deleteTaskSingleVersionNoOutcomes() async throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let cal = Calendar.current
         let module = Scheduler(persistence: .inMemory)
         withDependencyResolution {
@@ -335,6 +363,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     
     @Test
     func deleteTaskSingleVersionSomeOutcomes() async throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let cal = Calendar.current
         let module = Scheduler(persistence: .inMemory)
         withDependencyResolution {
@@ -374,6 +406,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     
     @Test(arguments: DeleteAllTaskVersionsApproach.allCases)
     func deleteTaskMultipleVersionsNoOutcomes(deleteAllVersionsApproach: DeleteAllTaskVersionsApproach) async throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let cal = Calendar.current
         let module = Scheduler(persistence: .inMemory)
         withDependencyResolution {
@@ -416,6 +452,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     
     @Test(arguments: DeleteAllTaskVersionsApproach.allCases)
     func deleteTaskMultipleVersionsSomeOutcomes(deleteAllVersionsApproach: DeleteAllTaskVersionsApproach) async throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let cal = Calendar.current
         let module = Scheduler(persistence: .inMemory)
         withDependencyResolution {
@@ -466,6 +506,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     
     @Test(arguments: DeleteAllTaskVersionsApproach.allCases)
     func deleteTask(deleteAllVersionsApproach: DeleteAllTaskVersionsApproach) async throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let cal = Calendar.current
         let module = Scheduler(persistence: .inMemory)
         withDependencyResolution {
@@ -527,6 +571,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     // See also: FB17583572 and FB18429335.
     @Test(arguments: [false, true])
     func schedulerFastModelContextOperations(useAlternativeDelete: Bool) throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let module = Scheduler(persistence: .inMemory)
         withDependencyResolution {
             module
@@ -583,6 +631,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     // was likely in part caused by using `ModelContext.delete(model:where:)` instead of `ModelContext.delete(_:)`.
     @Test
     func deleteTaskWithNotifications() async throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let allTime = Date.distantPast...Date.distantFuture
         let scheduler = Scheduler(persistence: .inMemory)
         withDependencyResolution {
@@ -602,6 +654,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     
     @Test
     func hourlyTask() throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let cal = Calendar.current
         let scheduler = Scheduler(persistence: .inMemory)
         withDependencyResolution {
@@ -633,6 +689,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     
     @Test
     func hourlyTask12HourInterval() throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let cal = Calendar.current
         let scheduler = Scheduler(persistence: .inMemory)
         withDependencyResolution {
@@ -675,6 +735,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     
     @Test
     func monthlyTask() throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let cal = Calendar.current
         let scheduler = Scheduler(persistence: .inMemory)
         withDependencyResolution {
@@ -719,6 +783,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     
     @Test
     func monthlyTask3MonthInterval() throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let cal = Calendar.current
         let scheduler = Scheduler(persistence: .inMemory)
         withDependencyResolution {
@@ -756,6 +824,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     
     @Test
     func yearlyTask() throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let cal = Calendar.current
         let scheduler = Scheduler(persistence: .inMemory)
         withDependencyResolution {
@@ -788,6 +860,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     
     @Test
     func yearlyTask3YearInterval() throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let cal = Calendar.current
         let scheduler = Scheduler(persistence: .inMemory)
         withDependencyResolution {
@@ -822,6 +898,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     
     @Test
     func iOS26Migration() throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         let fm = FileManager.default // swiftlint:disable:this identifier_name
         let schedulerDir = URL.temporaryDirectory.appending(component: UUID().uuidString, directoryHint: .isDirectory)
         try fm.createDirectory(at: schedulerDir, withIntermediateDirectories: true)
@@ -866,6 +946,10 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     
     @Test
     func userInfoPersistance() throws {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         struct TaskContextKey: TaskStorageKey, _UserInfoKey<TaskAnchor> {
             typealias Value = Int
             static let identifier = "tKey1"
@@ -983,6 +1067,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 final class OtherSchedulerTests: XCTestCase {
     @MainActor
     func testSandboxDetection() throws {

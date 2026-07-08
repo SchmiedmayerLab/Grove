@@ -12,6 +12,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 struct PhoneNumbersDetailView: View {
     private enum Event {
         case deletePhoneNumber(PhoneNumber)
@@ -163,6 +164,7 @@ struct PhoneNumbersDetailView: View {
     
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     NavigationStack {
         PhoneNumbersDetailView(phoneNumberViewModel: .constant(PhoneNumberViewModel()))

@@ -13,6 +13,7 @@ import SpeziKeychainStorage
 
 
 @MainActor
+@available(iOS 17, *)
 public protocol _AnyAccessGuardModel: Observable, Sendable { // swiftlint:disable:this type_name
     associatedtype UnlockInput
     associatedtype UnlockResult
@@ -38,6 +39,7 @@ public protocol _AnyAccessGuardModel: Observable, Sendable { // swiftlint:disabl
 }
 
 
+@available(iOS 17, *)
 extension _AnyAccessGuardModel {
     var identifier: AccessGuardIdentifier<Config> {
         config.id
@@ -57,6 +59,7 @@ extension _AnyAccessGuardModel {
 }
 
 
+@available(iOS 17, *)
 extension CredentialsTag {
     static let accessGuard = Self.genericPassword(forService: "edu.stanford.spezi.accessGuard")
 }

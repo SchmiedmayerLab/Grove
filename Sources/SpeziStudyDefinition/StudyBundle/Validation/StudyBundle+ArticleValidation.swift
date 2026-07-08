@@ -11,6 +11,7 @@ import SpeziFoundation
 import SpeziLocalization
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension StudyBundle {
     func validateArticles() throws -> [BundleValidationIssue] { // swiftlint:disable:this function_body_length
         let articleFileRefs = studyDefinition.components.compactMap {

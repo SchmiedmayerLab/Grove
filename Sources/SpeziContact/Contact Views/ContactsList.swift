@@ -17,6 +17,7 @@ import SwiftUI
 ///     .navigationTitle("Contacts")
 ///     .background(Color(.systemGroupedBackground))
 /// ```
+@available(iOS 16, *)
 public struct ContactsList: View {
     private let contacts: [Contact]
     
@@ -42,6 +43,7 @@ public struct ContactsList: View {
 
 
 #if DEBUG
+@available(iOS 16, *)
 struct ContactsList_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {

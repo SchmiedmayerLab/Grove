@@ -29,6 +29,7 @@ private protocol ModuleArrayDependency {
 
 
 /// Refer to the documentation of ``Module/Dependency`` for information on how to use the `@Dependency` property wrapper.
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 @propertyWrapper
 public final class _DependencyPropertyWrapper<Value> { // swiftlint:disable:this type_name
     private weak var spezi: Spezi?
@@ -94,6 +95,7 @@ public final class _DependencyPropertyWrapper<Value> { // swiftlint:disable:this
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension _DependencyPropertyWrapper: SpeziPropertyWrapper {
     func inject(spezi: Spezi) {
         self.spezi = spezi
@@ -109,6 +111,7 @@ extension _DependencyPropertyWrapper: SpeziPropertyWrapper {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension _DependencyPropertyWrapper: DependencyDeclaration {
     var unsafeInjectedModules: [any Module] {
         dependencies.unsafeInjectedModules
@@ -136,6 +139,7 @@ extension _DependencyPropertyWrapper: DependencyDeclaration {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension _DependencyPropertyWrapper: SingleModuleDependency where Value: Module {
     /// Create a required dependency.
     ///
@@ -166,6 +170,7 @@ extension _DependencyPropertyWrapper: SingleModuleDependency where Value: Module
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension _DependencyPropertyWrapper: OptionalModuleDependency where Value: AnyOptional, Value.Wrapped: Module {
     /// Create a empty, optional dependency.
     @available(*, deprecated, renamed: "init(_:)", message: "Please specify the Wrapped type of your optional dependency as the first argument.")
@@ -183,6 +188,7 @@ extension _DependencyPropertyWrapper: OptionalModuleDependency where Value: AnyO
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension _DependencyPropertyWrapper: ModuleArrayDependency where Value == [any Module] {
     /// Initialize an empty collection of dependencies.
     @_disfavoredOverload

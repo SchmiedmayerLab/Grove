@@ -12,6 +12,7 @@ import SwiftUI
 
 
 /// An `Image` displaying a thumbnail for a file ata `URL`.
+@available(iOS 17, *)
 struct FileThumbnail: View {
     @Environment(\.displayScale) private var scale
     private let url: URL

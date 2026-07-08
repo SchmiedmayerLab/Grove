@@ -9,22 +9,16 @@
 import SwiftUI
 
 
-@Observable
-private final class UIUpdate {
+private final class UIUpdate: ObservableObject, @unchecked Sendable {
     private var dateTimer: Timer? {
         willSet {
             dateTimer?.invalidate()
         }
     }
 
-    private var trigger: UInt64 = 0
+    @Published private var trigger: UInt64 = 0
 
     nonisolated init() {}
-
-    func access() {
-        access(keyPath: \.dateTimer)
-        access(keyPath: \.trigger)
-    }
 
     @MainActor
     func manualUpdate() {
@@ -33,29 +27,19 @@ private final class UIUpdate {
 
     @MainActor
     func scheduleUpdate(at date: Date) {
-        @MainActor
-        struct WeakSendingSelf: Sendable { // assumeIsolated requires a @Sendable closure, so we need to pass self via a Sendable type
-            weak var value: UIUpdate?
-
-            init(_ value: UIUpdate) {
-                self.value = value
-            }
-        }
-
-        let sendingSelf = WeakSendingSelf(self)
-
-        let timer = Timer(fire: date, interval: 0, repeats: false) { [sendingSelf] _ in
-            MainActor.assumeIsolated { [sendingSelf] in
-                sendingSelf.value?.dateTimer = nil // triggers observable mutation
+        let timer = Timer(fire: date, interval: 0, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.dateTimer = nil
+                self?.manualUpdate()
             }
         }
         RunLoop.main.add(timer, forMode: .common)
 
-        self._dateTimer = timer // do not trigger mutation
+        self.dateTimer = timer
     }
 
     deinit {
-        _dateTimer?.invalidate()
+        dateTimer?.invalidate()
     }
 }
 
@@ -92,7 +76,7 @@ private final class UIUpdate {
 /// ```
 @propertyWrapper
 public struct ManagedViewUpdate {
-    private let uiUpdate = UIUpdate()
+    @StateObject private var uiUpdate = UIUpdate()
     
     /// Access the instance.
     public var wrappedValue: Self {
@@ -119,7 +103,5 @@ public struct ManagedViewUpdate {
 
 
 extension ManagedViewUpdate: DynamicProperty {
-    public func update() {
-        uiUpdate.access() // track access to the state
-    }
+    public func update() {}
 }

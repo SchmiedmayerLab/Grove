@@ -19,6 +19,7 @@ import SpeziLocalStorage
 
 /// A long-running backgrund exporting task that fetches and processes HealthKit data.
 @Observable
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 final class BulkExportSessionImpl<Processor: BatchProcessor>: Sendable, BulkExportSession {
     typealias Processor = Processor
     
@@ -126,6 +127,7 @@ final class BulkExportSessionImpl<Processor: BatchProcessor>: Sendable, BulkExpo
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension BulkExportSessionImpl {
     @MainActor
     func start(retryFailedBatches: Bool, concurrencyLevel: BulkExportConcurrencyLevel) throws(StartSessionError) -> AsyncStream<Processor.Output> {
@@ -305,6 +307,7 @@ extension BulkExportSessionImpl {
 
 // MARK: Helpers
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 private final class SessionDescriptorPersisting: Sendable {
     @globalActor
     private actor PersistSessionStateActor {
@@ -355,6 +358,7 @@ private enum QueryAndProcessError: Error, Sendable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension BulkExportSessionImpl {
     nonisolated private func queryAndProcess<Sample: _HKSampleWithSampleType>(
         sampleType: some AnySampleType<Sample>,
@@ -376,6 +380,7 @@ extension BulkExportSessionImpl {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension BulkExportConcurrencyLevel {
     fileprivate var effectiveLimit: Int {
         switch self {

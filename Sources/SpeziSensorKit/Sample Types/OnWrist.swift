@@ -14,6 +14,7 @@ public import SensorKit
 
 // MARK: On-Wrist Detection
 
+@available(iOS 17, *)
 extension SRWristDetection: SensorKitSampleProtocol {
     public typealias SafeRepresentation = SensorKitOnWristEventSample
     
@@ -27,6 +28,7 @@ extension SRWristDetection: SensorKitSampleProtocol {
 
 
 /// An On-Wrist Event collected by SensorKit.
+@available(iOS 17, *)
 public struct SensorKitOnWristEventSample: SensorKitSampleSafeRepresentation {
     /// The date when this sample was collected
     public let timestamp: Date
@@ -64,6 +66,7 @@ public struct SensorKitOnWristEventSample: SensorKitSampleSafeRepresentation {
 }
 
 
+@available(iOS 17, *)
 extension SRWristDetection.WristLocation: @retroactive CustomDebugStringConvertible {
     public var debugDescription: String {
         switch self {
@@ -77,6 +80,7 @@ extension SRWristDetection.WristLocation: @retroactive CustomDebugStringConverti
     }
 }
 
+@available(iOS 17, *)
 extension SRWristDetection.CrownOrientation: @retroactive CustomDebugStringConvertible {
     public var debugDescription: String {
         switch self {

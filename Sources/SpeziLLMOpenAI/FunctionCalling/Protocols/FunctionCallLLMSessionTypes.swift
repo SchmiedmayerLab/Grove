@@ -9,6 +9,7 @@
 import SpeziLLM
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 package enum FunctionCallLLMSessionTypes {
     /// The response returned after successfully executing a function call.
     package struct FunctionCallResponse {

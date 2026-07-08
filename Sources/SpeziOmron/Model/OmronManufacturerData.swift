@@ -185,6 +185,7 @@ extension OmronManufacturerData.Flags: ByteCodable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension OmronManufacturerData: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let companyIdentifier = ManufacturerIdentifier(from: &byteBuffer) else {

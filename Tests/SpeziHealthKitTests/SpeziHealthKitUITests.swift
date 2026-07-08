@@ -25,6 +25,9 @@ import Testing
 struct SpeziHealthKitUITests {
     @Test("Simple HealthChart View Snapshot")
     func simpleHealthChartViewSnapshot() throws {
+        guard #available(iOS 18, *) else {
+            return
+        }
         var heartRateSamplesProvider = FakeSamplesProvider(
             sampleType: .heartRate,
             values: [97 as Double, 95, 91, 89, 89, 92, 117, 119, 118, 95, 85, 87].makeLoopingIterator(),
@@ -51,6 +54,9 @@ struct SpeziHealthKitUITests {
 
     @Test("Multi Entry HealthChart View Snapshot")
     func multiEntryHealthChartViewSnapshot() throws {
+        guard #available(iOS 18, *) else {
+            return
+        }
         var heartRateSamplesProvider = FakeSamplesProvider(
             sampleType: .heartRate,
             values: [97 as Double, 95, 91, 89, 89, 92, 117, 119, 118, 95, 85, 87].makeLoopingIterator(),
@@ -88,6 +94,9 @@ struct SpeziHealthKitUITests {
 
     @Test("Empty HealthChart No Entries Snapshot")
     func emptyHealthChartNoEntriesSnapshot() {
+        guard #available(iOS 18, *) else {
+            return
+        }
         let healthChart = HealthChart {
             // nothing in here
         }
@@ -100,6 +109,9 @@ struct SpeziHealthKitUITests {
 
     @Test("Empty HealthChart Entries But No Data Snapshot")
     func emptyHealthChartEntriesButNoDataSnapshot() throws {
+        guard #available(iOS 18, *) else {
+            return
+        }
         let data = MockQueryResults(sampleType: .heartRate, timeRange: .currentWeek, samples: [])
         let healthChart = HealthChart {
             HealthChartEntry(data, drawingConfig: .init(chartType: .bar, color: .red))
@@ -113,6 +125,9 @@ struct SpeziHealthKitUITests {
 
     @Test("Conditional HealthChart Content Snapshot")
     func conditionalHealthChartContentSnapshot() throws {
+        guard #available(iOS 18, *) else {
+            return
+        }
         var heartRateSamplesProvider = FakeSamplesProvider(
             sampleType: .heartRate,
             values: [97 as Double, 95, 91, 89, 89, 92, 117, 119, 118, 95, 85, 87].makeLoopingIterator(),

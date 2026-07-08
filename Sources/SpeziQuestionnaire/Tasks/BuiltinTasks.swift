@@ -7,6 +7,7 @@
 //
 
 
+@available(iOS 17, *)
 extension Questionnaire {
     /// All builtin question kinds, in no particular order.
     ///

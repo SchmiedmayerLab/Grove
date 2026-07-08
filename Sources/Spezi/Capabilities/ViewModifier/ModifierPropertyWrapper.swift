@@ -11,6 +11,7 @@ import SwiftUI
 
 
 /// Refer to the documentation of ``Module/Modifier``.
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 @propertyWrapper
 public class _ModifierPropertyWrapper<Modifier: ViewModifier> {
     // swiftlint:disable:previous type_name
@@ -58,6 +59,7 @@ public class _ModifierPropertyWrapper<Modifier: ViewModifier> {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension _ModifierPropertyWrapper: SpeziPropertyWrapper {
     func clear() {
         collected = false
@@ -97,10 +99,12 @@ extension Module {
     ///
     /// - Important: The value of the property must not be modified after the call to your ``Module/configure()``
     ///     method returned.
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     public typealias Modifier = _ModifierPropertyWrapper
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension _ModifierPropertyWrapper: ViewModifierProvider {
     var viewModifier: (any ViewModifier)? {
         collected = true

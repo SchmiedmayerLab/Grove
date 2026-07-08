@@ -10,6 +10,7 @@ import CryptoKit
 import Foundation
 
 
+@available(iOS 17, *)
 enum CryptoUtils {
     static func randomNonceString(length: Int) -> String {
         precondition(length > 0, "Nonce length must be non-zero")

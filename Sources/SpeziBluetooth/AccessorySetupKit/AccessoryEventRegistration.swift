@@ -16,7 +16,7 @@ public struct AccessoryEventRegistration: ~Copyable, Sendable {
     private let id: UUID
     private weak var setupKit: (AnyObject & Sendable)? // type erased as AccessorySetupKit is only available on iOS 18 platform.
 
-    @available(iOS 18.0, *)
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, tvOS 18.0, *)
     @available(macCatalyst, unavailable)
     init(id: UUID, setupKit: AccessorySetupKit?) {
         self.id = id

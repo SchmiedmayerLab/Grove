@@ -33,9 +33,11 @@ import SpeziFoundation
 /// - Note: Refer to the [Shared Repository](../../../Spezi/Spezi.docc/Spezi.md)
 ///     documentation to leverage the full potential of what's possible with `KnowledgeSource`s. Particularly, how to provide default
 ///     values or compute the value dependent on other configuration options.
+@available(iOS 17, macOS 14, *)
 public protocol AccountServiceConfigurationKey: KnowledgeSource<AccountServiceConfigurationStorageAnchor>, Sendable where Value == Self {}
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountServiceConfigurationKey {
     /// This method is used internally to store the instance into the a ``AccountServiceConfigurationStorage``
     /// when having a type-erased view on the instance.

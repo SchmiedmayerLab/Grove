@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 17, macOS 14, *)
 extension ProcessInfo {
     static let isIOSAtLeast26 = ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26
 }

@@ -13,6 +13,7 @@ import SwiftUI
 
 /// Result builder used to aggregate multiple Spezi ``LLMPlatform``s stated within the ``LLMRunner``.
 @resultBuilder
+@available(iOS 17, macOS 14, visionOS 1, *)
 public enum LLMPlatformBuilder: DependencyCollectionBuilder {
     /// An auto-closure expression, providing the default dependency value, building the `DependencyCollection`.
     public static func buildExpression<L: LLMPlatform>(_ expression: @autoclosure () -> L) -> DependencyCollection {

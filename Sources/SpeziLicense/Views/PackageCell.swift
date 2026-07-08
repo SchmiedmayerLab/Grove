@@ -119,6 +119,7 @@ extension Package {
 
 
 #if DEBUG
+@available(iOS 17, *)
 #Preview(traits: .sizeThatFitsLayout) {
     let mockPackage = Package(
         kind: .remoteSourceControl,
@@ -131,6 +132,6 @@ extension Package {
         license: "MIT License"
     )
     
-    return PackageCell(package: mockPackage)
+    PackageCell(package: mockPackage)
 }
 #endif

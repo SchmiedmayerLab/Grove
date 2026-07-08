@@ -15,6 +15,7 @@ import SpeziLLM
 import SpeziLLMOpenAI
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension LLMOpenAIRealtimeSession {
     /// Ensures the Realtime API session is set up and ready to use.
     ///

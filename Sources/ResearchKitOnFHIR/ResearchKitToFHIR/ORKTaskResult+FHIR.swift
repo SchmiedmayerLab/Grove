@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if ResearchKit && canImport(ResearchKit)
+
 import Foundation
 import ModelsR4
 import ResearchKit
@@ -186,3 +188,5 @@ extension ORKTaskResult {
         return .attachment(Attachment(url: url.asFHIRURIPrimitive()))
     }
 }
+
+#endif

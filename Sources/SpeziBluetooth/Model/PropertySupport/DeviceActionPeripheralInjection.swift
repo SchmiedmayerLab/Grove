@@ -7,6 +7,7 @@
 //
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 final class DeviceActionPeripheralInjection: Sendable {
     private let bluetooth: Bluetooth
     let peripheral: BluetoothPeripheral

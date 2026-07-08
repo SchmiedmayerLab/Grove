@@ -46,6 +46,7 @@ public import SwiftUI
 ///     (e.g.: because no samples from a matching `HKSource` exist), will not auto-update when a source that matches the filter adds new samples.
 ///     Instead, these samples will only show up when the view appears the next time.
 ///     If this is a likely scenario for your app, use a ``HealthKitQuery`` without a `SourceFilter` and then perform manual filtering on the resulting samples.
+@available(iOS 17, *)
 @propertyWrapper @MainActor
 public struct HealthKitStatisticsQuery: DynamicProperty { // swiftlint:disable:this file_types_order
     public typealias CumulativeAggregationOption = HealthKit.CumulativeAggregationOption
@@ -108,6 +109,7 @@ public struct HealthKitStatisticsQuery: DynamicProperty { // swiftlint:disable:t
 }
 
 
+@available(iOS 17, *)
 extension HealthKitStatisticsQuery { // swiftlint:disable:this file_types_order
     /// Create a new statistics query.
     public init(
@@ -154,6 +156,7 @@ extension HealthKitStatisticsQuery { // swiftlint:disable:this file_types_order
 /// This type is primarily intended to be used by the ``HealthKitStatisticsQuery`` property wrapper, but is also made available as part of the public API.
 ///
 /// - Note: [Explain that the class is externally-immutable, but internally-mutable, bc of the StateObject usage!]
+@available(iOS 17, *)
 @Observable
 public final class StatisticsQueryResults: @unchecked Sendable {
     public enum QueryError: Error {
@@ -258,6 +261,7 @@ public final class StatisticsQueryResults: @unchecked Sendable {
 }
 
 
+@available(iOS 17, *)
 extension StatisticsQueryResults: HealthKitQueryResults {
     public typealias Index = Int
     public typealias Element = HKStatistics

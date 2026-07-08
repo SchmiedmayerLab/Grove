@@ -13,6 +13,7 @@ import TipKit
 
 
 /// Grid view of paired devices.
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 public struct DevicesGrid: View {
     private let devices: [PairedDeviceInfo]? // swiftlint:disable:this discouraged_optional_collection
     private let pairNewDevice: (() -> Void)?
@@ -112,6 +113,7 @@ public struct DevicesGrid: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     NavigationStack {
         DevicesGrid(devices: []) {}
@@ -121,6 +123,7 @@ public struct DevicesGrid: View {
         }
 }
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     let devices: [PairedDeviceInfo] = [
         .mockHealthDevice1,

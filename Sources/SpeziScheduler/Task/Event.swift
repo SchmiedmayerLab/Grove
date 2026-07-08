@@ -26,6 +26,7 @@ import Foundation
 /// ### Completing an Event
 /// - ``complete()``
 /// - ``complete(ignoreCompletionPolicy:with:)``
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 @DebugDescription
 public struct Event {
     /// The outcome value.
@@ -101,6 +102,7 @@ public struct Event {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Event {
     public enum CompletionError: Error {
         /// The event's ``AllowedCompletionPolicy`` doesn't allow completing the event at this time.
@@ -174,6 +176,7 @@ extension Event {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Event: Identifiable {
     public struct ID {
         private let taskId: Task.ID
@@ -191,9 +194,11 @@ extension Event: Identifiable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Event.ID: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Event: CustomStringConvertible {
     public var description: String {
         """

@@ -10,6 +10,7 @@ import Foundation
 
 
 /// Serves as an intermediary representation of the requested function call parameters in order to decode the parameters into the ``LLMFunction/Parameter``s.
+@available(iOS 17, macOS 14, visionOS 1, *)
 enum LLMFunctionParameterIntermediary: Codable {
     case null
     case int(Int)

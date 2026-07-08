@@ -15,6 +15,7 @@ public import SensorKit
 
 /// A default ``SensorKitSampleSafeRepresentation``, intended for sensors whose types are already `Sendable` and not confined to the SensorKit thread.
 @dynamicMemberLookup
+@available(iOS 17, *)
 public struct DefaultSensorKitSampleSafeRepresentation<Sample: Hashable & Sendable>: SensorKitSampleSafeRepresentation {
     /// The point in time when the system recorded the measurement.
     public let timestamp: Date
@@ -38,6 +39,7 @@ public struct DefaultSensorKitSampleSafeRepresentation<Sample: Hashable & Sendab
     }
 }
 
+@available(iOS 17, *)
 extension DefaultSensorKitSampleSafeRepresentation: Identifiable where Sample: Identifiable {
     @inlinable public var id: Sample.ID {
         sample.id
@@ -47,32 +49,38 @@ extension DefaultSensorKitSampleSafeRepresentation: Identifiable where Sample: I
 
 // MARK: SampleType Extensions
 
+@available(iOS 17, *)
 extension SRWristTemperatureSession: SensorKitSampleProtocol {
     public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<SRWristTemperatureSession>
 }
 
 
 @available(iOS 17.4, *)
+@available(iOS 17, *)
 extension SRPhotoplethysmogramSample: SensorKitSampleProtocol {
     public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<SRPhotoplethysmogramSample>
 }
 
 
+@available(iOS 17, *)
 extension SRSpeechMetrics: SensorKitSampleProtocol {
     public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<SRSpeechMetrics>
 }
 
 
+@available(iOS 17, *)
 extension SRMediaEvent: SensorKitSampleProtocol {
     public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<SRMediaEvent>
 }
 
 
+@available(iOS 17, *)
 extension SRFaceMetrics: SensorKitSampleProtocol {
     public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<SRFaceMetrics>
 }
 
 
+@available(iOS 17, *)
 extension CMOdometerData: SensorKitSampleProtocol {
     public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<CMOdometerData>
 }

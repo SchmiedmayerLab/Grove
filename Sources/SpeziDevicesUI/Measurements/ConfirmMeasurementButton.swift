@@ -11,6 +11,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 struct DiscardButton: View {
     private let discard: () -> Void
 
@@ -32,6 +33,7 @@ struct DiscardButton: View {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 struct ConfirmMeasurementButton: View {
     private let confirm: @MainActor () async throws -> Void
     private let discard: () -> Void
@@ -64,6 +66,7 @@ struct ConfirmMeasurementButton: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     ConfirmMeasurementButton(viewState: .constant(.idle)) {
         print("Save")

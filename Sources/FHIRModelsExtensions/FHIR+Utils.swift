@@ -47,6 +47,7 @@ extension Decimal {
 
 extension FHIRPrimitive where PrimitiveType == FHIRURI {
     /// Creates a new `FHIRPrimitive<FHIRURI>`, by appending the specified component.
+    @available(iOS 16, macOS 13, macCatalyst 16, tvOS 16, watchOS 9, visionOS 1, *)
     @inlinable
     public func appending(component: some StringProtocol) -> Self {
         guard let value else {
@@ -56,6 +57,7 @@ extension FHIRPrimitive where PrimitiveType == FHIRURI {
     }
     
     /// Creates a new `FHIRPrimitive<FHIRURI>`, by appending the specified components.
+    @available(iOS 16, macOS 13, macCatalyst 16, tvOS 16, watchOS 9, visionOS 1, *)
     @inlinable
     public func appending(components: [some StringProtocol]) -> Self {
         guard let value else {

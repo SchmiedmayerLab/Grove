@@ -39,6 +39,7 @@ import SwiftUI
 /// }
 /// ```
 @propertyWrapper
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 public struct LocalStorageEntry<Value>: DynamicProperty { // swiftlint:disable:this file_types_order
     private let key: LocalStorageKey<Value>
     
@@ -69,6 +70,7 @@ public struct LocalStorageEntry<Value>: DynamicProperty { // swiftlint:disable:t
 
 
 @Observable
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 private final class LocalStorageEntryInternals<Value> {
     fileprivate var value: Value?
     @ObservationIgnored private var key: LocalStorageKey<Value>?

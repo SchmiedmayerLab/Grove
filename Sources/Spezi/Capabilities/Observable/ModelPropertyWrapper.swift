@@ -11,6 +11,7 @@ import SwiftUI
 
 
 /// Refer to the documentation of ``Module/Model``.
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 @propertyWrapper
 public class _ModelPropertyWrapper<Model: Observable & AnyObject> {
     // swiftlint:disable:previous type_name
@@ -60,6 +61,7 @@ public class _ModelPropertyWrapper<Model: Observable & AnyObject> {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension _ModelPropertyWrapper: SpeziPropertyWrapper {
     func clear() {
         collected = false
@@ -98,10 +100,12 @@ extension Module {
     ///
     /// - Note: It is guaranteed that all observable objects placed into the environment using `@Model`
     ///     are available in all `ViewModifier`s created using the `@Modifier` property wrapper.
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     public typealias Model = _ModelPropertyWrapper
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension _ModelPropertyWrapper: ViewModifierProvider {
     var viewModifier: (any ViewModifier)? {
         collected = true

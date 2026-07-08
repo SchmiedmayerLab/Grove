@@ -59,6 +59,7 @@ import SwiftUI
 /// - ``SwiftUICore/EnvironmentValues/accountSetupState``
 /// - ``AccountSetupState``
 @MainActor
+@available(iOS 17, macOS 14, *)
 public struct AccountSetup<Header: View, Continue: View>: View {
     private let setupCompleteClosure: @MainActor (AccountDetails) async -> Void
     private let header: Header
@@ -265,6 +266,7 @@ public struct AccountSetup<Header: View, Continue: View>: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     AccountSetup()
         .previewWith {
@@ -272,6 +274,7 @@ public struct AccountSetup<Header: View, Continue: View>: View {
         }
 }
 
+@available(iOS 17, macOS 14, *)
 #Preview {
     AccountSetup()
         .previewWith {
@@ -279,6 +282,7 @@ public struct AccountSetup<Header: View, Continue: View>: View {
         }
 }
 
+@available(iOS 17, macOS 14, *)
 #Preview {
     AccountSetup()
         .previewWith {
@@ -286,6 +290,7 @@ public struct AccountSetup<Header: View, Continue: View>: View {
         }
 }
 
+@available(iOS 17, macOS 14, *)
 #Preview {
     AccountSetup()
         .previewWith {
@@ -293,6 +298,7 @@ public struct AccountSetup<Header: View, Continue: View>: View {
         }
 }
 
+@available(iOS 17, macOS 14, *)
 #Preview {
     AccountSetup()
         .previewWith {
@@ -300,6 +306,7 @@ public struct AccountSetup<Header: View, Continue: View>: View {
         }
 }
 
+@available(iOS 17, macOS 14, *)
 #Preview {
     var details = AccountDetails()
     details.userId = "lelandstanford@stanford.edu"
@@ -311,6 +318,7 @@ public struct AccountSetup<Header: View, Continue: View>: View {
         }
 }
 
+@available(iOS 17, macOS 14, *)
 #Preview {
     var details = AccountDetails()
     details.userId = "lelandstanford@stanford.edu"
@@ -322,6 +330,7 @@ public struct AccountSetup<Header: View, Continue: View>: View {
         }
 }
 
+@available(iOS 17, macOS 14, *)
 #Preview {
     var details = AccountDetails()
     details.userId = "lelandstanford@stanford.edu"

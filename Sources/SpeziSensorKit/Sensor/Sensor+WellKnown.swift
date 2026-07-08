@@ -11,6 +11,7 @@ public import SensorKit
 public import SpeziFoundation
 
 
+@available(iOS 17, *)
 extension SensorKit {
     /// All ``Sensor``s currently known to the `SensorKit` module.
     public static let allKnownSensors: [any AnySensor] = {
@@ -47,6 +48,7 @@ extension SensorKit {
 
 // MARK: Sensor Definitions
 
+@available(iOS 17, *)
 extension Sensor where Sample == SRWristDetection {
     /// A sensor that describes the watch’s position on the wrist.
     @inlinable public static var onWrist: Sensor<SRWristDetection> {
@@ -59,6 +61,7 @@ extension Sensor where Sample == SRWristDetection {
     }
 }
 
+@available(iOS 17, *)
 extension Sensor where Sample == SRAmbientLightSample {
     /// A sensor that provides ambient light information.
     @inlinable public static var ambientLight: Sensor<SRAmbientLightSample> {
@@ -71,6 +74,7 @@ extension Sensor where Sample == SRAmbientLightSample {
     }
 }
 
+@available(iOS 17, *)
 extension Sensor where Sample == CMRecordedPressureData {
     /// A sensor that provides pressure and temperature metrics.
     @inlinable public static var ambientPressure: Sensor<CMRecordedPressureData> {
@@ -83,6 +87,7 @@ extension Sensor where Sample == CMRecordedPressureData {
     }
 }
 
+@available(iOS 17, *)
 extension Sensor where Sample == CMHighFrequencyHeartRateData {
     /// A sensor that provides the user’s heart rate data.
     @inlinable public static var heartRate: Sensor<CMHighFrequencyHeartRateData> {
@@ -95,6 +100,7 @@ extension Sensor where Sample == CMHighFrequencyHeartRateData {
     }
 }
 
+@available(iOS 17, *)
 extension Sensor where Sample == CMPedometerData {
     /// A sensor that provides information about the user’s steps.
     @inlinable public static var pedometer: Sensor<CMPedometerData> {
@@ -107,6 +113,7 @@ extension Sensor where Sample == CMPedometerData {
     }
 }
 
+@available(iOS 17, *)
 extension Sensor where Sample == SRWristTemperatureSession {
     /// A sensor that provides wrist temperature while the user sleeps.
     @inlinable public static var wristTemperature: Sensor<SRWristTemperatureSession> {
@@ -120,6 +127,7 @@ extension Sensor where Sample == SRWristTemperatureSession {
 }
 
 @available(iOS 17.4, *)
+@available(iOS 17, *)
 extension Sensor where Sample == SRPhotoplethysmogramSample {
     /// A sensor that streams sample PPG sensor data.
     @inlinable public static var ppg: Sensor<SRPhotoplethysmogramSample> {
@@ -133,6 +141,7 @@ extension Sensor where Sample == SRPhotoplethysmogramSample {
 }
 
 @available(iOS 17.4, *)
+@available(iOS 17, *)
 extension Sensor where Sample == SRElectrocardiogramSample {
     /// A sensor that streams sample ECG sensor data.
     @inlinable public static var ecg: Sensor<SRElectrocardiogramSample> {
@@ -145,6 +154,7 @@ extension Sensor where Sample == SRElectrocardiogramSample {
     }
 }
 
+@available(iOS 17, *)
 extension Sensor where Sample == SRVisit {
     /// A sensor that provides information about frequently visited locations.
     @inlinable public static var visits: Sensor<SRVisit> {
@@ -157,6 +167,7 @@ extension Sensor where Sample == SRVisit {
     }
 }
 
+@available(iOS 17, *)
 extension Sensor where Sample == SRDeviceUsageReport {
     /// A sensor that provides information about device usage.
     @inlinable public static var deviceUsage: Sensor<SRDeviceUsageReport> {
@@ -169,6 +180,7 @@ extension Sensor where Sample == SRDeviceUsageReport {
     }
 }
 
+@available(iOS 17, *)
 extension Sensor where Sample == CMRecordedAccelerometerData {
     /// A sensor that provides acceleration motion data.
     @inlinable public static var accelerometer: Sensor<CMRecordedAccelerometerData> {
@@ -181,6 +193,7 @@ extension Sensor where Sample == CMRecordedAccelerometerData {
     }
 }
 
+@available(iOS 17, *)
 extension Sensor where Sample == CMRecordedRotationRateData {
     /// A sensor that provides rotation motion data.
     @inlinable public static var rotationRate: Sensor<CMRecordedRotationRateData> {
@@ -193,6 +206,7 @@ extension Sensor where Sample == CMRecordedRotationRateData {
     }
 }
 
+@available(iOS 17, *)
 extension Sensor where Sample == SRMessagesUsageReport {
     /// A sensor that provides information about use of the Messages app.
     @inlinable public static var messagesUsage: Sensor<SRMessagesUsageReport> {
@@ -205,6 +219,7 @@ extension Sensor where Sample == SRMessagesUsageReport {
     }
 }
 
+@available(iOS 17, *)
 extension Sensor where Sample == SRPhoneUsageReport {
     /// A sensor that reports the amount of time that the user is on phone calls.
     @inlinable public static var phoneUsage: Sensor<SRPhoneUsageReport> {
@@ -217,6 +232,7 @@ extension Sensor where Sample == SRPhoneUsageReport {
     }
 }
 
+@available(iOS 17, *)
 extension Sensor where Sample == SRKeyboardMetrics {
     /// A sensor that provides information about keyboard usage.
     @inlinable public static var keyboardMetrics: Sensor<SRKeyboardMetrics> {
@@ -229,6 +245,7 @@ extension Sensor where Sample == SRKeyboardMetrics {
     }
 }
 
+@available(iOS 17, *)
 extension Sensor where Sample == SRSpeechMetrics {
     /// A sensor that provides data describing a user’s speech to Siri.
     @inlinable public static var siriSpeechMetrics: Sensor<SRSpeechMetrics> {
@@ -241,6 +258,7 @@ extension Sensor where Sample == SRSpeechMetrics {
     }
 }
 
+@available(iOS 17, *)
 extension Sensor where Sample == SRSpeechMetrics {
     /// A sensor that provides data describing speech during phone calls.
     @inlinable public static var telephonySpeechMetrics: Sensor<SRSpeechMetrics> {
@@ -253,6 +271,7 @@ extension Sensor where Sample == SRSpeechMetrics {
     }
 }
 
+@available(iOS 17, *)
 extension Sensor where Sample == SRMediaEvent {
     /// A sensor that provides information about interactions with media, such as images and videos, in messaging apps.
     @inlinable public static var mediaEvents: Sensor<SRMediaEvent> {
@@ -265,6 +284,7 @@ extension Sensor where Sample == SRMediaEvent {
     }
 }
 
+@available(iOS 17, *)
 extension Sensor where Sample == SRFaceMetrics {
     /// A sensor that provides data describing a user’s face.
     @inlinable public static var faceMetrics: Sensor<SRFaceMetrics> {
@@ -277,6 +297,7 @@ extension Sensor where Sample == SRFaceMetrics {
     }
 }
 
+@available(iOS 17, *)
 extension Sensor where Sample == CMOdometerData {
     /// A sensor that provides information about speed and slope.
     @inlinable public static var odometer: Sensor<CMOdometerData> {
@@ -292,6 +313,7 @@ extension Sensor where Sample == CMOdometerData {
 
 // MARK: Utils
 
+@available(iOS 17, *)
 extension SRSensor {
     var sensor: (any AnySensor)? {
         if self == .ambientLightSensor {

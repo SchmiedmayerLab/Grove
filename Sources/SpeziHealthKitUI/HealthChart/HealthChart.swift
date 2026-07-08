@@ -16,6 +16,7 @@ import SpeziHealthKit
 public import SwiftUI
 
 
+@available(iOS 18, *)
 public struct HealthChart: View {
     public typealias ContentBuilder = ArrayBuilder<any HealthChartEntryProtocol>
     
@@ -159,6 +160,7 @@ public struct HealthChart: View {
 
 // MARK: HealthChart XAxis
 
+@available(iOS 18, *)
 extension HealthChart {
     // Ideally, this would be nested in the `xAxisContent()` function, but the compiler currently doesn't allow this.
     private struct XAxisMarksConfig {
@@ -214,6 +216,7 @@ extension HealthChart {
 }
 
 
+@available(iOS 18, *)
 extension HealthChart {
     /// The desired width of the chart, in time units.
     public enum TimeIntervalInput {

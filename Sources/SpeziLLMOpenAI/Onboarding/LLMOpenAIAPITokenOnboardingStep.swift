@@ -18,6 +18,7 @@ import SwiftUI
 /// - Warning: Ensure that the ``LLMOpenAIPlatform`` is specified within the Spezi `Configuration` when using this view in the onboarding flow.
 ///
 /// - Important: Only use this if the corresponding LLM platform's config's auth token is set to `RemoteLLMInferenceAuthToken/keychain(_:CredentialsTag)`
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct LLMOpenAILikeAPITokenOnboardingStep<PlatformDefinition: LLMOpenAILikePlatformDefinition>: View {
     private let actionText: LocalizedStringResource
     private let action: @MainActor () async throws -> Void
@@ -78,6 +79,7 @@ public struct LLMOpenAILikeAPITokenOnboardingStep<PlatformDefinition: LLMOpenAIL
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, visionOS 1, *)
 #Preview {
     LLMOpenAIAPITokenOnboardingStep(
         actionText: "Continue"

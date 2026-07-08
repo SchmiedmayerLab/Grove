@@ -12,6 +12,7 @@ import SwiftUI
 
 
 /// A tile showing a paired device.
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 public struct DeviceTile: View {
     private let deviceInfo: PairedDeviceInfo
 
@@ -75,6 +76,7 @@ public struct DeviceTile: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     VStack(spacing: 0) {
         HStack(spacing: 16) {

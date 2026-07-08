@@ -9,6 +9,7 @@
 // swiftlint:disable file_types_order file_length
 
 private import Algorithms
+private import FHIRModelsExtensions
 public import Foundation
 public import ModelsR4
 private import SpeziFoundation
@@ -17,9 +18,11 @@ private import struct SwiftUI.Color
 private import UniformTypeIdentifiers
 
 
+@available(iOS 17, *)
 private typealias FHIRConversionError = SpeziQuestionnaire.Questionnaire.FHIRConversionError
 
 
+@available(iOS 17, *)
 extension SpeziQuestionnaire.Questionnaire {
     /// Controls conversion behaviour when creating a Spezi `Questionnaire` from a FHIR R4 `Questionnaire`
     public struct FHIRConversionOptions: Sendable {
@@ -82,6 +85,7 @@ extension SpeziQuestionnaire.Questionnaire {
 }
 
 
+@available(iOS 17, *)
 private struct ConversionContext {
     let options: SpeziQuestionnaire.Questionnaire.FHIRConversionOptions
     /// The FHIR questionnaire being converted
@@ -91,6 +95,7 @@ private struct ConversionContext {
 }
 
 
+@available(iOS 17, *)
 extension ModelsR4.Questionnaire {
     fileprivate func toSections(
         using options: SpeziQuestionnaire.Questionnaire.FHIRConversionOptions
@@ -151,6 +156,7 @@ extension ModelsR4.Questionnaire {
 }
 
 
+@available(iOS 17, *)
 extension ModelsR4.QuestionnaireItem {
     /// - invariant: the item must be a top-level `group` item.
     fileprivate func toSection(
@@ -430,6 +436,7 @@ extension ModelsR4.QuestionnaireItem {
 }
 
 
+@available(iOS 17, *)
 extension ModelsR4.Extension.ValueX {
     var stringValue: String? {
         switch self {
@@ -461,6 +468,7 @@ extension ModelsR4.Extension.ValueX {
 }
 
 
+@available(iOS 17, *)
 extension ModelsR4.QuestionnaireItem {
     fileprivate func getLinkId() throws(FHIRConversionError) -> String {
         guard let linkId = self.linkId.value?.string else {
@@ -471,6 +479,7 @@ extension ModelsR4.QuestionnaireItem {
 }
 
 
+@available(iOS 17, *)
 extension SpeziQuestionnaire.Questionnaire.Condition {
     fileprivate init(
         _ item: ModelsR4.QuestionnaireItem,
@@ -553,6 +562,7 @@ extension SpeziQuestionnaire.Questionnaire.Condition {
 }
 
 
+@available(iOS 17, *)
 extension ModelsR4.QuestionnaireItemEnableWhen.AnswerX {
     fileprivate func toConditionValue() throws(FHIRConversionError) -> SpeziQuestionnaire.Questionnaire.Condition.Value {
         func unwrap<T>(_ value: T?) throws(FHIRConversionError) -> T {
@@ -610,6 +620,7 @@ extension ModelsR4.QuestionnaireItemEnableWhen.AnswerX {
 
 // MARK: Utils
 
+@available(iOS 17, *)
 extension Sequence {
     /// Same as Swift's `flatMap`, but it supports typed throws
     fileprivate func flatMap2<U, E>(_ transform: (Element) throws(E) -> some Sequence<U>) throws(E) -> [U] {

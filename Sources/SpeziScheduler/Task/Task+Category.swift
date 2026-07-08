@@ -11,6 +11,7 @@ import Foundation
 import SwiftData
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Task {
     /// User-visible category information of a task.
     ///
@@ -41,6 +42,7 @@ extension Task {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Task.Category: CustomStringConvertible {
     public var description: String {
         rawValue
@@ -48,6 +50,7 @@ extension Task.Category: CustomStringConvertible {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Task.Category {
     /// Questionnaire category.
     public static var questionnaire: Task.Category {

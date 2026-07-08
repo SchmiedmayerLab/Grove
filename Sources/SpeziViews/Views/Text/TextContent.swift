@@ -11,14 +11,14 @@ import Foundation
 
 enum TextContent {
     case string(_ value: String)
-    case localized(_ value: LocalizedStringResource)
+    case localized(_ value: (Locale) -> String)
 
     func localizedString(for locale: Locale) -> String {
         switch self {
         case let .string(string):
             return string
-        case let .localized(resource):
-            return resource.localizedString(for: locale)
+        case let .localized(resolve):
+            return resolve(locale)
         }
     }
 }

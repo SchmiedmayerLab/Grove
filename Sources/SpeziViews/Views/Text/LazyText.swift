@@ -50,8 +50,9 @@ public struct LazyText: View {
     
     /// A lazy loading text view that is especially useful for larger text files that should not be displayed all at once.
     /// - Parameter text: The text that should be displayed in the ``LazyText`` view.
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public init(_ text: LocalizedStringResource) {
-        self.content = .localized(text)
+        self.content = .localized { text.localizedString(for: $0) }
     }
 }
 

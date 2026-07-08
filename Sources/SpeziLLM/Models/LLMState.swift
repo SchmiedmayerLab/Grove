@@ -11,6 +11,7 @@ import Foundation
 /// Describes possible states that the ``LLMSession`` can be in.
 ///
 /// Based on the ``LLMState``, `SpeziLLM` performs proper actions on the model as well as state management.
+@available(iOS 16, macOS 13, visionOS 1, *)
 public enum LLMState: CustomStringConvertible, Equatable, Sendable {
     /// The Spezi ``LLMSession`` is allocated, but the underlying model has not yet been initialized.
     case uninitialized

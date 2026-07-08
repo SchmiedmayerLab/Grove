@@ -10,6 +10,7 @@ import SpeziDevices
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 struct PairingFailureView: View {
     private let error: any LocalizedError
 
@@ -51,6 +52,7 @@ struct PairingFailureView: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     SheetPreview {
         PairingFailureView(DevicePairingError.notInPairingMode)

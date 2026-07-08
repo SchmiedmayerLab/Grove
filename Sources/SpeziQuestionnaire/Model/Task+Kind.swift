@@ -13,6 +13,7 @@ private import SpeziFoundation
 public import UniformTypeIdentifiers
 
 
+@available(iOS 17, *)
 extension Questionnaire.Task {
     /// Question Kind.
     ///
@@ -104,6 +105,7 @@ extension Questionnaire.Task {
 }
 
 
+@available(iOS 17, *)
 extension Questionnaire.Task.Kind {
     /// A task that collects a boolean Yes/No response from the user.
     public static var boolean: Self {
@@ -149,6 +151,7 @@ extension Questionnaire.Task.Kind {
 }
 
 
+@available(iOS 17, *)
 extension Questionnaire.Task.Kind {
     /// Checks whether the task kind matches the specified question kind definition.
     public func `is`<D: QuestionKindDefinition>(_ definition: D.Type) -> Bool {
@@ -189,6 +192,7 @@ extension Questionnaire.Task.Kind {
 }
 
 
+@available(iOS 17, *)
 extension Questionnaire.Task.Kind.Variant: Hashable {
     public static func == (lhs: Self, rhs: Self) -> Bool {
         switch (lhs, rhs) {
@@ -246,6 +250,7 @@ extension Questionnaire.Task.Kind.Variant: Hashable {
 
 // MARK: Question Kind Configs
 
+@available(iOS 17, *)
 extension Questionnaire.Task.Kind {
     /// Configuration of a free-text question.
     public struct FreeTextConfig: Hashable, Sendable {
@@ -392,6 +397,7 @@ extension Questionnaire.Task.Kind {
 }
 
 
+@available(iOS 17, *)
 extension Questionnaire.Task.Kind {
     /// The task's follow-up tasks.
     package var followUpTasks: [Questionnaire.Task] {

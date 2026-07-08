@@ -10,6 +10,7 @@ import SpeziFoundation
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 private struct DisplayView: DataDisplayView {
     var body: some View {
         Text("The internal account identifier is not meant to be user facing!", comment: "Pure debug message, no need to translate.")
@@ -19,6 +20,7 @@ private struct DisplayView: DataDisplayView {
     init(_ value: String) {}
 }
 
+@available(iOS 17, macOS 14, *)
 private struct EntryView: DataEntryView {
     var body: some View {
         Text("The internal account identifier is meant to be generated!", comment: "Pure debug message, no need to translate.")
@@ -28,6 +30,7 @@ private struct EntryView: DataEntryView {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountDetails {
     /// The primary, unique, stable and typically internal identifier for an user account.
     ///
@@ -57,5 +60,6 @@ extension AccountDetails {
 
 
 @KeyEntry(\.accountId)
+@available(iOS 17, macOS 14, *)
 public extension AccountKeys { // swiftlint:disable:this no_extension_access_modifier
 }

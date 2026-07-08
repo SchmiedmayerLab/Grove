@@ -12,6 +12,7 @@ import Foundation
 import HealthKit
 import SpeziFoundation
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension HealthKit {
     public enum CumulativeAggregationOption: Hashable {
         case sum
@@ -56,6 +57,7 @@ extension HealthKit {
     }
 }
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension HealthKit {
     private func statisticsQuery(
         _ sampleType: SampleType<HKQuantitySample>,
@@ -144,6 +146,7 @@ extension HealthKit {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension HealthKit {
     /// Performs a long-running query of HealthKit data using statistical aggregations.
     ///

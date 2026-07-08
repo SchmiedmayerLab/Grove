@@ -13,6 +13,7 @@ import SpeziFoundation
 /// data provided by other ``Module``s.
 ///
 /// Data requested through a Storage Value Collector might be provided through a ``_StorageValueProvider``.
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 protocol StorageValueCollector: SpeziPropertyWrapper {
     /// This method is called to retrieve all the requested values from the given ``SpeziStorage`` repository.
     /// - Parameter repository: Provides access to the ``SpeziStorage`` repository for read access.
@@ -21,6 +22,7 @@ protocol StorageValueCollector: SpeziPropertyWrapper {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Module {
     var storageValueCollectors: [any StorageValueCollector] {
         retrieveProperties(ofType: (any StorageValueCollector).self)

@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 17, *)
 enum StorageKeys {
     static let activeAccountService = "active-service.firebase.stanford.edu"
     static let emailPasswordCredentials = "account.email-pw.firebase.stanford.edu"

@@ -10,6 +10,7 @@
 import Foundation
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension ValidationRule {
     /// A `ValidationRule` that checks that the supplied content is non-empty (`\S+`).
     ///

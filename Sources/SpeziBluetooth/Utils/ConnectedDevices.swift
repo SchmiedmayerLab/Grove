@@ -30,6 +30,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public final class ConnectedDevices<Device: BluetoothDevice>: Observable {
     let devices: [Device]
 
@@ -40,6 +41,7 @@ public final class ConnectedDevices<Device: BluetoothDevice>: Observable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension ConnectedDevices: RandomAccessCollection {
     public var startIndex: Int {
         devices.startIndex

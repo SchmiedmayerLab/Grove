@@ -11,6 +11,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 17, *)
 struct FirebaseAnonymousSignInButton: View {
     @Environment(FirebaseAccountService.self)
     private var service

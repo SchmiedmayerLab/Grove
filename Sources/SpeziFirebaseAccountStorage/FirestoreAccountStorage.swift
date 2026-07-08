@@ -12,6 +12,7 @@ import SpeziAccount
 import SpeziFirestore
 
 
+@available(iOS 17, *)
 private struct AccountDetailsConfiguration: DecodingConfigurationProviding, EncodingConfigurationProviding {
     @TaskLocal static var decodingConfiguration = AccountDetails.DecodingConfiguration(keys: [])
     @TaskLocal static var encodingConfiguration = AccountDetails.EncodingConfiguration()
@@ -20,6 +21,7 @@ private struct AccountDetailsConfiguration: DecodingConfigurationProviding, Enco
 
 // Firebase doesn't support DecodableWithConfiguration yet. So that's our workaround.
 // Feature is tracked as https://github.com/firebase/firebase-ios-sdk/issues/13552
+@available(iOS 17, *)
 private struct AccountDetailsWrapper: Codable {
     let details: AccountDetails
 
@@ -79,6 +81,7 @@ private struct AccountDetailsWrapper: Codable {
 ///
 /// ### Configuration
 /// - ``init(storeIn:mapping:encoder:decoder:)``
+@available(iOS 17, *)
 public actor FirestoreAccountStorage: AccountStorageProvider {
     @Application(\.logger)
     private var logger

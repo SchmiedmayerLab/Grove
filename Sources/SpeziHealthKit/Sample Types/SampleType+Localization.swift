@@ -12,28 +12,32 @@ import HealthKit
 #endif
 
 
+@available(macOS 13.0, *)
 extension AnySampleType {
     /// Returns the sample type's localized display title, for the specified language, if available.
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     public func localizedTitle(in language: Locale.Language) -> String? {
         Self.localizedTitle(for: hkSampleType, in: language)
     }
 }
 
+@available(macOS 13.0, *)
 extension AnySampleType {
     static func localizedTitle(for objectType: HKObjectType) -> String? {
-        let bundle = HealthKit.bundle
+        let bundle = Bundle.module
         let tables: [Bundle.LocalizationLookupTable] = [.custom("Localizable-HKTypes"), .default]
         if let title = bundle.localizedString(forKey: objectType.identifier, tables: tables) {
             // if we find a title for the current language, we return that
             return title
         } else {
             // ... otherwise we try to fetch an english translation as a fallback.
-            return bundle.localizedString(forKey: objectType.identifier, tables: tables, localizations: [.init(identifier: "en")])
+            return bundle.localizedString(forKey: objectType.identifier, tables: tables, localizationIdentifiers: ["en"])
         }
     }
-    
+
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     static func localizedTitle(for objectType: HKObjectType, in language: Locale.Language) -> String? {
-        HealthKit.bundle.localizedString(
+        Bundle.module.localizedString(
             forKey: objectType.identifier,
             tables: [.custom("Localizable-HKTypes"), .default],
             localizations: [language]
@@ -49,7 +53,7 @@ extension Bundle {
         case `default`
         /// A custom `{name}.strings` table.
         case custom(_ name: String)
-        
+
         /// A String representation of the table, compatible with `Bundle`'s localization APIs.
         fileprivate var stringValue: String? {
             switch self {
@@ -58,7 +62,7 @@ extension Bundle {
             }
         }
     }
-    
+
     /// Looks up the localized version of a string in multiple tables, returning the first match.
     ///
     /// - parameter key: the localization key to look up a value for.
@@ -70,8 +74,26 @@ extension Bundle {
             .map { self.localizedString(forKey: key, value: notFound, table: $0.stringValue) }
             .first { $0 != notFound }
     }
-    
+
+    fileprivate func localizedString(forKey key: String, tables: [LocalizationLookupTable], localizationIdentifiers: [String]) -> String? {
+        let tables = tables.isEmpty ? [.default] : tables
+        for language in Bundle.preferredLocalizations(from: localizationIdentifiers) {
+            let candidates = [
+                self.url(forResource: language.replacingOccurrences(of: "-", with: "_"), withExtension: "lproj"),
+                self.url(forResource: language.replacingOccurrences(of: "-", with: "_").lowercased(), withExtension: "lproj")
+            ]
+            guard let lproj = candidates.compactMap(\.self).first, let bundle = Bundle(url: lproj) else {
+                continue
+            }
+            if let title = bundle.localizedString(forKey: key, tables: tables) {
+                return title
+            }
+        }
+        return self.localizedString(forKey: key, tables: tables)
+    }
+
     @_spi(Testing)
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     public func localizedString( // swiftlint:disable:this missing_docs
         forKey key: String,
         tables: [LocalizationLookupTable],
@@ -91,31 +113,16 @@ extension Bundle {
         #endif
         return localizedStringForKeyFallback(key: key, tables: tables, localizations: localizations)
     }
-    
+
     // ideally this would be directly in the other function, but bc of the #available check we wouldn't be able to test it then.
     // NOTE: remove this when we increase our package deployment target to >= iOS 18.4!
     @_spi(Testing)
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     public func localizedStringForKeyFallback( // swiftlint:disable:this missing_docs
         key: String,
         tables: [LocalizationLookupTable],
         localizations: [Locale.Language]
     ) -> String? {
-        let tables = tables.isEmpty ? [.default] : tables
-        for language in Bundle.preferredLocalizations(from: localizations.map(\.minimalIdentifier)) {
-            let candidates = [
-                // for some reason SPM packages compiled via xcodebuild keep the names of the lproj folders unchanged (eg "en_GB.lproj"),
-                // but compiling with `swift build` lowercases them, so we need to check for both.
-                self.url(forResource: language.replacingOccurrences(of: "-", with: "_"), withExtension: "lproj"),
-                self.url(forResource: language.replacingOccurrences(of: "-", with: "_").lowercased(), withExtension: "lproj")
-            ]
-            guard let lproj = candidates.compactMap(\.self).first, let bundle = Bundle(url: lproj) else {
-                continue
-            }
-            if let title = bundle.localizedString(forKey: key, tables: tables) {
-                return title
-            }
-        }
-        // To match the behaviour of apple's implementation
-        return self.localizedString(forKey: key, tables: tables)
+        localizedString(forKey: key, tables: tables, localizationIdentifiers: localizations.map(\.minimalIdentifier))
     }
 }

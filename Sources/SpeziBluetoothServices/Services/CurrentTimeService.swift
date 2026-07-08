@@ -16,6 +16,7 @@ import SpeziBluetooth
 /// This class partially implements the Bluetooth [Current Time Service 1.1](https://www.bluetooth.com/specifications/specs/current-time-service-1-1).
 /// - Note: The Local Time Information and Reference Time Information characteristics are currently not implemented.
 ///     Both are optional to implement for peripherals.
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct CurrentTimeService: BluetoothService, Sendable {
     public static let id: BTUUID = "1805"
 
@@ -43,6 +44,7 @@ public struct CurrentTimeService: BluetoothService, Sendable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension CurrentTimeService {
     /// Synchronize peripheral time.
     ///
@@ -89,6 +91,7 @@ extension CurrentTimeService {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, tvOS 16, watchOS 9, visionOS 1, *)
 extension Duration {
     fileprivate var timeInterval: TimeInterval {
         let components = self.components

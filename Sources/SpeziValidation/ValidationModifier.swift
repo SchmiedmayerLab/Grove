@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 struct ValidationModifier: ViewModifier {
     private let input: String
 
@@ -50,6 +51,7 @@ struct ValidationModifier: ViewModifier {
     }
 }
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension View {
     /// Validate an input against a set of validation rules.
     ///

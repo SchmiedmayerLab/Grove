@@ -13,6 +13,7 @@ import SwiftUI
 /// Defines a collection of ``SpeziLLMOpenAI`` ``LLMFunction``s.
 ///
 /// You can not create a `_LLMFunctionCollection` yourself. Please use the ``LLMOpenAISchema`` that internally creates a `_LLMFunctionCollection` with the passed ``LLMFunction``s.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct _LLMFunctionCollection {  // swiftlint:disable:this type_name
     package let functions: [String: any LLMFunction]
     

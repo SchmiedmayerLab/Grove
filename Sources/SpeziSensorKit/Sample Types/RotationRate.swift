@@ -10,6 +10,7 @@ public import CoreMotion
 public import Foundation
 
 
+@available(iOS 17, *)
 extension CMRecordedRotationRateData: SensorKitSampleProtocol {
     public struct SafeRepresentation: SensorKitSampleSafeRepresentation {
         /// The point in time when the sample was recorded
@@ -37,6 +38,7 @@ extension CMRecordedRotationRateData: SensorKitSampleProtocol {
 }
 
 
+@available(iOS 17, *)
 extension CMRotationRate: @retroactive Equatable, @retroactive Hashable {
     @inlinable
     public static func == (lhs: Self, rhs: Self) -> Bool {

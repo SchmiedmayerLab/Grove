@@ -29,8 +29,10 @@ jobs:
     outputs:
       matrix: ${{ steps.compute.outputs.matrix }}
       ui_matrix: ${{ steps.compute.outputs.ui_matrix }}
+      trait_matrix: ${{ steps.compute.outputs.trait_matrix }}
       has_jobs: ${{ steps.compute.outputs.has_jobs }}
       has_ui_jobs: ${{ steps.compute.outputs.has_ui_jobs }}
+      has_trait_jobs: ${{ steps.compute.outputs.has_trait_jobs }}
       affected: ${{ steps.compute.outputs.affected }}
     steps:
       - uses: actions/checkout@v4
@@ -54,17 +56,31 @@ jobs:
         env:
           AFFECTED: ${{ steps.compute.outputs.affected }}
           HAS_JOBS: ${{ steps.compute.outputs.has_jobs }}
+          HAS_UI_JOBS: ${{ steps.compute.outputs.has_ui_jobs }}
+          HAS_TRAIT_JOBS: ${{ steps.compute.outputs.has_trait_jobs }}
           MATRIX: ${{ steps.compute.outputs.matrix }}
+          UI_MATRIX: ${{ steps.compute.outputs.ui_matrix }}
+          TRAIT_MATRIX: ${{ steps.compute.outputs.trait_matrix }}
         run: |
           echo "has_jobs = $HAS_JOBS"
+          echo "has_ui_jobs = $HAS_UI_JOBS"
+          echo "has_trait_jobs = $HAS_TRAIT_JOBS"
           echo "affected = $AFFECTED"
           JOBS=$(printf '%s' "$MATRIX" | python3 -c 'import json,sys; print(len(json.load(sys.stdin).get("include",[])))' 2>/dev/null || echo "?")
+          UI_JOBS=$(printf '%s' "$UI_MATRIX" | python3 -c 'import json,sys; print(len(json.load(sys.stdin).get("include",[])))' 2>/dev/null || echo "?")
+          TRAIT_JOBS=$(printf '%s' "$TRAIT_MATRIX" | python3 -c 'import json,sys; print(len(json.load(sys.stdin).get("include",[])))' 2>/dev/null || echo "?")
           echo "scheduled jobs = $JOBS"
+          echo "scheduled UI jobs = $UI_JOBS"
+          echo "scheduled package trait jobs = $TRAIT_JOBS"
           echo "----- generated matrix (pretty) -----"
           printf '%s' "$MATRIX" | python3 -m json.tool || printf '%s\n' "$MATRIX"
+          echo "----- generated UI matrix (pretty) -----"
+          printf '%s' "$UI_MATRIX" | python3 -m json.tool || printf '%s\n' "$UI_MATRIX"
+          echo "----- generated package trait matrix (pretty) -----"
+          printf '%s' "$TRAIT_MATRIX" | python3 -m json.tool || printf '%s\n' "$TRAIT_MATRIX"
           {
             echo "## Test selection"
-            echo "**has_jobs:** \`$HAS_JOBS\`  •  **scheduled jobs:** \`$JOBS\`"
+            echo "**unit jobs:** \`$JOBS\`  •  **UI jobs:** \`$UI_JOBS\`  •  **package trait jobs:** \`$TRAIT_JOBS\`"
             echo ""
             echo "**Affected packages:** $AFFECTED"
             echo ""
@@ -75,7 +91,39 @@ jobs:
             echo '```'
             echo ""
             echo "</details>"
+            echo ""
+            echo "<details><summary>Generated UI matrix JSON ($UI_JOBS jobs)</summary>"
+            echo ""
+            echo '```json'
+            printf '%s' "$UI_MATRIX" | python3 -m json.tool || printf '%s\n' "$UI_MATRIX"
+            echo '```'
+            echo ""
+            echo "</details>"
+            echo ""
+            echo "<details><summary>Generated package trait matrix JSON ($TRAIT_JOBS jobs)</summary>"
+            echo ""
+            echo '```json'
+            printf '%s' "$TRAIT_MATRIX" | python3 -m json.tool || printf '%s\n' "$TRAIT_MATRIX"
+            echo '```'
+            echo ""
+            echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  package_trait_builds:
+    name: ${{ matrix.package }} package traits
+    needs: detect
+    if: needs.detect.outputs.has_trait_jobs == 'true'
+    runs-on: macOS-26
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.detect.outputs.trait_matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ${{ matrix.package }} package trait products
+        run: Scripts/check-package-traits.py "${{ matrix.package }}"
+      - name: Clean generated artifacts
+        if: always()
+        run: bash Scripts/cleanup-generated-artifacts.sh
 
   test:
     name: ${{ matrix.package }} (${{ matrix.platform }})
@@ -100,6 +148,9 @@ jobs:
         with:
           name: ${{ matrix.package }}-${{ matrix.platform }}-Tests.xcresult
           path: ${{ matrix.package }}-${{ matrix.platform }}-Tests.xcresult
+      - name: Clean generated artifacts
+        if: always()
+        run: bash Scripts/cleanup-generated-artifacts.sh
 
   test-ui:
     name: ${{ matrix.package }} UI (${{ matrix.platform }})
@@ -121,6 +172,9 @@ jobs:
         with:
           name: ${{ matrix.package }}-${{ matrix.platform }}-UITests.xcresult
           path: ${{ matrix.package }}-${{ matrix.platform }}-UITests.xcresult
+      - name: Clean generated artifacts
+        if: always()
+        run: bash Scripts/cleanup-generated-artifacts.sh
 
   # Single gate to use as the required status check in branch protection.
   # Does no work itself; it just aggregates the result of all `test` matrix jobs.
@@ -130,22 +184,23 @@ jobs:
   all-tests-pass:
     name: All tests pass
     if: always()
-    needs: [detect, test, test-ui]
+    needs: [detect, package_trait_builds, test, test-ui]
     runs-on: ubuntu-latest
     steps:
       - name: Verify test results
         run: |
-          echo "detect  = ${{ needs.detect.result }}"
-          echo "test    = ${{ needs.test.result }}"
-          echo "test-ui = ${{ needs.test-ui.result }}"
+          echo "detect         = ${{ needs.detect.result }}"
+          echo "package_trait_builds = ${{ needs.package_trait_builds.result }}"
+          echo "test           = ${{ needs.test.result }}"
+          echo "test-ui        = ${{ needs.test-ui.result }}"
           if [ "${{ needs.detect.result }}" != "success" ]; then
             echo "::error::The 'detect' job did not succeed — cannot determine which tests to run."
             exit 1
           fi
-          for r in "${{ needs.test.result }}" "${{ needs.test-ui.result }}"; do
+          for r in "${{ needs.package_trait_builds.result }}" "${{ needs.test.result }}" "${{ needs.test-ui.result }}"; do
             case "$r" in
               success|skipped) ;;
-              *) echo "::error::One or more test jobs did not pass (result: $r)."; exit 1 ;;
+              *) echo "::error::One or more test or package trait build jobs did not pass (result: $r)."; exit 1 ;;
             esac
           done
-          echo "All required unit + UI tests passed (or no packages were affected)."
+          echo "All required unit tests, UI tests, and package trait builds passed (or no packages were affected)."

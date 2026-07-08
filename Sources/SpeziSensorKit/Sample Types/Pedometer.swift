@@ -10,6 +10,7 @@ public import CoreMotion
 public import Foundation
 
 
+@available(iOS 17, *)
 extension CMPedometerData: SensorKitSampleProtocol {
     public struct SafeRepresentation: SensorKitSampleSafeRepresentation {
         public let timeRange: Range<Date>

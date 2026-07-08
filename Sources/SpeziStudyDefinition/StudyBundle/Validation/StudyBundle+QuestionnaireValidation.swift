@@ -14,6 +14,7 @@ import SpeziFoundation
 import SpeziLocalization
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension StudyBundle.BundleValidationIssue {
     public enum QuestionnaireIssue: Hashable, Sendable {
         /// The questionnaire as a whole, or one of its items, it missing a field.
@@ -277,6 +278,7 @@ extension StudyBundle.BundleValidationIssue {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension StudyBundle {
     func validateQuestionnaires() throws -> [BundleValidationIssue.QuestionnaireIssue] {
         try QuestionnaireValidator(studyBundle: self).run()
@@ -284,6 +286,7 @@ extension StudyBundle {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 private struct QuestionnaireValidator: ~Copyable { // swiftlint:disable:this type_body_length
     typealias Issue = StudyBundle.BundleValidationIssue.QuestionnaireIssue
     typealias FileReference = StudyBundle.FileReference
@@ -772,6 +775,7 @@ private struct QuestionnaireValidator: ~Copyable { // swiftlint:disable:this typ
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension QuestionnaireValidator {
     private enum ExpectedExtensionValueType: Hashable {
         case coding // maybe add an option to select which fields we should look at?
@@ -1081,6 +1085,7 @@ extension QuestionnaireValidator {
 
 // MARK: Helpers
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension QuestionnaireItemAnswerOption.ValueX {
     fileprivate var coding: Coding? {
         switch self {
@@ -1110,6 +1115,7 @@ extension QuestionnaireItemAnswerOption.ValueX {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension Extension.ValueX {
     fileprivate var coding: Coding? {
         switch self {
@@ -1125,10 +1131,13 @@ extension Extension.ValueX {
 private protocol QuestionnaireItemsContainer {
     var item: [QuestionnaireItem]? { get } // swiftlint:disable:this discouraged_optional_collection
 }
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension Questionnaire: QuestionnaireItemsContainer {}
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension QuestionnaireItem: QuestionnaireItemsContainer {}
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension Equatable {
     fileprivate func isEqual(_ other: Any) -> Bool {
         if let other = other as? Self {
@@ -1140,6 +1149,7 @@ extension Equatable {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension Equatable {
     func isAnyOf(_ seq: some Sequence<Self>) -> Bool {
         seq.contains(self)

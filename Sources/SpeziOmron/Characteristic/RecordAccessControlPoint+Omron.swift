@@ -9,6 +9,7 @@
 import SpeziBluetoothServices
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension RecordAccessControlPoint {
     /// Report the sequence number of the latest records.
     ///

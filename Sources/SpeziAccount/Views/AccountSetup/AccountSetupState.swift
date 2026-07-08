@@ -13,6 +13,7 @@ import SwiftUI
 ///
 /// Use the ``AccountSetupState`` type instead.
 @available(*, deprecated, renamed: "AccountSetupState", message: "Please use the `AccountSetupState` type directly.")
+@available(iOS 17, macOS 14, *)
 public typealias _AccountSetupState = AccountSetupState // swiftlint:disable:this type_name
 
 
@@ -20,6 +21,7 @@ public typealias _AccountSetupState = AccountSetupState // swiftlint:disable:thi
 ///
 /// This type models the different states of the ``AccountSetup`` view. You can retrieve this state using the
 /// ``SwiftUICore/EnvironmentValues/accountSetupState`` environment variable in the `Header` view passed to `AccountSetup`.
+@available(iOS 17, macOS 14, *)
 public enum AccountSetupState {
     /// The signup view is presented to the user.
     case presentingSignup
@@ -86,9 +88,11 @@ public enum AccountSetupState {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountSetupState: Sendable {}
 
 
+@available(iOS 17, macOS 14, *)
 extension EnvironmentValues {
     /// The current account setup state.
     ///

@@ -11,6 +11,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 enum PresentedSetupStyle<Credentials: Sendable> {
     case signup
     case login((Credentials) async throws -> Void)
@@ -38,6 +39,7 @@ enum PresentedSetupStyle<Credentials: Sendable> {
 ///
 /// - Note: The above code example uses default components like ``SignupForm`` and the ``PasswordResetView``. You can provide your
 ///     own views using ``init(signup:passwordReset:)``.
+@available(iOS 17, macOS 14, *)
 public struct AccountSetupProviderView<Signup: View, PasswordReset: View>: View {
     /// Optional login closure for providers that support userId-password-based credentials.
     private let loginClosure: ((UserIdPasswordCredential) async throws -> Void)?
@@ -238,6 +240,7 @@ public struct AccountSetupProviderView<Signup: View, PasswordReset: View>: View 
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     NavigationStack {
         AccountSetupProviderView { credential in
@@ -253,6 +256,7 @@ public struct AccountSetupProviderView<Signup: View, PasswordReset: View>: View 
         }
 }
 
+@available(iOS 17, macOS 14, *)
 #Preview {
     NavigationStack {
         AccountSetupProviderView { credential in
@@ -269,6 +273,7 @@ public struct AccountSetupProviderView<Signup: View, PasswordReset: View>: View 
         }
 }
 
+@available(iOS 17, macOS 14, *)
 #Preview {
     NavigationStack {
         AccountSetupProviderView { (credential: UserIdPasswordCredential) in
@@ -280,6 +285,7 @@ public struct AccountSetupProviderView<Signup: View, PasswordReset: View>: View 
         }
 }
 
+@available(iOS 17, macOS 14, *)
 #Preview {
     NavigationStack {
         AccountSetupProviderView { (details: AccountDetails) in

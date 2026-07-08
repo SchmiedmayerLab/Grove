@@ -11,6 +11,7 @@ public import Foundation
 public import SensorKit
 
 
+@available(iOS 17, *)
 extension SRVisit: SensorKitSampleProtocol {
     public struct SafeRepresentation: SensorKitSampleSafeRepresentation {
         /// The point in time when the sample was recorded.

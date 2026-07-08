@@ -159,6 +159,67 @@ Use an Xcode or Swift toolchain that supports Swift Package tools version 6.2.
 If Xcode cannot resolve the package, confirm that the package URL and selected version are correct, then use **File > Packages > Resolve Package Versions**.
 
 
+### Package Traits and Deployment Targets
+
+Spezi declares platform floors of iOS 15, macOS 12, and watchOS 8 so apps can depend on the core products while still supporting those operating system versions.
+The root package's default trait set is intentionally empty.
+This keeps the default product and target graph compatible with those lower deployment targets and avoids compiling optional feature targets whose dependencies declare newer platform floors.
+SwiftPM still resolves the package dependencies declared by Spezi's manifest; package traits control which optional products are compiled into the targets that use them.
+
+For an iOS 15-compatible core integration, add Spezi normally:
+
+```swift
+.package(url: "https://github.com/SchmiedmayerLab/Spezi.git", .upToNextMinor(from: "0.1.0"))
+```
+
+You can also make the core-only dependency explicit by disabling default traits in the package dependency declaration:
+
+```swift
+.package(
+    url: "https://github.com/SchmiedmayerLab/Spezi.git",
+    "0.1.0"..<"0.2.0",
+    traits: []
+)
+```
+
+Then add the Spezi products your target uses:
+
+```swift
+.target(
+    name: "MyApp",
+    dependencies: [
+        .product(name: "Spezi", package: "Spezi"),
+        .product(name: "SpeziViews", package: "Spezi")
+    ]
+)
+```
+
+Apps should still use availability checks before calling APIs that are only available on newer operating systems.
+
+| Mode | Package traits | Use this when | Example |
+| --- | --- | --- | --- |
+| Core integration | No default feature traits | Your app supports iOS 15, macOS 12, or watchOS 8. | Add the package normally or run `swift build --product Spezi`. |
+| Explicit core integration | Default traits disabled explicitly | You want the package declaration or CI command to document that optional feature packages are disabled. | Use `traits: []` in the dependency declaration or run `swift build --product Spezi --disable-default-traits`. |
+| Optional feature traits | `Textual`, `MLX`, or `ResearchKit` | You are working on those feature targets and accept their dependency deployment floors. | These traits are not default because SwiftPM platform floors are package-wide. Enable them only for apps or CI jobs that build those feature products. |
+
+When you enable an optional trait, build the consuming target with a deployment target that satisfies the optional dependency.
+For example, ResearchKit-enabled products need an iOS deployment target of at least iOS 17.
+The monorepo UI test runner uses `IPHONEOS_DEPLOYMENT_TARGET=18.0` for ResearchKit-backed UI apps.
+
+Use explicit products for SwiftPM CLI checks.
+A bare all-products `swift build` does not reflect the repository's platform matrix because this monorepo also contains platform-specific support products.
+For example, a ResearchKit-enabled product check should also pass an explicit iOS simulator deployment target:
+
+```sh
+swift build \
+  --product ResearchKitOnFHIR \
+  --disable-default-traits \
+  --traits ResearchKit \
+  --triple arm64-apple-ios17.0-simulator \
+  --sdk "$(xcrun --sdk iphonesimulator --show-sdk-path)"
+```
+
+
 ### The Spezi Building Blocks
 
 > [!NOTE]

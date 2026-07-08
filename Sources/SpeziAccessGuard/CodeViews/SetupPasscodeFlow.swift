@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, *)
 struct SetupPasscodeFlow: View {
     private enum Step: Hashable {
         case setCode

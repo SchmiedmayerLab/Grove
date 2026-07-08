@@ -13,6 +13,7 @@ import SpeziFoundation
 /// Configures automatic transcription of user audio input into text.
 ///
 /// Transcripts are automatically appended to the session's context when transcription is enabled.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct LLMRealtimeTranscriptionSettings: Sendable {
     public enum TranscriptionModel: String, Sendable {
         case gpt4oTranscribe = "gpt-4o-transcribe"

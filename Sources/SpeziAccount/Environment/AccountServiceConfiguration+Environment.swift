@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 extension EnvironmentValues {
     /// Access the ``AccountServiceConfiguration`` within the context of a ``DataDisplayView`` or ``DataEntryView``.
     ///

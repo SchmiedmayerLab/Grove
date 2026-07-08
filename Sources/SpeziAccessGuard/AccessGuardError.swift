@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 17, *)
 enum AccessGuardError: LocalizedError {
     case wrongPasscode
     case storeCodeError

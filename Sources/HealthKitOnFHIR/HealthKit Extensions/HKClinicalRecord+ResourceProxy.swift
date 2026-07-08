@@ -11,6 +11,7 @@ import ModelsR4
 
 
 @available(watchOS, unavailable)
+@available(macOS 13, *)
 extension HKClinicalRecord {
     /// Converts an `HKClinicalRecord` into a corresponding FHIR resource, encapsulated in a `ResourceProxy`
     func resource() throws -> ResourceProxy {

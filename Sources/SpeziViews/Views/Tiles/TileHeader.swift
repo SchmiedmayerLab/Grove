@@ -45,6 +45,7 @@ import SwiftUI
 ///         }
 ///     }
 /// }
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 public struct TileHeader<Icon: View, Title: View, Subheadline: View>: View {
     private let alignment: HorizontalAlignment
     private let icon: Icon
@@ -137,6 +138,7 @@ public struct TileHeader<Icon: View, Title: View, Subheadline: View>: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     List {
         TileHeader {
@@ -152,6 +154,7 @@ public struct TileHeader<Icon: View, Title: View, Subheadline: View>: View {
     }
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     List {
         TileHeader(alignment: .center) {
@@ -167,6 +170,7 @@ public struct TileHeader<Icon: View, Title: View, Subheadline: View>: View {
     }
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     List {
         TileHeader(alignment: .trailing) {

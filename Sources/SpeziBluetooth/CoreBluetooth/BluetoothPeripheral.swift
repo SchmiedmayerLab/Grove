@@ -54,6 +54,7 @@ import SpeziFoundation
 /// ### Retrieving the latest signal strength
 /// - ``readRSSI()``
 @SpeziBluetooth
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public class BluetoothPeripheral { // swiftlint:disable:this type_body_length
     private let logger = Logger(subsystem: "edu.stanford.spezi.bluetooth", category: "BluetoothDevice")
 
@@ -808,6 +809,7 @@ public class BluetoothPeripheral { // swiftlint:disable:this type_body_length
 
 
 // MARK: Delegate Accessors
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension BluetoothPeripheral {
     private func receivedUpdatedValue(for characteristic: CBCharacteristic, result: Result<Data, Error>) {
         if case let .success(data) = result,
@@ -827,9 +829,11 @@ extension BluetoothPeripheral {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension BluetoothPeripheral: Identifiable, Sendable {}
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension BluetoothPeripheral: CustomStringConvertible, CustomDebugStringConvertible {
     nonisolated public var description: String {
         if let name {
@@ -846,6 +850,7 @@ extension BluetoothPeripheral: CustomStringConvertible, CustomDebugStringConvert
 
 
 // MARK: Hashable
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension BluetoothPeripheral: Hashable {
     nonisolated public static func == (lhs: BluetoothPeripheral, rhs: BluetoothPeripheral) -> Bool {
         lhs.id == rhs.id
@@ -859,6 +864,7 @@ extension BluetoothPeripheral: Hashable {
 
 
 // MARK: Delegate
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension BluetoothPeripheral {
     private class Delegate: NSObject, CBPeripheralDelegate {
         private let logger = Logger(subsystem: "edu.stanford.spezi.bluetooth", category: "BluetoothDeviceDelegate")

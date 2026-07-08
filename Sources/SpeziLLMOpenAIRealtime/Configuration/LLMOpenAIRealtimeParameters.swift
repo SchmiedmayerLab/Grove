@@ -9,6 +9,7 @@
 import Foundation
 
 /// Represents the parameters of OpenAIs Realtime LLMs.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct LLMOpenAIRealtimeParameters: Sendable {
     public enum ModelType: String, Sendable {
         // swiftlint:disable identifier_name

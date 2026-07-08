@@ -13,10 +13,12 @@ public import SpeziQuestionnaire
 
 
 /// A question kind with FHIR support.
+@available(iOS 17, *)
 public typealias QuestionKindDefinitionWithFHIRSupport = QuestionKindDefinitionWithFHIRDecodingSupport & QuestionKindDefinitionWithFHIREncodingSupport
 
 
 /// A question kind that can decode questions of its kind from a FHIR R4 `Questionnaire`.
+@available(iOS 17, *)
 public protocol QuestionKindDefinitionWithFHIRDecodingSupport: QuestionKindDefinition {
     /// Parses a FHIR QuestionnaireItem into this question kind's `Config`, if applicable.
     ///
@@ -27,6 +29,7 @@ public protocol QuestionKindDefinitionWithFHIRDecodingSupport: QuestionKindDefin
 
 
 /// A question kind that can turn its `SpeziQuestionnaire` responses into FHIR R4 `QuestionnaireResponseItemAnswer`s.
+@available(iOS 17, *)
 public protocol QuestionKindDefinitionWithFHIREncodingSupport: QuestionKindDefinition {
     /// Converts a response collected for a question of this question kind to a FHIR `QuestionnaireResponseItemAnswer`.
     static func toFHIR(

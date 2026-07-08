@@ -15,6 +15,7 @@ private import SpeziFoundation
 
 
 @available(iOS 18.0, *)
+@available(iOS 17, *)
 extension AnchoredFetcher {
     /// Async iterator that fetches samples batched by #samples.
     final class SampleCountBasedFetcher: AsyncIteratorProtocol {

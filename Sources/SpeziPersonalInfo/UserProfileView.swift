@@ -86,6 +86,7 @@ public struct UserProfileView: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     UserProfileView(
         name: PersonNameComponents(givenName: "Paul", familyName: "Schmiedmayer")
@@ -94,6 +95,7 @@ public struct UserProfileView: View {
         .padding()
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     UserProfileView(
         name: PersonNameComponents(
@@ -108,6 +110,7 @@ public struct UserProfileView: View {
         .preferredColorScheme(.dark)
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     UserProfileView(
         name: PersonNameComponents(givenName: "Vishnu", familyName: "Ravi"),

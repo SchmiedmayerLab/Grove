@@ -19,6 +19,7 @@ import SwiftUI
 ///     var accountViewType
 /// }
 /// ```
+@available(iOS 17, macOS 14, *)
 public enum AccountViewType {
     /// The view is part of a ``SignupForm`` view hierarchy.
     case signup
@@ -38,6 +39,7 @@ public enum AccountViewType {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountViewType {
     /// The mode in which a subview of a ``AccountOverview`` operates in.
     public enum OverviewEntryMode {
@@ -51,12 +53,15 @@ extension AccountViewType {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountViewType.OverviewEntryMode: Sendable, Hashable {}
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountViewType: Sendable, Hashable {}
 
 
+@available(iOS 17, macOS 14, *)
 extension EnvironmentValues {
     /// The type of `SpeziAccount` view a ``DataEntryView`` or ``DataDisplayView`` is placed in.
     ///

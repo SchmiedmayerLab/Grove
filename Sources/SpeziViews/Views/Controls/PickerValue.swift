@@ -16,6 +16,7 @@ import SwiftUI
 /// to enumerate all cases, [`CustomLocalizedStringResourceConvertible`](https://developer.apple.com/documentation/foundation/customlocalizedstringresourceconvertible)
 /// to provide a localizable representation for each case and [`Hashable`](https://developer.apple.com/documentation/swift/hashable)
 /// to differentiate cases.
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 public typealias PickerValue = CaseIterable & CustomLocalizedStringResourceConvertible & Hashable
 
 
@@ -26,6 +27,7 @@ extension Optional: @retroactive CaseIterable where Wrapped: CaseIterable {
 }
 
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension Optional: @retroactive CustomLocalizedStringResourceConvertible where Wrapped: CustomLocalizedStringResourceConvertible {
     public var localizedStringResource: LocalizedStringResource {
         switch self {

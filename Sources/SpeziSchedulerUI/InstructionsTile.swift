@@ -41,6 +41,7 @@ import SwiftUI
 ///     MeasurementsExplanationView()
 /// })
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 public struct InstructionsTile<Header: View, Info: View, Footer: View>: View {
     /// The visibility of a component of an ``InstructionsTile``.
     public enum ComponentVisibility: Hashable, Sendable {
@@ -181,6 +182,7 @@ public struct InstructionsTile<Header: View, Info: View, Footer: View>: View {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension InstructionsTile {
     /// Create a new instructions with an action button.
     ///
@@ -415,6 +417,7 @@ extension InstructionsTile {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 #Preview(traits: .schedulerSampleData) {
     @EventQuery(in: .sampleEventRange)
     @Previewable var events
@@ -433,6 +436,7 @@ extension InstructionsTile {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 #Preview(traits: .schedulerSampleData) {
     @EventQuery(in: .sampleEventRange)
     @Previewable var events

@@ -10,6 +10,7 @@ import Foundation
 
 
 /// A Timed Walking Test's configuration
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 public struct TimedWalkingTestConfiguration: Codable, Hashable, Sendable {
     /// The kind of a Timed Walking Test
     public enum Kind: UInt8, Codable, Hashable, CaseIterable, Sendable {
@@ -32,6 +33,7 @@ public struct TimedWalkingTestConfiguration: Codable, Hashable, Sendable {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension TimedWalkingTestConfiguration {
     /// The six-minute walk test
     public static let sixMinuteWalkTest = TimedWalkingTestConfiguration(duration: .minutes(6), kind: .walking)
@@ -41,6 +43,7 @@ extension TimedWalkingTestConfiguration {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension StudyDefinition {
     /// Study Component which prompts the user to perform a Timed Walking Test
     public struct TimedWalkingTestComponent: Identifiable, StudyDefinitionElement {
@@ -56,6 +59,7 @@ extension StudyDefinition {
 
 
 #if canImport(Darwin)
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension TimedWalkingTestConfiguration {
     private static let spellOutNumberFormatter: NumberFormatter = {
         let fmt = NumberFormatter()

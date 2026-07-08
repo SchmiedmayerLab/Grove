@@ -13,6 +13,7 @@ import SpeziFoundation
 
 /// An ECG Session recorded by SensorKit.
 @available(iOS 17.4, *)
+@available(iOS 17, *)
 public struct SensorKitECGSession: SensorKitSampleSafeRepresentation {
     /// A Batch of voltage samples that are associated with the same time offset.
     public struct Batch: Hashable, Sendable {
@@ -79,6 +80,7 @@ public struct SensorKitECGSession: SensorKitSampleSafeRepresentation {
 // MARK: SensorKit ECG Session Processing
 
 @available(iOS 17.4, *)
+@available(iOS 17, *)
 extension SRElectrocardiogramSample: SensorKitSampleProtocol {
     public static func processIntoSafeRepresentation(
         _ samples: some Sequence<(timestamp: Date, sample: SRElectrocardiogramSample)>
@@ -125,6 +127,7 @@ extension SRElectrocardiogramSample: SensorKitSampleProtocol {
 }
 
 
+@available(iOS 17, *)
 extension Sequence {
     func min<T: Comparable>(of keyPath: KeyPath<Element, T>) -> T? {
         self.min { $0[keyPath: keyPath] < $1[keyPath: keyPath] }?[keyPath: keyPath]

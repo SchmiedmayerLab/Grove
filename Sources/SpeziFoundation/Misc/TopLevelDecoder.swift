@@ -30,6 +30,7 @@ public protocol TopLevelDecoder<Input> {
     ///   - configuration: The configuration that provides additional information for decoding.
     /// - Returns: Returns the decoded instance.
     /// - Throws: Throws errors occurred while attempting to decode input.
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     func decode<T: DecodableWithConfiguration>(
         _ type: T.Type,
         from input: Input,
@@ -43,6 +44,7 @@ public protocol TopLevelDecoder<Input> {
     ///   - configuration: A type that provides additional information for decoding.
     /// - Returns: Returns the decoded instance.
     /// - Throws: Throws errors occurred while attempting to decode input.
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     func decode<T: DecodableWithConfiguration, C: DecodingConfigurationProviding>(
         _ type: T.Type,
         from input: Input,

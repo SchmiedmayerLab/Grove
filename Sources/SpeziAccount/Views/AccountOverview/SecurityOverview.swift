@@ -13,6 +13,7 @@ import SwiftUI
 
 @available(macOS, unavailable)
 @available(watchOS, unavailable)
+@available(iOS 17, macOS 14, *)
 struct SecurityOverview: View {
     private let accountDetails: AccountDetails
     private let model: AccountOverviewFormViewModel
@@ -75,6 +76,7 @@ struct SecurityOverview: View {
 
 
 #if DEBUG && !os(macOS) && !os(watchOS)
+@available(iOS 17, macOS 14, *)
 #Preview {
     NavigationStack {
         AccountDetailsReader { account, details in

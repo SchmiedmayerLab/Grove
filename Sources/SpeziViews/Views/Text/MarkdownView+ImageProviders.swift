@@ -17,9 +17,10 @@ struct MarkdownViewImageProvider: ImageProvider {
         @State private var image: Image?
         
         var body: some View {
-            ResizeToFit {
+            Group {
                 if let image {
                     image.resizable()
+                        .scaledToFit()
                 }
             }
             .task {

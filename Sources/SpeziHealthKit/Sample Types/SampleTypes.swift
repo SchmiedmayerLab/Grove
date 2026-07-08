@@ -17,16 +17,32 @@ public import HealthKit
 
 
 /// Selects one of the specified units, based on the current locale.
+@available(macOS 13.0, *)
 @inlinable func localeDependentUnit(
     us: @autoclosure () -> HKUnit,
     uk: @autoclosure () -> HKUnit? = nil,
     metric: @autoclosure () -> HKUnit
 ) -> HKUnit {
-    switch Locale.current.measurementSystem {
-    case .us: us()
-    case .uk: uk() ?? metric()
-    case .metric: metric()
-    default: metric()
+    if #available(iOS 16, macOS 13, watchOS 9, tvOS 16, *) {
+        switch Locale.current.measurementSystem {
+        case .us:
+            return us()
+        case .uk:
+            return uk() ?? metric()
+        case .metric:
+            return metric()
+        default:
+            return metric()
+        }
+    } else {
+        switch Locale.current.regionCode {
+        case "US":
+            return us()
+        case "GB":
+            return uk() ?? metric()
+        default:
+            return Locale.current.usesMetricSystem ? metric() : us()
+        }
     }
 }
 
@@ -34,6 +50,7 @@ public import HealthKit
 
 // MARK: Quantity Types
 
+@available(macOS 13.0, *)
 extension SampleType where Sample == HKQuantitySample {
     /// A quantity sample type that measures the number of steps the user has taken.
     @inlinable public static var stepCount: SampleType<HKQuantitySample> {
@@ -58,6 +75,7 @@ extension SampleType where Sample == HKQuantitySample {
         )
     }
     /// A quantity sample type that measures the amount of time the runner’s foot is in contact with the ground while running.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var runningGroundContactTime: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.runningGroundContactTime.rawValue,
@@ -69,6 +87,7 @@ extension SampleType where Sample == HKQuantitySample {
         )
     }
     /// A quantity sample type that measures the rate of work required for the runner to maintain their speed.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var runningPower: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.runningPower.rawValue,
@@ -80,6 +99,7 @@ extension SampleType where Sample == HKQuantitySample {
         )
     }
     /// A quantity sample type that measures the runner’s speed.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var runningSpeed: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.runningSpeed.rawValue,
@@ -91,6 +111,7 @@ extension SampleType where Sample == HKQuantitySample {
         )
     }
     /// A quantity sample type that measures the distance covered by a single step while running.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var runningStrideLength: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.runningStrideLength.rawValue,
@@ -102,6 +123,7 @@ extension SampleType where Sample == HKQuantitySample {
         )
     }
     /// A quantity sample type measuring pelvis vertical range of motion during a single running stride.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var runningVerticalOscillation: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.runningVerticalOscillation.rawValue,
@@ -322,6 +344,7 @@ extension SampleType where Sample == HKQuantitySample {
         )
     }
     /// A quantity sample type that records the wrist temperature during sleep.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var appleSleepingWristTemperature: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.appleSleepingWristTemperature.rawValue,
@@ -411,6 +434,7 @@ extension SampleType where Sample == HKQuantitySample {
         )
     }
     /// A quantity sample that records the reduction in heart rate from the peak exercise rate to the rate one minute after exercising ended.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var heartRateRecoveryOneMinute: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.heartRateRecoveryOneMinute.rawValue,
@@ -422,6 +446,7 @@ extension SampleType where Sample == HKQuantitySample {
         )
     }
     /// A quantity type that measures an estimate of the percentage of time a person’s heart shows signs of atrial fibrillation (AFib) while wearing Apple Watch.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var atrialFibrillationBurden: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.atrialFibrillationBurden.rawValue,
@@ -1138,6 +1163,7 @@ extension SampleType where Sample == HKQuantitySample {
         )
     }
     /// A quantity sample that records a person’s depth underwater.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var underwaterDepth: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.underwaterDepth.rawValue,
@@ -1149,6 +1175,7 @@ extension SampleType where Sample == HKQuantitySample {
         )
     }
     ///  A quantity sample that records the water temperature.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var waterTemperature: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.waterTemperature.rawValue,
@@ -1184,6 +1211,7 @@ extension SampleType where Sample == HKQuantitySample {
         )
     }
     /// A quantity sample that records cycling cadence.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var cyclingCadence: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.cyclingCadence.rawValue,
@@ -1195,6 +1223,7 @@ extension SampleType where Sample == HKQuantitySample {
         )
     }
     /// A quantity sample that records cycling functional threshold power.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var cyclingFunctionalThresholdPower: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.cyclingFunctionalThresholdPower.rawValue,
@@ -1206,6 +1235,7 @@ extension SampleType where Sample == HKQuantitySample {
         )
     }
     /// A quantity sample that records cycling power.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var cyclingPower: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.cyclingPower.rawValue,
@@ -1217,6 +1247,7 @@ extension SampleType where Sample == HKQuantitySample {
         )
     }
     /// A quantity sample that records cycling speed.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var cyclingSpeed: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.cyclingSpeed.rawValue,
@@ -1276,6 +1307,7 @@ extension SampleType where Sample == HKQuantitySample {
         )
     }
     /// A quantity sample that records environmental sound reduction.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var environmentalSoundReduction: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.environmentalSoundReduction.rawValue,
@@ -1311,6 +1343,7 @@ extension SampleType where Sample == HKQuantitySample {
         )
     }
     /// A quantity sample that records physical effort.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var physicalEffort: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.physicalEffort.rawValue,
@@ -1334,6 +1367,7 @@ extension SampleType where Sample == HKQuantitySample {
         )
     }
     /// A quantity sample that records time spent in daylight.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var timeInDaylight: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.timeInDaylight.rawValue,
@@ -1363,15 +1397,15 @@ extension SampleType where Sample == HKQuantitySample {
             self = .stepCount
         } else if identifier == .distanceWalkingRunning {
             self = .distanceWalkingRunning
-        } else if identifier == .runningGroundContactTime {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .runningGroundContactTime {
             self = .runningGroundContactTime
-        } else if identifier == .runningPower {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .runningPower {
             self = .runningPower
-        } else if identifier == .runningSpeed {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .runningSpeed {
             self = .runningSpeed
-        } else if identifier == .runningStrideLength {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .runningStrideLength {
             self = .runningStrideLength
-        } else if identifier == .runningVerticalOscillation {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .runningVerticalOscillation {
             self = .runningVerticalOscillation
         } else if identifier == .distanceCycling {
             self = .distanceCycling
@@ -1411,7 +1445,7 @@ extension SampleType where Sample == HKQuantitySample {
             self = .bodyFatPercentage
         } else if identifier == .waistCircumference {
             self = .waistCircumference
-        } else if identifier == .appleSleepingWristTemperature {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .appleSleepingWristTemperature {
             self = .appleSleepingWristTemperature
         } else if identifier == .basalBodyTemperature {
             self = .basalBodyTemperature
@@ -1427,9 +1461,9 @@ extension SampleType where Sample == HKQuantitySample {
             self = .walkingHeartRateAverage
         } else if identifier == .heartRateVariabilitySDNN {
             self = .heartRateVariabilitySDNN
-        } else if identifier == .heartRateRecoveryOneMinute {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .heartRateRecoveryOneMinute {
             self = .heartRateRecoveryOneMinute
-        } else if identifier == .atrialFibrillationBurden {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .atrialFibrillationBurden {
             self = .atrialFibrillationBurden
         } else if identifier == .oxygenSaturation {
             self = .bloodOxygen
@@ -1559,21 +1593,21 @@ extension SampleType where Sample == HKQuantitySample {
             self = .stairDescentSpeed
         } else if identifier == .uvExposure {
             self = .uvExposure
-        } else if identifier == .underwaterDepth {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .underwaterDepth {
             self = .underwaterDepth
-        } else if identifier == .waterTemperature {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .waterTemperature {
             self = .waterTemperature
         } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .appleSleepingBreathingDisturbances {
             self = .appleSleepingBreathingDisturbances
         } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .crossCountrySkiingSpeed {
             self = .crossCountrySkiingSpeed
-        } else if identifier == .cyclingCadence {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .cyclingCadence {
             self = .cyclingCadence
-        } else if identifier == .cyclingFunctionalThresholdPower {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .cyclingFunctionalThresholdPower {
             self = .cyclingFunctionalThresholdPower
-        } else if identifier == .cyclingPower {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .cyclingPower {
             self = .cyclingPower
-        } else if identifier == .cyclingSpeed {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .cyclingSpeed {
             self = .cyclingSpeed
         } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .distanceCrossCountrySkiing {
             self = .distanceCrossCountrySkiing
@@ -1583,17 +1617,17 @@ extension SampleType where Sample == HKQuantitySample {
             self = .distanceRowing
         } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .distanceSkatingSports {
             self = .distanceSkatingSports
-        } else if identifier == .environmentalSoundReduction {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .environmentalSoundReduction {
             self = .environmentalSoundReduction
         } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .estimatedWorkoutEffortScore {
             self = .estimatedWorkoutEffortScore
         } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .paddleSportsSpeed {
             self = .paddleSportsSpeed
-        } else if identifier == .physicalEffort {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .physicalEffort {
             self = .physicalEffort
         } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .rowingSpeed {
             self = .rowingSpeed
-        } else if identifier == .timeInDaylight {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .timeInDaylight {
             self = .timeInDaylight
         } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .workoutEffortScore {
             self = .workoutEffortScore
@@ -1603,6 +1637,7 @@ extension SampleType where Sample == HKQuantitySample {
     }
 }
 
+@available(macOS 13.0, *)
 extension HKQuantityType {
     /// All well-known `HKQuantityType`s
     public static let allKnownQuantities: Set<HKQuantityType> = Set(
@@ -1610,17 +1645,28 @@ extension HKQuantityType {
     )
 }
 
+@available(macOS 13.0, *)
 extension HKQuantityTypeIdentifier {
     /// All well-known `HKQuantityTypeIdentifier`s
     public static let allKnownIdentifiers: Set<HKQuantityTypeIdentifier> = {
         var identifiers = Set<HKQuantityTypeIdentifier>()
         identifiers.insert(Self.stepCount)
         identifiers.insert(Self.distanceWalkingRunning)
-        identifiers.insert(Self.runningGroundContactTime)
-        identifiers.insert(Self.runningPower)
-        identifiers.insert(Self.runningSpeed)
-        identifiers.insert(Self.runningStrideLength)
-        identifiers.insert(Self.runningVerticalOscillation)
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.runningGroundContactTime)
+        }
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.runningPower)
+        }
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.runningSpeed)
+        }
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.runningStrideLength)
+        }
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.runningVerticalOscillation)
+        }
         identifiers.insert(Self.distanceCycling)
         identifiers.insert(Self.pushCount)
         identifiers.insert(Self.distanceWheelchair)
@@ -1640,7 +1686,9 @@ extension HKQuantityTypeIdentifier {
         identifiers.insert(Self.leanBodyMass)
         identifiers.insert(Self.bodyFatPercentage)
         identifiers.insert(Self.waistCircumference)
-        identifiers.insert(Self.appleSleepingWristTemperature)
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.appleSleepingWristTemperature)
+        }
         identifiers.insert(Self.basalBodyTemperature)
         identifiers.insert(Self.environmentalAudioExposure)
         identifiers.insert(Self.headphoneAudioExposure)
@@ -1648,8 +1696,12 @@ extension HKQuantityTypeIdentifier {
         identifiers.insert(Self.restingHeartRate)
         identifiers.insert(Self.walkingHeartRateAverage)
         identifiers.insert(Self.heartRateVariabilitySDNN)
-        identifiers.insert(Self.heartRateRecoveryOneMinute)
-        identifiers.insert(Self.atrialFibrillationBurden)
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.heartRateRecoveryOneMinute)
+        }
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.atrialFibrillationBurden)
+        }
         identifiers.insert(Self.oxygenSaturation)
         identifiers.insert(Self.bodyTemperature)
         identifiers.insert(Self.bloodPressureDiastolic)
@@ -1714,18 +1766,30 @@ extension HKQuantityTypeIdentifier {
         identifiers.insert(Self.stairAscentSpeed)
         identifiers.insert(Self.stairDescentSpeed)
         identifiers.insert(Self.uvExposure)
-        identifiers.insert(Self.underwaterDepth)
-        identifiers.insert(Self.waterTemperature)
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.underwaterDepth)
+        }
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.waterTemperature)
+        }
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
             identifiers.insert(Self.appleSleepingBreathingDisturbances)
         }
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
             identifiers.insert(Self.crossCountrySkiingSpeed)
         }
-        identifiers.insert(Self.cyclingCadence)
-        identifiers.insert(Self.cyclingFunctionalThresholdPower)
-        identifiers.insert(Self.cyclingPower)
-        identifiers.insert(Self.cyclingSpeed)
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.cyclingCadence)
+        }
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.cyclingFunctionalThresholdPower)
+        }
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.cyclingPower)
+        }
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.cyclingSpeed)
+        }
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
             identifiers.insert(Self.distanceCrossCountrySkiing)
         }
@@ -1738,18 +1802,24 @@ extension HKQuantityTypeIdentifier {
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
             identifiers.insert(Self.distanceSkatingSports)
         }
-        identifiers.insert(Self.environmentalSoundReduction)
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.environmentalSoundReduction)
+        }
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
             identifiers.insert(Self.estimatedWorkoutEffortScore)
         }
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
             identifiers.insert(Self.paddleSportsSpeed)
         }
-        identifiers.insert(Self.physicalEffort)
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.physicalEffort)
+        }
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
             identifiers.insert(Self.rowingSpeed)
         }
-        identifiers.insert(Self.timeInDaylight)
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.timeInDaylight)
+        }
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
             identifiers.insert(Self.workoutEffortScore)
         }
@@ -1759,6 +1829,7 @@ extension HKQuantityTypeIdentifier {
 
 // MARK: Category Types
 
+@available(macOS 13.0, *)
 extension SampleType where Sample == HKCategorySample {
     /// A category sample type that counts the number of hours in the day during which the user has stood and moved for at least one minute per hour.
     @inlinable public static var appleStandHour: SampleType<HKCategorySample> {
@@ -1801,6 +1872,7 @@ extension SampleType where Sample == HKCategorySample {
         )
     }
     /// A category sample that indicates an infrequent menstrual cycle.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var infrequentMenstrualCycles: SampleType<HKCategorySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.infrequentMenstrualCycles.rawValue,
@@ -1811,6 +1883,7 @@ extension SampleType where Sample == HKCategorySample {
         )
     }
     /// A category sample that indicates an irregular menstrual cycle.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var irregularMenstrualCycles: SampleType<HKCategorySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.irregularMenstrualCycles.rawValue,
@@ -1821,6 +1894,7 @@ extension SampleType where Sample == HKCategorySample {
         )
     }
     /// A category sample that indicates persistent intermenstrual bleeding.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var persistentIntermenstrualBleeding: SampleType<HKCategorySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.persistentIntermenstrualBleeding.rawValue,
@@ -1831,6 +1905,7 @@ extension SampleType where Sample == HKCategorySample {
         )
     }
     /// A category sample that indicates a prolonged menstrual cycle.
+    @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
     @inlinable public static var prolongedMenstrualPeriods: SampleType<HKCategorySample> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.prolongedMenstrualPeriods.rawValue,
@@ -2454,13 +2529,13 @@ extension SampleType where Sample == HKCategorySample {
             self = .menstrualFlow
         } else if identifier == .intermenstrualBleeding {
             self = .intermenstrualBleeding
-        } else if identifier == .infrequentMenstrualCycles {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .infrequentMenstrualCycles {
             self = .infrequentMenstrualCycles
-        } else if identifier == .irregularMenstrualCycles {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .irregularMenstrualCycles {
             self = .irregularMenstrualCycles
-        } else if identifier == .persistentIntermenstrualBleeding {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .persistentIntermenstrualBleeding {
             self = .persistentIntermenstrualBleeding
-        } else if identifier == .prolongedMenstrualPeriods {
+        } else if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *), identifier == .prolongedMenstrualPeriods {
             self = .prolongedMenstrualPeriods
         } else if identifier == .cervicalMucusQuality {
             self = .cervicalMucusQuality
@@ -2588,6 +2663,7 @@ extension SampleType where Sample == HKCategorySample {
     }
 }
 
+@available(macOS 13.0, *)
 extension HKCategoryType {
     /// All well-known `HKCategoryType`s
     public static let allKnownCategories: Set<HKCategoryType> = Set(
@@ -2595,6 +2671,7 @@ extension HKCategoryType {
     )
 }
 
+@available(macOS 13.0, *)
 extension HKCategoryTypeIdentifier {
     /// All well-known `HKCategoryTypeIdentifier`s
     public static let allKnownIdentifiers: Set<HKCategoryTypeIdentifier> = {
@@ -2603,10 +2680,18 @@ extension HKCategoryTypeIdentifier {
         identifiers.insert(Self.lowCardioFitnessEvent)
         identifiers.insert(Self.menstrualFlow)
         identifiers.insert(Self.intermenstrualBleeding)
-        identifiers.insert(Self.infrequentMenstrualCycles)
-        identifiers.insert(Self.irregularMenstrualCycles)
-        identifiers.insert(Self.persistentIntermenstrualBleeding)
-        identifiers.insert(Self.prolongedMenstrualPeriods)
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.infrequentMenstrualCycles)
+        }
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.irregularMenstrualCycles)
+        }
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.persistentIntermenstrualBleeding)
+        }
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            identifiers.insert(Self.prolongedMenstrualPeriods)
+        }
         identifiers.insert(Self.cervicalMucusQuality)
         identifiers.insert(Self.ovulationTestResult)
         identifiers.insert(Self.progesteroneTestResult)
@@ -2679,6 +2764,7 @@ extension HKCategoryTypeIdentifier {
 
 // MARK: Correlation Types
 
+@available(macOS 13.0, *)
 extension SampleType where Sample == HKCorrelation {
     /// The sample type representing blood pressure correlation samples
     @inlinable public static var bloodPressure: SampleType<HKCorrelation> {
@@ -2715,6 +2801,7 @@ extension SampleType where Sample == HKCorrelation {
     }
 }
 
+@available(macOS 13.0, *)
 extension HKCorrelationType {
     /// All well-known `HKCorrelationType`s
     public static let allKnownCorrelations: Set<HKCorrelationType> = Set(
@@ -2722,6 +2809,7 @@ extension HKCorrelationType {
     )
 }
 
+@available(macOS 13.0, *)
 extension HKCorrelationTypeIdentifier {
     /// All well-known `HKCorrelationTypeIdentifier`s
     public static let allKnownIdentifiers: Set<HKCorrelationTypeIdentifier> = {
@@ -2735,6 +2823,7 @@ extension HKCorrelationTypeIdentifier {
 // MARK: Clinical Record Types
 
 @available(watchOS, unavailable)
+@available(macOS 13.0, *)
 extension SampleType where Sample == HKClinicalRecord {
     /// A type identifier for records of allergic or intolerant reactions.
     @inlinable public static var allergyRecord: SampleType<HKClinicalRecord> {
@@ -2747,6 +2836,7 @@ extension SampleType where Sample == HKClinicalRecord {
         )
     }
     /// A type identifier for records of clinical notes.
+    @available(iOS 16.4, macOS 13.3, watchOS 9.4, *)
     @inlinable public static var clinicalNoteRecord: SampleType<HKClinicalRecord> {
         SampleTypeCache.get(
             identifier: Sample._SampleType._Identifier.clinicalNoteRecord.rawValue,
@@ -2831,7 +2921,7 @@ extension SampleType where Sample == HKClinicalRecord {
     public init?(_ identifier: HKClinicalTypeIdentifier) where Sample == HKClinicalRecord {
         if identifier == .allergyRecord {
             self = .allergyRecord
-        } else if identifier == .clinicalNoteRecord {
+        } else if #available(iOS 16.4, macOS 13.3, watchOS 9.4, *), identifier == .clinicalNoteRecord {
             self = .clinicalNoteRecord
         } else if identifier == .conditionRecord {
             self = .conditionRecord
@@ -2853,6 +2943,7 @@ extension SampleType where Sample == HKClinicalRecord {
     }
 }
 
+@available(macOS 13.0, *)
 extension HKClinicalType {
     /// All well-known `HKClinicalType`s
     public static let allKnownClinicalRecords: Set<HKClinicalType> = Set(
@@ -2860,12 +2951,15 @@ extension HKClinicalType {
     )
 }
 
+@available(macOS 13.0, *)
 extension HKClinicalTypeIdentifier {
     /// All well-known `HKClinicalTypeIdentifier`s
     public static let allKnownIdentifiers: Set<HKClinicalTypeIdentifier> = {
         var identifiers = Set<HKClinicalTypeIdentifier>()
         identifiers.insert(Self.allergyRecord)
-        identifiers.insert(Self.clinicalNoteRecord)
+        if #available(iOS 16.4, macOS 13.3, watchOS 9.4, *) {
+            identifiers.insert(Self.clinicalNoteRecord)
+        }
         identifiers.insert(Self.conditionRecord)
         identifiers.insert(Self.immunizationRecord)
         identifiers.insert(Self.labResultRecord)
@@ -2877,6 +2971,7 @@ extension HKClinicalTypeIdentifier {
     }()
 }
 
+@available(macOS 13.0, *)
 extension HKObjectType {
     /// All well-known `HKObjectType`s
     public static let allKnownObjectTypes: Set<HKObjectType> = {
@@ -2890,7 +2985,9 @@ extension HKObjectType {
         types.insert(SampleType.electrocardiogram.hkSampleType)
         types.insert(SampleType.audiogram.hkSampleType)
         types.insert(SampleType.workout.hkSampleType)
-        types.insert(SampleType.visionPrescription.hkSampleType)
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            types.insert(SampleType.visionPrescription.hkSampleType)
+        }
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
             types.insert(SampleType.stateOfMind.hkSampleType)
         }
@@ -2909,6 +3006,7 @@ extension HKObjectType {
 
 // MARK: Other Sample Types
 
+@available(macOS 13.0, *)
 extension SampleType where Sample == HKElectrocardiogram {
     /// The electrocardiogram sample type
     @inlinable public static var electrocardiogram: SampleType<HKElectrocardiogram> {
@@ -2920,6 +3018,7 @@ extension SampleType where Sample == HKElectrocardiogram {
     }
 }
 
+@available(macOS 13.0, *)
 extension SampleType where Sample == HKAudiogramSample {
     /// The audiogram sample type
     @inlinable public static var audiogram: SampleType<HKAudiogramSample> {
@@ -2931,6 +3030,7 @@ extension SampleType where Sample == HKAudiogramSample {
     }
 }
 
+@available(macOS 13.0, *)
 extension SampleType where Sample == HKWorkout {
     /// The workout sample type
     @inlinable public static var workout: SampleType<HKWorkout> {
@@ -2942,6 +3042,8 @@ extension SampleType where Sample == HKWorkout {
     }
 }
 
+@available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
+@available(macOS 13.0, *)
 extension SampleType where Sample == HKVisionPrescription {
     /// The vision prescription sample type
     @inlinable public static var visionPrescription: SampleType<HKVisionPrescription> {
@@ -2954,6 +3056,7 @@ extension SampleType where Sample == HKVisionPrescription {
 }
 
 @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
+@available(macOS 13.0, *)
 extension SampleType where Sample == HKStateOfMind {
     /// The state of mind sample type
     @inlinable public static var stateOfMind: SampleType<HKStateOfMind> {
@@ -2965,6 +3068,7 @@ extension SampleType where Sample == HKStateOfMind {
     }
 }
 
+@available(macOS 13.0, *)
 extension SampleType where Sample == HKHeartbeatSeriesSample {
     /// The heartbeat series sample type
     @inlinable public static var heartbeatSeries: SampleType<HKHeartbeatSeriesSample> {
@@ -2976,6 +3080,7 @@ extension SampleType where Sample == HKHeartbeatSeriesSample {
     }
 }
 
+@available(macOS 13.0, *)
 extension SampleType where Sample == HKWorkoutRoute {
     /// The workout route sample type
     @inlinable public static var workoutRoute: SampleType<HKWorkoutRoute> {
@@ -2988,6 +3093,7 @@ extension SampleType where Sample == HKWorkoutRoute {
 }
 
 @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
+@available(macOS 13.0, *)
 extension SampleType where Sample == HKGAD7Assessment {
     /// The GAD-7 (generalized anxiety disorder 7) score type
     @inlinable public static var gad7: SampleType<HKGAD7Assessment> {
@@ -3000,6 +3106,7 @@ extension SampleType where Sample == HKGAD7Assessment {
 }
 
 @available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *)
+@available(macOS 13.0, *)
 extension SampleType where Sample == HKPHQ9Assessment {
     /// The PHQ-9 (nine-item Patient Health Questionnaire) score type
     @inlinable public static var phq9: SampleType<HKPHQ9Assessment> {
@@ -3012,6 +3119,7 @@ extension SampleType where Sample == HKPHQ9Assessment {
 }
 
 
+@available(macOS 13.0, *)
 extension SampleType {
     /// All currently-known "other" sample types, which are not quantity, correlation, category, or clinical samples.
     ///
@@ -3021,7 +3129,9 @@ extension SampleType {
         retval.append(SpeziHealthKit.SampleType.electrocardiogram)
         retval.append(SpeziHealthKit.SampleType.audiogram)
         retval.append(SpeziHealthKit.SampleType.workout)
-        retval.append(SpeziHealthKit.SampleType.visionPrescription)
+        if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
+            retval.append(SpeziHealthKit.SampleType.visionPrescription)
+        }
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
             retval.append(SpeziHealthKit.SampleType.stateOfMind)
         }
@@ -3038,6 +3148,7 @@ extension SampleType {
 }
 
 
+@available(macOS 13.0, *)
 extension HKCharacteristicTypeIdentifier {
     /// All well-known `HKCharacteristicTypeIdentifier`s
     public static let allKnownIdentifiers: Set<HKCharacteristicTypeIdentifier> = [

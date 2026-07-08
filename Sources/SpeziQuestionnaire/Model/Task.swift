@@ -9,6 +9,7 @@
 private import SpeziFoundation
 
 
+@available(iOS 17, *)
 extension Questionnaire {
     /// A unit of work the participant is asked to perform as part of the questionnaire (typically a question being asked)
     public struct Task: Hashable, Identifiable, Sendable {

@@ -69,6 +69,7 @@ import SpeziLLM
 ///     }
 /// }
 /// ```
+@available(iOS 17, macOS 14, visionOS 1, *)
 @Observable
 public final class LLMOpenAILikeSession<
     PlatformDefinition: LLMOpenAILikePlatformDefinition

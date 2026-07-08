@@ -4,7 +4,7 @@
 # SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 #
 # SPDX-License-Identifier: MIT
-# 
+#
 
 # Swift Package Manager
 Package.resolved
@@ -19,14 +19,27 @@ Package.resolved
 # Track only the Spezi-Tests host scheme; ignore the per-target schemes Xcode auto-generates.
 .swiftpm/xcode/xcshareddata/xcschemes/*
 !.swiftpm/xcode/xcshareddata/xcschemes/Spezi-Tests.xcscheme
-.build
-.xcodebuild
-.derivedData
+# Build artifacts
+.build/
+.xcodebuild/
+.derivedData/
+.derivedData*/
+DerivedData/
 coverage.lcov
+*.profraw
+*.profdata
+
+# Xcode result and coverage bundles
 *.xcresult
+*.xcresult/
+*.xccovarchive
+*.xccovarchive/
+*.xccovreport
+*.xccovreport/
 
 # IDE related folders
 .idea
+.vscode/
 
 # Xcode User settings
 xcuserdata/

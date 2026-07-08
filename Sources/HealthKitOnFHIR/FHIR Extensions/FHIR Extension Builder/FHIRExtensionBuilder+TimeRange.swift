@@ -12,6 +12,7 @@ import HealthKit
 import ModelsR4
 
 
+@available(macOS 13, *)
 extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKSample> {
     /// A FHIR Extension Builder that writes the absolute time range (i.e., start and end date) of a HealthKit sample into a FHIR `Observation` created from the sample.
     public static var includeAbsoluteTimeRange: FHIRExtensionBuilder<HKSample> {

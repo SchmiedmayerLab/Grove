@@ -11,6 +11,7 @@ import Foundation
 
 /// For internal previews and testing.
 @_spi(_Testing)
+@available(iOS 17, macOS 14, *)
 public struct MockNumericKey: AccountKey {
     public typealias Value = Int
     public static let name: LocalizedStringResource = "Numeric Key"

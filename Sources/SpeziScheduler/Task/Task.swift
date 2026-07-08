@@ -78,6 +78,7 @@ import SwiftData
 /// - ``previousVersion``
 /// - ``isLatestVersion``
 /// - ``firstVersion``
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 @Model
 @dynamicMemberLookup
 public final class Task { // swiftlint:disable:this type_body_length
@@ -526,6 +527,7 @@ public final class Task { // swiftlint:disable:this type_body_length
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Task {
     /// Additional context information stored alongside the task.
     public struct Context {
@@ -582,6 +584,7 @@ extension Task {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Task {
     func _updateTitle(_ title: String.LocalizationValue, instructions: String.LocalizationValue) { // swiftlint:disable:this identifier_name
         self.title = title
@@ -613,6 +616,7 @@ extension Task {
 
 // MARK: - Predicate Creation
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Task {
     static func inRangePredicate(for range: Range<Date>) -> Predicate<Task> {
         #Predicate<Task> { task in
@@ -651,6 +655,7 @@ extension Task {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Task: CustomStringConvertible {
     public var description: String {
         """

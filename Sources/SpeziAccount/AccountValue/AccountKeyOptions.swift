@@ -8,6 +8,7 @@
 
 
 /// Options associated with an Account Key.
+@available(iOS 17, macOS 14, *)
 public struct AccountKeyOptions: OptionSet {
     public let rawValue: UInt64
 
@@ -17,9 +18,11 @@ public struct AccountKeyOptions: OptionSet {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountKeyOptions: Hashable, Sendable, Codable {}
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountKeyOptions {
     /// The account key supports to be displayed to the user.
     ///

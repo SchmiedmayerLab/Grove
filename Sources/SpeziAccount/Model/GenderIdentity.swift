@@ -10,6 +10,7 @@ import Foundation
 
 
 /// Describes the self-identified gender identity.
+@available(iOS 17, macOS 14, *)
 public enum GenderIdentity: String, Sendable, CaseIterable, Identifiable, Hashable, Codable {
     /// Self-identify as female.
     case female
@@ -29,6 +30,7 @@ public enum GenderIdentity: String, Sendable, CaseIterable, Identifiable, Hashab
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension GenderIdentity: CustomLocalizedStringResourceConvertible {
     private var localizationValue: String.LocalizationValue {
         switch self {

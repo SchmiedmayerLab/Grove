@@ -18,6 +18,7 @@ private import SpeziFoundation
 ///
 /// - Important: Due to the lazy nature of this type, and the fact that it uses a query anchor internally to keep track of already-fetched time ranges, the sequence should only be iterated once.
 @available(iOS 18, *)
+@available(iOS 17, *)
 public struct AnchoredFetcher<Sample: SensorKitSampleProtocol>: AsyncSequence {
     public typealias Element = (SensorKit.BatchInfo, [Sample.SafeRepresentation])
     public typealias Failure = any Error
@@ -76,6 +77,7 @@ public struct AnchoredFetcher<Sample: SensorKitSampleProtocol>: AsyncSequence {
 }
 
 
+@available(iOS 17, *)
 extension SensorKit {
     /// Info about a device from which sensor data was collected.
     ///
@@ -110,6 +112,7 @@ extension SensorKit {
 }
 
 
+@available(iOS 17, *)
 extension SensorKit.DeviceInfo: Hashable {
     public static func == (lhs: SensorKit.DeviceInfo, rhs: SensorKit.DeviceInfo) -> Bool {
         if ObjectIdentifier(lhs) == ObjectIdentifier(rhs) {
@@ -133,6 +136,7 @@ extension SensorKit.DeviceInfo: Hashable {
 }
 
 
+@available(iOS 17, *)
 extension SensorKit {
     public struct BatchInfo: Sendable {
         /// The time range queried for when SensorKit returned this batch's samples.

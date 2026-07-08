@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 struct DisableCategoryDefaultAppearancesModifier: ViewModifier { // swiftlint:disable:this type_name
     private let disabled: Bool
 
@@ -26,6 +27,7 @@ struct DisableCategoryDefaultAppearancesModifier: ViewModifier { // swiftlint:di
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension View {
     func disableCategoryDefaultAppearances(_ disabled: Bool = true) -> some View {
         modifier(DisableCategoryDefaultAppearancesModifier(disabled: disabled))

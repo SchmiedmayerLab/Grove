@@ -86,6 +86,7 @@ import Observation
 /// - ``projectedValue``
 /// - ``DeviceStateAccessor``
 @propertyWrapper
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct DeviceState<Value: Sendable>: Sendable {
 #if compiler(<6)
     typealias KeyPathType = KeyPath<BluetoothPeripheral, Value>
@@ -155,6 +156,7 @@ public struct DeviceState<Value: Sendable>: Sendable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension DeviceState: DeviceVisitable, ServiceVisitable {
     func accept<Visitor: DeviceVisitor>(_ visitor: inout Visitor) {
         visitor.visit(self)
@@ -166,6 +168,7 @@ extension DeviceState: DeviceVisitable, ServiceVisitable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension DeviceState {
     var defaultValue: Value? {
         if let injected = storage.testInjections.load()?.injectedValue {

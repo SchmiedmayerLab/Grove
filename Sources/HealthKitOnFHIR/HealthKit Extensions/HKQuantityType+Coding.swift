@@ -11,6 +11,7 @@ import HealthKit
 import ModelsR4
 
 
+@available(macOS 13, *)
 extension HKQuantityType {
     /// Converts an HKQuantityType into corresponding FHIR Coding(s) based on a specified mapping
     var codes: [Coding] {

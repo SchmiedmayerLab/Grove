@@ -57,6 +57,7 @@ import SwiftUI
 ///
 /// - ``supplyUserDetails(_:)``
 /// - ``removeUserDetails()``
+@available(iOS 17, macOS 14, *)
 @Observable
 public final class Account {
     @ObservationIgnored @Application(\.logger)
@@ -213,7 +214,9 @@ public final class Account {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension Account: @unchecked Sendable {} // unchecked because of the property wrapper storage
 
 
+@available(iOS 17, macOS 14, *)
 extension Account: Module, EnvironmentAccessible {}

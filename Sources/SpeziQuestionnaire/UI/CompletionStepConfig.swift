@@ -8,6 +8,7 @@
 
 
 /// Controls whether the ``QuestionnaireSheet`` shows a completion step at the end of a questionnaire.
+@available(iOS 17, *)
 public enum CompletionStepConfig {
     /// There should not be a completion stap after finishing a questionnaire
     case disable

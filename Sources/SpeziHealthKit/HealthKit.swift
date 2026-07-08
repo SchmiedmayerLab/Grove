@@ -68,6 +68,7 @@ import SwiftUI
 /// ## See Also
 /// - <doc:ModuleConfiguration>
 @Observable
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 public final class HealthKit: Module, EnvironmentAccessible, DefaultInitializable, @unchecked Sendable {
     /// The state of the HealthKit module's initial configuration operation.
     public enum ConfigState: Hashable, Sendable {
@@ -182,6 +183,7 @@ public final class HealthKit: Module, EnvironmentAccessible, DefaultInitializabl
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension HealthKit {
     // MARK: Config State Handling
     
@@ -483,6 +485,7 @@ extension HealthKit {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension HealthKit {
     // MARK: HealthKit data collection
     
@@ -620,6 +623,7 @@ extension HealthKit {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension HealthKit.DataAccessRequirements {
     func overlaps(_ other: Self) -> Bool {
         !self.read.isDisjoint(with: other.read) || !self.write.isDisjoint(with: other.write)
@@ -634,6 +638,7 @@ extension HealthKit.DataAccessRequirements {
 }
 
 
+@available(macOS 13.0, *)
 extension HKUnit {
     /// Creates a unit as the composition of dividing a unit by another unit.
     @inlinable public static func / (lhs: HKUnit, rhs: HKUnit) -> HKUnit {
@@ -647,6 +652,7 @@ extension HKUnit {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension HealthKit {
     /// Whether the OS version the app is running on needs to work around Blood Pressure auth being skipped by HealthKit.
     ///
@@ -677,6 +683,7 @@ extension HealthKit {
 #endif
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension HealthKit {
     /// The `Bundle` of the SpeziHealthKit package.
     ///

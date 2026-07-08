@@ -10,6 +10,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 17, *)
 struct CodeView: View {
     let codeFormat: PasscodeFormat
     private let action: @MainActor (String) async throws -> Void
@@ -76,6 +77,7 @@ struct CodeView: View {
 }
 
 
+@available(iOS 17, *)
 #Preview {
     CodeView(codeFormat: .numeric(4)) { _ in
         try await Task.sleep(for: .seconds(1))

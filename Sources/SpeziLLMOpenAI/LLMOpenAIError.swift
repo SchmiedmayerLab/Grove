@@ -11,6 +11,7 @@ import SpeziLLM
 
 
 /// Errors that can occur by interacting with the OpenAI API.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public enum LLMOpenAIError: LLMError {
     /// OpenAI API returned an invalid request error.
     case invalidRequest
@@ -146,6 +147,7 @@ public enum LLMOpenAIError: LLMError {
 }
 
 // Reference: https://platform.openai.com/docs/guides/error-codes/api-errors
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension LLMOpenAILikeSession {
     func handleErrorCode(_ statusCode: Int) -> LLMOpenAIError {
         switch statusCode {

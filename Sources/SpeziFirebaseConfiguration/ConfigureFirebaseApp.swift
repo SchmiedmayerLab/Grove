@@ -30,6 +30,7 @@ import Spezi
 ///     private var configureFirebaseApp
 /// }
 /// ```
+@available(iOS 17, *)
 public final class ConfigureFirebaseApp: Module, DefaultInitializable {
     private enum Input {
         case useDefault

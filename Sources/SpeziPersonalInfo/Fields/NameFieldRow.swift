@@ -40,6 +40,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 public struct NameFieldRow<Description: View, Label: View>: View {
     private let description: Description
     private let label: Label
@@ -76,6 +77,7 @@ public struct NameFieldRow<Description: View, Label: View>: View {
     ///   - name: The name to display and edit.
     ///   - component: The `KeyPath` to the property of the provided `PersonNameComponents` to display and edit.
     ///   - label: A view that describes the purpose of the text field.
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public init(
         _ description: LocalizedStringResource,
         name: Binding<PersonNameComponents>,
@@ -106,6 +108,7 @@ public struct NameFieldRow<Description: View, Label: View>: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     @Previewable @State var name = PersonNameComponents()
     return Grid(horizontalSpacing: 15) {
@@ -125,6 +128,7 @@ public struct NameFieldRow<Description: View, Label: View>: View {
         }
     }
 }
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     @Previewable @State var name = PersonNameComponents()
     return Form {

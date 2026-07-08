@@ -12,6 +12,7 @@ import SpeziFoundation
 private import TPPDF
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 @MainActor
 struct PDFRenderer {
     enum ExportError: Error {
@@ -77,6 +78,7 @@ struct PDFRenderer {
     }
 }
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension PDFRenderer {
     private func add(_ section: ConsentDocument.Section) throws {
         switch section {
@@ -205,6 +207,7 @@ extension PDFRenderer {
 }
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension ConsentDocument.SignatureStorage {
     #if !os(macOS)
     @MainActor

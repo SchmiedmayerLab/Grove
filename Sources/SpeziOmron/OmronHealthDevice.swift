@@ -14,9 +14,11 @@ import SpeziDevices
 ///
 /// An Omron Health Device is a `HealthDevice` that is pairable.
 /// Further, it might adopt the `BatteryPoweredDevice` protocol if the Omron device supports the battery service.
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 public protocol OmronHealthDevice: HealthDevice, PairableDevice {}
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension OmronHealthDevice {
     /// The Omron model string.
     public var model: OmronModel {
@@ -33,6 +35,7 @@ extension OmronHealthDevice {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension OmronHealthDevice {
     /// Default implementation determining if device is in pairing mode.
     ///

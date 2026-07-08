@@ -9,6 +9,7 @@
 
 /// Building a set of `Discover` expressions to express what peripherals to discover.
 @resultBuilder
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public enum DiscoveryDescriptorBuilder {
     /// Build a ``Discover`` expression to define a ``DeviceDiscoveryDescriptor``.
     public static func buildExpression<Device: BluetoothDevice>(_ expression: Discover<Device>) -> Set<DeviceDiscoveryDescriptor> {

@@ -17,6 +17,7 @@ import ModelsR4
     .notSet, .sinusRhythm, .atrialFibrillation, .inconclusiveLowHeartRate,
     .inconclusiveHighHeartRate, .inconclusivePoorReading, .inconclusiveOther, .unrecognized
 )
+@available(macOS 13, *)
 extension HKElectrocardiogram.Classification: FHIRCodingConvertibleHKEnum {}
 
 
@@ -24,9 +25,11 @@ extension HKElectrocardiogram.Classification: FHIRCodingConvertibleHKEnum {}
     HKElectrocardiogram.SymptomsStatus.self,
     .notSet, .none, .present
 )
+@available(macOS 13, *)
 extension HKElectrocardiogram.SymptomsStatus: FHIRCodingConvertibleHKEnum {}
 
 
+@available(macOS 13, *)
 extension HKElectrocardiogram {
     /// The `Symptoms` contain related `HKCategoryType` instances coded as `HKCategoryValueSeverity` enums related to an `HKElectrocardiogram`.
     public typealias Symptoms = [HKCategoryType: HKCategoryValueSeverity]
@@ -45,6 +48,7 @@ extension HKElectrocardiogram {
     ///   - mapping: The ``HKSampleMapping`` used to populate the FHIR observation.
     ///   - issuedDate: `Instant` specifying when this version of the resource was made available. Defaults to `Date.now`.
     ///   - extensions: ``FHIRExtensionBuilder``s that should be applied to the resulting `Observation`.
+    @available(iOS 17, macOS 14, watchOS 10, *)
     public func observation(
         symptoms: Symptoms,
         voltageMeasurements: VoltageMeasurements,
@@ -66,6 +70,7 @@ extension HKElectrocardiogram {
 }
 
 
+@available(macOS 13, *)
 extension HKElectrocardiogram: FHIRObservationBuildable {
     func build(_ observation: Observation, mapping: HKSampleMapping) throws {
         let mapping = mapping.electrocardiogramMapping

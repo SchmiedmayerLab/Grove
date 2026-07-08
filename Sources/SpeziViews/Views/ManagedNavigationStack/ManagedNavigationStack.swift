@@ -112,6 +112,7 @@ import SwiftUI
 /// ### SwiftUI Environment Values
 /// - ``SwiftUICore/EnvironmentValues/isInManagedNavigationStack``
 /// - ``SwiftUICore/EnvironmentValues/isFirstInManagedNavigationStack``
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 public struct ManagedNavigationStack: View {
     static var logger: Logger { Logger(subsystem: "edu.stanford.spezi.SpeziViews", category: "ManagedNavigationStack") }
     
@@ -181,20 +182,45 @@ public struct ManagedNavigationStack: View {
 }
 
 
+private struct IsInManagedNavigationStackKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+
+private struct IsFirstInManagedNavigationStackKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+
 extension EnvironmentValues {
     /// Whether the view is currently contained within a ``ManagedNavigationStack``.
     ///
     /// - Note: You don't set this value manually; ``ManagedNavigationStack`` will set it for you where applicable.
-    @Entry public var isInManagedNavigationStack: Bool = false
+    public var isInManagedNavigationStack: Bool {
+        get {
+            self[IsInManagedNavigationStackKey.self]
+        }
+        set {
+            self[IsInManagedNavigationStackKey.self] = newValue
+        }
+    }
     
     /// Whether the view is the first view contained within a ``ManagedNavigationStack``.
     ///
     /// - Note: You don't set this value manually; ``ManagedNavigationStack`` will set it for you where applicable.
-    @Entry public var isFirstInManagedNavigationStack: Bool = false
+    public var isFirstInManagedNavigationStack: Bool {
+        get {
+            self[IsFirstInManagedNavigationStackKey.self]
+        }
+        set {
+            self[IsFirstInManagedNavigationStackKey.self] = newValue
+        }
+    }
 }
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     @Previewable @State var path = ManagedNavigationStack.Path()
     

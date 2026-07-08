@@ -12,12 +12,14 @@ import SwiftUI
 
 
 /// A `RepositoryAnchor` for ``AccountServiceConfigurationStorage``.
+@available(iOS 17, macOS 14, *)
 public struct AccountServiceConfigurationStorageAnchor: RepositoryAnchor, Sendable {}
 
 
 /// A `ValueRepository` that is anchored to ``AccountServiceConfigurationStorageAnchor``.
 ///
 /// This is the underlying storage type for the ``AccountServiceConfiguration`` to store instances of ``AccountServiceConfigurationKey``.
+@available(iOS 17, macOS 14, *)
 public typealias AccountServiceConfigurationStorage = SendableValueRepository<AccountServiceConfigurationStorageAnchor>
 
 
@@ -47,6 +49,7 @@ public typealias AccountServiceConfigurationStorage = SendableValueRepository<Ac
 /// ### Shared Repository
 /// - ``AccountServiceConfigurationStorageAnchor``
 /// - ``AccountServiceConfigurationStorage``
+@available(iOS 17, macOS 14, *)
 public struct AccountServiceConfiguration: Sendable {
     /// The underlying storage container you access to implement your own ``AccountServiceConfigurationKey``.
     public let storage: AccountServiceConfigurationStorage

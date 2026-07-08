@@ -11,6 +11,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 private enum LoginFocusState {
     case userId
     case password
@@ -22,6 +23,7 @@ private enum LoginFocusState {
 /// Every ``EmbeddableAccountService`` might provide a view that is directly integrated into the ``AccountSetup``
 /// view for more easy navigation. This view implements such a view for ``UserIdPasswordAccountService``-based
 /// account service implementations.
+@available(iOS 17, macOS 14, *)
 struct LoginSetupView<PasswordReset: View>: View {
     private let loginClosure: (UserIdPasswordCredential) async throws -> Void
     private let passwordReset: PasswordReset

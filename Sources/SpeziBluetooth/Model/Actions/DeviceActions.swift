@@ -25,6 +25,7 @@
 /// - ``BluetoothConnectAction``
 /// - ``BluetoothDisconnectAction``
 /// - ``ReadRSSIAction``
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct DeviceActions {
     /// Connect to the Bluetooth peripheral.
     ///

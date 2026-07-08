@@ -10,6 +10,7 @@ import OpenAPIRuntime
 
 
 /// Convenience extension to initialize a simple one-level object-based function calling schema definition.
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension LLMFunctionParameterItemSchema {
     public struct Property: Sendable {
         public enum PropertyType: String, Sendable {

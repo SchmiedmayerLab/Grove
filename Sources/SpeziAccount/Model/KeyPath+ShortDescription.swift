@@ -7,6 +7,7 @@
 //
 
 
+@available(iOS 17, macOS 14, *)
 extension KeyPath {
     var shortDescription: String {
         if #available(macOS 13.3, iOS 16.4, watchOS 9.4, tvOS 16.4, *) {

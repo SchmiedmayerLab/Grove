@@ -10,6 +10,7 @@ import SpeziValidation
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 struct GridValidationStateFooter: View {
     private var results: [FailedValidationResult]
 

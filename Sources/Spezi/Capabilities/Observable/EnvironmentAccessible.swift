@@ -29,9 +29,11 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 public protocol EnvironmentAccessible: AnyObject, Observable {}
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension EnvironmentAccessible {
     @MainActor var viewModifier: any ViewModifier {
         ModelModifier(model: self)

@@ -12,6 +12,7 @@ import PDFKit
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension ChatView {
     /// Output format of the to-be exported ``Chat``.
     public enum ChatExportFormat {

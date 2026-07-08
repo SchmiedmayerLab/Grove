@@ -7,12 +7,14 @@
 //
 
 
+@available(iOS 17, *)
 enum ReauthenticationResult {
     case cancelled
     case password(_ password: String)
 }
 
 
+@available(iOS 17, *)
 struct ReauthenticationContext {
     /// The userId for which we are doing the re-authentication.
     let userId: String

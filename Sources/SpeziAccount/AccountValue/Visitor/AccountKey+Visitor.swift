@@ -9,6 +9,7 @@
 import SpeziFoundation
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountKey {
     /// Accept a ``AccountValueVisitor`` on a single ``AccountKey`` metatype given an associated value.
     public static func accept<Visitor: AccountValueVisitor>(_ visitor: inout Visitor, _ value: Value) {
@@ -41,6 +42,7 @@ extension AccountKey {
     }
 }
 
+@available(iOS 17, macOS 14, *)
 extension RequiredAccountKey {
     fileprivate static func acceptRequired<Visitor: AccountValueVisitor>(_ visitor: inout Visitor, _ value: Any) {
         guard let value = value as? Value else {

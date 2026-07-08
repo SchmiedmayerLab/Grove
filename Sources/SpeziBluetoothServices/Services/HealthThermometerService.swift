@@ -12,6 +12,7 @@ import SpeziBluetooth
 /// Bluetooth Health Thermometer Service implementation.
 ///
 /// This class implements the Bluetooth [Health Thermometer Service 1.0](https://www.bluetooth.com/specifications/specs/health-thermometer-service-1-0).
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct HealthThermometerService: BluetoothService, Sendable {
     public static let id: BTUUID = "1809"
 

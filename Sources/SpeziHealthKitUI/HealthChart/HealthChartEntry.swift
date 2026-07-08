@@ -14,6 +14,7 @@ public import struct SwiftUI.Color
 
 
 /// How a ``HealthChartEntry`` should be plotted in a Health Chart.
+@available(iOS 17, *)
 public struct HealthChartDrawingConfig: Hashable, Sendable {
     /// A chart type.
     public enum ChartType: Hashable, Sendable {
@@ -38,6 +39,7 @@ public struct HealthChartDrawingConfig: Hashable, Sendable {
 
 /// Type-erased entry in a health chart
 @_documentation(visibility: internal)
+@available(iOS 17, *)
 public protocol HealthChartEntryProtocol: Sendable {
     var isEmpty: Bool { get }
     var resultsTimeRange: HealthKitQueryTimeRange { get }
@@ -51,6 +53,7 @@ public protocol HealthChartEntryProtocol: Sendable {
 ///
 /// ## See Also
 /// - <doc:HealthChart>
+@available(iOS 17, *)
 public struct HealthChartEntry<Results: HealthKitQueryResults>: Sendable {
     public typealias MakeDataPointImp = @Sendable (Results.Element, Results) -> HealthChartDataPoint?
     
@@ -123,6 +126,7 @@ public struct HealthChartEntry<Results: HealthKitQueryResults>: Sendable {
 }
 
 
+@available(iOS 17, *)
 extension HealthChartEntry: HealthChartEntryProtocol {
     public var drawingConfig: HealthChartDrawingConfig {
         switch variant {

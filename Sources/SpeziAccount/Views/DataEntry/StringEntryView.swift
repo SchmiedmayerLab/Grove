@@ -12,6 +12,7 @@ import SwiftUI
 
 
 /// Entry or modify the value of an `String`-based `AccountKey`.
+@available(iOS 17, macOS 14, *)
 public struct StringEntryView<Key: AccountKey>: DataEntryView where Key.Value == String {
     @Binding private var value: String
 
@@ -38,6 +39,7 @@ public struct StringEntryView<Key: AccountKey>: DataEntryView where Key.Value ==
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountKey where Value == String {
     /// Default DataEntry for `String`-based values.
     public typealias DataEntry = StringEntryView<Self>
@@ -45,6 +47,7 @@ extension AccountKey where Value == String {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     @Previewable @State var value = "Hello World"
     List {

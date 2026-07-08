@@ -10,6 +10,7 @@ import Foundation
 
 
 @_spi(TestingSupport)
+@available(iOS 17, macOS 14, *)
 extension AccountDetails {
     static func createMock(
         id: String = UUID().uuidString,

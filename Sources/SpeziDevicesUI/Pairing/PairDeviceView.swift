@@ -13,6 +13,7 @@ import SwiftUI
 
 
 @available(macOS, unavailable)
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 struct PairDeviceView<Collection: RandomAccessCollection>: View where Collection.Element == any PairableDevice {
     private let devices: Collection
     private let appName: String
@@ -114,6 +115,7 @@ struct PairDeviceView<Collection: RandomAccessCollection>: View where Collection
 
 
 #if DEBUG && !os(macOS)
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     SheetPreview {
         PairDeviceView(devices: [MockDevice.createMockDevice()], appName: "Example", state: .constant(.discovery)) { _ in
@@ -121,6 +123,7 @@ struct PairDeviceView<Collection: RandomAccessCollection>: View where Collection
     }
 }
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     SheetPreview {
         let device: [any PairableDevice] = [

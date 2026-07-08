@@ -11,6 +11,7 @@ import HealthKit
 import ModelsR4
 
 
+@available(macOS 13, *)
 extension HKQuantitySample: FHIRObservationBuildable {
     func build(_ observation: Observation, mapping: HKSampleMapping) throws {
         guard let mapping = mapping.quantitySampleMapping[self.quantityType] else {
@@ -24,6 +25,7 @@ extension HKQuantitySample: FHIRObservationBuildable {
 }
 
 
+@available(macOS 13, *)
 extension HKQuantity {
     func buildObservationComponent(
         for quantityType: HKQuantityType,

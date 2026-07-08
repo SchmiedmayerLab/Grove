@@ -12,6 +12,7 @@
 import SwiftUI
 
 
+@available(iOS 17, *)
 @propertyWrapper
 struct HealthAccessAuthorizationObserver: DynamicProperty {
     @Observable

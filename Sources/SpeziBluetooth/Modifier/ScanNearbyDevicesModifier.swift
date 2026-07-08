@@ -10,6 +10,7 @@ import Spezi
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 private struct ScanNearbyDevicesModifier<Scanner: BluetoothScanner>: ViewModifier {
     private let enabled: Bool
     private let scanner: Scanner
@@ -108,6 +109,7 @@ private struct ScanNearbyDevicesModifier<Scanner: BluetoothScanner>: ViewModifie
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension View {
     /// Scan for nearby Bluetooth devices with a custom bluetooth scanner.
     /// - Parameters:

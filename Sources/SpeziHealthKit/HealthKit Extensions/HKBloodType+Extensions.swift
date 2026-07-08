@@ -11,6 +11,7 @@
 import HealthKit
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension HKBloodType {
     /// All known Blood Types
     public static let allKnownValues: [Self] = [

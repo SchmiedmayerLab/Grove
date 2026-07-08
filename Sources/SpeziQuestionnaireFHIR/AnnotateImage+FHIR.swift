@@ -13,6 +13,7 @@ public import SpeziQuestionnaire
 private import struct SwiftUI.Color
 
 
+@available(iOS 17, *)
 extension AnnotateImageQuestionKind: QuestionKindDefinitionWithFHIRDecodingSupport {
     public static func parse( // swiftlint:disable:this function_body_length
         _ item: QuestionnaireItem
@@ -81,6 +82,7 @@ extension AnnotateImageQuestionKind: QuestionKindDefinitionWithFHIRDecodingSuppo
     }
 }
 
+@available(iOS 17, *)
 extension QuestionnaireResponses.ImageAnnotation: SpeziQuestionnaire.QuestionnaireResponses.CustomResponseValueProtocolWithFHIRSupport {
     private struct FHIRConversionError: LocalizedError {
         let errorDescription: String?

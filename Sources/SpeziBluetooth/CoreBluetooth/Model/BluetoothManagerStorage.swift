@@ -12,6 +12,7 @@ import OrderedCollections
 import SpeziFoundation
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 @Observable
 final class BluetoothManagerStorage: ValueObservable, Sendable {
     private let _isScanning = ManagedAtomicMainActorBuffered<Bool>(false)
@@ -159,6 +160,7 @@ final class BluetoothManagerStorage: ValueObservable, Sendable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension BluetoothManagerStorage {
     var stateSubscription: AsyncStream<BluetoothState> {
         AsyncStream(BluetoothState.self) { continuation in

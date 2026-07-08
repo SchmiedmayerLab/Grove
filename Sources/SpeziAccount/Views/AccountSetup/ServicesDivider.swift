@@ -10,6 +10,7 @@ import SwiftUI
 
 
 /// Simple `Divider` that reads "or" in the middle to divide sections that provide non-overlapping options of choice to the user.
+@available(iOS 17, macOS 14, *)
 struct ServicesDivider: View {
     var body: some View {
         HStack {
@@ -33,6 +34,7 @@ struct ServicesDivider: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     ServicesDivider()
 }

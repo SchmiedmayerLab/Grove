@@ -36,6 +36,7 @@ import SpeziKeychainStorage
 /// ### Deleting Entries
 /// - ``delete(_:)``
 /// - ``deleteAll()``
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 public final class LocalStorage: Module, DefaultInitializable, EnvironmentAccessible, @unchecked Sendable {
     @Dependency(KeychainStorage.self) private var keychainStorage
     @Application(\.logger) private var logger

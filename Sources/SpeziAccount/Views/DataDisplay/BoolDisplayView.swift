@@ -12,6 +12,7 @@ import SwiftUI
 
 
 /// Displays the value of an `Bool`-based `AccountKey`.
+@available(iOS 17, macOS 14, *)
 public struct BoolDisplayView<Key: AccountKey>: DataDisplayView where Key.Value == Bool {
     public enum Label {
         case onOff
@@ -76,6 +77,7 @@ public struct BoolDisplayView<Key: AccountKey>: DataDisplayView where Key.Value 
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountKey where Value == Bool {
     /// Default DataDisplay for `Bool`-based values.
     ///
@@ -85,12 +87,14 @@ extension AccountKey where Value == Bool {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     List {
         BoolDisplayView<MockBoolKey>(true)
     }
 }
 
+@available(iOS 17, macOS 14, *)
 #Preview {
     List {
         BoolDisplayView<MockBoolKey>(false)

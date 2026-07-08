@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension Text {
     static func deviceLastSeen(date: Date) -> Text {
         if Calendar.current.isDateInToday(date) {
@@ -38,6 +39,7 @@ extension Text {
 }
 
 #if DEBUG
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     Text.deviceLastSeen(date: Date.now.addingTimeInterval(-45)) // seconds
     Text.deviceLastSeen(date: Date.now.addingTimeInterval(-2 * 60)) // minutes

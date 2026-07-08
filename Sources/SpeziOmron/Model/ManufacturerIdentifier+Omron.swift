@@ -9,6 +9,7 @@
 import SpeziBluetooth
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension ManufacturerIdentifier {
     /// Bluetooth manufacturer code for "Omron Healthcare Co., Ltd.".
     public static var omronHealthcareCoLtd: ManufacturerIdentifier {

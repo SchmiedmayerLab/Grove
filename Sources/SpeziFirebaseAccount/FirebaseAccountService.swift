@@ -21,6 +21,7 @@ import SpeziValidation
 import SwiftUI
 
 
+@available(iOS 17, *)
 private enum InitialUserState {
     case unknown
     case notPresent
@@ -40,12 +41,14 @@ private enum InitialUserState {
 }
 
 
+@available(iOS 17, *)
 private enum UserChange {
     case user(_ user: User)
     case removed
 }
 
 
+@available(iOS 17, *)
 private struct UserUpdate {
     static var removed: UserUpdate {
         UserUpdate(change: .removed)
@@ -130,6 +133,7 @@ private struct UserUpdate {
 /// ### Presenting the security alert
 /// - ``securityAlert``
 /// - ``FirebaseSecurityAlert``
+@available(iOS 17, *)
 @MainActor
 public final class FirebaseAccountService: AccountService { // swiftlint:disable:this type_body_length
     private static let supportedAccountKeys = AccountKeyCollection {
@@ -691,6 +695,7 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
 
 // MARK: - Listener and Handler
 
+@available(iOS 17, *)
 extension FirebaseAccountService {
     @MainActor
     private func checkForInitialUserAccount() {
@@ -753,6 +758,7 @@ extension FirebaseAccountService {
 // MARK: - Sign In With Apple
 
 @MainActor
+@available(iOS 17, *)
 extension FirebaseAccountService {
     func onAppleSignInRequest(request: ASAuthorizationAppleIDRequest) {
         let nonce = CryptoUtils.randomNonceString(length: 32)
@@ -872,6 +878,7 @@ extension FirebaseAccountService {
 // MARK: - Infrastructure
 
 @MainActor
+@available(iOS 17, *)
 extension FirebaseAccountService {
     nonisolated private static func resetLegacyStorage(_ keychainStorage: KeychainStorage, _ localStorage: LocalStorage, _ logger: Logger) {
         do {

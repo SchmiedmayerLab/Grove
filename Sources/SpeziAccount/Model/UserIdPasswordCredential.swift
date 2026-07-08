@@ -8,6 +8,7 @@
 
 
 /// UserId and password-based credentials.
+@available(iOS 17, macOS 14, *)
 public struct UserIdPasswordCredential {
     /// The user-visible primary identifier.
     public let userId: String
@@ -16,4 +17,5 @@ public struct UserIdPasswordCredential {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension UserIdPasswordCredential: Sendable, Hashable, Codable {}

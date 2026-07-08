@@ -11,6 +11,7 @@ import OpenAPIRuntime
 
 
 /// Helper to process the returned stream by the LLM output generation call, especially in regards to the function call and a possible stop reason
+@available(iOS 17, macOS 14, visionOS 1, *)
 package struct LLMOpenAIStreamResult {
     typealias Role = Components.Schemas.ChatCompletionStreamResponseDelta.rolePayload
     typealias FinishReason = Components.Schemas.CreateChatCompletionStreamResponse.choicesPayloadPayload

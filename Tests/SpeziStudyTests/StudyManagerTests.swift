@@ -34,6 +34,7 @@ private actor TestStandard: Standard, HealthKitConstraint {
 }
 
 
+@available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *)
 extension Task.Context {
     @Property var dedupeTestMarker: String?
 }
@@ -149,6 +150,9 @@ final class StudyManagerTests {
     
     @Test
     func enrollment() async throws {
+        guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
+            return
+        }
         let cal = Calendar.current
         let scheduler = Scheduler(persistence: .inMemory)
         let studyManager = StudyManager(persistence: .inMemory)
@@ -180,6 +184,9 @@ final class StudyManagerTests {
     
     @Test
     func retroactiveEnrollment() async throws {
+        guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
+            return
+        }
         let cal = Calendar.current
         let scheduler = Scheduler(persistence: .inMemory)
         let studyManager = StudyManager(persistence: .inMemory)
@@ -209,6 +216,9 @@ final class StudyManagerTests {
     
     @Test
     func orphanTaskHandling() async throws {
+        guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
+            return
+        }
         let allTime = Date.distantPast...Date.distantFuture
         let studyManager = StudyManager(persistence: .inMemory)
         withDependencyResolution(standard: TestStandard()) {
@@ -234,6 +244,9 @@ final class StudyManagerTests {
     
     @Test
     func orphanStudyBundleHandling() async throws {
+        guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
+            return
+        }
         let fileManager = FileManager.default
         let studyManager = StudyManager(persistence: .inMemory)
         withDependencyResolution(standard: TestStandard()) {
@@ -267,6 +280,9 @@ final class StudyManagerTests {
     /// Tests that the StudyManager properly updates itself when the preferred locale changes.
     @Test
     func localeUpdate() async throws {
+        guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
+            return
+        }
         let cal = Calendar.current
         let localeEnUS = Locale(identifier: "en_US")
         let localeEsUS = Locale(identifier: "es_US")
@@ -334,6 +350,9 @@ final class StudyManagerTests {
     
     @Test
     func schedules() throws {
+        guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
+            return
+        }
         var cal = Calendar(identifier: .gregorian)
         cal.locale = Locale(identifier: "en_US")
         cal.timeZone = .losAngeles
@@ -384,6 +403,9 @@ final class StudyManagerTests {
     
     @Test
     func taskVersionDeduplication() async throws {
+        guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
+            return
+        }
         let cal = Calendar.current
         let scheduler = Scheduler(persistence: .inMemory)
         let studyManager = StudyManager(persistence: .inMemory)
@@ -478,6 +500,9 @@ final class StudyManagerTests {
     
     @Test
     func taskContextMigration() async throws {
+        guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
+            return
+        }
         let scheduler = Scheduler(persistence: .inMemory)
         let studyManager = StudyManager(persistence: .inMemory)
         withDependencyResolution(standard: TestStandard()) {
@@ -547,6 +572,9 @@ final class StudyManagerTests {
     /// - is idempotent (a second run changes nothing).
     @Test
     func taskVersionDeduplicationPreservesObservableState() async throws {
+        guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
+            return
+        }
         let cal = Calendar.current
         let scheduler = Scheduler(persistence: .inMemory)
         let studyManager = StudyManager(persistence: .inMemory)
@@ -681,6 +709,9 @@ final class StudyManagerTests {
     /// Over-merging would silently delete a version the app still renders distinctly -- i.e. data loss.
     @Test
     func taskVersionDeduplicationKeepsGenuinelyDistinctVersions() async throws {
+        guard #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) else {
+            return
+        }
         let cal = Calendar.current
         let scheduler = Scheduler(persistence: .inMemory)
         let studyManager = StudyManager(persistence: .inMemory)
@@ -746,7 +777,9 @@ final class StudyManagerTests {
     
     deinit {
         try? FileManager.default.removeItem(at: studyBundle.bundleUrl)
-        try? FileManager.default.removeItem(at: StudyManager.studyBundlesDirectory)
+        if #available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *) {
+            try? FileManager.default.removeItem(at: StudyManager.studyBundlesDirectory)
+        }
     }
 }
 #endif

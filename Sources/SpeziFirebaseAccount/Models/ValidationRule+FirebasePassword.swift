@@ -9,6 +9,7 @@
 import SpeziValidation
 
 
+@available(iOS 17, *)
 extension ValidationRule {
     static var minimumFirebasePassword: ValidationRule {
         // Firebase as a non-configurable limit of 6 characters for an account password.

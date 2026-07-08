@@ -9,6 +9,7 @@
 private import Foundation
 
 
+@available(iOS 17, *)
 extension SensorKit {
     /// Indicates that a SensorKit operation failed because the SensorKit framework is not available.
     public struct UnavailableError: Error {

@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 extension ViewModifier {
     func inject<V: View>(into view: V) -> AnyView {
         AnyView(view.modifier(self))
@@ -16,6 +17,7 @@ extension ViewModifier {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension View {
     /// Modify the view with an type-erased `ViewModifier`.
     /// - Parameter modifier: The view modifier.

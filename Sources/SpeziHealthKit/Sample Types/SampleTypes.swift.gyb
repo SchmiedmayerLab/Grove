@@ -21,16 +21,32 @@ public import HealthKit
 
 
 /// Selects one of the specified units, based on the current locale.
+@available(macOS 13.0, *)
 @inlinable func localeDependentUnit(
     us: @autoclosure () -> HKUnit,
     uk: @autoclosure () -> HKUnit? = nil,
     metric: @autoclosure () -> HKUnit
 ) -> HKUnit {
-    switch Locale.current.measurementSystem {
-    case .us: us()
-    case .uk: uk() ?? metric()
-    case .metric: metric()
-    default: metric()
+    if #available(iOS 16, macOS 13, watchOS 9, tvOS 16, *) {
+        switch Locale.current.measurementSystem {
+        case .us:
+            return us()
+        case .uk:
+            return uk() ?? metric()
+        case .metric:
+            return metric()
+        default:
+            return metric()
+        }
+    } else {
+        switch Locale.current.regionCode {
+        case "US":
+            return us()
+        case "GB":
+            return uk() ?? metric()
+        default:
+            return Locale.current.usesMetricSystem ? metric() : us()
+        }
     }
 }
 
@@ -42,6 +58,7 @@ public import HealthKit
 % if hk_class == 'HKClinicalRecord':
 @available(watchOS, unavailable)
 % end
+@available(macOS 13.0, *)
 extension SampleType where Sample == ${hk_class} {
 % for ty in types:
     /// ${ty.doc}
@@ -89,6 +106,7 @@ def make_at_available(availability: Availability) -> str:
     }
 }
 
+@available(macOS 13.0, *)
 extension ${hk_sampletype_class} {
     /// All well-known `${hk_sampletype_class}`s
     public static let allKnown${''.join(display_title_plural.split())}: Set<${hk_sampletype_class}> = Set(
@@ -96,6 +114,7 @@ extension ${hk_sampletype_class} {
     )
 }
 
+@available(macOS 13.0, *)
 extension ${hk_sampletype_class}Identifier {
     /// All well-known `${hk_sampletype_class}Identifier`s
     public static let allKnownIdentifiers: Set<${hk_sampletype_class}Identifier> = {
@@ -115,6 +134,7 @@ extension ${hk_sampletype_class}Identifier {
 }
 % end
 
+@available(macOS 13.0, *)
 extension HKObjectType {
     /// All well-known `HKObjectType`s
     public static let allKnownObjectTypes: Set<HKObjectType> = {
@@ -144,6 +164,7 @@ extension HKObjectType {
 % if sample_type.availability:
 ${make_at_available(sample_type.availability)}
 % end
+@available(macOS 13.0, *)
 extension SampleType where Sample == ${sample_type.hkSampleClass} {
     /// ${sample_type.doc}
     @inlinable public static var ${sample_type.sampleTypePropertyName}: SampleType<${sample_type.hkSampleClass}> {
@@ -157,6 +178,7 @@ extension SampleType where Sample == ${sample_type.hkSampleClass} {
 
 % end
 
+@available(macOS 13.0, *)
 extension SampleType {
     /// All currently-known "other" sample types, which are not quantity, correlation, category, or clinical samples.
     ///
@@ -177,6 +199,7 @@ extension SampleType {
 }
 
 
+@available(macOS 13.0, *)
 extension HKCharacteristicTypeIdentifier {
     /// All well-known `HKCharacteristicTypeIdentifier`s
     public static let allKnownIdentifiers: Set<HKCharacteristicTypeIdentifier> = [

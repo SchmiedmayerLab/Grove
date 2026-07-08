@@ -10,6 +10,7 @@ public import Foundation
 public import SensorKit
 
 
+@available(iOS 17, *)
 extension SRAmbientLightSample: SensorKitSampleProtocol {
     public struct SafeRepresentation: SensorKitSampleSafeRepresentation {
         /// The point in time when the system recorded the measurement
@@ -45,6 +46,7 @@ extension SRAmbientLightSample: SensorKitSampleProtocol {
 }
 
 
+@available(iOS 17, *)
 extension SRAmbientLightSample.Chromaticity: @retroactive Equatable, @retroactive Hashable {
     @inlinable
     public static func == (lhs: Self, rhs: Self) -> Bool {
@@ -59,12 +61,14 @@ extension SRAmbientLightSample.Chromaticity: @retroactive Equatable, @retroactiv
 }
 
 
+@available(iOS 17, *)
 extension SRAmbientLightSample.Chromaticity: @retroactive CustomStringConvertible {
     public var description: String {
         "\(Self.self)(x: \(x), y: \(y))"
     }
 }
 
+@available(iOS 17, *)
 extension SRAmbientLightSample.SensorPlacement: @retroactive CustomStringConvertible {
     public var description: String {
         switch self {

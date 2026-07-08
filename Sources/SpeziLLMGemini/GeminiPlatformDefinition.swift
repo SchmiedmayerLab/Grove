@@ -14,6 +14,7 @@ import SpeziLLMOpenAI
 
 
 /// Defines the Gemini LLM platform.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct GeminiPlatformDefinition: LLMOpenAILikePlatformDefinition {
     public struct ModelType: LLMOpenAILikePlatformModelType {
         public let rawValue: String
@@ -34,10 +35,12 @@ public struct GeminiPlatformDefinition: LLMOpenAILikePlatformDefinition {
 // MARK: Type Specializations
 
 /// Represents the configuration of the Spezi ``LLMGeminiPlatform``.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMGeminiPlatformConfiguration = LLMOpenAILikePlatformConfiguration<GeminiPlatformDefinition>
 
 
 /// Represents the parameters of a Gemini LLM model.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMGeminiParameters = LLMOpenAILikeParameters<GeminiPlatformDefinition>
 
 
@@ -59,6 +62,7 @@ public typealias LLMGeminiParameters = LLMOpenAILikeParameters<GeminiPlatformDef
 ///     }
 /// }
 /// ```
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMGeminiPlatform = LLMOpenAILikePlatform<GeminiPlatformDefinition>
 
 
@@ -71,6 +75,7 @@ public typealias LLMGeminiPlatform = LLMOpenAILikePlatform<GeminiPlatformDefinit
 ///
 /// - Tip: ``LLMGeminiSchema`` also enables the function calling mechanism to establish a structured, bidirectional, and reliable communication between the ``LLMGeminiPlatform`` LLMs and external tools.
 ///     For more details, refer to the [`LLMOpenAISchema`](../SpeziLLMOpenAI/SpeziLLMOpenAI.docc/SpeziLLMOpenAI.md) documentation.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMGeminiSchema = LLMOpenAILikeSchema<GeminiPlatformDefinition>
 
 
@@ -120,6 +125,7 @@ public typealias LLMGeminiSchema = LLMOpenAILikeSchema<GeminiPlatformDefinition>
 ///     }
 /// }
 /// ```
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMGeminiSession = LLMOpenAILikeSession<GeminiPlatformDefinition>
 
 
@@ -128,13 +134,16 @@ public typealias LLMGeminiSession = LLMOpenAILikeSession<GeminiPlatformDefinitio
 /// - Warning: Ensure that the ``LLMGeminiPlatform`` is specified within the Spezi `Configuration` when using this view in the onboarding flow.
 ///
 /// - Important: Only use this if the corresponding LLM platform's config's auth token is set to `RemoteLLMInferenceAuthToken/keychain(_:CredentialsTag)`
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMGeminiAPITokenOnboardingStep = LLMOpenAILikeAPITokenOnboardingStep<GeminiPlatformDefinition>
 
 
 /// View to display an onboarding step for the user to select a Gemini model.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMGeminiModelOnboardingStep = LLMOpenAILikeModelOnboardingStep<GeminiPlatformDefinition>
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension CredentialsTag {
     /// The canonical credentials tag for the Gemini API key
     public static let geminiKey = Self.for(GeminiPlatformDefinition.self)
@@ -144,6 +153,7 @@ extension CredentialsTag {
 // MARK: Models
 
 // swiftlint:disable identifier_name
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension GeminiPlatformDefinition.ModelType {
     /// The default model to be used with Gemini.
     public static let `default`: Self = .gemini2_5_pro

@@ -11,6 +11,7 @@
 /// Use properties of this type to access the meta-type of an ``AccountKey``.
 ///
 /// - Note: Use the ``KeyEntry(_:)`` macro to declare a key entry for your custom `AccountKey`.
+@available(iOS 17, macOS 14, *)
 public struct AccountKeys {
     private init() {}
 }

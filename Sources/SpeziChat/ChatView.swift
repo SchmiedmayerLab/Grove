@@ -81,6 +81,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct ChatView: View {
     @Binding var chat: Chat
     private let disableInput: Bool
@@ -204,6 +205,7 @@ public struct ChatView: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, visionOS 1, *)
 #Preview {
     NavigationStack {
         ChatView(

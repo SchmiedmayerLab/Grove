@@ -28,6 +28,7 @@ import SwiftUI
 /// ## Anchored Querying
 /// - ``fetchAnchored(_:)``
 /// - ``resetQueryAnchor(for:)``
+@available(iOS 17, *)
 @Observable
 public final class SensorKit: Module, EnvironmentAccessible, @unchecked Sendable {
     /// Identifies a query anchor.
@@ -61,6 +62,7 @@ public final class SensorKit: Module, EnvironmentAccessible, @unchecked Sendable
 
 // MARK: Authorization
 
+@available(iOS 17, *)
 extension SensorKit {
     /// The resulting state of a SensorKit sensor access request.
     public struct AuthorizationResult {
@@ -104,6 +106,7 @@ extension SensorKit {
 
 // MARK: Data Exporting
 
+@available(iOS 17, *)
 extension SensorKit {
     /// Performs an anchored fetch.
     ///
@@ -169,6 +172,7 @@ extension SensorKit {
 
 // MARK: Other
 
+@available(iOS 17, *)
 extension SensorKit {
     /// An (intentionally not public) wrapper error type to give errors originating from SensorKit more useful error messages.
     enum SensorKitError: LocalizedError {

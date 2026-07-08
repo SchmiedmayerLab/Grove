@@ -45,6 +45,7 @@ private struct AnyCodingKey: CodingKey {
 /// ### Instance Methods
 /// - ``score(against:using:)-(Locale,_)``
 /// - ``score(against:using:)-(Locale.Language,_)``
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 public struct LocalizationKey: Sendable {
     /// The `en-US` localization key
     public static let enUS = Self(language: .init(identifier: "en"), region: .unitedStates)
@@ -142,6 +143,7 @@ public struct LocalizationKey: Sendable {
 }
 
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LocalizationKey: Hashable {
     public static func == (lhs: LocalizationKey, rhs: LocalizationKey) -> Bool {
         lhs.region == rhs.region && lhs.language.isEquivalent(to: rhs.language)
@@ -156,6 +158,7 @@ extension LocalizationKey: Hashable {
 }
 
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LocalizationKey: LosslessStringConvertible {
     public var description: String {
         language.minimalIdentifier + "-" + region.identifier
@@ -168,6 +171,7 @@ extension LocalizationKey: LosslessStringConvertible {
 }
 
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LocalizationKey: Codable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -185,6 +189,7 @@ extension LocalizationKey: Codable {
 }
 
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LocalizationKey: CodingKeyRepresentable {
     public var codingKey: any CodingKey {
         AnyCodingKey(stringValue: description)

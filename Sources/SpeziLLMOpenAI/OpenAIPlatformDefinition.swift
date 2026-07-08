@@ -14,6 +14,7 @@ import SpeziKeychainStorage
 
 
 /// The OpenAI platform's definition.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct OpenAIPlatformDefinition: LLMOpenAILikePlatformDefinition {
     public struct ModelType: LLMOpenAILikePlatformModelType {
         /// The identifier of the underlying model.
@@ -45,10 +46,12 @@ public struct OpenAIPlatformDefinition: LLMOpenAILikePlatformDefinition {
 // MARK: Type Specializations
 
 /// Represents the configuration of the Spezi ``LLMOpenAIPlatform``.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMOpenAIPlatformConfiguration = LLMOpenAILikePlatformConfiguration<OpenAIPlatformDefinition>
 
 
 /// Represents the parameters of an OpenAI LLM model.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMOpenAIParameters = LLMOpenAILikeParameters<OpenAIPlatformDefinition>
 
 
@@ -79,6 +82,7 @@ public typealias LLMOpenAIParameters = LLMOpenAILikeParameters<OpenAIPlatformDef
 ///     }
 /// }
 /// ```
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMOpenAIPlatform = LLMOpenAILikePlatform<OpenAIPlatformDefinition>
 
 
@@ -90,6 +94,7 @@ public typealias LLMOpenAIPlatform = LLMOpenAILikePlatform<OpenAIPlatformDefinit
 /// - Tip: ``LLMOpenAISchema`` also enables the function calling mechanism to establish a structured, bidirectional, and reliable communication between the OpenAI LLMs and external tools. For details, refer to ``LLMFunction`` and ``LLMFunction/Parameter`` or the <doc:FunctionCalling> DocC article.
 ///
 /// - Tip: For more information, refer to the documentation of the `LLMSchema` from SpeziLLM.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMOpenAISchema = LLMOpenAILikeSchema<OpenAIPlatformDefinition>
 
 
@@ -145,6 +150,7 @@ public typealias LLMOpenAISchema = LLMOpenAILikeSchema<OpenAIPlatformDefinition>
 ///     }
 /// }
 /// ```
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMOpenAISession = LLMOpenAILikeSession<OpenAIPlatformDefinition>
 
 
@@ -153,13 +159,16 @@ public typealias LLMOpenAISession = LLMOpenAILikeSession<OpenAIPlatformDefinitio
 /// - Warning: Ensure that the ``LLMOpenAIPlatform`` is specified within the Spezi `Configuration` when using this view in the onboarding flow.
 ///
 /// - Important: Only use this if the corresponding LLM platform's config's auth token is set to `RemoteLLMInferenceAuthToken/keychain(_:CredentialsTag)`
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMOpenAIAPITokenOnboardingStep = LLMOpenAILikeAPITokenOnboardingStep<OpenAIPlatformDefinition>
 
 
 /// View to display an onboarding step for the user to select an OpenAI model.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMOpenAIModelOnboardingStep = LLMOpenAILikeModelOnboardingStep<OpenAIPlatformDefinition>
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension CredentialsTag {
     /// The canonical credentials tag for the OpenAI API key
     public static let openAIKey = Self.for(OpenAIPlatformDefinition.self)
@@ -169,6 +178,7 @@ extension CredentialsTag {
 // MARK: Models
 
 // swiftlint:disable identifier_name missing_docs
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension OpenAIPlatformDefinition.ModelType {
     public static let `default`: Self = .gpt4o
     

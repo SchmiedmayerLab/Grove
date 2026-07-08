@@ -11,6 +11,7 @@ import HealthKit
 
 
 /// A characteristic as defined by HealthKit.
+@available(macOS 13.0, *)
 public protocol HealthKitCharacteristicProtocol<Value>: Hashable, Sendable {
     /// The type of the characteristic's value
     associatedtype Value
@@ -42,6 +43,7 @@ public protocol HealthKitCharacteristicProtocol<Value>: Hashable, Sendable {
 /// - ``dateOfBirthComponents``
 /// - ``fitzpatrickSkinType``
 /// - ``wheelchairUse``
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 public struct HealthKitCharacteristic<Value>: HealthKitCharacteristicProtocol, Sendable {
     public let hkType: HKCharacteristicType
     public let displayTitle: String
@@ -72,6 +74,7 @@ public struct HealthKitCharacteristic<Value>: HealthKitCharacteristicProtocol, S
 // and it is impossible for users to create custom characteristics.
 // As a result, we can guarantee that each instance uses a different HKCharacteristicType,
 // and that the hkType can be used as a stable identity.
+@available(macOS 13.0, *)
 extension HealthKitCharacteristicProtocol {
     /// Compares two characteristics for equality, based on their underlying `HKCharacteristicType`s
     public static func == (lhs: Self, rhs: Self) -> Bool {
@@ -85,6 +88,7 @@ extension HealthKitCharacteristicProtocol {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<HKActivityMoveMode> {
     /// The activity move mode characteristic.
     public static var activityMoveMode: HealthKitCharacteristic<HKActivityMoveMode> {
@@ -94,6 +98,7 @@ extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<
     }
 }
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<HKBiologicalSex> {
     /// The characteristic representing the user's biological sex.
     public static var biologicalSex: HealthKitCharacteristic<HKBiologicalSex> {
@@ -103,6 +108,7 @@ extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<
     }
 }
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<HKBloodType> {
     /// The characteristic representing the user's blood type.
     public static var bloodType: HealthKitCharacteristic<HKBloodType> {
@@ -112,6 +118,7 @@ extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<
     }
 }
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<Date> {
     /// The characteristic representing the user's date of birth.
     ///
@@ -137,6 +144,7 @@ extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<
     }
 }
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<DateComponents> {
     /// The characteristic representing the user's date of birth.
     ///
@@ -151,6 +159,7 @@ extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<
     }
 }
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<HKFitzpatrickSkinType> {
     /// The characteristic representing the user's skin type.
     public static var fitzpatrickSkinType: HealthKitCharacteristic<HKFitzpatrickSkinType> {
@@ -160,6 +169,7 @@ extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<
     }
 }
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<HKWheelchairUse> {
     /// The characteristic representing the user's wheelchair use status.
     public static var wheelchairUse: HealthKitCharacteristic<HKWheelchairUse> {

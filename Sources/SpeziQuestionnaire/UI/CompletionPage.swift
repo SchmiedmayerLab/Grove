@@ -10,6 +10,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 17, *)
 struct CompletionPage: View {
     private let title: LocalizedStringResource
     private let message: LocalizedStringResource?
@@ -76,6 +77,7 @@ struct CompletionPage: View {
 }
 
 
+@available(iOS 17, *)
 extension View {
     @ViewBuilder
     fileprivate func symbolEffectDrawOn() -> some View {

@@ -13,6 +13,7 @@ import SwiftData
 
 
 /// Tracks a user's enrollment into a study.
+@available(iOS 18, macOS 15, macCatalyst 18, watchOS 11, visionOS 2, *)
 @Model
 public final class StudyEnrollment: Identifiable {
     public typealias ID = UUID

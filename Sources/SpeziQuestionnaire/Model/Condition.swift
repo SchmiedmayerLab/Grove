@@ -10,6 +10,7 @@ public import Foundation
 private import SpeziFoundation
 
 
+@available(iOS 17, *)
 extension Questionnaire {
     /// Controls when a task or other questionnaire component should be enabled.
     ///
@@ -147,6 +148,7 @@ extension Questionnaire {
 }
 
 
+@available(iOS 17, *)
 extension Questionnaire.Condition: Hashable {
     /// Determines whether two conditions are semantically equivalent.
     public static func == (lhs: Self, rhs: Self) -> Bool {
@@ -199,6 +201,7 @@ extension Questionnaire.Condition: Hashable {
 }
 
 
+@available(iOS 17, *)
 extension Questionnaire.Condition {
     mutating func simplify() {
         self = self.simplified()

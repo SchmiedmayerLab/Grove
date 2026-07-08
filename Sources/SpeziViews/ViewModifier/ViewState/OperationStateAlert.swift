@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 private struct OperationStateAlert<T: OperationState>: ViewModifier {
     private let operationState: T
     @State private var viewState: ViewState
@@ -30,6 +31,7 @@ private struct OperationStateAlert<T: OperationState>: ViewModifier {
 extension View {
     /// Automatically displays an alert using the localized error descriptions based on a ``ViewState``  derived from an ``OperationState``.
     /// - Parameter state: The ``OperationState`` from which the ``ViewState`` is derived.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
     public func viewStateAlert<T: OperationState>(state: T) -> some View {
         self
             .modifier(OperationStateAlert(operationState: state))

@@ -372,8 +372,8 @@ only_rules:
   # (operator_whitespace / redundant_optional_initialization were renamed to the two rules above in current SwiftLint.)
 
 deployment_target: # Availability checks or attributes shouldn’t be using older versions that are satisfied by the deployment target.
-  iOSApplicationExtension_deployment_target: 16.0
-  iOS_deployment_target: 16.0
+  iOSApplicationExtension_deployment_target: 15.0
+  iOS_deployment_target: 15.0
 
 excluded: # paths to ignore during linting. Takes precedence over `included`.
   - .incoming # temporary during monorepo construction

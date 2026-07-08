@@ -14,6 +14,7 @@ import XCTest
 import XCTSpezi
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 final class SchedulerSampleDataTests: XCTestCase {
     @MainActor
     func testSchedulerSampleData() throws {

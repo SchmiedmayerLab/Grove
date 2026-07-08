@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 extension EnvironmentValues {
     /// An environment variable that indicates if an account was configured to be required for the app.
     ///

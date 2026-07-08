@@ -10,6 +10,7 @@ import Network
 
 
 /// An `AsyncSequence` of discovered services within the local network for a certain host and service type.
+@available(iOS 17, macOS 14, visionOS 1, *)
 struct ServiceDiscoverySequence: AsyncSequence, Sendable {
     typealias Element = Set<NWBrowser.Result>
     typealias AsyncIterator = AsyncThrowingStream<Element, any Error>.Iterator

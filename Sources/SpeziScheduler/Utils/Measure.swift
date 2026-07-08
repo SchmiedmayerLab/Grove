@@ -13,6 +13,7 @@ import OSLog
 private let logger = Logger(subsystem: "edu.stanford.spezi.scheduler", category: "EventQuery")
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 func measure<T, C: Clock>(
     clock: C = ContinuousClock(),
     name: @autoclosure @escaping () -> StaticString,
@@ -30,6 +31,7 @@ func measure<T, C: Clock>(
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 func measure<T, C: Clock>(
     isolation: isolated (any Actor)? = #isolation,
     clock: C = ContinuousClock(),

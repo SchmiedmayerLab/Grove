@@ -14,6 +14,7 @@ import SpeziFoundation
 ///
 /// This type allows to easily build and modify an instance of ``AccountDetails``.
 @Observable
+@available(iOS 17, macOS 14, *)
 class AccountDetailsBuilder {
     var storage: AccountDetails
     var defaultValues: AccountDetails
@@ -134,6 +135,7 @@ class AccountDetailsBuilder {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountDetailsBuilder: Collection {
     typealias Index = AccountStorage.Index
 
@@ -156,6 +158,7 @@ extension AccountDetailsBuilder: Collection {
     }
 }
 
+@available(iOS 17, macOS 14, *)
 extension AccountDetailsBuilder {
     @discardableResult
     func setEmptyValue(for accountKey: any AccountKey.Type) -> Self {
@@ -165,6 +168,7 @@ extension AccountDetailsBuilder {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountKey {
     fileprivate static func setEmpty(in builder: AccountDetailsBuilder) {
         builder.set(Self.self, value: initialValue.value)

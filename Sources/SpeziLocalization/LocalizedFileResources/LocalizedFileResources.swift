@@ -30,6 +30,7 @@ public import Foundation
 /// ### File Resource Resolution
 /// - ``Resolved``
 /// - ``LocalizedFileResolution/resolve(_:from:using:fallback:)``
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 public struct LocalizedFileResource: Hashable, Sendable {
     /// The unlocalized filename, including the extension.
     public let name: String
@@ -49,6 +50,7 @@ public struct LocalizedFileResource: Hashable, Sendable {
 }
 
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LocalizedFileResource: ExpressibleByStringLiteral {
     /// Creates a new Localized File Resource from a String literal, using the autoupdating current locale.
     public init(stringLiteral value: String) {
@@ -57,6 +59,7 @@ extension LocalizedFileResource: ExpressibleByStringLiteral {
 }
 
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LocalizedFileResource {
     /// Creates a new ``LocalizedFileResource`` that will get resolved using the specified `Locale`.
     public func locale(_ locale: Locale) -> Self {
@@ -67,6 +70,7 @@ extension LocalizedFileResource {
 
 // MARK: LocalizedFileResource.Resolved
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LocalizedFileResource {
     /// A resolved ``LocalizedFileResource``.
     ///

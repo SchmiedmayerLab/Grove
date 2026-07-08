@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, *)
 struct EnterCodeView<Header: View>: View {
     typealias EvaluateCode = @MainActor (_ code: String) async -> CodeAccessGuard.ValidationResult
     
@@ -84,6 +85,7 @@ struct EnterCodeView<Header: View>: View {
 }
 
 
+@available(iOS 17, *)
 #Preview {
     EnterCodeView(format: .numeric(4), title: "Enter PIN") { code in
         if code == "1234" {

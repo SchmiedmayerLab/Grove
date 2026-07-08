@@ -13,6 +13,7 @@ import SwiftUI
 ///
 /// Use the ``SwiftUICore/View/followUpBehaviorAfterSetup(_:)`` modifier to set how the follow-up information sheet is
 /// shown inside the ``AccountSetup`` after a successful setup (login or signup).
+@available(iOS 17, macOS 14, *)
 public enum FollowUpBehavior {
     /// Follow up information will never be asked for after account setup.
     ///
@@ -48,14 +49,17 @@ public enum FollowUpBehavior {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension FollowUpBehavior: Sendable, Hashable {}
 
 
+@available(iOS 17, macOS 14, *)
 extension EnvironmentValues {
     @Entry var followUpBehavior: FollowUpBehavior = .automatic
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension View {
     /// Define how the follow-up information sheet is presented after a successful account setup.
     ///

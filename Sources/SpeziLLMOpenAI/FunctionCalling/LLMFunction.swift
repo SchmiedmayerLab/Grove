@@ -65,6 +65,7 @@
 ///     }
 /// }
 /// ```
+@available(iOS 17, macOS 14, visionOS 1, *)
 public protocol LLMFunction: Sendable {
     /// The name of the LLM function that is called, serves as the main identifier of the function.
     static var name: String { get }

@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension _LLMFunctionParameterWrapper {
     /// Shared helper to build an `object` schema whose values are of the given JSON-Schema `type`.
     ///
@@ -35,6 +36,7 @@ extension _LLMFunctionParameterWrapper {
     }
 }
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension _LLMFunctionParameterWrapper where T: ExpressibleByDictionaryLiteral,
                                              T.Key: StringProtocol & Hashable,
                                              T.Value: BinaryInteger {
@@ -52,6 +54,7 @@ extension _LLMFunctionParameterWrapper where T: ExpressibleByDictionaryLiteral,
     }
 }
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension _LLMFunctionParameterWrapper where T: ExpressibleByDictionaryLiteral,
                                              T.Key: StringProtocol & Hashable,
                                              T.Value: BinaryFloatingPoint {
@@ -69,6 +72,7 @@ extension _LLMFunctionParameterWrapper where T: ExpressibleByDictionaryLiteral,
     }
 }
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension _LLMFunctionParameterWrapper where T: ExpressibleByDictionaryLiteral,
                                              T.Key: StringProtocol & Hashable,
                                              T.Value == Bool {
@@ -87,6 +91,7 @@ extension _LLMFunctionParameterWrapper where T: ExpressibleByDictionaryLiteral,
 }
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension _LLMFunctionParameterWrapper where T: ExpressibleByDictionaryLiteral,
                                              T.Key: StringProtocol & Hashable,
                                              T.Value: StringProtocol {

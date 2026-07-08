@@ -12,6 +12,7 @@ import SwiftUI
 
 
 /// A row in a single/multiple choice picker
+@available(iOS 17, *)
 struct ChoiceRow<AccessoryIfSelected: View>: View {
     @Environment(\.colorScheme) private var colorScheme
     /// The row's identifier; used for the view's UI testing accessibility identifier
@@ -74,6 +75,7 @@ struct ChoiceRow<AccessoryIfSelected: View>: View {
 }
 
 
+@available(iOS 17, *)
 struct SimpleChoiceRow: View {
     private let id: String
     private let title: String

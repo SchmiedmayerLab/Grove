@@ -13,6 +13,7 @@ import AppKit
 #endif
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension ChatView {
     /// Provides an iOS-typical Share Sheet (also called Activity View: https://developer.apple.com/design/human-interface-guidelines/activity-views) SwiftUI wrapper
     /// for exporting the ``Chat`` content of the ``ChatView`` without the downsides of the SwiftUI `ShareLink` such as unnecessary reevaluations of the to-be shared content.

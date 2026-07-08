@@ -13,10 +13,11 @@ import SwiftUI
 /// Loads resources from a FHIR bundle from a provided set of mock bundles defined as an extension on `ModelsR4.Bundle`.
 ///
 /// The View assumes that the bundle contains a `ModelsR4.Patient` resource to identify the bundle and provide a human-readable name.
+@available(iOS 17, *)
 public struct FHIRMockPatientSelection: View {
     @State var bundles: [ModelsR4.Bundle] = []
-    
-    
+
+
     public var body: some View {
         Group {
             if bundles.isEmpty {
@@ -39,7 +40,7 @@ public struct FHIRMockPatientSelection: View {
                 }
             }
     }
-    
-    
+
+
     public init() { }
 }

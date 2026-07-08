@@ -9,6 +9,7 @@
 import SpeziValidation
 
 
+@available(iOS 17, macOS 14, *)
 extension ValidationRule {
     static let acceptAll: ValidationRule = {
         ValidationRule(rule: { _ in true }, message: "VALIDATION_RULE_ALWAYS_ACCEPT", bundle: .module)

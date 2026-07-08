@@ -10,6 +10,7 @@
 
 public import struct SwiftUI.Color
 
+@available(iOS 17, *)
 extension HealthChartDrawingConfig {
     @available(*, deprecated, renamed: "ChartType")
     public typealias Mode = ChartType // swiftlint:disable:this missing_docs

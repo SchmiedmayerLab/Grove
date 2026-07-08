@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if MLX
+
 import Foundation
 
 
@@ -40,3 +42,5 @@ public struct LLMLocalSamplingParameters: Sendable {
         self.repetitionContextSize = repetitionContextSize
     }
 }
+
+#endif

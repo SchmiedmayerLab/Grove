@@ -9,6 +9,7 @@
 /// Configures Voice Activity Detection (VAD) for automatic turn detection in realtime conversations.
 ///
 /// Turn detection automatically determines when the user has finished speaking and triggers the model to respond.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public enum LLMRealtimeTurnDetectionSettings: Encodable, Sendable {
     /// Automatically chunks the audio based on detected periods of silence.
     case server(ServerVAD = .init())

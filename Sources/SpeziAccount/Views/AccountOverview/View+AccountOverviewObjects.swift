@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 extension View {
     func injectEnvironmentObjects(configuration: AccountServiceConfiguration, model: AccountOverviewFormViewModel) -> some View {
         self

@@ -11,6 +11,7 @@ import SwiftUI
 
 
 /// Informational view displaying the reason why Bluetooth is currently not available.
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 public struct BluetoothUnavailableView: View {
     private let state: BluetoothState
 
@@ -94,6 +95,7 @@ public struct BluetoothUnavailableView: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     GeometryReader { proxy in
         List {
@@ -103,6 +105,7 @@ public struct BluetoothUnavailableView: View {
     }
 }
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     GeometryReader { proxy in
         List {
@@ -112,6 +115,7 @@ public struct BluetoothUnavailableView: View {
     }
 }
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     GeometryReader { proxy in
         List {
@@ -121,6 +125,7 @@ public struct BluetoothUnavailableView: View {
     }
 }
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     GeometryReader { proxy in
         List {

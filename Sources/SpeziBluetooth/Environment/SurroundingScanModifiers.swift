@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 @Observable
 final class SurroundingScanModifiers: EnvironmentKey, Sendable {
     static let defaultValue = SurroundingScanModifiers()
@@ -60,6 +61,7 @@ final class SurroundingScanModifiers: EnvironmentKey, Sendable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension EnvironmentValues {
     var surroundingScanModifiers: SurroundingScanModifiers {
         get {

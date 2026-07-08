@@ -17,8 +17,21 @@ public enum AsyncButtonProcessingStyle: Hashable, Sendable {
     case listRow
 }
 
+
+private struct AsyncButtonProcessingStyleKey: EnvironmentKey {
+    static let defaultValue: AsyncButtonProcessingStyle = .overlay
+}
+
+
 extension EnvironmentValues {
-    @Entry var asyncButtonProcessingStyle: AsyncButtonProcessingStyle = .overlay
+    var asyncButtonProcessingStyle: AsyncButtonProcessingStyle {
+        get {
+            self[AsyncButtonProcessingStyleKey.self]
+        }
+        set {
+            self[AsyncButtonProcessingStyleKey.self] = newValue
+        }
+    }
 }
 
 

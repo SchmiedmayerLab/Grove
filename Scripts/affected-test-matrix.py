@@ -6,16 +6,18 @@
 #
 # SPDX-License-Identifier: MIT
 #
-# Maps a list of changed files to the set of affected packages and emits TWO GitHub Actions job
-# matrices: one for unit tests and one for UI tests. Used by .github/workflows/tests.yml so only the
-# tests of packages whose code actually changed are run — and whenever a package's unit tests run, its
-# UI tests do too. Each emitted job carries a `selfHosted` bool (see self-hosted-ci) that the
-# workflow's `runs-on` uses to pick the self-hosted vs the GitHub-hosted runner.
+# Maps a list of changed files to the set of affected packages and emits THREE GitHub Actions job
+# matrices: one for unit tests, one for UI tests, and one for package-trait product builds. Used by
+# .github/workflows/tests.yml so only the checks for packages whose code actually changed are run —
+# and whenever a package's unit tests run, its UI tests do too. Each emitted unit/UI job carries a
+# `selfHosted` bool (see self-hosted-ci) that the workflow's `runs-on` uses to pick the self-hosted vs
+# the GitHub-hosted runner.
 #
 # The logical sub-packages are defined in the repo-root packages.toml:
 #   platforms      = the platforms its unit tests run on (subject to the temporary CI_PLATFORMS limit)
 #   uiTests        = the platforms its UI tests run on, straight from the UITests project's Xcode config
 #                    (NOT subject to CI_PLATFORMS — absent for packages with no UITests project)
+#   traitBuilds    = true when package-trait product build checks should run for the package
 #   self-hosted-ci = which test kinds run on the self-hosted runner (vs GitHub-hosted): a subset of
 #                    ["unit", "ui"]. Optional; default ["ui"] (= today's behavior). Linux unit jobs
 #                    always run on GitHub-hosted ubuntu regardless (the self-hosted runner is macOS).
@@ -28,8 +30,10 @@
 # Emits (to stdout, GITHUB_OUTPUT format):
 #   matrix={"include":[{"package":"SpeziAccount","platform":"macOS","selfHosted":false}, ...]}   # unit
 #   ui_matrix={"include":[{"package":"SpeziViews","platform":"iOS","selfHosted":true}, ...]}      # UI
+#   trait_matrix={"include":[{"package":"SpeziChat"}, ...]}                                      # traits
 #   has_jobs=true|false
 #   has_ui_jobs=true|false
+#   has_trait_jobs=true|false
 #   affected=SpeziAccount,SpeziViews
 import json, os, sys, tomllib
 
@@ -80,7 +84,7 @@ def main():
     if run_all:
         affected = set(PKGS.keys())
 
-    unit, ui = [], []
+    unit, ui, trait = [], [], []
     for pkg in sorted(affected):
         info = PKGS[pkg]
         # Which test kinds run on the self-hosted runner (vs GitHub-hosted): a subset of
@@ -96,18 +100,22 @@ def main():
             if platform not in UI_PLATFORMS:  # TEMPORARY UI-test platform limit (see UI_PLATFORMS above)
                 continue
             ui.append({"package": pkg, "platform": platform, "selfHosted": "ui" in self_hosted})
+        if info.get("traitBuilds", False):
+            trait.append({"package": pkg})
 
     lines = [
         f'matrix={json.dumps({"include": unit})}',
         f'ui_matrix={json.dumps({"include": ui})}',
+        f'trait_matrix={json.dumps({"include": trait})}',
         f'has_jobs={"true" if unit else "false"}',
         f'has_ui_jobs={"true" if ui else "false"}',
+        f'has_trait_jobs={"true" if trait else "false"}',
         f'affected={",".join(sorted(affected)) if affected else "(none)"}',
     ]
     sys.stdout.write("\n".join(lines) + "\n")
     sys.stderr.write(
         f"[affected-test-matrix] run_all={run_all} affected={sorted(affected)} "
-        f"unit_jobs={len(unit)} ui_jobs={len(ui)}\n"
+        f"unit_jobs={len(unit)} ui_jobs={len(ui)} trait_jobs={len(trait)}\n"
     )
 
 if __name__ == "__main__":

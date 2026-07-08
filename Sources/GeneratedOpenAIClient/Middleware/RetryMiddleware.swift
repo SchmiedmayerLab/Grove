@@ -40,6 +40,7 @@ package struct RetryMiddleware: Sendable {
 
 // MARK: - Client Middleware Implementation
 
+@available(iOS 16, macOS 13, visionOS 1, *)
 extension RetryMiddleware: ClientMiddleware {
     package func intercept(
         _ request: HTTPRequest,

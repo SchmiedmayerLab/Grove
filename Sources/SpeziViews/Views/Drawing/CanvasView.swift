@@ -247,6 +247,7 @@ extension CanvasView {
 
 
 #if DEBUG
+@available(iOS 27, *)
 #Preview {
     @Previewable @State var drawing = PKDrawing()
     @Previewable @State var isDrawing = false

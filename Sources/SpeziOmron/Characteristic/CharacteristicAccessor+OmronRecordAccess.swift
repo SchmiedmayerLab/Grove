@@ -11,6 +11,7 @@ import SpeziBluetooth
 import SpeziBluetoothServices
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension CharacteristicAccessor where Value == RecordAccessControlPoint<OmronRecordAccessOperand> {
     /// Send report stored records request.
     ///

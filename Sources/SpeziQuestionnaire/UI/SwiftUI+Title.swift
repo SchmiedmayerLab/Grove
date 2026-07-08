@@ -10,6 +10,7 @@ import Foundation
 import SwiftUI
 
 
+@available(iOS 17, *)
 struct ViewTitleConfig: Sendable {
     fileprivate let title: Text
     fileprivate let subtitle: Text?
@@ -27,6 +28,7 @@ struct ViewTitleConfig: Sendable {
 }
 
 
+@available(iOS 17, *)
 extension View {
     @ViewBuilder
     func navigationTitle(_ config: ViewTitleConfig?) -> some View {

@@ -216,6 +216,13 @@
     {
       "target": {
         "containerPath": "container:",
+        "identifier": "ThreadLocalTests",
+        "name": "ThreadLocalTests"
+      }
+    },
+    {
+      "target": {
+        "containerPath": "container:",
         "identifier": "XCTRuntimeAssertionsTests",
         "name": "XCTRuntimeAssertionsTests"
       }

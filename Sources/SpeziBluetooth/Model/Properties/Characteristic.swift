@@ -160,6 +160,7 @@ import SpeziFoundation
 /// - ``projectedValue``
 /// - ``CharacteristicAccessor``
 @propertyWrapper
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct Characteristic<Value: Sendable>: Sendable {
     /// Storage unit for the property wrapper.
     final class Storage: Sendable {
@@ -213,6 +214,7 @@ public struct Characteristic<Value: Sendable>: Sendable {
         }
     }
 
+    @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     @Observable
     final class State: Sendable {
         struct CharacteristicCaptureRetrieval: Sendable { // workaround to make the retrieval of the `capture` property Sendable
@@ -342,6 +344,7 @@ public struct Characteristic<Value: Sendable>: Sendable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Characteristic where Value: ByteEncodable {
     /// Declare a write-only characteristic.
     /// - Parameters:
@@ -354,6 +357,7 @@ extension Characteristic where Value: ByteEncodable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Characteristic where Value: ByteDecodable {
     /// Declare a read-only characteristic.
     /// - Parameters:
@@ -367,6 +371,7 @@ extension Characteristic where Value: ByteDecodable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Characteristic where Value: ByteCodable { // reduce ambiguity
     /// Declare a read and write characteristic.
     /// - Parameters:
@@ -380,6 +385,7 @@ extension Characteristic where Value: ByteCodable { // reduce ambiguity
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Characteristic: ServiceVisitable {
     func accept<Visitor: ServiceVisitor>(_ visitor: inout Visitor) {
         visitor.visit(self)

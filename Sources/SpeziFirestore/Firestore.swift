@@ -32,6 +32,7 @@ import SwiftUI
 ///
 /// - Note: We recommend using the [Firebase Firestore SDK as defined in the API documentation](https://firebase.google.com/docs/firestore/manage-data/add-data#swift)
 ///     throughout the application. We **highly recommend using the async/await variants of the APIs** instead of the closure-based APIs the SDK provides.
+@available(iOS 17, *)
 public class Firestore: Module, DefaultInitializable {
     @Dependency(ConfigureFirebaseApp.self)
     private var configureFirebaseApp

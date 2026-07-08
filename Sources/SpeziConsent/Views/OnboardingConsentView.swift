@@ -15,6 +15,7 @@ public import SwiftUI
 /// Onboarding view to display markdown-based consent documents that can be signed and exported.
 ///
 /// The ``OnboardingConsentView`` embeds a ``ConsentDocumentView`` into an `OnboardingView` that is compatible with SpeziOnboarding's Onboarding Stack API.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct OnboardingConsentView: View {
     /// Provides default localization values for necessary fields in the ``OnboardingConsentView``.
     public enum LocalizationDefaults {
@@ -126,6 +127,7 @@ extension View {
 }
 
 #if DEBUG
+@available(iOS 17, macOS 14, visionOS 1, *)
 #Preview {
     @Previewable @State var viewState: ViewState = .idle
     let document = try? ConsentDocument(markdown: "This is a *markdown* **example**")

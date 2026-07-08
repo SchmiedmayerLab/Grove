@@ -8,6 +8,7 @@
 
 
 /// Access a property or action of the Spezi application.
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 @propertyWrapper
 public struct _ApplicationPropertyWrapper<Value> { // swiftlint:disable:this type_name
     private final class State {
@@ -40,6 +41,7 @@ public struct _ApplicationPropertyWrapper<Value> { // swiftlint:disable:this typ
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension _ApplicationPropertyWrapper: SpeziPropertyWrapper {
     func inject(spezi: Spezi) {
         state.spezi = spezi
@@ -76,5 +78,6 @@ extension Module {
     ///     }
     /// }
     /// ```
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     public typealias Application<Value> = _ApplicationPropertyWrapper<Value>
 }

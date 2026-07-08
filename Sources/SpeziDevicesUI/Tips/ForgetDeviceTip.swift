@@ -10,6 +10,7 @@ import SwiftUI
 import TipKit
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 struct ForgetDeviceTip: Tip {
     static let instance = ForgetDeviceTip()
 

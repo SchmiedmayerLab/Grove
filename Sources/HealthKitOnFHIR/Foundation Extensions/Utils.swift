@@ -7,6 +7,7 @@
 //
 
 
+@available(macOS 13, *)
 extension RangeReplaceableCollection {
     @inlinable
     mutating func removeElements(at indices: some Collection<Index>) {

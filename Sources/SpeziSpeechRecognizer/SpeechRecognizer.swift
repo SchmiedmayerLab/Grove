@@ -72,6 +72,7 @@ import Spezi
 ///     }
 /// }
 /// ```
+@available(iOS 17, macOS 14, visionOS 1, *)
 @Observable
 public final class SpeechRecognizer: NSObject, Module, DefaultInitializable, EnvironmentAccessible, SFSpeechRecognizerDelegate, @unchecked Sendable {
     private static let logger = Logger(subsystem: "edu.stanford.spezi", category: "SpeziSpeech")

@@ -62,6 +62,7 @@ public import SwiftUI
 /// ## Instance Properties
 /// - ``wrappedValue``
 /// - ``projectedValue``
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 @propertyWrapper
 public struct LocalPreference<T: SendableMetatype>: DynamicProperty, Sendable {
     private let key: LocalPreferenceKey<T>
@@ -108,6 +109,7 @@ public struct LocalPreference<T: SendableMetatype>: DynamicProperty, Sendable {
 
 
 /// `ObservableObject` that publishes a change whenever the specified key in the specified defaults store changes.
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 @Observable
 private final class UserDefaultsKeyObserver<T: SendableMetatype>: NSObject, Sendable {
     private struct State {

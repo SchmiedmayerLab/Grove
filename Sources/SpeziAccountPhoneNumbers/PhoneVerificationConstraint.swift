@@ -18,6 +18,7 @@ import Spezi
 /// - Note: The `data` parameter in both methods typically contains:
 ///   - For `startVerification`: The phone number to verify
 ///   - For `completeVerification`: The verification code to validate
+@available(iOS 17, macOS 14, *)
 public protocol PhoneVerificationConstraint: Standard {
     /// Starts the phone verification process.
     /// - Parameter data: Dictionary containing verification data, typically including the phone number.

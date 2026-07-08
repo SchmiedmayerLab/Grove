@@ -29,7 +29,6 @@ public struct ListHeader<Image: View, Title: View, Instructions: View>: View {
                 title
                     .accessibilityAddTraits(.isHeader)
                     .font(.title)
-                    .bold()
                     .padding(.bottom, 4)
             }
                 .accessibilityElement(children: .combine)
@@ -85,6 +84,7 @@ public struct ListHeader<Image: View, Title: View, Instructions: View>: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     List {
         ListHeader(systemImage: "person.fill.badge.plus") {
@@ -95,6 +95,7 @@ public struct ListHeader<Image: View, Title: View, Instructions: View>: View {
     }
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     List {
         ListHeader(systemImage: "person.fill.badge.plus") {

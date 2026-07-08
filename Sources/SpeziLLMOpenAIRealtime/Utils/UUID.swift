@@ -10,6 +10,7 @@ import CryptoKit
 import Foundation
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension UUID {
     // Hack to avoid changing the LLMContext's message's IDs from UUIDs to something else
     /// Generates a deterministic v4 UUID from a string using SHA256

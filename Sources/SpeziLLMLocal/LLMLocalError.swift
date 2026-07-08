@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if MLX
+
 import Foundation
 import SpeziLLM
 
@@ -69,3 +71,5 @@ public enum LLMLocalError: LLMError {
         }
     }
 }
+
+#endif

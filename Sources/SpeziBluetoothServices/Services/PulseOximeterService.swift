@@ -16,6 +16,7 @@ import SpeziNumerics
 /// Bluetooth Pulse Oximeter (PLX) Service implementation.
 ///
 /// This type implements the Bluetooth [Pulse Oximeter Service 1.0.1](https://www.bluetooth.com/specifications/specs/plxs-html/).
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct PulseOximeterService: BluetoothService, Sendable {
     public static let id: BTUUID = "1822"
     

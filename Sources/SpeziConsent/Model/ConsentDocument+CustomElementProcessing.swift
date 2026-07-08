@@ -9,6 +9,7 @@
 import Foundation
 import SpeziFoundation
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension ConsentDocument.Section {
     enum ConstructSectionError: Error {
         case missingAttribute(String)

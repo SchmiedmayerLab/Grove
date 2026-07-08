@@ -81,6 +81,7 @@ public typealias StudyDefinitionElement = Hashable & Codable & Sendable
 /// - ``component(withId:)``
 /// - ``removeComponent(at:)``
 /// - ``validate()``
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 public struct StudyDefinition: Identifiable, Hashable, Sendable, Encodable, DecodableWithConfiguration {
     /// The ``StudyDefinition`` type's current schema version.
     public static let schemaVersion = Version(0, 13, 0)
@@ -113,6 +114,7 @@ public struct StudyDefinition: Identifiable, Hashable, Sendable, Encodable, Deco
 
 // MARK: Accessing stuff in a study, etc
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension StudyDefinition {
     /// All ``HealthDataCollectionComponent``s
     public var healthDataCollectionComponents: [HealthDataCollectionComponent] {
@@ -150,6 +152,7 @@ extension StudyDefinition {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension StudyBundle {
     /// The component's localized display title
     public func displayTitle(
@@ -224,6 +227,7 @@ extension StudyBundle {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension Swift.Duration {
     /// The duration's total length, in milliseconds.
     public var totalMilliseconds: Double {

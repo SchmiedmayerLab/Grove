@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension Duration {
     var milliseconds: Int {
         Int(components.seconds) * 1000 + Int(components.attoseconds / 1_000_000_000_000_000)

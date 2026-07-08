@@ -14,6 +14,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 struct TimeSubheadline: View {
     private let measurement: HealthKitMeasurement
 
@@ -40,6 +41,7 @@ struct TimeSubheadline: View {
 ///
 /// This view retrieves the pending measurements from the [`HealthMeasurements`](../../SpeziDevices/SpeziDevices.docc/SpeziDevices.md)
 /// Module that is present in the SwiftUI environment.
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 public struct MeasurementsRecordedSheet: View {
     private let logger = Logger(subsystem: "edu.stanford.spezi.SpeziDevices", category: "MeasurementsRecordedSheet")
     private let saveSamples: @MainActor ([HKSample]) async throws -> Void
@@ -193,6 +195,7 @@ public struct MeasurementsRecordedSheet: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     @State @Previewable var isPresented = true
     return Text(verbatim: "")
@@ -206,6 +209,7 @@ public struct MeasurementsRecordedSheet: View {
         }
 }
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     @State @Previewable var isPresented = true
     return Text(verbatim: "")
@@ -219,6 +223,7 @@ public struct MeasurementsRecordedSheet: View {
         }
 }
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     @State @Previewable var isPresented = true
     return Text(verbatim: "")
@@ -232,6 +237,7 @@ public struct MeasurementsRecordedSheet: View {
         }
 }
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     @State @Previewable var isPresented = true
     return Text(verbatim: "")
@@ -249,6 +255,7 @@ public struct MeasurementsRecordedSheet: View {
         }
 }
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     @State @Previewable var isPresented = true
     return Text(verbatim: "")

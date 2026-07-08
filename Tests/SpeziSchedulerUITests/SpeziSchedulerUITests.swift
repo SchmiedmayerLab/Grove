@@ -16,6 +16,7 @@ import SwiftUI
 import XCTest
 
 
+@available(iOS 18, *)
 final class SpeziSchedulerUITests: XCTestCase {
     private func withFixedLocale(@ViewBuilder _ view: () -> some View) -> some View {
         view().environment(\.locale, Locale(identifier: "en_US"))

@@ -55,6 +55,7 @@ public struct DependencyCollection {
     /// - Note: You can create your own result builders that build a `DependencyCollection` using the ``DependencyCollectionBuilder``.
     ///
     /// - Parameter entry: The parameter pack of modules.
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     public init<each M: Module>(_ entry: repeat each M) {
         self.init()
         repeat append(each entry)
@@ -67,6 +68,7 @@ public struct DependencyCollection {
     /// - Parameters:
     ///   - type: The generic type resulting from the passed closure, has to conform to ``Module``.
     ///   - singleEntry: Closure returning a dependency conforming to ``Module``, stored within the ``DependencyCollection``.
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     @available(
         *, deprecated, renamed: "init(_:)",
         message: "DependencyCollection entries are now always an explicit request to load and do not require a closure anymore."
@@ -82,6 +84,7 @@ public struct DependencyCollection {
     /// - Parameters:
     ///   - type: The generic type resulting from the passed closure, has to conform to ``Module``.
     ///   - singleEntry: Closure returning a dependency conforming to ``Module``, stored within the ``DependencyCollection``.
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     @available(
         *, deprecated, renamed: "init(_:)",
          message: "DependencyCollection entries are now always an explicit request to load and do not require a closure anymore."
@@ -100,6 +103,7 @@ public struct DependencyCollection {
 
     /// Append a module.
     /// - Parameter module: The ``Module`` to append to the collection.
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     public mutating func append<M: Module>(_ module: M) {
         // we always treat modules passed to a Dependency collection as an explicit request to load them, therefore .load
         entries.append(DependencyContext(for: M.self, type: .load, defaultValue: { module }))
@@ -139,18 +143,21 @@ extension DependencyCollection: DependencyDeclaration {
         }
     }
 
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     func inject(spezi: Spezi) {
         for entry in entries {
             entry.inject(spezi: spezi)
         }
     }
 
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     func uninjectDependencies(notifying spezi: Spezi) {
         for entry in entries {
             entry.uninjectDependencies(notifying: spezi)
         }
     }
 
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     func nonIsolatedUninjectDependencies(notifying spezi: Spezi) {
         for entry in entries {
             entry.nonIsolatedUninjectDependencies(notifying: spezi)

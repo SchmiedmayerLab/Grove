@@ -9,6 +9,7 @@
 private import SpeziFoundation
 
 
+@available(iOS 17, *)
 extension Questionnaire {
     func validate() {
         checkComponentIdentifiers()

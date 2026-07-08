@@ -12,6 +12,7 @@ import SwiftUI
 
 
 /// Displays the value of an `CustomLocalizedStringResourceConvertible`-based `AccountKey`.
+@available(iOS 17, macOS 14, *)
 public struct LocalizableStringDisplayView<Key: AccountKey>: DataDisplayView
     where Key.Value: CustomLocalizedStringResourceConvertible {
     private let value: Key.Value
@@ -39,6 +40,7 @@ public struct LocalizableStringDisplayView<Key: AccountKey>: DataDisplayView
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountKey where Value: CustomLocalizedStringResourceConvertible {
     /// Default DataDisplay for `CustomLocalizedStringResourceConvertible`-based values.
     public typealias DataDisplay = LocalizableStringDisplayView<Self>
@@ -46,6 +48,7 @@ extension AccountKey where Value: CustomLocalizedStringResourceConvertible {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     Form {
         LocalizableStringDisplayView(\.genderIdentity, .preferNotToState)

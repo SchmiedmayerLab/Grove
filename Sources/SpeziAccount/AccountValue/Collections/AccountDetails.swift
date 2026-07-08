@@ -9,6 +9,7 @@
 import SpeziFoundation
 
 
+@available(iOS 17, macOS 14, *)
 private struct RemoveVisitor: AccountKeyVisitor {
     private var details: AccountDetails
 
@@ -26,6 +27,7 @@ private struct RemoveVisitor: AccountKeyVisitor {
 }
 
 
+@available(iOS 17, macOS 14, *)
 private struct CopyVisitor: AccountValueVisitor {
     private var details: AccountDetails
     private let allowOverwrite: Bool
@@ -53,6 +55,7 @@ private struct CopyVisitor: AccountValueVisitor {
 }
 
 
+@available(iOS 17, macOS 14, *)
 private struct CopyKeyVisitor: AccountKeyVisitor {
     let source: AccountDetails
     var destination: AccountDetails
@@ -174,6 +177,7 @@ private struct CopyKeyVisitor: AccountKeyVisitor {
 /// - ``encode(to:configuration:)``
 /// - ``AccountKeyCodingKey``
 /// - ``decodingErrors``
+@available(iOS 17, macOS 14, *)
 public struct AccountDetails {
     fileprivate var storage: AccountStorage
 
@@ -254,12 +258,15 @@ public struct AccountDetails {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountDetails: Sendable {}
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountDetails: AcceptingAccountValueVisitor {}
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountDetails: SendableSharedRepository {
     public typealias Anchor = AccountAnchor
 
@@ -278,6 +285,7 @@ extension AccountDetails: SendableSharedRepository {
 
 // MARK: - Signup
 
+@available(iOS 17, macOS 14, *)
 extension AccountDetails {
     /// Checking account details against the user-defined requirements of the `AccountValueConfiguration`.
     ///
@@ -299,6 +307,7 @@ extension AccountDetails {
 
 // MARK: - Collection
 
+@available(iOS 17, macOS 14, *)
 extension AccountDetails: Collection {
     public typealias Index = SendableValueRepository<AccountAnchor>.Index
 
@@ -325,6 +334,7 @@ extension AccountDetails: Collection {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountDetails {
     /// Retrieve all keys stored in this collection.
     public var keys: [any AccountKey.Type] {
@@ -422,6 +432,7 @@ extension AccountDetails {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountKey {
     fileprivate static func anyContains(in details: AccountDetails) -> Bool {
         details.contains(Self.self)

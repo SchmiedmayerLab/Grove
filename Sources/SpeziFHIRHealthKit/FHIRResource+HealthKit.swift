@@ -14,6 +14,7 @@ import SpeziFHIR
 import SpeziHealthKit
 
 
+@available(iOS 17, *)
 extension FHIRResource {
     /// Creates a new ``FHIRResource`` instance using an `HKSample`.
     /// - Parameters:

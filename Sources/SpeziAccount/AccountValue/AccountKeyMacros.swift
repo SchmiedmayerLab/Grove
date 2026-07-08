@@ -11,6 +11,7 @@ import SwiftUI
 
 
 /// A DataEntry and DataDisplay view that is empty and accepts never values.
+@available(iOS 17, macOS 14, *)
 public struct _EmptyDataView: DataDisplayView, DataEntryView { // swiftlint:disable:this type_name
     public typealias Value = Never
 
@@ -49,6 +50,7 @@ public struct _EmptyDataView: DataDisplayView, DataEntryView { // swiftlint:disa
 ///   - entryView: A customized ``DataEntryView`` that is used to enter new or edit existing values of this account key.
 @attached(accessor, names: named(get), named(set))
 @attached(peer, names: prefixed(__Key_))
+@available(iOS 17, macOS 14, *)
 public macro AccountKey<Value, DataDisplay: DataDisplayView, DataEntry: DataEntryView>(
     id: String? = nil,
     name: LocalizedStringResource,
@@ -86,6 +88,7 @@ public macro AccountKey<Value, DataDisplay: DataDisplayView, DataEntry: DataEntr
 ///   - entryView: A customized ``DataEntryView`` that is used to enter new or edit existing values of this a
 @attached(accessor, names: named(get), named(set))
 @attached(peer, names: prefixed(__Key_))
+@available(iOS 17, macOS 14, *)
 public macro AccountKey<Value: StringProtocol, DataDisplay: DataDisplayView, DataEntry: DataEntryView>(
     id: String? = nil,
     name: LocalizedStringResource,
@@ -122,6 +125,7 @@ public macro AccountKey<Value: StringProtocol, DataDisplay: DataDisplayView, Dat
 ///   - entryView: A customized ``DataEntryView`` that is used to enter new or edit existing values of this a
 @attached(accessor, names: named(get), named(set))
 @attached(peer, names: prefixed(__Key_))
+@available(iOS 17, macOS 14, *)
 public macro AccountKey<DataDisplay: DataDisplayView, DataEntry: DataEntryView>(
     id: String? = nil,
     name: LocalizedStringResource,
@@ -158,6 +162,7 @@ public macro AccountKey<DataDisplay: DataDisplayView, DataEntry: DataEntryView>(
 ///   - entryView: A customized ``DataEntryView`` that is used to enter new or edit existing values of this a
 @attached(accessor, names: named(get), named(set))
 @attached(peer, names: prefixed(__Key_))
+@available(iOS 17, macOS 14, *)
 public macro AccountKey<Value: AdditiveArithmetic, DataDisplay: DataDisplayView, DataEntry: DataEntryView>(
     id: String? = nil,
     name: LocalizedStringResource,
@@ -194,6 +199,7 @@ public macro AccountKey<Value: AdditiveArithmetic, DataDisplay: DataDisplayView,
 ///   - entryView: A customized ``DataEntryView`` that is used to enter new or edit existing values of this a
 @attached(accessor, names: named(get), named(set))
 @attached(peer, names: prefixed(__Key_))
+@available(iOS 17, macOS 14, *)
 public macro AccountKey<Value: ExpressibleByArrayLiteral, DataDisplay: DataDisplayView, DataEntry: DataEntryView>(
     id: String? = nil,
     name: LocalizedStringResource,
@@ -219,6 +225,7 @@ public macro AccountKey<Value: ExpressibleByArrayLiteral, DataDisplay: DataDispl
 ///
 /// - Parameter key: The KeyPath to the AccountKey defined on the ``AccountDetails``.
 @attached(member, names: arbitrary)
+@available(iOS 17, macOS 14, *)
 public macro KeyEntry<each Value>(
     _ key: repeat KeyPath<AccountDetails, each Value>
 ) = #externalMacro(module: "SpeziAccountMacros", type: "KeyEntryMacro")

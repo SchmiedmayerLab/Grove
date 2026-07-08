@@ -9,16 +9,19 @@
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 protocol AnyIdentityProvider {
     var component: any AnyAccountSetupComponent { get }
 }
 
+@available(iOS 17, macOS 14, *)
 protocol AnyAccountSetupComponent: Sendable {
     var id: UUID { get }
     var configuration: IdentityProviderConfiguration { get }
     @MainActor var anyView: AnyView { get }
 }
 
+@available(iOS 17, macOS 14, *)
 struct AccountSetupComponent<V: View> {
     let id = UUID()
     let viewClosure: @Sendable @MainActor () -> V
@@ -69,6 +72,7 @@ struct AccountSetupComponent<V: View> {
 /// - ``AccountSetupSection``
 /// - ``IdentityProviderConfiguration``
 @propertyWrapper
+@available(iOS 17, macOS 14, *)
 public struct IdentityProvider<V: View> {
     private let viewClosure: @Sendable @MainActor () -> V
     private let configuration: IdentityProviderConfiguration
@@ -106,9 +110,11 @@ public struct IdentityProvider<V: View> {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension IdentityProvider: Sendable {}
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountSetupComponent: AnyAccountSetupComponent {
     var anyView: AnyView {
         AnyView(viewClosure())
@@ -116,6 +122,7 @@ extension AccountSetupComponent: AnyAccountSetupComponent {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension IdentityProvider: AnyIdentityProvider {
     var component: any AnyAccountSetupComponent {
         AccountSetupComponent(viewClosure: viewClosure, configuration: configuration)

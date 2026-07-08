@@ -23,6 +23,7 @@ public enum SleepSessionConversionError: Error {
 }
 
 
+@available(macOS 13.0, *)
 extension Collection where Element == HKCategorySample {
     /// Splits the collection's individual samples into ``SleepSession``s.
     ///
@@ -33,6 +34,7 @@ extension Collection where Element == HKCategorySample {
     ///
     /// ## Topics
     /// - ``SleepSessionConversionError``
+    @available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
     public func splitIntoSleepSessions(
         threshold maxAllowedDistance: Duration = .minutes(60),
         separateBySource: Bool = false
@@ -54,6 +56,7 @@ extension Collection where Element == HKCategorySample {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 private struct SleepSessionsBuilder {
     // swiftlint:disable:next type_contents_order
     static func run(maxAllowedDistance: TimeInterval, samples: some Collection<HKCategorySample>) -> [SleepSession] {

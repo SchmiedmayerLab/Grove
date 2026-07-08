@@ -10,6 +10,7 @@
 /// A mock ``LLMSchema``, used for testing purposes.
 ///
 /// The ``LLMMockSchema`` is bound to the ``LLMMockPlatform``.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct LLMMockSchema: LLMSchema {
     public typealias Platform = LLMMockPlatform
     

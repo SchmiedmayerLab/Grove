@@ -16,6 +16,7 @@ import SwiftUI
 @MainActor
 @available(macOS, unavailable)
 @available(watchOS, unavailable)
+@available(iOS 17, macOS 14, *)
 struct AccountOverviewSections<AdditionalSections: View>: View {
     private let closeBehavior: AccountOverview<AdditionalSections>.CloseBehavior
     private let logoutBehavior: AccountOverview<AdditionalSections>.AccountLogoutBehavior
@@ -207,6 +208,7 @@ struct AccountOverviewSections<AdditionalSections: View>: View {
 
 
 #if DEBUG && !os(macOS) && !os(watchOS)
+@available(iOS 17, macOS 14, *)
 #Preview {
     NavigationStack {
         AccountOverview {
@@ -229,6 +231,7 @@ struct AccountOverviewSections<AdditionalSections: View>: View {
         }
 }
 
+@available(iOS 17, macOS 14, *)
 #Preview {
     NavigationStack {
         AccountOverview(deletion: .belowLogout) {

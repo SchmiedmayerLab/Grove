@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if ResearchKit && canImport(ResearchKit)
+
 import Foundation
 
 
@@ -97,3 +99,5 @@ extension String {
         }
     }
 }
+
+#endif

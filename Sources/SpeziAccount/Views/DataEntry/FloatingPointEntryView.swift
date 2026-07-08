@@ -13,6 +13,7 @@ import SwiftUI
 
 
 /// Entry or modify the value of an `BinaryFloatingPoint`-based `AccountKey`.
+@available(iOS 17, macOS 14, *)
 public struct FloatingPointEntryView<Key: AccountKey>: DataEntryView where Key.Value: BinaryFloatingPoint {
     private let formatStyle: Decimal.FormatStyle?
 
@@ -107,6 +108,7 @@ public struct FloatingPointEntryView<Key: AccountKey>: DataEntryView where Key.V
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension ValidationRule {
     static func isDecimal<Value: BinaryFloatingPoint>(
         for value: Value.Type,
@@ -135,6 +137,7 @@ extension ValidationRule {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountKey where Value: BinaryFloatingPoint {
     /// Default DataEntry for `BinaryFloatingPoint`-based values.
     public typealias DataEntry = FloatingPointEntryView<Self>
@@ -142,6 +145,7 @@ extension AccountKey where Value: BinaryFloatingPoint {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     @Previewable @State var value = 3.15
     List {

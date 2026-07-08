@@ -25,6 +25,7 @@
 /// ### Semantic Model
 /// - ``DeviceDiscoveryDescriptor``
 /// - ``DiscoveryDescriptorBuilder``
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct Discover<Device: BluetoothDevice> {
     let deviceType: Device.Type
     let discoveryCriteria: DiscoveryCriteria
@@ -40,4 +41,5 @@ public struct Discover<Device: BluetoothDevice> {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Discover: Sendable {}

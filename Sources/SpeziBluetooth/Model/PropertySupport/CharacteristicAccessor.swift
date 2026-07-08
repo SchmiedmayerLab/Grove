@@ -44,6 +44,7 @@ import CoreBluetooth
 ///
 /// ### Control Point Characteristics
 /// - ``sendRequest(_:timeout:)``
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct CharacteristicAccessor<Value: Sendable> {
     private let storage: Characteristic<Value>.Storage
     private let capturedCharacteristic: CharacteristicAccessorCapture?
@@ -58,9 +59,11 @@ public struct CharacteristicAccessor<Value: Sendable> {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension CharacteristicAccessor: Sendable {}
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension CharacteristicAccessor {
     /// Determine if the characteristic is available.
     ///
@@ -80,6 +83,7 @@ extension CharacteristicAccessor {
 
 // MARK: - Readable
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension CharacteristicAccessor where Value: ByteDecodable {
     /// Characteristic is currently notifying about updated values.
     ///
@@ -252,6 +256,7 @@ extension CharacteristicAccessor where Value: ByteDecodable {
 
 // MARK: - Writeable
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension CharacteristicAccessor where Value: ByteEncodable {
     /// Write the value of a characteristic expecting a confirmation.
     ///
@@ -315,6 +320,7 @@ extension CharacteristicAccessor where Value: ByteEncodable {
 
 // MARK: - Control Point
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension CharacteristicAccessor where Value: ControlPointCharacteristic {
     /// Send request to a control point characteristics and await the response.
     ///
@@ -347,6 +353,7 @@ extension CharacteristicAccessor where Value: ControlPointCharacteristic {
 // MARK: - Testing Support
 
 @_spi(TestingSupport)
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension CharacteristicAccessor {
     /// Enable testing support for subscriptions and onChange handlers.
     ///

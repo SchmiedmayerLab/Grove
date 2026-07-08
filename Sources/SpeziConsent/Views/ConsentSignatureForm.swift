@@ -14,6 +14,7 @@ public import SwiftUI
 
 
 /// A Signature Form consisting of text fields for name entry, and a canvas for drawing a signature.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct ConsentSignatureForm: View {
     /// The maximum width such that the drawing canvas fits onto the PDF.
     static let maxWidthDrawing: CGFloat = 550
@@ -131,6 +132,7 @@ public struct ConsentSignatureForm: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, visionOS 1, *)
 #Preview {
     @Previewable @State var storage = ConsentDocument.SignatureStorage()
     NavigationStack {

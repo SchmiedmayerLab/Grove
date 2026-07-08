@@ -14,6 +14,7 @@ import SwiftUI
 /// A pre-styled button that can be used to complete an event.
 ///
 ///
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 public struct EventActionButton: View {
     private let event: Event
     private let customLabel: Text?

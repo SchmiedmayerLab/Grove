@@ -12,6 +12,7 @@ import SpeziFoundation
 import SwiftUI
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Spezi {
     /// Registers to receive remote notifications through Apple Push Notification service.
     ///
@@ -97,6 +98,7 @@ extension Spezi {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension EnvironmentValues {
     /// Registers to receive remote notifications through Apple Push Notification service.
     ///
@@ -155,4 +157,5 @@ extension EnvironmentValues {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Spezi.RegisterForRemoteNotificationsAction: Sendable {}

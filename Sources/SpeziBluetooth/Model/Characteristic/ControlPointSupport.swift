@@ -11,6 +11,7 @@ import SpeziFoundation
 
 
 @SpeziBluetooth
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 final class ControlPointTransaction<Value: Sendable>: Sendable {
     let id: UUID
 

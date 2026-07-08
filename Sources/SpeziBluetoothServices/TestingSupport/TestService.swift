@@ -11,6 +11,7 @@ import SpeziBluetooth
 
 
 @_spi(TestingSupport)
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct TestService: BluetoothService, Sendable {
     public static let id: BTUUID = .testService
 

@@ -14,6 +14,7 @@ import SpeziLocalStorage
 
 
 /// Used to keep track of previously-fetched SensorKit samples to avoid duplicates when querying data.
+@available(iOS 17, *)
 struct QueryAnchor: Hashable, Codable, Sendable {
     /// The most-recent point in time for which data was queried.
     ///
@@ -43,6 +44,7 @@ struct QueryAnchor: Hashable, Codable, Sendable {
 
 
 /// A `QueryAnchor` that is backed using Spezi LocalStorage.
+@available(iOS 17, *)
 public final class ManagedQueryAnchor: Sendable {
     private let get: @Sendable () throws -> QueryAnchor
     private let set: @Sendable (QueryAnchor) throws -> Void
@@ -78,6 +80,7 @@ public final class ManagedQueryAnchor: Sendable {
 }
 
 
+@available(iOS 17, *)
 extension ManagedQueryAnchor {
     /// Creates an ephemeral Managed Query Anchor, that does not persist itself to disk.
     ///

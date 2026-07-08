@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, *)
 struct ErrorMessageCapsule: View {
     let errorMessage: LocalizedStringResource
     

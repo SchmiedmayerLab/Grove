@@ -10,6 +10,7 @@ import SpeziDevices
 import SpeziViews
 import SwiftUI
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 struct DeviceBatteryInfoRow: View {
     private let deviceInfo: PairedDeviceInfo
 
@@ -31,6 +32,7 @@ struct DeviceBatteryInfoRow: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     let deviceInfo = PairedDeviceInfo(id: .init(), deviceType: "MockDevice", name: "BP", model: "BP5250", batteryPercentage: 100)
     List {

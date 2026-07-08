@@ -11,6 +11,7 @@ import SwiftUI
 import UserNotifications
 
 
+@available(iOS 16, *)
 extension UNNotificationTrigger {
     var type: LocalizedStringResource {
         if self is UNCalendarNotificationTrigger {
@@ -34,6 +35,7 @@ extension UNNotificationTrigger {
 }
 
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 extension UNNotificationRequest {
     /// The next date at which the notification request will trigger, if available.
     public func nextTriggerDate() -> Date? {

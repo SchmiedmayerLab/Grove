@@ -8,6 +8,7 @@
 
 
 /// Interact with a Device Action.
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct DeviceActionAccessor<Action: _BluetoothPeripheralAction> {
     private let storage: DeviceAction<Action>.Storage
 
@@ -29,4 +30,5 @@ public struct DeviceActionAccessor<Action: _BluetoothPeripheralAction> {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension DeviceActionAccessor: Sendable {}

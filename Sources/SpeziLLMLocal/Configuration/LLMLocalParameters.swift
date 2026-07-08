@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if MLX
+
 import Foundation
 
 /// Represents the parameters of the LLM.
@@ -58,3 +60,5 @@ public struct LLMLocalParameters: Sendable {
         self.chatTemplate = chatTemplate
     }
 }
+
+#endif

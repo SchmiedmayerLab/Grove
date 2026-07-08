@@ -11,6 +11,7 @@ private import SpeziViews
 public import class UIKit.UIImage
 
 
+@available(iOS 17, *)
 extension QuestionnaireResponses {
     /// An annotation collected by asking the user to draw onto an image.
     public struct ImageAnnotation: CustomResponseValueProtocol, Hashable, Sendable {

@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if MLX
+
 
 // swiftlint:disable identifier_name
 /// Represents the available LLM models.
@@ -109,3 +111,5 @@ public enum LLMLocalModel: Sendable {
         }
     }
 }
+
+#endif

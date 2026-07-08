@@ -11,6 +11,7 @@
 public import Foundation
 
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LocalizedStringResource.BundleDescription {
     /// Convenience method to create a `BundleDescription.atURL()` from a given Bundle instance.
     ///
@@ -21,6 +22,7 @@ extension LocalizedStringResource.BundleDescription {
 }
 
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LocalizedStringResource {
     /// Creates a localized `String` from the given `LocalizedStringResource`.
     ///
@@ -39,6 +41,7 @@ extension LocalizedStringResource {
 
 extension StringProtocol {
     @_documentation(visibility: internal)
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @available(*, deprecated, message: "Prefer explicitly using LocalizedStringResource.")
     public func localized(_: Bundle? = nil) -> LocalizedStringResource { // swiftlint:disable:this missing_docs
         LocalizedStringResource(stringLiteral: String(self))

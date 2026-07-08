@@ -27,6 +27,7 @@ import SpeziFoundation
 ///         \.password
 ///     }
 /// }
+@available(iOS 17, macOS 14, *)
 public struct RequiredAccountKeys: AccountServiceConfigurationKey, DefaultProvidingKnowledgeSource {
     public static let defaultValue = RequiredAccountKeys {
         \.userId // by default everyone requires the userId
@@ -49,6 +50,7 @@ public struct RequiredAccountKeys: AccountServiceConfigurationKey, DefaultProvid
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountServiceConfiguration {
     /// Access the required account keys of an ``AccountService``.
     public var requiredAccountKeys: AccountKeyCollection {

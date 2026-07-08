@@ -12,4 +12,5 @@ import SpeziFoundation
 /// A `ValueRepository` that stores `KnowledgeSource`s anchored to the `AccountAnchor`.
 ///
 /// This is the underlying storage type used ``AccountDetails``. All elements are tied to the ``AccountAnchor``.
+@available(iOS 17, macOS 14, *)
 public typealias AccountStorage = SendableValueRepository<AccountAnchor>

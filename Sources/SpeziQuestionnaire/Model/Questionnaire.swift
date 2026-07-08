@@ -36,6 +36,7 @@ private import SpeziFoundation
 /// - ``Metadata``
 /// - ``Section``
 /// - ``Task``
+@available(iOS 17, *)
 public struct Questionnaire: Hashable, Identifiable, Sendable {
     // NOTE that `Questionnaire` and its related types (Section, Task, etc) currently are **intentionally** not Codable;
     // the reason being that we will potentially make significant changes to the data structures here, which would break
@@ -73,6 +74,7 @@ public struct Questionnaire: Hashable, Identifiable, Sendable {
 }
 
 
+@available(iOS 17, *)
 extension Questionnaire.Task {
     /// Creates a functionally identical copy of this task, with all ``Condition``s simplified.
     func withConditionsSimplified() -> Self {
@@ -94,6 +96,7 @@ extension Questionnaire.Task {
 }
 
 
+@available(iOS 17, *)
 extension Questionnaire {
     /// Finds the top-level task with the specified id.
     func task(withId taskId: Task.ID) -> Task? {
@@ -138,6 +141,7 @@ extension Questionnaire {
 }
 
 
+@available(iOS 17, *)
 extension Questionnaire {
     public struct Metadata: Hashable, Sendable {
         /// The questionnaire's unique identifier.
@@ -159,6 +163,7 @@ extension Questionnaire {
 }
 
 
+@available(iOS 17, *)
 extension Questionnaire {
     /// A group of tasks.
     public struct Section: Hashable, Identifiable, Sendable {

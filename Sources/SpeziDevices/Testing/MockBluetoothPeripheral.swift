@@ -11,6 +11,7 @@ import SpeziBluetooth
 
 /// Mock peripheral used for internal previews.
 @_spi(TestingSupport)
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 public struct MockBluetoothPeripheral: GenericBluetoothPeripheral {
     public let label: String
     public let state: PeripheralState

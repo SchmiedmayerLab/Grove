@@ -25,6 +25,7 @@ public enum AllowedCompletionPolicy: Hashable, Sendable, Codable {
 
 
 #if canImport(Darwin)
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension AllowedCompletionPolicy {
     /// Determine if an event is allowed to be completed at a specific date.
     /// - Parameters:

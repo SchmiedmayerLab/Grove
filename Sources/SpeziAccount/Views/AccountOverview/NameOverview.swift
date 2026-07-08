@@ -10,6 +10,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 struct NameOverview: View {
     private let model: AccountOverviewFormViewModel
     private let accountDetails: AccountDetails
@@ -71,6 +72,7 @@ struct NameOverview: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     NavigationStack {
         AccountDetailsReader { account, details in
@@ -82,6 +84,7 @@ struct NameOverview: View {
         }
 }
 
+@available(iOS 17, macOS 14, *)
 #Preview {
     NavigationStack {
         AccountDetailsReader { account, details in

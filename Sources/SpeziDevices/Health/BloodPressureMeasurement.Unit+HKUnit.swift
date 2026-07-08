@@ -10,6 +10,7 @@ import HealthKit
 import SpeziBluetoothServices
 
 
+@available(macOS 13.0, *)
 extension BloodPressureMeasurement.Unit {
     /// The unit represented as a `HKUnit`.
     public var hkUnit: HKUnit {

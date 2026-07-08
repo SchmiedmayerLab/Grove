@@ -13,6 +13,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 private struct MockUserIdPasswordEmbeddedView: View {
     @Environment(InMemoryAccountService.self)
     private var service
@@ -31,6 +32,7 @@ private struct MockUserIdPasswordEmbeddedView: View {
 }
 
 
+@available(iOS 17, macOS 14, *)
 private struct AnonymousSignupButton: View {
     private let cardinalRed = Color(red: 140 / 255.0, green: 21 / 255.0, blue: 21 / 255.0)
     private let cardinalRedDark = Color(red: 130 / 255.0, green: 0, blue: 0)
@@ -55,6 +57,7 @@ private struct AnonymousSignupButton: View {
 }
 
 
+@available(iOS 17, macOS 14, *)
 private struct MockSignInWithAppleButton: View {
     @Environment(Account.self)
     private var account
@@ -76,6 +79,7 @@ private struct MockSignInWithAppleButton: View {
 }
 
 
+@available(iOS 17, macOS 14, *)
 private struct MockSecurityAlert: ViewModifier {
     @Environment(InMemoryAccountService.self)
     private var service
@@ -119,6 +123,7 @@ private struct MockSecurityAlert: ViewModifier {
 /// This ``AccountService`` implements an account service that stores user data in memory.
 /// It serves as an example implementation, demonstrating a complete implementation of an `AccountService`.
 /// Further, it can be easily integrated in SwiftUI previews and UI tests.
+@available(iOS 17, macOS 14, *)
 @MainActor
 public final class InMemoryAccountService: AccountService {
     private static let supportedKeys = AccountKeyCollection {
@@ -416,6 +421,7 @@ public final class InMemoryAccountService: AccountService {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension InMemoryAccountService {
     public enum AccountError: LocalizedError {
         case credentialsTaken
@@ -505,6 +511,7 @@ extension InMemoryAccountService {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension InMemoryAccountService.UserStorage {
     mutating func update(_ modifications: AccountModifications) {
         let modifiedDetails = modifications.modifiedDetails
@@ -536,6 +543,7 @@ extension InMemoryAccountService.UserStorage {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension String {
     var assumeUUID: UUID {
         guard let id = UUID(uuidString: self) else {

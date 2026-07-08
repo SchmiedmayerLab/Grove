@@ -42,6 +42,7 @@ public struct OnboardingTitleView: View {
     /// - Parameters:
     ///   - title: The localized title.
     ///   - subtitle: The optional localized subtitle.
+    @available(iOS 16, macOS 13, visionOS 1, *)
     public init(title: LocalizedStringResource, subtitle: LocalizedStringResource? = nil) {
         self.title = Text(title)
         self.subtitle = subtitle.map { Text($0) }
@@ -60,6 +61,7 @@ public struct OnboardingTitleView: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, visionOS 1, *)
 #Preview {
     OnboardingTitleView(title: String("Title"), subtitle: String("Subtitle"))
 }

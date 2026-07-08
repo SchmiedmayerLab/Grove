@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if MLX
+
 import Foundation
 @preconcurrency import Hub
 import MLX
@@ -173,3 +175,5 @@ public final class LLMLocalSession: LLMSession, Sendable {
         self.cancel()
     }
 }
+
+#endif

@@ -12,6 +12,7 @@ import HealthKit
 import ModelsR4
 
 
+@available(macOS 13, *)
 extension FHIRExtensionUrls {
     // SAFETY: this is in fact safe, since the FHIRPrimitive's `extension` property is empty.
     // As a result, the actual instance doesn't contain any mutable state, and since this is a let,
@@ -22,8 +23,10 @@ extension FHIRExtensionUrls {
 }
 
 
+@available(macOS 13, *)
 extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKObject> {
     /// A FHIR Extension Builder that writes encoded metadata of a HealthKit sample into a FHIR `Observation` created from the sample.
+    @available(iOS 17, macOS 14, watchOS 10, *)
     public static var metadata: FHIRExtensionBuilder<HKObject> {
         .init { (object: HKObject, observation) in // swiftlint:disable:this closure_body_length
             guard let metadata = object.metadata, !metadata.isEmpty else {
@@ -115,6 +118,7 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKObje
         }
     }
     
+    @available(iOS 17, macOS 14, watchOS 10, *)
     private static func type(forMetadataKey key: String) -> (any FHIRCodingConvertibleHKEnum.Type)? { // swiftlint:disable:this cyclomatic_complexity
         switch key {
         case HKMetadataKeyAppleECGAlgorithmVersion:
@@ -156,6 +160,7 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKObje
 }
 
 
+@available(macOS 13, *)
 extension HKQuantitySampleMapping {
     private static let healthKitCodingSystemUrl = URL(string: "http://developer.apple.com/documentation/healthkit")!
     private static let unitsOfMeasureCodingSystemUrl = URL(string: "http://unitsofmeasure.org")!
@@ -480,6 +485,7 @@ extension HKQuantitySampleMapping {
         )
     )
     
+    @available(iOS 17, macOS 14, watchOS 10, *)
     fileprivate static let maximumLightIntensity = HKQuantitySampleMapping(
         codings: [
             MappedCode(

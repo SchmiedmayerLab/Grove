@@ -11,6 +11,7 @@ public import SensorKit
 
 // MARK: SRAbsoluteTime
 
+@available(iOS 17, *)
 extension SRAbsoluteTime {
     /// Creates an `SRAbsoluteTime` from a `Date`
     @inlinable
@@ -19,6 +20,7 @@ extension SRAbsoluteTime {
     }
 }
 
+@available(iOS 17, *)
 extension Date {
     /// Creates a `Date` from an `SRAbsoluteTime`
     @inlinable
@@ -27,6 +29,7 @@ extension Date {
     }
 }
 
+@available(iOS 17, *)
 extension SRAbsoluteTime: @retroactive Comparable {
     @inlinable
     public static func < (lhs: Self, rhs: Self) -> Bool {
@@ -37,6 +40,7 @@ extension SRAbsoluteTime: @retroactive Comparable {
 
 // MARK: Other
 
+@available(iOS 17, *)
 extension SRSensorReader {
     /// Creates an `SRSensorReader` from an ``AnySensor``.
     @inlinable
@@ -46,6 +50,7 @@ extension SRSensorReader {
 }
 
 @available(iOS 17.4, *)
+@available(iOS 17, *)
 extension SRElectrocardiogramData.Flags: @retroactive Hashable {
     @inlinable
     public func hash(into hasher: inout Hasher) {

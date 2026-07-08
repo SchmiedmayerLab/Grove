@@ -57,6 +57,7 @@ import Atomics
 /// ### Device Actions
 /// - ``DeviceActions``
 @propertyWrapper
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct DeviceAction<Action: _BluetoothPeripheralAction>: Sendable {
     final class Storage: Sendable {
         let injection = ManagedAtomicLazyReference<DeviceActionPeripheralInjection>()
@@ -103,6 +104,7 @@ public struct DeviceAction<Action: _BluetoothPeripheralAction>: Sendable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension DeviceAction: DeviceVisitable, ServiceVisitable {
     func accept<Visitor: DeviceVisitor>(_ visitor: inout Visitor) {
         visitor.visit(self)

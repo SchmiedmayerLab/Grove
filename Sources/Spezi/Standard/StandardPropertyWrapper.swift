@@ -10,6 +10,7 @@ import RuntimeAssertions
 
 
 /// Refer to ``Module/StandardActor`` for information on how to use the `@StandardActor` property wrapper. Do not use the `_StandardPropertyWrapper` directly.
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 @propertyWrapper
 public class _StandardPropertyWrapper<Constraint> {
     // swiftlint:disable:previous type_name
@@ -68,6 +69,7 @@ public class _StandardPropertyWrapper<Constraint> {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension _StandardPropertyWrapper: SpeziPropertyWrapper {
     func inject(spezi: Spezi) throws(SpeziPropertyError) {
         switch load(spezi.standard) {

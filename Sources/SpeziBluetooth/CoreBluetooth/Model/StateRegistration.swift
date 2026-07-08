@@ -12,6 +12,7 @@ import Foundation
 /// An state change handler registration for the Bluetooth state.
 ///
 /// It automatically cancels the subscription once this value is de-initialized.
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct StateRegistration: ~Copyable {
     private let id: UUID
     private weak var storage: BluetoothManagerStorage?
@@ -43,4 +44,5 @@ public struct StateRegistration: ~Copyable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension StateRegistration: Sendable {}

@@ -9,6 +9,7 @@
 import AuthenticationServices
 
 
+@available(iOS 17, *)
 struct ReauthenticationOperation {
     enum Result {
         case success
@@ -26,6 +27,7 @@ struct ReauthenticationOperation {
 }
 
 
+@available(iOS 17, *)
 extension ReauthenticationOperation {
     static var cancelled: ReauthenticationOperation {
         .init(result: .cancelled)
@@ -42,4 +44,5 @@ extension ReauthenticationOperation {
 }
 
 
+@available(iOS 17, *)
 extension ReauthenticationOperation: Hashable {}

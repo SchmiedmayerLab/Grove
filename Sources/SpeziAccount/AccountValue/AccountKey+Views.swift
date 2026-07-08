@@ -9,17 +9,20 @@
 import SpeziFoundation
 import SwiftUI
 
+@available(iOS 17, macOS 14, *)
 protocol AccountKeyWithSetupView {
     @MainActor
     func emptySetupView() -> AnyView
 }
 
+@available(iOS 17, macOS 14, *)
 private struct AccountKeyTypeWrapper<Key: AccountKey> {
     init() {}
 }
 
 
 @MainActor
+@available(iOS 17, macOS 14, *)
 extension AccountKey {
     static func emptyDataEntryView() -> AnyView {
         AnyView(GeneralizedDataEntryView<Self>(initialValue: initialValue.value))
@@ -67,6 +70,7 @@ extension AccountKey {
     }
 }
 
+@available(iOS 17, macOS 14, *)
 extension AccountKeyTypeWrapper: AccountKeyWithSetupView where Key.DataDisplay: SetupDisplayView {
     @MainActor
     func emptySetupView() -> AnyView {

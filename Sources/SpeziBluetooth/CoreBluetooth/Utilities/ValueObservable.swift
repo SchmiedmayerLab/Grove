@@ -16,6 +16,7 @@ protocol AnyValueObservation {}
 ///
 /// Holds the registered closure till the next value update happens.
 /// Inspired by Apple's Observation framework but with more power!
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 final class ValueObservationRegistrar<Observable: ValueObservable>: Sendable {
     struct ValueObservation<Value>: AnyValueObservation {
         let keyPath: KeyPath<Observable, Value>
@@ -63,6 +64,7 @@ final class ValueObservationRegistrar<Observable: ValueObservable>: Sendable {
 
 
 /// A model with value observable properties.
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 protocol ValueObservable: AnyObject, Sendable {
     // swiftlint:disable:next identifier_name
     var _$simpleRegistrar: ValueObservationRegistrar<Self> { get }
@@ -72,6 +74,7 @@ protocol ValueObservable: AnyObject, Sendable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension ValueObservable {
     @SpeziBluetooth
     func onChange<Value>(of keyPath: KeyPath<Self, Value>, perform closure: @escaping (Value) -> Void) {

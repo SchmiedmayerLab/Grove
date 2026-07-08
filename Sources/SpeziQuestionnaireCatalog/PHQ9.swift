@@ -12,6 +12,7 @@ private import Foundation
 public import SpeziQuestionnaire
 
 
+@available(iOS 17, *)
 extension Questionnaire {
     /// Patient Health Questionnaire-9
     /// 
@@ -80,6 +81,7 @@ extension Questionnaire {
     )
 }
 
+@available(iOS 17, *)
 extension [Questionnaire.Task.Kind.ChoiceConfig.Option] {
     fileprivate static let phq9Options: Self = [
         .init(

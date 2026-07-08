@@ -12,6 +12,7 @@ import OpenAPIRuntime
 
 
 /// Represents the parameters of OpenAI-like LLMs.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct LLMOpenAILikeParameters<PlatformDefinition: LLMOpenAILikePlatformDefinition>: Sendable {
     /// The model type used with the parameters.
     public typealias ModelType = PlatformDefinition.ModelType
@@ -68,6 +69,7 @@ public struct LLMOpenAILikeParameters<PlatformDefinition: LLMOpenAILikePlatformD
 }
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension LLMOpenAILikeParameters {
     /// Creates the ``LLMOpenAIParameters``.
     ///

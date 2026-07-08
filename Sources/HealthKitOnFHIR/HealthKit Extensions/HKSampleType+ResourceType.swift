@@ -10,6 +10,7 @@ import HealthKit
 import ModelsR4
 
 
+@available(macOS 13, *)
 extension HKSampleType {
     /// Converts an `HKSampleType` into the corresponding FHIR resource type, defined as a `ResourceType`
     public var resourceType: ResourceType {

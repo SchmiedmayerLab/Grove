@@ -34,6 +34,7 @@ extension Bundle {
     /// - parameter preferences: The preferred `Locale.Language`s.
     /// - parameter limitToPreferences: Defaults to `true`. Whether the function should only consider and return languages that are related to the preferences.
     ///     Setting this to `false` will cause the function to always return all localizations supported by the bundle, sorted by preference.
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public func preferredLocalizations(from preferences: some Collection<Locale.Language>, limitToPreferences: Bool = true) -> [Locale.Language] {
         if limitToPreferences {
             return Bundle.preferredLocalizations(
@@ -77,6 +78,7 @@ extension Bundle {
     /// - parameter tables: The tables in which the lookup should be performed. An empty value will lead to a lookup in the ``LocalizationLookupTable/default`` table.
     /// - parameter localizations: Array of preferred `Locale.Language`s.
     /// - returns: A localized version of the string, obtained from the first table that contained an entry for `key`.
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public func localizedString(
         forKey key: String,
         tables: [LocalizationLookupTable],
@@ -102,6 +104,7 @@ extension Bundle {
     // ideally this would be directly in the other function, but bc of the #available check we wouldn't be able to test it then.
     // NOTE: remove this when we increase our package deployment target to >= iOS 18.4!
     @_spi(Testing)
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public func localizedStringForKeyFallback( // swiftlint:disable:this missing_docs
         key: String,
         tables: [LocalizationLookupTable],

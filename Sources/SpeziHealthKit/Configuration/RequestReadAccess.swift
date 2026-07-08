@@ -14,6 +14,7 @@ import HealthKit
 /// A ``HealthKit-class`` configuration component that requests read acess to HealthKit sample types.
 ///
 /// - Important: Apps can only request HealthKit read access if the `Info.plist` file contains an entry for the `NSHealthShareUsageDescription` key.
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 public struct RequestReadAccess: HealthKitConfigurationComponent {
     public let dataAccessRequirements: HealthKit.DataAccessRequirements
     

@@ -11,6 +11,7 @@ import SpeziHealthKit
 import SpeziHealthKitBulkExport
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension StudyDefinition {
     /// Study Component which initiates background Health data collection
     public struct HealthDataCollectionComponent: Identifiable, StudyDefinitionElement {
@@ -49,6 +50,7 @@ extension StudyDefinition {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension StudyDefinition.HealthDataCollectionComponent {
     private enum CodingKeys: CodingKey {
         case id

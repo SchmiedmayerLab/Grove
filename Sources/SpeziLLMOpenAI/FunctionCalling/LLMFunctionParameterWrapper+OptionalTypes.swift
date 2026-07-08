@@ -10,6 +10,7 @@ import SpeziFoundation
 
 // swiftlint:disable discouraged_optional_boolean discouraged_optional_collection
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped: BinaryInteger {
     /// Declares an ``LLMFunction/Parameter`` of the type `Int?` defining a integer parameter of the ``LLMFunction``.
     ///
@@ -41,6 +42,7 @@ extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped: BinaryIn
     }
 }
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped: BinaryFloatingPoint {
     /// Declares an ``LLMFunction/Parameter`` of the type `Float?` or `Double?` (`FloatingPoint?`)  defining a floating-point parameter of the ``LLMFunction``.
     ///
@@ -69,6 +71,7 @@ extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped: BinaryFl
     }
 }
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped == Bool {
     /// Declares an ``LLMFunction/Parameter`` of the type `Bool?` defining a binary parameter of the ``LLMFunction``.
     ///
@@ -91,6 +94,7 @@ extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped == Bool {
     }
 }
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped: StringProtocol {
     /// Declares an ``LLMFunction/Parameter`` of the type `String?` defining a text-based parameter of the ``LLMFunction``.
     ///
@@ -122,6 +126,7 @@ extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped: StringPr
     }
 }
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped: AnyArray,
     T.Wrapped.Element: BinaryInteger {
     /// Declares an optional `Int`-based ``LLMFunction/Parameter`` `array`.
@@ -166,6 +171,7 @@ extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped: AnyArray
     }
 }
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped: AnyArray,
     T.Wrapped.Element: BinaryFloatingPoint {
     /// Declares an optional `Float` or `Double` (`BinaryFloatingPoint`) -based ``LLMFunction/Parameter`` `array`.
@@ -207,6 +213,7 @@ extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped: AnyArray
     }
 }
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped: AnyArray, T.Wrapped.Element == Bool {
     /// Declares an optional `Bool`-based ``LLMFunction/Parameter`` `array`.
     ///
@@ -241,6 +248,7 @@ extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped: AnyArray
     }
 }
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped: AnyArray,
     T.Wrapped.Element: StringProtocol {
     /// Declares an optional `String`-based ``LLMFunction/Parameter`` `array`.

@@ -11,6 +11,7 @@ import os
 @preconcurrency import Security
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 final class TransportCertificateValidationDelegate: NSObject, URLSessionDelegate {
     private let caCertificate: SecCertificate?
     private let expectedHost: String?

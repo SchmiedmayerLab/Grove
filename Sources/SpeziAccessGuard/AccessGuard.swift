@@ -10,6 +10,7 @@ public import SwiftUI
 
 
 /// Inspect and interact with a specific access guard.
+@available(iOS 17, *)
 @MainActor
 @propertyWrapper
 public struct AccessGuard<Config: _AccessGuardConfig>: DynamicProperty {

@@ -13,6 +13,7 @@ import SwiftUI
 
 @Observable
 @MainActor
+@available(iOS 17, *)
 class FirebaseAccountModel {
     var authorizationController: AuthorizationController?
 
@@ -36,4 +37,5 @@ class FirebaseAccountModel {
 }
 
 
+@available(iOS 17, *)
 extension FirebaseAccountModel: Sendable {}

@@ -17,6 +17,7 @@ import SwiftUI
 ///
 /// This view is used in the ``AccountOverview`` to show a setup interface for account keys
 /// that don't have a stored value yet.
+@available(iOS 17, macOS 14, *)
 public protocol SetupDisplayView<Value>: DataDisplayView {
     /// Create a new setup display view.
     /// - Parameters:
@@ -25,6 +26,7 @@ public protocol SetupDisplayView<Value>: DataDisplayView {
     init(_ value: Value?)
 }
 
+@available(iOS 17, macOS 14, *)
 extension SetupDisplayView {
     /// Default implementation with a required value.
     public init(_ value: Value) { // default implementation for `DataDisplayView`.

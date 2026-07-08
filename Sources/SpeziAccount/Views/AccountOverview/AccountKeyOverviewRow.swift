@@ -12,6 +12,7 @@ import SwiftUI
 
 @available(macOS, unavailable)
 @available(watchOS, unavailable)
+@available(iOS 17, macOS 14, *)
 struct AccountKeyOverviewRow: View {
     private let accountDetails: AccountDetails
     private let accountKey: any AccountKey.Type
@@ -83,7 +84,9 @@ struct AccountKeyOverviewRow: View {
 }
 
 #if DEBUG && !os(macOS) && !os(watchOS)
+@available(iOS 17, macOS 14, *)
 private let key = AccountKeys.genderIdentity
+@available(iOS 17, macOS 14, *)
 #Preview {
     AccountDetailsReader { account, details in
         let model = AccountOverviewFormViewModel(account: account, details: details)

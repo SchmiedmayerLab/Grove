@@ -45,6 +45,7 @@ public struct InfoButton: View {
     /// - Parameters:
     ///   - resource: The localized button label. This is not shown but useful for accessibility.
     ///   - action: The button action.
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public init(_ resource: LocalizedStringResource, action: @escaping () -> Void) {
         self.label = Text(resource)
         self.action = action
@@ -53,6 +54,7 @@ public struct InfoButton: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     List {
         Button {

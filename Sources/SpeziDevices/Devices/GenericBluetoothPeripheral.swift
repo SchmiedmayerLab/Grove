@@ -10,6 +10,7 @@ import SpeziBluetooth
 
 
 /// A generic bluetooth peripheral.
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 public protocol GenericBluetoothPeripheral {
     /// The user-visible label.
     ///
@@ -33,6 +34,7 @@ public protocol GenericBluetoothPeripheral {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension GenericBluetoothPeripheral {
     /// Default implementation using the devices `label`.
     public var accessibilityLabel: String {
@@ -46,6 +48,7 @@ extension GenericBluetoothPeripheral {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension BluetoothPeripheral: GenericBluetoothPeripheral {
     nonisolated public var label: String {
         name ?? "Generic Peripheral"

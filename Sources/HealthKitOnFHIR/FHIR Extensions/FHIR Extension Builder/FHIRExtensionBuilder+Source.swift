@@ -12,6 +12,7 @@ import HealthKit
 import ModelsR4
 
 
+@available(macOS 13, *)
 extension FHIRExtensionUrls {
     // SAFETY: this is in fact safe, since the FHIRPrimitive's `extension` property is empty.
     // As a result, the actual instance doesn't contain any mutable state, and since this is a let,
@@ -29,8 +30,10 @@ extension FHIRExtensionUrls {
 }
 
 
+@available(macOS 13, *)
 extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKDevice> {
     /// A FHIR Extension Builder that writes a  `HKDevice` into a FHIR `Observation`.
+    @available(iOS 16, macOS 13, watchOS 9, *)
     public static var sourceDevice: Self {
         .init { (device: HKDevice, observation) in
             let deviceInfo = Extension(url: FHIRExtensionUrls.sourceDevice)
@@ -62,8 +65,10 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKDevi
 }
 
 
+@available(macOS 13, *)
 extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKSourceRevision> {
     /// A FHIR Extension Builder that writes a `HKSourceRevision` into a FHIR `Observation`.
+    @available(iOS 16, macOS 13, watchOS 9, *)
     public static var sourceRevision: Self {
         .init { (revision: HKSourceRevision, observation) throws in // swiftlint:disable:this closure_body_length
             let deviceInfo = Extension(url: FHIRExtensionUrls.sourceRevision)
@@ -109,8 +114,10 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKSour
 }
 
 
+@available(macOS 13, *)
 extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKObject> {
     /// A FHIR Extension Builder that writes a HealthKit object's `HKSourceRevision` into a FHIR `Observation` created from the sample.
+    @available(iOS 16, macOS 13, watchOS 9, *)
     public static var sourceRevision: Self {
         .init { object, observation in
             try observation.apply(.sourceRevision, input: object.sourceRevision)
@@ -118,6 +125,7 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKObje
     }
     
     /// A FHIR Extension Builder that writes a HealthKit object's `HKDevice` into a FHIR `Observation` created from the sample.
+    @available(iOS 16, macOS 13, watchOS 9, *)
     public static var sourceDevice: Self {
         .init { object, observation in
             if let device = object.device {
@@ -130,6 +138,7 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKObje
 }
 
 
+@available(macOS 13, *)
 extension HKSourceRevision {
     /// We define this as an optional String objc-compatible property, so that we can encode it into an Extension using the API we have above.
     @objc fileprivate var OSVersion: String? {

@@ -9,6 +9,7 @@
 import Algorithms
 
 
+@available(iOS 17, *)
 extension QuestionnaireResponses {
     public enum ResponsePathComponent: Hashable, CustomStringConvertible, Sendable {
         case task(Questionnaire.Task.ID)

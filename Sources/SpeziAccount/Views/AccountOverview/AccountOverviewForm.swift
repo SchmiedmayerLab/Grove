@@ -14,6 +14,7 @@ import SwiftUI
 
 @available(macOS, unavailable)
 @available(watchOS, unavailable)
+@available(iOS 17, macOS 14, *)
 struct AccountOverviewForm<AdditionalSections: View>: View {
     private let model: AccountOverviewFormViewModel
     private let closeBehavior: AccountOverview<AdditionalSections>.CloseBehavior
@@ -218,6 +219,7 @@ struct AccountOverviewForm<AdditionalSections: View>: View {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension View {
     @available(macOS, unavailable)
     @available(watchOS, unavailable)

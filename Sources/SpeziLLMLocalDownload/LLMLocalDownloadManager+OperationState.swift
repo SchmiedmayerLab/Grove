@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if MLX
+
 import Foundation
 import SpeziViews
 
@@ -24,3 +26,5 @@ extension LLMLocalDownloadManager.DownloadState: OperationState {
         }
     }
 }
+
+#endif

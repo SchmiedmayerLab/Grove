@@ -16,6 +16,7 @@ import SwiftUI
 /// For example, an `AccountSetup` view that is displayed in the onboarding flow, might favor a presentation that highlights signup functionality.
 ///
 /// - Note: Use the ``SwiftUICore/View/preferredAccountSetupStyle(_:)`` to set the preferred account setup style.
+@available(iOS 17, macOS 14, *)
 public enum PreferredSetupStyle {
     /// Let the view automatically decide on how to present itself.
     ///
@@ -28,15 +29,18 @@ public enum PreferredSetupStyle {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension EnvironmentValues {
     /// The preferred style of presenting account setup views.
     @Entry var preferredSetupStyle: PreferredSetupStyle = .automatic
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension PreferredSetupStyle: Sendable, Hashable {}
 
 
+@available(iOS 17, macOS 14, *)
 extension View {
     /// Set the preferred style of presenting account setup views for the view hierarchy.
     /// - Parameter setupStyle: The preferred account setup style.

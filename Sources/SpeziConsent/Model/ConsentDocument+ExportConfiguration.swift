@@ -11,6 +11,7 @@ public import SwiftUI
 import TPPDF
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension ConsentDocument {
     /// Define the properties of an exported ``ConsentDocument``.
     public struct ExportConfiguration: Equatable, Sendable {
@@ -112,6 +113,7 @@ extension ConsentDocument {
 }
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension ConsentDocument.ExportConfiguration.FontSettings {
     /// Default export font settings with fixed font sizes, ensuring a consistent appearance across platforms.
     ///

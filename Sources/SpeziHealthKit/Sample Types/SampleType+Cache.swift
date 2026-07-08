@@ -10,6 +10,7 @@ import Foundation
 import SpeziFoundation
 
 
+@available(macOS 13.0, *)
 @usableFromInline
 enum SampleTypeCache {
     private static let lock = RecursiveRWLock()

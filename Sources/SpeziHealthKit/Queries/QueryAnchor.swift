@@ -44,6 +44,7 @@ import HealthKit
 ///     return samples
 /// }
 /// ```
+@available(macOS 13.0, *)
 public struct QueryAnchor: Hashable, Codable, Sendable {
     let hkAnchor: HKQueryAnchor?
     

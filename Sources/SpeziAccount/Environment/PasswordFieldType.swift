@@ -10,6 +10,7 @@ import SwiftUI
 
 
 /// The semantic use of a password field.
+@available(iOS 17, macOS 14, *)
 public enum PasswordFieldType {
     /// Standard password field
     case password
@@ -20,6 +21,7 @@ public enum PasswordFieldType {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension PasswordFieldType: CustomLocalizedStringResourceConvertible {
     public var localizedStringResource: LocalizedStringResource {
         switch self {
@@ -45,9 +47,11 @@ extension PasswordFieldType: CustomLocalizedStringResourceConvertible {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension PasswordFieldType: Sendable, Hashable {}
 
 
+@available(iOS 17, macOS 14, *)
 extension EnvironmentValues {
     private struct PasswordFieldTypeKey: EnvironmentKey {
         static let defaultValue: PasswordFieldType = .password

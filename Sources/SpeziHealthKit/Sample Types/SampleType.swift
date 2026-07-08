@@ -14,10 +14,11 @@ import HealthKit
 #endif
 
 
+@available(macOS 13.0, *)
 public struct SampleType<Sample: _HKSampleWithSampleType>: AnySampleType, Sendable/*, __SampleTypeAssignmentHack*/ {
     @_documentation(visibility: internal)
     public typealias Sample = Sample
-    
+
     @usableFromInline
     enum Variant: Sendable {
         /// - parameter displayUnit: The unit that should be used when displaying a sample of this type to the user
@@ -31,14 +32,14 @@ public struct SampleType<Sample: _HKSampleWithSampleType>: AnySampleType, Sendab
         /// and which we also don't need to carry any special data for.
         case other
     }
-    
+
     public let hkSampleType: Sample._SampleType
-    
+
     public let displayTitle: String
-    
+
     /// Variant-specific additional information.
     @usableFromInline let variant: Variant
-    
+
     /// Creates a ``SampleType`` from a type-erased ``AnySampleType``.
     ///
     /// Since ``SampleType`` is the only type allowed to conform to ``AnySampleType``, this is guaranteed to always succeed.
@@ -46,13 +47,23 @@ public struct SampleType<Sample: _HKSampleWithSampleType>: AnySampleType, Sendab
         // SAFETY: `SampleType` is the only type allowed to conform to `AnySampleType`.
         self = typeErased as! Self // swiftlint:disable:this force_cast
     }
-    
+
     /// Creates a new ``SampleType``.
     ///
     /// Use this initializer only if the sample type you want to work with isn't already defined by SpeziHealthKit, and only if none of the static factory methods are suitable.
     /// - parameter hkSampleType: The sample type's underlying `HKSampleType`
     /// - parameter displayTitle: The localized string which should be used when displaying this sample type's title in a user-visible context.
     /// - parameter variant: The internal variant that should be used for storing any additional data associated with the sample type's specific underlying HealthKit sample type.
+    @usableFromInline init(
+        _ hkSampleType: Sample._SampleType,
+        variant: Variant
+    ) {
+        self.hkSampleType = hkSampleType
+        self.variant = variant
+        self.displayTitle = Self.localizedTitle(for: hkSampleType) ?? hkSampleType.identifier
+    }
+
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     @usableFromInline init(
         _ hkSampleType: Sample._SampleType,
         displayTitle: LocalizedStringResource? = nil,
@@ -68,9 +79,10 @@ public struct SampleType<Sample: _HKSampleWithSampleType>: AnySampleType, Sendab
         self.displayTitle = displayTitle?.value ?? Self.localizedTitle(for: hkSampleType) ?? hkSampleType.identifier
         #endif
     }
-    
+
     #if canImport(HealthKit)
     // swiftlint:disable:next identifier_name
+    @available(iOS 15.4, macOS 13.0, macCatalyst 15.4, watchOS 8.5, visionOS 1, *)
     public func _makeSamplePredicateInternal(filter filterPredicate: NSPredicate?) -> HKSamplePredicate<Sample._QueryResult> {
         Sample._makeSamplePredicateInternal(type: hkSampleType, filter: filterPredicate)
     }
@@ -78,6 +90,7 @@ public struct SampleType<Sample: _HKSampleWithSampleType>: AnySampleType, Sendab
 }
 
 
+@available(macOS 13.0, *)
 extension SampleType where Sample == HKQuantitySample {
     /// The recommended unit that should be used when displaying values of this sample type to a user.
     @inlinable public var displayUnit: HKUnit {
@@ -91,7 +104,7 @@ extension SampleType where Sample == HKQuantitySample {
             fatalError("Cannot provide '\(#function)' for '\(Self.self)'")
         }
     }
-    
+
     /// The expected range of values we expect to see for this sample type, if applicable.
     ///
     /// The main purpose of this is to be able to e.g. adjust chart value ranges based on the specific sample types being visualised.
@@ -109,6 +122,7 @@ extension SampleType where Sample == HKQuantitySample {
 }
 
 
+@available(macOS 13.0, *)
 extension SampleType where Sample == HKCorrelation {
     /// The correlation's associated sample types, if known.
     @inlinable public var associatedQuantityTypes: Set<SampleType<HKQuantitySample>> {
@@ -137,15 +151,17 @@ public struct _FakeLocalizedStringResource: ExpressibleByStringLiteral {
 }
 #endif
 
+@available(macOS 13.0, *)
 extension SampleType {
     #if canImport(Darwin)
     // swiftlint:disable:next missing_docs
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     public typealias LocalizedStringResource = Foundation.LocalizedStringResource
     #else
     // swiftlint:disable:next missing_docs
     public typealias LocalizedStringResource = _FakeLocalizedStringResource
     #endif
-    
+
     /// Creates a new quantity sample type.
     /// Use this initializer only if the sample type you want to work with isn't already defined by SpeziHealthKit.
     /// - parameter identifier: The sample type's underlying `HKQuantityTypeIdentifier`
@@ -153,6 +169,18 @@ extension SampleType {
     /// - parameter displayUnit: The unit which should be used when displaying values of this quantity type to the user.
     /// - parameter expectedValuesRange: If applicable, the expected range the individual sample values will most likely fall into.
     ///     Providing this information allows some components to optimize how they display data belonging to this sample type.
+    @inlinable public static func quantity(
+        _ identifier: HKQuantityTypeIdentifier,
+        displayUnit: HKUnit,
+        expectedValuesRange: ClosedRange<Double>? = nil
+    ) -> SampleType<HKQuantitySample> {
+        .init(
+            HKQuantityType(identifier),
+            variant: .quantity(displayUnit: displayUnit, expectedValuesRange: expectedValuesRange)
+        )
+    }
+
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     @inlinable public static func quantity(
         _ identifier: HKQuantityTypeIdentifier,
         displayTitle: LocalizedStringResource? = nil,
@@ -165,7 +193,7 @@ extension SampleType {
             variant: .quantity(displayUnit: displayUnit, expectedValuesRange: expectedValuesRange)
         )
     }
-    
+
     /// Creates a new correlation sample type.
     /// Use this initializer only if the sample type you want to work with isn't already defined by SpeziHealthKit.
     /// - parameter identifier: The sample type's underlying `HKCorrelationTypeIdentifier`
@@ -173,27 +201,50 @@ extension SampleType {
     /// - parameter associatedQuantityTypes: The sample type's associated quantity sample types. E.g.: for the blood pressure correlation type, the associated quantity types would be systolic and siastolic blood pressure.
     @inlinable public static func correlation(
         _ identifier: HKCorrelationTypeIdentifier,
+        associatedQuantityTypes: Set<SampleType<HKQuantitySample>>
+    ) -> SampleType<HKCorrelation> {
+        .init(HKCorrelationType(identifier), variant: .correlation(associatedQuantityTypes: associatedQuantityTypes))
+    }
+
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
+    @inlinable public static func correlation(
+        _ identifier: HKCorrelationTypeIdentifier,
         displayTitle: LocalizedStringResource? = nil,
         associatedQuantityTypes: Set<SampleType<HKQuantitySample>>
     ) -> SampleType<HKCorrelation> {
         .init(HKCorrelationType(identifier), displayTitle: displayTitle, variant: .correlation(associatedQuantityTypes: associatedQuantityTypes))
     }
-    
+
     /// Creates a new category sample type.
     /// Use this initializer only if the sample type you want to work with isn't already defined by SpeziHealthKit.
     /// - parameter identifier: The sample type's underlying `HKCategoryTypeIdentifier`
     /// - parameter displayTitle: The localized string which should be used when displaying this sample type's title in a user-visible context.
+    @inlinable public static func category(
+        _ identifier: HKCategoryTypeIdentifier
+    ) -> SampleType<HKCategorySample> {
+        .init(HKCategoryType(identifier), variant: .category)
+    }
+
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     @inlinable public static func category(
         _ identifier: HKCategoryTypeIdentifier,
         displayTitle: LocalizedStringResource? = nil
     ) -> SampleType<HKCategorySample> {
         .init(HKCategoryType(identifier), displayTitle: displayTitle, variant: .category)
     }
-    
+
     /// Creates a new clinical record sample type.
     /// Use this initializer only if the sample type you want to work with isn't already defined by SpeziHealthKit.
     /// - parameter identifier: The sample type's underlying `HKClinicalTypeIdentifier`
     /// - parameter displayTitle: The localized string which should be used when displaying this sample type's title in a user-visible context.
+    @available(watchOS, unavailable)
+    @inlinable public static func clinical(
+        _ identifier: HKClinicalTypeIdentifier
+    ) -> SampleType<HKClinicalRecord> {
+        .init(HKClinicalType(identifier), variant: .other)
+    }
+
+    @available(iOS 16, macOS 13, macCatalyst 16, visionOS 1, *)
     @available(watchOS, unavailable)
     @inlinable public static func clinical(
         _ identifier: HKClinicalTypeIdentifier,

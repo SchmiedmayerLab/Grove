@@ -12,11 +12,13 @@ import SpeziFoundation
 import SpeziLocalization
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 protocol DiagnosticMessageConvertible {
     var diagnostic: DiagnosticMessage { get }
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 struct DiagnosticMessage: ExpressibleByStringLiteral, ExpressibleByStringInterpolation {
     let message: String
     
@@ -46,6 +48,7 @@ struct DiagnosticMessage: ExpressibleByStringLiteral, ExpressibleByStringInterpo
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension DiagnosticMessage {
     struct Item {
         let title: String
@@ -60,6 +63,7 @@ extension DiagnosticMessage {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 private func desc(_ value: Any?) -> String? {
     switch value {
     case nil:

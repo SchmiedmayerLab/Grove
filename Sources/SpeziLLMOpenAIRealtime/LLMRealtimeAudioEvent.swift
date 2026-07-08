@@ -10,6 +10,7 @@ import Foundation
 import SpeziLLMOpenAI
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 package enum LLMRealtimeAudioEvent: Sendable {
     case audioDelta(Data)
     case audioDone(Data)

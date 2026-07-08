@@ -12,6 +12,7 @@ import Foundation
 /// Error while undergoing an account operation.
 ///
 /// An error like that might occur due to restrictions or requirements imposed by ``AccountValueConfiguration``.
+@available(iOS 17, macOS 14, *)
 public enum AccountOperationError: LocalizedError {
     /// Missing account value.
     ///

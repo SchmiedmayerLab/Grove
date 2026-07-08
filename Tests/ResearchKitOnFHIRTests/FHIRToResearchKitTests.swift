@@ -9,6 +9,7 @@
 import FHIRQuestionnaires
 import Foundation
 import ModelsR4
+#if ResearchKit
 @testable import ResearchKitOnFHIR
 import Testing
 
@@ -195,3 +196,4 @@ struct FHIRToResearchKitTests {
         )
     }
 }
+#endif

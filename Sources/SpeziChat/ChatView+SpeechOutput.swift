@@ -11,6 +11,7 @@ import SwiftUI
 
 
 /// The underlying `ViewModifier` of `View/speak(_:muted:)`.
+@available(iOS 17, macOS 14, visionOS 1, *)
 private struct ChatViewSpeechModifier: ViewModifier {
     let chat: Chat
     let muted: Bool
@@ -99,6 +100,7 @@ extension View {
     /// - Parameters:
     ///    - chat: The ``Chat`` which should be used for generating the speech output.
     ///    - muted: Indicates if the speech output is currently muted, defaults to `false`.
+    @available(iOS 17, macOS 14, visionOS 1, *)
     public func speak(
         _ chat: Chat,
         muted: Bool = false
@@ -114,6 +116,7 @@ extension View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, visionOS 1, *)
 #Preview("ChatView") {
     @Previewable @State var chat: Chat = .init(
         [
@@ -128,6 +131,7 @@ extension View {
     }
 }
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 #Preview("ChatViewSpeechOutput") {
     @Previewable @State var chat: Chat = .init(
         [
@@ -143,6 +147,7 @@ extension View {
     }
 }
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 #Preview("ChatViewSpeechOutputDisabled") {
     @Previewable @State var chat: Chat = .init(
         [

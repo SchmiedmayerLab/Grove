@@ -18,6 +18,7 @@ import SwiftUI
 /// - Warning: Ensure that the ``LLMFogPlatform`` is specified within the Spezi `Configuration` when using this view in the onboarding flow.
 ///
 /// - Important: The ``LLMFogAuthTokenOnboardingStep`` can only be used with the auth token being set to `RemoteLLMInferenceAuthToken/keychain(_:CredentialsTag)`.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct LLMFogAuthTokenOnboardingStep: View {
     private let actionText: String
     private let action: () async throws -> Void
@@ -83,6 +84,7 @@ public struct LLMFogAuthTokenOnboardingStep: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, visionOS 1, *)
 #Preview {
     LLMFogAuthTokenOnboardingStep(
         actionText: "Continue"

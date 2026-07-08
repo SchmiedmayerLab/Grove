@@ -13,6 +13,7 @@ import SwiftUI
 
 
 @MainActor
+@available(iOS 17, macOS 14, *)
 struct PasswordChangeSheet: View {
     private let accountDetails: AccountDetails
     private let model: AccountOverviewFormViewModel
@@ -156,6 +157,7 @@ struct PasswordChangeSheet: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     NavigationStack {
         AccountDetailsReader { account, details in

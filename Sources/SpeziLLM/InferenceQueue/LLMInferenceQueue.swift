@@ -11,6 +11,7 @@ import SpeziFoundation
 
 
 /// Queue for scheduling and executing asynchronous LLM inference tasks.
+@available(iOS 17, macOS 14, visionOS 1, *)
 package final class LLMInferenceQueue<Element>: Sendable {
     package typealias InferenceTask = @Sendable (InferenceResultStream.Continuation) async -> Void
     package typealias InferenceResultStream = AsyncThrowingStream<Element, any Error>

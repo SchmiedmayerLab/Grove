@@ -11,6 +11,7 @@
 public import SwiftUI
 
 
+@available(iOS 17, *)
 extension Questionnaire.Task.Kind {
     /// A task that asks the user to annotate an image
     public static func annotateImage(_ config: AnnotateImageConfig) -> Self {
@@ -20,6 +21,7 @@ extension Questionnaire.Task.Kind {
 
 
 /// Configures an image annotation task.
+@available(iOS 17, *)
 public struct AnnotateImageConfig: QuestionKindConfig {
     public enum InputImage: Hashable, Sendable {
         case namedInMainBundle(filename: String)
@@ -72,6 +74,7 @@ public struct AnnotateImageConfig: QuestionKindConfig {
 /// ### Related Types
 /// 
 /// - ``AnnotateImageConfig``
+@available(iOS 17, *)
 public struct AnnotateImageQuestionKind: QuestionKindDefinition {
     public static func validate(
         response: QuestionnaireResponses.Response,

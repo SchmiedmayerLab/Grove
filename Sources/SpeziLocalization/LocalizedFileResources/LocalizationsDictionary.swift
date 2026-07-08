@@ -52,6 +52,7 @@ import Foundation
 /// ### Subscripts
 /// - ``subscript(_:using:fallback:)``
 /// - ``subscript(_:)
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 public struct LocalizationsDictionary<Value> {
     private var storage: [LocalizationKey: Value]
 
@@ -119,10 +120,14 @@ public struct LocalizationsDictionary<Value> {
 }
 
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LocalizationsDictionary: Equatable where Value: Equatable {}
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LocalizationsDictionary: Hashable where Value: Hashable {}
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LocalizationsDictionary: Sendable where Value: Sendable {}
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LocalizationsDictionary: Encodable where Value: Encodable {
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
@@ -130,6 +135,7 @@ extension LocalizationsDictionary: Encodable where Value: Encodable {
     }
 }
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LocalizationsDictionary: Decodable where Value: Decodable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -137,6 +143,7 @@ extension LocalizationsDictionary: Decodable where Value: Decodable {
     }
 }
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LocalizationsDictionary: Collection {
     public typealias Index = Dictionary<LocalizationKey, Value>.Index
     public typealias Element = Dictionary<LocalizationKey, Value>.Element
@@ -159,6 +166,7 @@ extension LocalizationsDictionary: Collection {
 }
 
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LocalizationsDictionary: ExpressibleByDictionaryLiteral {
     public init(dictionaryLiteral elements: (LocalizationKey, Value)...) {
         self.init(elements)

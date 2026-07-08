@@ -17,6 +17,7 @@ import SwiftUI
 
 
 @available(iOS 18, *)
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 struct AccessoryRenameButton: View {
     private struct MissingAccessory: LocalizedError {
         var errorDescription: String? {
@@ -91,6 +92,7 @@ struct AccessoryRenameButton: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     let deviceInfo = PairedDeviceInfo(id: .init(), deviceType: "MockDevice", name: "BP", model: "BP5250")
     List {

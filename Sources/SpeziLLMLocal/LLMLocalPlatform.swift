@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if MLX
+
 import Foundation
 import MLX
 import Spezi
@@ -110,3 +112,5 @@ public final class LLMLocalPlatform: LLMPlatform, DefaultInitializable {
         self.queue.shutdown()   // Safeguard shutdown of queue (should happen upon `ServiceModule/run() cancellation)
     }
 }
+
+#endif

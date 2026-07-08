@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if MLX
+
 import Foundation
 import Hub
 import MLXLMCommon
@@ -137,3 +139,5 @@ public final class LLMLocalDownloadManager: NSObject, Sendable {
             }
     }
 }
+
+#endif

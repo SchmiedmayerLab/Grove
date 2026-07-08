@@ -7,6 +7,7 @@
 //
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 protocol DeviceVisitable {
     @SpeziBluetooth
     func accept<Visitor: DeviceVisitor>(_ visitor: inout Visitor)
@@ -14,11 +15,13 @@ protocol DeviceVisitable {
 
 
 @SpeziBluetooth
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 protocol DeviceVisitor: BaseVisitor {
     mutating func visit<S: BluetoothService>(_ service: Service<S>)
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension BluetoothDevice {
     @SpeziBluetooth
     func accept<Visitor: DeviceVisitor>(_ visitor: inout Visitor) {

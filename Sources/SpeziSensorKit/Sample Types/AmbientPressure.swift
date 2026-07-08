@@ -10,6 +10,7 @@ public import CoreMotion
 public import Foundation
 
 
+@available(iOS 17, *)
 extension CMRecordedPressureData: SensorKitSampleProtocol {
     public struct SafeRepresentation: SensorKitSampleSafeRepresentation {
         /// The point in time when the system recorded the measurement.

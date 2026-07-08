@@ -14,6 +14,7 @@ import Spezi
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension HKElectrocardiogram {
     /// A type alias used to associate symptoms in an `HKElectrocardiogram`.
     public typealias Symptoms = [HKCategoryType: HKCategoryValueSeverity]

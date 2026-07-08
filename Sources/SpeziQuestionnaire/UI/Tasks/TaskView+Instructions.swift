@@ -10,6 +10,7 @@ import MarkdownUI
 import SwiftUI
 
 
+@available(iOS 17, *)
 extension TaskView {
     struct Instructions: View {
         let text: String

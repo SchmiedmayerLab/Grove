@@ -54,7 +54,7 @@ final class ShareableRepresentation: NSObject {
 extension ShareableRepresentation {
     private static func tmpUrl(for filename: String, conformingTo type: UTType) -> URL {
         let fileManager = FileManager.default
-        let baseUrl = fileManager.temporaryDirectory.appending(component: "SpeziShareSheet", directoryHint: .isDirectory)
+        let baseUrl = fileManager.temporaryDirectory.appendingPathComponent("SpeziShareSheet", isDirectory: true)
         let fileUrl = baseUrl.appendingPathComponent(filename, conformingTo: type)
         try? fileManager.createDirectory(at: baseUrl, withIntermediateDirectories: true)
         return fileUrl

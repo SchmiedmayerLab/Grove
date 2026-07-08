@@ -12,6 +12,7 @@ import SpeziLLM
 
 
 /// Represents the parameters of Fog LLMs.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct LLMFogParameters: Sendable {
     public enum FogModelType: String, Sendable {
         // swiftlint:disable identifier_name

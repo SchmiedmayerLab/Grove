@@ -11,6 +11,7 @@ import GeneratedOpenAIClient
 import SpeziLLM
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension LLMOpenAIRealtimeSession: AudioCapableLLMSession {
     /// Returns a continuous stream of raw audio chunks (PCM16 format) produced by the Realtime API.
     ///

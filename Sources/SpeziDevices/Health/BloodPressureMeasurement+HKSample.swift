@@ -11,6 +11,7 @@ import HealthKit
 import SpeziBluetoothServices
 
 
+@available(macOS 13.0, *)
 extension BloodPressureMeasurement {
     /// Convert the blood pressure measurement to the HealthKit representation.
     ///
@@ -51,6 +52,7 @@ extension BloodPressureMeasurement {
 }
 
 
+@available(macOS 13.0, *)
 extension BloodPressureMeasurement {
     /// Convert the heart rate measurement to the HealthKit representation.
     ///
@@ -82,6 +84,7 @@ extension BloodPressureMeasurement {
 }
 
 
+@available(macOS 13.0, *)
 extension HKCorrelation {
     /// Retrieve a mock blood pressure sample.
     @_spi(TestingSupport)
@@ -102,6 +105,7 @@ extension HKCorrelation {
     }
 }
 
+@available(macOS 13.0, *)
 extension HKQuantitySample {
     /// Retrieve a mock heart rate sample.
     @_spi(TestingSupport)

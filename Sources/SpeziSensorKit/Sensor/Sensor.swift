@@ -61,6 +61,7 @@ import SpeziFoundation
 /// - ``~=(_:_:)``
 /// - ``==(_:_:)-(Sensor<Any>,AnySensor)``
 /// - ``==(_:_:)-(AnySensor,Sensor<Any>)``
+@available(iOS 17, *)
 public struct Sensor<Sample: SensorKitSampleProtocol>: AnySensor {
     public typealias Sample = Sample
     

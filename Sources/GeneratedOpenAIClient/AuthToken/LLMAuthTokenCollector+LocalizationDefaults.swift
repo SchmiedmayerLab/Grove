@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension LLMAuthTokenCollector {
     /// Localization defaults of the ``LLMAuthTokenCollector``.
     @_documentation(visibility: internal)

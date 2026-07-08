@@ -13,6 +13,7 @@ import SpeziKeychainStorage
 
 
 /// Represents the configuration of an OpenAI-like `LLMPlatform`.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct LLMOpenAILikePlatformConfiguration<PlatformDefinition: LLMOpenAILikePlatformDefinition> {
     /// The platform's model type.
     public typealias ModelType = PlatformDefinition.ModelType
@@ -65,6 +66,7 @@ public struct LLMOpenAILikePlatformConfiguration<PlatformDefinition: LLMOpenAILi
 }
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension CredentialsTag {
     /// Constructs the canonical tag for storing the specified platform's API keys in the keychain.
     public static func `for`(_ platformDef: (some LLMOpenAILikePlatformDefinition).Type) -> Self {
@@ -73,6 +75,7 @@ extension CredentialsTag {
 }
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension RemoteLLMInferenceAuthToken {
     /// Configures an auth token that uses the platform's default username and service identifier.
     public static func keychain<D>(for platform: LLMOpenAILikePlatform<D>.Type) -> Self {

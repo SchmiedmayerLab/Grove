@@ -14,6 +14,7 @@ import SpeziBluetoothServices
 /// A generic Bluetooth device.
 ///
 /// A generic Bluetooth device that provides access to basic device information.
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 public protocol GenericDevice: BluetoothDevice, GenericBluetoothPeripheral, Identifiable, Sendable {
     /// The device identifier.
     ///
@@ -53,6 +54,7 @@ public protocol GenericDevice: BluetoothDevice, GenericBluetoothPeripheral, Iden
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension GenericDevice {
     /// Default label implementation.
     ///

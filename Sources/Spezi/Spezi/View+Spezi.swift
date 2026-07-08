@@ -12,6 +12,7 @@ import SwiftUI
 
 
 @_spi(APISupport)
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct SpeziViewModifier: ViewModifier {
     @State private var spezi: Spezi
     
@@ -34,6 +35,7 @@ extension View {
     /// - Parameter delegate: The ``SpeziAppDelegate`` used in the SwiftUI App instance.
     /// - Returns: The configured view using the Spezi framework.
     @MainActor
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     public func spezi(_ delegate: SpeziAppDelegate) -> some View {
         modifier(SpeziViewModifier(delegate.spezi))
     }

@@ -9,6 +9,7 @@
 import HealthKit
 
 
+@available(macOS 13, *)
 extension HKWorkoutActivityType {
     var fhirWorkoutTypeValue: String {
         get throws {

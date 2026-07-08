@@ -10,6 +10,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 struct ExistingAccountView<Continue: View>: View {
     private let accountDetails: AccountDetails
     private let continueButton: Continue
@@ -50,6 +51,7 @@ struct ExistingAccountView<Continue: View>: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     ExistingAccountView(details: .createMock())
         .padding(.horizontal, ViewSizing.outerHorizontalPadding)
@@ -58,6 +60,7 @@ struct ExistingAccountView<Continue: View>: View {
         }
 }
 
+@available(iOS 17, macOS 14, *)
 #Preview {
     ExistingAccountView(details: .createMock()) {
         Button {

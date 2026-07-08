@@ -13,6 +13,7 @@ import OSLog
 import Spezi
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension HKHealthStore {
     final class BackgroundObserverQueryInvalidator: @unchecked Sendable {
         private let healthStore: HKHealthStore

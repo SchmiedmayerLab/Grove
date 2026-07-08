@@ -14,6 +14,7 @@ import SpeziHealthKit
 
 
 /// State of a ``BulkExportSession``
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 public enum BulkExportSessionState: Hashable, Sendable {
     /// The session is currently paused.
     ///
@@ -32,6 +33,7 @@ public enum BulkExportSessionState: Hashable, Sendable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 public struct BulkExportSessionProgress: Hashable, Sendable {
     /// The amount of work that has already been successfully completed, as a value from `0` to `1`.
     public let completion: Double
@@ -62,6 +64,7 @@ public struct BulkExportSessionProgress: Hashable, Sendable {
 /// How much concurrency a ``BulkExportSession`` should employ when running.
 ///
 /// Allowing concurrency for a session greatly improves performance, since the session will be able to fetch and process multiple batches at the same time.
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 public enum BulkExportConcurrencyLevel: Hashable, Sendable {
     /// The session should not process multiple batches at the same time
     case disabled
@@ -78,6 +81,7 @@ public enum BulkExportConcurrencyLevel: Hashable, Sendable {
 
 
 /// An error which can occur when starting a ``BulkExportSession``.
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 public enum StartSessionError: Error {
     /// Attempted to `start()` a session which is already running.
     case alreadyRunning
@@ -105,6 +109,7 @@ public enum StartSessionError: Error {
 /// - ``pause()``
 /// ### Other
 /// - ``SpeziHealthKitBulkExport/==(_:_:)``
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 public protocol BulkExportSession<Processor>: AnyObject, Hashable, Sendable, Observable {
     /// The session's ``BatchProcessor``
     associatedtype Processor: BatchProcessor
@@ -159,6 +164,7 @@ public protocol BulkExportSession<Processor>: AnyObject, Hashable, Sendable, Obs
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension BulkExportSession {
     /// The number of batches the session has already processed, i.e. the combined number of completed and failed batches.
     @MainActor public var numProcessedBatches: Int {
@@ -190,6 +196,7 @@ extension BulkExportSession {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension BulkExportSession {
     /// Compares two Bulk Export Sessions for equality.
     public static func == (lhs: Self, rhs: Self) -> Bool {
@@ -203,6 +210,7 @@ extension BulkExportSession {
 }
 
 /// Compares two Bulk Export Sessions for equality.
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 public func == (lhs: any BulkExportSession, rhs: any BulkExportSession) -> Bool { // swiftlint:disable:this static_operator
     ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
 }

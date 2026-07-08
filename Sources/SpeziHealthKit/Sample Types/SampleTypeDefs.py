@@ -35,6 +35,11 @@ class Availability(object):
         return components
 
 
+# Shared availability definitions.
+APPLE_OS_2024_AVAILABILITY = Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0')
+CLINICAL_NOTE_RECORD_AVAILABILITY = Availability(iOS='16.4', macOS='13.3', watchOS='9.4')
+
+
 class SampleType(object):
     def __init__(
         self,
@@ -158,26 +163,31 @@ quantity_types: list[SampleType] = [
         doc='A quantity sample type that measures the distance the user has moved by walking or running.'
     ),
     quantity_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='runningGroundContactTime',
         display_unit='.secondUnit(with: .milli)',
         doc='A quantity sample type that measures the amount of time the runner’s foot is in contact with the ground while running.'
     ),
     quantity_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='runningPower',
         display_unit='.watt()',
         doc='A quantity sample type that measures the rate of work required for the runner to maintain their speed.'
     ),
     quantity_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='runningSpeed',
         display_unit=localeDependentUnit(us='.mile() / .hour()', metric='.meterUnit(with: .kilo) / .hour()'),
         doc='A quantity sample type that measures the runner’s speed.'
     ),
     quantity_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='runningStrideLength',
         display_unit=localeDependentUnit(us='.foot()', metric='.meter()'),
         doc='A quantity sample type that measures the distance covered by a single step while running.'
     ),
     quantity_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='runningVerticalOscillation',
         display_unit=localeDependentUnit(us='.inch()', metric='.meterUnit(with: .centi)'),
         doc='A quantity sample type measuring pelvis vertical range of motion during a single running stride.'
@@ -284,6 +294,7 @@ quantity_types: list[SampleType] = [
         doc='A quantity sample type that measures the user’s waist circumference.'
     ),
     quantity_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='appleSleepingWristTemperature',
         display_unit=localeDependentUnit(us='.degreeFahrenheit()', metric='.degreeCelsius()'),
         doc='A quantity sample type that records the wrist temperature during sleep.'
@@ -328,11 +339,13 @@ quantity_types: list[SampleType] = [
         doc='A quantity sample type that measures the standard deviation of heartbeat intervals.'
     ),
     quantity_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='heartRateRecoveryOneMinute',
         display_unit='.count() / .minute()', # might not be the correct unit; docs say count, but the health app seems to use BPM?
         doc='A quantity sample that records the reduction in heart rate from the peak exercise rate to the rate one minute after exercising ended.'
     ),
     quantity_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='atrialFibrillationBurden',
         display_unit='.percent()',
         doc='A quantity type that measures an estimate of the percentage of time a person’s heart shows signs of atrial fibrillation (AFib) while wearing Apple Watch.'
@@ -672,11 +685,13 @@ quantity_types: list[SampleType] = [
 
     # Diving
     quantity_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='underwaterDepth',
         display_unit=localeDependentUnit(us='.foot()', metric='.meter()'),
         doc='A quantity sample that records a person’s depth underwater.'
     ),
     quantity_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='waterTemperature',
         display_unit=localeDependentUnit(us='.degreeFahrenheit()', metric='.degreeCelsius()'),
         doc=' A quantity sample that records the water temperature.'
@@ -684,96 +699,103 @@ quantity_types: list[SampleType] = [
 
     # Other
     quantity_type(
-        availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='appleSleepingBreathingDisturbances',
         display_unit='.count()',
         doc='A quantity sample that records breathing disturbances during sleep.'
     ),
     quantity_type(
-        availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='crossCountrySkiingSpeed',
         display_unit=localeDependentUnit(us='.mile() / .hour()', metric='.meterUnit(with: .kilo) / .hour()'),
         doc='A quantity sample that records cross-country skiing speed.'
     ),
     quantity_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='cyclingCadence',
         display_unit='.count() / .minute()',
         doc='A quantity sample that records cycling cadence.'
     ),
     quantity_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='cyclingFunctionalThresholdPower',
         display_unit='.watt()',
         doc='A quantity sample that records cycling functional threshold power.'
     ),
     quantity_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='cyclingPower',
         display_unit='.watt()',
         doc='A quantity sample that records cycling power.'
     ),
     quantity_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='cyclingSpeed',
         display_unit=localeDependentUnit(us='.mile() / .hour()', metric='.meterUnit(with: .kilo) / .hour()'),
         doc='A quantity sample that records cycling speed.'
     ),
     quantity_type(
-        availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='distanceCrossCountrySkiing',
         display_unit=localeDependentUnit(us='.mile()', metric='.meterUnit(with: .kilo)'),
         doc='A quantity sample that records cross-country skiing distance.'
     ),
     quantity_type(
-        availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='distancePaddleSports',
         display_unit=localeDependentUnit(us='.mile()', metric='.meterUnit(with: .kilo)'),
         doc='A quantity sample that records paddle sports distance.'
     ),
     quantity_type(
-        availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='distanceRowing',
         display_unit=localeDependentUnit(us='.mile()', metric='.meterUnit(with: .kilo)'),
         doc='A quantity sample that records rowing distance.'
     ),
     quantity_type(
-        availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='distanceSkatingSports',
         display_unit=localeDependentUnit(us='.mile()', metric='.meterUnit(with: .kilo)'),
         doc='A quantity sample that records skating sports distance.'
     ),
     quantity_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='environmentalSoundReduction',
         display_unit='.decibelHearingLevel()',
         doc='A quantity sample that records environmental sound reduction.'
     ),
     quantity_type(
-        availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='estimatedWorkoutEffortScore',
         display_unit='.count()', # TODO not sure about this one
         doc='A quantity sample that records estimated physical effort during workouts.'
     ),
     quantity_type(
-        availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='paddleSportsSpeed',
         display_unit=localeDependentUnit(us='.mile() / .hour()', metric='.meterUnit(with: .kilo) / .hour()'),
         doc='A quantity sample that records paddle sports speed.'
     ),
     quantity_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='physicalEffort',
         display_unit='.kilocalorie() / (.gramUnit(with: .kilo) * .hour())',
         doc='A quantity sample that records physical effort.'
     ),
     quantity_type(
-        availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='rowingSpeed',
         display_unit=localeDependentUnit(us='.mile() / .hour()', metric='.meterUnit(with: .kilo) / .hour()'),
         doc='A quantity sample that records rowing speed.'
     ),
     quantity_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='timeInDaylight',
         display_unit='.minute()',
         doc='A quantity sample that records time spent in daylight.'
     ),
     quantity_type(
-        availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='workoutEffortScore',
         display_unit='.count()', # TODO not sure about this one
         doc='A quantity sample that records workout effort.'
@@ -802,18 +824,22 @@ category_types: list[SampleType] = [
         doc='A category sample type that records spotting outside the normal menstruation period.'
     ),
     category_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='infrequentMenstrualCycles',
         doc='A category sample that indicates an infrequent menstrual cycle.'
     ),
     category_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='irregularMenstrualCycles',
         doc='A category sample that indicates an irregular menstrual cycle.'
     ),
     category_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='persistentIntermenstrualBleeding',
         doc='A category sample that indicates persistent intermenstrual bleeding.'
     ),
     category_type(
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='prolongedMenstrualPeriods',
         doc='A category sample that indicates a prolonged menstrual cycle.'
     ),
@@ -1043,12 +1069,12 @@ category_types: list[SampleType] = [
         doc='A category type that records vaginal dryness as a symptom.'
     ),
     category_type(
-        availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='bleedingDuringPregnancy',
         doc='A category type that records bleeding during pregnancy as a symptom.'
     ),
     category_type(
-        availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='bleedingAfterPregnancy',
         doc='A category type that records bleeding after pregnancy as a symptom.'
     ),
@@ -1075,7 +1101,7 @@ category_types: list[SampleType] = [
         doc='A category type that records sleep changes as a symptom.'
     ),
     category_type(
-        availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
+        availability=APPLE_OS_2024_AVAILABILITY,
         identifier='sleepApneaEvent',
         doc='A category type that records sleep apnea as a symptom.'
     ),
@@ -1181,6 +1207,7 @@ clinical_types: list[SampleType] = [
         doc='A type identifier for records of allergic or intolerant reactions.'
     ),
     clinical_type(
+        availability=CLINICAL_NOTE_RECORD_AVAILABILITY,
         identifier='clinicalNoteRecord',
         doc='A type identifier for records of clinical notes.'
     ),
@@ -1273,6 +1300,7 @@ other_sample_types = [
         identifier_def='HKWorkoutTypeIdentifier'
     ),
     OtherSampleType(
+        availability=APPLE_OS_2024_AVAILABILITY,
         sampleTypePropertyName='visionPrescription',
         hkSampleClass='HKVisionPrescription',
         doc='The vision prescription sample type',
@@ -1281,7 +1309,7 @@ other_sample_types = [
         identifier_def='HKVisionPrescriptionTypeIdentifier'
     ),
     OtherSampleType(
-        availability=Availability(iOS='18.0', watchOS='11.0', macOS='15.0', visionOS='2.0'),
+        availability=APPLE_OS_2024_AVAILABILITY,
         sampleTypePropertyName='stateOfMind',
         hkSampleClass='HKStateOfMind',
         doc='The state of mind sample type',
@@ -1306,7 +1334,7 @@ other_sample_types = [
         identifier_def='HKWorkoutRouteTypeIdentifier'
     ),
     OtherSampleType(
-        availability=Availability(iOS='18.0', watchOS='11.0', macOS='15.0', visionOS='2.0'),
+        availability=APPLE_OS_2024_AVAILABILITY,
         sampleTypePropertyName='gad7',
         hkSampleClass='HKGAD7Assessment',
         doc='The GAD-7 (generalized anxiety disorder 7) score type',
@@ -1315,7 +1343,7 @@ other_sample_types = [
         identifier_def='HKScoredAssessmentTypeIdentifier.GAD7'
     ),
     OtherSampleType(
-        availability=Availability(iOS='18.0', watchOS='11.0', macOS='15.0', visionOS='2.0'),
+        availability=APPLE_OS_2024_AVAILABILITY,
         sampleTypePropertyName='phq9',
         hkSampleClass='HKPHQ9Assessment',
         doc='The PHQ-9 (nine-item Patient Health Questionnaire) score type',

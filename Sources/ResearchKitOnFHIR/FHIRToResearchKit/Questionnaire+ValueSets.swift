@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if ResearchKit && canImport(ResearchKit)
+
 import ModelsR4
 
 
@@ -22,3 +24,5 @@ extension Questionnaire {
         return valueSets
     }
 }
+
+#endif

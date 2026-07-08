@@ -166,7 +166,7 @@ extension AccountKeyMacro: PeerMacro {
                 )
             }
 
-            if entryViewTypeName != nil && !accountKeyOptions.contains([.display, .mutable]) {
+            if entryViewTypeName != nil && !accountKeyOptions.isSuperset(of: [.display, .mutable]) {
                 throw DiagnosticsError(
                     syntax: options,
                     message: "Cannot provide a `entryView` if the `@AccountKey` does not specify `display` and `mutable` option.",

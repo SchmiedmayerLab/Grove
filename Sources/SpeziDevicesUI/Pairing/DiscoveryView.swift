@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 struct DiscoveryView<Hint: View>: View {
     private let pairingHint: Hint
 
@@ -31,6 +32,7 @@ struct DiscoveryView<Hint: View>: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     SheetPreview {
         DiscoveryView()

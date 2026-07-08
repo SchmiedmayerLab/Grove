@@ -63,6 +63,7 @@ import SwiftUI
 /// }
 /// ```
 @MainActor
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 public struct AsyncButton<Label: View>: View {
     private enum GroupResult {
         case debounce
@@ -144,6 +145,7 @@ public struct AsyncButton<Label: View>: View {
     ///   - title: The localized string used to generate the Label.
     ///   - role: An optional button role that is passed onto the underlying `Button`.
     ///   - action: An asynchronous button action.
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public init(
         _ title: LocalizedStringResource,
         role: ButtonRole? = nil,
@@ -212,6 +214,7 @@ public struct AsyncButton<Label: View>: View {
     ///   - state: A ``ViewState`` binding that it used to propagate any error caught in the button action.
     ///         It may also be used to externally control or observe the button's processing state.
     ///   - action: An asynchronous button action.
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public init(
         _ title: LocalizedStringResource,
         role: ButtonRole? = nil,
@@ -320,6 +323,7 @@ public struct AsyncButton<Label: View>: View {
 
 
 #if DEBUG
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 private struct PreviewButton: View {
     var title: String = "Test Button"
     var role: ButtonRole?
@@ -337,20 +341,25 @@ private struct PreviewButton: View {
     }
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     PreviewButton()
 }
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     PreviewButton(title: "Test Button with short action", duration: .milliseconds(100))
 }
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     PreviewButton(title: "Test Button with Error", duration: .seconds(0)) {
         throw CancellationError()
     }
 }
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     PreviewButton(title: "Processing only Button", state: .processing)
 }
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     PreviewButton(title: "Destructive Button", role: .destructive)
 }

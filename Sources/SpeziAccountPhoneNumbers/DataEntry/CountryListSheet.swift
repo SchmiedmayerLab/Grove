@@ -10,6 +10,7 @@ import PhoneNumberKit
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 struct CountryListSheet: View {
     @Environment(PhoneNumberViewModel.self) private var phoneNumberViewModel
     @Environment(\.dismiss) private var dismiss
@@ -101,6 +102,7 @@ struct CountryListSheet: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     CountryListSheet()
         .environment(PhoneNumberViewModel())

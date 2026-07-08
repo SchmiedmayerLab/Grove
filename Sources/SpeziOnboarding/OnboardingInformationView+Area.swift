@@ -50,6 +50,7 @@ extension OnboardingInformationView.Area {
     /// - parameter icon: The area's icon, displayed at its left edge.
     /// - parameter title: The area's localized title, displayed to the right of the `icon`.
     /// - parameter description: The area's localized description, displayed below its `title`.
+    @available(iOS 16, macOS 13, visionOS 1, *)
     public init(@ViewBuilder icon: () -> some View, title: LocalizedStringResource, description: LocalizedStringResource) {
         self.init {
             icon()
@@ -81,6 +82,7 @@ extension OnboardingInformationView.Area {
     /// - parameter iconSymbol: SF Symbol name to be used as the area's icon.
     /// - parameter title: The area's localized title, displayed to the right of the `icon`.
     /// - parameter description: The area's localized description, displayed below its `title`.
+    @available(iOS 16, macOS 13, visionOS 1, *)
     public init(iconSymbol: String, title: LocalizedStringResource, description: LocalizedStringResource) {
         self.init(icon: { Image(systemName: iconSymbol) }, title: title, description: description)
     }

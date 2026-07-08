@@ -15,6 +15,7 @@ import SwiftData
 
 
 /// Persistent information stored of a paired device.
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 @Model
 public final class PairedDeviceInfo {
     /// The CoreBluetooth device identifier.
@@ -123,9 +124,11 @@ public final class PairedDeviceInfo {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension PairedDeviceInfo: Identifiable {}
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension PairedDeviceInfo: Hashable {
     public static func == (lhs: PairedDeviceInfo, rhs: PairedDeviceInfo) -> Bool {
         lhs.id == rhs.id
@@ -143,6 +146,7 @@ extension PairedDeviceInfo: Hashable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension PairedDeviceInfo: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
         """
@@ -169,6 +173,7 @@ extension PairedDeviceInfo: CustomStringConvertible, CustomDebugStringConvertibl
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension PairedDeviceInfo {
     /// Mock Health Device 1 Data.
     @_spi(TestingSupport)

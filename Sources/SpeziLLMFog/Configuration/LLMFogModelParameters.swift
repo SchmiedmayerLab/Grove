@@ -12,6 +12,7 @@ import OpenAPIRuntime
 
 
 /// Represents the model-specific parameters of Fog LLMs.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct LLMFogModelParameters: Sendable {
     /// The response format of the LLM.
     public enum ResponseFormat {

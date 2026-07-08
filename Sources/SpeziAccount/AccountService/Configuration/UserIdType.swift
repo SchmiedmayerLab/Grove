@@ -12,6 +12,7 @@ import Foundation
 /// Determines the type and kind of the `userId`.
 ///
 /// Refer to the documentation of ``AccountDetails/userId``.
+@available(iOS 17, macOS 14, *)
 public enum UserIdType {
     /// An user id that is the user's email address at the same time.
     case emailAddress
@@ -24,9 +25,11 @@ public enum UserIdType {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension UserIdType: Equatable, Sendable {}
 
 
+@available(iOS 17, macOS 14, *)
 extension UserIdType: CustomLocalizedStringResourceConvertible {
     public var localizedStringResource: LocalizedStringResource {
         switch self {

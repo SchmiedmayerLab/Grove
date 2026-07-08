@@ -12,6 +12,7 @@ import SpeziLLM
 
 
 /// Errors that can occur by interacting with Fog LLMs.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public enum LLMFogError: LLMError {
     /// Fog LLM user token is invalid.
     case invalidAPIToken
@@ -120,6 +121,7 @@ public enum LLMFogError: LLMError {
 }
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension LLMFogSession {
     private static let modelNotFoundRegex = "model '([\\w:]+)' not found, try pulling it first"
 

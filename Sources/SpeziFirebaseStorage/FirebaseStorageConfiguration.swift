@@ -30,6 +30,7 @@ import SpeziFirebaseConfiguration
 /// ### Configuration
 /// - ``init()``
 /// - ``init(emulatorSettings:)``
+@available(iOS 17, *)
 public final class FirebaseStorageConfiguration: Module, DefaultInitializable {
     @Dependency(ConfigureFirebaseApp.self)
     private var configureFirebaseApp

@@ -10,12 +10,14 @@ import HealthKit
 
 
 /// A generic Bluetooth Health device.
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 public protocol HealthDevice: GenericDevice {
     /// The HealthKit device description.
     var hkDevice: HKDevice { get }
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension HealthDevice {
     /// The HealthKit device description.
     ///

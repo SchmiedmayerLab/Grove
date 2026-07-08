@@ -10,6 +10,7 @@ import Foundation
 import SpeziLocalization
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension StudyBundle {
     /// An error that can occur when creating a Study Bundle.
     @_spi(APISupport)
@@ -69,6 +70,7 @@ extension StudyBundle {
     }
     
     /// Creates a new Study Bundle, from the specified inputs.
+    @available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
     public static func writeToDisk(
         at bundleUrl: URL,
         definition: StudyDefinition,

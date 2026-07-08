@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, *)
 struct TaskView<Header: View>: View {
     @Environment(QuestionnaireResponses.self) private var allResponses
     
@@ -95,6 +96,7 @@ struct TaskView<Header: View>: View {
 }
 
 
+@available(iOS 17, *)
 extension QuestionKindDefinition {
     @MainActor
     @ViewBuilder
@@ -112,6 +114,7 @@ extension QuestionKindDefinition {
 }
 
 
+@available(iOS 17, *)
 extension View {
     func intoAnyView() -> AnyView {
         AnyView(self)

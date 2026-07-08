@@ -11,6 +11,7 @@ import OpenAPIRuntime
 import SpeziLLM
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension LLMOpenAILikeSession {
     /// Map the ``LLMOpenAISession/context`` to the OpenAI `[ChatQuery.ChatCompletionMessageParam]` representation.
     private var openAIContext: [Components.Schemas.ChatCompletionRequestMessage] {

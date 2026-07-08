@@ -11,6 +11,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 struct OTCEntryView: View {
     @State private var viewState = ViewState.idle
     @FocusState private var isTextFieldFocused: Bool
@@ -151,6 +152,7 @@ struct OTCEntryView: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     OTCEntryView()
 }

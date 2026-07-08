@@ -11,6 +11,7 @@ import SensorKit
 import SpeziFoundation
 
 
+@available(iOS 17, *)
 extension SensorKit {
     /// A batch of samples returned by SensorKit
     public struct FetchResult<Sample: SensorKitSampleProtocol>: Hashable {
@@ -33,6 +34,7 @@ extension SensorKit {
 }
 
 
+@available(iOS 17, *)
 extension SensorKit.FetchResult: RandomAccessCollection {
     @inlinable public var startIndex: Int {
         samples.startIndex

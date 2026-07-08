@@ -24,6 +24,7 @@
 ///
 /// ### Configuration
 /// - ``Swift/Array/default``
+@available(iOS 17, macOS 14, *)
 public struct ConfiguredAccountKey {
     let configuration: any AccountKeyConfiguration
 
@@ -162,4 +163,5 @@ public struct ConfiguredAccountKey {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension ConfiguredAccountKey: Sendable {}

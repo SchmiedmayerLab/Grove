@@ -29,6 +29,7 @@ import SpeziFoundation
 ///     return imp(sampleType.underlyingSampleType)
 /// }
 /// ```
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 public enum SampleTypeProxy: Identifiable, Sendable {
     case quantity(SampleType<HKQuantitySample>)
     case correlation(SampleType<HKCorrelation>)
@@ -104,6 +105,7 @@ public enum SampleTypeProxy: Identifiable, Sendable {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension SampleTypeProxy: Equatable, Hashable {
     @inlinable
     public static func == (lhs: Self, rhs: Self) -> Bool {
@@ -117,6 +119,7 @@ extension SampleTypeProxy: Equatable, Hashable {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension SampleTypeProxy: Codable {
     /// An error that can occur when decoding a ``SampleTypeProxy``.
     public enum SampleTypeDecodingError: Error {
@@ -168,11 +171,15 @@ extension SampleTypeProxy: Codable {
         case is HKWorkoutType.Type:
             self = .workout(.workout)
         case is HKPrescriptionType.Type:
-            switch sampleTypeIdentifier {
-            case HKVisionPrescriptionTypeIdentifier:
-                self = .visionPrescription(.visionPrescription)
-            default:
-                throw SampleTypeDecodingError.unknownSampleTypeIdentifier(sampleTypeIdentifier)
+            if #available(iOS 18.0, watchOS 11.0, macOS 15.0, visionOS 2.0, *) {
+                switch sampleTypeIdentifier {
+                case HKVisionPrescriptionTypeIdentifier:
+                    self = .visionPrescription(.visionPrescription)
+                default:
+                    throw SampleTypeDecodingError.unknownSampleTypeIdentifier(sampleTypeIdentifier)
+                }
+            } else {
+                throw SampleTypeDecodingError.unknownSampleTypeClassname(sampleTypeClassname)
             }
         case is HKSeriesType.Type:
             switch sampleTypeIdentifier {
@@ -227,6 +234,7 @@ extension SampleTypeProxy: Codable {
 
 /// Compare two sample types, based on their identifiers
 @inlinable // swiftlint:disable:next static_operator
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 public func ~= (pattern: SampleType<some Any>, value: SampleTypeProxy) -> Bool {
     pattern.id == value.id
 }

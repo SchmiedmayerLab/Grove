@@ -18,6 +18,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 public struct CompletedTileHeader<Title: View>: View {
     private let alignment: HorizontalAlignment
     private let title: Title
@@ -47,6 +48,7 @@ public struct CompletedTileHeader<Title: View>: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     List {
         CompletedTileHeader {

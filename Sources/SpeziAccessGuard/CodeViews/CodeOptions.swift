@@ -22,6 +22,7 @@ import enum UIKit.UIKeyboardType
 /// ### Enumeration Cases
 /// - ``numeric(_:)-enum.case``
 /// - ``alphanumeric(_:)-enum.case``
+@available(iOS 17, *)
 public enum PasscodeFormat: Hashable, Sendable, Codable {
     case numeric(Length)
     case alphanumeric(Length)
@@ -53,6 +54,7 @@ public enum PasscodeFormat: Hashable, Sendable, Codable {
 }
 
 
+@available(iOS 17, *)
 extension PasscodeFormat {
     var length: Length {
         switch self {
@@ -85,6 +87,7 @@ extension PasscodeFormat {
 }
 
 
+@available(iOS 17, *)
 extension PasscodeFormat: CustomLocalizedStringResourceConvertible {
     public var localizedStringResource: LocalizedStringResource {
         switch self {
@@ -101,6 +104,7 @@ extension PasscodeFormat: CustomLocalizedStringResourceConvertible {
 }
 
 
+@available(iOS 17, *)
 extension PasscodeFormat {
     static func automatic(forFixedCode fixedCode: String) -> Self {
         if fixedCode.allSatisfy({ $0.isASCII && $0.isNumber }) {

@@ -46,9 +46,10 @@ import Synchronization
 /// - ``supportedProtocols``
 /// - ``SupportedProtocol``
 @MainActor
-@available(iOS 18.0, *)
+@available(iOS 18.0, macOS 15.0, macCatalyst 18.0, watchOS 11.0, visionOS 2.0, tvOS 18.0, *)
 public final class AccessorySetupKit {
     @MainActor
+    @available(iOS 18.0, macOS 15.0, macCatalyst 18.0, watchOS 11.0, visionOS 2.0, tvOS 18.0, *)
     @Observable
     fileprivate final class State {
         var pickerPresented = false
@@ -313,7 +314,7 @@ public final class AccessorySetupKit {
 }
 
 
-@available(iOS 18.0, *)
+@available(iOS 18.0, macOS 15.0, macCatalyst 18.0, watchOS 11.0, visionOS 2.0, tvOS 18.0, *)
 extension AccessorySetupKit: Module, DefaultInitializable, Sendable {}
 
 
@@ -381,7 +382,7 @@ extension AccessorySetupKit.AccessoryEvent: CustomStringConvertible, CustomDebug
 }
 
 
-@available(iOS 18.0, *)
+@available(iOS 18.0, macOS 15.0, macCatalyst 18.0, watchOS 11.0, visionOS 2.0, tvOS 18.0, *)
 @available(macCatalyst, unavailable)
 extension AccessorySetupKit {
     /// A supported protocol of the accessory setup kit.
@@ -402,7 +403,7 @@ extension AccessorySetupKit {
     }
 }
 
-@available(iOS 18.0, *)
+@available(iOS 18.0, macOS 15.0, macCatalyst 18.0, watchOS 11.0, visionOS 2.0, tvOS 18.0, *)
 @available(macCatalyst, unavailable)
 extension AccessorySetupKit.SupportedProtocol {
     /// Discover accessories using Bluetooth or Bluetooth Low Energy.

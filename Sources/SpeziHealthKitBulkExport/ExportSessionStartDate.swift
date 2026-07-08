@@ -55,6 +55,7 @@ extension ExportSessionStartDate {
 }
 
 #if canImport(HealthKit)
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension ExportSessionStartDate {
     func startDate(for sampleType: SampleType<some Any>, in healthKit: HealthKit, relativeTo endDate: Date) async -> Date? {
         switch self {

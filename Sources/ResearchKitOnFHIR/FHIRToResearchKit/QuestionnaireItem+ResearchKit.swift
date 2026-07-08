@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if ResearchKit && canImport(ResearchKit)
+
 import FHIRModelsExtensions
 import ModelsR4
 import ResearchKit
@@ -330,3 +332,5 @@ extension QuestionnaireItem {
         return choices
     }
 }
+
+#endif

@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if ResearchKit && canImport(ResearchKit)
+
 import ModelsR4
 import ResearchKit
 @_exported import class ResearchKit.ORKNavigableOrderedTask
@@ -94,3 +96,5 @@ extension QuestionnaireItemType {
         }
     }
 }
+
+#endif

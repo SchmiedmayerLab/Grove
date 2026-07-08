@@ -88,6 +88,7 @@ import SwiftUI
 /// - ``loadModule(_:ownership:)``
 /// - ``unloadModule(_:)``
 #if canImport(SwiftUI)
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 @Observable
 #endif
 public final class Spezi: Sendable { // swiftlint:disable:this type_body_length
@@ -510,6 +511,7 @@ public final class Spezi: Sendable { // swiftlint:disable:this type_body_length
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Module {
     @MainActor
     fileprivate func storeModule(into spezi: Spezi) {
@@ -555,6 +557,7 @@ extension Module {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Spezi {
     private static let initContextLock = NSLock()
     nonisolated(unsafe) private static var _moduleInitContext: ModuleDescription?

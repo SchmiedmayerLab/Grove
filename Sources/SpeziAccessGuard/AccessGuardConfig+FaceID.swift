@@ -27,6 +27,7 @@ public import SwiftUI
 /// - ``id``
 /// - ``timeout``
 /// - ``fallback``
+@available(iOS 17, *)
 public struct BiometricAccessGuard: _AccessGuardConfig {
     public let id: AccessGuardIdentifier<Self>
     public let timeout: Duration
@@ -60,6 +61,7 @@ public struct BiometricAccessGuard: _AccessGuardConfig {
 }
 
 
+@available(iOS 17, *)
 private struct BiometricUnlockView: View {
     var model: _BiometricAccessGuardModel
     private let context = LAContext()

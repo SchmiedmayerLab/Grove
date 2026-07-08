@@ -11,6 +11,7 @@ import SpeziDevices
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 struct PairedDeviceView: View {
     private let device: any PairableDevice
     private let appName: String
@@ -45,6 +46,7 @@ struct PairedDeviceView: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     SheetPreview {
         PairedDeviceView(MockDevice.createMockDevice(), appName: "Example")

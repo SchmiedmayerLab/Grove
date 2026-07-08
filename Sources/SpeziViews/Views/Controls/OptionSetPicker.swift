@@ -66,6 +66,7 @@ private struct ViewBasedOnVisibility<Unlabeled: View, Labeled: View>: View {
 ///
 /// ### Styling
 /// - ``OptionSetPickerStyle``
+@available(iOS 16.4, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 public struct OptionSetPicker<Label: View, Value: OptionSet & PickerValue>: View
     where Value.AllCases: RandomAccessCollection, Value == Value.Element {
     private let allowEmptySelection: Bool
@@ -225,6 +226,7 @@ public struct OptionSetPicker<Label: View, Value: OptionSet & PickerValue>: View
     ///   - selection: The `OptionSet`-based selection.
     ///   - style: The style how the picker is displayed.
     ///   - allowEmptySelection: Flag indicating if an empty selection is allowed.
+    @available(iOS 16.4, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public init(
         _ titleKey: LocalizedStringResource,
         selection: Binding<Value>,
@@ -285,6 +287,7 @@ public struct OptionSetPicker<Label: View, Value: OptionSet & PickerValue>: View
 
 
 #if DEBUG
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension PreviewLayout {
     fileprivate struct Options: OptionSet, PickerValue {
         static let option1 = Options(rawValue: 1 << 0)
@@ -304,6 +307,7 @@ extension PreviewLayout {
 }
 
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     @Previewable @State var selection: PreviewLayout.Options = []
     @Previewable @State var picker: String = ""

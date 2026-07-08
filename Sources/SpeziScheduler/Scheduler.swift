@@ -81,6 +81,7 @@ import SwiftUI
 /// - ``deleteAllVersions(of:)``
 /// - ``deleteAllVersions(ofTask:)``
 @MainActor
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 public final class Scheduler: Module, EnvironmentAccessible, DefaultInitializable, Sendable { // swiftlint:disable:this type_body_length
     /// How shadowed outcomes detected when updating a ``Task`` should be handled.
     public enum TaskUpdateShadowedOutcomesHandling {
@@ -446,6 +447,7 @@ public final class Scheduler: Module, EnvironmentAccessible, DefaultInitializabl
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Scheduler {
     /// Delete a task from the store.
     ///
@@ -607,6 +609,7 @@ extension Scheduler {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Scheduler {
     /// Query the list of tasks.
     ///
@@ -764,6 +767,7 @@ extension Scheduler {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Scheduler {
     private struct OccurrenceId: Hashable {
         let taskId: Task.ID
@@ -838,6 +842,7 @@ extension Scheduler {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Scheduler {
     @MainActor
     public final class OutcomeSubscription: Sendable {
@@ -887,6 +892,7 @@ extension Scheduler {
 
 // MARK: - Fetch Implementations
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Scheduler {
     func hasTasksWithNotifications(for range: PartialRangeFrom<Date>) throws -> Bool {
         let rangePredicate = Task.inPartialRangeFromPredicate(for: range)
@@ -966,6 +972,7 @@ extension Scheduler {
 
 // MARK: Persistent Storage Location Handling
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Scheduler {
     nonisolated private static let legacyPersistentStorageUrls: [URL] = [
         URL.documentsDirectory.appending(path: "edu.stanford.spezi.scheduler.storage.sqlite"),
@@ -1008,6 +1015,7 @@ extension Scheduler {
 
 // MARK: - Error
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Scheduler {
     public enum DataError: Error {
         /// No model container present.
@@ -1026,6 +1034,7 @@ extension Scheduler {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Scheduler.DataError: LocalizedError {
     public var errorDescription: String? {
         switch self {

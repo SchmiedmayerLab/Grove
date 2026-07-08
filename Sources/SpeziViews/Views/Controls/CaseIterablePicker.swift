@@ -43,6 +43,7 @@ import SwiftUI
 ///
 /// ### Supporting Types
 /// - ``PickerValue``
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 public struct CaseIterablePicker<Value: PickerValue, Label: View>: View where Value.AllCases: RandomAccessCollection {
     // swiftlint:disable:previous file_types_order
     private let label: Label
@@ -91,6 +92,7 @@ public struct CaseIterablePicker<Value: PickerValue, Label: View>: View where Va
     ///   - titleKey: The picker label.
     ///   - selection: The selection binding.
     @_disfavoredOverload
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public init(_ titleKey: LocalizedStringResource, selection: Binding<Value>) where Label == Text {
         self.init(selection: selection) {
             Text(titleKey)
@@ -117,6 +119,7 @@ public struct CaseIterablePicker<Value: PickerValue, Label: View>: View where Va
     ///   - titleKey: The picker label.
     ///   - selection: The value binding.
     ///   - noneValue: The value that represents the none value.
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public init(_ titleKey: LocalizedStringResource, selection: Binding<Value>, none noneValue: Value) where Label == Text {
         self.init(selection: selection, none: noneValue) {
             Text(titleKey)
@@ -125,6 +128,7 @@ public struct CaseIterablePicker<Value: PickerValue, Label: View>: View where Va
 }
 
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension CaseIterablePicker where Value: AnyOptional { // swiftlint:disable:this file_types_order
     /// Create a new case-iterable picker.
     /// - Parameters:
@@ -143,6 +147,7 @@ extension CaseIterablePicker where Value: AnyOptional { // swiftlint:disable:thi
     /// - Parameters:
     ///   - titleKey: The picker label.
     ///   - selection: The value binding.
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public init(_ titleKey: LocalizedStringResource, selection: Binding<Value>) where Label == Text {
         self.init(selection: selection) {
             Text(titleKey)
@@ -152,6 +157,7 @@ extension CaseIterablePicker where Value: AnyOptional { // swiftlint:disable:thi
 
 
 #if DEBUG
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 private enum Version: PickerValue {
     case versionA
     case versionB
@@ -166,6 +172,7 @@ private enum Version: PickerValue {
     }
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     @Previewable @State var version: Version? = .versionA
     List {

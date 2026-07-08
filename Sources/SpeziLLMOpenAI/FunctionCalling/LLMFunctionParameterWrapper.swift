@@ -22,6 +22,7 @@ public typealias LLMFunctionParameterItemSchema = OpenAPIRuntime.OpenAPIObjectCo
 
 /// Refer to the documentation of ``LLMFunction/Parameter`` for information on how to use the `@Parameter` property wrapper.
 @propertyWrapper
+@available(iOS 17, macOS 14, visionOS 1, *)
 public final class _LLMFunctionParameterWrapper<T: Decodable & Sendable>: LLMFunctionParameterSchemaCollector { // swiftlint:disable:this type_name
     /// A Swift Logger that logs important information and errors.
     let logger = Logger(subsystem: "edu.stanford.spezi", category: "SpeziLLMOpenAI")
@@ -78,6 +79,7 @@ public final class _LLMFunctionParameterWrapper<T: Decodable & Sendable>: LLMFun
 }
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension LLMFunction {
     /// Defines parameters within an ``LLMFunction``.
     ///

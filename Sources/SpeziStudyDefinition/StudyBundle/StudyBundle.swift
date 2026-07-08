@@ -61,6 +61,7 @@ extension UTType {
 /// ### Other
 /// - ``fileExtension``
 /// - ``FileReference``
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 public struct StudyBundle: Identifiable, Sendable {
     public enum StudyBundleError: Error {
         /// The URL passed to an operation does not point to a study bundle package.
@@ -79,6 +80,7 @@ public struct StudyBundle: Identifiable, Sendable {
     public var id: UUID { studyDefinition.id }
     
     /// Read a study bundle from disk.
+    @available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
     public init(bundleUrl: URL) throws {
         try Self.assertIsStudyBundleUrl(bundleUrl)
         self.bundleUrl = bundleUrl
@@ -166,6 +168,7 @@ public struct StudyBundle: Identifiable, Sendable {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension StudyBundle {
     /// Throws an error if `url` isn't a valid study bundle url
     static func assertIsStudyBundleUrl(_ url: URL) throws(StudyBundleError) {
@@ -176,6 +179,7 @@ extension StudyBundle {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension StudyBundle: Hashable {
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.bundleUrl == rhs.bundleUrl

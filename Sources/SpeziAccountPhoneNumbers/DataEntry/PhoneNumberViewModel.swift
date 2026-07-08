@@ -9,12 +9,14 @@
 @preconcurrency import PhoneNumberKit
 import SwiftUI
 
+@available(iOS 17, macOS 14, *)
 enum VerificationStep {
     case phoneNumber
     case verificationCode
 }
 
 @Observable
+@available(iOS 17, macOS 14, *)
 class PhoneNumberViewModel {
     var phoneNumber: PhoneNumber?
     var displayedPhoneNumber: String

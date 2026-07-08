@@ -22,6 +22,7 @@ import SpeziLocalStorage
 ///
 /// It keeps track of the session's identity, and the stores the individual batches that need to be processed as part of the session.
 /// It also keeps track of the already-completed sample types, to prevent unnecessary duplicates when exporting.
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 struct ExportSessionDescriptor: Codable {
     let sessionId: BulkExportSessionIdentifier
     let startDate: ExportSessionStartDate
@@ -93,6 +94,7 @@ struct ExportSessionDescriptor: Codable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension ExportSessionDescriptor {
     /// Determines a resolved batch size, based on an input batch size and a sample type.
     ///
@@ -100,15 +102,18 @@ extension ExportSessionDescriptor {
     private static func resolveBatchSize(_ batchSize: ExportSessionBatchSize, for sampleType: SampleType<some Any>) -> ExportSessionBatchSize {
         switch batchSize {
         case .automatic:
+            if #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *), sampleType == SampleType.physicalEffort {
+                return .byMonth
+            }
             switch sampleType {
             case SampleType.activeEnergyBurned, SampleType.basalEnergyBurned, SampleType.heartRate,
-                SampleType.distanceWalkingRunning, SampleType.physicalEffort, SampleType.stepCount:
-                .byMonth
+                SampleType.distanceWalkingRunning, SampleType.stepCount:
+                return .byMonth
             default:
-                .calendarComponent(.month, multiplier: 6)
+                return .calendarComponent(.month, multiplier: 6)
             }
         case .calendarComponent:
-            batchSize
+            return batchSize
         }
     }
 }
@@ -130,6 +135,7 @@ extension Calendar {
 // MARK: Default Batch Processors
 
 /// Batch Processor that simply passes through the unchanged samples.
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 public struct IdentityBatchProcessor: BatchProcessor {
     public typealias Output = [HKSample]
     
@@ -138,6 +144,7 @@ public struct IdentityBatchProcessor: BatchProcessor {
     }
 }
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension BatchProcessor where Self == IdentityBatchProcessor {
     /// A Batch Processor that simply returns the unprocessed samples.
     public static var identity: some BatchProcessor<[HKSample]> {

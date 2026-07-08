@@ -18,6 +18,7 @@ import SpeziFoundation
 
 
 /// Implementation of Omron SC150 Weight Scale.
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 public final class OmronWeightScale: BluetoothDevice, Identifiable, OmronHealthDevice, @unchecked Sendable {
     public static let appearance: DeviceAppearance = .variants(defaultAppearance: Appearance(name: "Omron Weight Scale"), variants: [
         Variant(
@@ -119,6 +120,7 @@ public final class OmronWeightScale: BluetoothDevice, Identifiable, OmronHealthD
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension OmronWeightScale {
     /// Create a mock instance.
     /// - Parameters:
@@ -221,6 +223,7 @@ extension OmronWeightScale {
 
 
 @_spi(Migration)
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension OmronWeightScale: DeviceVariantMigration {
     public static func selectAppearance(for deviceInfo: PairedDeviceInfo) -> (appearance: Appearance, variantId: String?) {
         appearance.appearance { variant in

@@ -58,6 +58,7 @@ extension FileManager {
 
     
     /// Copies the item at `srcUrl` to `dstUrl`.
+    @available(macOS 13, iOS 16, tvOS 16, watchOS 9, visionOS 1, *)
     public func copyItem(at srcUrl: URL, to dstUrl: URL, overwriteExisting: Bool) throws {
         if !itemExists(at: dstUrl) {
             try self.prepareForWriting(to: dstUrl)

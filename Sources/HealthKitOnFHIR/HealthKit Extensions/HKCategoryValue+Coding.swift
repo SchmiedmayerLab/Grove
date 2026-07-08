@@ -12,6 +12,7 @@ import ModelsR4
 
 
 /// Models a value type used by a `HKCategoryType`.
+@available(macOS 13, *)
 protocol FHIRCodingConvertible {
     static var system: FHIRPrimitive<FHIRURI> { get }
     
@@ -21,6 +22,7 @@ protocol FHIRCodingConvertible {
     init?(rawValue: Int)
 }
 
+@available(macOS 13, *)
 extension FHIRCodingConvertible {
     var asCoding: Coding {
         Coding(
@@ -32,6 +34,7 @@ extension FHIRCodingConvertible {
 }
 
 
+@available(macOS 13, *)
 extension FHIRCodingConvertible where Self: RawRepresentable, RawValue == Int {
     var code: String {
         String(rawValue)
@@ -39,8 +42,10 @@ extension FHIRCodingConvertible where Self: RawRepresentable, RawValue == Int {
 }
 
 
+@available(macOS 13, *)
 protocol FHIRCodingConvertibleHKEnum: FHIRCodingConvertible {}
 
+@available(macOS 13, *)
 extension FHIRCodingConvertibleHKEnum {
     static var system: FHIRPrimitive<FHIRURI> {
         let typename = String(describing: Self.self).lowercased()
@@ -56,100 +61,118 @@ extension FHIRCodingConvertibleHKEnum {
     HKCategoryValueVaginalBleeding.self,
     .unspecified, .light, .medium, .heavy, .none
 )
+@available(macOS 13, *)
 extension HKCategoryValueVaginalBleeding: FHIRCodingConvertibleHKEnum {}
 
 @SynthesizeDisplayProperty(
     HKCategoryValueCervicalMucusQuality.self,
     .dry, .sticky, .creamy, .watery, .eggWhite
 )
+@available(macOS 13, *)
 extension HKCategoryValueCervicalMucusQuality: FHIRCodingConvertibleHKEnum {}
 
 @SynthesizeDisplayProperty(
     HKCategoryValueMenstrualFlow.self,
     .unspecified, .light, .medium, .heavy, .none
 )
+@available(macOS 13, *)
 extension HKCategoryValueMenstrualFlow: FHIRCodingConvertibleHKEnum {}
 
 @SynthesizeDisplayProperty(
     HKCategoryValueOvulationTestResult.self,
     .negative, .luteinizingHormoneSurge, .indeterminate, .estrogenSurge
 )
+@available(macOS 13, *)
 extension HKCategoryValueOvulationTestResult: FHIRCodingConvertibleHKEnum {}
 
 @SynthesizeDisplayProperty(
     HKCategoryValueContraceptive.self,
     .unspecified, .implant, .injection, .intrauterineDevice, .intravaginalRing, .oral, .patch
 )
+@available(macOS 13, *)
 extension HKCategoryValueContraceptive: FHIRCodingConvertibleHKEnum {}
 
+@available(iOS 16, macOS 13, watchOS 9, *)
 @SynthesizeDisplayProperty(
     HKCategoryValueSleepAnalysis.self,
     .inBed, .asleepUnspecified, .awake, .asleepCore, .asleepDeep, .asleepREM
 )
+@available(macOS 13, *)
 extension HKCategoryValueSleepAnalysis: FHIRCodingConvertibleHKEnum {}
 
 @SynthesizeDisplayProperty(
     HKCategoryValueAppetiteChanges.self,
     .unspecified, .noChange, .decreased, .increased
 )
+@available(macOS 13, *)
 extension HKCategoryValueAppetiteChanges: FHIRCodingConvertibleHKEnum {}
 
 @SynthesizeDisplayProperty(
     HKCategoryValueEnvironmentalAudioExposureEvent.self,
     .momentaryLimit
 )
+@available(macOS 13, *)
 extension HKCategoryValueEnvironmentalAudioExposureEvent: FHIRCodingConvertibleHKEnum {}
 
 @SynthesizeDisplayProperty(
     HKCategoryValueHeadphoneAudioExposureEvent.self,
     .sevenDayLimit
 )
+@available(macOS 13, *)
 extension HKCategoryValueHeadphoneAudioExposureEvent: FHIRCodingConvertibleHKEnum {}
 
 @SynthesizeDisplayProperty(
     HKCategoryValueLowCardioFitnessEvent.self,
     .lowFitness
 )
+@available(macOS 13, *)
 extension HKCategoryValueLowCardioFitnessEvent: FHIRCodingConvertibleHKEnum {}
 
 @SynthesizeDisplayProperty(
     HKAppleWalkingSteadinessClassification.self,
     .ok, .low, .veryLow
 )
+@available(macOS 13, *)
 extension HKAppleWalkingSteadinessClassification: FHIRCodingConvertibleHKEnum {}
 
 @SynthesizeDisplayProperty(
     HKCategoryValueAppleWalkingSteadinessEvent.self,
     .initialLow, .initialVeryLow, .repeatLow, .repeatVeryLow
 )
+@available(macOS 13, *)
 extension HKCategoryValueAppleWalkingSteadinessEvent: FHIRCodingConvertibleHKEnum {}
 
 @SynthesizeDisplayProperty(
     HKCategoryValuePregnancyTestResult.self,
     .negative, .positive, .indeterminate
 )
+@available(macOS 13, *)
 extension HKCategoryValuePregnancyTestResult: FHIRCodingConvertibleHKEnum {}
 
 @SynthesizeDisplayProperty(
     HKCategoryValueProgesteroneTestResult.self,
     .negative, .positive, .indeterminate
 )
+@available(macOS 13, *)
 extension HKCategoryValueProgesteroneTestResult: FHIRCodingConvertibleHKEnum {}
 
 @SynthesizeDisplayProperty(
     HKCategoryValueAppleStandHour.self,
     .stood, .idle
 )
+@available(macOS 13, *)
 extension HKCategoryValueAppleStandHour: FHIRCodingConvertibleHKEnum {}
 
 @SynthesizeDisplayProperty(
     HKCategoryValueSeverity.self,
     .unspecified, .notPresent, .mild, .moderate, .severe
 )
+@available(macOS 13, *)
 extension HKCategoryValueSeverity: FHIRCodingConvertibleHKEnum {}
 
 @SynthesizeDisplayProperty(
     HKCategoryValuePresence.self,
     .present, .notPresent
 )
+@available(macOS 13, *)
 extension HKCategoryValuePresence: FHIRCodingConvertibleHKEnum {}

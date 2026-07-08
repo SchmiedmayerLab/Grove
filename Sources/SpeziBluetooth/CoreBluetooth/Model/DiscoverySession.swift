@@ -18,6 +18,7 @@ private func optionalMax<Value: Comparable>(_ lhs: Value?, _ rhs: Value?) -> Val
 
 
 @_spi(APISupport)
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct BluetoothManagerDiscoveryState: BluetoothScanningState {
     /// The device descriptions describing how nearby devices are discovered.
     let configuredDevices: Set<DiscoveryDescription>
@@ -58,6 +59,7 @@ public struct BluetoothManagerDiscoveryState: BluetoothScanningState {
 
 /// Intermediate storage object that is later translated to a BluetoothManagerDiscoveryState.
 @_spi(APISupport)
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct BluetoothModuleDiscoveryState: BluetoothScanningState {
     /// The minimum rssi that is required for a device to be considered discovered.
     let minimumRSSI: Int?
@@ -92,6 +94,7 @@ public struct BluetoothModuleDiscoveryState: BluetoothScanningState {
 
 
 @SpeziBluetooth
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 class DiscoverySession: Sendable {
     private let logger = Logger(subsystem: "edu.stanford.spezi.bluetooth", category: "DiscoverySession")
 
@@ -169,13 +172,16 @@ class DiscoverySession: Sendable {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension BluetoothManagerDiscoveryState: Hashable {}
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension BluetoothModuleDiscoveryState: Hashable {}
 
 // MARK: - Auto Connect
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension DiscoverySession {
     /// Checks and determines the device candidate for auto-connect.
     ///
@@ -240,6 +246,7 @@ extension DiscoverySession {
 
 // MARK: - Stale Advertisement Timeout
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension DiscoverySession {
     /// Schedule a new `DiscoveryStaleTimer`, cancelling any previous one.
     /// - Parameters:

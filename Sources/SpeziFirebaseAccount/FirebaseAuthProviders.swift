@@ -8,6 +8,7 @@
 
 
 /// Authentication Providers supported by the `FirebaseAccountService`.
+@available(iOS 17, *)
 public struct FirebaseAuthProviders: OptionSet, Codable, Sendable {
     /// E-Mail and Password-based authentication.
     ///

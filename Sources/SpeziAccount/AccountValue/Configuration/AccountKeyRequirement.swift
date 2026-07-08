@@ -8,6 +8,7 @@
 
 
 /// Describes the user-configured requirement level for an ``AccountKey``.
+@available(iOS 17, macOS 14, *)
 public enum AccountKeyRequirement {
     /// The associated account value **must** be provided by the user at signup.
     ///
@@ -30,4 +31,5 @@ public enum AccountKeyRequirement {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountKeyRequirement: Sendable, Hashable {}

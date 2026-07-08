@@ -12,6 +12,7 @@ import OSLog
 import SpeziLLM
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 package protocol FunctionCallLLMSession: LLMSession {
     // Logger is required for functions in the FunctionCallLLMSession extension
     static var logger: Logger { get }
@@ -37,6 +38,7 @@ package protocol FunctionCallLLMSession: LLMSession {
 }
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension FunctionCallLLMSession {
     // Handles function calls with configurable failure behavior.
     package func callFunction(

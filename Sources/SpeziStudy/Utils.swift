@@ -27,6 +27,7 @@ extension RangeReplaceableCollection {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension Locale {
     /// Creates a new Locale, with the specified language and region.
     public init(language: Language, region: Region) {

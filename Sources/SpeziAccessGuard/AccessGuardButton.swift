@@ -52,6 +52,7 @@ public import SwiftUI
 ///
 /// The `AccessGuardButton` offers a declarative and reusable way to control access to secure content in SwiftUI apps,
 /// integrating seamlessly with the environment-based dependency injection of an `AccessGuard`.
+@available(iOS 17, *)
 public struct AccessGuardButton<Locked: View, Unlocked: View, Config: _AccessGuardConfig>: View {
     @AccessGuard<Config> private var accessGuard: Config._Model
     private let locked: @MainActor () -> Locked
@@ -110,6 +111,7 @@ public struct AccessGuardButton<Locked: View, Unlocked: View, Config: _AccessGua
 
 
 #if DEBUG
+@available(iOS 17, *)
 #Preview {
     let identifier = AccessGuardIdentifier.passcode("edu.stanford.spezi.myView")
     AccessGuardButton(identifier) {

@@ -12,6 +12,7 @@ import Foundation
 import HealthKit
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension HealthKit {
     /// A filter that allows querying `HKSample`s based on their underlying `HKSource`.
     ///
@@ -70,6 +71,7 @@ extension HealthKit {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension HealthKit.SourceFilter {
     /// A source filter that always matches every `HKSource`.
     public static let any = Self(variant: .any)
@@ -107,6 +109,7 @@ extension HealthKit.SourceFilter {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension HealthKit {
     /// Run a one-off query.
     ///
@@ -243,6 +246,7 @@ extension HealthKit {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension HealthKit {
     /// An element produced by continuous HealthKit queries to inform about updates to the HealthKit database
     public struct ContinuousQueryElement<Sample: _HKSampleWithSampleType>: @unchecked Sendable {
@@ -409,6 +413,7 @@ extension HealthKit {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 extension HealthKit {
     /// Fetches the `startDate` of the oldest sample in the HealthKit database, for the specified sample type.
     public func oldestSampleDate(for sampleType: SampleType<some Any>) async throws -> Date? {

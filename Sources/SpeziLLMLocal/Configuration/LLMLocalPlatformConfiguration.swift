@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if MLX
+
 import Foundation
 
 /// Represents the configuration of the Spezi ``LLMLocalPlatform``.
@@ -59,3 +61,5 @@ public struct LLMLocalPlatformConfiguration: Sendable {
         self.taskPriority = taskPriority
     }
 }
+
+#endif

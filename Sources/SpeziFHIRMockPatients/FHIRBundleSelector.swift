@@ -15,6 +15,7 @@ import SwiftUI
 /// Loads resources from a FHIR bundle from a provided set of bundles.
 ///
 /// The View assumes that the bundle contains a `ModelsR4.Patient` resource to identify the bundle and provide a human-readable name.
+@available(iOS 17, *)
 public struct FHIRBundleSelector: View {
     private struct PatientIdentifiedBundle: Identifiable {
         let id: String
@@ -68,8 +69,8 @@ public struct FHIRBundleSelector: View {
                 store.load(bundle: selected.bundle)
             }
     }
-    
-    
+
+
     public init(bundles: [ModelsR4.Bundle]) {
         self.bundles = bundles.compactMap {
             guard let id = $0.patient?.identifier?.first?.value?.value?.string else {

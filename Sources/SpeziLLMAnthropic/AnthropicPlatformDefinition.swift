@@ -14,6 +14,7 @@ import SpeziLLMOpenAI
 
 
 /// Defines the Anthropic LLM platform.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct AnthropicPlatformDefinition: LLMOpenAILikePlatformDefinition {
     public struct ModelType: LLMOpenAILikePlatformModelType {
         public let rawValue: String
@@ -34,10 +35,12 @@ public struct AnthropicPlatformDefinition: LLMOpenAILikePlatformDefinition {
 // MARK: Type Specializations
 
 /// Represents the configuration of the Spezi ``LLMAnthropicPlatform``.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMAnthropicPlatformConfiguration = LLMOpenAILikePlatformConfiguration<AnthropicPlatformDefinition>
 
 
 /// Represents the parameters of an Anthropic LLM model.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMAnthropicParameters = LLMOpenAILikeParameters<AnthropicPlatformDefinition>
 
 
@@ -59,6 +62,7 @@ public typealias LLMAnthropicParameters = LLMOpenAILikeParameters<AnthropicPlatf
 ///     }
 /// }
 /// ```
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMAnthropicPlatform = LLMOpenAILikePlatform<AnthropicPlatformDefinition>
 
 
@@ -71,6 +75,7 @@ public typealias LLMAnthropicPlatform = LLMOpenAILikePlatform<AnthropicPlatformD
 ///
 /// - Tip: ``LLMAnthropicSchema`` also enables the function calling mechanism to establish a structured, bidirectional, and reliable communication between the ``LLMAnthropicPlatform`` LLMs and external tools.
 ///     For more details, refer to the [`LLMOpenAISchema`](../SpeziLLMOpenAI/SpeziLLMOpenAI.docc/SpeziLLMOpenAI.md) documentation.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMAnthropicSchema = LLMOpenAILikeSchema<AnthropicPlatformDefinition>
 
 
@@ -120,6 +125,7 @@ public typealias LLMAnthropicSchema = LLMOpenAILikeSchema<AnthropicPlatformDefin
 ///     }
 /// }
 /// ```
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMAnthropicSession = LLMOpenAILikeSession<AnthropicPlatformDefinition>
 
 
@@ -128,13 +134,16 @@ public typealias LLMAnthropicSession = LLMOpenAILikeSession<AnthropicPlatformDef
 /// - Warning: Ensure that the ``LLMAnthropicPlatform`` is specified within the Spezi `Configuration` when using this view in the onboarding flow.
 ///
 /// - Important: Only use this if the corresponding LLM platform's config's auth token is set to `RemoteLLMInferenceAuthToken/keychain(_:CredentialsTag)`
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMAnthropicAPITokenOnboardingStep = LLMOpenAILikeAPITokenOnboardingStep<AnthropicPlatformDefinition>
 
 
 /// View to display an onboarding step for the user to select an Anthropic model.
+@available(iOS 17, macOS 14, visionOS 1, *)
 public typealias LLMAnthropicModelOnboardingStep = LLMOpenAILikeModelOnboardingStep<AnthropicPlatformDefinition>
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension CredentialsTag {
     /// The canonical credentials tag for the Anthropic API key
     public static let anthropicKey = Self.for(AnthropicPlatformDefinition.self)
@@ -144,6 +153,7 @@ extension CredentialsTag {
 // MARK: Models
 
 // swiftlint:disable identifier_name
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension AnthropicPlatformDefinition.ModelType {
     /// The default model to be used with Anthropic.
     public static let `default`: Self = .opus4_6

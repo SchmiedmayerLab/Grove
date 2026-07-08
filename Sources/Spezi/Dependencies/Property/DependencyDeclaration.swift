@@ -37,13 +37,16 @@ protocol DependencyDeclaration {
     func inject(from dependencyManager: DependencyManager, for module: any Module) throws(DependencyManagerError)
 
     @MainActor
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     func inject(spezi: Spezi)
 
     /// Remove all dependency injections.
     @MainActor
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     func uninjectDependencies(notifying spezi: Spezi)
 
     /// Same as `uninjectDependencies` but called from the non-isolated deinit
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     func nonIsolatedUninjectDependencies(notifying spezi: Spezi)
 
     /// Determine the dependency relationship to a given module.

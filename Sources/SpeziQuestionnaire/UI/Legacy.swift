@@ -6,4 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if ResearchKit && canImport(SpeziQuestionnaireLegacy)
 @_exported public import SpeziQuestionnaireLegacy
+#endif

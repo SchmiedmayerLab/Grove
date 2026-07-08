@@ -9,6 +9,7 @@
 import SpeziFoundation
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountDetails {
     private struct DecodingErrors: KnowledgeSource {
         typealias Anchor = AccountAnchor

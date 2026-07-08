@@ -13,6 +13,7 @@ import Foundation
 /// Error thrown by the `FirebaseAccountService`.
 ///
 /// This error type might be thrown by methods of the ``FirebaseAccountService``.
+@available(iOS 17, *)
 public enum FirebaseAccountError: Hashable, Sendable {
     /// The provided email is invalid.
     case invalidEmail
@@ -71,6 +72,7 @@ public enum FirebaseAccountError: Hashable, Sendable {
 }
 
 
+@available(iOS 17, *)
 extension FirebaseAccountError: LocalizedError {
     private var errorDescriptionValue: String.LocalizationValue {
         switch self {

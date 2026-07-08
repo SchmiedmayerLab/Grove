@@ -11,6 +11,7 @@ import SwiftUI
 import UserNotifications
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Spezi {
     /// An action to request the current user notifications settings.
     ///
@@ -53,6 +54,7 @@ extension Spezi {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension EnvironmentValues {
     /// Retrieve the current notification settings of the application.
     ///
@@ -85,4 +87,5 @@ extension EnvironmentValues {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Spezi.NotificationSettingsAction: Sendable {}

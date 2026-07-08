@@ -11,6 +11,7 @@
 import SwiftUI
 
 
+@available(iOS 17, *)
 extension TaskView {
     struct NumericInputRow: View {
         let config: Questionnaire.Task.Kind.NumericTaskConfig

@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 actor EventBroadcaster<Element: Sendable> {
     typealias Stream = AsyncThrowingStream<Element, any Error>
 

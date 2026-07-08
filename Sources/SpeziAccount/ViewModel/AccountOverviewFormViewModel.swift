@@ -15,6 +15,7 @@ import SwiftUI
 
 @MainActor
 @Observable
+@available(iOS 17, macOS 14, *)
 class AccountOverviewFormViewModel {
     private let logger = Logger(subsystem: "edu.stanford.spezi", category: "AccountOverview")
 

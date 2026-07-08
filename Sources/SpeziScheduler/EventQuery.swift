@@ -42,6 +42,7 @@ import SwiftUI
 /// - ``projectedValue``
 @propertyWrapper
 @MainActor
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 public struct EventQuery {
     private struct Configuration {
         let range: Range<Date>
@@ -119,6 +120,7 @@ public struct EventQuery {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension EventQuery: DynamicProperty {
     nonisolated public mutating func update() {
         // This is not really ideal, however we require MainActor isolation and `DynamicProperty` doesn't annotate this guarantee

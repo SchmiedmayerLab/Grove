@@ -24,6 +24,7 @@ public struct CancelableTaskHandle: Sendable {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension DiscardingTaskGroup {
     @usableFromInline
     enum _CancelableState: Sendable { // swiftlint:disable:this type_name

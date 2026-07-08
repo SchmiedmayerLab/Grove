@@ -10,6 +10,7 @@ import SpeziBluetooth
 
 
 /// A Bluetooth device that is pairable.
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 public protocol PairableDevice: GenericDevice {
     /// Persistent identifier for the device type.
     ///
@@ -51,6 +52,7 @@ public protocol PairableDevice: GenericDevice {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension PairableDevice {
     /// Default persistent identifier for the device type.
     ///

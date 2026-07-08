@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 struct DetailsSectionIcon: View {
     var body: some View {
         Image(systemName: "person.text.rectangle.fill")
@@ -20,6 +21,7 @@ struct DetailsSectionIcon: View {
 }
 
 
+@available(iOS 17, macOS 14, *)
 struct SecuritySectionIcon: View {
     var body: some View {
         ZStack {
@@ -36,6 +38,7 @@ struct SecuritySectionIcon: View {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension View {
     fileprivate func graySquareBackground() -> some View {
         background {
@@ -48,6 +51,7 @@ extension View {
 }
 
 
+@available(iOS 17, macOS 14, *)
 #Preview {
     List {
         Label {

@@ -71,6 +71,7 @@ extension View {
     ///
     /// ## Topics
     /// - ``ShareSheetInput``
+    @available(iOS 16, *)
     @available(tvOS, unavailable)
     @available(watchOS, unavailable)
     public func shareSheet(item: Binding<ShareSheetInput?>) -> some View {
@@ -101,6 +102,7 @@ extension View {
     ///
     /// ## Topics
     /// - ``ShareSheetInput``
+    @available(iOS 16, *)
     @available(tvOS, unavailable)
     @available(watchOS, unavailable)
     @ViewBuilder
@@ -118,7 +120,7 @@ extension View {
         }
         #elseif canImport(AppKit)
         let combinedInput = CombinedShareSheetInput(inputs: items.wrappedValue)
-        self.onChange(of: combinedInput) {
+        self.onChange(of: combinedInput) { _ in
             if !combinedInput.inputs.isEmpty {
                 let shareSheet = AppKitShareSheet(items: combinedInput)
                 shareSheet.show()

@@ -7,6 +7,7 @@
 //
 
 import FHIRQuestionnaires
+#if ResearchKit
 import ResearchKit
 @testable import ResearchKitOnFHIR
 import Testing
@@ -297,3 +298,4 @@ struct ResearchKitToFHIRTests {
         #expect(answer == nil)
     }
 }
+#endif

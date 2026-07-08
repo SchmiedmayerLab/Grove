@@ -34,6 +34,7 @@ public import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 17, *)
 @propertyWrapper
 @MainActor
 public struct HealthKitCharacteristicQuery<Characteristic: HealthKitCharacteristicProtocol>: DynamicProperty {

@@ -11,6 +11,7 @@ import SpeziBluetooth
 
 /// Support migration to the new variant appearance system.
 @_spi(Migration)
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 public protocol DeviceVariantMigration {
     /// Select an appearance for an already paired device.
     ///

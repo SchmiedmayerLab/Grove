@@ -82,6 +82,7 @@ public struct NameTextField<Label: View>: View {
     ///   - name: The name to display and edit.
     ///   - component: The `KeyPath` to the property of the provided `PersonNameComponents` to display and edit.
     ///   - prompt: An optional `Text` prompt. Refer to the documentation of `TextField` for more information.
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public init(
         _ label: LocalizedStringResource,
         name: Binding<PersonNameComponents>,
@@ -114,6 +115,7 @@ public struct NameTextField<Label: View>: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     @Previewable @State var name = PersonNameComponents()
     return List {

@@ -9,12 +9,14 @@
 import SwiftUI
 
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LabeledContent where Label == Text, Content: View {
     /// Create a new list row with a localized text label.
     /// - Parameters:
     ///   - label: The localized text label.
     ///   - content: The content view.
     @_disfavoredOverload
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public init(_ label: LocalizedStringResource, @ViewBuilder content: () -> Content) {
         self.init(content: content) {
             Text(label)
@@ -23,6 +25,7 @@ extension LabeledContent where Label == Text, Content: View {
 }
 
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LabeledContent where Label == Text, Content == Text {
     /// Creates a labeled informational view.
     ///
@@ -31,6 +34,7 @@ extension LabeledContent where Label == Text, Content == Text {
     ///     the purpose of the view.
     ///   - value: The value being labeled.
     @_disfavoredOverload
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public init<S: StringProtocol>(_ titleKey: LocalizedStringResource, value: S) {
         self.init {
             Text(value)
@@ -45,6 +49,7 @@ extension LabeledContent where Label == Text, Content == Text {
     ///   - value: The value being labeled.
     ///   - format: A format style to convert the underlying value to a string representation.
     @_disfavoredOverload
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public init<F: FormatStyle>(
         _ titleKey: LocalizedStringResource,
         value: F.FormatInput,
@@ -60,6 +65,7 @@ extension LabeledContent where Label == Text, Content == Text {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview { // swiftlint:disable:this closure_body_length
     List {
         LabeledContent("Hello") {

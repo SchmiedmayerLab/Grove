@@ -11,6 +11,7 @@ import SwiftUI
 
 
 /// Displays a section of tasks within a questionnaire, as a single page on the navigation stack.
+@available(iOS 17, *)
 struct QuestionnaireSectionView<Header: View>: View {
     private enum Context {
         case regular(questionnaire: Questionnaire)
@@ -240,6 +241,7 @@ struct QuestionnaireSectionView<Header: View>: View {
 }
 
 
+@available(iOS 17, *)
 extension QuestionnaireSectionView {
     private struct CancelButton: View {
         let context: Context

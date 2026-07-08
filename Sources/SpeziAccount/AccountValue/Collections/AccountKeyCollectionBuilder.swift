@@ -9,6 +9,7 @@
 
 /// A result builder to build a collection of ``AccountKeyWithDescription`` metatypes.
 @resultBuilder
+@available(iOS 17, macOS 14, *)
 public enum AccountKeyCollectionBuilder {
     /// Build a single ``AccountKeyWithDescription`` metatype expression using `KeyPath` notation.
     public static func buildExpression<Key: AccountKey>(_ expression: KeyPath<AccountKeys, Key.Type>) -> [any AccountKeyWithDescription] {

@@ -34,8 +34,8 @@ struct LicenseView: View {
     }
     
     @ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
-        if let url {
-            ToolbarItem(placement: .primaryAction) {
+        ToolbarItem(placement: .primaryAction) {
+            if let url {
                 Button("Open in Browser", systemImage: "safari") {
                     UIApplication.shared.open(url)
                 }

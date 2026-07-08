@@ -9,16 +9,19 @@
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 protocol AnySecurityRelatedModifier {
     var securityModifier: any AnySecurityModifier { get }
 }
 
 
+@available(iOS 17, macOS 14, *)
 protocol AnySecurityModifier: Sendable {
     @MainActor var anyViewModifier: any ViewModifier { get }
 }
 
 
+@available(iOS 17, macOS 14, *)
 struct SecurityModifier<V: ViewModifier> {
     let modifierClosure: @Sendable @MainActor () -> V
 
@@ -65,6 +68,7 @@ struct SecurityModifier<V: ViewModifier> {
 /// }
 /// ```
 @propertyWrapper
+@available(iOS 17, macOS 14, *)
 public struct SecurityRelatedModifier<V: ViewModifier> {
     private let modifierClosure: @Sendable @MainActor () -> V
 
@@ -83,6 +87,7 @@ public struct SecurityRelatedModifier<V: ViewModifier> {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension SecurityModifier: AnySecurityModifier {
     var anyViewModifier: any ViewModifier {
         modifierClosure()
@@ -90,6 +95,7 @@ extension SecurityModifier: AnySecurityModifier {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension SecurityRelatedModifier: AnySecurityRelatedModifier {
     var securityModifier: any AnySecurityModifier {
         SecurityModifier(modifierClosure)

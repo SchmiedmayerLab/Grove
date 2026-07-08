@@ -7,6 +7,7 @@
 //
 
 @_documentation(visibility: internal)
+@available(iOS 17, *)
 public protocol _AnyAccessGuardIdentifier<AccessGuard>: Hashable, Sendable { // swiftlint:disable:this type_name
     associatedtype AccessGuard: _AccessGuardConfig
     @_spi(Internal) var value: String { get }
@@ -43,11 +44,13 @@ public protocol _AnyAccessGuardIdentifier<AccessGuard>: Hashable, Sendable { // 
 ///
 /// ### Instance Properties
 /// - ``passcodeFallback``
+@available(iOS 17, *)
 public struct AccessGuardIdentifier<AccessGuard: _AccessGuardConfig>: _AnyAccessGuardIdentifier {
     @_spi(Internal) public let value: String
 }
 
 
+@available(iOS 17, *)
 extension AccessGuardIdentifier {
     /// Creates a Passcode Access Guard Identifier
     public static func passcode(_ id: String) -> Self where AccessGuard == CodeAccessGuard {

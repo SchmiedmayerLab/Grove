@@ -17,6 +17,7 @@ import SwiftUI
 ///
 /// You can use this structure to retrieve the state of all ``ValidationEngine``s of a subview or manually
 /// initiate validation by calling ``validateSubviews(switchFocus:)``. E.g., when pressing on a submit button of a form.
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct ValidationContext: Sendable {
     private let entries: [CapturedValidationState]
 
@@ -107,9 +108,11 @@ public struct ValidationContext: Sendable {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension ValidationContext: Equatable {}
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension ValidationContext: Collection {
     public var startIndex: Int {
         entries.startIndex

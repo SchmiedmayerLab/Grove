@@ -11,6 +11,7 @@ import SpeziAccount
 import SpeziFoundation
 
 
+@available(iOS 17, *)
 extension AccountDetails {
     private struct CreationDateKey: KnowledgeSource {
         typealias Anchor = AccountAnchor

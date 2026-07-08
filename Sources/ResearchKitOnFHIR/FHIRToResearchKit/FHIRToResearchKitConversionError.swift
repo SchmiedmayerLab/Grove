@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if ResearchKit && canImport(ResearchKit)
+
 @preconcurrency import ModelsR4
 
 
@@ -38,3 +40,5 @@ public enum FHIRToResearchKitConversionError: Error, CustomStringConvertible, Eq
         }
     }
 }
+
+#endif

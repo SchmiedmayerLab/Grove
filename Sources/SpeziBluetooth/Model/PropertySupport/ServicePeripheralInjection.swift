@@ -8,6 +8,7 @@
 
 
 @SpeziBluetooth
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 class ServicePeripheralInjection<S: BluetoothService>: Sendable {
     private let bluetooth: Bluetooth
     let peripheral: BluetoothPeripheral

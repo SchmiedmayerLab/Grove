@@ -39,6 +39,7 @@ import SpeziValidation
 ///     and [minimalPassword](../../../SpeziValidation/SpeziValidation.docc/SpeziValidation.md)] rules
 ///     if the `Key` is the ``AccountDetails/password``.
 /// * [nonEmpty](../../../SpeziValidation/SpeziValidation.docc/SpeziValidation.md) rule otherwise.
+@available(iOS 17, macOS 14, *)
 public struct FieldValidationRules<Key: AccountKey>: AccountServiceConfigurationKey, OptionalComputedKnowledgeSource where Key.Value == String {
     // We use always compute, as we don't want our computation result to get stored. We don't have a mutable view anyways.
     public typealias StoragePolicy = AlwaysCompute
@@ -103,6 +104,7 @@ public struct FieldValidationRules<Key: AccountKey>: AccountServiceConfiguration
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountServiceConfiguration {
     /// Access the validation rules for String-based ``AccountKey`` configured by an ``AccountService``.
     /// - Parameter key: The ``AccountKey`` type.

@@ -13,6 +13,7 @@ import SwiftUI
 
 
 /// Stores all configured category appearances for the view hierarchy.
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 public struct TaskCategoryAppearances: Sendable {
     public typealias AppearanceProvider = @Sendable (Task.Category) -> Task.Category.Appearance?
     
@@ -61,6 +62,7 @@ public struct TaskCategoryAppearances: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Task.Category {
     /// Visual cues on how to render a task category to the user.
     public struct Appearance: Equatable, Sendable {
@@ -77,6 +79,7 @@ extension Task.Category {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension EnvironmentValues {
     /// The task category appearances configured for this view hierarchy.
     @Entry public var taskCategoryAppearances: TaskCategoryAppearances = .init()

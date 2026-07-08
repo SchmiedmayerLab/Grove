@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if MLX
+
 import Foundation
 import MLXLLM
 import MLXLMCommon
@@ -63,3 +65,5 @@ public struct LLMLocalSchema: LLMSchema {
         self.injectIntoContext = injectIntoContext
     }
 }
+
+#endif

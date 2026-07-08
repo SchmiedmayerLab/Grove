@@ -15,6 +15,7 @@ import SwiftUI
 
 
 @_spi(TestingSupport)
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 public struct SchedulerSampleData: PreviewModifier {
     public init() {}
 
@@ -66,6 +67,7 @@ public struct SchedulerSampleData: PreviewModifier {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension PreviewTrait where T == Preview.ViewTraits {
     /// A preview modifier that provide sample data to the scheduler.
     ///
@@ -79,6 +81,7 @@ extension PreviewTrait where T == Preview.ViewTraits {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Range where Bound == Date {
     /// A date range used with scheduler sample events.
     @_spi(TestingSupport)

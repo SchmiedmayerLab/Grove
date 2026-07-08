@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if MLX
+
 import MLXLLM
 import SpeziLLMLocal
 import SpeziOnboarding
@@ -213,4 +215,6 @@ public struct LLMLocalDownloadView: View {
         action: {}
     )
 }
+#endif
+
 #endif

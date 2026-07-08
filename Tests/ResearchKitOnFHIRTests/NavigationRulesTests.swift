@@ -7,6 +7,7 @@
 //
 
 import ModelsR4
+#if ResearchKit
 import ResearchKit
 @testable import ResearchKitOnFHIR
 import Testing
@@ -270,3 +271,4 @@ struct NavigationRulesTests {
         #expect(task.skipNavigationRule(forStepIdentifier: secondItemID) != nil)
     }
 }
+#endif

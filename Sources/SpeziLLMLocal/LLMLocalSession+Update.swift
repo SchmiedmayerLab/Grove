@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if MLX
+
 import Foundation
 import SpeziLLM
 
@@ -39,3 +41,5 @@ extension LLMLocalSession {
         )
     }
 }
+
+#endif

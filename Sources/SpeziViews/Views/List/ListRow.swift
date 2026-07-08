@@ -33,6 +33,7 @@ import SwiftUI
 /// }
 /// ```
 ///
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 public struct ListRow<Label: View, Content: View>: View { // swiftlint:disable:this file_types_order
     private let labeledContent: LabeledContent<Label, Content>
 
@@ -63,6 +64,7 @@ public struct ListRow<Label: View, Content: View>: View { // swiftlint:disable:t
     /// - Parameters:
     ///   - label: The localized text label.
     ///   - content: The content view.
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public init(_ label: LocalizedStringResource, @ViewBuilder content: () -> Content) where Label == Text {
         self.labeledContent = .init(label, content: content)
     }
@@ -78,11 +80,13 @@ public struct ListRow<Label: View, Content: View>: View { // swiftlint:disable:t
 }
 
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension ListRow where Label == Text, Content == Text { // swiftlint:disable:this file_types_order
     /// Create a list row with a string value.
     /// - Parameters:
     ///   - titleKey: The localized label.
     ///   - value: The string value being labeled.
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public init<S: StringProtocol>(_ titleKey: LocalizedStringResource, value: S) {
         self.labeledContent = LabeledContent {
             Text(value)
@@ -104,6 +108,7 @@ extension ListRow where Label == Text, Content == Text { // swiftlint:disable:th
     ///   - titleKey: The localized label.
     ///   - value: The value being labeled.
     ///   - format: A format style to convert the underlying value to a string representation.
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     public init<F: FormatStyle>(
         _ titleKey: LocalizedStringResource,
         value: F.FormatInput,
@@ -132,6 +137,7 @@ extension ListRow where Label == Text, Content == Text { // swiftlint:disable:th
 
 
 #if DEBUG
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 private struct PreviewList: View {
     @available(*, deprecated, message: "Propagate warnings.")
     var body: some View {
@@ -166,6 +172,7 @@ private struct PreviewList: View {
     }
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     PreviewList()
 }

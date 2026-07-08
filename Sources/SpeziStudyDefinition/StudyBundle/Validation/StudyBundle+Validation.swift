@@ -12,6 +12,7 @@ import SpeziFoundation
 import SpeziLocalization
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension StudyBundle {
     @_spi(APISupport)
     public enum BundleValidationIssue: Hashable, DiagnosticMessageConvertible, CustomStringConvertible, Sendable {
@@ -115,6 +116,7 @@ extension StudyBundle {
 
 // MARK: Helpers
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension LocalizedFileResource {
     init(_ other: StudyBundle.FileReference, locale: Locale = .autoupdatingCurrent) {
         self.init("\(other.category.rawValue)/\(other.filename).\(other.fileExtension)", locale: locale)

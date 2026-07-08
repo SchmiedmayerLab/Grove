@@ -9,6 +9,7 @@
 import OrderedCollections
 
 
+@available(iOS 17, macOS 14, *)
 struct CategorizedAccountKeys {
     private var accountKeys: OrderedDictionary<AccountKeyCategory, [any AccountKey.Type]>
 

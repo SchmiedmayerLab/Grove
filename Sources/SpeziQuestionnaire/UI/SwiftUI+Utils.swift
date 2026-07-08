@@ -10,6 +10,7 @@ import Foundation
 import SwiftUI
 
 
+@available(iOS 17, *)
 extension Text {
     /// Creates a `Text` by parsing a Markdown string.
     ///
@@ -24,6 +25,7 @@ extension Text {
 }
 
 
+@available(iOS 17, *)
 extension Binding {
     func withDefault<T>(
         _ defaultValue: @autoclosure @escaping @Sendable () -> T
@@ -37,6 +39,7 @@ extension Binding {
 }
 
 
+@available(iOS 17, *)
 extension ColorScheme {
     var textLabelForegroundStyle: Color {
         self == .dark ? .white : .black

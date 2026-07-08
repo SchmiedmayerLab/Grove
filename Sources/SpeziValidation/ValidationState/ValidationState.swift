@@ -46,6 +46,7 @@ import SwiftUI
 /// - ``CapturedValidationState``
 /// - ``ValidationEngine``
 @propertyWrapper
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct ValidationState: DynamicProperty {
     @State private var state = ValidationContext()
 
@@ -64,6 +65,7 @@ public struct ValidationState: DynamicProperty {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension ValidationState {
     /// A binding to a ``ValidationState``.
     @propertyWrapper

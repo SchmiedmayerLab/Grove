@@ -24,20 +24,24 @@ struct NonTrivialTaskContext: Hashable, Codable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Outcome {
     @Property var example: String?
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Task.Context {
     @Property var example: String?
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Task.Context {
     @Property var example2: String = "Hello World"
 }
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Task.Context {
     @Property(coding: .json)
     var nonTrivialExample: NonTrivialTaskContext?

@@ -82,6 +82,7 @@ public struct DismissButton: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
 #if os(macOS) // cannot preview sheets in macOS
     NavigationStack {

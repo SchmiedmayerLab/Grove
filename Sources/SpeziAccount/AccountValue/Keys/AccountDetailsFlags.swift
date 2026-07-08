@@ -9,6 +9,7 @@
 import SpeziFoundation
 
 
+@available(iOS 17, macOS 14, *)
 struct AccountDetailsFlags: OptionSet, Sendable {
     let rawValue: UInt16
 
@@ -18,6 +19,7 @@ struct AccountDetailsFlags: OptionSet, Sendable {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountDetailsFlags {
     static let isNewUser = AccountDetailsFlags(rawValue: 1 << 0)
     static let isAnonymousUser = AccountDetailsFlags(rawValue: 1 << 1)
@@ -26,6 +28,7 @@ extension AccountDetailsFlags {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountDetails {
     fileprivate struct AccountDetailsFlagsKey: DefaultProvidingKnowledgeSource {
         typealias Anchor = AccountAnchor
@@ -45,6 +48,7 @@ extension AccountDetails {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountDetails {
     /// Determine if the user was freshly created.
     public var isNewUser: Bool {
@@ -62,6 +66,7 @@ extension AccountDetails {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountDetails {
     /// Determine if the user was anonymously signed up.
     ///
@@ -89,6 +94,7 @@ extension AccountDetails {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountDetails {
     /// Determine if the user's identity was verified.
     ///
@@ -109,6 +115,7 @@ extension AccountDetails {
 }
 
 
+@available(iOS 17, macOS 14, *)
 extension AccountDetails {
     /// The account details are incomplete and additional details are currently getting loaded.
     ///

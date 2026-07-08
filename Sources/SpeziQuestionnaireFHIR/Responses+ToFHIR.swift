@@ -13,6 +13,7 @@ public import SpeziQuestionnaire
 
 
 /// An error that occurred when converting a Spezi `QuestionnaireResponses` object into a FHIR R4 `QuestionnaireResponse`
+@available(iOS 17, *)
 private struct FHIRConversionError: LocalizedError {
     let errorDescription: String?
     
@@ -22,6 +23,7 @@ private struct FHIRConversionError: LocalizedError {
 }
 
 
+@available(iOS 17, *)
 extension SpeziQuestionnaire.QuestionnaireResponses {
     /// A custom response value that can be expressed as one or more FHIR R4 `QuestionnaireResponseItemAnswer`
     public protocol CustomResponseValueProtocolWithFHIRSupport: CustomResponseValueProtocol { // swiftlint:disable:this type_name
@@ -37,6 +39,7 @@ extension SpeziQuestionnaire.QuestionnaireResponses {
 }
 
 
+@available(iOS 17, *)
 extension ModelsR4.QuestionnaireResponse {
     /// Creates a FHIR R4 `QuestionnaireResponse` from a Spezi `QuestionnaireResponses`.
     public convenience init(_ other: SpeziQuestionnaire.QuestionnaireResponses) throws {
@@ -54,6 +57,7 @@ extension ModelsR4.QuestionnaireResponse {
 }
 
 
+@available(iOS 17, *)
 extension QuestionnaireResponses.Responses {
     fileprivate struct FHIRConversionContext {
         /// All tasks in the questionnaire, in the current context.
@@ -83,6 +87,7 @@ extension QuestionnaireResponses.Responses {
 }
 
 
+@available(iOS 17, *)
 extension QuestionnaireResponses.Response {
     fileprivate struct FHIRConversionContext { // maybe also use this for the CustomResponseValue conversion?
         let task: SpeziQuestionnaire.Questionnaire.Task
@@ -238,6 +243,7 @@ extension QuestionnaireResponses.Response {
 }
 
 
+@available(iOS 17, *)
 extension SpeziQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
     func toFHIRCoding() -> Coding {
         if let fhirCoding {
@@ -257,6 +263,7 @@ extension SpeziQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
 }
 
 
+@available(iOS 17, *)
 extension QuestionnaireResponseItem {
     fileprivate func getLinkId() throws -> String {
         if let linkId = linkId.value?.string {
@@ -268,6 +275,7 @@ extension QuestionnaireResponseItem {
 }
 
 
+@available(iOS 17, *)
 extension QuestionnaireResponseItemAnswer {
     convenience init(_ attachment: QuestionnaireResponses.CollectedAttachment) throws {
         let data = try Data(contentsOf: attachment.url)

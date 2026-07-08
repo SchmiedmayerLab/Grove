@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 private struct ConnectedDeviceEnvironmentModifier<Device: BluetoothDevice>: ViewModifier {
     @Environment(ConnectedDevicesModel.self)
     var connectedDevices
@@ -32,6 +33,7 @@ private struct ConnectedDeviceEnvironmentModifier<Device: BluetoothDevice>: View
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 struct ConnectedDevicesEnvironmentModifier: ViewModifier {
     private let configuredDeviceTypes: [any BluetoothDevice.Type]
 
@@ -56,6 +58,7 @@ struct ConnectedDevicesEnvironmentModifier: ViewModifier {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension BluetoothDevice {
     @MainActor fileprivate static var deviceEnvironmentModifier: any ViewModifier {
         ConnectedDeviceEnvironmentModifier<Self>()
@@ -63,6 +66,7 @@ extension BluetoothDevice {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Array where Element == any ViewModifier {
     @MainActor
     fileprivate func modify<V: View>(_ view: V) -> AnyView {
@@ -75,6 +79,7 @@ extension Array where Element == any ViewModifier {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension ViewModifier {
     fileprivate func modify(_ view: AnyView) -> AnyView {
         AnyView(view.modifier(self))

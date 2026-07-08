@@ -14,6 +14,10 @@ import Testing
 struct NotificationsTests {
     @Test
     func sharedIdPrefix() {
+        guard #available(iOS 18, macOS 15, watchOS 11, visionOS 2, *) else {
+            return
+        }
+
         #expect(SchedulerNotifications.baseTaskNotificationId.starts(with: SchedulerNotifications.baseNotificationId))
         #expect(SchedulerNotifications.baseEventNotificationId.starts(with: SchedulerNotifications.baseNotificationId))
     }

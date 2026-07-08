@@ -28,6 +28,7 @@ import SwiftUI
 /// }
 /// .navigationTitle("Schedule")
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 public struct EventScheduleList<Tile: View>: View {
     @Environment(\.calendar)
     private var cal

@@ -15,6 +15,7 @@ import SwiftUI
 /// `View` for the user to enter an auth token for remote LLM inference.
 ///
 /// The displayed text is fully configurable via init parameters using `LocalizedStringResource`, with sensible fallback defaults.
+@available(iOS 17, macOS 14, visionOS 1, *)
 package struct LLMAuthTokenCollector: View {
     package struct CredentialsConfig: Sendable {
         public let tag: CredentialsTag
@@ -128,6 +129,7 @@ package struct LLMAuthTokenCollector: View {
 }
 
 #if DEBUG
+@available(iOS 17, macOS 14, visionOS 1, *)
 #Preview {
     LLMAuthTokenCollector(
         credentialsConfig: .init(

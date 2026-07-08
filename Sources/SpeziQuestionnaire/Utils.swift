@@ -7,6 +7,7 @@
 //
 
 
+@available(iOS 17, *)
 extension Set {
     mutating func remove(where predicate: (Element) -> Bool) {
         for element in self where predicate(element) {

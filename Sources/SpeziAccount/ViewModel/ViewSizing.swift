@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 17, macOS 14, *)
 struct ViewSizing {
     static let outerHorizontalPadding: CGFloat = 16
     static let innerHorizontalPadding: CGFloat = 16

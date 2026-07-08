@@ -74,6 +74,7 @@ import SpeziFoundation
 ///    }
 /// }
 /// ```
+@available(iOS 17, macOS 14, visionOS 1, *)
 @Observable
 public final class LLMRunner: Module, EnvironmentAccessible, DefaultInitializable {
     /// The ``State`` describes the current state of the ``LLMRunner``.
@@ -203,9 +204,11 @@ public final class LLMRunner: Module, EnvironmentAccessible, DefaultInitializabl
     }
 }
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension LLMRunner: @unchecked Sendable {} // unchecked because of the `Dependency` property wrapper storage
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension LLMPlatform {
     /// Determine the correct ``LLMPlatform`` for the passed ``LLMSchema``.
     fileprivate func determinePlatform<L: LLMSchema>(for schema: L) -> L.Platform.Session {

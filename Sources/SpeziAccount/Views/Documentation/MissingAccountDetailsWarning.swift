@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 struct MissingAccountDetailsWarning: View {
     private var documentationUrl: URL {
         // we may move to a #URL macro once Swift 5.9 is shipping
@@ -36,6 +37,7 @@ struct MissingAccountDetailsWarning: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     MissingAccountDetailsWarning()
 }

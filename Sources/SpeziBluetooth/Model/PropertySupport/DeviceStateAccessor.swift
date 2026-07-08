@@ -16,6 +16,7 @@
 /// ### Get notified about changes
 /// - ``onChange(initial:perform:)-819sg``
 /// - ``onChange(initial:perform:)-76kjp``
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct DeviceStateAccessor<Value: Sendable> {
     private let storage: DeviceState<Value>.Storage
 
@@ -25,6 +26,7 @@ public struct DeviceStateAccessor<Value: Sendable> {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension DeviceStateAccessor {
     /// Retrieve a subscription to changes to the device state.
     ///
@@ -120,12 +122,14 @@ extension DeviceStateAccessor {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension DeviceStateAccessor: Sendable {}
 
 
 // MARK: - Testing Support
 
 @_spi(TestingSupport)
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension DeviceStateAccessor {
     /// Enable testing support for subscriptions and onChange handlers.
     ///

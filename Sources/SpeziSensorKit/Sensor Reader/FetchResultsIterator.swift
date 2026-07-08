@@ -7,6 +7,7 @@
 //
 
 
+@available(iOS 17, *)
 extension SensorKit {
     /// A utility iterator that can be used to efficiently work with ``SensorKit/FetchResult`` arrays.
     ///
@@ -52,6 +53,7 @@ extension SensorKit {
 }
 
 
+@available(iOS 17, *)
 extension SensorKit.FetchResultsIterator {
     @usableFromInline
     enum State {

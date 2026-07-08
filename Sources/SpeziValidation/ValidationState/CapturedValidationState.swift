@@ -17,6 +17,7 @@ import SwiftUI
 /// This particularly allows to run a validation from the outside of a view.
 @dynamicMemberLookup
 @MainActor
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct CapturedValidationState {
     nonisolated private let engine: ValidationEngine
     nonisolated private let input: String
@@ -47,6 +48,7 @@ public struct CapturedValidationState {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension CapturedValidationState: Equatable, Sendable {
     nonisolated public static func == (lhs: CapturedValidationState, rhs: CapturedValidationState) -> Bool {
         lhs.engine === rhs.engine && lhs.input == rhs.input

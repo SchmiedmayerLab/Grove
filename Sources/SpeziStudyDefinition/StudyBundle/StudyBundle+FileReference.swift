@@ -10,6 +10,7 @@ import Foundation
 import SpeziLocalization
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension StudyBundle {
     /// A reference to a non-localized version of a file within a StudyBundle.
     ///
@@ -77,6 +78,7 @@ extension StudyBundle {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension StudyBundle {
     /// A localized file reference is the combination of a ``FileReference`` and a ``LocalizationKey``
     @_spi(APISupport)
@@ -97,6 +99,7 @@ extension StudyBundle {
 
 // MARK: URL/path resolution
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension StudyBundle {
     static func folderUrl(for category: FileReference.Category, relativeTo baseUrl: URL) -> URL {
         baseUrl.appending(component: category.rawValue, directoryHint: .isDirectory)

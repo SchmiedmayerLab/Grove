@@ -109,6 +109,7 @@ import SwiftUI
 /// - ``discoveredDevices``
 /// - ``isScanningForNearbyDevices``
 /// - ``pair(with:timeout:)``
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 @Observable
 public final class PairedDevices: ServiceModule {
     private enum InternalEvents: Sendable {
@@ -141,7 +142,7 @@ public final class PairedDevices: ServiceModule {
 
     @Dependency @ObservationIgnored private var _accessorySetup: [any Module]
 
-    @available(iOS 18, *)
+    @available(iOS 18, macOS 15, macCatalyst 18, visionOS 2, *)
     private var accessorySetup: AccessorySetupKit? {
         // we cannot have stored properties with @available. Therefore, we add a level of indirection.
         guard let module = _accessorySetup.first else {
@@ -456,11 +457,13 @@ public final class PairedDevices: ServiceModule {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension PairedDevices: Module, EnvironmentAccessible, DefaultInitializable, @unchecked Sendable {}
 
 // MARK: - Manual Discovery
 
 @MainActor
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension PairedDevices {
     private func handleAdvertisementChange<Device: PairableDevice>(_ device: Device) {
         guard device.isInPairingMode, !isPaired(device), _discoveredDevices[device.id] == nil else {
@@ -580,6 +583,7 @@ extension PairedDevices {
 // MARK: - Device Pairing
 
 @MainActor
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension PairedDevices {
     private func registerPairedDevice<Device: PairableDevice>(_ device: Device) async {
         everPairedDevice = true
@@ -718,6 +722,7 @@ extension PairedDevices {
 // MARK: - Paired Peripheral Management
 
 @MainActor
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension PairedDevices {
     private func fetchAllPairedInfos(previousPeripherals: [UUID: (any PairableDevice)] = [:]) {
         defer {
@@ -843,7 +848,8 @@ extension PairedDevices {
 
 // MARK: - Accessory Setup Kit
 
-@available(iOS 18, *)
+@available(iOS 18, macOS 15, macCatalyst 18, visionOS 2, *)
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension PairedDevices {
     /// Determine if the accessory picker of the AccessorySetupKit is currently being presented.
     @MainActor public var accessoryPickerPresented: Bool {
@@ -1106,6 +1112,7 @@ extension PairedDevices {
 
 // MARK: Bluetooth
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension PairedDevices {
     struct BluetoothCentralStateSubscription: Sendable {
         private enum Event: Sendable {
@@ -1161,6 +1168,7 @@ extension PairedDevices {
     }
 }
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension Bluetooth {
     nonisolated func pairableDevice(deviceTypeIdentifier: String) -> (any PairableDevice.Type)? {
         for descriptor in configuration {

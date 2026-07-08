@@ -28,6 +28,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 16, macOS 13, watchOS 9, visionOS 1, *)
 public protocol TestAppTests: RawRepresentable, Hashable, CaseIterable, Identifiable where RawValue: StringProtocol {
     associatedtype Content: View
     
@@ -40,6 +41,7 @@ public protocol TestAppTests: RawRepresentable, Hashable, CaseIterable, Identifi
 }
 
 
+@available(iOS 16, macOS 13, watchOS 9, visionOS 1, *)
 extension TestAppTests {
     /// Unique identifier based on the ``TestAppTests``'s `rawValue`.
     public var id: RawValue {

@@ -23,8 +23,10 @@ import SpeziFoundation
 /// will result in a runtime crash.
 ///
 /// - Important: Avoid introducing required account keys after user accounts have already been created without it.
+@available(iOS 17, macOS 14, *)
 public protocol RequiredAccountKey: AccountKey, DefaultProvidingKnowledgeSource {}
 
+@available(iOS 17, macOS 14, *)
 extension RequiredAccountKey {
     /// A default implementation that results in a fatal error.
     ///

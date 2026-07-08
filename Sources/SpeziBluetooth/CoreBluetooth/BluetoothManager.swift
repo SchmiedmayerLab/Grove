@@ -81,6 +81,7 @@ import OSLog
 /// - ``powerOn()``
 /// - ``powerOff()``
 @SpeziBluetooth
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public class BluetoothManager: Observable, Sendable, Identifiable { // swiftlint:disable:this type_body_length
     private let logger = Logger(subsystem: "edu.stanford.spezi.bluetooth", category: "BluetoothManager")
 
@@ -558,6 +559,7 @@ public class BluetoothManager: Observable, Sendable, Identifiable { // swiftlint
 
 
 @_spi(APISupport)
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension BluetoothManager: BluetoothScanner {
     /// Default id based on `ObjectIdentifier`.
     nonisolated public var id: ObjectIdentifier {
@@ -589,6 +591,7 @@ extension BluetoothManager: BluetoothScanner {
 
 
 // MARK: Defaults
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension BluetoothManager {
     /// Set of default values used within the Bluetooth Manager
     enum Defaults {
@@ -605,6 +608,7 @@ extension BluetoothManager {
 
 
 // MARK: Delegate
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension BluetoothManager {
     private class Delegate: NSObject, CBCentralManagerDelegate {
         private let logger = Logger(subsystem: "edu.stanford.spezi.bluetooth", category: "BluetoothManagerDelegate")

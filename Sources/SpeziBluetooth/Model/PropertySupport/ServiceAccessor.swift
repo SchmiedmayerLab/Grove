@@ -20,6 +20,7 @@
 /// ### Service properties
 /// - ``isPresent``
 /// - ``isPrimary``
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct ServiceAccessor<S: BluetoothService> {
     private let serviceState: Service<S>.State.ServiceState
 
@@ -43,4 +44,5 @@ public struct ServiceAccessor<S: BluetoothService> {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension ServiceAccessor: Sendable {}

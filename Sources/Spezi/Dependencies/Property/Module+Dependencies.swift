@@ -81,5 +81,6 @@ extension Module {
     /// ```
     ///
     /// - Note: Use `Dependency/init(using:)` to initialize the `@Dependency` property wrapper using a ``DependencyCollection``.
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     public typealias Dependency<Value> = _DependencyPropertyWrapper<Value>
 }

@@ -32,6 +32,7 @@ import SwiftUI
 ///     }
 /// )
 /// ```
+@available(iOS 16, macOS 13, visionOS 1, *)
 public struct OnboardingActionsView: View {
     private struct ButtonConfig {
         let title: Text
@@ -80,6 +81,7 @@ public struct OnboardingActionsView: View {
 }
 
 
+@available(iOS 16, macOS 13, visionOS 1, *)
 extension OnboardingActionsView {
     /// Creates an `OnboardingActionsView` instance that only contains a primary button.
     /// - Parameters:
@@ -141,6 +143,7 @@ extension OnboardingActionsView {
     ///   - title: The localized title of the primary button.
     ///   - viewState: An optional `ViewState` binding.
     ///   - action: The action that should be performed when pressing the primary button
+    @available(iOS 16, macOS 13, visionOS 1, *)
     public init(
         _ title: LocalizedStringResource,
         viewState: Binding<ViewState>? = nil,
@@ -159,6 +162,7 @@ extension OnboardingActionsView {
     ///   - secondaryTitle: The localized title of the secondary button.
     ///   - secondaryViewState: An optional `ViewState` binding for controlling the secondary action's state.
     ///   - secondaryAction: The action that should be performed when pressing the secondary button
+    @available(iOS 16, macOS 13, visionOS 1, *)
     public init(
         primaryTitle: LocalizedStringResource,
         primaryViewState: Binding<ViewState>? = nil,
@@ -206,6 +210,7 @@ extension View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, visionOS 1, *)
 #Preview {
     VStack {
         OnboardingActionsView("PRIMARY") {

@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if ResearchKit && canImport(ResearchKit)
+
 import ModelsR4
 import ResearchKit
 
@@ -316,3 +318,5 @@ extension ORKResultPredicate {
         )
     }
 }
+
+#endif

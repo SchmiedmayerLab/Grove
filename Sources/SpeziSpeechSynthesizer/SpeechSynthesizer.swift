@@ -56,6 +56,7 @@ import Spezi
 ///     }
 /// }
 /// ```
+@available(iOS 17, macOS 14, visionOS 1, *)
 @Observable
 public final class SpeechSynthesizer: NSObject, Module, DefaultInitializable, EnvironmentAccessible,
                                       AVSpeechSynthesizerDelegate, @unchecked Sendable {

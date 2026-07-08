@@ -10,6 +10,7 @@ import Foundation
 
 
 /// Provide an initial value for an `AccountKey`.
+@available(iOS 17, macOS 14, *)
 public enum InitialValue<Value> {
     /// The initial value is considered an empty value and the user is forced
     /// to provide their own input.
@@ -33,10 +34,13 @@ public enum InitialValue<Value> {
     }
 }
 
+@available(iOS 17, macOS 14, *)
 extension InitialValue: Equatable where Value: Equatable {}
 
 
+@available(iOS 17, macOS 14, *)
 extension InitialValue: Hashable where Value: Hashable {}
 
 
+@available(iOS 17, macOS 14, *)
 extension InitialValue: Sendable where Value: Sendable {}

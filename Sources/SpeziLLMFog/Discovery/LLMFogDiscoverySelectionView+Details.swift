@@ -10,6 +10,7 @@ import Network
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, visionOS 1, *)
 extension LLMFogDiscoverySelectionView {
     /// A simple detail view showing all endpoint fields and the full TXT record.
     struct ServiceDetailView: View {

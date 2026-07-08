@@ -77,7 +77,7 @@ struct ModuleBuilderTests {
             }
             // The `#available(iOS 16, *)` mark is used to test `#available` in a result builder.
             // The availability check is not part of any part of the Spezi API.
-            if #available(iOS 16, *) { // swiftlint:disable:this deployment_target
+            if #available(iOS 16, *) {
                 TestModule(expectation: moduleBuilderExpectations.availableConditionalTestExpectation)
             }
             if condition {

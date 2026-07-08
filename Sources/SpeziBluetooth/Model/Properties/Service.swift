@@ -39,12 +39,14 @@ import CoreBluetooth
 /// - ``projectedValue``
 /// - ``ServiceAccessor``
 @propertyWrapper
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct Service<S: BluetoothService> {
     final class Storage: Sendable {
         let injection = ManagedAtomicLazyReference<ServicePeripheralInjection<S>>()
         let state = State()
     }
 
+    @available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
     @Observable
     final class State: Sendable {
         // Type safe capture of the current GATTService state.
@@ -123,9 +125,11 @@ public struct Service<S: BluetoothService> {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Service: Sendable where S: Sendable {}
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Service: DeviceVisitable {
     func accept<Visitor: DeviceVisitor>(_ visitor: inout Visitor) {
         visitor.visit(self)

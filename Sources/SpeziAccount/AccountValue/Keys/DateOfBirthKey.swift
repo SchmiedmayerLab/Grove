@@ -11,6 +11,7 @@ import SwiftUI
 
 
 @available(tvOS, unavailable)
+@available(iOS 17, macOS 14, *)
 private struct DisplayView: DataDisplayView { // swiftlint:disable:this file_types_order
     private let value: Date
 
@@ -37,6 +38,7 @@ private struct DisplayView: DataDisplayView { // swiftlint:disable:this file_typ
 }
 
 @available(tvOS, unavailable)
+@available(iOS 17, macOS 14, *)
 private struct EntryView: DataEntryView {
     @Binding private var value: Date
 
@@ -61,6 +63,7 @@ private struct EntryView: DataEntryView {
 
 
 @available(tvOS, unavailable)
+@available(iOS 17, macOS 14, *)
 extension AccountDetails {
     /// The date of birth of a user.
     @AccountKey(
@@ -84,5 +87,6 @@ extension AccountDetails {
 
 @available(tvOS, unavailable)
 @KeyEntry(\.dateOfBirth)
+@available(iOS 17, macOS 14, *)
 public extension AccountKeys { // swiftlint:disable:this no_extension_access_modifier
 }

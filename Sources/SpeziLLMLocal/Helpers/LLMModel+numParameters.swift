@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if MLX
+
 import MLXNN
 
 
@@ -28,3 +30,5 @@ extension Module {
             .reduce(0, +)
     }
 }
+
+#endif

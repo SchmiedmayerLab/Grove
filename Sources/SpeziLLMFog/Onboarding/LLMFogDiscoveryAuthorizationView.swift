@@ -55,6 +55,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct LLMFogDiscoveryAuthorizationView: View {
     @Environment(LLMFogPlatform.self) var fogPlatform
 
@@ -159,6 +160,7 @@ public struct LLMFogDiscoveryAuthorizationView: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, visionOS 1, *)
 #Preview {
     LLMFogDiscoveryAuthorizationView(
         action: {}

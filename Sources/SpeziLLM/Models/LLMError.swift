@@ -10,6 +10,7 @@ import Foundation
 
 
 /// Defines universally occurring `Error`s while handling LLMs with SpeziLLM.
+@available(iOS 16, macOS 13, visionOS 1, *)
 public enum LLMDefaultError: LLMError {
     /// Indicates an unknown error during LLM execution.
     case unknown(any Error)

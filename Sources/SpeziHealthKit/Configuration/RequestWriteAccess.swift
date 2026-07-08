@@ -14,6 +14,7 @@ import HealthKit
 /// A ``HealthKit-class`` configuration component that requests write acess to HealthKit sample types.
 ///
 /// - Important: Apps can only request HealthKit write access if the `Info.plist` file contains an entry for the `NSHealthUpdateUsageDescription` key.
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 public struct RequestWriteAccess: HealthKitConfigurationComponent {
     public let dataAccessRequirements: HealthKit.DataAccessRequirements
     

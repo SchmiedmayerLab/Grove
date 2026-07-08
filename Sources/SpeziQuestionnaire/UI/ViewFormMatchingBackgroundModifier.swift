@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, *)
 extension View {
     /// Sets the view's background to a color that matches the system's background color used for `Form`s with a `grouped` style.
     func makeBackgroundMatchFormBackground() -> some View {

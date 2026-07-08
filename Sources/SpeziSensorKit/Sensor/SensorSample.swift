@@ -11,6 +11,7 @@ import SpeziFoundation
 
 
 /// A `Sendable` representation of a data sample obtained from SensorKit.
+@available(iOS 17, *)
 public protocol SensorKitSampleSafeRepresentation: Hashable, Sendable {
     /// The sample's time range.
     ///
@@ -39,6 +40,7 @@ public protocol SensorKitSampleSafeRepresentation: Hashable, Sendable {
 /// ### Other Types
 /// - ``SensorKitSampleSafeRepresentation``
 /// - ``DefaultSensorKitSampleSafeRepresentation``
+@available(iOS 17, *)
 public protocol SensorKitSampleProtocol: AnyObject, Hashable {
     /// A "safe" `Sendable` representation of the type.
     ///
@@ -56,6 +58,7 @@ public protocol SensorKitSampleProtocol: AnyObject, Hashable {
 }
 
 
+@available(iOS 17, *)
 extension SensorKitSampleProtocol where SafeRepresentation == SafeRepresentationProcessingInput {
     @inlinable
     public static func processIntoSafeRepresentation( // swiftlint:disable:this missing_docs
@@ -65,6 +68,7 @@ extension SensorKitSampleProtocol where SafeRepresentation == SafeRepresentation
     }
 }
 
+@available(iOS 17, *)
 extension SensorKitSampleProtocol where SafeRepresentation == DefaultSensorKitSampleSafeRepresentation<SafeRepresentationProcessingInput> {
     @inlinable
     public static func processIntoSafeRepresentation( // swiftlint:disable:this missing_docs

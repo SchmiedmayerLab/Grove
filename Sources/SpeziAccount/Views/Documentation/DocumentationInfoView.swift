@@ -10,6 +10,7 @@
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 struct DocumentationInfoView<Label: View, Description: View>: View {
     private let label: Label
     private let description: Description
@@ -45,6 +46,7 @@ struct DocumentationInfoView<Label: View, Description: View>: View {
 }
 
 
+@available(iOS 17, macOS 14, *)
 #Preview {
     guard let url = URL(string: "https://google.com") else {
         return EmptyView()

@@ -15,6 +15,7 @@ import Foundation
 import SpeziHealthKit
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 @main
 struct Codegen: ParsableCommand {
     static var configuration: CommandConfiguration {
@@ -191,6 +192,7 @@ private struct IdentifierDefinitionsFile: ~Copyable {
 }
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension URL: @retroactive ExpressibleByArgument {
     public init?(argument: String) {
         self = URL(filePath: argument, relativeTo: .currentDirectory()).absoluteURL

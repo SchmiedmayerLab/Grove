@@ -12,6 +12,7 @@ import SpeziValidation
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 struct NameEditView: View {
     private let deviceInfo: PairedDeviceInfo
     private let save: (String) -> Void
@@ -56,6 +57,7 @@ struct NameEditView: View {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension ValidationRule {
     static var deviceNameMaxLength: ValidationRule {
         ValidationRule(rule: { input in
@@ -66,6 +68,7 @@ extension ValidationRule {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     NavigationStack {
         NameEditView(PairedDeviceInfo(

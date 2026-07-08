@@ -11,6 +11,7 @@ import HealthKit
 import ModelsR4
 
 
+@available(macOS 13, *)
 extension HKSample {
     /// A `ResourceProxy` containing an FHIR  `Observation` based on the concrete subclass of `HKSample`.
     ///
@@ -23,6 +24,7 @@ extension HKSample {
     ///     (e.g., because it contains values that cannot be represented using the FHIR types)
     ///
     /// - Important: When mapping an array of HKSample objects into ResourceProxies, for performance reasons always prefer ``Swift/Sequence/mapIntoResourceProxies(using:extensions:)`` or ``Swift/Sequence/mapIntoResourceProxies(using:extensions:)``.
+    @available(iOS 17, macOS 14, watchOS 10, *)
     public func resource(
         withMapping mapping: HKSampleMapping = .default,
         issuedDate: FHIRPrimitive<Instant>? = nil,
@@ -67,6 +69,7 @@ extension HKSample {
 }
 
 
+@available(macOS 13, *)
 extension Sequence where Element: HKSample {
     /// Produces an Array of FHIR `ResourceProxies`.
     ///
@@ -76,6 +79,7 @@ extension Sequence where Element: HKSample {
     /// - parameter issuedDate: `Instant` specifying when this version of the resource was made available. Defaults to `Date.now`.
     /// - parameter extensions: Any ``FHIRExtensionBuilder``s that should be applied to each of the produced observations.
     ///     The ``FHIRExtensionBuilder/sourceDevice-9m1t7``, ``FHIRExtensionBuilder/sourceRevision-8b3xb``, and ``FHIRExtensionBuilder/metadata`` extension builders are always enabled when creating a FHIR `Observation`s from a `HKSample`.
+    @available(iOS 17, macOS 14, watchOS 10, *)
     public func mapIntoResourceProxies(
         using mapping: HKSampleMapping = .default,
         issuedDate: FHIRPrimitive<Instant>? = nil,
@@ -95,6 +99,7 @@ extension Sequence where Element: HKSample {
     /// - parameter issuedDate: `Instant` specifying when this version of the resource was made available. Defaults to `Date.now`.
     /// - parameter extensions: Any ``FHIRExtensionBuilder``s that should be applied to each of the produced observations.
     ///     The ``FHIRExtensionBuilder/sourceDevice-9m1t7``, ``FHIRExtensionBuilder/sourceRevision-8b3xb``, and ``FHIRExtensionBuilder/metadata`` extension builders are always enabled when creating a FHIR `Observation`s from a `HKSample`.
+    @available(iOS 17, macOS 14, watchOS 10, *)
     public func compactMapIntoResourceProxies(
         using mapping: HKSampleMapping = .default,
         issuedDate: FHIRPrimitive<Instant>? = nil,

@@ -10,6 +10,7 @@ import SpeziPersonalInfo
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 struct AccountOverviewHeader: View {
     private let model: AccountDisplayModel
 
@@ -60,6 +61,7 @@ struct AccountOverviewHeader: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     AccountOverviewHeader(details: .createMock())
 }

@@ -20,7 +20,25 @@
 set -euxo pipefail
 cd "$(dirname "$0")/.."
 
-PACKAGES="FHIRModelsExtensions HealthKitOnFHIR ResearchKitOnFHIR Spezi SpeziAccessGuard SpeziAccount SpeziBluetooth SpeziChat SpeziConsent SpeziContact SpeziDevices SpeziFHIR SpeziFileFormats SpeziFirebase SpeziFoundation SpeziHealthKit SpeziLLM SpeziLicense SpeziLocation SpeziNetworking SpeziNotifications SpeziOnboarding SpeziQuestionnaire SpeziScheduler SpeziSensorKit SpeziSpeech SpeziStorage SpeziStudy SpeziViews XCTHealthKit XCTRuntimeAssertions XCTestExtensions"
+DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-.derivedData}"
+cleanup_derived_data() {
+  case "${CLEAN_DERIVED_DATA:-}" in
+    0|false|FALSE|no|NO)
+      return
+      ;;
+  esac
+
+  case "$DERIVED_DATA_PATH" in
+    .derivedData|.derivedData/*|.derivedData-*|"$PWD"/.derivedData|"$PWD"/.derivedData/*|"$PWD"/.derivedData-*)
+      rm -rf "$DERIVED_DATA_PATH"
+      ;;
+  esac
+}
+if [ "${CLEAN_DERIVED_DATA:-1}" != "0" ]; then
+  trap cleanup_derived_data EXIT
+fi
+
+PACKAGES="FHIRModelsExtensions HealthKitOnFHIR ResearchKitOnFHIR Spezi SpeziAccessGuard SpeziAccount SpeziBluetooth SpeziChat SpeziConsent SpeziContact SpeziDevices SpeziFHIR SpeziFileFormats SpeziFirebase ThreadLocal SpeziFoundation SpeziHealthKit SpeziLLM SpeziLicense SpeziLocation SpeziNetworking SpeziNotifications SpeziOnboarding SpeziQuestionnaire SpeziScheduler SpeziSensorKit SpeziSpeech SpeziStorage SpeziStudy SpeziViews XCTHealthKit XCTRuntimeAssertions XCTestExtensions"
 
 # package -> the platforms it was tested on upstream (the union CI matrix)
 platforms_for() { case "$1" in
@@ -38,6 +56,7 @@ platforms_for() { case "$1" in
     SpeziFHIR) echo "iOS" ;;
     SpeziFileFormats) echo "iOS watchOS visionOS tvOS macOS" ;;
     SpeziFirebase) echo "iOS" ;;
+    ThreadLocal) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
     SpeziFoundation) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
     SpeziHealthKit) echo "iOS watchOS macOS macCatalyst visionOS" ;;
     SpeziLLM) echo "iOS visionOS macOS" ;;
@@ -59,9 +78,62 @@ platforms_for() { case "$1" in
     *) echo "" ;;
   esac; }
 
+simulator_os() {
+  local runtime_identifier="$1"
+  local major_version="$2"
+  local override_variable="$3"
+  local override_value="${!override_variable:-}"
+
+  if [ -n "$override_value" ]; then
+    echo "$override_value"
+    return
+  fi
+
+  xcrun simctl list runtimes --json | python3 -c '
+import json
+import sys
+
+runtime_identifier = sys.argv[1]
+major_version = sys.argv[2]
+data = json.load(sys.stdin)
+
+def version_key(runtime):
+    return tuple(int(part) for part in runtime["version"].split("."))
+
+runtimes = [
+    runtime
+    for runtime in data.get("runtimes", [])
+    if runtime.get("isAvailable", True)
+    and runtime.get("identifier", "").startswith(runtime_identifier)
+    and runtime.get("version", "").split(".", maxsplit=1)[0] == major_version
+]
+
+if not runtimes:
+    raise SystemExit(f"No available {runtime_identifier} {major_version}.x simulator runtime found.")
+
+print(max(runtimes, key=version_key)["version"])
+' "$runtime_identifier" "$major_version"
+}
+
+ios_simulator_os() {
+  simulator_os "com.apple.CoreSimulator.SimRuntime.iOS" "${IOS_SIMULATOR_MAJOR:-26}" "IOS_SIMULATOR_OS"
+}
+
+absolute_path() {
+  case "$1" in
+    /*) echo "$1" ;;
+    *) echo "$(pwd)/$1" ;;
+  esac
+}
+
+ui_test_deployment_target() { case "$1" in
+  ResearchKitOnFHIR|SpeziLLM|SpeziQuestionnaire) echo "18.0" ;;
+  *) echo "" ;;
+esac; }
+
 dest() { case "$1" in
-  iOS)          echo "platform=iOS Simulator,name=iPhone 17 Pro" ;;
-  iPadOS)       echo "platform=iOS Simulator,name=iPad Pro 13-inch (M4)" ;;
+  iOS)          echo "platform=iOS Simulator,name=iPhone 17 Pro,OS=$(ios_simulator_os)" ;;
+  iPadOS)       echo "platform=iOS Simulator,name=iPad Pro 13-inch (M4),OS=$(ios_simulator_os)" ;;
   macOS)        echo "platform=macOS,arch=arm64" ;;
   macCatalyst)  echo "platform=macOS,arch=arm64,variant=Mac Catalyst" ;;
   watchOS)      echo "platform=watchOS Simulator,name=Apple Watch Series 11 (46mm)" ;;
@@ -80,6 +152,13 @@ run() { # <package> <platform> [mode: "ui"]
     # Writes an .xcresult bundle that the test-ui CI job uploads as an artifact (even on test failure).
     local result="${1}-${2}-UITests.xcresult"
     local uidir="Tests/${1}Tests/UITests"
+    local deployment_target; deployment_target="$(ui_test_deployment_target "$1")"
+    local deployment_target_argument=""
+    if [ -n "$deployment_target" ]; then
+      deployment_target_argument=" IPHONEOS_DEPLOYMENT_TARGET=$deployment_target"
+    fi
+    local root; root="$(pwd)"
+    local derived_data_path_absolute; derived_data_path_absolute="$(absolute_path "$DERIVED_DATA_PATH")"
     rm -rf "$result"   # self-hosted runners reuse the workspace — avoid a stale bundle path
     echo "==> $1 UI tests on $2"
     if [ -f "$uidir/firebase.json" ]; then
@@ -87,22 +166,37 @@ run() { # <package> <platform> [mode: "ui"]
       # `firebase emulators:exec` from the UITests dir (so firebase.json/.firebaserc/rules resolve),
       # writing the .xcresult back to the repo root (absolute path) so the test-ui upload step finds it.
       # Requires the `firebase` CLI (firebase-tools) on the runner — as the upstream CI also relied on.
-      local root; root="$(pwd)"
       ( cd "$uidir" \
-        && firebase emulators:exec "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -resultBundlePath '$root/$result' -derivedDataPath '$root/.derivedData' -skipMacroValidation -skipPackagePluginValidation" ) \
+        && firebase emulators:exec "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -resultBundlePath '$root/$result' -derivedDataPath '$derived_data_path_absolute' -skipMacroValidation -skipPackagePluginValidation -skipPackageUpdates$deployment_target_argument" ) \
       | beautify
       return
     fi
-    xcodebuild test \
-      -project "$uidir/UITests.xcodeproj" \
-      -scheme TestApp \
-      -configuration Debug \
-      -destination "$(dest "$2")" \
-      -resultBundlePath "$result" \
-      -skipMacroValidation \
-      -skipPackagePluginValidation \
-      -derivedDataPath ".derivedData" \
-    | beautify
+    if [ -n "$deployment_target" ]; then
+      xcodebuild test \
+        -project "$uidir/UITests.xcodeproj" \
+        -scheme TestApp \
+        -configuration Debug \
+        -destination "$(dest "$2")" \
+        -resultBundlePath "$result" \
+        -skipMacroValidation \
+        -skipPackagePluginValidation \
+        -skipPackageUpdates \
+        -derivedDataPath "$derived_data_path_absolute" \
+        "IPHONEOS_DEPLOYMENT_TARGET=$deployment_target" \
+      | beautify
+    else
+      xcodebuild test \
+        -project "$uidir/UITests.xcodeproj" \
+        -scheme TestApp \
+        -configuration Debug \
+        -destination "$(dest "$2")" \
+        -resultBundlePath "$result" \
+        -skipMacroValidation \
+        -skipPackagePluginValidation \
+        -skipPackageUpdates \
+        -derivedDataPath "$derived_data_path_absolute" \
+      | beautify
+    fi
     return
   fi
   if [ "$2" = "Linux" ]; then
@@ -128,7 +222,8 @@ run() { # <package> <platform> [mode: "ui"]
     -resultBundlePath "$result" \
     -skipMacroValidation \
     -skipPackagePluginValidation \
-    -derivedDataPath ".derivedData" \
+    -skipPackageUpdates \
+    -derivedDataPath "$DERIVED_DATA_PATH" \
   | beautify
 }
 
@@ -138,7 +233,7 @@ case "${1:-}" in
   --all-ios)
     echo "==> entire package on iOS Simulator"
     xcodebuild test -scheme Spezi-Package -destination "$(dest iOS)" \
-      -skipMacroValidation -skipPackagePluginValidation | beautify ;;
+      -skipMacroValidation -skipPackagePluginValidation -skipPackageUpdates -derivedDataPath "$DERIVED_DATA_PATH" | beautify ;;
   "")
     echo "usage: $0 <Package> [Platform] [ui] | --all-ios | --list" >&2; exit 1 ;;
   *)

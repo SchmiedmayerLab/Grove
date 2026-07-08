@@ -11,6 +11,7 @@ import Spezi
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 public final class PhoneVerificationProvider: Module, EnvironmentAccessible, @unchecked Sendable {
     @StandardActor private var standard: any Standard
     

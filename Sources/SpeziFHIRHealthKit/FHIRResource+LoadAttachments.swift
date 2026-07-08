@@ -20,6 +20,7 @@ protocol HealthKitAttachmentsProvider {
 }
 
 
+@available(iOS 17, *)
 struct DefaultHealthKitAttachmentsProvider: HealthKitAttachmentsProvider {
     private let healthKit: HealthKit
     
@@ -49,6 +50,7 @@ struct DefaultHealthKitAttachmentsProvider: HealthKitAttachmentsProvider {
     }
 }
 
+@available(iOS 17, *)
 extension FHIRResource {
     /// Loads attachments for the FHIR resource from a HealthKit sample.
     /// - Parameters:
@@ -166,4 +168,5 @@ extension FHIRResource {
 }
 
 
+@available(iOS 17, *)
 extension HKAttachmentStore: @retroactive @unchecked Sendable {}

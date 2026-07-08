@@ -11,6 +11,7 @@ import SpeziDevices
 
 
 /// Pairing view state.
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 enum PairingViewState {
     /// View is currently in discovery.
     case discovery

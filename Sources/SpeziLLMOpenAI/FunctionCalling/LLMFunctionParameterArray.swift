@@ -50,6 +50,7 @@ import OpenAPIRuntime
 ///     }
 /// }
 /// ```
+@available(iOS 17, macOS 14, visionOS 1, *)
 public protocol LLMFunctionParameterArrayElement: Decodable {
     static var itemSchema: LLMFunctionParameterItemSchema { get }
 }

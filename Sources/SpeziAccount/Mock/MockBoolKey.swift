@@ -11,6 +11,7 @@ import Foundation
 
 /// For internal previews and testing.
 @_spi(_Testing)
+@available(iOS 17, macOS 14, *)
 public struct MockBoolKey: AccountKey {
     public typealias Value = Bool
     public static let name: LocalizedStringResource = "Toggle"

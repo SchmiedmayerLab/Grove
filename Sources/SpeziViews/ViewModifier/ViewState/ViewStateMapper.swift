@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 private struct ViewStateMapper<T: OperationState>: ViewModifier {
     private let operationState: T
     @Binding private var viewState: ViewState
@@ -62,6 +63,7 @@ extension View {
     /// - Parameters:
     ///    - operationState: The source ``OperationState`` that should be mapped to the SpeziViews ``ViewState``.
     ///    - viewState: A `Binding` to the to-be-written-to ``ViewState``.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
     public func map<T: OperationState>(state operationState: T, to viewState: Binding<ViewState>) -> some View {
         self
             .modifier(ViewStateMapper(operationState: operationState, viewState: viewState))

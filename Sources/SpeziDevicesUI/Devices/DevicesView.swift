@@ -15,6 +15,7 @@ import SwiftUI
 ///
 /// - Note: Make sure to place this view into an `NavigationStack`.
 @available(macOS, unavailable)
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 public struct DevicesView<PairingHint: View>: View {
     private let appName: String
     private let pairingHint: PairingHint
@@ -83,6 +84,7 @@ public struct DevicesView<PairingHint: View>: View {
 
 
 #if DEBUG && !os(macOS)
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     NavigationStack {
         DevicesView(appName: "Example")

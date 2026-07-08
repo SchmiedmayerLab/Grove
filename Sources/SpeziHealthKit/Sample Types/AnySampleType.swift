@@ -27,6 +27,7 @@ import HealthKit
 /// - ``==(_:_:)-80mw5``
 /// - ``~=(_:_:)-(_,SampleType<Any>)``
 /// - ``~=(_:_:)-(SampleType<Any>,_)``
+@available(macOS 13.0, *)
 public protocol AnySampleType<Sample>: Hashable, Identifiable, Sendable where ID == String {
     /// The type of the sample type's underlying samples.
     ///
@@ -41,12 +42,14 @@ public protocol AnySampleType<Sample>: Hashable, Identifiable, Sendable where ID
     
     #if canImport(HealthKit)
     /// Creates a properly-typed `HKSamplePredicate` object, for the current sample type.
+    @available(iOS 15.4, macOS 13.0, macCatalyst 15.4, watchOS 8.5, visionOS 1, *)
     func _makeSamplePredicateInternal(filter filterPredicate: NSPredicate?) -> HKSamplePredicate<Sample._QueryResult>
     // swiftlint:disable:previous identifier_name
     #endif
 }
 
 
+@available(macOS 13.0, *)
 extension AnySampleType {
     /// The sample type's unique identifier, derived from its underlying `HKSampleType`
     @inlinable public var id: String {
@@ -55,6 +58,7 @@ extension AnySampleType {
     
     #if canImport(HealthKit)
     // swiftlint:disable:next identifier_name
+    @available(iOS 15.4, macOS 13.0, macCatalyst 15.4, watchOS 8.5, visionOS 1, *)
     package func _makeSamplePredicate(filter filterPredicate: NSPredicate?) -> HKSamplePredicate<Sample> {
         let predicate = _makeSamplePredicateInternal(filter: filterPredicate)
         guard let predicate = predicate as? HKSamplePredicate<Sample> else {
@@ -66,6 +70,7 @@ extension AnySampleType {
 }
 
 
+@available(macOS 13.0, *)
 extension AnySampleType where Sample._SampleType: _HKSampleTypeWithIdentifierType {
     /// The sample type's strongly typed identifier.
     @inlinable public var identifier: Sample._SampleType._Identifier {
@@ -74,6 +79,7 @@ extension AnySampleType where Sample._SampleType: _HKSampleTypeWithIdentifierTyp
 }
 
 
+@available(macOS 13.0, *)
 extension AnySampleType {
     /// Compare two sample types, based on their identifiers
     @inlinable public static func == (lhs: Self, rhs: Self) -> Bool {
@@ -94,33 +100,39 @@ extension AnySampleType {
 // swiftlint:disable static_operator
 
 /// Compare two sample types, based on their identifiers
+@available(macOS 13.0, *)
 @inlinable public func == (lhs: any AnySampleType, rhs: any AnySampleType) -> Bool {
     lhs.id == rhs.id
 }
 
 /// Compare two sample types, based on their identifiers
+@available(macOS 13.0, *)
 @inlinable public func == (lhs: any AnySampleType, rhs: SampleType<some Any>) -> Bool {
     lhs.id == rhs.id
 }
 
 /// Compare two sample types, based on their identifiers
+@available(macOS 13.0, *)
 @inlinable public func == (lhs: SampleType<some Any>, rhs: any AnySampleType) -> Bool {
     lhs.id == rhs.id
 }
 
 /// Compare two sample types, based on their identifiers
 @_disfavoredOverload
+@available(macOS 13.0, *)
 @inlinable public func ~= (pattern: SampleType<some Any>, value: SampleType<some Any>) -> Bool {
     pattern.id == value.id
 }
 
 /// Compare two sample types, based on their identifiers
+@available(macOS 13.0, *)
 @inlinable public func ~= (pattern: any AnySampleType, value: SampleType<some Any>) -> Bool {
     pattern.id == value.id
 }
 
 /// Compare two sample types, based on their identifiers
 @_disfavoredOverload
+@available(macOS 13.0, *)
 @inlinable public func ~= (pattern: SampleType<some Any>, value: any AnySampleType) -> Bool {
     pattern.id == value.id
 }
@@ -128,12 +140,14 @@ extension AnySampleType {
 // swiftlint:enable static_operator
 
 
+@available(macOS 13.0, *)
 extension AnySampleType {
     /// The sample types which should be used when requesting read/write authorization for this sample type with HealthKit.
     ///
     /// The reason this exists is that HealthKit doesn't allow such requests for some sample types, e.g. correlation types:
     /// instead of requesting read/write access to "blood pressure", apps need to request read/write access to each of the correlation's contained types,
     /// (eg:, in the case of blood pressure, systolic and diastolic blood pressure).
+    @available(macOS 13.0, *)
     var effectiveSampleTypesForAuthentication: [any AnySampleType] {
         switch self {
         case let self as SampleType<HKCorrelation>:
@@ -151,8 +165,10 @@ extension AnySampleType {
 }
 
 
+@available(macOS 13.0, *)
 extension HKObjectType {
     /// The corresponding ``SampleType``, if possible.
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     public var sampleType: (any AnySampleType)? {
         switch self {
         case is HKQuantityType:
@@ -171,8 +187,6 @@ extension HKObjectType {
             SampleType.heartbeatSeries
         case HKSeriesType.workoutRoute():
             SampleType.workoutRoute
-        case HKPrescriptionType.visionPrescriptionType():
-            SampleType.visionPrescription
         #if !os(watchOS)
         case is HKClinicalType:
             SampleType<HKClinicalRecord>(.init(rawValue: self.identifier))
@@ -182,6 +196,8 @@ extension HKObjectType {
         default:
             if #available(iOS 18.0, watchOS 11.0, macOS 15.0, visionOS 2.0, *) {
                 switch self {
+                case HKPrescriptionType.visionPrescriptionType():
+                    SampleType.visionPrescription
                 case is HKStateOfMindType:
                     SampleType.stateOfMind
                 case HKScoredAssessmentType(.GAD7):
@@ -199,6 +215,7 @@ extension HKObjectType {
 }
 
 
+@available(macOS 13.0, *)
 func collectAllUnderyingEffectiveSampleTypes<each S>(
     _ seq: repeat each S
 ) -> Set<HKSampleType> where repeat (each S): Sequence, repeat (each S).Element: AnySampleType {

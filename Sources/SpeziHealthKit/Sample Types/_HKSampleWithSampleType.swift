@@ -14,6 +14,7 @@ import HealthKit
 
 
 /// Associates a `HKSample` subclass with its corresponding `HKSampleType` subclass.
+@available(macOS 13.0, *)
 public protocol _HKSampleWithSampleType: HKSample {
     associatedtype _SampleType: HKSampleType
     
@@ -23,12 +24,14 @@ public protocol _HKSampleWithSampleType: HKSample {
     ///     (When we extend e.g. `HKQuantitySample` to conform to this protocol, we cannot use `Self`, since from the compiler's point of view there might be subclasses).
     associatedtype _QueryResult: _HKSampleWithSampleType
     
+    @available(iOS 15.4, macOS 13.0, macCatalyst 15.4, watchOS 8.5, visionOS 1, *)
     static func _makeSamplePredicateInternal(type sampleType: _SampleType, filter filterPredicate: NSPredicate?) -> HKSamplePredicate<_QueryResult>
     #endif
 }
 
 
 #if canImport(HealthKit)
+@available(macOS 13.0, *)
 extension _HKSampleWithSampleType {
     /// Checks whether the sample is of the specified ``SampleType``.
     @inlinable public func `is`(_ sampleType: SampleType<some Any>) -> Bool {
@@ -38,10 +41,12 @@ extension _HKSampleWithSampleType {
 #endif
 
 
+@available(macOS 13.0, *)
 extension HKQuantitySample: _HKSampleWithSampleType {
     public typealias _SampleType = HKQuantityType
     
     #if canImport(HealthKit)
+    @available(iOS 15.4, macOS 13.0, macCatalyst 15.4, watchOS 8.5, visionOS 1, *)
     public static func _makeSamplePredicateInternal(
         type sampleType: HKQuantityType,
         filter filterPredicate: NSPredicate?
@@ -51,10 +56,12 @@ extension HKQuantitySample: _HKSampleWithSampleType {
     #endif
 }
 
+@available(macOS 13.0, *)
 extension HKCorrelation: _HKSampleWithSampleType {
     public typealias _SampleType = HKCorrelationType
     
     #if canImport(HealthKit)
+    @available(iOS 15.4, macOS 13.0, macCatalyst 15.4, watchOS 8.5, visionOS 1, *)
     public static func _makeSamplePredicateInternal(
         type sampleType: HKCorrelationType,
         filter filterPredicate: NSPredicate?
@@ -64,10 +71,12 @@ extension HKCorrelation: _HKSampleWithSampleType {
     #endif
 }
 
+@available(macOS 13.0, *)
 extension HKCategorySample: _HKSampleWithSampleType {
     public typealias _SampleType = HKCategoryType
     
     #if canImport(HealthKit)
+    @available(iOS 15.4, macOS 13.0, macCatalyst 15.4, watchOS 8.5, visionOS 1, *)
     public static func _makeSamplePredicateInternal(
         type sampleType: HKCategoryType,
         filter filterPredicate: NSPredicate?
@@ -77,10 +86,12 @@ extension HKCategorySample: _HKSampleWithSampleType {
     #endif
 }
 
+@available(macOS 13.0, *)
 extension HKElectrocardiogram: _HKSampleWithSampleType {
     public typealias _SampleType = HKElectrocardiogramType
     
     #if canImport(HealthKit)
+    @available(iOS 15.4, macOS 13.0, macCatalyst 15.4, watchOS 8.5, visionOS 1, *)
     public static func _makeSamplePredicateInternal(
         type sampleType: HKElectrocardiogramType,
         filter filterPredicate: NSPredicate?
@@ -90,10 +101,12 @@ extension HKElectrocardiogram: _HKSampleWithSampleType {
     #endif
 }
 
+@available(macOS 13.0, *)
 extension HKAudiogramSample: _HKSampleWithSampleType {
     public typealias _SampleType = HKAudiogramSampleType
     
     #if canImport(HealthKit)
+    @available(iOS 15.4, macOS 13.0, macCatalyst 15.4, watchOS 8.5, visionOS 1, *)
     public static func _makeSamplePredicateInternal(
         type sampleType: HKAudiogramSampleType,
         filter filterPredicate: NSPredicate?
@@ -103,10 +116,12 @@ extension HKAudiogramSample: _HKSampleWithSampleType {
     #endif
 }
 
+@available(macOS 13.0, *)
 extension HKWorkout: _HKSampleWithSampleType {
     public typealias _SampleType = HKWorkoutType
     
     #if canImport(HealthKit)
+    @available(iOS 15.4, macOS 13.0, macCatalyst 15.4, watchOS 8.5, visionOS 1, *)
     public static func _makeSamplePredicateInternal(
         type sampleType: HKWorkoutType,
         filter filterPredicate: NSPredicate?
@@ -116,11 +131,13 @@ extension HKWorkout: _HKSampleWithSampleType {
     #endif
 }
 
+@available(macOS 13.0, *)
 @available(watchOS, unavailable)
 extension HKClinicalRecord: _HKSampleWithSampleType {
     public typealias _SampleType = HKClinicalType
     
     #if canImport(HealthKit)
+    @available(iOS 15.4, macOS 13.0, macCatalyst 15.4, visionOS 1, *)
     public static func _makeSamplePredicateInternal(
         type sampleType: HKClinicalType,
         filter filterPredicate: NSPredicate?
@@ -130,10 +147,12 @@ extension HKClinicalRecord: _HKSampleWithSampleType {
     #endif
 }
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension HKVisionPrescription: _HKSampleWithSampleType {
     public typealias _SampleType = HKPrescriptionType
     
     #if canImport(HealthKit)
+    @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     public static func _makeSamplePredicateInternal(
         type sampleType: HKPrescriptionType,
         filter filterPredicate: NSPredicate?
@@ -157,10 +176,12 @@ extension HKStateOfMind: _HKSampleWithSampleType {
     #endif
 }
 
+@available(macOS 13.0, *)
 extension HKHeartbeatSeriesSample: _HKSampleWithSampleType {
     public typealias _SampleType = HKSeriesType
     
     #if canImport(HealthKit)
+    @available(iOS 15.4, macOS 13.0, macCatalyst 15.4, watchOS 8.5, visionOS 1, *)
     public static func _makeSamplePredicateInternal(
         type sampleType: HKSeriesType,
         filter filterPredicate: NSPredicate?
@@ -170,10 +191,12 @@ extension HKHeartbeatSeriesSample: _HKSampleWithSampleType {
     #endif
 }
 
+@available(macOS 13.0, *)
 extension HKWorkoutRoute: _HKSampleWithSampleType {
     public typealias _SampleType = HKSeriesType
     
     #if canImport(HealthKit)
+    @available(iOS 15.4, macOS 13.0, macCatalyst 15.4, watchOS 8.5, visionOS 1, *)
     public static func _makeSamplePredicateInternal(
         type sampleType: HKSeriesType,
         filter filterPredicate: NSPredicate?

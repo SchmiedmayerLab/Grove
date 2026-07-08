@@ -80,6 +80,7 @@ public struct Label: View {
     ///   - textAlignment: The `NSTextAlignment` of the `UILabel`. Defaults to `.justified`.
     ///   - textColor: The `UIColor` of the `UILabel`. Defaults to `.label`.
     ///   - numberOfLines: The number of lines allowed of the `UILabel`. Defaults to 0 indicating no limit.
+    @available(iOS 16, tvOS 16, visionOS 1, *)
     public init(
         _ text: LocalizedStringResource,
         textStyle: UIFont.TextStyle = .body,
@@ -87,7 +88,7 @@ public struct Label: View {
         textColor: UIColor = .label,
         numberOfLines: Int = 0
     ) {
-        self.text = .localized(text)
+        self.text = .localized { text.localizedString(for: $0) }
         self.textStyle = textStyle
         self.textAlignment = textAlignment
         self.textColor = textColor

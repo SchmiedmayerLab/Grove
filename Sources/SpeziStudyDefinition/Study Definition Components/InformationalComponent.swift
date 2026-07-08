@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 extension StudyDefinition {
     /// Study Component which prompts the participant to read an informational article
     public struct InformationalComponent: Identifiable, StudyDefinitionElement {

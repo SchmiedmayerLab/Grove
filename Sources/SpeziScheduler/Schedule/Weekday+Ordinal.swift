@@ -10,6 +10,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Locale.Weekday {
     var ordinal: Int {
         switch self {

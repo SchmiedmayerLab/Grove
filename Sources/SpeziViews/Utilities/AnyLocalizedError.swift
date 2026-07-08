@@ -11,7 +11,9 @@ import Foundation
 
 /// A type erased version of `LocalizedError` with convenience initializers to do a best-effort transform an existing `Error` to an `LocalizedError`.
 public struct AnyLocalizedError: LocalizedError {
-    private static let globalDefaultErrorDescription = LocalizedStringResource("DEFAULT_ERROR_DESCRIPTION", bundle: .atURL(Bundle.module.bundleURL))
+    private static var globalDefaultErrorDescription: String {
+        NSLocalizedString("DEFAULT_ERROR_DESCRIPTION", bundle: .module, comment: "")
+    }
 
     /// A localized message describing what error occurred.
     public var errorDescription: String?
@@ -25,16 +27,28 @@ public struct AnyLocalizedError: LocalizedError {
 
     /// Provides a best-effort approach to create a type erased version of `LocalizedError`.
     ///
+    /// - Parameter error: The error instance that should be wrapped.
+    public init(error: Error) {
+        self.init(error: error, defaultErrorDescription: Self.globalDefaultErrorDescription)
+    }
+
+
+    /// Provides a best-effort approach to create a type erased version of `LocalizedError`.
+    ///
     /// - Note: Refer to the documentation of the ``SwiftUICore/EnvironmentValues/defaultErrorDescription`` environment key on how to pass a useful and
     /// environment-defined default error description.
     ///
     /// - Parameters:
     ///   - error: The error instance that should be wrapped.
     ///   - defaultErrorDescription: The localized default error description that should be used if the `error` does not provide any context to create an error description.
-    public init(error: Error, defaultErrorDescription: LocalizedStringResource? = nil) {
-        self.init(error: error, defaultErrorDescription: String(localized: defaultErrorDescription ?? Self.globalDefaultErrorDescription))
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
+    public init(error: Error, defaultErrorDescription: LocalizedStringResource?) {
+        self.init(
+            error: error,
+            defaultErrorDescription: defaultErrorDescription.map { String(localized: $0) } ?? Self.globalDefaultErrorDescription
+        )
     }
-    
+
     /// Provides a best-effort approach to create a type erased version of `LocalizedError`.
     ///
     /// - Note: Refer to the documentation of the ``SwiftUICore/EnvironmentValues/defaultErrorDescription`` environment key on how to pass a useful and

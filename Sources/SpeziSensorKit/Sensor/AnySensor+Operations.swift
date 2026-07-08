@@ -13,6 +13,7 @@ public import SpeziFoundation
 
 
 /// Controls how samples should be batched when performing an anchored fetch.
+@available(iOS 17, *)
 public enum BatchSize: Hashable, Sendable {
     /// Each batch should contain `numSamples` samples.
     ///
@@ -28,6 +29,7 @@ public enum BatchSize: Hashable, Sendable {
 }
 
 
+@available(iOS 17, *)
 extension AnySensor {
     /// The sensor's current authorization status.
     @inlinable public var authorizationStatus: SRAuthorizationStatus {
@@ -88,6 +90,7 @@ extension AnySensor {
 }
 
 
+@available(iOS 17, *)
 extension AnySensor {
     /// Fetches data from SensorKit.
     ///
@@ -106,6 +109,7 @@ extension AnySensor {
 
 // MARK: SRSensorReader Delegates
 
+@available(iOS 17, *)
 private final class StartStopRecordingDelegate: NSObject, SRSensorReaderDelegate {
     let sensor: any AnySensor
     var continuation: CheckedContinuation<Void, any Error>?
@@ -136,6 +140,7 @@ private final class StartStopRecordingDelegate: NSObject, SRSensorReaderDelegate
 }
 
 
+@available(iOS 17, *)
 private final class DevicesFetcherDelegate: NSObject, SRSensorReaderDelegate {
     let sensor: any AnySensor
     var continuation: CheckedContinuation<[SRDevice], any Error>?
@@ -157,6 +162,7 @@ private final class DevicesFetcherDelegate: NSObject, SRSensorReaderDelegate {
 }
 
 
+@available(iOS 17, *)
 private final class SamplesFetcherDelegate<Sample: SensorKitSampleProtocol>: NSObject, SRSensorReaderDelegate {
     private let sensor: Sensor<Sample>
     var continuation: CheckedContinuation<[Sample.SafeRepresentation], any Error>?

@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension ValidationEngine {
     /// The configuration of a ``ValidationEngine``.
     public struct Configuration: OptionSet, EnvironmentKey, Equatable {
@@ -39,9 +40,11 @@ extension ValidationEngine {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension ValidationEngine.Configuration: Sendable {}
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension EnvironmentValues {
     /// Access the ``ValidationEngine/Configuration-swift.struct`` of a ValidationEngine through the environment.
     ///

@@ -13,6 +13,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 struct PhoneNumberEntryStep: View {
     @State private var viewState = ViewState.idle
     @Environment(\.colorScheme) private var colorScheme
@@ -66,6 +67,7 @@ struct PhoneNumberEntryStep: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     PhoneNumberEntryStep(onNext: {})
         .environment(PhoneNumberViewModel())

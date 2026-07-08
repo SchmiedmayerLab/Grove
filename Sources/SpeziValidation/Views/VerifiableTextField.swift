@@ -14,6 +14,7 @@ import SwiftUI
 /// This text field expects a ``ValidationEngine`` object in the environment. The engine is used
 /// to validate the text field input. A ``ValidationResultsView`` is used to automatically display
 /// recovery suggestions for failed ``ValidationRule`` below the text field.
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct VerifiableTextField<FieldLabel: View, FieldFooter: View>: View {
     /// The type of text field.
     public enum TextFieldType {
@@ -92,9 +93,10 @@ public struct VerifiableTextField<FieldLabel: View, FieldFooter: View>: View {
 
 
 #if DEBUG
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview {
     @Previewable @State var text = ""
-    return Form {
+    Form {
         VerifiableTextField(text: $text) {
             Text(verbatim: "Password Text")
         } footer: {

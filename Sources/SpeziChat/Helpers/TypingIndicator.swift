@@ -23,6 +23,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct TypingIndicator: View {
     @State var isAnimating = false
     
@@ -59,6 +60,7 @@ public struct TypingIndicator: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, visionOS 1, *)
 #Preview {
     ScrollView {
         VStack {

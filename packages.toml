@@ -16,6 +16,7 @@
 #   targets   = its source target directories  (Sources/<name>)
 #   tests     = its test target directories     (Tests/<name>; a Tests/<name>/UITests/ subfolder counts too)
 #   uiTests   = the platforms its UITests Xcode project runs on (absent = no UI tests).
+#   traitBuilds = true when CI should run package-trait product build checks for this package.
 #   self-hosted-ci = which test kinds run on the self-hosted runner (vs GitHub-hosted): a subset of
 #               ["unit", "ui"]. Optional; defaults to ["ui"] — UI tests on the self-hosted runner,
 #               unit tests on GitHub-hosted (today's behavior). Add "unit" (e.g. ["unit", "ui"]) to
@@ -41,6 +42,7 @@ platforms = ["iOS"]
 targets = ["ResearchKitOnFHIR"]
 tests = ["ResearchKitOnFHIRTests"]
 uiTests = ["iOS"]
+traitBuilds = true
 
 [Spezi]
 platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "tvOS", "Linux"]
@@ -71,6 +73,7 @@ platforms = ["iOS", "macOS", "visionOS"]
 targets = ["SpeziChat"]
 tests = ["SpeziChatTests"]
 uiTests = ["iOS", "visionOS"]
+traitBuilds = true
 
 [SpeziConsent]
 platforms = ["iOS", "macOS", "visionOS"]
@@ -107,6 +110,11 @@ targets = ["SpeziFirebase", "SpeziFirebaseAccount", "SpeziFirebaseAccountStorage
 tests = ["SpeziFirebaseTests"]
 uiTests = ["iOS"]
 
+[ThreadLocal]
+platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "tvOS", "Linux"]
+targets = ["ThreadLocal", "ThreadLocalMacros"]
+tests = ["ThreadLocalTests"]
+
 [SpeziFoundation]
 platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "tvOS", "Linux"]
 targets = ["SpeziFoundation", "CZlib", "SpeziFoundationObjC", "SpeziLocalization"]
@@ -124,6 +132,7 @@ platforms = ["iOS", "macOS", "visionOS"]
 targets = ["SpeziLLM", "GeneratedOpenAIClient", "SpeziLLMAnthropic", "SpeziLLMFog", "SpeziLLMGemini", "SpeziLLMLocal", "SpeziLLMLocalDownload", "SpeziLLMOpenAI", "SpeziLLMOpenAIRealtime"]
 tests = ["SpeziLLMTests"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
+traitBuilds = true
 
 [SpeziLicense]
 platforms = ["iOS"]
@@ -159,6 +168,7 @@ platforms = ["iOS"]
 targets = ["SpeziQuestionnaire", "SpeziQuestionnaireCatalog", "SpeziQuestionnaireFHIR", "SpeziQuestionnaireLegacy", "XCTSpeziQuestionnaire"]
 tests = ["SpeziQuestionnaireTests"]
 uiTests = ["iOS", "iPadOS"]
+traitBuilds = true
 
 [SpeziScheduler]
 platforms = ["iOS", "macOS", "watchOS", "visionOS"]

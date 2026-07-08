@@ -12,6 +12,7 @@ import Foundation
 /// A failed validation result of a ``ValidationRule`` for a particular input.
 ///
 /// For more information see ``ValidationRule/validate(_:)``.
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 public struct FailedValidationResult: Identifiable, Equatable, CustomLocalizedStringResourceConvertible {
     /// The identifier of the ``ValidationRule`` that produced this result.
     public var id: ValidationRule.ID

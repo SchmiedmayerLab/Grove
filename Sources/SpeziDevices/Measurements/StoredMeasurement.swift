@@ -150,7 +150,7 @@ private struct SwiftDataBluetoothHealthMeasurementWorkaroundContainer {
     }
 }
 
-
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 @Model
 final class StoredMeasurement {
     @Attribute(.unique)
@@ -181,6 +181,7 @@ final class StoredMeasurement {
 extension CodableHKDevice: Codable {}
 
 
+@available(macOS 13.0, *)
 extension CodableHKDevice {
     var hkDevice: HKDevice {
         HKDevice(

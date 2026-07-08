@@ -13,6 +13,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 struct PhoneNumberSteps: View {
     @Environment(PhoneNumberViewModel.self)
     private var phoneNumberViewModel
@@ -93,6 +94,7 @@ struct PhoneNumberSteps: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     PhoneNumberSteps()
         .environment(PhoneNumberViewModel())

@@ -11,6 +11,7 @@ import SwiftUI
 import UserNotifications
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Spezi {
     /// An action to request notification authorization.
     ///
@@ -48,6 +49,7 @@ extension Spezi {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension EnvironmentValues {
     /// Request notification authorization.
     ///
@@ -71,4 +73,5 @@ extension EnvironmentValues {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension Spezi.RequestNotificationAuthorizationAction: Sendable {}

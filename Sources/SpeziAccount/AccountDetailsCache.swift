@@ -16,6 +16,7 @@ import SpeziLocalStorage
 /// This `Module` allows to cache account details locally on disk.
 /// This is useful for ``AccountStorageProvider`` that want to keep a local copy of their account details to avoid needing to contact the remote server,
 /// especially important in situations where the app is started without any internet connectivity.
+@available(iOS 17, macOS 14, *)
 public actor AccountDetailsCache: Module, DefaultInitializable {
     @Application(\.logger)
     private var logger

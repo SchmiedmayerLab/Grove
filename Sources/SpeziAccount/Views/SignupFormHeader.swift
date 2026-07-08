@@ -10,6 +10,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, *)
 public struct SignupFormHeader: View {
     public var body: some View {
         ListHeader(systemImage: "person.fill.badge.plus") {
@@ -24,6 +25,7 @@ public struct SignupFormHeader: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     SignupFormHeader()
 }

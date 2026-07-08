@@ -29,5 +29,6 @@ extension Module {
     ///     @StandardActor var standard: (any HealthKitConstraint)?
     /// }
     /// ```
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     public typealias StandardActor = _StandardPropertyWrapper
 }

@@ -29,6 +29,7 @@ import SwiftUI
 /// ```
 ///
 /// - Note: Use ``init(resetPassword:success:)`` to provide a custom view that appears for a successful password reset.
+@available(iOS 17, macOS 14, *)
 public struct PasswordResetView<SuccessView: View>: View {
     private let successView: SuccessView
     private let resetPasswordClosure: (String) async throws -> Void
@@ -169,6 +170,7 @@ public struct PasswordResetView<SuccessView: View>: View {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, *)
 #Preview {
     NavigationStack {
         PasswordResetView { userId in
@@ -180,6 +182,7 @@ public struct PasswordResetView<SuccessView: View>: View {
     }
 }
 
+@available(iOS 17, macOS 14, *)
 #Preview {
     NavigationStack {
         PasswordResetView(didReset: true) { userId in

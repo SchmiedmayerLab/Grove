@@ -14,6 +14,7 @@ import UniformTypeIdentifiers
 
 
 /// Reusable view that offers file import options from a range of sources.
+@available(iOS 17, *)
 struct FilePicker: View {
     enum Item: Sendable {
         case file(URL)
@@ -172,6 +173,7 @@ struct FilePicker: View {
 }
 
 
+@available(iOS 17, *)
 extension UTType {
     func isCompatible(with other: Self) -> Bool {
         self.conforms(to: other) || other.conforms(to: self)

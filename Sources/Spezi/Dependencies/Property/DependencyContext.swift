@@ -43,6 +43,7 @@ enum DependencyType {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 class DependencyContext<Dependency: Module>: AnyDependencyContext {
     private let type: DependencyType
     private let defaultValue: (() -> Dependency)?

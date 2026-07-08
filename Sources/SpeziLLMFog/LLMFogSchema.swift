@@ -34,6 +34,7 @@ import SpeziLLM
 ///     )
 /// )
 /// ```
+@available(iOS 17, macOS 14, visionOS 1, *)
 public struct LLMFogSchema: LLMSchema, Sendable {
     public typealias Platform = LLMFogPlatform
     

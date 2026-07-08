@@ -11,6 +11,7 @@ import Spezi
 import UserNotifications
 
 
+@available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)
 extension Task {
     /// Determine if any notification-related properties changed that require updating the notifications schedule.
     /// - Parameters:

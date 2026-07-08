@@ -29,6 +29,7 @@ protocol OptionalBasedProvideProperty {
 
 
 /// Refer to the documentation of ``Module/Provide``.
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 @propertyWrapper
 public class _ProvidePropertyWrapper<Value> {
     // swiftlint:disable:previous type_name
@@ -126,10 +127,12 @@ extension Module {
     ///     }
     /// }
     /// ```
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
     public typealias Provide = _ProvidePropertyWrapper
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension _ProvidePropertyWrapper: StorageValueProvider {
     public func collect<Repository: SharedRepository<SpeziAnchor>>(into repository: inout Repository) {
         if let wrapperWithOptional = self as? any OptionalBasedProvideProperty {
@@ -174,6 +177,7 @@ extension _ProvidePropertyWrapper: StorageValueProvider {
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension _ProvidePropertyWrapper: CollectionBasedProvideProperty where Value: AnyArray {
     func collectArrayElements<Repository: SharedRepository<SpeziAnchor>>(into repository: inout Repository) {
         repository.setValues(for: id, storedValue.unwrappedArray)
@@ -185,6 +189,7 @@ extension _ProvidePropertyWrapper: CollectionBasedProvideProperty where Value: A
 }
 
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
 extension _ProvidePropertyWrapper: OptionalBasedProvideProperty where Value: AnyOptional {
     func collectOptional<Repository: SharedRepository<SpeziAnchor>>(into repository: inout Repository) {
         if let storedValue = storedValue.unwrappedOptional {

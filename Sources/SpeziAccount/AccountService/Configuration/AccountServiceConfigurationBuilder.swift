@@ -9,6 +9,7 @@
 
 /// A result builder to build a collection of ``AccountServiceConfigurationKey``s.
 @resultBuilder
+@available(iOS 17, macOS 14, *)
 public enum AccountServiceConfigurationBuilder {
     /// Build a single ``AccountServiceConfigurationKey`` expression.
     public static func buildExpression<Key: AccountServiceConfigurationKey>(_ expression: Key) -> [any AccountServiceConfigurationKey] {

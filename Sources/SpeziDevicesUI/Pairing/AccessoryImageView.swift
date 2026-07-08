@@ -13,6 +13,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 struct AccessoryImageView: View {
     private let device: any GenericDevice
 
@@ -49,6 +50,7 @@ struct AccessoryImageView: View {
 }
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 extension BluetoothDevice {
     fileprivate var appearance: DeviceAppearance {
         Self.appearance
@@ -57,6 +59,7 @@ extension BluetoothDevice {
 
 
 #if DEBUG
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 #Preview {
     AccessoryImageView(MockDevice.createMockDevice())
 }

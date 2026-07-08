@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 17, *)
 extension TaskView {
     struct FreeTextEntry: View {
         let config: Questionnaire.Task.Kind.FreeTextConfig

@@ -12,16 +12,19 @@
 // We use the @preconcurrency import to make it work anyway, for the time being.
 
 
+@available(iOS 17, *)
 extension SRMessagesUsageReport: SensorKitSampleProtocol {
     public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<SRMessagesUsageReport>
 }
 
 
+@available(iOS 17, *)
 extension SRPhoneUsageReport: SensorKitSampleProtocol {
     public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<SRPhoneUsageReport>
 }
 
 
+@available(iOS 17, *)
 extension SRKeyboardMetrics: SensorKitSampleProtocol {
     public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<SRKeyboardMetrics>
 }

@@ -76,6 +76,7 @@ extension FHIRExtensionBuilderProtocol {
     /// An exception is if the extension builder's input type is `Void`; in this case any input is allowed, and will simply be discarded.
     ///
     /// - returns: A boolean value indicating whether the input was able to be coerced to the expected input type, and the builder was invoked.
+    @available(iOS 16, macOS 13, macCatalyst 16, tvOS 16, watchOS 9, visionOS 1, *)
     @discardableResult
     public func apply(typeErasedInput input: Any, to observation: Observation) throws -> Bool {
         if let input = input as? Input {
