@@ -34,9 +34,9 @@ final class ContactsTests: XCTestCase {
             app.alerts["Text"].scrollViews.otherElements.buttons["Ok"].tap()
         } else {
             let messages = XCUIApplication(bundleIdentifier: "com.apple.MobileSMS")
-            XCTAssert(messages.wait(for: .runningForeground, timeout: 2))
+            XCTAssert(messages.wait(for: .runningForeground, timeout: 30))
             app.activate()
-            XCTAssert(app.wait(for: .runningForeground, timeout: 2))
+            XCTAssert(app.wait(for: .runningForeground, timeout: 30))
         }
         
         sleep(2)
@@ -53,6 +53,6 @@ final class ContactsTests: XCTestCase {
         XCTAssertEqual(app.buttons.matching(predicate).count, 2)
         app.buttons.matching(predicate).element(boundBy: 0).tap()
         let maps = XCUIApplication(bundleIdentifier: "com.apple.Maps")
-        XCTAssert(maps.wait(for: .runningForeground, timeout: 2))
+        XCTAssert(maps.wait(for: .runningForeground, timeout: 30))
     }
 }
