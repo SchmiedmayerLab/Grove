@@ -27,6 +27,7 @@ struct FHIRResourceAttachmentProcessingTests { // swiftlint:disable:this type_bo
         "Document Reference: Should fill multiple empty attachments sequentially",
         arguments: [FHIRTestVersion.r4, FHIRTestVersion.dstu2]
     )
+    @available(iOS 17, *)
     func testDocumentReferenceMultipleEmptyAttachments(_ version: FHIRTestVersion) throws {
         switch version {
         case .r4:
@@ -125,6 +126,7 @@ struct FHIRResourceAttachmentProcessingTests { // swiftlint:disable:this type_bo
         "Diagnostic Report: Should fill multiple empty attachments sequentially",
         arguments: [FHIRTestVersion.r4, FHIRTestVersion.dstu2]
     )
+    @available(iOS 17, *)
     func testDiagnosticReportMultipleEmptyAttachments(_ version: FHIRTestVersion) throws {
         switch version {
         case .r4:
@@ -213,6 +215,7 @@ struct FHIRResourceAttachmentProcessingTests { // swiftlint:disable:this type_bo
         "Should create new attachment when all existing ones are filled",
         arguments: [FHIRTestVersion.r4, FHIRTestVersion.dstu2]
     )
+    @available(iOS 17, *)
     func testCreateNewAttachmentWhenAllFilled(_ version: FHIRTestVersion) throws {
         switch version {
         case .r4:
@@ -289,6 +292,7 @@ struct FHIRResourceAttachmentProcessingTests { // swiftlint:disable:this type_bo
         "Diagnostic Report: Should create new presentedForm array when none exists",
         arguments: [FHIRTestVersion.r4, FHIRTestVersion.dstu2]
     )
+    @available(iOS 17, *)
     func testDiagnosticReportCreateNewPresentedForm(_ version: FHIRTestVersion) throws {
         switch version {
         case .r4:
@@ -349,6 +353,7 @@ struct FHIRResourceAttachmentProcessingTests { // swiftlint:disable:this type_bo
         "Diagnostic Report: Should append new attachment to existing presentedForm when no matching empty slots",
         arguments: [FHIRTestVersion.r4, FHIRTestVersion.dstu2]
     )
+    @available(iOS 17, *)
     func testDiagnosticReportAppendNewAttachment(_ version: FHIRTestVersion) throws {
         switch version {
         case .r4:

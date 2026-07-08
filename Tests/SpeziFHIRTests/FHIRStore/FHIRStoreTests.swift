@@ -14,11 +14,10 @@ import Testing
 @Suite
 @MainActor
 struct FHIRStoreTests {
-    private let store = FHIRStore()
-    
-
     @Test
+    @available(iOS 17, *)
     func testInitialState() {
+        let store = FHIRStore()
         #expect(store.allergyIntolerances.isEmpty)
         #expect(store.conditions.isEmpty)
         #expect(store.diagnostics.isEmpty)
@@ -31,7 +30,9 @@ struct FHIRStoreTests {
     }
 
     @Test
+    @available(iOS 17, *)
     func testInsertSingleResource() throws {
+        let store = FHIRStore()
         let observation = try ModelsR4Mocks.createObservation()
         let resource = FHIRResource(resource: observation, displayName: "Test Observation")
         store.insert(resource)
@@ -42,7 +43,9 @@ struct FHIRStoreTests {
     }
 
     @Test
+    @available(iOS 17, *)
     func testInsertMultipleResources() throws {
+        let store = FHIRStore()
         let observation1 = try ModelsR4Mocks.createObservation()
         let observation2 = try ModelsR4Mocks.createObservation()
         let procedure = try ModelsR4Mocks.createProcedure()
@@ -66,7 +69,9 @@ struct FHIRStoreTests {
     }
 
     @Test
+    @available(iOS 17, *)
     func testRemoveResource() {
+        let store = FHIRStore()
         let medication = ModelsR4Mocks.createMedication()
         let resource = FHIRResource(resource: medication, displayName: "Medication")
             
@@ -78,7 +83,9 @@ struct FHIRStoreTests {
     }
 
     @Test
+    @available(iOS 17, *)
     func testRemoveAllResources() throws {
+        let store = FHIRStore()
         let observation1 = try ModelsR4Mocks.createObservation()
         let observation2 = try ModelsR4Mocks.createObservation()
         let procedure = try ModelsR4Mocks.createProcedure()
@@ -100,7 +107,9 @@ struct FHIRStoreTests {
     }
 
     @Test
+    @available(iOS 17, *)
     func testLoadEmptyBundle() {
+        let store = FHIRStore()
         let bundle = ModelsR4.Bundle(type: FHIRPrimitive<BundleType>(.transaction))
         store.load(bundle: bundle)
         #expect(store.allergyIntolerances.isEmpty)
@@ -115,7 +124,9 @@ struct FHIRStoreTests {
     }
 
     @Test
+    @available(iOS 17, *)
     func testLoadBundleWithMultipleResources() throws {
+        let store = FHIRStore()
         store.load(bundle: try ModelsR4Mocks.createBundle())
         #expect(store.conditions.count == 1)
         #expect(store.observations.count == 1)
@@ -124,7 +135,9 @@ struct FHIRStoreTests {
     }
 
     @Test
+    @available(iOS 17, *)
     func testLoadBundleWithInvalidResources() throws {
+        let store = FHIRStore()
         let bundle = try ModelsR4Mocks.createBundle()
         let condition = try ModelsR4Mocks.createCondition()
         let emptyEntry = BundleEntry()
@@ -140,7 +153,9 @@ struct FHIRStoreTests {
     }
 
     @Test
+    @available(iOS 17, *)
     func testLoadBundleWithDuplicateResources() throws {
+        let store = FHIRStore()
         #expect(store.isEmpty)
         
         let bundle = try ModelsR4Mocks.createBundle()

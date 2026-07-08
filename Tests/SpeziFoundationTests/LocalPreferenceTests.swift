@@ -112,6 +112,7 @@ final class LocalPreferenceTests {
     }
     
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func directlySupportedTypes() throws {
         func imp<T: HasDirectUserDefaultsSupport & Equatable & Sendable>(_: T.Type, defaultValue: T, testValue: T) throws {
@@ -277,6 +278,7 @@ final class LocalPreferenceTests {
     }
     
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func codableTypes() throws {
         func imp<T: Codable & Equatable & Sendable & SendableMetatype>(
@@ -308,6 +310,7 @@ final class LocalPreferenceTests {
     }
     
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func optionalCodableTypes() throws {
         func imp<T: Codable & Equatable & Sendable & SendableMetatype>(
@@ -441,6 +444,7 @@ final class LocalPreferenceTests {
     }
     
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func migrateType() throws {
         try withTemporarySuiteForMigration { store in

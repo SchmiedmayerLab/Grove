@@ -17,6 +17,7 @@ import XCTest
 // NOTE: this type isn't really Sendable, but we also can't mark it as being MainActor-constrained,
 // but since we only use it in the HealthChartTests, all of which are MainActor-constrained,
 // we should be safe here.
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 @Observable
 final class MockQueryResults: HealthKitQueryResults, @unchecked Sendable { // swiftlint:disable:this file_types_order
     typealias Sample = HKQuantitySample

@@ -18,10 +18,6 @@ import Testing
 #if canImport(Darwin)
 @Suite
 struct LocalizationTests {
-    private let allSupportedLanguages: [Locale.Language] = [
-        .en, .de, .es, .enGB, .esUS
-    ]
-    
     @Test
     @available(macOS 15.4, iOS 18.4, tvOS 18.4, watchOS 11.4, visionOS 2.4, *)
     func unsupportedLang() {
@@ -35,6 +31,7 @@ struct LocalizationTests {
     
     
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func preferredLocalizationsSimple() {
         let bundle = Bundle.module
         for lang in [Locale.Language.en, .de, .es] {
@@ -44,6 +41,7 @@ struct LocalizationTests {
     
     
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func preferredLocalizationsSpecializations() {
         let bundle = Bundle.module
         let idents = { ($0 as [Locale.Language]).map(\.minimalIdentifier) }
@@ -63,6 +61,9 @@ struct LocalizationTests {
     func bundleLocalizationUtils0() throws {
         let bundle = Bundle.module
         let key = "LOCALIZATION_LANG"
+        let allSupportedLanguages: [Locale.Language] = [
+            .en, .de, .es, .enGB, .esUS
+        ]
         for lang in allSupportedLanguages {
             let value1 = bundle.localizedString(forKey: key, value: "NOT_FOUND", table: nil, localizations: [lang])
             let value2 = bundle.localizedStringForKeyFallback(key: key, tables: [], localizations: [lang])
@@ -122,6 +123,7 @@ struct LocalizationTests {
     
     
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func localizedStringResourceUtil() {
         let resource = LocalizedStringResource(
             "HELLO_WORLD",
@@ -134,6 +136,7 @@ struct LocalizationTests {
     
     
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func localizationKeys() throws {
         #expect(Locale(identifier: "en-UK") == Locale(identifier: "en-GB"))
         #expect(Locale(identifier: "en-UK").identifier == "en-GB")
@@ -147,6 +150,7 @@ struct LocalizationTests {
     }
     
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func localizationKeyParsing() {
         #expect(Locale(identifier: "en-UK").language == .enGB)
         #expect(Locale(identifier: "en-UK").region == .unitedKingdom)
@@ -156,6 +160,7 @@ struct LocalizationTests {
     }
     
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func localizationKeyEquality() throws {
         let keys = [
             LocalizationKey(language: .init(identifier: "en"), region: .unitedKingdom),
@@ -178,6 +183,7 @@ struct LocalizationTests {
     }
 
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func localizationKeyCodableRoundTrip() throws {
         let key = try #require(LocalizationKey("en-US"))
         let encoder = JSONEncoder()
@@ -189,6 +195,7 @@ struct LocalizationTests {
     }
 
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func localizationKeyCodableEncodesAsString() throws {
         let key = try #require(LocalizationKey("de-DE"))
         let data = try JSONEncoder().encode(key)
@@ -197,6 +204,7 @@ struct LocalizationTests {
     }
 
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func localizationKeyCodableDecodesFromString() throws {
         let data = Data("\"es-US\"".utf8)
         let key = try JSONDecoder().decode(LocalizationKey.self, from: data)
@@ -204,6 +212,7 @@ struct LocalizationTests {
     }
 
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func localizationKeyCodableInvalidStringThrows() throws {
         let data = Data("\"invalid\"".utf8)
         #expect(throws: DecodingError.self) {
@@ -213,6 +222,7 @@ struct LocalizationTests {
     
     
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func localizationKeyScoring() {
         let esUS = LocalizationKey(language: .es, region: .unitedStates)
         #expect(esUS.description == "es-US")
@@ -231,6 +241,7 @@ struct LocalizationTests {
 }
 
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension Locale.Language {
     // swiftlint:disable identifier_name
     fileprivate static let en = Self(identifier: "en")

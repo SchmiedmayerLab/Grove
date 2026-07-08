@@ -15,6 +15,7 @@ import Testing
 
 @Suite
 struct VersionTests {
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func parsing() throws {
         #expect(Version(1, 0, 0) == "1.0.0")
@@ -28,6 +29,7 @@ struct VersionTests {
     }
     
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func compare() throws {
         #expect(Version(1, 2, 3) == Version(1, 2, 3))
@@ -77,6 +79,7 @@ struct VersionTests {
     }
     
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func coding() throws {
         let versions: [Version] = [

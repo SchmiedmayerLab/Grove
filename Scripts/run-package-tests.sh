@@ -21,6 +21,57 @@ set -euxo pipefail
 cd "$(dirname "$0")/.."
 
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-.derivedData}"
+enable_default_package_traits() {
+  case "${SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS:-1}" in
+    0|false|FALSE|no|NO)
+      export SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS=0
+      ;;
+    *)
+      export SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS=1
+      ;;
+  esac
+}
+
+default_package_traits_enabled() {
+  case "${SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS:-1}" in
+    0|false|FALSE|no|NO) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+current_deployment_target() { case "$1" in
+  iOS|iPadOS|macCatalyst) echo "18.0" ;;
+  macOS) echo "15.0" ;;
+  watchOS) echo "11.0" ;;
+  tvOS) echo "18.0" ;;
+  visionOS) echo "2.0" ;;
+  *) echo "" ;;
+esac; }
+
+deployment_target_build_setting() {
+  local platform="$1"
+  local deployment_target="$2"
+
+  if [ -z "$deployment_target" ]; then
+    return
+  fi
+
+  case "$platform" in
+    iOS|iPadOS|macCatalyst) echo "IPHONEOS_DEPLOYMENT_TARGET=$deployment_target" ;;
+    macOS) echo "MACOSX_DEPLOYMENT_TARGET=$deployment_target" ;;
+    watchOS) echo "WATCHOS_DEPLOYMENT_TARGET=$deployment_target" ;;
+    tvOS) echo "TVOS_DEPLOYMENT_TARGET=$deployment_target" ;;
+    visionOS) echo "XROS_DEPLOYMENT_TARGET=$deployment_target" ;;
+  esac
+}
+
+ci_deployment_target_argument() {
+  if default_package_traits_enabled; then
+    deployment_target_build_setting "$1" "$(current_deployment_target "$1")"
+  fi
+  return 0
+}
+
 cleanup_derived_data() {
   case "${CLEAN_DERIVED_DATA:-}" in
     0|false|FALSE|no|NO)
@@ -119,6 +170,18 @@ ios_simulator_os() {
   simulator_os "com.apple.CoreSimulator.SimRuntime.iOS" "${IOS_SIMULATOR_MAJOR:-26}" "IOS_SIMULATOR_OS"
 }
 
+watchos_simulator_os() {
+  simulator_os "com.apple.CoreSimulator.SimRuntime.watchOS" "${WATCHOS_SIMULATOR_MAJOR:-26}" "WATCHOS_SIMULATOR_OS"
+}
+
+tvos_simulator_os() {
+  simulator_os "com.apple.CoreSimulator.SimRuntime.tvOS" "${TVOS_SIMULATOR_MAJOR:-26}" "TVOS_SIMULATOR_OS"
+}
+
+visionos_simulator_os() {
+  simulator_os "com.apple.CoreSimulator.SimRuntime.xrOS" "${VISIONOS_SIMULATOR_MAJOR:-26}" "VISIONOS_SIMULATOR_OS"
+}
+
 absolute_path() {
   case "$1" in
     /*) echo "$1" ;;
@@ -131,14 +194,26 @@ ui_test_deployment_target() { case "$1" in
   *) echo "" ;;
 esac; }
 
+ui_deployment_target_argument() {
+  local package="$1"
+  local platform="$2"
+  local deployment_target; deployment_target="$(ui_test_deployment_target "$package")"
+
+  if [ -z "$deployment_target" ] && default_package_traits_enabled; then
+    deployment_target="$(current_deployment_target "$platform")"
+  fi
+
+  deployment_target_build_setting "$platform" "$deployment_target"
+}
+
 dest() { case "$1" in
   iOS)          echo "platform=iOS Simulator,name=iPhone 17 Pro,OS=$(ios_simulator_os)" ;;
   iPadOS)       echo "platform=iOS Simulator,name=iPad Pro 13-inch (M4),OS=$(ios_simulator_os)" ;;
   macOS)        echo "platform=macOS,arch=arm64" ;;
   macCatalyst)  echo "platform=macOS,arch=arm64,variant=Mac Catalyst" ;;
-  watchOS)      echo "platform=watchOS Simulator,name=Apple Watch Series 11 (46mm)" ;;
-  visionOS)     echo "platform=visionOS Simulator,name=Apple Vision Pro" ;;
-  tvOS)         echo "platform=tvOS Simulator,name=Apple TV 4K (3rd generation)" ;;
+  watchOS)      echo "platform=watchOS Simulator,name=Apple Watch Series 11 (42mm),OS=$(watchos_simulator_os)" ;;
+  visionOS)     echo "platform=visionOS Simulator,name=Apple Vision Pro,OS=$(visionos_simulator_os)" ;;
+  tvOS)         echo "platform=tvOS Simulator,name=Apple TV 4K (3rd generation),OS=$(tvos_simulator_os)" ;;
   *) echo "unknown platform: $1" >&2; exit 2 ;;
 esac; }
 
@@ -147,16 +222,13 @@ beautify() { if [ -n "${GITHUB_ACTIONS:-}" ]; then xcbeautify --renderer github-
 
 run() { # <package> <platform> [mode: "ui"]
   if [ "${3:-}" = "ui" ]; then
+    enable_default_package_traits
     # UI tests: build+run the package's embedded TestApp (Tests/<Pkg>Tests/UITests/UITests.xcodeproj),
     # scheme "TestApp", on the platform's destination. Debug only for now (Release is a later add).
     # Writes an .xcresult bundle that the test-ui CI job uploads as an artifact (even on test failure).
     local result="${1}-${2}-UITests.xcresult"
     local uidir="Tests/${1}Tests/UITests"
-    local deployment_target; deployment_target="$(ui_test_deployment_target "$1")"
-    local deployment_target_argument=""
-    if [ -n "$deployment_target" ]; then
-      deployment_target_argument=" IPHONEOS_DEPLOYMENT_TARGET=$deployment_target"
-    fi
+    local deployment_target_argument; deployment_target_argument="$(ui_deployment_target_argument "$1" "$2")"
     local root; root="$(pwd)"
     local derived_data_path_absolute; derived_data_path_absolute="$(absolute_path "$DERIVED_DATA_PATH")"
     rm -rf "$result"   # self-hosted runners reuse the workspace — avoid a stale bundle path
@@ -167,36 +239,27 @@ run() { # <package> <platform> [mode: "ui"]
       # writing the .xcresult back to the repo root (absolute path) so the test-ui upload step finds it.
       # Requires the `firebase` CLI (firebase-tools) on the runner — as the upstream CI also relied on.
       ( cd "$uidir" \
-        && firebase emulators:exec "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -resultBundlePath '$root/$result' -derivedDataPath '$derived_data_path_absolute' -skipMacroValidation -skipPackagePluginValidation -skipPackageUpdates$deployment_target_argument" ) \
+        && firebase emulators:exec "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -resultBundlePath '$root/$result' -derivedDataPath '$derived_data_path_absolute' -skipMacroValidation -skipPackagePluginValidation -skipPackageUpdates${deployment_target_argument:+ $deployment_target_argument}" ) \
       | beautify
       return
     fi
-    if [ -n "$deployment_target" ]; then
-      xcodebuild test \
-        -project "$uidir/UITests.xcodeproj" \
-        -scheme TestApp \
-        -configuration Debug \
-        -destination "$(dest "$2")" \
-        -resultBundlePath "$result" \
-        -skipMacroValidation \
-        -skipPackagePluginValidation \
-        -skipPackageUpdates \
-        -derivedDataPath "$derived_data_path_absolute" \
-        "IPHONEOS_DEPLOYMENT_TARGET=$deployment_target" \
-      | beautify
-    else
-      xcodebuild test \
-        -project "$uidir/UITests.xcodeproj" \
-        -scheme TestApp \
-        -configuration Debug \
-        -destination "$(dest "$2")" \
-        -resultBundlePath "$result" \
-        -skipMacroValidation \
-        -skipPackagePluginValidation \
-        -skipPackageUpdates \
-        -derivedDataPath "$derived_data_path_absolute" \
-      | beautify
+
+    local xcodebuild_arguments=(
+      test
+      -project "$uidir/UITests.xcodeproj"
+      -scheme TestApp
+      -configuration Debug
+      -destination "$(dest "$2")"
+      -resultBundlePath "$result"
+      -skipMacroValidation
+      -skipPackagePluginValidation
+      -skipPackageUpdates
+      -derivedDataPath "$derived_data_path_absolute"
+    )
+    if [ -n "$deployment_target_argument" ]; then
+      xcodebuild_arguments+=("$deployment_target_argument")
     fi
+    xcodebuild "${xcodebuild_arguments[@]}" | beautify
     return
   fi
   if [ "$2" = "Linux" ]; then
@@ -212,19 +275,26 @@ run() { # <package> <platform> [mode: "ui"]
     return
   fi
   echo "==> $1 on $2"
+  enable_default_package_traits
   # Writes an .xcresult bundle that the `test` CI job uploads as an artifact on failure.
   local result="${1}-${2}-Tests.xcresult"
+  local deployment_target_argument; deployment_target_argument="$(ci_deployment_target_argument "$2")"
   rm -rf "$result"
-  xcodebuild test \
-    -scheme Spezi-Tests \
-    -testPlan "$1" \
-    -destination "$(dest "$2")" \
-    -resultBundlePath "$result" \
-    -skipMacroValidation \
-    -skipPackagePluginValidation \
-    -skipPackageUpdates \
-    -derivedDataPath "$DERIVED_DATA_PATH" \
-  | beautify
+  local xcodebuild_arguments=(
+    test
+    -scheme Spezi-Tests
+    -testPlan "$1"
+    -destination "$(dest "$2")"
+    -resultBundlePath "$result"
+    -skipMacroValidation
+    -skipPackagePluginValidation
+    -skipPackageUpdates
+    -derivedDataPath "$DERIVED_DATA_PATH"
+  )
+  if [ -n "$deployment_target_argument" ]; then
+    xcodebuild_arguments+=("$deployment_target_argument")
+  fi
+  xcodebuild "${xcodebuild_arguments[@]}" | beautify
 }
 
 case "${1:-}" in
@@ -232,8 +302,21 @@ case "${1:-}" in
     for p in $PACKAGES; do printf '%-24s %s\n' "$p" "$(platforms_for "$p")"; done ;;
   --all-ios)
     echo "==> entire package on iOS Simulator"
-    xcodebuild test -scheme Spezi-Package -destination "$(dest iOS)" \
-      -skipMacroValidation -skipPackagePluginValidation -skipPackageUpdates -derivedDataPath "$DERIVED_DATA_PATH" | beautify ;;
+    enable_default_package_traits
+    all_ios_arguments=(
+      test
+      -scheme Spezi-Package
+      -destination "$(dest iOS)"
+      -skipMacroValidation
+      -skipPackagePluginValidation
+      -skipPackageUpdates
+      -derivedDataPath "$DERIVED_DATA_PATH"
+    )
+    deployment_target_argument="$(ci_deployment_target_argument iOS)"
+    if [ -n "$deployment_target_argument" ]; then
+      all_ios_arguments+=("$deployment_target_argument")
+    fi
+    xcodebuild "${all_ios_arguments[@]}" | beautify ;;
   "")
     echo "usage: $0 <Package> [Platform] [ui] | --all-ios | --list" >&2; exit 1 ;;
   *)

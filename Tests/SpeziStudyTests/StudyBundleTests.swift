@@ -18,6 +18,7 @@ import SpeziHealthKitBulkExport
 import Testing
 
 
+@available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
 @Suite
 struct StudyBundleTests {
     static let locale = Locale(identifier: "en_US")

@@ -5,6 +5,7 @@
 //
 // SPDX-License-Identifier: MIT
 //
+// swiftlint:disable file_length
 
 import FHIRModelsExtensions
 import Foundation

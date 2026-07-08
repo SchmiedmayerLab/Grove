@@ -27,6 +27,7 @@ public enum HealthAppHealthRecordAccount: String, CaseIterable {
 /// Each case maps to a corresponding `HKClinicalTypeIdentifier`.
 /// The `clinicalType` property returns the matching `HKClinicalType` if available on the current iOS version.
 /// The `description` property matches the display name shown in the HealthKit authorization sheet.
+@available(macOS 13, *)
 public enum HealthRecordType: CaseIterable {
     case allergyRecord
     case clinicalNoteRecord
@@ -99,6 +100,7 @@ extension XCTestCase {
     ///
     /// - Note:
     ///   Before calling this method, ensure  that the simulator or device region is set to **United States**, **Canada**, or **United Kingdom**, as Health Records are only available in those regions.
+    @available(macOS 13, *)
     @MainActor
     public func handleHealthRecordsAuthorization( // swiftlint:disable:this function_body_length
         systemUnderTest: XCUIApplication = XCUIApplication(),

@@ -79,6 +79,7 @@ struct SequenceExtensions {
     }
     
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func multiComparatorSorting() {
         struct Cat: Equatable {

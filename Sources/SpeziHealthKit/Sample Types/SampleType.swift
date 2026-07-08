@@ -81,8 +81,8 @@ public struct SampleType<Sample: _HKSampleWithSampleType>: AnySampleType, Sendab
     }
 
     #if canImport(HealthKit)
-    // swiftlint:disable:next identifier_name
     @available(iOS 15.4, macOS 13.0, macCatalyst 15.4, watchOS 8.5, visionOS 1, *)
+    // swiftlint:disable:next identifier_name
     public func _makeSamplePredicateInternal(filter filterPredicate: NSPredicate?) -> HKSamplePredicate<Sample._QueryResult> {
         Sample._makeSamplePredicateInternal(type: hkSampleType, filter: filterPredicate)
     }
@@ -154,8 +154,8 @@ public struct _FakeLocalizedStringResource: ExpressibleByStringLiteral {
 @available(macOS 13.0, *)
 extension SampleType {
     #if canImport(Darwin)
-    // swiftlint:disable:next missing_docs
     @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
+    // swiftlint:disable:next missing_docs
     public typealias LocalizedStringResource = Foundation.LocalizedStringResource
     #else
     // swiftlint:disable:next missing_docs
@@ -180,6 +180,7 @@ extension SampleType {
         )
     }
 
+    /// Creates a new quantity sample type with an optional localized display title.
     @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     @inlinable public static func quantity(
         _ identifier: HKQuantityTypeIdentifier,
@@ -206,6 +207,7 @@ extension SampleType {
         .init(HKCorrelationType(identifier), variant: .correlation(associatedQuantityTypes: associatedQuantityTypes))
     }
 
+    /// Creates a new correlation sample type with an optional localized display title.
     @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     @inlinable public static func correlation(
         _ identifier: HKCorrelationTypeIdentifier,
@@ -225,6 +227,7 @@ extension SampleType {
         .init(HKCategoryType(identifier), variant: .category)
     }
 
+    /// Creates a new category sample type with an optional localized display title.
     @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
     @inlinable public static func category(
         _ identifier: HKCategoryTypeIdentifier,
@@ -244,6 +247,7 @@ extension SampleType {
         .init(HKClinicalType(identifier), variant: .other)
     }
 
+    /// Creates a new clinical record sample type with an optional localized display title.
     @available(iOS 16, macOS 13, macCatalyst 16, visionOS 1, *)
     @available(watchOS, unavailable)
     @inlinable public static func clinical(

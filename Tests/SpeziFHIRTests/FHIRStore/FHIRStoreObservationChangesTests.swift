@@ -15,11 +15,10 @@ import Testing
 @Suite
 @MainActor
 struct FHIRStoreObservationChangesTests {
-    private var store = FHIRStore()
-    
-
     @Test
+    @available(iOS 17, *)
     func testChangesOnInsert() async throws {
+        let store = FHIRStore()
         let observation = try ModelsR4Mocks.createObservation()
         let resource = FHIRResource(resource: observation, displayName: "Test Observation")
 
@@ -39,7 +38,9 @@ struct FHIRStoreObservationChangesTests {
     }
 
     @Test
+    @available(iOS 17, *)
     func testChangesOnBulkInsert() async throws {
+        let store = FHIRStore()
         let observation = try ModelsR4Mocks.createObservation()
         let observationResource = FHIRResource(resource: observation, displayName: "Test Observation")
         
@@ -82,7 +83,9 @@ struct FHIRStoreObservationChangesTests {
     }
 
     @Test
+    @available(iOS 17, *)
     func testChangesOnRemove() async throws {
+        let store = FHIRStore()
         let observation = try ModelsR4Mocks.createObservation()
         let resource = FHIRResource(resource: observation, displayName: "Test Observation")
         
@@ -105,7 +108,9 @@ struct FHIRStoreObservationChangesTests {
     
     // swiftlint:disable function_body_length
     @Test
+    @available(iOS 17, *)
     func testChangesOnRemoveAll() async throws {
+        let store = FHIRStore()
         let allergyIntolerance = ModelsR4Mocks.createAllergyIntolerance()
         let allergyIntoleranceResource = FHIRResource(resource: allergyIntolerance, displayName: "Test Allergy Intolerance")
         

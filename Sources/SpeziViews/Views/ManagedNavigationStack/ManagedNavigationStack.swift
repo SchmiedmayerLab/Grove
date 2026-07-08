@@ -11,6 +11,16 @@ import OSLog
 import SwiftUI
 
 
+private struct IsInManagedNavigationStackKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+
+private struct IsFirstInManagedNavigationStackKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+
 /// Managed Navigation Stack with programmatic control over navigation within the stack.
 ///
 /// The `ManagedNavigationStack` wraps a SwiftUI `NavigationStack`, providing APIs for defining the stack's individual steps and for navigating between them.
@@ -179,16 +189,6 @@ public struct ManagedNavigationStack: View {
     private func configurePath() {
         path.configure(elements: steps.elements, isComplete: isComplete, startAtStep: startStepSelector)
     }
-}
-
-
-private struct IsInManagedNavigationStackKey: EnvironmentKey {
-    static let defaultValue = false
-}
-
-
-private struct IsFirstInManagedNavigationStackKey: EnvironmentKey {
-    static let defaultValue = false
 }
 
 

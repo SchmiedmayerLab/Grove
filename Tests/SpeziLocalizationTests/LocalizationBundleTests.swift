@@ -14,6 +14,7 @@ import Testing
 @Suite
 struct LocalizationBundleTests { // swiftlint:disable:this type_body_length
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func parseFilename() throws {
         let resolved = try #require(LocalizedFileResource.Resolved(
             resource: "Consent.md",
@@ -25,6 +26,7 @@ struct LocalizationBundleTests { // swiftlint:disable:this type_body_length
     }
     
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func urlExtensions() {
         #expect(URL(filePath: "/abc/def+en-US.txt").strippingLocalizationSuffix() == URL(filePath: "/abc/def.txt"))
         #expect(URL(filePath: "/def+en-US.txt").strippingLocalizationSuffix() == URL(filePath: "/def.txt"))
@@ -34,6 +36,7 @@ struct LocalizationBundleTests { // swiftlint:disable:this type_body_length
     }
     
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func resolveFromList() throws { // swiftlint:disable:this function_body_length
         let inputUrls = [
             "/news/Welcome.md",
@@ -163,6 +166,7 @@ struct LocalizationBundleTests { // swiftlint:disable:this type_body_length
     
     
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func resolve2() throws {
         let urls: [URL] = try [
             "gs://myheart-counts-development.firebasestorage.app/public/news/Update+en-US.md",
@@ -204,6 +208,7 @@ struct LocalizationBundleTests { // swiftlint:disable:this type_body_length
     
     
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func resolve3() throws {
         let url = URL(filePath: "/news/Welcome.md")
         let resolved = try #require(LocalizedFileResolution.resolve("Welcome.md", from: [url]))
@@ -213,6 +218,7 @@ struct LocalizationBundleTests { // swiftlint:disable:this type_body_length
     
     
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func resolve4() throws {
         let urls = [
             "/news/Welcome.md",
@@ -249,6 +255,7 @@ struct LocalizationBundleTests { // swiftlint:disable:this type_body_length
     
     
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func localeStuff() {
         #expect(LocalizationKey(locale: .enUS) == LocalizationKey(language: .init(identifier: "en"), region: .unitedStates))
         #expect(LocalizationKey(locale: .enUK) == LocalizationKey(language: .init(identifier: "en"), region: .unitedKingdom))
@@ -256,6 +263,7 @@ struct LocalizationBundleTests { // swiftlint:disable:this type_body_length
     
     
     @Test
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func parseLocalizationInfo() throws {
         func imp(
             url: String,
@@ -308,6 +316,7 @@ extension Locale {
     static let enDE = Self(identifier: "en_DE")
 }
 
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension LocalizationKey {
     static let deDE = Self(language: .init(identifier: "de"), region: .germany)
     static let deUS = Self(language: .init(identifier: "de"), region: .unitedStates)

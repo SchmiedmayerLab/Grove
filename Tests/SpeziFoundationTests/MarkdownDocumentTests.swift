@@ -28,6 +28,7 @@ struct MarkdownDocumentTests { // swiftlint:disable:this type_body_length
         ]))
     }
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func metadata() throws {
         let input = """
@@ -90,6 +91,7 @@ struct MarkdownDocumentTests { // swiftlint:disable:this type_body_length
         ])
     }
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func frontmatterParsing() throws {
         let input = """
@@ -345,6 +347,7 @@ struct MarkdownDocumentTests { // swiftlint:disable:this type_body_length
         ]))
     }
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func readFromFile() throws {
         let input = """

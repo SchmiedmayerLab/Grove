@@ -73,6 +73,7 @@ struct ManagedTaskQueueTests {
     }
     
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test(arguments: Array(1...17))
     func managedTaskQueue(concurrencyLimit: Int) async {
         let numTasks = concurrencyLimit * 3
@@ -92,6 +93,7 @@ struct ManagedTaskQueueTests {
     }
     
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test(arguments: Array(1...20))
     func ordering2(limit: Int) async throws {
         let tracker = OperationsTracker(expectedLimit: limit)

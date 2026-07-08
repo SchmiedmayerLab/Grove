@@ -16,6 +16,10 @@ import Testing
 extension SnapshotTests {
     @Test("List Row")
     func listRow() {
+        guard #available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *) else {
+            return
+        }
+
         let row = List {
             ListRow("San Francisco") {
                 Text(verbatim: "20 °C, Sunny")
@@ -33,6 +37,10 @@ extension SnapshotTests {
 
     @Test("List Row Inits")
     func listRowInits() {
+        guard #available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *) else {
+            return
+        }
+
         let string = "Hello"
 
         _ = ListRow(string) {

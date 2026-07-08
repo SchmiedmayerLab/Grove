@@ -43,8 +43,8 @@ public protocol AnySampleType<Sample>: Hashable, Identifiable, Sendable where ID
     #if canImport(HealthKit)
     /// Creates a properly-typed `HKSamplePredicate` object, for the current sample type.
     @available(iOS 15.4, macOS 13.0, macCatalyst 15.4, watchOS 8.5, visionOS 1, *)
+    // swiftlint:disable:next identifier_name
     func _makeSamplePredicateInternal(filter filterPredicate: NSPredicate?) -> HKSamplePredicate<Sample._QueryResult>
-    // swiftlint:disable:previous identifier_name
     #endif
 }
 
@@ -57,8 +57,8 @@ extension AnySampleType {
     }
     
     #if canImport(HealthKit)
-    // swiftlint:disable:next identifier_name
     @available(iOS 15.4, macOS 13.0, macCatalyst 15.4, watchOS 8.5, visionOS 1, *)
+    // swiftlint:disable:next identifier_name
     package func _makeSamplePredicate(filter filterPredicate: NSPredicate?) -> HKSamplePredicate<Sample> {
         let predicate = _makeSamplePredicateInternal(filter: filterPredicate)
         guard let predicate = predicate as? HKSamplePredicate<Sample> else {

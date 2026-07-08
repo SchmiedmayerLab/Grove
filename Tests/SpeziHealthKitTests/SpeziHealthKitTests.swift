@@ -14,6 +14,7 @@ import SpeziHealthKitUI
 import Testing
 
 
+@available(iOS 17, macOS 14, macCatalyst 17, watchOS 10, visionOS 1, *)
 @Suite("SpeziHealthKitTests")
 struct SpeziHealthKitTests {
     @Test("Equal Time Ranges")

@@ -14,6 +14,7 @@ import Testing
 
 @Suite
 struct AnyAsyncSequenceTests {
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     private func getCountingSequence<T: Sendable>(
         for range: Range<T>,
         interval: Duration = .seconds(0.01)
@@ -38,6 +39,7 @@ struct AnyAsyncSequenceTests {
     }
     
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func sequence0() async throws {
         let seq = getCountingSequence(for: 0..<500)
@@ -45,6 +47,7 @@ struct AnyAsyncSequenceTests {
     }
     
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func sequence1A() async throws {
         let seq = AnyAsyncSequence(getCountingSequence(for: 0..<500))
@@ -66,6 +69,7 @@ struct AnyAsyncSequenceTests {
     }
     
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func sequence2A() async throws {
         let seq = AnyAsyncSequence(getCountingSequence(for: 0..<500).filter { $0 < 250 })
@@ -87,6 +91,7 @@ struct AnyAsyncSequenceTests {
     }
     
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func sequence3A() async throws {
         let seq = AnyAsyncSequence(getCountingSequence(for: 0..<500)).filter { $0 < 250 }

@@ -17,12 +17,14 @@ struct Article: Hashable, Codable {
 
 @Suite
 struct LocalizationsDictionaryTests {
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func emptyInit() {
         let dict = LocalizationsDictionary<String>()
         #expect(dict.isEmpty)
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func dictionaryLiteral() {
         let dict = LocalizationsDictionary<String>([
@@ -34,6 +36,7 @@ struct LocalizationsDictionaryTests {
         #expect(dict[.deDE] == "Hallo Welt!")
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func subscriptByString() {
         var dict = LocalizationsDictionary<String>([:])
@@ -44,6 +47,7 @@ struct LocalizationsDictionaryTests {
         #expect(dict.isEmpty)
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func subscriptByLocalizationKey() {
         var dict = LocalizationsDictionary<String>()
@@ -52,6 +56,7 @@ struct LocalizationsDictionaryTests {
         #expect(dict[key] == "Hello World!")
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func perfectMatch() {
         let dict = LocalizationsDictionary<String>([
@@ -62,6 +67,7 @@ struct LocalizationsDictionaryTests {
         #expect(result == "Hello World!")
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func partialLanguageMatch() {
         let dict = LocalizationsDictionary<String>([
@@ -72,6 +78,7 @@ struct LocalizationsDictionaryTests {
         #expect(result == "Hello World!")
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func noMatchReturnsFallback() {
         let dict = LocalizationsDictionary<String>([
@@ -86,6 +93,7 @@ struct LocalizationsDictionaryTests {
         #expect(result == "Hello World!")
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func noMatchNoFallback() {
         let dict = LocalizationsDictionary<String>([
@@ -99,6 +107,7 @@ struct LocalizationsDictionaryTests {
         #expect(result == nil)
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func fallbackKeyNotInDictionary() {
         let dict = LocalizationsDictionary<String>([
@@ -113,6 +122,7 @@ struct LocalizationsDictionaryTests {
     }
 
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func codableRoundTrip() throws {
         let original = LocalizationsDictionary<String>([
@@ -125,6 +135,7 @@ struct LocalizationsDictionaryTests {
         #expect(decoded == original)
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func decodesFromJSON() throws {
         let json = Data(#"{"en-US":"Hello World!","de-DE":"Hallo Welt!"}"#.utf8)
@@ -135,6 +146,7 @@ struct LocalizationsDictionaryTests {
     }
 
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func collectionConformance() {
         let dict = LocalizationsDictionary<String>([
@@ -151,6 +163,7 @@ struct LocalizationsDictionaryTests {
         #expect(values == ["Hello World!", "Hallo Welt!"])
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func hashableEquality() {
         let dict1 = LocalizationsDictionary<String>([.enUS: "Hello World!", .deDE: "Hallo Welt!"])
@@ -161,6 +174,7 @@ struct LocalizationsDictionaryTests {
         #expect(Set([dict1, dict2]).count == 1)
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func structuredValueCreation() {
         let dict = LocalizationsDictionary<Article>([
@@ -171,6 +185,7 @@ struct LocalizationsDictionaryTests {
         #expect(dict[.enUS] == Article(title: "Welcome", body: "Hello there"))
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func structuredValueSubscript() {
         var dict = LocalizationsDictionary<Article>()
@@ -179,6 +194,7 @@ struct LocalizationsDictionaryTests {
         #expect(dict[.enUS] == content)
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func structuredValueLocalizedValue() {
         let dict = LocalizationsDictionary<Article>([
@@ -189,6 +205,7 @@ struct LocalizationsDictionaryTests {
         #expect(result == Article(title: "Willkommen", body: "Hallo"))
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func structuredValueCodable() throws {
         let original = LocalizationsDictionary<Article>([
@@ -200,6 +217,7 @@ struct LocalizationsDictionaryTests {
         #expect(decoded == original)
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func directSubscriptGetReturnsExactMatch() {
         let dict = LocalizationsDictionary<String>([
@@ -210,6 +228,7 @@ struct LocalizationsDictionaryTests {
         #expect(dict[key] == "Hello UK")
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func directSubscriptSetAndRemove() {
         var dict = LocalizationsDictionary<String>()
@@ -223,6 +242,7 @@ struct LocalizationsDictionaryTests {
         #expect(dict.isEmpty)
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func directSubscriptOverwritesValue() {
         var dict = LocalizationsDictionary<String>([
@@ -235,6 +255,7 @@ struct LocalizationsDictionaryTests {
     }
     
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func dictionaryLiteralInit() {
         let dict: LocalizationsDictionary<String> = [

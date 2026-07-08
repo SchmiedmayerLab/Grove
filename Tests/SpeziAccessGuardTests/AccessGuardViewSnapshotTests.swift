@@ -35,11 +35,13 @@ struct AccessGuardViewSnapshotTests {
 
     @Test("AccessGuard view displays correctly in different states", arguments: Self.testConfigurations)
     @MainActor
+    @available(iOS 17, *)
     func testAccessGuardViewSnapshots(_ configuration: TestConfiguration) async throws {
         try await performSnapshotTest(with: configuration)
     }
 
     @MainActor
+    @available(iOS 17, *)
     private func performSnapshotTest(with config: TestConfiguration) async throws {
         let module = AccessGuards {
             CodeAccessGuard.testConfig
@@ -72,10 +74,12 @@ struct AccessGuardViewSnapshotTests {
 }
 
 
+@available(iOS 17, *)
 extension AccessGuardIdentifier where AccessGuard == CodeAccessGuard {
     static let fixedCodeTest: Self = .passcode("test.accessguard")
 }
 
+@available(iOS 17, *)
 extension CodeAccessGuard {
     static let testConfig = Self(.fixedCodeTest, fixed: "0218")
 }

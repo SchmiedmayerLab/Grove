@@ -22,8 +22,11 @@ var defaultPlugins: [Target.PluginUsage] {
 let textualTrait = "Textual"
 let mlxTrait = "MLX"
 let researchKitTrait = "ResearchKit"
+let optionalPackageTraits = [textualTrait, mlxTrait, researchKitTrait]
 
-let defaultEnabledTraits: Set<String> = []
+let defaultEnabledTraits: Set<String> = Context.environment["SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS"] == "1"
+    ? Set(optionalPackageTraits)
+    : []
 let packagePlatforms: [SupportedPlatform] = [
     .iOS(.v15),
     .macOS(.v12),

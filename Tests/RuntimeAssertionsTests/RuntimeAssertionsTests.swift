@@ -57,6 +57,7 @@ struct RuntimeAssertionsTests {
     }
 
     @Test("Async Runtime Assertion")
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func testAsyncRuntimeAssertion() async throws {
         try await confirmation { confirmation in
             try await expectRuntimeAssertion("\(#function)", expectedCount: 1) {

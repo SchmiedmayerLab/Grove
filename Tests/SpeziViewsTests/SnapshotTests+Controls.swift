@@ -14,6 +14,7 @@ import SwiftUI
 import Testing
 
 extension SnapshotTests {
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     struct Options: OptionSet, PickerValue {
         static let allCases: [Options] = [.option1, .option2]
         static let option1 = Options(rawValue: 1 << 0)
@@ -25,6 +26,7 @@ extension SnapshotTests {
         }
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     enum Version: PickerValue {
         case versionA
         case versionB
@@ -41,6 +43,10 @@ extension SnapshotTests {
 
     @Test("Option Set Picker")
     func optionSetPicker() {
+        guard #available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *) else {
+            return
+        }
+
         let picker0 = List {
             OptionSetPicker("Clean", selection: .constant(Options.option1))
         }
@@ -56,6 +62,10 @@ extension SnapshotTests {
 
     @Test("Case Iterable Picker")
     func caseIterablePicker() {
+        guard #available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *) else {
+            return
+        }
+
         let picker = List {
             CaseIterablePicker("Clean Code", selection: .constant(Version.versionA))
         }

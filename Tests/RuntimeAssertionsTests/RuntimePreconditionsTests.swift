@@ -38,6 +38,7 @@ struct RuntimePreconditionsTests {
     }
 
     @Test("Async Runtime Precondition")
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func testAsyncRuntimePrecondition() async {
         await confirmation { confirmation in
             expectRuntimePrecondition(timeout: 1.0) {

@@ -13,6 +13,7 @@ import Testing
 
 @Suite
 struct DurationTests {
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func factoryMethodsAndTimeInterval() throws {
         let minute: TimeInterval = 60

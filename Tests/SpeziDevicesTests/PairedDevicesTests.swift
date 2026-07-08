@@ -16,6 +16,7 @@ import SpeziTesting
 import Testing
 
 @MainActor
+@available(iOS 17, macOS 14, macCatalyst 17, visionOS 1, *)
 @Suite
 struct PairedDevicesTests {
     @Test

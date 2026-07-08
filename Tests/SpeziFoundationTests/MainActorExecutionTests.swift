@@ -14,6 +14,7 @@ import Testing
 
 #if canImport(Darwin)
 /// Internal helper actor to be able to have code run guaranteed off the main actor (by scheduling it onto a background queue)
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 @globalActor
 private actor TestActor: GlobalActor {
     static let shared = TestActor()
@@ -38,6 +39,7 @@ struct MainActorExecutionTests {
         #expect(didRun)
     }
     
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
     @Test
     @TestActor
     func ifRunningOffTheMainActor() async throws {

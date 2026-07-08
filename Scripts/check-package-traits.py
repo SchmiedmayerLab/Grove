@@ -6,7 +6,7 @@
 #
 # SPDX-License-Identifier: MIT
 #
-"""Build the package products whose dependencies are controlled by package traits."""
+"""Build trait-sensitive products with optional package traits disabled."""
 
 import argparse
 import os
@@ -26,13 +26,11 @@ class IOSProductBuild:
     package: str
     product: str
     deployment_target: str
-    traits: tuple[str, ...] = ()
     reason: str = ""
 
     @property
     def label(self) -> str:
-        trait_label = ", ".join(self.traits) if self.traits else "no optional traits"
-        return f"{self.product} for iOS {self.deployment_target} ({trait_label})"
+        return f"{self.product} for iOS {self.deployment_target} (no optional traits)"
 
 
 IOS_PRODUCT_BUILDS = [
@@ -40,54 +38,50 @@ IOS_PRODUCT_BUILDS = [
         package="SpeziChat",
         product="SpeziChat",
         deployment_target="15.0",
-        reason="Textual-disabled consumer baseline."
+        reason="Textual-disabled lower-floor consumer baseline."
     ),
     IOSProductBuild(
         package="SpeziChat",
         product="SpeziChat",
         deployment_target="18.0",
-        traits=("Textual",),
-        reason="Textual-enabled chat rendering."
+        reason="Textual-disabled current deployment-target baseline."
     ),
     IOSProductBuild(
         package="SpeziLLM",
         product="SpeziLLMLocalDownload",
         deployment_target="17.0",
-        reason="MLX-disabled local LLM consumer baseline."
+        reason="MLX-disabled lower-floor local LLM consumer baseline."
     ),
     IOSProductBuild(
         package="SpeziLLM",
         product="SpeziLLMLocalDownload",
-        deployment_target="17.0",
-        traits=("MLX",),
-        reason="MLX-enabled local LLM and model-download surface."
+        deployment_target="18.0",
+        reason="MLX-disabled current deployment-target baseline."
     ),
     IOSProductBuild(
         package="ResearchKitOnFHIR",
         product="ResearchKitOnFHIR",
         deployment_target="15.0",
-        reason="ResearchKit-disabled FHIR conversion baseline."
+        reason="ResearchKit-disabled lower-floor FHIR conversion baseline."
     ),
     IOSProductBuild(
         package="ResearchKitOnFHIR",
         product="ResearchKitOnFHIR",
-        deployment_target="17.0",
-        traits=("ResearchKit",),
-        reason="ResearchKit-enabled FHIR conversion surface."
+        deployment_target="18.0",
+        reason="ResearchKit-disabled current deployment-target baseline."
     ),
     IOSProductBuild(
         package="SpeziQuestionnaire",
         product="SpeziQuestionnaire",
         deployment_target="17.0",
-        reason="ResearchKit-disabled questionnaire surface."
+        reason="ResearchKit-disabled lower-floor questionnaire baseline."
     ),
     IOSProductBuild(
         package="SpeziQuestionnaire",
         product="SpeziQuestionnaire",
-        deployment_target="17.0",
-        traits=("ResearchKit",),
-        reason="ResearchKit-enabled questionnaire and legacy target chain."
-    )
+        deployment_target="18.0",
+        reason="ResearchKit-disabled current deployment-target baseline."
+    ),
 ]
 
 TRAIT_PACKAGES = tuple(sorted({build.package for build in IOS_PRODUCT_BUILDS}))
@@ -220,8 +214,6 @@ def swift_build_arguments(build: IOSProductBuild, sdk_path: str) -> list[str]:
         sdk_path,
         "--disable-default-traits"
     ]
-    if build.traits:
-        arguments.extend(["--traits", ",".join(build.traits)])
     return arguments
 
 
@@ -233,7 +225,7 @@ def check_ios_builds(packages: set[str]) -> None:
         if build.package not in packages:
             continue
         arguments = swift_build_arguments(build, sdk_path)
-        arguments.extend(["--product", build.product])
+        arguments.extend(["--target", build.product])
         build_ios_product(arguments, build)
 
 

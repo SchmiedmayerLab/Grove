@@ -9,17 +9,17 @@
 import SwiftUI
 
 
+private struct AsyncButtonProcessingStyleKey: EnvironmentKey {
+    static let defaultValue: AsyncButtonProcessingStyle = .overlay
+}
+
+
 /// Define how an `AsyncButton` visualizes it's processing state.
 public enum AsyncButtonProcessingStyle: Hashable, Sendable {
     /// Draw a `ProgressView` as an overlay replacing the button view.
     case overlay
     /// Draw a `ProgressView` next to the button label.
     case listRow
-}
-
-
-private struct AsyncButtonProcessingStyleKey: EnvironmentKey {
-    static let defaultValue: AsyncButtonProcessingStyle = .overlay
 }
 
 

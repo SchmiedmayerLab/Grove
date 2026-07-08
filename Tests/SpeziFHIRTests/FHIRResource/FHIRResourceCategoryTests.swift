@@ -87,6 +87,7 @@ extension FHIRResourceTests {
     
     @Test
     @MainActor
+    @available(iOS 17, *)
     func testCategoryKeyPaths() {
         #expect(FHIRResource.FHIRResourceCategory.observation.storeKeyPath == \FHIRStore.observations)
         #expect(FHIRResource.FHIRResourceCategory.encounter.storeKeyPath == \FHIRStore.encounters)

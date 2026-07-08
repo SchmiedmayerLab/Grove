@@ -37,6 +37,7 @@ final class AsyncSemaphoreTests: XCTestCase {   // swiftlint:disable:this type_b
         XCTAssertFalse(wokenTwo)
     }
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func testSignalReturnsWhetherItResumesSuspendedTask() async throws {
         let delay: Duration = .milliseconds(500)
         
@@ -115,6 +116,7 @@ final class AsyncSemaphoreTests: XCTestCase {   // swiftlint:disable:this type_b
         }
     }
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func testCancellationWhileSuspendedThrowsCancellationError() async throws {
         let sem = AsyncSemaphore(value: 0)
         let exp = expectation(description: "cancellation")
@@ -156,6 +158,7 @@ final class AsyncSemaphoreTests: XCTestCase {   // swiftlint:disable:this type_b
         wait(for: [exp], timeout: 5)
     }
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func testCancellationWhileSuspendedIncrementsSemaphore() async throws {
         // Given a task cancelled while suspended on a semaphore,
         let sem = AsyncSemaphore(value: 0)
@@ -215,6 +218,7 @@ final class AsyncSemaphoreTests: XCTestCase {   // swiftlint:disable:this type_b
         wait(for: [ex2], timeout: 0.5)
     }
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func testSemaphoreAsAResourceLimiterOnActorMethod() async {
         /// An actor that limits the number of concurrent executions of
         /// its `run()` method, and counts the effective number of
@@ -256,6 +260,7 @@ final class AsyncSemaphoreTests: XCTestCase {   // swiftlint:disable:this type_b
         }
     }
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func testSemaphoreAsAResourceLimiterOnAsyncMethod() async {
         /// A class that limits the number of concurrent executions of
         /// its `run()` method, and counts the effective number of
@@ -298,6 +303,7 @@ final class AsyncSemaphoreTests: XCTestCase {   // swiftlint:disable:this type_b
         }
     }
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func testSemaphoreAsAResourceLimiterOnSingleThread() async {
         /// A class that limits the number of concurrent executions of
         /// its `run()` method, and counts the effective number of
@@ -341,6 +347,7 @@ final class AsyncSemaphoreTests: XCTestCase {   // swiftlint:disable:this type_b
         }.value
     }
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func testSemaphoreAsAResourceLimiterOnActorMethodWithCancellationSupport() async {
         /// An actor that limits the number of concurrent executions of
         /// its `run()` method, and counts the effective number of

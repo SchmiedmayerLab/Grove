@@ -379,7 +379,10 @@ excluded: # paths to ignore during linting. Takes precedence over `included`.
   - .incoming # temporary during monorepo construction
   - .build
   - .swiftpm
+  - .xcodebuild
   - .derivedData
+  - .derivedData-*
+  - DerivedData
   # Generated parser sources (ANTLR) — excluded upstream by the FHIRModelsExtensions / ResearchKitOnFHIR configs.
   - Sources/FHIRPathParser/Generated
   # The monorepo's Package.swift is a ~2,200-line generated manifest (vs the small per-package manifests

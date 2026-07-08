@@ -231,10 +231,11 @@ extension SampleTypeProxy: Codable {
     }
 }
 
-
+// swiftlint:disable static_operator
 /// Compare two sample types, based on their identifiers
-@inlinable // swiftlint:disable:next static_operator
 @available(iOS 16, macOS 13, macCatalyst 16, watchOS 9, visionOS 1, *)
+@inlinable
 public func ~= (pattern: SampleType<some Any>, value: SampleTypeProxy) -> Bool {
     pattern.id == value.id
 }
+// swiftlint:enable static_operator

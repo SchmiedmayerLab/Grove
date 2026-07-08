@@ -19,6 +19,7 @@ struct TimeoutTests {
     
     private let storage = Storage()
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @MainActor
     func operation(for duration: Duration) {
         Task { @MainActor in
@@ -35,6 +36,7 @@ struct TimeoutTests {
         }
     }
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @MainActor
     func operationMethod(timeout: Duration, operation: Duration) async throws {
         let storage = storage
@@ -52,6 +54,7 @@ struct TimeoutTests {
     }
     
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test("Operation finishes", .timeLimit(.minutes(1)))
     func completesWithinTimeout() async throws {
         try await confirmation("operation finishes") { confirmed in
@@ -64,6 +67,7 @@ struct TimeoutTests {
     }
     
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test("Operation times out", .timeLimit(.minutes(1)))
     func throwsOnTimeout() async throws {
         await confirmation("operation times out") { confirmed in

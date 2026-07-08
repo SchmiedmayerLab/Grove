@@ -33,6 +33,7 @@ final class RWLockTests: XCTestCase {
         wait(for: [expectation1, expectation2], timeout: 1.0)
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func testWriteBlocksOtherWrites() {
         let lock = RWLock()
         let expectation1 = self.expectation(description: "First write")
@@ -55,6 +56,7 @@ final class RWLockTests: XCTestCase {
         wait(for: [expectation1, expectation2], timeout: 1.0)
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func testWriteBlocksReads() {
         let lock = RWLock()
         let expectation1 = self.expectation(description: "Write")
@@ -148,6 +150,7 @@ final class RWLockTests: XCTestCase {
         wait(for: [expectation1, expectation2], timeout: 1.0)
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func testWriteBlocksOtherWritesRecursive() {
         let lock = RecursiveRWLock()
         let expectation1 = self.expectation(description: "First write")
@@ -170,6 +173,7 @@ final class RWLockTests: XCTestCase {
         wait(for: [expectation1, expectation2], timeout: 1.0)
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     func testWriteBlocksReadsRecursive() {
         let lock = RecursiveRWLock()
         let expectation1 = self.expectation(description: "Write")
@@ -223,6 +227,7 @@ final class RWLockTests: XCTestCase {
         wait(for: [expectation1], timeout: 1.0)
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
     func testRecursiveWriteRecursiveAcquisition() {
         let lock = RecursiveRWLock()
         let expectation1 = self.expectation(description: "Read")

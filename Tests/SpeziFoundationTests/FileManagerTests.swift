@@ -16,7 +16,10 @@ import UniformTypeIdentifiers
 @Suite(.serialized)
 final class FileManagerTests {
     private let fileManager = FileManager.default
-    private let testRoot = URL.temporaryDirectory.appending(path: "SpeziFoundationFileManagerTests", directoryHint: .isDirectory)
+    private let testRoot = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(
+        "SpeziFoundationFileManagerTests",
+        isDirectory: true
+    )
     
     init() throws {
         try? fileManager.removeItem(at: testRoot)
@@ -24,6 +27,7 @@ final class FileManagerTests {
         print("\(Self.self) using testRoot: \(testRoot.path)")
     }
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func doStuff() throws {
         #expect(try fileManager.contents(of: testRoot).isEmpty)
@@ -32,7 +36,7 @@ final class FileManagerTests {
         try data.write(to: fileUrl)
         #expect(try fileManager.contents(of: testRoot).mapIntoSet { $0.resolvingSymlinksInPath() } == [fileUrl])
         
-        let folder1Url = testRoot.appending(path: "folder1", directoryHint: .isDirectory)
+        let folder1Url = testRoot.appendingPathComponent("folder1", isDirectory: true)
         let folder1File1Url = folder1Url.appendingPathComponent("file1", conformingTo: .plainText)
         #expect(!fileManager.itemExists(at: folder1Url))
         #expect(!fileManager.itemExists(at: folder1File1Url))
@@ -50,7 +54,7 @@ final class FileManagerTests {
         #expect(fileManager.itemExists(at: folder1File1Url))
         #expect(fileManager.isDirectory(at: folder1Url))
         
-        let folder2Url = testRoot.appending(path: "folder2", directoryHint: .isDirectory)
+        let folder2Url = testRoot.appendingPathComponent("folder2", isDirectory: true)
         try fileManager.copyItem(at: folder1Url, to: folder2Url, overwriteExisting: false)
         #expect(try fileManager.contents(of: testRoot).mapIntoSet { $0.resolvingSymlinksInPath() } == [fileUrl, folder1Url, folder2Url])
         do {

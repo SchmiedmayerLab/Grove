@@ -12,6 +12,7 @@ import Testing
 @MainActor
 @Suite
 struct ManagedAsynchronousAccessTests {
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func resumeWithSuccess() async throws {
         let access = ManagedAsynchronousAccess<String, any Error>()
@@ -41,6 +42,7 @@ struct ManagedAsynchronousAccessTests {
         }
     }
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func resumeWithError() async throws {
         let access = ManagedAsynchronousAccess<String, any Error>()
@@ -67,6 +69,7 @@ struct ManagedAsynchronousAccessTests {
         }
     }
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func cancelAll() async throws {
         let access = ManagedAsynchronousAccess<Void, any Error>()
@@ -96,6 +99,7 @@ struct ManagedAsynchronousAccessTests {
         }
     }
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func cancelAllNeverError() async throws {
         let access = ManagedAsynchronousAccess<Void, Never>()
@@ -135,6 +139,7 @@ struct ManagedAsynchronousAccessTests {
         #expect(!didResume)
     }
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func resumeWithVoidValue() async throws {
         let access = ManagedAsynchronousAccess<Void, Never>()
@@ -158,6 +163,7 @@ struct ManagedAsynchronousAccessTests {
         }
     }
 
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func exclusiveAccess() async throws {
         let access = ManagedAsynchronousAccess<String, any Error>()
@@ -213,6 +219,7 @@ struct ManagedAsynchronousAccessTests {
         }
     }
     
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
     @Test
     func exclusiveAccessNeverError() async throws {
         let access = ManagedAsynchronousAccess<String, Never>()
