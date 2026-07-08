@@ -90,7 +90,26 @@ final class TextEntryTests: XCTestCase, Sendable {
         // Test text field deletion with longer text input
         try textField.delete(count: message.count + 4)
     }
-    
+
+    @MainActor
+    func testTapFromRightWithVisibleKeyboard() throws {
+        #if os(iOS)
+        app.buttons["Text Entry"].tap()
+
+        let textField = app.textFields["TextField"]
+        XCTAssert(textField.waitForExistence(timeout: 5))
+
+        try textField.enter(value: "Example Text", options: [.disableKeyboardDismiss])
+        XCTAssert(app.keyboards.firstMatch.waitForExistence(timeout: 5.0))
+
+        try textField.enter(value: " ...", options: [.tapFromRight])
+        XCTAssert(app.staticTexts["Example Text ..."].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Button was pressed!"].exists)
+        #else
+        throw XCTSkip("tapFromRight is only supported for these UI tests on iOS.")
+        #endif
+    }
+
     
     @MainActor
     func testClearTextField() throws {

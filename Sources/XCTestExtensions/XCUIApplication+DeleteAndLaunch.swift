@@ -39,6 +39,11 @@ extension XCUIApplication {
         #endif
     }
 
+    private static func tapSpringboardMenuButton(_ button: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssert(button.waitForExistence(timeout: 5.0), file: file, line: line)
+        button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+    }
+
     /// Deletes the application from the iOS springboard (iOS home screen) and launches it after it has been deleted and reinstalled.
     /// - Parameter appName: The name of the application as displayed on the springboard (iOS home screen).
     @available(macOS, unavailable)
@@ -86,7 +91,8 @@ extension XCUIApplication {
                 XCTAssert(deleteButton.waitForExistence(timeout: 5.0))
                 deleteButton.tap()
             } else { // iPhone / iPad / visionOS 1
-                if !springboard.collectionViews.buttons["Remove App"].waitForExistence(timeout: 5) {
+                let removeAppButton = springboard.buttons["Remove App"].firstMatch
+                if !removeAppButton.waitForExistence(timeout: 5) {
                     if springboard.state != .runningForeground {
                         // The long press did not work, let's launch the springboard again and then try long pressing the app icon again.
                         springboard.activate()
@@ -94,16 +100,15 @@ extension XCUIApplication {
                         XCTAssert(homeScreenIcons[appName].firstMatch.isHittable)
                         homeScreenIcons[appName].firstMatch.press(forDuration: 1.75)
                     }
-                    if springboard.collectionViews.buttons["Options"].exists {
+                    if springboard.buttons["Options"].firstMatch.exists {
                         // We long-pressed the app icon, and the "Remove App" button isn't showing up, but an "Options" button is.
                         // Sometimes, for reasons probably not known to anyone, the home screen will put the "Remove App" button into
                         // an "Options" submenu, instead of placing it in the root of the menu.
                         // So we first need to navigate to that submenu, and then try again
-                        springboard.collectionViews.buttons["Options"].tap()
-                        XCTAssert(springboard.buttons["Remove App"].waitForExistence(timeout: 5))
+                        Self.tapSpringboardMenuButton(springboard.buttons["Options"].firstMatch)
                     }
                 }
-                springboard.buttons["Remove App"].tap()
+                Self.tapSpringboardMenuButton(removeAppButton)
             }
 
             #if os(visionOS)

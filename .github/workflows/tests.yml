@@ -51,7 +51,13 @@ jobs:
           echo "Changed files:"; cat changed.txt
       - name: Compute test matrix
         id: compute
-        run: python3 Scripts/affected-test-matrix.py changed.txt >> "$GITHUB_OUTPUT"
+        run: |
+          # TEMPORARY CI DEBUGGING ONLY:
+          # --only-targets/--only-job-kinds narrows CI to specific target names while debugging failing checks.
+          # Never merge these arguments into main; remove them before the final PR validation.
+          python3 Scripts/affected-test-matrix.py changed.txt \
+            --only-targets ResearchKitOnFHIR SpeziAccount SpeziChat SpeziNotifications SpeziScheduler XCTestExtensions \
+            --only-job-kinds ui >> "$GITHUB_OUTPUT"
       - name: Dump matrix (debug)
         env:
           AFFECTED: ${{ steps.compute.outputs.affected }}

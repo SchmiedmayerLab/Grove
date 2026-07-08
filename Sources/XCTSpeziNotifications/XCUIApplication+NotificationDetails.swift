@@ -24,6 +24,7 @@ extension XCUIApplication {
     ///   - interruption: The interruption level to assert.
     ///   - type: The trigger type to assert.
     ///   - nextTrigger: The next trigger label to assert.
+    ///   - nextTriggerPredicate: A predicate for dynamic next trigger labels.
     ///   - nextTriggerExistenceTimeout: The time to await for the trigger label to appear.
     public func assertNotificationDetails(
         identifier: String? = nil,
@@ -36,6 +37,7 @@ extension XCUIApplication {
         interruption: UNNotificationInterruptionLevel = .active,
         type: String? = nil,
         nextTrigger: String? = nil,
+        nextTriggerPredicate: NSPredicate? = nil,
         nextTriggerExistenceTimeout: TimeInterval = 60
     ) {
         XCTAssert(navigationBars.staticTexts[title].waitForExistence(timeout: 2.0))
@@ -67,7 +69,9 @@ extension XCUIApplication {
             XCTAssert(staticTexts["Type, \(type)"].exists)
         }
 
-        if let nextTrigger {
+        if let nextTriggerPredicate {
+            XCTAssert(staticTexts.matching(nextTriggerPredicate).firstMatch.waitForExistence(timeout: nextTriggerExistenceTimeout))
+        } else if let nextTrigger {
             XCTAssert(staticTexts["Next Trigger, \(nextTrigger)"].waitForExistence(timeout: nextTriggerExistenceTimeout))
         }
     }

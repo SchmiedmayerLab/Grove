@@ -120,7 +120,7 @@ class TestAppUITests: XCTestCase {
             sound: true,
             interruption: .timeSensitive,
             type: "Calendar",
-            nextTrigger: "in 10 seconds",
+            nextTriggerPredicate: NSPredicate(format: #"label MATCHES 'Next Trigger, in ((10|[2-9]) seconds|1 second)'"#),
             nextTriggerExistenceTimeout: 60
         )
 

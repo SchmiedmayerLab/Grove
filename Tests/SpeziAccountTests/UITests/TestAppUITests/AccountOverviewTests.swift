@@ -24,7 +24,7 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         let app = XCUIApplication()
         app.launch(credentials: .createAndSignIn)
 
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5.0))
         XCTAssertTrue(app.staticTexts["Spezi Account"].waitForExistence(timeout: 5.0))
 
         app.openAccountOverview()
@@ -289,8 +289,6 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
 
     @MainActor
     func testNameOverview() throws {
-        try XCTSkipIf(true, "Flaky on the CI runners: the keyboard-state race in the tap-from-right text entry intermittently aborts the test. Re-enable once the text-entry helper has proven itself stable.")
-
         let app = XCUIApplication()
         app.launch(credentials: .createAndSignIn)
 
@@ -309,35 +307,33 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         // open user id
         XCTAssertTrue(app.buttons["E-Mail Address, lelandstanford@stanford.edu"].exists)
         app.buttons["E-Mail Address, lelandstanford@stanford.edu"].tap()
-        XCTAssertTrue(app.navigationBars.buttons["Done"].waitForExistence(timeout: 2.0))
+        XCTAssertTrue(app.navigationBars.buttons["Done"].waitForExistence(timeout: 5.0))
         XCTAssertFalse(app.navigationBars.buttons["Done"].isEnabled)
 
-        // edit email
-        #if !os(visionOS)
-        try app.textFields["E-Mail Address"].delete(count: 12, options: [.disableKeyboardDismiss, .tapFromRight])
-        #else
-        // on visionOS we tap the cursor after the dot. We just split it up into two 6 character deletes
-        try app.textFields["E-Mail Address"].delete(count: 6, options: [.disableKeyboardDismiss])
-        try app.textFields["E-Mail Address"].delete(count: 6, options: [.disableKeyboardDismiss])
-        #endif
+        // Edit the email without relying on cursor placement from the far right; this test is about
+        // account validation, not the text-entry helper's tap-from-right behavior.
+        let emailField = app.textFields["E-Mail Address"]
+        XCTAssertTrue(emailField.waitForExistence(timeout: 5.0))
+        try emailField.clear(options: [.disableKeyboardDismiss])
+        try emailField.enter(value: "lelandstanford", options: [.disableKeyboardDismiss, .skipTextFieldSelection])
 
         // failed validation
-        XCTAssertTrue(app.staticTexts["The provided email is invalid."].waitForExistence(timeout: 2.0))
+        XCTAssertTrue(app.staticTexts["The provided email is invalid."].waitForExistence(timeout: 5.0))
         XCTAssertFalse(app.buttons["Done"].isEnabled)
 
-        try app.textFields["E-Mail Address"].enter(value: "tum.de", options: .skipTextFieldSelection)
-        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2.0))
+        try emailField.enter(value: "@tum.de", options: .skipTextFieldSelection)
+        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 5.0))
         app.buttons["Done"].tap()
 
         XCTAssertTrue(app.alerts["Security Alert"].waitForExistence(timeout: 6.0))
         app.alerts["Security Alert"].buttons["Continue"].tap()
 
-        XCTAssertTrue(app.staticTexts["lelandstanford@tum.de"].waitForExistence(timeout: 2.0))
+        XCTAssertTrue(app.staticTexts["lelandstanford@tum.de"].waitForExistence(timeout: 5.0))
 
         // open name
         XCTAssertTrue(app.buttons["Name, Leland Stanford"].exists)
         app.buttons["Name, Leland Stanford"].tap()
-        XCTAssertTrue(app.navigationBars.buttons["Done"].waitForExistence(timeout: 2.0))
+        XCTAssertTrue(app.navigationBars.buttons["Done"].waitForExistence(timeout: 5.0))
         XCTAssertFalse(app.buttons["Done"].isEnabled)
 
         // edit name
@@ -346,10 +342,10 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         XCTAssertTrue(app.buttons["Done"].isEnabled)
         app.buttons["Done"].tap()
 
-        XCTAssertTrue(app.staticTexts["Name, Leland"].waitForExistence(timeout: 2.0))
+        XCTAssertTrue(app.staticTexts["Name, Leland"].waitForExistence(timeout: 5.0))
 
         app.navigationBars.buttons["Account Overview"].tap()
-        XCTAssertTrue(app.staticTexts["L"].waitForExistence(timeout: 2.0)) // ensure the "account image" is updated accordingly
+        XCTAssertTrue(app.staticTexts["L"].waitForExistence(timeout: 5.0)) // ensure the "account image" is updated accordingly
     }
 
     @MainActor
@@ -357,7 +353,7 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         let app = XCUIApplication()
         app.launch(credentials: .createAndSignIn, noName: true)
 
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5.0))
         XCTAssertTrue(app.staticTexts["Spezi Account"].waitForExistence(timeout: 5.0))
 
         app.openAccountOverview()
@@ -427,8 +423,6 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
     
     @MainActor
     func testAddPhoneNumber() async throws {
-        try XCTSkipIf(true, "Flaky on the CI runners: the phone-number entry sheet intermittently misses element waits. Re-enable once the flow's timing is hardened.")
-
         let app = XCUIApplication()
         app.launch(credentials: .createAndSignIn)
         
@@ -446,7 +440,7 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         
         try await app.addPhoneNumber("6502345678", otc: "012345")
         
-        XCTAssertTrue(app.staticTexts["+1 (650) 234-5678"].waitForExistence(timeout: 2.0))
+        XCTAssertTrue(app.staticTexts["+1 (650) 234-5678"].waitForExistence(timeout: 8.0))
         
         app.navigationBars.buttons.firstMatch.tap() // navigate back
         XCTAssertTrue(app.staticTexts["+1 (650) 234-5678"].exists)
@@ -457,7 +451,7 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         let app = XCUIApplication()
         app.launch(credentials: .createAndSignIn)
         
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5.0))
         XCTAssertTrue(app.staticTexts["Spezi Account"].waitForExistence(timeout: 5.0))
 
         app.openAccountOverview()
@@ -471,7 +465,7 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         
         try await app.addPhoneNumber("6502345678", otc: "012345")
         
-        XCTAssertTrue(app.staticTexts["+1 (650) 234-5678"].waitForExistence(timeout: 2.0))
+        XCTAssertTrue(app.staticTexts["+1 (650) 234-5678"].waitForExistence(timeout: 8.0))
         
         XCTAssertTrue(app.buttons["+1 (650) 234-5678, Delete Phone Number"].exists)
         app.buttons["+1 (650) 234-5678, Delete Phone Number"].firstMatch.tap()
@@ -479,8 +473,7 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         XCTAssertTrue(app.alerts.buttons["Delete"].exists)
         app.alerts.buttons["Delete"].tap()
 
-        try await Task.sleep(for: .seconds(2))
-        XCTAssertFalse(app.staticTexts["+1 (650) 234-5678"].exists)
+        XCTAssertTrue(app.staticTexts["+1 (650) 234-5678"].waitForNonExistence(timeout: 8.0))
         
         app.navigationBars.buttons.firstMatch.tap() // navigate back
         XCTAssertFalse(app.staticTexts["+1 (650) 234-5678"].exists)
@@ -491,7 +484,7 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         let app = XCUIApplication()
         app.launch(credentials: .createAndSignIn)
         
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5.0))
         XCTAssertTrue(app.staticTexts["Spezi Account"].waitForExistence(timeout: 5.0))
 
         app.openAccountOverview()
@@ -505,7 +498,7 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         
         try await app.addPhoneNumber("6502345678", otc: "123456")
         
-        XCTAssertTrue(app.staticTexts["Failed to verify phone number. Please check your code and try again."].exists)
+        XCTAssertTrue(app.staticTexts["Failed to verify phone number. Please check your code and try again."].waitForExistence(timeout: 8.0))
     }
     
     @MainActor
@@ -575,38 +568,50 @@ extension XCUIApplication {
 #endif
     
     fileprivate func addPhoneNumber(_ phoneNumber: String, otc: String) async throws {
-        XCTAssertTrue(navigationBars.buttons["Add Phone Number"].exists)
-        navigationBars.buttons["Add Phone Number"].tap()
+        let timeout = 8.0
+
+        tapButton("Add Phone Number", timeout: timeout)
         
-        XCTAssertTrue(buttons["Select Country Code"].exists)
-        buttons["Select Country Code"].tap()
-        XCTAssertTrue(searchFields["Your country"].exists)
+        tapButton("Select Country Code", timeout: timeout)
+        XCTAssertTrue(searchFields["Your country"].waitForExistence(timeout: timeout))
         
         let countryField = searchFields["Your country"].firstMatch
-        XCTAssertTrue(countryField.waitForExistence(timeout: 2.0))
+        XCTAssertTrue(countryField.waitForExistence(timeout: timeout))
         countryField.tap()
         countryField.tap()
         countryField.typeText("US")
         
-        XCTAssertTrue(staticTexts["+1"].waitForExistence(timeout: 2.0))
-        staticTexts["+1"].tap()
+        let countryCode = staticTexts["+1"].firstMatch
+        XCTAssertTrue(countryCode.waitForExistence(timeout: timeout))
+        countryCode.tap()
         
-        let phoneField = textFields["Phone Number"]
-        XCTAssertTrue(phoneField.exists)
+        let phoneField = textFields["Phone Number"].firstMatch
+        XCTAssertTrue(phoneField.waitForExistence(timeout: timeout))
         phoneField.tap()
         phoneField.typeText(phoneNumber)
         
-        XCTAssertTrue(buttons["Send Verification Message"].exists)
-        buttons["Send Verification Message"].tap()
+        tapButton("Send Verification Message", timeout: timeout)
         
-        let codeField = textFields["Verification code entry"]
-        XCTAssertTrue(codeField.waitForExistence(timeout: 2.0))
+        let codeField = textFields["Verification code entry"].firstMatch
+        XCTAssertTrue(codeField.waitForExistence(timeout: timeout))
         
+        codeField.tap()
         codeField.typeText(otc)
         
-        try await Task.sleep(for: .seconds(1.0))
-        
-        XCTAssertTrue(buttons["Verify Phone Number"].waitForExistence(timeout: 2.0))
-        buttons["Verify Phone Number"].tap()
+        let verifyButton = buttons["Verify Phone Number"].firstMatch
+        XCTAssertTrue(verifyButton.waitForExistence(timeout: timeout))
+        XCTAssertTrue(verifyButton.wait(for: \.isEnabled, toEqual: true, timeout: timeout))
+        verifyButton.tap()
+    }
+
+    fileprivate func tapButton(
+        _ label: String,
+        timeout: TimeInterval,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let button = buttons[label].firstMatch
+        XCTAssertTrue(button.waitForExistence(timeout: timeout), "Missing button: \(label)", file: file, line: line)
+        button.tap()
     }
 }

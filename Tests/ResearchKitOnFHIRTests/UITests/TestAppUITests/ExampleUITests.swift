@@ -190,7 +190,9 @@ final class ExampleUITests: XCTestCase {
 
         // Open context menu and view results
         numberExampleButton.press(forDuration: 1.0)
-        app.collectionViews.buttons["View Responses"].tap()
+        let viewResponsesButton = app.collectionViews.buttons["View Responses"]
+        XCTAssert(viewResponsesButton.waitForExistence(timeout: 5))
+        viewResponsesButton.tap()
 
         // Check results
         let buttonsInResultView = app.collectionViews.allElementsBoundByIndex[1].buttons

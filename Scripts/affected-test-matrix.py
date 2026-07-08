@@ -26,6 +26,10 @@
 # Usage:
 #   affected-test-matrix.py <changed-files.txt>     # one path per line; or the literal __ALL__
 #   git diff --name-only A B | affected-test-matrix.py
+#   affected-test-matrix.py changed.txt --only-targets SpeziScheduler ResearchKitOnFHIR --only-job-kinds ui
+#
+# The --only-targets and --only-job-kinds options are intended for temporary CI debugging only.
+# Workflow changes that pass these arguments must never be merged into main; remove them before the final PR validation.
 #
 # Emits (to stdout, GITHUB_OUTPUT format):
 #   matrix={"include":[{"package":"SpeziAccount","platform":"macOS","selfHosted":false}, ...]}   # unit
@@ -35,7 +39,11 @@
 #   has_ui_jobs=true|false
 #   has_trait_jobs=true|false
 #   affected=SpeziAccount,SpeziViews
-import json, os, sys, tomllib
+import argparse
+import json
+import os
+import sys
+import tomllib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 with open(os.path.join(ROOT, "packages.toml"), "rb") as f:
@@ -62,12 +70,49 @@ CI_PLATFORMS = ("iOS", "macOS", "watchOS", "Linux")
 # `uiTests`) is iOS/iPadOS/visionOS; iPadOS + visionOS are disabled for now — add them back here to re-enable.
 UI_PLATFORMS = ("iOS",)
 
-def read_changed():
-    src = open(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1] != "-" else sys.stdin
-    return [ln.strip() for ln in src if ln.strip()]
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Compute affected package test matrices for GitHub Actions.")
+    parser.add_argument(
+        "changed_files",
+        nargs="?",
+        default="-",
+        help="Path to a newline-delimited changed-files list, or '-' for stdin."
+    )
+    parser.add_argument(
+        "--only-targets",
+        "--only-packages",
+        dest="only_packages",
+        nargs="+",
+        metavar="PACKAGE",
+        default=(),
+        help="Temporarily restrict matrices to these packages/targets while debugging CI. Do not merge workflow uses into main."
+    )
+    parser.add_argument(
+        "--only-job-kinds",
+        nargs="+",
+        choices=("unit", "ui", "trait"),
+        default=("unit", "ui", "trait"),
+        help="Temporarily restrict emitted job kinds while debugging CI. Do not merge workflow uses into main."
+    )
+    return parser.parse_args()
+
+
+def read_changed(path):
+    if path == "-":
+        return [ln.strip() for ln in sys.stdin if ln.strip()]
+    with open(path) as src:
+        return [ln.strip() for ln in src if ln.strip()]
+
+
+def validate_package_filter(packages):
+    unknown = sorted(set(packages).difference(PKGS))
+    if unknown:
+        known = ", ".join(sorted(PKGS))
+        raise SystemExit(f"Unknown package(s) passed to --only-targets: {', '.join(unknown)}. Known packages: {known}")
 
 def main():
-    changed = read_changed()
+    arguments = parse_arguments()
+    changed = read_changed(arguments.changed_files)
     run_all = False
     affected = set()
     for path in changed:
@@ -84,6 +129,11 @@ def main():
     if run_all:
         affected = set(PKGS.keys())
 
+    validate_package_filter(arguments.only_packages)
+    if arguments.only_packages:
+        affected = affected.intersection(arguments.only_packages)
+    job_kinds = set(arguments.only_job_kinds)
+
     unit, ui, trait = [], [], []
     for pkg in sorted(affected):
         info = PKGS[pkg]
@@ -91,17 +141,20 @@ def main():
         # ["unit", "ui"]. Default ["ui"] keeps today's behavior (UI on self-hosted, unit on
         # GitHub-hosted). Each emitted job carries a `selfHosted` bool the workflow `runs-on` reads.
         self_hosted = info.get("self-hosted-ci", ["ui"])
-        for platform in info["platforms"]:
-            if platform in CI_PLATFORMS:  # TEMPORARY unit-test platform limit (see CI_PLATFORMS above)
-                # Linux unit jobs always use GitHub-hosted ubuntu (the self-hosted runner is macOS).
-                unit.append({"package": pkg, "platform": platform,
-                             "selfHosted": ("unit" in self_hosted) and platform != "Linux"})
-        for platform in info.get("uiTests", []):  # UI tests: per-project platforms from packages.toml
-            if platform not in UI_PLATFORMS:  # TEMPORARY UI-test platform limit (see UI_PLATFORMS above)
-                continue
-            ui.append({"package": pkg, "platform": platform, "selfHosted": "ui" in self_hosted})
-        for build in info.get("traitBuilds", []):
-            trait.append({"package": pkg, **build})
+        if "unit" in job_kinds:
+            for platform in info["platforms"]:
+                if platform in CI_PLATFORMS:  # TEMPORARY unit-test platform limit (see CI_PLATFORMS above)
+                    # Linux unit jobs always use GitHub-hosted ubuntu (the self-hosted runner is macOS).
+                    unit.append({"package": pkg, "platform": platform,
+                                 "selfHosted": ("unit" in self_hosted) and platform != "Linux"})
+        if "ui" in job_kinds:
+            for platform in info.get("uiTests", []):  # UI tests: per-project platforms from packages.toml
+                if platform not in UI_PLATFORMS:  # TEMPORARY UI-test platform limit (see UI_PLATFORMS above)
+                    continue
+                ui.append({"package": pkg, "platform": platform, "selfHosted": "ui" in self_hosted})
+        if "trait" in job_kinds:
+            for build in info.get("traitBuilds", []):
+                trait.append({"package": pkg, **build})
 
     lines = [
         f'matrix={json.dumps({"include": unit})}',
@@ -115,7 +168,7 @@ def main():
     sys.stdout.write("\n".join(lines) + "\n")
     sys.stderr.write(
         f"[affected-test-matrix] run_all={run_all} affected={sorted(affected)} "
-        f"unit_jobs={len(unit)} ui_jobs={len(ui)} trait_jobs={len(trait)}\n"
+        f"job_kinds={sorted(job_kinds)} unit_jobs={len(unit)} ui_jobs={len(ui)} trait_jobs={len(trait)}\n"
     )
 
 if __name__ == "__main__":
