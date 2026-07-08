@@ -242,18 +242,38 @@ staged_result_path() { # <final-result-bundle>
   fi
 }
 
-# The raw xcodebuild log is authoritative when the exit code is a teardown crash: XCTest prints
-# "Test Suite 'All tests' passed" per test bundle and swift-testing prints "Test run with N tests
-# passed", while a run with failures prints "** TEST FAILED **" / "Failing tests:". (A crash
-# between two test bundles of a multi-bundle plan could in principle be accepted here with the
-# later bundles never run — accepted risk: the observed crash class fires after the test phase.)
-tests_passed_in_log() { # <xcodebuild-log>
-  [ -s "$1" ] || return 1
-  if grep -q -e '\*\* TEST FAILED \*\*' -e 'Failing tests:' -e 'Test run with .* failed' "$1" \
-    || grep -q -E "Test Suite '[^']+' failed" "$1"; then
+# Remove in-checkout churn sources before a test action on CI. Xcode's file watcher treats any
+# write inside the package checkout as a package change and re-resolves the graph MID-RUN, which
+# invalidates live test-bundle buildables (the exit-134 crash class): observed triggers are stale
+# .xcresult bundles at the repo root (their sqlite gets touched) and Xcode workspace user state
+# under .swiftpm. Only .swiftpm/xcode/xcshareddata is tracked; user state is safe to drop.
+quiesce_checkout_for_test() {
+  if [ -n "${GITHUB_ACTIONS:-}" ]; then
+    rm -rf ./*.xcresult .swiftpm/xcode/package.xcworkspace/xcuserdata
+  fi
+}
+
+# The raw xcodebuild log is authoritative when the exit code is a teardown crash — but only with
+# per-bundle completeness checks: the observed crash class (IDESwiftPackageCore invalidation)
+# aborts xcodebuild when it LAUNCHES the next test bundle of a multi-bundle plan, so the log can
+# be all-green while an entire bundle never ran. Each completed bundle prints one XCTest
+# "Test Suite 'All tests' passed" cycle (even for bundles without XCTest tests, milliseconds in)
+# followed by one swift-testing "Test run started." ... "Test run with N tests in M suites passed"
+# cycle. Acceptance therefore requires: no failure/crash markers, at least <expected-bundles>
+# XCTest cycles, and every started swift-testing phase to have its pass summary. Residual window:
+# a crash between a bundle's XCTest header and its swift-testing "Test run started." line.
+# NOTE: test stdout is interleaved verbatim into the raw log, so tests must not print the literal
+# failure-marker strings below (that would only force a false red on crash runs, never a green).
+tests_passed_in_log() { # <xcodebuild-log> <expected-test-bundle-count>
+  local log="$1" expected_bundles="$2"
+  [ -s "$log" ] || return 1
+  if grep -q -e '\*\* TEST FAILED \*\*' -e 'Failing tests:' -e 'Test run with .* failed' \
+      -e 'Restarting after unexpected exit' "$log" \
+    || grep -q -E "Test Suite '[^']+' failed" "$log"; then
     return 1
   fi
-  grep -q -e "Test Suite 'All tests' passed" "$1" || grep -q -E 'Test run with [0-9]+ tests? passed' "$1"
+  [ "$(grep -c "Test Suite 'All tests' passed" "$log")" -ge "$expected_bundles" ] || return 1
+  [ "$(grep -c 'Test run started\.' "$log")" -eq "$(grep -c -E 'Test run with [0-9]+ tests?( in [0-9]+ suites?)? passed' "$log")" ]
 }
 
 # Xcode 26 sometimes re-resolves the package graph after all test suites have passed and crashes with
@@ -264,8 +284,8 @@ tests_passed_in_log() { # <xcodebuild-log>
 # the crash interrupts bundle finalization, leaving it without an Info.plist.) Otherwise a first 134
 # removes the partial result bundle and retries once; any other failure (or a second failing 134)
 # propagates as before. The command must write its result bundle to <staged-result-bundle>.
-retry_xcodebuild_crash() { # <staged-result-bundle> <final-result-bundle> <command...>
-  local staged="$1" result="$2"; shift 2
+retry_xcodebuild_crash() { # <staged-result-bundle> <final-result-bundle> <expected-test-bundle-count> <command...>
+  local staged="$1" result="$2" expected_bundles="$3"; shift 3
   local xcodebuild_log; xcodebuild_log="$(mktemp "${TMPDIR:-/tmp}/spezi-xcodebuild.XXXXXX")"
   local attempt rc xcodebuild_status
   for attempt in 1 2; do
@@ -274,8 +294,8 @@ retry_xcodebuild_crash() { # <staged-result-bundle> <final-result-bundle> <comma
     rc=$? xcodebuild_status="${PIPESTATUS[0]}"
     set -e
     if [ "$xcodebuild_status" -eq 134 ]; then
-      if tests_passed_in_log "$xcodebuild_log"; then
-        echo '::warning::xcodebuild crashed (exit 134, IDESwiftPackageCore invalidation) after every test passed — accepting the test verdict from the log'
+      if tests_passed_in_log "$xcodebuild_log" "$expected_bundles"; then
+        echo "::warning::xcodebuild crashed (exit 134, IDESwiftPackageCore invalidation) after all $expected_bundles test bundle(s) completed green — accepting the test verdict from the log"
         rc=0
         break
       fi
@@ -312,13 +332,20 @@ run() { # <package> <platform> [mode: "ui"]
     local derived_data_path_absolute; derived_data_path_absolute="$(absolute_path "$DERIVED_DATA_PATH")"
     local staged_result; staged_result="$(staged_result_path "$root/$result")"
     rm -rf "$result" "$staged_result"   # self-hosted runners reuse the workspace — avoid a stale bundle path
+    # Expected bundle count for the crash-verdict check; UI TestApp schemes run a single UI-test
+    # bundle unless the project carries a test plan saying otherwise.
+    local expected_bundles=1
+    if [ -f "$uidir/TestApp.xctestplan" ]; then
+      expected_bundles="$(python3 -c "import json; print(len(json.load(open('$uidir/TestApp.xctestplan'))['testTargets']))")"
+    fi
+    quiesce_checkout_for_test
     echo "==> $1 UI tests on $2"
     if [ -f "$uidir/firebase.json" ]; then
       # This package's UITests need the Firebase emulator (e.g. SpeziFirebase). Run the test inside
       # `firebase emulators:exec` from the UITests dir (so firebase.json/.firebaserc/rules resolve),
       # writing the .xcresult back to the repo root (absolute path) so the test-ui upload step finds it.
       # Requires the `firebase` CLI (firebase-tools) on the runner — as the upstream CI also relied on.
-      retry_xcodebuild_crash "$staged_result" "$root/$result" firebase_emulators_exec "$uidir" \
+      retry_xcodebuild_crash "$staged_result" "$root/$result" "$expected_bundles" firebase_emulators_exec "$uidir" \
         "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -resultBundlePath '$staged_result' -derivedDataPath '$derived_data_path_absolute' -skipMacroValidation -skipPackagePluginValidation -skipPackageUpdates${deployment_target_argument:+ $deployment_target_argument}"
       return
     fi
@@ -338,7 +365,7 @@ run() { # <package> <platform> [mode: "ui"]
     if [ -n "$deployment_target_argument" ]; then
       xcodebuild_arguments+=("$deployment_target_argument")
     fi
-    retry_xcodebuild_crash "$staged_result" "$root/$result" xcodebuild "${xcodebuild_arguments[@]}"
+    retry_xcodebuild_crash "$staged_result" "$root/$result" "$expected_bundles" xcodebuild "${xcodebuild_arguments[@]}"
     return
   fi
   if [ "$2" = "Linux" ]; then
@@ -360,11 +387,22 @@ run() { # <package> <platform> [mode: "ui"]
   local deployment_target_argument; deployment_target_argument="$(ci_deployment_target_argument "$2")"
   local staged_result; staged_result="$(staged_result_path "$result")"
   rm -rf "$result" "$staged_result"
+  # Expected bundle count for the crash-verdict check: the plan's testTargets (9 plans have 2).
+  local expected_bundles
+  expected_bundles="$(python3 -c "import json; print(len(json.load(open('Tests/TestPlans/$1.xctestplan'))['testTargets']))")"
+  quiesce_checkout_for_test
+  local destination; destination="$(dest "$2")"
+  # Settle the package graph before the test action: the async resolution/scheme-maintenance
+  # burst otherwise races into the test phase on slow CI disks and invalidates live test-bundle
+  # buildables (the exit-134 crash class handled below).
+  if [ -n "${GITHUB_ACTIONS:-}" ]; then
+    xcodebuild -resolvePackageDependencies -scheme Spezi-Tests -destination "$destination" -derivedDataPath "$DERIVED_DATA_PATH" | beautify
+  fi
   local xcodebuild_arguments=(
     test
     -scheme Spezi-Tests
     -testPlan "$1"
-    -destination "$(dest "$2")"
+    -destination "$destination"
     -resultBundlePath "$staged_result"
     -skipMacroValidation
     -skipPackagePluginValidation
@@ -374,7 +412,7 @@ run() { # <package> <platform> [mode: "ui"]
   if [ -n "$deployment_target_argument" ]; then
     xcodebuild_arguments+=("$deployment_target_argument")
   fi
-  retry_xcodebuild_crash "$staged_result" "$result" xcodebuild "${xcodebuild_arguments[@]}"
+  retry_xcodebuild_crash "$staged_result" "$result" "$expected_bundles" xcodebuild "${xcodebuild_arguments[@]}"
 }
 
 case "${1:-}" in
