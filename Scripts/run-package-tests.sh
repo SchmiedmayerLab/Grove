@@ -369,13 +369,17 @@ run() { # <package> <platform> [mode: "ui"]
     return
   fi
   if [ "$2" = "Linux" ]; then
-    # Linux has no Xcode test plans. Use SwiftPM's filter syntax to build and run the package's
-    # test targets without pulling unrelated Xcode-only test plans into the job.
+    # Linux has no Xcode test plans, and running tests is not an option either: `swift test`
+    # (even with --filter, which only filters EXECUTION) links the ONE combined
+    # <Package>PackageTests product, which requires building every test target in the monorepo —
+    # including Apple-only dependencies (Firebase/GoogleUtilities ObjC) that cannot compile on
+    # Linux. Instead compile-check each of the package's test targets (scoped via --target),
+    # which verifies the package and its test code still build there.
     local tts
     tts="$(python3 -c "import tomllib; print(' '.join(tomllib.load(open('packages.toml','rb'))['$1']['tests']))")"
     for tt in $tts; do
-      echo "==> $1 on Linux: swift test --filter $tt"
-      swift test --filter "$tt"
+      echo "==> $1 on Linux: swift build --target $tt (compile-check)"
+      swift build --target "$tt"
     done
     return
   fi
