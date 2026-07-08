@@ -28,7 +28,7 @@ public struct ListHeader<Image: View, Title: View, Instructions: View>: View {
                     .accessibilityHidden(true)
                 title
                     .accessibilityAddTraits(.isHeader)
-                    .font(.title)
+                    .font(.title.bold())
                     .padding(.bottom, 4)
             }
                 .accessibilityElement(children: .combine)
@@ -88,9 +88,9 @@ public struct ListHeader<Image: View, Title: View, Instructions: View>: View {
 #Preview {
     List {
         ListHeader(systemImage: "person.fill.badge.plus") {
-            Text("Create a new Account", bundle: .module)
+            Text(verbatim: "Create a new Account")
         } instructions: {
-            Text("Please fill out the details below to create your new account.", bundle: .module)
+            Text(verbatim: "Please fill out the details below to create your new account.")
         }
     }
 }
@@ -99,7 +99,7 @@ public struct ListHeader<Image: View, Title: View, Instructions: View>: View {
 #Preview {
     List {
         ListHeader(systemImage: "person.fill.badge.plus") {
-            Text("Create a new Account", bundle: .module)
+            Text(verbatim: "Create a new Account")
         }
     }
 }

@@ -18,9 +18,17 @@ struct MarkdownViewImageProvider: ImageProvider {
         
         var body: some View {
             Group {
-                if let image {
-                    image.resizable()
-                        .scaledToFit()
+                if #available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *) {
+                    ResizeToFit {
+                        if let image {
+                            image.resizable()
+                        }
+                    }
+                } else {
+                    if let image {
+                        image.resizable()
+                            .scaledToFit()
+                    }
                 }
             }
             .task {
