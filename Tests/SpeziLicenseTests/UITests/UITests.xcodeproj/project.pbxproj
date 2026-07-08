@@ -190,7 +190,6 @@
 			mainGroup = 2F6D138928F5F384007C25D6;
 			packageReferences = (
 				5673DB462BAC90E800162083 /* XCRemoteSwiftPackageReference "swift-package-list" */,
-				8093381F2FEC01D80037BEBF /* XCRemoteSwiftPackageReference "ThreadLocal" */,
 			);
 			productRefGroup = 2F6D139328F5F384007C25D6 /* Products */;
 			projectDirPath = "";
@@ -665,14 +664,6 @@
 				minimumVersion = 4.1.0;
 			};
 		};
-		8093381F2FEC01D80037BEBF /* XCRemoteSwiftPackageReference "ThreadLocal" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/SchmiedmayerLab/ThreadLocal.git";
-			requirement = {
-				kind = upToNextMinorVersion;
-				minimumVersion = 0.1.4;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -691,7 +682,6 @@
 		};
 		809338202FEC01D80037BEBF /* ThreadLocal */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 8093381F2FEC01D80037BEBF /* XCRemoteSwiftPackageReference "ThreadLocal" */;
 			productName = ThreadLocal;
 		};
 /* End XCSwiftPackageProductDependency section */
