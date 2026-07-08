@@ -20,6 +20,11 @@
 set -euxo pipefail
 cd "$(dirname "$0")/.."
 
+if [ -n "${RUNNER_TEMP:-}" ]; then
+  # On CI, keep derived data outside the checkout: mid-run writes inside the checkout can trigger
+  # an Xcode 26 package-graph re-resolution that crashes xcodebuild (see retry_xcodebuild_crash).
+  DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$RUNNER_TEMP/spezi-derivedData}"
+fi
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-.derivedData}"
 enable_default_package_traits() {
   case "${SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS:-1}" in
@@ -78,6 +83,11 @@ cleanup_derived_data() {
       return
       ;;
   esac
+
+  if [ -n "${RUNNER_TEMP:-}" ] && [ "$DERIVED_DATA_PATH" = "$RUNNER_TEMP/spezi-derivedData" ]; then
+    rm -rf "$DERIVED_DATA_PATH"
+    return
+  fi
 
   case "$DERIVED_DATA_PATH" in
     .derivedData|.derivedData/*|.derivedData-*|"$PWD"/.derivedData|"$PWD"/.derivedData/*|"$PWD"/.derivedData-*)
@@ -220,6 +230,31 @@ esac; }
 # Pretty-print xcodebuild output via xcbeautify; emit GitHub annotations when running in CI.
 beautify() { if [ -n "${GITHUB_ACTIONS:-}" ]; then xcbeautify --renderer github-actions; else xcbeautify; fi; }
 
+# Xcode 26 sometimes re-resolves the package graph after all test suites have passed and crashes with
+# "Message sent to invalidated object: IDESwiftPackageTestBundleProductBuildable" (SIGABRT, exit 134).
+# Runs "<command...> | beautify" and, when the command itself exits 134, removes the partial result
+# bundle and retries once; any other failure (or a second 134) propagates as before.
+retry_xcodebuild_crash() { # <result-bundle> <command...>
+  local result="$1"; shift
+  local attempt status xcodebuild_status
+  for attempt in 1 2; do
+    set +e
+    "$@" | beautify
+    status=$? xcodebuild_status="${PIPESTATUS[0]}"
+    set -e
+    if [ "$xcodebuild_status" -eq 134 ] && [ "$attempt" -eq 1 ]; then
+      echo '::warning::xcodebuild crashed (exit 134, IDESwiftPackageCore invalidation) — retrying once'
+      rm -rf "$result"
+      continue
+    fi
+    return "$status"
+  done
+}
+
+firebase_emulators_exec() { # <dir> <xcodebuild command string>
+  ( cd "$1" && firebase emulators:exec "$2" )
+}
+
 run() { # <package> <platform> [mode: "ui"]
   if [ "${3:-}" = "ui" ]; then
     enable_default_package_traits
@@ -238,9 +273,8 @@ run() { # <package> <platform> [mode: "ui"]
       # `firebase emulators:exec` from the UITests dir (so firebase.json/.firebaserc/rules resolve),
       # writing the .xcresult back to the repo root (absolute path) so the test-ui upload step finds it.
       # Requires the `firebase` CLI (firebase-tools) on the runner — as the upstream CI also relied on.
-      ( cd "$uidir" \
-        && firebase emulators:exec "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -resultBundlePath '$root/$result' -derivedDataPath '$derived_data_path_absolute' -skipMacroValidation -skipPackagePluginValidation -skipPackageUpdates${deployment_target_argument:+ $deployment_target_argument}" ) \
-      | beautify
+      retry_xcodebuild_crash "$root/$result" firebase_emulators_exec "$uidir" \
+        "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -resultBundlePath '$root/$result' -derivedDataPath '$derived_data_path_absolute' -skipMacroValidation -skipPackagePluginValidation -skipPackageUpdates${deployment_target_argument:+ $deployment_target_argument}"
       return
     fi
 
@@ -259,7 +293,7 @@ run() { # <package> <platform> [mode: "ui"]
     if [ -n "$deployment_target_argument" ]; then
       xcodebuild_arguments+=("$deployment_target_argument")
     fi
-    xcodebuild "${xcodebuild_arguments[@]}" | beautify
+    retry_xcodebuild_crash "$result" xcodebuild "${xcodebuild_arguments[@]}"
     return
   fi
   if [ "$2" = "Linux" ]; then
@@ -294,7 +328,7 @@ run() { # <package> <platform> [mode: "ui"]
   if [ -n "$deployment_target_argument" ]; then
     xcodebuild_arguments+=("$deployment_target_argument")
   fi
-  xcodebuild "${xcodebuild_arguments[@]}" | beautify
+  retry_xcodebuild_crash "$result" xcodebuild "${xcodebuild_arguments[@]}"
 }
 
 case "${1:-}" in
