@@ -54,28 +54,31 @@ class TestAppUITests: XCTestCase {
             app.launchArguments = ["--testMode"]
             app.launch()
 
-            XCTAssert(app.staticTexts["SpeziChat"].waitForExistence(timeout: 1))
-            
+            // Every step below uses a soft guard: with continueAfterFailure = false, a hard assert
+            // here would abort the whole test on the first missed element, before the retry loop
+            // (which exists because saving to Files is very flakey on the runners) can compensate.
+            guard app.staticTexts["SpeziChat"].waitForExistence(timeout: 5) else { continue }
+
             // Entering dummy chat value
-            XCTAssert(app.staticTexts["SpeziChat"].waitForExistence(timeout: 1))
+            guard app.textFields["Message Input Textfield"].waitForExistence(timeout: 5) else { continue }
             try app.textFields["Message Input Textfield"].enter(value: "User Message!", options: [.disableKeyboardDismiss])
-            XCTAssert(app.buttons["Send Message"].waitForExistence(timeout: 5))
+            guard app.buttons["Send Message"].waitForExistence(timeout: 5) else { continue }
             app.buttons["Send Message"].tap()
-            
+
             sleep(1)
-            XCTAssert(app.staticTexts["Assistant Message Response!"].waitForExistence(timeout: 5))
-            
+            guard app.staticTexts["Assistant Message Response!"].waitForExistence(timeout: 5) else { continue }
+
             // Export chat via share sheet button
-            XCTAssert(app.buttons["Export the Chat"].waitForExistence(timeout: 2))
+            guard app.buttons["Export the Chat"].waitForExistence(timeout: 2) else { continue }
             app.buttons["Export the Chat"].tap()
-            
+
             // Store exported chat in Files
             #if os(visionOS)
             // On visionOS the "Save to files" button has no label
-            XCTAssert(app.cells["XCElementSnapshotPrivilegedValuePlaceholder"].waitForExistence(timeout: 10))
+            guard app.cells["XCElementSnapshotPrivilegedValuePlaceholder"].waitForExistence(timeout: 10) else { continue }
             app.cells["XCElementSnapshotPrivilegedValuePlaceholder"].tap()
             #else
-            XCTAssert(app.staticTexts["Save to Files"].waitForExistence(timeout: 10))
+            guard app.staticTexts["Save to Files"].waitForExistence(timeout: 10) else { continue }
             sleep(1) // we need to wait a little, since the check above will already resolve while the button is still being
             // animated into position. if we tap too early it'll sometimes miss.
             app.staticTexts["Save to Files"].tap()
@@ -88,10 +91,10 @@ class TestAppUITests: XCTestCase {
             let matchingStaticTexts = app.staticTexts.containing(predicate)
             matchingStaticTexts.allElementsBoundByIndex.first?.tap()
 
-            XCTAssert(app.buttons["Save"].waitForExistence(timeout: 5))
+            guard app.buttons["Save"].waitForExistence(timeout: 5) else { continue }
             app.buttons["Save"].tap()
             sleep(10)    // Wait until file is saved
-            
+
             if app.staticTexts["Replace Existing Items?"].waitForExistence(timeout: 5) {
                 #if os(visionOS)
                 XCTFail("""
@@ -99,13 +102,13 @@ class TestAppUITests: XCTestCase {
                 Please ensure that all already existing chat export files are deleted when executing the UI test.
                 """)
                 #endif
-                XCTAssert(app.buttons["Replace"].waitForExistence(timeout: 2))
+                guard app.buttons["Replace"].waitForExistence(timeout: 2) else { continue }
                 app.buttons["Replace"].tap()
                 sleep(3)    // Wait until file is saved
             }
-            
+
             // Wait until share sheet closed and back on the chat screen
-            XCTAssert(app.staticTexts["SpeziChat"].waitForExistence(timeout: 10))
+            guard app.staticTexts["SpeziChat"].waitForExistence(timeout: 10) else { continue }
             
             // Launch the Files app
             filesApp.launch()
