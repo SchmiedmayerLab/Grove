@@ -115,9 +115,9 @@ public struct AccessGuardButton<Locked: View, Unlocked: View, Config: _AccessGua
 #Preview {
     let identifier = AccessGuardIdentifier.passcode("edu.stanford.spezi.myView")
     AccessGuardButton(identifier) {
-        Text("Unlock")
+        Text(verbatim: "Unlock")
     } unlocked: {
-        Text("Super secret stuff 🤫")
+        Text(verbatim: "Super secret stuff 🤫")
     }
     .previewWith {
         AccessGuards {

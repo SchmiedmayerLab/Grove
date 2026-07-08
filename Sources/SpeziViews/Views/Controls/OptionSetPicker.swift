@@ -313,11 +313,15 @@ extension PreviewLayout {
     @Previewable @State var picker: String = ""
 
     List {
-        OptionSetPicker("Test", selection: $selection)
-        Picker("Test", selection: $picker) { // for style comparison
-            Text("Empty").tag("")
+        OptionSetPicker(selection: $selection) {
+            Text(verbatim: "Test")
         }
-        OptionSetPicker("Test", selection: $selection, style: .inline, allowEmptySelection: true)
+        Picker(String("Test"), selection: $picker) { // for style comparison
+            Text(verbatim: "Empty").tag("")
+        }
+        OptionSetPicker(selection: $selection, style: .inline, allowEmptySelection: true) {
+            Text(verbatim: "Test")
+        }
     }
 }
 #endif

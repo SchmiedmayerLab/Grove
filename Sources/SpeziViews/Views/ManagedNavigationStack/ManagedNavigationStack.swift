@@ -225,15 +225,15 @@ extension EnvironmentValues {
     @Previewable @State var path = ManagedNavigationStack.Path()
     
     ManagedNavigationStack(path: path, startAtStep: .identifier(1)) {
-        Button("Next") {
+        Button(String("Next")) {
             path.nextStep()
         }
-        .navigationTitle("First Step")
+        .navigationTitle(String("First Step"))
         .navigationStepIdentifier(0)
-        Button("Next") {
+        Button(String("Next")) {
             path.nextStep()
         }
-        .navigationTitle("Second Step")
+        .navigationTitle(String("Second Step"))
         .navigationStepIdentifier(1)
     }
 }

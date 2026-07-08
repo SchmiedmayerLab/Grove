@@ -213,7 +213,7 @@ extension View {
 @available(iOS 17, macOS 14, visionOS 1, *)
 #Preview {
     VStack {
-        OnboardingActionsView("PRIMARY") {
+        OnboardingActionsView(String("PRIMARY")) {
             print("Primary!")
         }
         OnboardingActionsView(

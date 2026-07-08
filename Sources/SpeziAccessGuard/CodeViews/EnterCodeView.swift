@@ -87,7 +87,10 @@ struct EnterCodeView<Header: View>: View {
 
 @available(iOS 17, *)
 #Preview {
-    EnterCodeView(format: .numeric(4), title: "Enter PIN") { code in
+    EnterCodeView(format: .numeric(4)) {
+        Text(verbatim: "Enter PIN")
+            .font(.title2)
+    } evaluateCode: { code in
         if code == "1234" {
             return .valid
         } else {

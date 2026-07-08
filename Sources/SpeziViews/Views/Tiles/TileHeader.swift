@@ -147,9 +147,9 @@ public struct TileHeader<Icon: View, Title: View, Subheadline: View>: View {
                 .font(.custom("Task Icon", size: 30, relativeTo: .headline))
                 .dynamicTypeSize(...DynamicTypeSize.accessibility2)
         } title: {
-            Text("Awesome Book")
+            Text(verbatim: "Awesome Book")
         } subheadline: {
-            Text("This a nice book recommendation")
+            Text(verbatim: "This a nice book recommendation")
         }
     }
 }
@@ -163,9 +163,9 @@ public struct TileHeader<Icon: View, Title: View, Subheadline: View>: View {
                 .font(.custom("Task Icon", size: 30, relativeTo: .headline))
                 .dynamicTypeSize(...DynamicTypeSize.accessibility2)
         } title: {
-            Text("Awesome Book")
+            Text(verbatim: "Awesome Book")
         } subheadline: {
-            Text("This a nice book recommendation")
+            Text(verbatim: "This a nice book recommendation")
         }
     }
 }
@@ -179,9 +179,9 @@ public struct TileHeader<Icon: View, Title: View, Subheadline: View>: View {
                 .font(.custom("Task Icon", size: 30, relativeTo: .headline))
                 .dynamicTypeSize(...DynamicTypeSize.accessibility2)
         } title: {
-            Text("Awesome Book")
+            Text(verbatim: "Awesome Book")
         } subheadline: {
-            Text("This a nice book recommendation")
+            Text(verbatim: "This a nice book recommendation")
         }
     }
 }

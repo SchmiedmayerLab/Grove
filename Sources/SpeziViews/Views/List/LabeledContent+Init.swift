@@ -68,23 +68,23 @@ extension LabeledContent where Label == Text, Content == Text {
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 #Preview { // swiftlint:disable:this closure_body_length
     List {
-        LabeledContent("Hello") {
+        LabeledContent(String("Hello")) {
             Text(verbatim: "World")
         }
 
-        LabeledContent("Hello World") {
-            Text("There")
+        LabeledContent(String("Hello World")) {
+            Text(verbatim: "There")
         }
 
         LabeledContent {
-            Text("2")
+            Text(verbatim: "2")
         } label: {
-            Text("Value")
-            Text("The magic value")
+            Text(verbatim: "Value")
+            Text(verbatim: "The magic value")
         }
 
         HStack {
-            LabeledContent("Device") {
+            LabeledContent(String("Device")) {
                 EmptyView()
             }
             Spacer()
@@ -92,7 +92,7 @@ extension LabeledContent where Label == Text, Content == Text {
         }
 
         HStack {
-            LabeledContent("Device") {
+            LabeledContent(String("Device")) {
                 Text(verbatim: "World")
             }
             Spacer()
@@ -101,7 +101,7 @@ extension LabeledContent where Label == Text, Content == Text {
         }
 
         HStack {
-            LabeledContent("Long Device Name") {
+            LabeledContent(String("Long Device Name")) {
                 Text(verbatim: "Long Description")
             }
             Spacer()

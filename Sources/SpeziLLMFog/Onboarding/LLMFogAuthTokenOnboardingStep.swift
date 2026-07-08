@@ -87,7 +87,7 @@ public struct LLMFogAuthTokenOnboardingStep: View {
 @available(iOS 17, macOS 14, visionOS 1, *)
 #Preview {
     LLMFogAuthTokenOnboardingStep(
-        actionText: "Continue"
+        actionText: String("Continue")
     ) {}
         .previewWith {
             LLMFogPlatform(

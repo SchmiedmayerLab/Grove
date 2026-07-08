@@ -136,7 +136,7 @@ public struct NearbyDeviceRow<Label: View>: View {
         } label: {
             ListRow {
                 PeripheralLabel(peripheral)
-                Text("RSSI: -64")
+                Text(verbatim: "RSSI: -64")
             } content: {
                 PeripheralSecondaryLabel(peripheral)
             }

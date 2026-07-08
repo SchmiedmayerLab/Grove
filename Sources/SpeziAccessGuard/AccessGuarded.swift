@@ -53,7 +53,7 @@ public struct AccessGuarded<GuardedView: View, Config: _AccessGuardConfig>: View
 #Preview {
     let identifier = AccessGuardIdentifier.passcode("edu.stanford.spezi.myView")
     AccessGuarded(identifier) {
-        Text("Super secret stuff 🤫")
+        Text(verbatim: "Super secret stuff 🤫")
     }
 }
 #endif

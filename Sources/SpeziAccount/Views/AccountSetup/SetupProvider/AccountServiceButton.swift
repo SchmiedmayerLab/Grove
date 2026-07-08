@@ -97,8 +97,14 @@ public struct AccountServiceButton<Label: View>: View {
 #if DEBUG
 @available(iOS 17, macOS 14, *)
 #Preview {
-    AccountServiceButton("E-Mail and Password") {
+    AccountServiceButton {
         print("Pressed")
+    } label: {
+        SwiftUI.Label {
+            Text(verbatim: "E-Mail and Password")
+        } icon: {
+            Image(systemName: "person.crop.square")
+        }
     }
 }
 #endif

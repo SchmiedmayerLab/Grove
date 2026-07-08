@@ -423,7 +423,7 @@ extension InstructionsTile {
     @Previewable var events
 
     if let error = $events.fetchError {
-        Text("Error Occurrence: \(String(describing: error))")
+        Text(verbatim: "Error Occurrence: \(String(describing: error))")
     } else if let first = events.first {
         List {
             InstructionsTile(first) {
@@ -442,13 +442,13 @@ extension InstructionsTile {
     @Previewable var events
 
     if let error = $events.fetchError {
-        Text("Error Occurrence: \(String(describing: error))")
+        Text(verbatim: "Error Occurrence: \(String(describing: error))")
     } else if let first = events.first {
         List {
             InstructionsTile(first, alignment: .center) {
                 _ = try? first.complete()
             } more: {
-                Text("More information about the task!")
+                Text(verbatim: "More information about the task!")
             }
         }
     } else {

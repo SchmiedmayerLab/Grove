@@ -60,8 +60,8 @@ public struct InfoButton: View {
         Button {
             print("Primary")
         } label: {
-            ListRow("Entry") {
-                InfoButton("Entry Info") {
+            ListRow(verbatim: "Entry") {
+                InfoButton(Text(verbatim: "Entry Info")) {
                     print("Info")
                 }
             }
