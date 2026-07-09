@@ -84,6 +84,7 @@ extension AnchoredFetcher {
                 try advanceState()
                 return try await next(isolation: isolation)
             case .process(let timeRange):
+                nonisolated(unsafe) let device = device
                 let results = try await sensor.fetch(from: device, timeRange: timeRange)
                 try advanceState()
                 let batchInfo = SensorKit.BatchInfo(timeRange: timeRange, device: SensorKit.DeviceInfo(device))

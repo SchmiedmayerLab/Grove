@@ -102,7 +102,11 @@ public final class Spezi: Sendable { // swiftlint:disable:this type_body_length
     /// A shared repository to store any `KnowledgeSource`s restricted to the ``SpeziAnchor``.
     ///
     /// Every `Module` automatically conforms to `KnowledgeSource` and is stored within this storage object.
+#if canImport(SwiftUI)
     @ObservationIgnored nonisolated(unsafe) var storage: SpeziStorage
+#else
+    nonisolated(unsafe) var storage: SpeziStorage
+#endif
 
 #if canImport(SwiftUI)
     /// Key is either a UUID for `@Modifier` or `@Model` property wrappers, or a `ModuleReference` for `EnvironmentAccessible` modifiers.
