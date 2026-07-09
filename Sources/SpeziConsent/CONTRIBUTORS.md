@@ -8,8 +8,7 @@ SPDX-License-Identifier: MIT
   
 -->
 
-SpeziConsent contributors
-====================
+# SpeziConsent contributors
 
 * [Lukas Kollmer](https://github.com/lukaskollmer)
 * [Andreas Bauer](https://github.com/bauer-andreas)

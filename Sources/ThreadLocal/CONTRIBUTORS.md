@@ -8,8 +8,7 @@ SPDX-License-Identifier: MIT
 
 -->
 
-ThreadLocal contributors
-====================
+# ThreadLocal contributors
 
 * [Lukas Kollmer](https://github.com/lukaskollmer)
 

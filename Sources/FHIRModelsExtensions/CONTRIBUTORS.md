@@ -10,8 +10,7 @@
              
 -->
 
-FHIRModelsExtensions contributors
-====================
+# FHIRModelsExtensions contributors
 
 * [Paul Schmiedmayer](https://github.com/PSchmiedmayer)
 * [Vishnu Ravi](https://github.com/vishnuravi)

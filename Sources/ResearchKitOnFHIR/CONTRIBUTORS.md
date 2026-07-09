@@ -10,8 +10,7 @@
              
 -->
 
-ResearchKitOnFHIR contributors
-====================
+# ResearchKitOnFHIR contributors
 
 * [Vishnu Ravi](https://github.com/vishnuravi)
 * [Paul Schmiedmayer](https://github.com/PSchmiedmayer)

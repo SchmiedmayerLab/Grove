@@ -10,8 +10,7 @@
              
 -->
 
-SpeziLicense contributors
-====================
+# SpeziLicense contributors
 
 * [Paul Schmiedmayer](https://github.com/PSchmiedmayer)
 * [Nikolai Madlener](https://github.com/nikolaimadlener)
