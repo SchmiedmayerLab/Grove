@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import Foundation
 import OSLog
 import XCTest
 
@@ -158,21 +159,70 @@ extension XCUIElement {
         if simulateFlakySimulatorTextEntry {
             count -= 1
         }
-        while count > 0, !textFieldValue.isEmpty {
-            let lengthBeforeDelete = textFieldValue.count
+        var currentValue = waitForTextFieldValueToSettle()
+        while count > 0, !currentValue.isEmpty {
+            let lengthBeforeDelete = currentValue.count
             typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: count))
             if options.contains(.skipTextInputValidation) {
                 // supporting this here is a bad idea, bc it'll essentially always result in an invalid state after deletion
                 // if the text field's contents are longer than where the cursor was placed.
                 return
             }
-            let numDeletedChars = lengthBeforeDelete - textFieldValue.count
+            let valueAfterDelete = waitForTextFieldValueToSettle()
+            let numDeletedChars = lengthBeforeDelete - valueAfterDelete.count
             guard numDeletedChars > 0 else {
                 throw XCTestError(.failureWhileWaiting)
             }
             count -= numDeletedChars
-            try selectTextField(options: options)
+            currentValue = valueAfterDelete
+            if count > 0, !currentValue.isEmpty {
+                try selectTextField(options: options)
+                currentValue = waitForTextFieldValueToSettle()
+            }
         }
+    }
+
+    private func waitForTextFieldValueToSettle(timeout: TimeInterval = 2.0, stableDuration: TimeInterval = 1.0) -> String {
+        let deadline = Date().addingTimeInterval(timeout)
+        var stableValue = textFieldValue
+        var lastChange = Date()
+        repeat {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+            let value = textFieldValue
+            let now = Date()
+            if value != stableValue {
+                stableValue = value
+                lastChange = now
+            }
+            if now.timeIntervalSince(lastChange) >= stableDuration {
+                return stableValue
+            }
+        } while Date() < deadline
+        return textFieldValue
+    }
+
+    private func waitForTextFieldValue(_ expectedValue: String, timeout: TimeInterval = 2.0) -> String {
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            let value = textFieldValue
+            if value == expectedValue {
+                return value
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        } while Date() < deadline
+        return textFieldValue
+    }
+
+    private func waitForTextFieldValueCount(_ expectedCount: Int, timeout: TimeInterval = 2.0) -> String {
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            let value = textFieldValue
+            if value.count == expectedCount {
+                return value
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        } while Date() < deadline
+        return textFieldValue
     }
 
     private func performEnter(value textToEnter: String, options: TextInputOptions, recursiveDepth: Int) throws {
@@ -193,8 +243,8 @@ extension XCUIElement {
         
         // Check if the text was entered correctly
         if !options.contains(.skipTextInputValidation) {
-            let valueAfterTextEntry = textFieldValue
             if self.elementType == .secureTextField {
+                let valueAfterTextEntry = waitForTextFieldValueCount(previousValue.count + textToEnter.count)
                 if previousValue.isEmpty && textToEnter.count != valueAfterTextEntry.count {
                     try performDelete(count: valueAfterTextEntry.count, options: [])
                     tap() // cursor might not be placed at the rightmost position of the text field
@@ -210,12 +260,14 @@ extension XCUIElement {
                     throw XCTestError(.failureWhileWaiting)
                 }
             } else {
-                if previousValue + textToEnter != valueAfterTextEntry {
+                let expectedValue = previousValue + textToEnter
+                let valueAfterTextEntry = waitForTextFieldValue(expectedValue)
+                if expectedValue != valueAfterTextEntry {
                     try performDelete(count: valueAfterTextEntry.count, options: [])
                     tap() // cursor might not be placed at the rightmost position of the text field
                     try performDelete(count: valueAfterTextEntry.count, options: [])
 
-                    try performEnter(value: previousValue + textToEnter, options: options, recursiveDepth: recursiveDepth + 1)
+                    try performEnter(value: expectedValue, options: options, recursiveDepth: recursiveDepth + 1)
                 }
             }
         }
@@ -247,7 +299,7 @@ extension XCUIElement {
             #if os(visionOS)
             XCTAssert(app.visionOSKeyboard.wait(for: .runningForeground, timeout: 2.0))
             #elseif !os(macOS) && !targetEnvironment(macCatalyst)
-            XCTAssert(app.keyboards.firstMatch.waitForExistence(timeout: 2.0))
+            XCTAssert(app.keyboards.firstMatch.waitForExistence(timeout: 5.0))
             #endif
         }
         // With latest simulator releases it seems like the "swift to type" tutorial isn't popping up anymore.
