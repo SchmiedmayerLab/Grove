@@ -42,3 +42,14 @@ jobs:
         uses: schmiedmayerlab/action-swiftlint@v4
         with:
           args: --strict
+
+  documentation:
+    name: Documentation
+    runs-on: macOS-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build DocC Documentation
+        run: Scripts/build-documentation.sh
+      - name: Clean generated artifacts
+        if: always()
+        run: bash Scripts/cleanup-generated-artifacts.sh

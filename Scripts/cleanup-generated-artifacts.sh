@@ -21,6 +21,8 @@ find . -name "__pycache__" -type d -prune -exec rm -rf {} +
 if [ -n "${RUNNER_TEMP:-}" ] && [ -d "$RUNNER_TEMP" ]; then
   find "$RUNNER_TEMP" -maxdepth 1 \( \
     -name "spezi-derivedData" \
+    -o -name "spezi-docs-derivedData" \
+    -o -name "spezi-documentation" \
     -o -name "*-Tests.xcresult" \
     -o -name "*-UITests.xcresult" \
   \) -exec rm -rf {} +

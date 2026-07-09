@@ -165,7 +165,6 @@ extension SampleType {
     /// Creates a new quantity sample type.
     /// Use this initializer only if the sample type you want to work with isn't already defined by SpeziHealthKit.
     /// - parameter identifier: The sample type's underlying `HKQuantityTypeIdentifier`
-    /// - parameter displayTitle: The localized string which should be used when displaying this sample type's title in a user-visible context.
     /// - parameter displayUnit: The unit which should be used when displaying values of this quantity type to the user.
     /// - parameter expectedValuesRange: If applicable, the expected range the individual sample values will most likely fall into.
     ///     Providing this information allows some components to optimize how they display data belonging to this sample type.
@@ -198,7 +197,6 @@ extension SampleType {
     /// Creates a new correlation sample type.
     /// Use this initializer only if the sample type you want to work with isn't already defined by SpeziHealthKit.
     /// - parameter identifier: The sample type's underlying `HKCorrelationTypeIdentifier`
-    /// - parameter displayTitle: The localized string which should be used when displaying this sample type's title in a user-visible context.
     /// - parameter associatedQuantityTypes: The sample type's associated quantity sample types. E.g.: for the blood pressure correlation type, the associated quantity types would be systolic and siastolic blood pressure.
     @inlinable public static func correlation(
         _ identifier: HKCorrelationTypeIdentifier,
@@ -220,7 +218,6 @@ extension SampleType {
     /// Creates a new category sample type.
     /// Use this initializer only if the sample type you want to work with isn't already defined by SpeziHealthKit.
     /// - parameter identifier: The sample type's underlying `HKCategoryTypeIdentifier`
-    /// - parameter displayTitle: The localized string which should be used when displaying this sample type's title in a user-visible context.
     @inlinable public static func category(
         _ identifier: HKCategoryTypeIdentifier
     ) -> SampleType<HKCategorySample> {
@@ -239,7 +236,6 @@ extension SampleType {
     /// Creates a new clinical record sample type.
     /// Use this initializer only if the sample type you want to work with isn't already defined by SpeziHealthKit.
     /// - parameter identifier: The sample type's underlying `HKClinicalTypeIdentifier`
-    /// - parameter displayTitle: The localized string which should be used when displaying this sample type's title in a user-visible context.
     @available(watchOS, unavailable)
     @inlinable public static func clinical(
         _ identifier: HKClinicalTypeIdentifier

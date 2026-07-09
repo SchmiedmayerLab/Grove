@@ -46,9 +46,10 @@ SPDX-FileCopyrightText = "2026 Stanford University and the project authors (see 
 SPDX-License-Identifier = "MIT"
 
 # Monorepo infrastructure created during the migration (2026) that can't carry an inline SPDX header
-# (JSON test plans, the shared Xcode test-host scheme).
+# (JSON test plans, the shared Xcode test-host scheme, and the size-constrained SPI manifest).
 [[annotations]]
 path = [
+    ".spi.yml",
     "Tests/TestPlans/**",
     ".swiftpm/xcode/xcshareddata/xcschemes/Spezi-Tests.xcscheme"
 ]

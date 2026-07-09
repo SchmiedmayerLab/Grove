@@ -1,3 +1,11 @@
+<!--
+This source file is part of the Stanford Spezi open-source project
+
+SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+
+SPDX-License-Identifier: MIT
+-->
+
 # SwiftLint Disabled Rule Audit
 
 Generated from `swiftlint rules --config .swiftlint.yml --disabled` with SwiftLint 0.64.0. The active configuration manually enables reasonable low-noise rules so behavior is stable across SwiftLint versions.

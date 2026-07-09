@@ -74,7 +74,7 @@ class MySchedulerModule: Module {
 - ``Task/Category-swift.struct``
 - ``Event``
 - ``Outcome``
-- ``Property(coding:)``
+- ``Property(coding:storageIdentifier:)``
 - ``AllowedCompletionPolicy``
 
 ### Notifications

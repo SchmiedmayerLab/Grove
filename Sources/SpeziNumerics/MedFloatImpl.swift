@@ -252,7 +252,7 @@ extension MedFloatProtocol {
 
 
 extension MedFloatProtocol {
-    /// ``Double`` approximation of the medfloat.
+    /// `Double` approximation of the medfloat.
     public var double: Double {
         // For some reason writing e.g. `Self.nan.bitPattern` in a switch case causes the compiler to reject the code, saying that
         // "'nan' is not a member type of type 'Self'". Writing `type(of: self).nan.bitPattern` instead compiles.

@@ -147,8 +147,6 @@ import SwiftUI
 /// - ``ExportResult``
 /// - ``isExporting``
 ///
-/// ### Other
-/// - ``customElementsEnabled``
 @available(iOS 17, macOS 14, visionOS 1, *)
 @Observable
 @MainActor
