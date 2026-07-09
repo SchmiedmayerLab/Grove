@@ -14,7 +14,9 @@ final class ConditionTests: TestAppUITests, @unchecked Sendable {
     @MainActor
     func testSimpleCondition() {
         launchAppAndGoToOtherTest(named: "Simple Condition")
+        waitForQuestionnaireSheet()
         let navigator = QuestionnaireSheetNavigator(app)
+        XCTAssert(app.otherElements["Task:ice-cream"].waitForExistence(timeout: 10))
         
         navigator.task(withId: "ice-cream").selectOption(withTitle: "Yes")
         XCTAssertTrue(navigator.task(withId: "ice-cream-flavor").exists)
@@ -27,7 +29,9 @@ final class ConditionTests: TestAppUITests, @unchecked Sendable {
     @MainActor
     func testCrossSectionCondition() {
         launchAppAndGoToOtherTest(named: "Cross-Section Condition")
+        waitForQuestionnaireSheet()
         let navigator = QuestionnaireSheetNavigator(app)
+        XCTAssert(app.otherElements["Task:ice-cream"].waitForExistence(timeout: 10))
         
         navigator.task(withId: "ice-cream").selectOption(withTitle: "No")
         navigator.goToNextSection()
@@ -85,7 +89,9 @@ final class ConditionTests: TestAppUITests, @unchecked Sendable {
     @MainActor
     func testFollowUpQuestionsSkippedIfNoneEnabled() {
         launchAppAndGoToOtherTest(named: "Follow-Up Tasks Skipped if None Enabled")
+        waitForQuestionnaireSheet()
         let navigator = QuestionnaireSheetNavigator(app)
+        XCTAssert(app.otherElements["Task:t0"].waitForExistence(timeout: 10))
         
         navigator.task(withId: "t0").selectOption(withTitle: "Yes")
         navigator.task(withId: "t1").selectOption(withTitle: "Option 0")

@@ -7,7 +7,7 @@
 #
 
 # Stage 1: Build stage
-FROM node:21-alpine3.19 AS builder
+FROM node:24-alpine AS builder
 
 LABEL org.opencontainers.image.authors="Philipp Zagar <zagar@stanford.edu>" \
       org.opencontainers.image.version="0.1" \
@@ -20,15 +20,16 @@ WORKDIR /usr/src/app
 
 # Install npm dependencies
 COPY package*.json ./
-RUN npm install
+RUN npm ci --no-audit --no-fund
 
 # Copy source code and compile TypeScript project
 COPY tsconfig.json ./
 COPY src/ ./src
 RUN npm run build
+RUN npm prune --omit=dev --no-audit --no-fund
 
 # Stage 2: Runtime stage
-FROM node:21-alpine3.19
+FROM node:24-alpine
 
 WORKDIR /usr/src/app
 

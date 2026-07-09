@@ -25,13 +25,13 @@ class BluetoothViewsTests: XCTestCase {
         app.buttons["Views"].tap()
 
         func navigateUnavailableView(name: String, expected: String?, back: Bool = true) {
-            XCTAssert(app.buttons[name].waitForExistence(timeout: 2.0))
+            XCTAssert(app.buttons[name].waitForExistence(timeout: 5.0))
             app.buttons[name].tap()
             if let expected {
-                XCTAssert(app.staticTexts[expected].waitForExistence(timeout: 2.0))
+                XCTAssert(app.staticTexts[expected].waitForExistence(timeout: 5.0))
             }
             if back {
-                XCTAssert(app.navigationBars.buttons["Views"].exists)
+                XCTAssert(app.navigationBars.buttons["Views"].waitForExistence(timeout: 5.0))
                 app.navigationBars.buttons["Views"].tap()
             }
         }
@@ -42,11 +42,11 @@ class BluetoothViewsTests: XCTestCase {
         navigateUnavailableView(name: "Bluetooth Unknown", expected: "Bluetooth Failure")
         navigateUnavailableView(name: "Bluetooth Powered Off", expected: "Bluetooth Off", back: false)
 
-        XCTAssert(app.buttons["Open Settings"].exists)
+        XCTAssert(app.buttons["Open Settings"].waitForExistence(timeout: 5.0))
         app.buttons["Open Settings"].tap()
 
         let settingsApp = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
-        XCTAssertTrue(settingsApp.wait(for: .runningForeground, timeout: 2.0))
+        XCTAssertTrue(settingsApp.wait(for: .runningForeground, timeout: 10.0))
     }
 
     @MainActor

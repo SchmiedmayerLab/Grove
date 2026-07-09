@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import admin from 'firebase-admin';
+import { cert, initializeApp } from 'firebase-admin/app';
 
 type EnvVar = string | undefined;
 
@@ -23,14 +23,14 @@ export const initializeFirebase = (): void => {
 
         process.env["FIREBASE_AUTH_EMULATOR_HOST"] = firebaseAuthEmulatorHost;
 
-        admin.initializeApp({
+        initializeApp({
             projectId: firebaseProjectId,
         });
     } else {
         const serviceAccount = require("../serviceAccountKey.json");
 
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
+        initializeApp({
+            credential: cert(serviceAccount),
         });
     }
 };

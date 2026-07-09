@@ -7,7 +7,7 @@
 //
 
 import express, { Request, Response } from 'express';
-import admin from 'firebase-admin';
+import { getAuth } from 'firebase-admin/auth';
 import * as dotenv from 'dotenv';
 import { initializeFirebase } from './firebase';
 import { getTokenFromRequest } from './authToken';
@@ -22,7 +22,7 @@ const app = express();
 const port: number = parseInt(process.env.PORT || '3000', 10);
 
 // Serve authorization on all routes
-app.all('*', async (req: Request, res: Response) => {
+app.all(/.*/, async (req: Request, res: Response) => {
     const token = getTokenFromRequest(req, res);
 
     if (!token) {
@@ -31,7 +31,7 @@ app.all('*', async (req: Request, res: Response) => {
 
     try {
         // Verify the received bearer token via firebase admin SDK
-        const decodedToken = await admin.auth().verifyIdToken(token);
+        const decodedToken = await getAuth().verifyIdToken(token);
 
         // Possibly add additional checks, e.g. verify if user is allowed to access the fog LLM via token claims
         // ...
