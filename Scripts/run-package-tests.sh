@@ -23,7 +23,7 @@ cd "$(dirname "$0")/.."
 if [ -n "${RUNNER_TEMP:-}" ]; then
   # On CI, keep derived data outside the checkout: mid-run writes inside the checkout can trigger
   # an Xcode 26 package-graph re-resolution that crashes xcodebuild (see retry_xcodebuild_crash).
-  DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$RUNNER_TEMP/spezi-derivedData}"
+  DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$RUNNER_TEMP/spezi-derivedData-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-0}-${GITHUB_JOB:-job}-$$}"
 fi
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-.derivedData}"
 enable_default_package_traits() {
@@ -84,9 +84,13 @@ cleanup_derived_data() {
       ;;
   esac
 
-  if [ -n "${RUNNER_TEMP:-}" ] && [ "$DERIVED_DATA_PATH" = "$RUNNER_TEMP/spezi-derivedData" ]; then
-    rm -rf "$DERIVED_DATA_PATH"
-    return
+  if [ -n "${RUNNER_TEMP:-}" ]; then
+    case "$DERIVED_DATA_PATH" in
+      "$RUNNER_TEMP"/spezi-derivedData|"$RUNNER_TEMP"/spezi-derivedData-*)
+        rm -rf "$DERIVED_DATA_PATH"
+        return
+        ;;
+    esac
   fi
 
   case "$DERIVED_DATA_PATH" in

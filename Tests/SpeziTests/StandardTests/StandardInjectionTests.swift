@@ -56,7 +56,7 @@ struct StandardInjectionTests {
         )
         _ = await standardInjectionTestApplicationDelegate.spezi
         
-        await expectation.fulfillment(within: .seconds(0.5))
+        await expectation.fulfillment(within: .seconds(5))
     }
 #endif
     

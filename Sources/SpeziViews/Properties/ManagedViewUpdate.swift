@@ -9,16 +9,23 @@
 import SwiftUI
 
 
-private final class UIUpdate: ObservableObject, @unchecked Sendable {
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
+@Observable
+private final class UIUpdate {
     private var dateTimer: Timer? {
         willSet {
             dateTimer?.invalidate()
         }
     }
 
-    @Published private var trigger: UInt64 = 0
+    private var trigger: UInt64 = 0
 
     nonisolated init() {}
+
+    func access() {
+        access(keyPath: \.dateTimer)
+        access(keyPath: \.trigger)
+    }
 
     @MainActor
     func manualUpdate() {
@@ -27,19 +34,29 @@ private final class UIUpdate: ObservableObject, @unchecked Sendable {
 
     @MainActor
     func scheduleUpdate(at date: Date) {
-        let timer = Timer(fire: date, interval: 0, repeats: false) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.dateTimer = nil
-                self?.manualUpdate()
+        @MainActor
+        struct WeakSendingSelf: Sendable { // assumeIsolated requires a @Sendable closure, so we need to pass self via a Sendable type
+            weak var value: UIUpdate?
+
+            init(_ value: UIUpdate) {
+                self.value = value
+            }
+        }
+
+        let sendingSelf = WeakSendingSelf(self)
+
+        let timer = Timer(fire: date, interval: 0, repeats: false) { [sendingSelf] _ in
+            MainActor.assumeIsolated { [sendingSelf] in
+                sendingSelf.value?.dateTimer = nil // triggers observable mutation
             }
         }
         RunLoop.main.add(timer, forMode: .common)
 
-        self.dateTimer = timer
+        self._dateTimer = timer // do not trigger mutation
     }
 
     deinit {
-        dateTimer?.invalidate()
+        _dateTimer?.invalidate()
     }
 }
 
@@ -74,9 +91,10 @@ private final class UIUpdate: ObservableObject, @unchecked Sendable {
 ///     `DiscreteFormatStyle`. However, `ManagedViewUpdate` is especially handy, if other properties update on a time-dependent manner
 ///     (e.g., a button becoming enabled once a start date is reached).
 /// ```
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 @propertyWrapper
 public struct ManagedViewUpdate {
-    @StateObject private var uiUpdate = UIUpdate()
+    private let uiUpdate = UIUpdate()
     
     /// Access the instance.
     public var wrappedValue: Self {
@@ -102,6 +120,9 @@ public struct ManagedViewUpdate {
 }
 
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 extension ManagedViewUpdate: DynamicProperty {
-    public func update() {}
+    public func update() {
+        uiUpdate.access() // track access to the state
+    }
 }

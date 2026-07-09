@@ -10,6 +10,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *)
 struct ManagedViewStateTests: View {
     private final class State {
         var state: Int = 0
