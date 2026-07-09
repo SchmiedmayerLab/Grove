@@ -44,7 +44,7 @@ struct CombinedShareSheetInput: Identifiable, Equatable {
 ///
 /// ## Topics
 /// ### Initializers
-    /// - ``init(_:id:)``
+/// - ``init(_:id:)``
 /// - ``init(_:)-(NSItemProviderWriting)``
 /// - ``init(_:)-(T)``
 /// - ``init(_:)-(PDFDocument)``

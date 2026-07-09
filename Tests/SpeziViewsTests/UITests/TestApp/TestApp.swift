@@ -25,20 +25,9 @@ final class TestDelegate: SpeziAppDelegate {
 struct UITestsApp: App {
     @ApplicationDelegateAdaptor(TestDelegate.self) private var delegate
 
-    private var shouldOpenAsyncButtonDebounceTest: Bool {
-        CommandLine.arguments.contains("--async-button-debounce-test")
-            || ProcessInfo.processInfo.environment["SPEZI_ASYNC_BUTTON_DEBOUNCE_TEST"] == "1"
-    }
-
     var body: some Scene {
         WindowGroup {
-            Group {
-                if shouldOpenAsyncButtonDebounceTest {
-                    AsyncButtonDebounceTestView()
-                } else {
-                    SpeziViewsTargetsTests()
-                }
-            }
+            SpeziViewsTargetsTests()
                 .spezi(delegate)
         }
     }

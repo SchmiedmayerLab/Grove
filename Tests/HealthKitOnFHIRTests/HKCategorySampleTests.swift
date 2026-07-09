@@ -84,17 +84,17 @@ struct HKCategorySampleTests {
     }
 
     @Test(arguments: [
-        (1, "1", "unspecified"),
-        (2, "2", "light"),
-        (3, "3", "medium"),
-        (4, "4", "heavy"),
-        (5, "5", "none")
+        (HKCategoryValueMenstrualFlow.unspecified, "1", "unspecified"),
+        (HKCategoryValueMenstrualFlow.light, "2", "light"),
+        (HKCategoryValueMenstrualFlow.medium, "3", "medium"),
+        (HKCategoryValueMenstrualFlow.heavy, "4", "heavy"),
+        (HKCategoryValueMenstrualFlow.none, "5", "none")
     ])
-    func menstrualFlow(value: Int, expectedCode: String, expectedDisplay: String) throws {
+    func menstrualFlow(value: HKCategoryValueMenstrualFlow, expectedCode: String, expectedDisplay: String) throws {
         let system: FHIRPrimitive<FHIRURI> = "https://developer.apple.com/documentation/healthkit/hkcategoryvaluemenstrualflow"
         let observation = try createObservationFrom(
             type: .menstrualFlow,
-            value: value,
+            value: value.rawValue,
             metadata: [HKMetadataKeyMenstrualCycleStart: true]
         )
         #expect(observation.code.coding?.first == createCategoryCoding(
@@ -135,7 +135,7 @@ struct HKCategorySampleTests {
         ])))
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
-        print(try #require(String(bytes: encoder.encode(observation), encoding: .utf8)))
+        print(String(decoding: try encoder.encode(observation), as: UTF8.self))
     }
 
     @Test(arguments: [

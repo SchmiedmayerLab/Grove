@@ -155,7 +155,7 @@ extension HKCategoryTypeIdentifier {
                 return .noDataCarried
             case .menstrualFlow:
                 return .init(
-                    valueType: MenstrualFlowCategoryValue.self,
+                    valueType: HKCategoryValueMenstrualFlow.self,
                     metadataKeys: [HKMetadataKeyMenstrualCycleStart]
                 )
             case .ovulationTestResult:

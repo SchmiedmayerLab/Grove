@@ -968,7 +968,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
             try storage.set(TaskContextKey.self, value: 52, cache: &cache)
             #expect(storage.userInfo == ["tKey1": Data(#"{"value":52}"#.utf8)])
             let storageJson = try jsonEncoder.encode(storage)
-            #expect(String(data: storageJson, encoding: .utf8) == #"{"userInfo":{"tKey1":"\#(Data(#"{"value":52}"#.utf8).base64EncodedString())"}}"#)
+            #expect(String(decoding: storageJson, as: UTF8.self) == #"{"userInfo":{"tKey1":"\#(Data(#"{"value":52}"#.utf8).base64EncodedString())"}}"#)
         }
         let scheduler = Scheduler(persistence: .inMemory)
         withDependencyResolution {
@@ -1040,12 +1040,12 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
         try storage.set(IntKey.self, value: 52, cache: &cache)
         try storage.set(StringKey.self, value: "hello", cache: &cache)
         #expect(storage.userInfo == rawUserInfo)
-        #expect(String(data: try encoder.encode(storage), encoding: .utf8) == golden)
+        #expect(String(decoding: try encoder.encode(storage), as: UTF8.self) == golden)
 
         // a) Backward compatibility: bytes produced by the previous (`RawRepresentable`-based) implementation still
         // decode -- and round-trip the typed values -- with the current implementation.
         let legacyEncoded = try encoder.encode(LegacyUserInfoStorage(rawValue: rawUserInfo))
-        #expect(String(data: legacyEncoded, encoding: .utf8) == golden) // the previous impl emitted these exact bytes
+        #expect(String(decoding: legacyEncoded, as: UTF8.self) == golden) // the previous impl emitted these exact bytes
 
         for persisted in [legacyEncoded, Data(golden.utf8)] { // legacy-produced bytes, and a frozen literal blob
             let decoded = try decoder.decode(UserInfoStorage<TaskAnchor>.self, from: persisted)

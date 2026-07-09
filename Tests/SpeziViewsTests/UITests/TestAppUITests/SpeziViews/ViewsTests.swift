@@ -119,11 +119,14 @@ final class ViewsTests: XCTestCase {
     @MainActor
     func testAsyncButtonDebounce() throws {
         let app = XCUIApplication()
-        app.launchArguments.append("--async-button-debounce-test")
-        app.launchEnvironment["SPEZI_ASYNC_BUTTON_DEBOUNCE_TEST"] = "1"
         app.launch()
 
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
+        app.open(target: "SpeziViews")
+        app.collectionViews.firstMatch.swipeUp()
+
+        let debounceTest = tappableElement(named: "Async Button Debounce", in: app)
+        debounceTest.tap()
 
         let fastAction = tappableElement(named: "Fast Debounced Action", in: app)
         fastAction.tap()

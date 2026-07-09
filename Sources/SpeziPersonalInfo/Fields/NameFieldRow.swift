@@ -42,6 +42,12 @@ import SwiftUI
 /// ```
 @available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 public struct NameFieldRow<Description: View, Label: View>: View {
+    #if os(macOS)
+    private static var usesPromptLabel: Bool { true }
+    #else
+    private static var usesPromptLabel: Bool { false }
+    #endif
+
     private let description: Description
     private let label: Label
     private let component: WritableKeyPath<PersonNameComponents, String?>
@@ -50,8 +56,7 @@ public struct NameFieldRow<Description: View, Label: View>: View {
 
 
     public var body: some View {
-        #if os(macOS)
-        if let label = label as? Text {
+        if Self.usesPromptLabel, let label = label as? Text {
             NameTextField(name: $name, for: component, prompt: label) {
                 description
             }
@@ -64,15 +69,6 @@ public struct NameFieldRow<Description: View, Label: View>: View {
                 }
             }
         }
-        #else
-        DescriptionGridRow {
-            description
-        } content: {
-            NameTextField(name: $name, for: component) {
-                label
-            }
-        }
-        #endif
     }
 
 
