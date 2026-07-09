@@ -65,7 +65,7 @@ actor LLMOpenAIRealtimeConnection {
     
     func sendMessage(_ object: some Encodable) async throws {
         let objectJson = try Self.encoder.encode(object)
-        try await socket?.send(.string(String(bytes: objectJson, encoding: .utf8) ?? ""))
+        try await socket?.send(.string(String(decoding: objectJson, as: UTF8.self)))
     }
     
     /// Opens socket connection to OpenAI's Realtime API and starts the event loop, which runs until calling `cancel()`
@@ -262,6 +262,6 @@ actor LLMOpenAIRealtimeConnection {
         let finalData = try JSONSerialization.data(withJSONObject: eventSessionUpdateJson)
 
 
-        try await socket?.send(.string(String(bytes: finalData, encoding: .utf8) ?? ""))
+        try await socket?.send(.string(String(decoding: finalData, as: UTF8.self)))
     }
 }

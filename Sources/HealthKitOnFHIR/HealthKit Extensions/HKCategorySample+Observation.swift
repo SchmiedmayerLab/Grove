@@ -93,10 +93,10 @@ extension HKCategoryType {
     struct AssociatedDataInfo {
         static var noDataCarried: Self { .init(valueType: nil) }
         
-        let valueType: (any FHIRCodingConvertible.Type)?
+        let valueType: (any FHIRCodingConvertibleHKEnum.Type)?
         let metadataKeys: Set<String>
         
-        init(valueType: (any FHIRCodingConvertible.Type)?, metadataKeys: Set<String> = []) {
+        init(valueType: (any FHIRCodingConvertibleHKEnum.Type)?, metadataKeys: Set<String> = []) {
             self.valueType = valueType
             self.metadataKeys = metadataKeys
         }
