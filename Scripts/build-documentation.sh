@@ -118,6 +118,8 @@ mkdir -p "$DOC_OUTPUT_DIR"
 rm -rf "$COMBINED_ARCHIVE" "$STATIC_ARCHIVE"
 
 export SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS="${SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS:-1}"
+export SPEZI_EXCLUDE_DOCC_CATALOGS=0
+export LLVM_PROFILE_FILE="${LLVM_PROFILE_FILE:-$DOC_OUTPUT_DIR/default-%p.profraw}"
 
 echo "Building DocC documentation for scheme '$DOC_SCHEME' with all default package traits enabled."
 if ! xcodebuild \

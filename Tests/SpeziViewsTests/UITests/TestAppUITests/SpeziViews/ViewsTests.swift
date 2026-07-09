@@ -16,7 +16,7 @@ final class ViewsTests: XCTestCase {
         try super.setUpWithError()
         continueAfterFailure = false
     }
-    
+
     @MainActor
     func testGeometryReader() throws {
         let app = XCUIApplication()
@@ -30,7 +30,7 @@ final class ViewsTests: XCTestCase {
         XCTAssert(app.staticTexts["300.000000"].exists)
         XCTAssert(app.staticTexts["200.000000"].exists)
     }
-    
+
     @MainActor
     func testLabel() throws {
         #if os(macOS)
@@ -115,7 +115,40 @@ final class ViewsTests: XCTestCase {
 
         XCTAssert(app.staticTexts["Captured Hello World"].waitForExistence(timeout: 0.5))
     }
-    
+
+    @MainActor
+    func testAsyncButtonDebounce() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("--async-button-debounce-test")
+        app.launchEnvironment["SPEZI_ASYNC_BUTTON_DEBOUNCE_TEST"] = "1"
+        app.launch()
+
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
+
+        let fastAction = tappableElement(named: "Fast Debounced Action", in: app)
+        fastAction.tap()
+        XCTAssert(app.staticTexts["Fast Completed: true"].waitForExistence(timeout: 1))
+        sleep(for: .seconds(3))
+        XCTAssert(app.activityIndicators.firstMatch.waitForNonExistence(timeout: 1))
+
+        let slowAction = tappableElement(named: "Slow Debounced Action", in: app)
+        slowAction.tap()
+        XCTAssert(app.activityIndicators.firstMatch.waitForExistence(timeout: 4))
+        XCTAssert(app.staticTexts["Slow Completed: true"].waitForExistence(timeout: 7))
+        XCTAssert(app.activityIndicators.firstMatch.waitForNonExistence(timeout: 4))
+    }
+
+    private func tappableElement(named name: String, in app: XCUIApplication, timeout: TimeInterval = 2) -> XCUIElement {
+        let button = app.buttons[name]
+        if button.waitForExistence(timeout: timeout) {
+            return button
+        }
+
+        let element = app.descendants(matching: .any)[name]
+        XCTAssertTrue(element.waitForExistence(timeout: timeout), "Unable to find \(name) in the debounce test fixture.")
+        return element
+    }
+
     @MainActor
     func testAsyncButtonInToolbar() throws {
         let app = XCUIApplication()

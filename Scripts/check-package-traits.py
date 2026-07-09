@@ -65,6 +65,7 @@ def swiftpm_environment() -> dict[str, str]:
     env = os.environ.copy()
     env.setdefault("CLANG_MODULE_CACHE_PATH", str(ROOT / ".build" / "clang-module-cache"))
     env.setdefault("TMPDIR", str(ROOT / ".build" / "tmp"))
+    env.setdefault("SPEZI_EXCLUDE_DOCC_CATALOGS", "1")
     Path(env["CLANG_MODULE_CACHE_PATH"]).mkdir(parents=True, exist_ok=True)
     Path(env["TMPDIR"]).mkdir(parents=True, exist_ok=True)
     return env

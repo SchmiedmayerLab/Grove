@@ -7,8 +7,8 @@
 //
 
 @testable import SpeziLocalStorage
+import SpeziTesting
 import XCTest
-import XCTSpezi
 
 
 private struct Letter: Codable, Equatable {

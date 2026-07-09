@@ -11,7 +11,7 @@ public import Observation
 public import Spezi
 public import SpeziFoundation
 import SpeziKeychainStorage
-public import class UIKit.UIScene
+import class UIKit.UIScene
 
 
 /// Enforce code or biometrics-guarded access to SwiftUI views.
@@ -107,7 +107,7 @@ public import class UIKit.UIScene
 /// - ``setupComplete(for:)``
 @available(iOS 17, *)
 @Observable
-public final class AccessGuards: Module, EnvironmentAccessible, LifecycleHandler {
+public final class AccessGuards: Module, EnvironmentAccessible {
     private struct ModelKey: Hashable {
         private let rawIdentifier: String
         private let identifierType: ObjectIdentifier
@@ -119,6 +119,7 @@ public final class AccessGuards: Module, EnvironmentAccessible, LifecycleHandler
     }
 
     @ObservationIgnored @Dependency(KeychainStorage.self) var keychain
+    @ObservationIgnored private var lifecycleObservers: [any NSObjectProtocol] = []
     private(set) var lastEnteredBackground: Date = .now
     private var configs: [any _AccessGuardConfig]
     private var models: [ModelKey: any _AnyAccessGuardModel] = [:]
@@ -142,6 +143,48 @@ public final class AccessGuards: Module, EnvironmentAccessible, LifecycleHandler
         }
         preconditionFailure(errorMsg)
     }
+
+    @_documentation(visibility: internal)
+    @MainActor
+    public func configure() {
+        guard lifecycleObservers.isEmpty else {
+            return
+        }
+        observeLifecycleNotification(named: UIScene.didEnterBackgroundNotification) { [weak self] in
+            self?.handleSceneDidEnterBackground()
+        }
+        observeLifecycleNotification(named: UIScene.willEnterForegroundNotification) { [weak self] in
+            self?.handleSceneWillEnterForeground()
+        }
+    }
+
+    private func observeLifecycleNotification(
+        named name: Notification.Name,
+        handler: @escaping @MainActor @Sendable () -> Void
+    ) {
+        let observer = NotificationCenter.default.addObserver(
+            forName: name,
+            object: nil,
+            queue: nil
+        ) { _ in
+            if Thread.isMainThread {
+                MainActor.assumeIsolated {
+                    handler()
+                }
+            } else {
+                Task { @MainActor in
+                    handler()
+                }
+            }
+        }
+        lifecycleObservers.append(observer)
+    }
+
+    deinit {
+        for observer in lifecycleObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
 }
 
 
@@ -149,18 +192,16 @@ public final class AccessGuards: Module, EnvironmentAccessible, LifecycleHandler
 
 @available(iOS 17, *)
 extension AccessGuards {
-    @_documentation(visibility: internal)
     @MainActor
-    public func sceneDidEnterBackground(_ scene: UIScene) { // swiftlint:disable:this missing_docs
+    private func handleSceneDidEnterBackground() {
         lastEnteredBackground = .now
         for model in models.values {
             model.didEnterBackground()
         }
     }
 
-    @_documentation(visibility: internal)
     @MainActor
-    public func sceneWillEnterForeground(_ scene: UIScene) { // swiftlint:disable:this missing_docs
+    private func handleSceneWillEnterForeground() {
         for model in models.values {
             model.willEnterForeground(lastEnteredBackground: lastEnteredBackground)
         }

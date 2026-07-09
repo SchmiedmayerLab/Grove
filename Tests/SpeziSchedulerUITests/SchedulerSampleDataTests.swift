@@ -13,7 +13,6 @@ import SpeziScheduler
 @testable import SpeziSchedulerUI
 import SpeziTesting
 import XCTest
-import XCTSpezi
 
 
 @available(iOS 18, macOS 15, watchOS 11, visionOS 2, *)

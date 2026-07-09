@@ -59,6 +59,7 @@ public struct CanvasView: View {
     @Binding private var tool: any PKTool
     @Binding private var isDrawing: Bool
     @Binding private var showToolPicker: Bool
+    private let synchronizesToolPicker: Bool
     
     
     public var body: some View {
@@ -68,7 +69,8 @@ public struct CanvasView: View {
                 isDrawing: $isDrawing,
                 tool: $tool,
                 drawingPolicy: drawingPolicy,
-                showToolPicker: $showToolPicker
+                showToolPicker: $showToolPicker,
+                synchronizesToolPicker: synchronizesToolPicker
             )
             .accessibilityIdentifier("Canvas")
             .preference(key: CanvasSizePreferenceKey.self, value: geometry.size)
@@ -96,6 +98,7 @@ public struct CanvasView: View {
         self._isDrawing = isDrawing
         self._tool = tool
         self._showToolPicker = showToolPicker
+        self.synchronizesToolPicker = true
     }
     
     /// Creates a new ``CanvasView`` providing a SwiftUI wrapper around the PencilKit `PKCanvasView`
@@ -112,14 +115,12 @@ public struct CanvasView: View {
         tool: PKInkingTool = PKInkingTool(.pen, color: .label, width: 1),
         drawingPolicy: PKCanvasViewDrawingPolicy = .anyInput
     ) {
-        self.init(
-            drawing: drawing,
-            tool: .constant(tool),
-            drawingPolicy: drawingPolicy,
-            isDrawing: isDrawing,
-            // we're using a fixed tool, so there is no point in allowing the tool picker be shown.
-            showToolPicker: .constant(false)
-        )
+        self.drawingPolicy = drawingPolicy
+        self._drawing = drawing
+        self._isDrawing = isDrawing
+        self._tool = .constant(tool)
+        self._showToolPicker = .constant(false)
+        self.synchronizesToolPicker = false
     }
     
     
@@ -181,9 +182,12 @@ extension CanvasView {
             
             @MainActor
             private func handleToolDidChange(_ toolPicker: PKToolPicker) {
-                if #available(iOS 26, visionOS 26, *) {
-                    // we don't support custom items, so we should never run into a nil value here?
-                    parent.tool = toolPicker.selectedToolItem.tool ?? toolPicker.selectedTool
+                if #available(iOS 18.0, visionOS 2.0, *) {
+                    guard let tool = Impl.tool(from: toolPicker.selectedToolItem),
+                          !Impl.toolsMatch(parent.tool, tool) else {
+                        return
+                    }
+                    parent.tool = tool
                 } else {
                     parent.tool = toolPicker.selectedTool
                 }
@@ -198,28 +202,81 @@ extension CanvasView {
         @Binding private var tool: any PKTool
         @Binding private var isDrawing: Bool
         @Binding private var showToolPicker: Bool
+        private let synchronizesToolPicker: Bool
         
         init(
             drawing: Binding<PKDrawing>,
             isDrawing: Binding<Bool>,
             tool: Binding<any PKTool>,
             drawingPolicy: PKCanvasViewDrawingPolicy,
-            showToolPicker: Binding<Bool>
+            showToolPicker: Binding<Bool>,
+            synchronizesToolPicker: Bool
         ) {
             self._drawing = drawing
             self._isDrawing = isDrawing
             self._tool = tool
             self.drawingPolicy = drawingPolicy
             self._showToolPicker = showToolPicker
+            self.synchronizesToolPicker = synchronizesToolPicker
         }
-                          
+
+        @available(iOS 18.0, visionOS 2.0, *)
+        private static func toolPickerItem(for tool: any PKTool) -> PKToolPickerItem? {
+            if let tool = tool as? PKInkingTool {
+                if #available(iOS 26.0, visionOS 26.0, *) {
+                    return PKToolPickerInkingItem(
+                        type: tool.inkType,
+                        color: tool.color,
+                        width: tool.width,
+                        azimuth: tool.azimuth
+                    )
+                }
+                return PKToolPickerInkingItem(type: tool.inkType, color: tool.color, width: tool.width)
+            } else if let tool = tool as? PKEraserTool {
+                return PKToolPickerEraserItem(type: tool.eraserType, width: tool.width)
+            } else if tool is PKLassoTool {
+                return PKToolPickerLassoItem()
+            } else {
+                return nil
+            }
+        }
+
+        @available(iOS 18.0, visionOS 2.0, *)
+        private static func tool(from item: PKToolPickerItem) -> (any PKTool)? {
+            if #available(iOS 26.0, visionOS 26.0, *), let tool = item.tool {
+                return tool
+            } else if let item = item as? PKToolPickerInkingItem {
+                return item.inkingTool
+            } else if let item = item as? PKToolPickerEraserItem {
+                return item.eraserTool
+            } else if let item = item as? PKToolPickerLassoItem {
+                return item.lassoTool
+            } else {
+                return nil
+            }
+        }
+
+        private static func toolsMatch(_ lhs: any PKTool, _ rhs: any PKTool) -> Bool {
+            if let lhs = lhs as? PKInkingTool, let rhs = rhs as? PKInkingTool {
+                lhs == rhs
+            } else if let lhs = lhs as? PKEraserTool, let rhs = rhs as? PKEraserTool {
+                lhs == rhs
+            } else if let lhs = lhs as? PKLassoTool, let rhs = rhs as? PKLassoTool {
+                lhs == rhs
+            } else {
+                false
+            }
+        }
         
         func makeUIView(context: Context) -> PKCanvasView {
             let canvasView = PKCanvasView()
             canvasView.delegate = context.coordinator
             canvasView.backgroundColor = .clear
             canvasView.isOpaque = false
-            toolPicker.addObserver(context.coordinator)
+            if synchronizesToolPicker {
+                toolPicker.addObserver(context.coordinator)
+                toolPicker.addObserver(canvasView)
+            }
             return canvasView
         }
         
@@ -227,12 +284,14 @@ extension CanvasView {
             if canvasView.drawing != drawing {
                 canvasView.drawing = drawing
             }
-            toolPicker.selectedTool = tool
+            canvasView.tool = tool
             canvasView.drawingPolicy = drawingPolicy
-            toolPicker.addObserver(canvasView)
-            toolPicker.setVisible(showToolPicker, forFirstResponder: canvasView)
-            if showToolPicker {
-                canvasView.becomeFirstResponder()
+            if synchronizesToolPicker {
+                updateToolPickerSelection(toolPicker)
+                toolPicker.setVisible(showToolPicker, forFirstResponder: canvasView)
+                if showToolPicker {
+                    canvasView.becomeFirstResponder()
+                }
             }
             if #available(iOS 18.0, visionOS 2.0, *) {
                 canvasView.isDrawingEnabled = context.environment.isEnabled
@@ -241,6 +300,23 @@ extension CanvasView {
         
         func makeCoordinator() -> Coordinator {
             Coordinator(parent: self)
+        }
+
+        private func updateToolPickerSelection(_ toolPicker: PKToolPicker) {
+            if #available(iOS 18.0, visionOS 2.0, *) {
+                guard let item = Self.toolPickerItem(for: tool) else {
+                    return
+                }
+                if let selectedTool = Self.tool(from: toolPicker.selectedToolItem), Self.toolsMatch(selectedTool, tool) {
+                    return
+                }
+                toolPicker.selectedToolItem = item
+            } else {
+                guard !Self.toolsMatch(toolPicker.selectedTool, tool) else {
+                    return
+                }
+                toolPicker.selectedTool = tool
+            }
         }
     }
 }

@@ -26,6 +26,8 @@ if [ -n "${RUNNER_TEMP:-}" ]; then
   DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$RUNNER_TEMP/spezi-derivedData}"
 fi
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-.derivedData}"
+export SPEZI_EXCLUDE_DOCC_CATALOGS="${SPEZI_EXCLUDE_DOCC_CATALOGS:-1}"
+
 enable_default_package_traits() {
   case "${SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS:-1}" in
     0|false|FALSE|no|NO)

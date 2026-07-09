@@ -175,10 +175,10 @@
     {
       "identity" : "phonenumberkit",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/marmelroy/PhoneNumberKit",
+      "location" : "https://github.com/PhoneNumberKit/PhoneNumberKit",
       "state" : {
-        "revision" : "169ab10234347fb19b37441f2867ace896a284b0",
-        "version" : "4.3.0"
+        "revision" : "ab06a8333394f4a4fb6eecca447dae0aa06c1eca",
+        "version" : "5.0.4"
       }
     },
     {

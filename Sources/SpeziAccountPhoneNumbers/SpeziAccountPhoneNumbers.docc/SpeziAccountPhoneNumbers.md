@@ -18,7 +18,7 @@ SPDX-License-Identifier: MIT
 [Spezi](../../Spezi/Spezi.docc/Spezi.md) framework ecosystem, enabling users to add, verify, and manage phone numbers in their accounts.
 
 The framework integrates with the `SpeziAccount` framework to provide a seamless phone number management experience.
-It uses the [PhoneNumberKit](https://github.com/marmelroy/PhoneNumberKit) library for robust phone number validation and formatting.
+It uses the [PhoneNumberKit](https://github.com/PhoneNumberKit/PhoneNumberKit) library for robust phone number validation and formatting.
 
 ## Setup
 

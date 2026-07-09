@@ -30,6 +30,9 @@ let optionalPackageTraits = [textualTrait, mlxTrait, researchKitTrait]
 let defaultEnabledTraits: Set<String> = Context.environment["SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS"] == "1"
     ? Set(optionalPackageTraits)
     : []
+// Compile/test builds can exclude DocC catalogs to avoid SwiftPM unhandled-file warnings.
+// Documentation builds keep them included so DocC can resolve articles and assets.
+let excludeDocCCatalogs = Context.environment["SPEZI_EXCLUDE_DOCC_CATALOGS"] == "1"
 let packagePlatforms: [SupportedPlatform] = [
     .iOS(.v15),
     .macOS(.v12),
@@ -59,6 +62,7 @@ func testTargetExcludes(_ targetName: String, additional: [String] = []) -> [Str
 func reusableExcludes(in targetPath: String, additional: [String] = []) -> [String] {
     let existingAdditionalExcludes = existingExcludes(in: targetPath, matching: additional)
     let excludes = existingExcludes(in: targetPath, matching: reusableTargetExcludes)
+        + doccCatalogExcludes(in: targetPath, skipping: existingAdditionalExcludes)
         + licenseExcludes(in: targetPath, skipping: existingAdditionalExcludes)
         + existingAdditionalExcludes
 
@@ -72,6 +76,22 @@ func existingExcludes(in targetPath: String, matching candidates: [String]) -> [
 }
 
 func licenseExcludes(in targetPath: String, skipping skippedExcludes: [String]) -> [String] {
+    matchingFiles(in: targetPath, skipping: skippedExcludes) { relativePath in
+        relativePath.hasSuffix(".license")
+    }
+}
+
+func doccCatalogExcludes(in targetPath: String, skipping skippedExcludes: [String]) -> [String] {
+    guard excludeDocCCatalogs else {
+        return []
+    }
+
+    return matchingFiles(in: targetPath, skipping: skippedExcludes) { relativePath in
+        relativePath.hasSuffix(".docc")
+    }
+}
+
+func matchingFiles(in targetPath: String, skipping skippedExcludes: [String], where matches: (String) -> Bool) -> [String] {
     let targetDirectory = packageDirectory.appendingPathComponent(targetPath, isDirectory: true)
     guard let enumerator = FileManager.default.enumerator(atPath: targetDirectory.path) else {
         return []
@@ -84,8 +104,9 @@ func licenseExcludes(in targetPath: String, skipping skippedExcludes: [String]) 
             continue
         }
 
-        if relativePath.hasSuffix(".license") {
+        if matches(relativePath) {
             excludes.append(relativePath)
+            enumerator.skipDescendants()
         }
     }
     return excludes.sorted()
@@ -95,7 +116,7 @@ var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/antlr/antlr4.git", from: "4.13.1"),
     .package(url: "https://github.com/apple/FHIRModels.git", .upToNextMinor(from: "0.8.0")),
     .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "12.1.0"),
-    .package(url: "https://github.com/marmelroy/PhoneNumberKit.git", from: "4.1.0"),
+    .package(url: "https://github.com/PhoneNumberKit/PhoneNumberKit.git", from: "5.0.0"),
     .package(url: "https://github.com/stephencelis/SQLite.swift.git", .upToNextMinor(from: "0.16.0")),
     .package(url: "https://github.com/apple/swift-algorithms.git", from: "1.2.1"),
     .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.6.1"),
@@ -275,6 +296,7 @@ var targets: [Target] = [
         dependencies: [
             .product(name: "ModelsR4", package: "FHIRModels")
         ],
+        exclude: targetExcludes("FHIRQuestionnaires"),
         resources: [
             .process("Resources")
         ],
@@ -396,6 +418,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "Spezi")
         ],
+        exclude: targetExcludes("SpeziTesting"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -501,6 +524,7 @@ var targets: [Target] = [
             .target(name: "SpeziAccount"),
             .target(name: "XCTestExtensions")
         ],
+        exclude: targetExcludes("XCTSpeziAccount"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -577,6 +601,7 @@ var targets: [Target] = [
             .target(name: "ByteCoding"),
             .target(name: "SpeziNumerics")
         ],
+        exclude: targetExcludes("SpeziBluetoothServices"),
         plugins: [] + defaultPlugins
     ),
     .executableTarget(
@@ -586,6 +611,7 @@ var targets: [Target] = [
             .target(name: "SpeziBluetoothServices"),
             .target(name: "ByteCoding")
         ],
+        exclude: targetExcludes("TestPeripheral"),
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -828,6 +854,7 @@ var targets: [Target] = [
             .target(name: "ByteCoding"),
             .target(name: "SpeziNumerics")
         ],
+        exclude: targetExcludes("EDFFormat"),
         swiftSettings: [
             .enableExperimentalFeature("StrictConcurrency")
         ],
@@ -874,6 +901,7 @@ var targets: [Target] = [
             .target(name: "Spezi"),
             .product(name: "FirebaseFirestore", package: "firebase-ios-sdk")
         ],
+        exclude: targetExcludes("SpeziFirebaseConfiguration"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -900,6 +928,7 @@ var targets: [Target] = [
             .target(name: "Spezi"),
             .product(name: "FirebaseStorage", package: "firebase-ios-sdk")
         ],
+        exclude: targetExcludes("SpeziFirebaseStorage"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -913,6 +942,7 @@ var targets: [Target] = [
             .target(name: "SpeziAccount"),
             .target(name: "SpeziFirestore")
         ],
+        exclude: targetExcludes("SpeziFirebaseAccountStorage"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -1072,6 +1102,7 @@ var targets: [Target] = [
             .target(name: "SpeziFoundation"),
             .target(name: "SpeziLocalStorage", condition: .when(platforms: [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS]))
         ],
+        exclude: targetExcludes("SpeziHealthKitBulkExport"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny"),
             .enableUpcomingFeature("InternalImportsByDefault")
@@ -1084,6 +1115,7 @@ var targets: [Target] = [
             .target(name: "SpeziHealthKit"),
             .target(name: "SpeziFoundation")
         ],
+        exclude: targetExcludes("SpeziHealthKitUI"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny"),
             .enableUpcomingFeature("InternalImportsByDefault")
@@ -1213,6 +1245,7 @@ var targets: [Target] = [
             .target(name: "SpeziLLMOpenAI"),
             .target(name: "SpeziKeychainStorage")
         ],
+        exclude: targetExcludes("SpeziLLMAnthropic"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -1224,6 +1257,7 @@ var targets: [Target] = [
             .target(name: "SpeziLLMOpenAI"),
             .target(name: "SpeziKeychainStorage")
         ],
+        exclude: targetExcludes("SpeziLLMGemini"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -1343,6 +1377,7 @@ var targets: [Target] = [
             .product(name: "NIOCore", package: "swift-nio"),
             .product(name: "NIOFoundationCompat", package: "swift-nio")
         ],
+        exclude: targetExcludes("ByteCoding"),
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1351,6 +1386,7 @@ var targets: [Target] = [
             .target(name: "ByteCoding"),
             .product(name: "NIOCore", package: "swift-nio")
         ],
+        exclude: targetExcludes("SpeziNumerics"),
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1358,6 +1394,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "ByteCoding")
         ],
+        exclude: targetExcludes("ByteCodingTesting"),
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1365,6 +1402,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "ByteCoding")
         ],
+        exclude: targetExcludes("XCTByteCoding"),
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1402,6 +1440,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "SpeziNotifications")
         ],
+        exclude: targetExcludes("XCTSpeziNotifications"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -1501,6 +1540,7 @@ var targets: [Target] = [
             .product(name: "Algorithms", package: "swift-algorithms"),
             .target(name: "SpeziFoundation")
         ],
+        exclude: targetExcludes("SpeziQuestionnaireFHIR"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny"),
             .enableUpcomingFeature("InternalImportsByDefault")
@@ -1609,6 +1649,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "Spezi")
         ],
+        exclude: targetExcludes("SpeziSpeechRecognizer"),
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1616,6 +1657,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "Spezi")
         ],
+        exclude: targetExcludes("SpeziSpeechSynthesizer"),
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1639,6 +1681,7 @@ var targets: [Target] = [
             .target(name: "Spezi"),
             .target(name: "RuntimeAssertions")
         ],
+        exclude: targetExcludes("SpeziKeychainStorage"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -1651,6 +1694,7 @@ var targets: [Target] = [
             .target(name: "SpeziFoundation"),
             .target(name: "SpeziKeychainStorage")
         ],
+        exclude: targetExcludes("SpeziLocalStorage"),
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -1795,6 +1839,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "RuntimeAssertions")
         ],
+        exclude: targetExcludes("RuntimeAssertionsTesting"),
         swiftSettings: [
             .swiftLanguageMode(.v5)
         ],
@@ -1805,6 +1850,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "RuntimeAssertions")
         ],
+        exclude: targetExcludes("XCTRuntimeAssertions"),
         swiftSettings: [
             .swiftLanguageMode(.v5)
         ],
@@ -1834,6 +1880,7 @@ var targets: [Target] = [
     // MARK: XCTestExtensions
     .target(
         name: "XCTestApp",
+        exclude: targetExcludes("XCTestApp"),
         plugins: [] + defaultPlugins
     ),
     .target(
