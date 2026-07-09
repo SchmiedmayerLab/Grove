@@ -299,10 +299,24 @@ extension XCUIElement {
             #if os(visionOS)
             XCTAssert(app.visionOSKeyboard.wait(for: .runningForeground, timeout: 2.0))
             #elseif !os(macOS) && !targetEnvironment(macCatalyst)
-            XCTAssert(app.keyboards.firstMatch.waitForExistence(timeout: 5.0))
+            XCTAssert(waitForKeyboardOrFocus(in: app))
             #endif
         }
         // With latest simulator releases it seems like the "swift to type" tutorial isn't popping up anymore.
         // For more information see https://developer.apple.com/forums/thread/650826.
     }
+
+    #if !os(macOS) && !targetEnvironment(macCatalyst)
+    private func waitForKeyboardOrFocus(in app: XCUIApplication, timeout: TimeInterval = 5.0) -> Bool {
+        if app.keyboards.firstMatch.waitForExistence(timeout: timeout) {
+            return true
+        }
+
+        let focusExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "hasKeyboardFocus == YES"),
+            object: self
+        )
+        return XCTWaiter.wait(for: [focusExpectation], timeout: 1.0) == .completed
+    }
+    #endif
 }

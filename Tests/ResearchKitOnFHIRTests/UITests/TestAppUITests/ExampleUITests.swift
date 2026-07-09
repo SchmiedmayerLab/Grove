@@ -20,6 +20,21 @@ final class ExampleUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    private func tapContextMenuItem(
+        _ item: String,
+        for button: XCUIElement,
+        in app: XCUIApplication,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssert(button.waitForExistence(timeout: 5.0), file: file, line: line)
+        button.press(forDuration: 1.0)
+
+        let menuItem = app.collectionViews.buttons[item]
+        XCTAssert(menuItem.waitForExistence(timeout: 5.0), file: file, line: line)
+        menuItem.tap()
+    }
+
     // MARK: UI Tests for Example Questionnaires
 
     @MainActor
@@ -30,8 +45,7 @@ final class ExampleUITests: XCTestCase {
         let skipLogicExampleButton = app.collectionViews.buttons["Skip Logic Example"]
         
         // Open context menu and view JSON
-        skipLogicExampleButton.press(forDuration: 1.0)
-        app.collectionViews.buttons["View JSON"].tap()
+        tapContextMenuItem("View JSON", for: skipLogicExampleButton, in: app)
         app.swipeDown(velocity: XCUIGestureVelocity.fast)
     }
 
@@ -67,8 +81,7 @@ final class ExampleUITests: XCTestCase {
         app.buttons["Done"].tap()
         
         // Open context menu and view results
-        skipLogicExampleButton.press(forDuration: 1.0)
-        app.collectionViews.buttons["View Responses"].tap()
+        tapContextMenuItem("View Responses", for: skipLogicExampleButton, in: app)
         
         let buttonsInResultView = app.collectionViews.allElementsBoundByIndex[1].buttons
         XCTAssertEqual(buttonsInResultView.count, 2)
@@ -142,8 +155,7 @@ final class ExampleUITests: XCTestCase {
         // Open context menu and view results
         sleep(1)
         XCTAssert(containedValueSetExampleButton.waitForExistence(timeout: 2))
-        containedValueSetExampleButton.press(forDuration: 1.0)
-        app.collectionViews.buttons["View Responses"].tap()
+        tapContextMenuItem("View Responses", for: containedValueSetExampleButton, in: app)
 
         // Check results
         let buttonsInResultView = app.collectionViews.allElementsBoundByIndex[1].buttons
@@ -189,10 +201,7 @@ final class ExampleUITests: XCTestCase {
         app.buttons["Done"].tap()
 
         // Open context menu and view results
-        numberExampleButton.press(forDuration: 1.0)
-        let viewResponsesButton = app.collectionViews.buttons["View Responses"]
-        XCTAssert(viewResponsesButton.waitForExistence(timeout: 5))
-        viewResponsesButton.tap()
+        tapContextMenuItem("View Responses", for: numberExampleButton, in: app)
 
         // Check results
         let buttonsInResultView = app.collectionViews.allElementsBoundByIndex[1].buttons
@@ -226,8 +235,7 @@ final class ExampleUITests: XCTestCase {
         app.buttons["Done"].tap()
 
         // Open context menu and view results
-        textValidationExampleButton.press(forDuration: 1.0)
-        app.collectionViews.buttons["View Responses"].tap()
+        tapContextMenuItem("View Responses", for: textValidationExampleButton, in: app)
 
         // Check results
         let buttonsInResultView = app.collectionViews.allElementsBoundByIndex[1].buttons
@@ -283,11 +291,7 @@ final class ExampleUITests: XCTestCase {
 
         // Open context menu and view results
         XCTAssert(dateTimeExampleButton.waitForExistence(timeout: 2))
-        dateTimeExampleButton.press(forDuration: 1.0)
-        
-        let viewReponsesButton = app.collectionViews.buttons["View Responses"]
-        XCTAssert(viewReponsesButton.waitForExistence(timeout: 2))
-        viewReponsesButton.tap()
+        tapContextMenuItem("View Responses", for: dateTimeExampleButton, in: app)
 
         // Check results
         sleep(1)
@@ -395,8 +399,7 @@ final class ExampleUITests: XCTestCase {
         app.buttons["Done"].tap()
 
         // Open context menu and view results
-        formExampleButton.press(forDuration: 1.0)
-        app.collectionViews.buttons["View Responses"].tap()
+        tapContextMenuItem("View Responses", for: formExampleButton, in: app)
 
         // Check results
         let buttonsInResultView = app.collectionViews.allElementsBoundByIndex[1].buttons

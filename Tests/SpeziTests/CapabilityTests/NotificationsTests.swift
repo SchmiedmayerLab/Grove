@@ -106,22 +106,11 @@ struct NotificationsTests {
 
         let action = module.registerRemoteNotifications
 
-        async let registration = action()
-        try await Task.sleep(for: .milliseconds(750)) // allow dispatch of Task above
-
         let data = try #require("Hello World".data(using: .utf8))
+        async let registrationCallback: Void = deliverSuccessfulRegistration(using: delegate, data: data)
 
-#if os(iOS) || os(visionOS) || os(tvOS)
-        delegate.application(UIApplication.shared, didRegisterForRemoteNotificationsWithDeviceToken: data)
-#elseif os(watchOS)
-        delegate.application(WKApplication.shared(), didRegisterForRemoteNotificationsWithDeviceToken: data)
-#elseif os(macOS)
-        delegate.application(NSApplication.shared, didRegisterForRemoteNotificationsWithDeviceToken: data)
-#endif
-
-        try await Task.sleep(for: .milliseconds(750)) // allow dispatch of Task above
-
-        _ = try await registration
+        _ = try await action()
+        try await registrationCallback
         #expect(module.lastDeviceToken == data)
     }
 
@@ -138,24 +127,14 @@ struct NotificationsTests {
 
         let action = module.registerRemoteNotifications
 
-        async let registration = action()
-
-        try await Task.sleep(for: .milliseconds(500)) // allow dispatch of Task above
-
-#if os(iOS) || os(visionOS) || os(tvOS)
-        delegate.application(UIApplication.shared, didFailToRegisterForRemoteNotificationsWithError: TestError.testError)
-#elseif os(watchOS)
-        delegate.application(WKApplication.shared(), didFailToRegisterForRemoteNotificationsWithError: TestError.testError)
-#elseif os(macOS)
-        delegate.application(NSApplication.shared, didFailToRegisterForRemoteNotificationsWithError: TestError.testError)
-#endif
-
-        try await Task.sleep(for: .milliseconds(500)) // allow dispatch of Task above
+        async let registrationCallback: Void = deliverFailedRegistration(using: delegate, error: TestError.testError)
 
         do {
-            _ = try await registration
+            _ = try await action()
+            try await registrationCallback
             Issue.record("Registration was successful")
         } catch {
+            try await registrationCallback
             #expect(module.lastDeviceToken == nil)
             let receivedError = try #require(error as? TestError)
             #expect(receivedError == TestError.testError)
@@ -171,6 +150,36 @@ struct NotificationsTests {
 
         let action = module.unregisterRemoteNotifications
         action()
+    }
+
+    private func deliverSuccessfulRegistration(
+        using delegate: TestNotificationApplicationDelegate,
+        data: Data
+    ) async throws {
+        try await Task.sleep(for: .milliseconds(750))
+
+#if os(iOS) || os(visionOS) || os(tvOS)
+        delegate.application(UIApplication.shared, didRegisterForRemoteNotificationsWithDeviceToken: data)
+#elseif os(watchOS)
+        delegate.application(WKApplication.shared(), didRegisterForRemoteNotificationsWithDeviceToken: data)
+#elseif os(macOS)
+        delegate.application(NSApplication.shared, didRegisterForRemoteNotificationsWithDeviceToken: data)
+#endif
+    }
+
+    private func deliverFailedRegistration(
+        using delegate: TestNotificationApplicationDelegate,
+        error: any Error
+    ) async throws {
+        try await Task.sleep(for: .milliseconds(500))
+
+#if os(iOS) || os(visionOS) || os(tvOS)
+        delegate.application(UIApplication.shared, didFailToRegisterForRemoteNotificationsWithError: error)
+#elseif os(watchOS)
+        delegate.application(WKApplication.shared(), didFailToRegisterForRemoteNotificationsWithError: error)
+#elseif os(macOS)
+        delegate.application(NSApplication.shared, didFailToRegisterForRemoteNotificationsWithError: error)
+#endif
     }
 
     @Test("Remote Notification delivers no Data")
