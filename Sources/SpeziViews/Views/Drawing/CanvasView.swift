@@ -145,7 +145,7 @@ public struct CanvasView: View {
 
 
 extension CanvasView {
-    private struct Impl: UIViewRepresentable {
+    fileprivate struct Impl: UIViewRepresentable {
         final class Coordinator: NSObject, PKCanvasViewDelegate, PKToolPickerObserver {
             let parent: Impl
             
@@ -220,42 +220,6 @@ extension CanvasView {
             self.synchronizesToolPicker = synchronizesToolPicker
         }
 
-        @available(iOS 18.0, visionOS 2.0, *)
-        private static func toolPickerItem(for tool: any PKTool) -> PKToolPickerItem? {
-            if let tool = tool as? PKInkingTool {
-                if #available(iOS 26.0, visionOS 26.0, *) {
-                    return PKToolPickerInkingItem(
-                        type: tool.inkType,
-                        color: tool.color,
-                        width: tool.width,
-                        azimuth: tool.azimuth
-                    )
-                }
-                return PKToolPickerInkingItem(type: tool.inkType, color: tool.color, width: tool.width)
-            } else if let tool = tool as? PKEraserTool {
-                return PKToolPickerEraserItem(type: tool.eraserType, width: tool.width)
-            } else if tool is PKLassoTool {
-                return PKToolPickerLassoItem()
-            } else {
-                return nil
-            }
-        }
-
-        @available(iOS 18.0, visionOS 2.0, *)
-        private static func tool(from item: PKToolPickerItem) -> (any PKTool)? {
-            if #available(iOS 26.0, visionOS 26.0, *), let tool = item.tool {
-                return tool
-            } else if let item = item as? PKToolPickerInkingItem {
-                return item.inkingTool
-            } else if let item = item as? PKToolPickerEraserItem {
-                return item.eraserTool
-            } else if let item = item as? PKToolPickerLassoItem {
-                return item.lassoTool
-            } else {
-                return nil
-            }
-        }
-
         private static func toolsMatch(_ lhs: any PKTool, _ rhs: any PKTool) -> Bool {
             guard let lhs = lhs as? any Equatable,
                   let rhs = rhs as? any Equatable else {
@@ -313,6 +277,44 @@ extension CanvasView {
                 }
                 toolPicker.selectedTool = tool
             }
+        }
+    }
+}
+
+
+@available(iOS 18.0, visionOS 2.0, *)
+extension CanvasView.Impl {
+    private static func toolPickerItem(for tool: any PKTool) -> PKToolPickerItem? {
+        if let tool = tool as? PKInkingTool {
+            if #available(iOS 26.0, visionOS 26.0, *) {
+                return PKToolPickerInkingItem(
+                    type: tool.inkType,
+                    color: tool.color,
+                    width: tool.width,
+                    azimuth: tool.azimuth
+                )
+            }
+            return PKToolPickerInkingItem(type: tool.inkType, color: tool.color, width: tool.width)
+        } else if let tool = tool as? PKEraserTool {
+            return PKToolPickerEraserItem(type: tool.eraserType, width: tool.width)
+        } else if tool is PKLassoTool {
+            return PKToolPickerLassoItem()
+        } else {
+            return nil
+        }
+    }
+
+    private static func tool(from item: PKToolPickerItem) -> (any PKTool)? {
+        if #available(iOS 26.0, visionOS 26.0, *), let tool = item.tool {
+            return tool
+        } else if let item = item as? PKToolPickerInkingItem {
+            return item.inkingTool
+        } else if let item = item as? PKToolPickerEraserItem {
+            return item.eraserTool
+        } else if let item = item as? PKToolPickerLassoItem {
+            return item.lassoTool
+        } else {
+            return nil
         }
     }
 }
