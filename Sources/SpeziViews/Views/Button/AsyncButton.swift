@@ -11,6 +11,12 @@
 import SwiftUI
 
 
+private enum AsyncButtonGroupResult {
+    case debounce(showProcessing: Bool)
+    case result(Result<Void, any Error>)
+}
+
+
 /// A SwiftUI `Button` that initiates an asynchronous (throwing) action.
 ///
 /// The `AsyncButton` closely works together with the ``ViewState`` to control processing and error states.
@@ -260,20 +266,7 @@ public struct AsyncButton<Label: View>: View {
         withAnimation(.easeOut(duration: 0.2)) {
             viewState = .processing
         }
-        let debounceTask = Task { @MainActor in
-            await debounceProcessingIndicator()
-        }
-        defer {
-            debounceTask.cancel()
-        }
-        let result: Result<Void, any Error>
-        do {
-            result = .success(try await action())
-        } catch {
-            result = .failure(error)
-        }
-        debounceTask.cancel()
-        await debounceTask.value
+        let result = await executeDebouncedAction(action)
 
         switch result {
         case .success:
@@ -291,14 +284,42 @@ public struct AsyncButton<Label: View>: View {
         }
     }
 
-    private func debounceProcessingIndicator() async {
-        try? await Task.sleep(for: processingDebounceDuration)
-        // this is actually important to catch cases where the action runs a tiny bit faster than the debounce timer
-        guard !Task.isCancelled else {
-            return
-        }
-        withAnimation(.easeOut(duration: 0.2)) {
-            buttonState = .disabledAndProcessing
+    private func executeDebouncedAction(
+        _ action: @MainActor @escaping () async throws -> Void
+    ) async -> Result<Void, any Error> {
+        let processingDebounceDuration = processingDebounceDuration
+        return await withTaskGroup(of: AsyncButtonGroupResult.self) { group in
+            group.addTask {
+                try? await Task.sleep(for: processingDebounceDuration)
+                return .debounce(showProcessing: !Task.isCancelled)
+            }
+            group.addTask {
+                do {
+                    return .result(.success(try await action()))
+                } catch {
+                    return .result(.failure(error))
+                }
+            }
+            guard let first = await group.next() else {
+                fatalError("Unexpected TaskGroup state.")
+            }
+            if case .result = first {
+                group.cancelAll()
+            }
+            if case .debounce(showProcessing: true) = first {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    buttonState = .disabledAndProcessing
+                }
+            }
+            guard let second = await group.next() else {
+                fatalError("Unexpected TaskGroup state.")
+            }
+            switch (first, second) {
+            case (let .result(result), .debounce(_)), (.debounce(_), let .result(result)):
+                return result
+            case (.debounce(_), .debounce(_)), (.result, .result):
+                fatalError("TaskGroup inconsistency.")
+            }
         }
     }
 }

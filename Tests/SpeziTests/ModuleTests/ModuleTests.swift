@@ -7,6 +7,9 @@
 //
 
 @_spi(APISupport) @testable import Spezi
+#if canImport(Observation) && canImport(SwiftUI)
+import Observation
+#endif
 import SpeziTesting
 #if canImport(SwiftUI)
 import SwiftUI
@@ -54,6 +57,24 @@ struct ModuleTests {
         #expect(modules.contains(where: { $0 is DependingTestModule }))
         #expect(modules.contains(where: { $0 is TestModule }))
     }
+
+#if canImport(Observation) && canImport(SwiftUI)
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
+    @Test("Storage Mutations Remain Observable")
+    func storageMutationsRemainObservable() async {
+        let spezi = Spezi(standard: DefaultStandard(), modules: [])
+        let observation = TestExpectation()
+
+        withObservationTracking {
+            _ = spezi.modules
+        } onChange: {
+            observation.fulfill()
+        }
+
+        spezi.loadModule(TestModule())
+        await observation.fulfillment(within: .seconds(1))
+    }
+#endif
 
 #if canImport(SwiftUI)
     @Test("Preview Modifier")

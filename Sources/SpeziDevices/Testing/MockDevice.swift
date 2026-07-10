@@ -60,8 +60,8 @@ public final class MockDevice: PairableDevice, HealthDevice, BatteryPoweredDevic
     fileprivate func handleStateChange(_ state: PeripheralState) {
         if isInPairingMode { // automatically respond to pairing event
             if case .connected = state {
-                _ = Task { @MainActor in
-                    try await Task.sleep(for: .seconds(2))
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(2))
 
                     guard case .connected = self.state else {
                         return

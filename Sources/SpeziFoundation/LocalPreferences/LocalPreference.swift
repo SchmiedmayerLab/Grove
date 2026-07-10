@@ -133,7 +133,8 @@ private final class UserDefaultsKeyObserver<T: SendableMetatype>: NSObject, Send
 
     private let lock = RWLock()
     @ObservationIgnored nonisolated(unsafe) private var state: State?
-    // https://github.com/swiftlang/swift/issues/81962
+    // Work around https://github.com/swiftlang/swift/issues/81962 by keeping the backing storage out of macro expansion
+    // while explicitly preserving observation tracking.
     @ObservationIgnored nonisolated(unsafe) private var _viewUpdate: UInt64 = 0
     nonisolated var viewUpdate: UInt64 {
         access(keyPath: \.viewUpdate)

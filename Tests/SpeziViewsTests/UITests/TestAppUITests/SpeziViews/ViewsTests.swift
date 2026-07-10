@@ -141,6 +141,7 @@ final class ViewsTests: XCTestCase {
         XCTAssert(app.activityIndicators.firstMatch.waitForNonExistence(timeout: 4))
     }
 
+    @MainActor
     private func tappableElement(named name: String, in app: XCUIApplication, timeout: TimeInterval = 2) -> XCUIElement {
         let button = app.buttons[name]
         if button.waitForExistence(timeout: timeout) {

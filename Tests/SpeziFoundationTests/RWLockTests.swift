@@ -46,8 +46,8 @@ final class RWLockTests: XCTestCase {
             }
         }
 
-        _ = Task.detached {
-            try await Task.sleep(for: .milliseconds(100))
+        Task.detached {
+            try? await Task.sleep(for: .milliseconds(100))
             lock.withWriteLock {
                 expectation2.fulfill()
             }
@@ -69,8 +69,8 @@ final class RWLockTests: XCTestCase {
             }
         }
 
-        _ = Task.detached {
-            try await Task.sleep(for: .milliseconds(100))
+        Task.detached {
+            try? await Task.sleep(for: .milliseconds(100))
             lock.withReadLock {
                 expectation2.fulfill()
             }
@@ -163,8 +163,8 @@ final class RWLockTests: XCTestCase {
             }
         }
 
-        _ = Task.detached {
-            try await Task.sleep(for: .milliseconds(100))
+        Task.detached {
+            try? await Task.sleep(for: .milliseconds(100))
             lock.withWriteLock {
                 expectation2.fulfill()
             }
@@ -186,8 +186,8 @@ final class RWLockTests: XCTestCase {
             }
         }
 
-        _ = Task.detached {
-            try await Task.sleep(for: .milliseconds(100))
+        Task.detached {
+            try? await Task.sleep(for: .milliseconds(100))
             lock.withReadLock {
                 expectation2.fulfill()
             }

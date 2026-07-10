@@ -196,7 +196,7 @@ public final class InMemoryAccountService: AccountService {
 
     public func configure() {
         let subscription = externalStorage.updatedDetails
-        _ = Task { [weak self] in
+        Task { [weak self] in
             for await updatedDetails in subscription {
                 guard let self else {
                     return
@@ -207,7 +207,11 @@ public final class InMemoryAccountService: AccountService {
                     continue
                 }
 
-                try await access.waitCheckingCancellation()
+                do {
+                    try await access.waitCheckingCancellation()
+                } catch {
+                    return
+                }
                 var details = _buildUser(from: storage, isNew: false)
                 details.add(contentsOf: updatedDetails.details)
                 account.supplyUserDetails(details)

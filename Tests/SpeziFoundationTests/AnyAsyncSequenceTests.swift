@@ -20,12 +20,18 @@ struct AnyAsyncSequenceTests {
         interval: Duration = .seconds(0.01)
     ) -> AsyncStream<T> where T: Strideable, T.Stride: SignedInteger {
         let (stream, continuation) = AsyncStream.makeStream(of: T.self)
-        _ = Task {
-            for element in range {
-                try await Task.sleep(for: interval)
-                continuation.yield(element)
+        Task {
+            defer {
+                continuation.finish()
             }
-            continuation.finish()
+            do {
+                for element in range {
+                    try await Task.sleep(for: interval)
+                    continuation.yield(element)
+                }
+            } catch {
+                return
+            }
         }
         return stream
     }

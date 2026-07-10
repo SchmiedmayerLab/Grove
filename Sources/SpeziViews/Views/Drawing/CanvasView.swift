@@ -257,15 +257,11 @@ extension CanvasView {
         }
 
         private static func toolsMatch(_ lhs: any PKTool, _ rhs: any PKTool) -> Bool {
-            if let lhs = lhs as? PKInkingTool, let rhs = rhs as? PKInkingTool {
-                lhs == rhs
-            } else if let lhs = lhs as? PKEraserTool, let rhs = rhs as? PKEraserTool {
-                lhs == rhs
-            } else if let lhs = lhs as? PKLassoTool, let rhs = rhs as? PKLassoTool {
-                lhs == rhs
-            } else {
-                false
+            guard let lhs = lhs as? any Equatable,
+                  let rhs = rhs as? any Equatable else {
+                return false
             }
+            return lhs.isEqual(rhs)
         }
         
         func makeUIView(context: Context) -> PKCanvasView {

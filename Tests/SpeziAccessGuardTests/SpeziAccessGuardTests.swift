@@ -12,13 +12,6 @@ import Observation
 import SwiftUI
 import Testing
 
-
-@Test("Spezi Access Guard Works")
-func speziAccessGuardWorks() throws {
-    #expect(Bool(true))
-}
-
-
 #if os(iOS)
 @Test("AccessGuards observes scene lifecycle notifications")
 @MainActor
