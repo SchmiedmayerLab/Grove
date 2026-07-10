@@ -85,7 +85,7 @@ final class CharacteristicAccesses: Sendable {
 
     private func perform<Value>(
         for characteristic: CBCharacteristic,
-        returning value: Value.Type,
+        returning _: Value.Type,
         action: () -> Void,
         mapping: (CheckedContinuation<Value, Error>) -> CharacteristicAccess.Access
     ) async throws -> Value {
