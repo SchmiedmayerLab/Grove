@@ -110,7 +110,11 @@ enum SpeziViewsTests: String, TestAppTests {
                 }
             }
         case .managedViewUpdate:
-            ManagedViewStateTests()
+            if #available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *) {
+                ManagedViewStateTests()
+            } else {
+                EmptyView()
+            }
         case .caseIterablePicker:
             CaseIterablePickerTests()
         #if !os(tvOS)

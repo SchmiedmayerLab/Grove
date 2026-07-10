@@ -8,14 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		2F68C3C8292EA52000B3E12C /* SpeziNotifications in Frameworks */ = {isa = PBXBuildFile; productRef = 2F68C3C7292EA52000B3E12C /* SpeziNotifications */; };
-		2F6D139A28F5F386007C25D6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2F6D139928F5F386007C25D6 /* Assets.xcassets */; };
-		2F8A431329130A8C005D2B8F /* RemoteNotificationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F8A431229130A8C005D2B8F /* RemoteNotificationsTests.swift */; };
-		2FA7382C290ADFAA007ACEB9 /* TestApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FA7382B290ADFAA007ACEB9 /* TestApp.swift */; };
-		A902FE552CAAB75800C80383 /* TestAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A902FE542CAAB75800C80383 /* TestAppDelegate.swift */; };
-		A902FE572CAAC04300C80383 /* PendingNotificationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A902FE562CAAC03800C80383 /* PendingNotificationsTests.swift */; };
 		A95C45EB2CAAB34600EBB08D /* XCTSpeziNotificationsUI in Frameworks */ = {isa = PBXBuildFile; productRef = A95C45EA2CAAB34600EBB08D /* XCTSpeziNotificationsUI */; };
-		A9E0315E2CAAA8F600E13BD9 /* ControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9E0315D2CAAA8F400E13BD9 /* ControlsView.swift */; };
-		A9E031602CAAAA9F00E13BD9 /* NotificationAuthorizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9E0315F2CAAAA8B00E13BD9 /* NotificationAuthorizationTests.swift */; };
 		A9E031662CAAACF900E13BD9 /* XCTestExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = A9E031652CAAACF900E13BD9 /* XCTestExtensions */; };
 		A9E031682CAAAF6800E13BD9 /* XCTSpeziNotifications in Frameworks */ = {isa = PBXBuildFile; productRef = A9E031672CAAAF6800E13BD9 /* XCTSpeziNotifications */; };
 /* End PBXBuildFile section */
@@ -46,17 +39,22 @@
 /* Begin PBXFileReference section */
 		2F68C3C6292E9F8F00B3E12C /* SpeziNotifications */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = SpeziNotifications; path = ../../..; sourceTree = "<group>"; };
 		2F6D139228F5F384007C25D6 /* TestApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TestApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		2F6D139928F5F386007C25D6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2F6D13AC28F5F386007C25D6 /* TestAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TestAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		2F8A431229130A8C005D2B8F /* RemoteNotificationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteNotificationsTests.swift; sourceTree = "<group>"; };
-		2FA7382B290ADFAA007ACEB9 /* TestApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestApp.swift; sourceTree = "<group>"; };
 		2FB0758A299DDB9000C0B37F /* TestApp.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestApp.xctestplan; sourceTree = "<group>"; };
-		A902FE542CAAB75800C80383 /* TestAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestAppDelegate.swift; sourceTree = "<group>"; };
-		A902FE562CAAC03800C80383 /* PendingNotificationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingNotificationsTests.swift; sourceTree = "<group>"; };
-		A902FE582CAAC63900C80383 /* TestApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TestApp.entitlements; sourceTree = "<group>"; };
-		A9E0315D2CAAA8F400E13BD9 /* ControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlsView.swift; sourceTree = "<group>"; };
-		A9E0315F2CAAAA8B00E13BD9 /* NotificationAuthorizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationAuthorizationTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		803841C33000D49000258C7C /* TestAppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TestAppUITests;
+			sourceTree = "<group>";
+		};
+		803841CF3000D4A400258C7C /* TestApp */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TestApp;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		2F6D138F28F5F384007C25D6 /* Frameworks */ = {
@@ -85,8 +83,8 @@
 			children = (
 				2FB0758A299DDB9000C0B37F /* TestApp.xctestplan */,
 				2F68C3C6292E9F8F00B3E12C /* SpeziNotifications */,
-				2F6D139428F5F384007C25D6 /* TestApp */,
-				2F6D13AF28F5F386007C25D6 /* TestAppUITests */,
+				803841CF3000D4A400258C7C /* TestApp */,
+				803841C33000D49000258C7C /* TestAppUITests */,
 				2F6D139328F5F384007C25D6 /* Products */,
 				2F6D13C228F5F3BE007C25D6 /* Frameworks */,
 			);
@@ -99,28 +97,6 @@
 				2F6D13AC28F5F386007C25D6 /* TestAppUITests.xctest */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		2F6D139428F5F384007C25D6 /* TestApp */ = {
-			isa = PBXGroup;
-			children = (
-				A902FE582CAAC63900C80383 /* TestApp.entitlements */,
-				A9E0315D2CAAA8F400E13BD9 /* ControlsView.swift */,
-				2FA7382B290ADFAA007ACEB9 /* TestApp.swift */,
-				A902FE542CAAB75800C80383 /* TestAppDelegate.swift */,
-				2F6D139928F5F386007C25D6 /* Assets.xcassets */,
-			);
-			path = TestApp;
-			sourceTree = "<group>";
-		};
-		2F6D13AF28F5F386007C25D6 /* TestAppUITests */ = {
-			isa = PBXGroup;
-			children = (
-				A902FE562CAAC03800C80383 /* PendingNotificationsTests.swift */,
-				A9E0315F2CAAAA8B00E13BD9 /* NotificationAuthorizationTests.swift */,
-				2F8A431229130A8C005D2B8F /* RemoteNotificationsTests.swift */,
-			);
-			path = TestAppUITests;
 			sourceTree = "<group>";
 		};
 		2F6D13C228F5F3BE007C25D6 /* Frameworks */ = {
@@ -146,6 +122,9 @@
 			);
 			dependencies = (
 			);
+			fileSystemSynchronizedGroups = (
+				803841CF3000D4A400258C7C /* TestApp */,
+			);
 			name = TestApp;
 			packageProductDependencies = (
 				2F68C3C7292EA52000B3E12C /* SpeziNotifications */,
@@ -167,6 +146,9 @@
 			);
 			dependencies = (
 				2F6D13AE28F5F386007C25D6 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				803841C33000D49000258C7C /* TestAppUITests */,
 			);
 			name = TestAppUITests;
 			productName = ExampleUITests;
@@ -216,7 +198,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2F6D139A28F5F386007C25D6 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -234,9 +215,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A9E0315E2CAAA8F600E13BD9 /* ControlsView.swift in Sources */,
-				2FA7382C290ADFAA007ACEB9 /* TestApp.swift in Sources */,
-				A902FE552CAAB75800C80383 /* TestAppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -244,9 +222,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A9E031602CAAAA9F00E13BD9 /* NotificationAuthorizationTests.swift in Sources */,
-				A902FE572CAAC04300C80383 /* PendingNotificationsTests.swift in Sources */,
-				2F8A431329130A8C005D2B8F /* RemoteNotificationsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

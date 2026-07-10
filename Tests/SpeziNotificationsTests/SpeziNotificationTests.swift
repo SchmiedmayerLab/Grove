@@ -96,28 +96,11 @@ private class TestNotificationApplicationDelegate: SpeziAppDelegate {
 
 final class NotificationsTests: XCTestCase {
     @MainActor
-    func testRegisterNotificationsSuccessful() async throws {
-        let module = TestNotificationHandler()
-        let delegate = TestNotificationApplicationDelegate(module)
-        _ = delegate.spezi // init spezi
-
-        let action = module.registerRemoteNotifications
-
-        let expectation = XCTestExpectation(description: "RegisterRemoteNotifications")
-        var caught: (any Error)?
-
-        Task { // this task also runs on main actor
-            do {
-                try await action()
-            } catch {
-                caught = error
-            }
-            expectation.fulfill()
-        }
-
-        try await Task.sleep(for: .milliseconds(500)) // allow dispatch of Task above
-
-        let data = Data("Hello World".utf8)
+    private static func deliverSuccessfulRegistration(
+        using delegate: TestNotificationApplicationDelegate,
+        data: Data
+    ) async throws {
+        try await Task.sleep(for: .milliseconds(750))
 
 #if os(iOS) || os(visionOS) || os(tvOS)
         delegate.application(UIApplication.shared, didRegisterForRemoteNotificationsWithDeviceToken: data)
@@ -126,11 +109,38 @@ final class NotificationsTests: XCTestCase {
 #elseif os(macOS)
         delegate.application(NSApplication.shared, didRegisterForRemoteNotificationsWithDeviceToken: data)
 #endif
+    }
 
-        try await Task.sleep(for: .milliseconds(500)) // allow dispatch of Task above
+    @MainActor
+    private static func deliverFailedRegistration(
+        using delegate: TestNotificationApplicationDelegate,
+        error: any Error
+    ) async throws {
+        try await Task.sleep(for: .milliseconds(500))
 
-        await fulfillment(of: [expectation])
-        XCTAssertNil(caught)
+#if os(iOS) || os(visionOS) || os(tvOS)
+        delegate.application(UIApplication.shared, didFailToRegisterForRemoteNotificationsWithError: error)
+#elseif os(watchOS)
+        delegate.application(WKApplication.shared(), didFailToRegisterForRemoteNotificationsWithError: error)
+#elseif os(macOS)
+        delegate.application(NSApplication.shared, didFailToRegisterForRemoteNotificationsWithError: error)
+#endif
+    }
+
+    @MainActor
+    func testRegisterNotificationsSuccessful() async throws {
+        let module = TestNotificationHandler()
+        let delegate = TestNotificationApplicationDelegate(module)
+        _ = delegate.spezi // init spezi
+
+        let action = module.registerRemoteNotifications
+
+        let data = Data("Hello World".utf8)
+        async let registrationCallback: Void = Self.deliverSuccessfulRegistration(using: delegate, data: data)
+
+        let deviceToken = try await action()
+        try await registrationCallback
+        XCTAssertEqual(deviceToken, data)
         XCTAssertEqual(module.lastDeviceToken, data)
     }
 
@@ -146,34 +156,18 @@ final class NotificationsTests: XCTestCase {
 
         let action = module.registerRemoteNotifications
 
-        let expectation = XCTestExpectation(description: "RegisterRemoteNotifications")
-        var caught: (any Error)?
+        async let registrationCallback: Void = Self.deliverFailedRegistration(using: delegate, error: TestError.testError)
 
-        Task { // this task also runs on main actor
-            do {
-                try await action()
-            } catch {
-                caught = error
-            }
-            expectation.fulfill()
+        do {
+            _ = try await action()
+            try await registrationCallback
+            XCTFail("Registration was successful")
+        } catch {
+            try await registrationCallback
+            XCTAssertNil(module.lastDeviceToken)
+            let receivedError = try XCTUnwrap(error as? TestError)
+            XCTAssertEqual(receivedError, TestError.testError)
         }
-
-        try await Task.sleep(for: .milliseconds(500)) // allow dispatch of Task above
-
-#if os(iOS) || os(visionOS) || os(tvOS)
-        delegate.application(UIApplication.shared, didFailToRegisterForRemoteNotificationsWithError: TestError.testError)
-#elseif os(watchOS)
-        delegate.application(WKApplication.shared(), didFailToRegisterForRemoteNotificationsWithError: TestError.testError)
-#elseif os(macOS)
-        delegate.application(NSApplication.shared, didFailToRegisterForRemoteNotificationsWithError: TestError.testError)
-#endif
-
-        try await Task.sleep(for: .milliseconds(500)) // allow dispatch of Task above
-
-        await fulfillment(of: [expectation])
-        XCTAssertNil(module.lastDeviceToken)
-        let receivedError = try XCTUnwrap(caught as? TestError)
-        XCTAssertEqual(receivedError, TestError.testError)
     }
 
     @MainActor

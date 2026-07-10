@@ -11,7 +11,7 @@ import SwiftUI
 import UserNotifications
 
 
-@available(iOS 16, *)
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, visionOS 1, *)
 extension UNNotificationTrigger {
     var type: LocalizedStringResource {
         if self is UNCalendarNotificationTrigger {

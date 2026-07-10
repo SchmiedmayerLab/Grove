@@ -17,19 +17,14 @@ struct CancelableChildTaskTests {
     func normalCompletion() async {
         await withDiscardingTaskGroup { group in
             await confirmation { confirmation in
+                let completed = AsyncStream<Void>.makeStream()
+                let completedContinuation = completed.continuation
                 let handle = group.addCancelableTask {
-                    do {
-                        try await Task.sleep(for: .milliseconds(250), tolerance: .nanoseconds(0))
-                    } catch {
-                        Issue.record(error, "Task.sleep unexpectedly failed")
-                    }
                     confirmation()
+                    completedContinuation.yield()
+                    completedContinuation.finish()
                 }
-                do {
-                    try await Task.sleep(for: .milliseconds(2000), tolerance: .nanoseconds(0))
-                } catch {
-                    Issue.record(error, "Task.sleep unexpectedly failed")
-                }
+                await waitForSignal(completed.stream)
                 handle.cancel()
             }
         }
@@ -40,18 +35,35 @@ struct CancelableChildTaskTests {
     func cancelation() async {
         await withDiscardingTaskGroup { group in
             await confirmation { confirmation in
+                let started = AsyncStream<Void>.makeStream()
+                let canceled = AsyncStream<Void>.makeStream()
+                let startedContinuation = started.continuation
+                let canceledContinuation = canceled.continuation
                 let handle = group.addCancelableTask {
+                    startedContinuation.yield()
+                    startedContinuation.finish()
                     do {
-                        try await Task.sleep(for: .milliseconds(350), tolerance: .nanoseconds(0))
+                        try await Task.sleep(for: .seconds(10), tolerance: .nanoseconds(0))
                         Issue.record("Task was not cancelled!")
-                    } catch {
+                    } catch is CancellationError {
                         confirmation()
+                    } catch {
+                        Issue.record(error, "Task.sleep unexpectedly failed")
                     }
+                    canceledContinuation.yield()
+                    canceledContinuation.finish()
                 }
-                try? await Task.sleep(for: .milliseconds(50), tolerance: .nanoseconds(0))
+                await waitForSignal(started.stream)
                 handle.cancel()
-                try? await Task.sleep(for: .milliseconds(1000), tolerance: .nanoseconds(0))
+                await waitForSignal(canceled.stream)
             }
         }
+    }
+
+    private func waitForSignal(_ stream: AsyncStream<Void>) async {
+        for await _ in stream {
+            return
+        }
+        Issue.record("Expected signal was not emitted.")
     }
 }
