@@ -15,6 +15,7 @@ struct CustomKey: EnvironmentKey {
 }
 
 @Observable
+@MainActor
 class MyModel2 {
     var message: String
 
@@ -30,8 +31,6 @@ private struct MyModifier2: ViewModifier {
     @Environment(ModuleWithModel.self)
     var module
 
-    nonisolated init() {}
-
     func body(content: Content) -> some View {
         content
             .environment(\.customKey, model.message == "Hello World" && module.message == "MODEL")
@@ -39,6 +38,7 @@ private struct MyModifier2: ViewModifier {
 }
 
 
+@MainActor
 class ModuleWithModel: Module, EnvironmentAccessible {
     @Application(\.launchOptions) private var launchOptions
 

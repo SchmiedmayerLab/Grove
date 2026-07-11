@@ -1884,18 +1884,12 @@ var targets: [Target] = [
             .target(name: "RuntimeAssertions"),
             .target(name: "RuntimeAssertionsTesting")
         ],
-        swiftSettings: [
-            .swiftLanguageMode(.v5)
-        ],
         plugins: [] + defaultPlugins
     ),
     .testTarget(
         name: "XCTRuntimeAssertionsTests",
         dependencies: [
             .target(name: "XCTRuntimeAssertions")
-        ],
-        swiftSettings: [
-            .swiftLanguageMode(.v5)
         ],
         plugins: [] + defaultPlugins
     ),
@@ -2057,5 +2051,6 @@ let package = Package(
         )
     ],
     dependencies: dependencies,
-    targets: targets
+    targets: targets,
+    swiftLanguageModes: [.v6]
 )
