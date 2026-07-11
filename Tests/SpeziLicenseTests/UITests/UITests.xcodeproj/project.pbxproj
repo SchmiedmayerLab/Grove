@@ -12,7 +12,7 @@
 		2FA7382C290ADFAA007ACEB9 /* TestApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FA7382B290ADFAA007ACEB9 /* TestApp.swift */; };
 		5673DB522BAC91A400162083 /* SpeziViews in Frameworks */ = {isa = PBXBuildFile; productRef = 5673DB512BAC91A400162083 /* SpeziViews */; };
 		56DF6C9F2BAC525A00ABE636 /* SpeziLicense in Frameworks */ = {isa = PBXBuildFile; productRef = 56DF6C9E2BAC525A00ABE636 /* SpeziLicense */; };
-		809338212FEC01D80037BEBF /* ThreadLocal in Frameworks */ = {isa = PBXBuildFile; productRef = 809338202FEC01D80037BEBF /* ThreadLocal */; };
+		809338212FEC01D80037BEBF /* libzstd in Frameworks */ = {isa = PBXBuildFile; productRef = 809338202FEC01D80037BEBF /* libzstd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -55,7 +55,7 @@
 			files = (
 				56DF6C9F2BAC525A00ABE636 /* SpeziLicense in Frameworks */,
 				5673DB522BAC91A400162083 /* SpeziViews in Frameworks */,
-				809338212FEC01D80037BEBF /* ThreadLocal in Frameworks */,
+				809338212FEC01D80037BEBF /* libzstd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -135,7 +135,7 @@
 			packageProductDependencies = (
 				56DF6C9E2BAC525A00ABE636 /* SpeziLicense */,
 				5673DB512BAC91A400162083 /* SpeziViews */,
-				809338202FEC01D80037BEBF /* ThreadLocal */,
+				809338202FEC01D80037BEBF /* libzstd */,
 			);
 			productName = Example;
 			productReference = 2F6D139228F5F384007C25D6 /* TestApp.app */;
@@ -190,7 +190,7 @@
 			mainGroup = 2F6D138928F5F384007C25D6;
 			packageReferences = (
 				5673DB462BAC90E800162083 /* XCRemoteSwiftPackageReference "swift-package-list" */,
-				8093381F2FEC01D80037BEBF /* XCRemoteSwiftPackageReference "ThreadLocal" */,
+				8093381F2FEC01D80037BEBF /* XCRemoteSwiftPackageReference "zstd" */,
 			);
 			productRefGroup = 2F6D139328F5F384007C25D6 /* Products */;
 			projectDirPath = "";
@@ -665,12 +665,12 @@
 				minimumVersion = 4.1.0;
 			};
 		};
-		8093381F2FEC01D80037BEBF /* XCRemoteSwiftPackageReference "ThreadLocal" */ = {
+		8093381F2FEC01D80037BEBF /* XCRemoteSwiftPackageReference "zstd" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/SchmiedmayerLab/ThreadLocal.git";
+			repositoryURL = "https://github.com/SchmiedmayerLab/zstd.git";
 			requirement = {
-				kind = upToNextMinorVersion;
-				minimumVersion = 0.1.4;
+				kind = exactVersion;
+				version = "1.5.8-beta.1";
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -689,10 +689,10 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = SpeziLicense;
 		};
-		809338202FEC01D80037BEBF /* ThreadLocal */ = {
+		809338202FEC01D80037BEBF /* libzstd */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 8093381F2FEC01D80037BEBF /* XCRemoteSwiftPackageReference "ThreadLocal" */;
-			productName = ThreadLocal;
+			package = 8093381F2FEC01D80037BEBF /* XCRemoteSwiftPackageReference "zstd" */;
+			productName = libzstd;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

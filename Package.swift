@@ -62,7 +62,7 @@ var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/swiftlang/swift-syntax.git", "602.0.0"..<"603.0.0"),
     .package(url: "https://github.com/dfed/swift-testing-expectation.git", .upToNextMinor(from: "0.1.4")),
     .package(url: "https://github.com/techprimate/TPPDF.git", from: "2.6.1"),
-    .package(url: "https://github.com/StanfordBDHG/zstd.git", exact: "1.5.8-beta.1")
+    .package(url: "https://github.com/SchmiedmayerLab/zstd.git", exact: "1.5.8-beta.1")
 ]
 
 if enableSwiftLint {

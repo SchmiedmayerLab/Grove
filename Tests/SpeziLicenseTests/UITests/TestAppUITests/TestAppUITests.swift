@@ -26,7 +26,7 @@ class TestAppUITests: XCTestCase {
 
         do {
             let button = app.buttons.matching(NSPredicate(
-                format: "label LIKE 'ThreadLocal, MIT, Version: 0.1.*'"
+                format: "label LIKE 'zstd, *Version: 1.*'"
             )).element
             var numScrolls = 0
             while true {
@@ -48,14 +48,14 @@ class TestAppUITests: XCTestCase {
         sleep(1)
         print(app.debugDescription)
         let licensePred = NSPredicate(
-            format: "label CONTAINS 'Copyright (c) 2025 Stanford University and the project authors (see CONTRIBUTORS.md)'"
+            format: "label CONTAINS 'Copyright (c) Meta Platforms, Inc. and affiliates. All rights reserved.'"
         )
         XCTAssert(app.staticTexts.matching(licensePred).element.exists)
         app.navigationBars.buttons["Open in Browser"].tap()
         
         let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
         XCTAssert(
-            safari.staticTexts["Thread-local variables for Swift."].waitForExistence(timeout: 20)
+            safari.staticTexts["Zstandard - Fast real-time compression algorithm"].waitForExistence(timeout: 20)
         )
     }
 }
