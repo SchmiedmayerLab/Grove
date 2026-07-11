@@ -226,6 +226,13 @@
         "identifier": "XCTestExtensionsTests",
         "name": "XCTestExtensionsTests"
       }
+    },
+    {
+      "target": {
+        "containerPath": "container:",
+        "identifier": "ThreadLocalTests",
+        "name": "ThreadLocalTests"
+      }
     }
   ],
   "version": 1

@@ -35,7 +35,7 @@ TESTING_FLOOR_DEPLOYMENT_TARGETS="IPHONEOS_DEPLOYMENT_TARGET=26.0 MACOSX_DEPLOYM
 # conditions still keep watchOS-/macOS-incompatible deps out of those platforms' graphs).
 export SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS=1
 
-PACKAGES="FHIRModelsExtensions HealthKitOnFHIR ResearchKitOnFHIR Spezi SpeziAccessGuard SpeziAccount SpeziBluetooth SpeziChat SpeziConsent SpeziContact SpeziDevices SpeziFHIR SpeziFileFormats SpeziFirebase SpeziFoundation SpeziHealthKit SpeziLLM SpeziLicense SpeziLocation SpeziNetworking SpeziNotifications SpeziOnboarding SpeziQuestionnaire SpeziScheduler SpeziSensorKit SpeziSpeech SpeziStorage SpeziStudy SpeziViews XCTHealthKit XCTRuntimeAssertions XCTestExtensions"
+PACKAGES="FHIRModelsExtensions HealthKitOnFHIR ResearchKitOnFHIR Spezi SpeziAccessGuard SpeziAccount SpeziBluetooth SpeziChat SpeziConsent SpeziContact SpeziDevices SpeziFHIR SpeziFileFormats SpeziFirebase SpeziFoundation SpeziHealthKit SpeziLLM SpeziLicense SpeziLocation SpeziNetworking SpeziNotifications SpeziOnboarding SpeziQuestionnaire SpeziScheduler SpeziSensorKit SpeziSpeech SpeziStorage SpeziStudy SpeziViews ThreadLocal XCTHealthKit XCTRuntimeAssertions XCTestExtensions"
 
 # package -> the platforms it was tested on upstream (the union CI matrix)
 platforms_for() { case "$1" in
@@ -68,6 +68,7 @@ platforms_for() { case "$1" in
     SpeziStorage) echo "iOS macOS macCatalyst watchOS visionOS" ;;
     SpeziStudy) echo "iOS macOS macCatalyst watchOS visionOS" ;;
     SpeziViews) echo "iOS visionOS tvOS watchOS macOS" ;;
+    ThreadLocal) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
     XCTHealthKit) echo "iOS" ;;
     XCTRuntimeAssertions) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
     XCTestExtensions) echo "iOS watchOS visionOS macOS" ;;

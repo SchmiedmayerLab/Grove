@@ -12,6 +12,7 @@ import SpeziDevices
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct BloodPressureMeasurementLabel: View {
     private let bloodPressureSample: HKCorrelation
     private let heartRateSample: HKQuantitySample?
@@ -63,6 +64,7 @@ struct BloodPressureMeasurementLabel: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     BloodPressureMeasurementLabel(.mockBloodPressureSample, heartRate: .mockHeartRateSample)
 }

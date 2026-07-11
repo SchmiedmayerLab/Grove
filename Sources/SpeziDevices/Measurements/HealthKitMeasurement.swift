@@ -10,6 +10,7 @@ import HealthKit
 
 
 /// A collection of HealthKit samples that form a measurement.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum HealthKitMeasurement {
     /// A weight measurement with optional BMI and height samples.
     case weight(HKQuantitySample, bmi: HKQuantitySample? = nil, height: HKQuantitySample? = nil)
@@ -28,9 +29,11 @@ public enum HealthKitMeasurement {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitMeasurement: Hashable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitMeasurement {
     /// The collection of HealthKit samples contained in the measurement.
     public var samples: [HKSample] {
@@ -56,6 +59,7 @@ extension HealthKitMeasurement {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitMeasurement: Identifiable {
     public var id: UUID {
         switch self {

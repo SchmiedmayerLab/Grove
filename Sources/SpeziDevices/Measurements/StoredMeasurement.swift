@@ -182,6 +182,7 @@ final class StoredMeasurement {
 extension CodableHKDevice: Codable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CodableHKDevice {
     var hkDevice: HKDevice {
         HKDevice(

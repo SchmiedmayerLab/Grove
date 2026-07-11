@@ -848,7 +848,7 @@ extension PairedDevices {
 
 // MARK: - Accessory Setup Kit
 
-@available(iOS 18, *)
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PairedDevices {
     /// Determine if the accessory picker of the AccessorySetupKit is currently being presented.
     @MainActor public var accessoryPickerPresented: Bool {

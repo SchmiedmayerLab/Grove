@@ -16,7 +16,7 @@ import SpeziViews
 import SwiftUI
 
 
-@available(iOS 18, *)
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct AccessoryRenameButton: View {
     private struct MissingAccessory: LocalizedError {
         var errorDescription: String? {

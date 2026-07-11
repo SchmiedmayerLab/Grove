@@ -11,6 +11,7 @@ import SpeziFoundation
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 @_spi(APISupport)
 public final class RemoteNotificationRegistrationSupport: KnowledgeSource, Sendable {

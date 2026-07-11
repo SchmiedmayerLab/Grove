@@ -11,6 +11,7 @@ import HealthKit
 import SpeziBluetoothServices
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightMeasurement.Unit {
     /// The mass unit represented as a `HKUnit`.
     public var massUnit: HKUnit {

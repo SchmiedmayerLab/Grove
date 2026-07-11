@@ -10,7 +10,7 @@ import Spezi
 import SpeziBluetooth
 
 
-@available(iOS 18, *)
+@available(iOS 18, macOS 15, watchOS 11, *)
 final class LoadAccessorySetupKit: Module {
     @Dependency(AccessorySetupKit.self)
     var accessorySetupKit
