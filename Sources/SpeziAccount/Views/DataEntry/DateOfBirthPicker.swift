@@ -11,6 +11,7 @@ import SwiftUI
 
 
 /// A `DatePicker` implementation tailored towards entry of a date of birth.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(tvOS, unavailable)
 struct DateOfBirthPicker: View {
     private let title: LocalizedStringResource
@@ -125,6 +126,7 @@ struct DateOfBirthPicker: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(tvOS, unavailable)
 struct DateOfBirthPicker_Previews: PreviewProvider {
     struct Preview: View {

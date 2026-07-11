@@ -11,6 +11,7 @@ import SpeziFoundation
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ManagedNavigationStack {
     /// A collection of navigation steps, as collected by the ``ManagedNavigationStack/StepsBuilder``.
     ///

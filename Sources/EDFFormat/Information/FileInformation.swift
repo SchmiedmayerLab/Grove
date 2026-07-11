@@ -62,6 +62,7 @@ extension FileInformation.Duration: Hashable, Sendable {}
 extension FileInformation: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FileInformation {
     func verifyAsciiInputs() throws {
         try subject.verifyAsciiInputs()

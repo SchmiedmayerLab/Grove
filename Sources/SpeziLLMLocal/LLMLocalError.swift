@@ -11,6 +11,7 @@ import SpeziLLM
 
 
 /// Describes possible errors that occur during the execution of ``LLMLocalSession`` via the SpeziLLM `LLMRunner`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum LLMLocalError: LLMError {
     /// Indicates that the local model file is not found.
     case modelNotFound

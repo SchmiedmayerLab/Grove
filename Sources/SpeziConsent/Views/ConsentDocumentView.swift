@@ -26,6 +26,7 @@ public import SwiftUI
 ///     If you use a ``OnboardingConsentView``, the `ScrollView` is taken care of for you.
 ///
 /// > Note: In the context of user onboarding, you might want to use the ``OnboardingConsentView`` instead.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct ConsentDocumentView: View {
     @Bindable private var consentDocument: ConsentDocument
     private let signatureFieldLabels: ConsentSignatureForm.Labels
@@ -120,6 +121,7 @@ public struct ConsentDocumentView: View {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentDocumentView {
     private struct CustomPicker: View {
         let config: ConsentDocument.SelectConfig
@@ -156,6 +158,7 @@ extension ConsentDocumentView {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentDocumentView {
     private struct InteractiveElementLabel: View {
         let text: MarkdownDocument
@@ -187,6 +190,7 @@ extension ConsentDocumentView {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     fileprivate func accessibilityIdentifier(for section: some ConsentDocument.InteractiveSectionProtocol) -> some View {
         self.accessibilityIdentifier("ConsentForm:\(section.id)")
@@ -195,6 +199,7 @@ extension View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     let consentDocument = try! ConsentDocument(markdown: "This is a *markdown* **example**") // swiftlint:disable:this force_try
     NavigationStack {

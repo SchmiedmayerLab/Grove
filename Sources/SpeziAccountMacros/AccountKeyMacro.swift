@@ -61,6 +61,7 @@ extension AccountKeyMacro: AccessorMacro {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKeyMacro: PeerMacro {
     public static func expansion( // swiftlint:disable:this function_body_length cyclomatic_complexity
         of node: AttributeSyntax,

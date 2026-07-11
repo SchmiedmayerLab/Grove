@@ -10,6 +10,7 @@ import SwiftPackageList
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct LicenseView: View {
     let title: String
     let url: URL?

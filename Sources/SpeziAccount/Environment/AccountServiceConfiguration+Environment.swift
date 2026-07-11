@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension EnvironmentValues {
     /// Access the ``AccountServiceConfiguration`` within the context of a ``DataDisplayView`` or ``DataEntryView``.
     ///

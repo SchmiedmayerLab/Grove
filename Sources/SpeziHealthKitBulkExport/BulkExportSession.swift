@@ -32,6 +32,7 @@ public enum BulkExportSessionState: Hashable, Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct BulkExportSessionProgress: Hashable, Sendable {
     /// The amount of work that has already been successfully completed, as a value from `0` to `1`.
     public let completion: Double
@@ -105,6 +106,7 @@ public enum StartSessionError: Error {
 /// - ``pause()``
 /// ### Other
 /// - ``SpeziHealthKitBulkExport/==(_:_:)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol BulkExportSession<Processor>: AnyObject, Hashable, Sendable, Observable {
     /// The session's ``BatchProcessor``
     associatedtype Processor: BatchProcessor
@@ -159,6 +161,7 @@ public protocol BulkExportSession<Processor>: AnyObject, Hashable, Sendable, Obs
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BulkExportSession {
     /// The number of batches the session has already processed, i.e. the combined number of completed and failed batches.
     @MainActor public var numProcessedBatches: Int {
@@ -190,6 +193,7 @@ extension BulkExportSession {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BulkExportSession {
     /// Compares two Bulk Export Sessions for equality.
     public static func == (lhs: Self, rhs: Self) -> Bool {
@@ -203,6 +207,7 @@ extension BulkExportSession {
 }
 
 /// Compares two Bulk Export Sessions for equality.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public func == (lhs: any BulkExportSession, rhs: any BulkExportSession) -> Bool { // swiftlint:disable:this static_operator
     ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
 }

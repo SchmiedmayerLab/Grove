@@ -14,6 +14,7 @@ import SwiftUI
 /// Devices view showing grid of paired devices and provides functionality to pair new devices.
 ///
 /// - Note: Make sure to place this view into an `NavigationStack`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(macOS, unavailable)
 public struct DevicesView<PairingHint: View>: View {
     private let appName: String
@@ -83,6 +84,7 @@ public struct DevicesView<PairingHint: View>: View {
 
 
 #if DEBUG && !os(macOS)
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     NavigationStack {
         DevicesView(appName: "Example")

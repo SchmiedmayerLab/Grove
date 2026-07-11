@@ -20,6 +20,21 @@
 set -euxo pipefail
 cd "$(dirname "$0")/.."
 
+# The package's deployment floor is iOS 15 (so iOS-15 apps can depend on it), but the TEST targets
+# cannot compile at iOS 15: swift-testing's @Suite macro rejects an @available attribute, and the test
+# fixtures use newer APIs held as stored properties (which can't be gated). Tests only ever run on the
+# current-OS-wave simulators (OS 26), so we build them at that deployment target — every API is then
+# available, so no test needs an availability annotation. The library products' iOS-15 compilation is
+# verified by the regular (non-test) package build, not here. Each override only affects the matching
+# platform's build, so passing all of them to every invocation is safe.
+TESTING_FLOOR_DEPLOYMENT_TARGETS="IPHONEOS_DEPLOYMENT_TARGET=26.0 MACOSX_DEPLOYMENT_TARGET=26.0 WATCHOS_DEPLOYMENT_TARGET=26.0 TVOS_DEPLOYMENT_TARGET=26.0 XROS_DEPLOYMENT_TARGET=26.0"
+
+# The optional integrations (Textual, MLX, ResearchKit) are behind default-off package traits so that
+# an iOS-15 consumer's default graph stays lean. Tests exercise the FULL feature set, so enable all
+# traits for the test build (the manifest reads this env var; per-platform `.when(platforms:)`
+# conditions still keep watchOS-/macOS-incompatible deps out of those platforms' graphs).
+export SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS=1
+
 PACKAGES="FHIRModelsExtensions HealthKitOnFHIR ResearchKitOnFHIR Spezi SpeziAccessGuard SpeziAccount SpeziBluetooth SpeziChat SpeziConsent SpeziContact SpeziDevices SpeziFHIR SpeziFileFormats SpeziFirebase SpeziFoundation SpeziHealthKit SpeziLLM SpeziLicense SpeziLocation SpeziNetworking SpeziNotifications SpeziOnboarding SpeziQuestionnaire SpeziScheduler SpeziSensorKit SpeziSpeech SpeziStorage SpeziStudy SpeziViews XCTHealthKit XCTRuntimeAssertions XCTestExtensions"
 
 # package -> the platforms it was tested on upstream (the union CI matrix)
@@ -89,7 +104,7 @@ run() { # <package> <platform> [mode: "ui"]
       # Requires the `firebase` CLI (firebase-tools) on the runner — as the upstream CI also relied on.
       local root; root="$(pwd)"
       ( cd "$uidir" \
-        && firebase emulators:exec "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -resultBundlePath '$root/$result' -derivedDataPath '$root/.derivedData' -skipMacroValidation -skipPackagePluginValidation" ) \
+        && firebase emulators:exec "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -resultBundlePath '$root/$result' -derivedDataPath '$root/.derivedData' -skipMacroValidation -skipPackagePluginValidation $TESTING_FLOOR_DEPLOYMENT_TARGETS" ) \
       | beautify
       return
     fi
@@ -102,6 +117,7 @@ run() { # <package> <platform> [mode: "ui"]
       -skipMacroValidation \
       -skipPackagePluginValidation \
       -derivedDataPath ".derivedData" \
+      $TESTING_FLOOR_DEPLOYMENT_TARGETS \
     | beautify
     return
   fi
@@ -129,6 +145,7 @@ run() { # <package> <platform> [mode: "ui"]
     -skipMacroValidation \
     -skipPackagePluginValidation \
     -derivedDataPath ".derivedData" \
+    $TESTING_FLOOR_DEPLOYMENT_TARGETS \
   | beautify
 }
 
@@ -138,7 +155,7 @@ case "${1:-}" in
   --all-ios)
     echo "==> entire package on iOS Simulator"
     xcodebuild test -scheme Spezi-Package -destination "$(dest iOS)" \
-      -skipMacroValidation -skipPackagePluginValidation | beautify ;;
+      -skipMacroValidation -skipPackagePluginValidation $TESTING_FLOOR_DEPLOYMENT_TARGETS | beautify ;;
   "")
     echo "usage: $0 <Package> [Platform] [ui] | --all-ios | --list" >&2; exit 1 ;;
   *)

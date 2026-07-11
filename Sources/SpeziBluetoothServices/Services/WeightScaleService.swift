@@ -12,6 +12,7 @@ import SpeziBluetooth
 /// Bluetooth Weight Scale Service implementation.
 ///
 /// This type implements the Bluetooth [Weight Scale Service 1.0](https://www.bluetooth.com/specifications/specs/weight-scale-service-1-0).
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct WeightScaleService: BluetoothService, Sendable {
     public static let id: BTUUID = "181D"
 

@@ -27,6 +27,7 @@ final class ShareableRepresentation: NSObject {
     }
     
     #if !os(watchOS)
+    @available(iOS 18, macOS 15, watchOS 11, *)
     convenience init(pdf: PDFKit.PDFDocument) {
         let title = pdf.documentAttributes?[PDFDocumentAttribute.titleAttribute] as? String ?? "file"
         let url = Self.tmpUrl(for: title, conformingTo: .pdf)
@@ -51,6 +52,7 @@ final class ShareableRepresentation: NSObject {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ShareableRepresentation {
     private static func tmpUrl(for filename: String, conformingTo type: UTType) -> URL {
         let fileManager = FileManager.default

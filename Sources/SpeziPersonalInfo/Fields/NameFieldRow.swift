@@ -40,6 +40,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct NameFieldRow<Description: View, Label: View>: View {
     private let description: Description
     private let label: Label
@@ -106,6 +107,7 @@ public struct NameFieldRow<Description: View, Label: View>: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     @Previewable @State var name = PersonNameComponents()
     return Grid(horizontalSpacing: 15) {
@@ -125,6 +127,7 @@ public struct NameFieldRow<Description: View, Label: View>: View {
         }
     }
 }
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     @Previewable @State var name = PersonNameComponents()
     return Form {

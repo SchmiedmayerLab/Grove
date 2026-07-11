@@ -148,6 +148,7 @@ import SwiftUI
 ///
 /// ### Other
 /// - ``customElementsEnabled``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 @MainActor
 public final class ConsentDocument: Sendable {
@@ -327,6 +328,7 @@ public final class ConsentDocument: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentDocument {
     func binding<S: InteractiveSectionProtocol>(for section: S) -> Binding<S.Value> {
         Binding<S.Value> {
@@ -342,6 +344,7 @@ extension ConsentDocument {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentDocument {
     /// A ``ConsentDocument``'s completion state.
     public enum ConsentCompletionState: Hashable, Sendable {
@@ -370,6 +373,7 @@ extension ConsentDocument {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentDocument.InteractiveSectionProtocol {
     @MainActor
     fileprivate func valueMatchesExpected(in document: ConsentDocument) -> Bool {
@@ -380,6 +384,7 @@ extension ConsentDocument.InteractiveSectionProtocol {
 
 // MARK: Export
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentDocument {
     /// Result of an export operation. Contains the produced PDF as well as associated metadata.
     public struct ExportResult {
@@ -410,6 +415,7 @@ extension ConsentDocument {
 
 // MARK: Other
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentDocument: Identifiable, Hashable {
     nonisolated public static func == (lhs: ConsentDocument, rhs: ConsentDocument) -> Bool {
         ObjectIdentifier(lhs) == ObjectIdentifier(rhs)

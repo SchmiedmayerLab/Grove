@@ -8,6 +8,7 @@
 
 
 /// A collection type that is capable of accepting an ``AccountKeyVisitor``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol AcceptingAccountKeyVisitor {
     /// Type erased array of keys.
     var _keys: [any AccountKey.Type] { get }  // swiftlint:disable:this identifier_name
@@ -43,6 +44,7 @@ public protocol AcceptingAccountKeyVisitor {
 /// ```
 ///
 /// - Note: A visitor can implement the optional ``final()-66gfx`` method to return a result through the ``AcceptingAccountKeyVisitor/acceptAll(_:)-1ytax`` method.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol AccountKeyVisitor {
     /// A optional final result type returned by ``final()-66gfx``.
     associatedtype Final = Void
@@ -68,6 +70,7 @@ public protocol AccountKeyVisitor {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKeyVisitor {
     /// Default implementation forwarding to ``visit(_:)-3qt1c``.
     public mutating func visit<Key: RequiredAccountKey>(_ key: Key.Type) {
@@ -76,12 +79,14 @@ extension AccountKeyVisitor {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKeyVisitor where Final == Void {
     /// Default `Void` implementation.
     public func final() {}
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKey {
     fileprivate static func defaultAccept<Visitor: AccountKeyVisitor>(_ visitor: inout Visitor) {
         visitor.visit(Self.self)
@@ -94,6 +99,7 @@ extension AccountKey {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AcceptingAccountKeyVisitor {
     /// Default acceptAll visitor for reference types.
     public func acceptAll<Visitor: AccountKeyVisitor>(_ visitor: Visitor) -> Visitor.Final where Visitor: AnyObject {
@@ -103,6 +109,7 @@ extension AcceptingAccountKeyVisitor {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AcceptingAccountKeyVisitor where Self: Collection, Element == any AccountKey.Type {
     /// Default acceptAll visitor.
     public func acceptAll<Visitor: AccountKeyVisitor>(_ visitor: inout Visitor) -> Visitor.Final {
@@ -115,6 +122,7 @@ extension AcceptingAccountKeyVisitor where Self: Collection, Element == any Acco
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Array: AcceptingAccountKeyVisitor where Element == any AccountKey.Type {
     public var _keys: [any AccountKey.Type] { // swiftlint:disable:this identifier_name
         self

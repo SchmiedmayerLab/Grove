@@ -9,6 +9,7 @@
 import SpeziFoundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Spezi {
     /// Access the application logger.
     ///

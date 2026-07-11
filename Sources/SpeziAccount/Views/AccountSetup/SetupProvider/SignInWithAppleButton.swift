@@ -19,6 +19,7 @@ import SwiftUI
 /// with additional support for `SpeziAccount`-related functionality. For example, it automatically controls the
 /// [`Label`](https://developer.apple.com/documentation/authenticationservices/signinwithapplebutton/label)
 /// based on the ``PreferredSetupStyle``. Further it automatically reports the ``SignupProviderCompliance`` based on the request scopes.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct SignInWithAppleButton: View {
     private let overrideLabel: AuthenticationServices.SignInWithAppleButton.Label?
     private let onRequest: (ASAuthorizationAppleIDRequest) -> Void
@@ -129,6 +130,7 @@ public struct SignInWithAppleButton: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     SignInWithAppleButton { request in
         request.requestedScopes = [.email, .fullName]

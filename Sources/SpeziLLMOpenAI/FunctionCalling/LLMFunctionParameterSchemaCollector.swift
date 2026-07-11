@@ -27,6 +27,7 @@ extension LLMFunction {
     }
     
     /// Aggregates the individual parameter schemas of all ``LLMFunction/Parameter``s and combines them into the complete parameter schema of the ``LLMFunction``.
+    @available(iOS 18, macOS 15, watchOS 11, *)
     package var schema: LLMFunctionParameterSchema {
         get throws {
             let requiredPropertyNames = Array(

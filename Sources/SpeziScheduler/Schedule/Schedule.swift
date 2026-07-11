@@ -53,6 +53,7 @@ import Foundation
 /// - ``occurrences(inDay:)``
 /// - ``occurrences(in:)-3a9p3``
 /// - ``occurrence(forStartDate:)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct Schedule: Sendable {
     /// The start date (inclusive).
     private var startDate: Date
@@ -205,6 +206,7 @@ public struct Schedule: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Schedule: Equatable, Hashable {
     public static func == (lhs: Schedule, rhs: Schedule) -> Bool {
         // NOTE: we intentionally manually compare all of the relevant properties here,
@@ -238,6 +240,7 @@ extension Schedule: Equatable, Hashable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Schedule: Codable {/*
     private enum CodingKeys: String, CodingKey {
         case startDate
@@ -264,6 +267,7 @@ extension Schedule: Codable {/*
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Schedule {
     /// Creates a schedule with a single occurrence.
     ///
@@ -556,6 +560,7 @@ extension Schedule {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Schedule {
     // we are using lazy maps, so these are all single pass operations.
 
@@ -670,6 +675,7 @@ extension Schedule {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Schedule: CustomStringConvertible {
     public var description: String {
         """

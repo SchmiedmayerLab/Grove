@@ -10,6 +10,7 @@
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct SignupSetupView<Credential: Sendable>: View {
     private let loginClosure: ((Credential) async throws -> Void)?
 
@@ -54,6 +55,7 @@ struct SignupSetupView<Credential: Sendable>: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     @Previewable @State var style: PresentedSetupStyle<UserIdPasswordCredential> = .signup
     @Previewable @State var presentingSignup = false
@@ -64,6 +66,7 @@ struct SignupSetupView<Credential: Sendable>: View {
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     @Previewable @State var style: PresentedSetupStyle<UserIdPasswordCredential> = .signup
     @Previewable @State var presentingSignup = false

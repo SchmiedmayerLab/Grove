@@ -15,6 +15,7 @@ import SpeziLLM
 
 
 /// A `LLMPlatform` that is interoperable with the OpenAI API.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public final class LLMOpenAILikePlatform<PlatformDefinition: LLMOpenAILikePlatformDefinition>: LLMPlatform, @unchecked Sendable {
     public typealias Schema = LLMOpenAILikeSchema<PlatformDefinition>
     public typealias Session = LLMOpenAILikeSession<PlatformDefinition>
@@ -64,6 +65,7 @@ public final class LLMOpenAILikePlatform<PlatformDefinition: LLMOpenAILikePlatfo
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMOpenAILikePlatform {
     /// The platform's default credentials username for storing an API key to the keychain.
     static var credentialsUsername: String {

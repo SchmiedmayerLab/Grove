@@ -10,6 +10,7 @@ import HealthKit
 
 
 /// A ``HKSampleMapping`` instance is used to specify the mapping of `HKSample`s to FHIR observations allowing the customization of, e.g., codings and units.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct HKSampleMapping: Decodable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case quantitySampleMapping = "HKQuantitySamples"

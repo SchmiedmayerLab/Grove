@@ -13,6 +13,7 @@ import SwiftData
 
 
 /// Tracks a user's enrollment into a study.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Model
 public final class StudyEnrollment: Identifiable {
     public typealias ID = UUID

@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LocalizedStringResource.BundleDescription {
     /// Convenience method to create a `BundleDescription.atURL()` from a given Bundle instance.
     /// 

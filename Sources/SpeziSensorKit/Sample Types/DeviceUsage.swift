@@ -10,6 +10,7 @@ public import Foundation
 public import SensorKit
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SRDeviceUsageReport: SensorKitSampleProtocol {
     public struct SafeRepresentation: SensorKitSampleSafeRepresentation {
         public typealias CategoryKey = SRDeviceUsageReport.CategoryKey
@@ -72,6 +73,7 @@ extension SRDeviceUsageReport: SensorKitSampleProtocol {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SRDeviceUsageReport.SafeRepresentation {
     public struct AppUsage: Hashable, Sendable {
         public struct SupplementalCategory: Hashable, Sendable {
@@ -145,6 +147,7 @@ extension SRDeviceUsageReport.SafeRepresentation {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SRDeviceUsageReport.SafeRepresentation {
     public struct NotificationUsage: Hashable, Sendable {
         /// The bundle identifier of the application that corresponds to the notification. Only populated for Apple apps.
@@ -162,6 +165,7 @@ extension SRDeviceUsageReport.SafeRepresentation {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SRDeviceUsageReport.SafeRepresentation {
     public struct WebUsage: Hashable, Sendable {
         /// The amount of web usage time that the report spans.

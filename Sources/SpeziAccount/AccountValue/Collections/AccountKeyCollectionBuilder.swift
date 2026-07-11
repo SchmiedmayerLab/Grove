@@ -8,6 +8,7 @@
 
 
 /// A result builder to build a collection of ``AccountKeyWithDescription`` metatypes.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @resultBuilder
 public enum AccountKeyCollectionBuilder {
     /// Build a single ``AccountKeyWithDescription`` metatype expression using `KeyPath` notation.

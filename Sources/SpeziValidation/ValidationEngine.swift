@@ -17,6 +17,7 @@ import SwiftUI
 /// to manage the evaluation of your ``ValidationRule``s. The Engine provides easy access to bindings for current validity state of a the
 /// processed input and a the respective recovery suggestions for failed ``ValidationRule``s.
 /// The state of the `ValidationEngine` is updated on each invocation of ``runValidation(input:)`` or ``submit(input:debounce:)``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 @MainActor
 public final class ValidationEngine: Identifiable {

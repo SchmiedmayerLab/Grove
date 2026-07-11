@@ -13,6 +13,7 @@ public import SpeziHealthKit
 
 
 /// A Batch within a ``BulkExportSession``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct ExportBatch: Codable, Sendable {
     private enum CodingKeys: CodingKey {
         case sampleType
@@ -63,6 +64,7 @@ public struct ExportBatch: Codable, Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ExportBatch {
     private static let monthAndYearFormatter: DateFormatter = {
         let fmt = DateFormatter()
@@ -88,6 +90,7 @@ extension ExportBatch {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ExportBatch: Hashable {
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.sampleType == rhs.sampleType && lhs.timeRange == rhs.timeRange && lhs.result == rhs.result

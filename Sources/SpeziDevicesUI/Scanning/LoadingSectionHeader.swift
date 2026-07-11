@@ -13,6 +13,7 @@ import SwiftUI
 ///
 /// This view is useful to, e.g., render the Section header of a list of nearby peripherals. The ProgressView can be used to
 /// communicate that the application is currently scanning for nearby Bluetooth peripherals.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LoadingSectionHeader: View {
     private let text: Text
     private let loading: Bool
@@ -48,6 +49,7 @@ public struct LoadingSectionHeader: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     List {
         Section {
@@ -58,6 +60,7 @@ public struct LoadingSectionHeader: View {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     LoadingSectionHeader(verbatim: "Devices", loading: true)
 }

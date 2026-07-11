@@ -85,6 +85,7 @@ extension PasscodeFormat {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PasscodeFormat: CustomLocalizedStringResourceConvertible {
     public var localizedStringResource: LocalizedStringResource {
         switch self {

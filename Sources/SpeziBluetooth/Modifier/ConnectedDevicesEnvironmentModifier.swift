@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct ConnectedDeviceEnvironmentModifier<Device: BluetoothDevice>: ViewModifier {
     @Environment(ConnectedDevicesModel.self)
     var connectedDevices
@@ -32,6 +33,7 @@ private struct ConnectedDeviceEnvironmentModifier<Device: BluetoothDevice>: View
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct ConnectedDevicesEnvironmentModifier: ViewModifier {
     private let configuredDeviceTypes: [any BluetoothDevice.Type]
 
@@ -56,6 +58,7 @@ struct ConnectedDevicesEnvironmentModifier: ViewModifier {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothDevice {
     @MainActor fileprivate static var deviceEnvironmentModifier: any ViewModifier {
         ConnectedDeviceEnvironmentModifier<Self>()

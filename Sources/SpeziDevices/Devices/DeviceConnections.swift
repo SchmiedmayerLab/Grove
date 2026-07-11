@@ -11,6 +11,7 @@ import SpeziBluetooth
 import SpeziFoundation
 
 /// Manages and handles ongoing device connection attempts.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct DeviceConnections: Sendable {
     /// Retry configuration for a single connection.
     ///

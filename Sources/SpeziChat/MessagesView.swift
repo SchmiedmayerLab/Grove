@@ -30,6 +30,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct MessagesView: View {
     /// Represents a configuration used in the initializer of ``MessagesView`` to specify when to display an animation indicating a pending message from a chat participant.
     ///
@@ -160,6 +161,7 @@ public struct MessagesView: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview("Regular Message View") {
     MessagesView(
         [
@@ -170,6 +172,7 @@ public struct MessagesView: View {
     )
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview("Unhidden Message View") {
     MessagesView(
         [

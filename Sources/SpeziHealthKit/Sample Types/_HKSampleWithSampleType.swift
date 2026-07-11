@@ -14,6 +14,7 @@ import HealthKit
 
 
 /// Associates a `HKSample` subclass with its corresponding `HKSampleType` subclass.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol _HKSampleWithSampleType: HKSample {
     associatedtype _SampleType: HKSampleType
     
@@ -29,6 +30,7 @@ public protocol _HKSampleWithSampleType: HKSample {
 
 
 #if canImport(HealthKit)
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _HKSampleWithSampleType {
     /// Checks whether the sample is of the specified ``SampleType``.
     @inlinable public func `is`(_ sampleType: SampleType<some Any>) -> Bool {
@@ -38,6 +40,7 @@ extension _HKSampleWithSampleType {
 #endif
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKQuantitySample: _HKSampleWithSampleType {
     public typealias _SampleType = HKQuantityType
     
@@ -51,6 +54,7 @@ extension HKQuantitySample: _HKSampleWithSampleType {
     #endif
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCorrelation: _HKSampleWithSampleType {
     public typealias _SampleType = HKCorrelationType
     
@@ -64,6 +68,7 @@ extension HKCorrelation: _HKSampleWithSampleType {
     #endif
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategorySample: _HKSampleWithSampleType {
     public typealias _SampleType = HKCategoryType
     
@@ -77,6 +82,7 @@ extension HKCategorySample: _HKSampleWithSampleType {
     #endif
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKElectrocardiogram: _HKSampleWithSampleType {
     public typealias _SampleType = HKElectrocardiogramType
     
@@ -90,6 +96,7 @@ extension HKElectrocardiogram: _HKSampleWithSampleType {
     #endif
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKAudiogramSample: _HKSampleWithSampleType {
     public typealias _SampleType = HKAudiogramSampleType
     
@@ -103,6 +110,7 @@ extension HKAudiogramSample: _HKSampleWithSampleType {
     #endif
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKWorkout: _HKSampleWithSampleType {
     public typealias _SampleType = HKWorkoutType
     
@@ -116,6 +124,7 @@ extension HKWorkout: _HKSampleWithSampleType {
     #endif
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(watchOS, unavailable)
 extension HKClinicalRecord: _HKSampleWithSampleType {
     public typealias _SampleType = HKClinicalType
@@ -130,6 +139,7 @@ extension HKClinicalRecord: _HKSampleWithSampleType {
     #endif
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKVisionPrescription: _HKSampleWithSampleType {
     public typealias _SampleType = HKPrescriptionType
     
@@ -157,6 +167,7 @@ extension HKStateOfMind: _HKSampleWithSampleType {
     #endif
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKHeartbeatSeriesSample: _HKSampleWithSampleType {
     public typealias _SampleType = HKSeriesType
     
@@ -170,6 +181,7 @@ extension HKHeartbeatSeriesSample: _HKSampleWithSampleType {
     #endif
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKWorkoutRoute: _HKSampleWithSampleType {
     public typealias _SampleType = HKSeriesType
     

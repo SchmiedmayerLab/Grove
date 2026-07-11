@@ -10,6 +10,7 @@ public import SwiftUI
 
 
 /// Allows a user to set a code for an Access Guard.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct SetAccessGuard: View {
     @AccessGuard<CodeAccessGuard> private var accessGuard: CodeAccessGuard._Model
     private let onSuccess: @MainActor () -> Void

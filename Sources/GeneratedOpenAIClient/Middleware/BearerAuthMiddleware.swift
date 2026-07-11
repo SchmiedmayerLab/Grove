@@ -6,10 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import HTTPTypes
-import OpenAPIRuntime
-import SpeziKeychainStorage
+package import Foundation
+package import HTTPTypes
+package import OpenAPIRuntime
+package import SpeziKeychainStorage
 import SpeziLLM
 
 

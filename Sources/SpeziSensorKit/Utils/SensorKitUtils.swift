@@ -37,6 +37,7 @@ extension SRAbsoluteTime: @retroactive Comparable {
 
 // MARK: Other
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SRSensorReader {
     /// Creates an `SRSensorReader` from an ``AnySensor``.
     @inlinable

@@ -9,6 +9,7 @@
 import SpeziFoundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct RemoveVisitor: AccountKeyVisitor {
     private var details: AccountDetails
 
@@ -26,6 +27,7 @@ private struct RemoveVisitor: AccountKeyVisitor {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct CopyVisitor: AccountValueVisitor {
     private var details: AccountDetails
     private let allowOverwrite: Bool
@@ -53,6 +55,7 @@ private struct CopyVisitor: AccountValueVisitor {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct CopyKeyVisitor: AccountKeyVisitor {
     let source: AccountDetails
     var destination: AccountDetails
@@ -257,6 +260,7 @@ public struct AccountDetails {
 extension AccountDetails: Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails: AcceptingAccountValueVisitor {}
 
 
@@ -278,6 +282,7 @@ extension AccountDetails: SendableSharedRepository {
 
 // MARK: - Signup
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails {
     /// Checking account details against the user-defined requirements of the `AccountValueConfiguration`.
     ///
@@ -325,6 +330,7 @@ extension AccountDetails: Collection {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails {
     /// Retrieve all keys stored in this collection.
     public var keys: [any AccountKey.Type] {
@@ -422,6 +428,7 @@ extension AccountDetails {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKey {
     fileprivate static func anyContains(in details: AccountDetails) -> Bool {
         details.contains(Self.self)

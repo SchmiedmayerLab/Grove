@@ -62,6 +62,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 public struct AsyncButton<Label: View>: View {
     private enum GroupResult {
@@ -320,6 +321,7 @@ public struct AsyncButton<Label: View>: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct PreviewButton: View {
     var title: String = "Test Button"
     var role: ButtonRole?
@@ -337,20 +339,25 @@ private struct PreviewButton: View {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     PreviewButton()
 }
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     PreviewButton(title: "Test Button with short action", duration: .milliseconds(100))
 }
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     PreviewButton(title: "Test Button with Error", duration: .seconds(0)) {
         throw CancellationError()
     }
 }
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     PreviewButton(title: "Processing only Button", state: .processing)
 }
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     PreviewButton(title: "Destructive Button", role: .destructive)
 }

@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_spi(TestingSupport)
 extension AccountDetails {
     static func createMock(

@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @SpeziBluetooth
 class DeviceStatePeripheralInjection<Value: Sendable>: Sendable {
     private let bluetooth: Bluetooth
@@ -71,6 +72,7 @@ class DeviceStatePeripheralInjection<Value: Sendable>: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension KeyPath where Root == BluetoothPeripheral {
     @SpeziBluetooth
     func storageEquivalent() -> KeyPath<PeripheralStorage, Value>? {

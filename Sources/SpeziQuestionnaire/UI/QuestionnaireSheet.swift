@@ -43,6 +43,7 @@ public import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct QuestionnaireSheet: View {
     private let questionnaire: Questionnaire
     private let completionStepConfig: CompletionStepConfig
@@ -97,6 +98,7 @@ public struct QuestionnaireSheet: View {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireSheet {
     /// The result of answering a questionnaire.
     public enum Result {

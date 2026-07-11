@@ -59,6 +59,7 @@ public typealias LLMGeminiParameters = LLMOpenAILikeParameters<GeminiPlatformDef
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMGeminiPlatform = LLMOpenAILikePlatform<GeminiPlatformDefinition>
 
 
@@ -71,6 +72,7 @@ public typealias LLMGeminiPlatform = LLMOpenAILikePlatform<GeminiPlatformDefinit
 ///
 /// - Tip: ``LLMGeminiSchema`` also enables the function calling mechanism to establish a structured, bidirectional, and reliable communication between the ``LLMGeminiPlatform`` LLMs and external tools.
 ///     For more details, refer to the [`LLMOpenAISchema`](../SpeziLLMOpenAI/SpeziLLMOpenAI.docc/SpeziLLMOpenAI.md) documentation.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMGeminiSchema = LLMOpenAILikeSchema<GeminiPlatformDefinition>
 
 
@@ -120,6 +122,7 @@ public typealias LLMGeminiSchema = LLMOpenAILikeSchema<GeminiPlatformDefinition>
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMGeminiSession = LLMOpenAILikeSession<GeminiPlatformDefinition>
 
 
@@ -128,10 +131,12 @@ public typealias LLMGeminiSession = LLMOpenAILikeSession<GeminiPlatformDefinitio
 /// - Warning: Ensure that the ``LLMGeminiPlatform`` is specified within the Spezi `Configuration` when using this view in the onboarding flow.
 ///
 /// - Important: Only use this if the corresponding LLM platform's config's auth token is set to `RemoteLLMInferenceAuthToken/keychain(_:CredentialsTag)`
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMGeminiAPITokenOnboardingStep = LLMOpenAILikeAPITokenOnboardingStep<GeminiPlatformDefinition>
 
 
 /// View to display an onboarding step for the user to select a Gemini model.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMGeminiModelOnboardingStep = LLMOpenAILikeModelOnboardingStep<GeminiPlatformDefinition>
 
 

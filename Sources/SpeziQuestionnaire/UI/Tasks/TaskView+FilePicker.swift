@@ -12,6 +12,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct FileAttachmentQuestionView: View {
     let config: Questionnaire.Task.Kind.FileAttachmentConfig
     @Binding var attachments: [QuestionnaireResponses.CollectedAttachment]

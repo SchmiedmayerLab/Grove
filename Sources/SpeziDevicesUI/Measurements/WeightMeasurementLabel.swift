@@ -12,6 +12,7 @@ import SpeziDevices
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct WeightMeasurementLabel: View {
     private let sample: HKQuantitySample
     private let bmiSample: HKQuantitySample?
@@ -60,18 +61,22 @@ struct WeightMeasurementLabel: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     WeightMeasurementLabel(.mockWeighSample)
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     WeightMeasurementLabel(.mockWeighSample, bmi: .mockBmiSample, height: .mockHeightSample)
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     WeightMeasurementLabel(.mockWeighSample, bmi: .mockBmiSample)
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     WeightMeasurementLabel(.mockWeighSample, height: .mockHeightSample)
 }

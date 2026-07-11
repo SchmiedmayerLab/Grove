@@ -53,6 +53,7 @@ public struct UserStorageCoding<Encoder: TopLevelEncoder & Sendable, Decoder: To
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension UserStorageCoding where Encoder == JSONEncoder, Decoder == JSONDecoder {
     /// JSON encoder and decoder.
     public static let json = UserStorageCoding(
@@ -66,6 +67,7 @@ extension UserStorageCoding where Encoder == JSONEncoder, Decoder == JSONDecoder
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension UserStorageCoding where Encoder == PropertyListEncoder, Decoder == PropertyListDecoder {
     /// PropertyList encoder and decoder.
     public static let propertyList = UserStorageCoding(encoder: PropertyListEncoder(), decoder: PropertyListDecoder())

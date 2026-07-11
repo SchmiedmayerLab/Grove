@@ -11,6 +11,7 @@ import struct PencilKit.PKDrawing
 import SpeziFoundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentDocument {
     typealias Frontmatter = [String: String]
     
@@ -153,12 +154,14 @@ extension ConsentDocument {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentDocument.InteractiveSectionProtocol {
     var userResponsesKeyPath: WritableKeyPath<ConsentDocument.UserResponses, Value?> {
         Self.userResponsesKeyPath.appending(path: \.[id])
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentDocument.SelectConfig {
     static var emptySelectionDefaultTitle: String {
         String(localized: "CONSENT_NO_SELECTION_DEFAULT_TITLE", bundle: .module)

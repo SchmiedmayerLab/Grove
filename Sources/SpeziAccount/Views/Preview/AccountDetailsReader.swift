@@ -11,6 +11,7 @@ import SwiftUI
 
 
 /// Read the account details from the SwiftUI environment.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_spi(TestingSupport)
 public struct AccountDetailsReader<Content: View>: View {
     private let content: (Account, AccountDetails) -> Content

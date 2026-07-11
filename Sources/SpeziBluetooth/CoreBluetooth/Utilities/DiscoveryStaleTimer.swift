@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 final class DiscoveryStaleTimer {
     let targetDevice: UUID
     /// The dispatch work item that schedules the next stale timer.

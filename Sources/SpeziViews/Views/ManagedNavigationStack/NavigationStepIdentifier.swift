@@ -14,6 +14,7 @@ import SwiftUI
 ///
 /// It contains both the identifier for a navigation step (the view's type) as well as a flag that indicates if whether the step is custom
 /// (i.e., was not included in the ``ManagedNavigationStack``'s contents, but rather programmatically pushed onto the stack using ``ManagedNavigationStack/Path/append(_:)``).
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct NavigationStepIdentifier {
     /// The source of the `NavigationStepIdentifier`'s identity
     enum IdentifierKind: Equatable {
@@ -67,6 +68,7 @@ struct NavigationStepIdentifier {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension NavigationStepIdentifier: Hashable {
     static func == (lhs: Self, rhs: Self) -> Bool {
         switch (lhs.identifierKind, rhs.identifierKind) {
@@ -94,6 +96,7 @@ extension NavigationStepIdentifier: Hashable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension NavigationStepIdentifier: CustomDebugStringConvertible {
     var debugDescription: String {
         var desc = "\(Self.self)(isCustom: \(isCustom), stepType: \(stepType), identifierKind: \(identifierKind)"

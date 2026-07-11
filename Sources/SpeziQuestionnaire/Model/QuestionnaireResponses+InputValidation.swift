@@ -9,6 +9,7 @@
 public import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses {
     public enum ResponseValidationResult: Sendable {
         /// The response provided for the task is ok.
@@ -186,6 +187,7 @@ extension QuestionnaireResponses {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionKindDefinition {
     fileprivate static func validate(
         response: QuestionnaireResponses.Response,

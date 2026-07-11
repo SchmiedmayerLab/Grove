@@ -8,6 +8,7 @@
 
 
 /// Helper type that wraps ``AccountKey`` metatypes to be identifiable for usage within `ForEach` views.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct ForEachAccountKeyWrapper: Identifiable {
     var id: ObjectIdentifier {
         accountKey.id

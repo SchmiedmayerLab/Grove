@@ -14,11 +14,13 @@ import SwiftUI
 /// This might be helpful for views that rely on ``AnyLocalizedError``. Outer views can define a
 /// sensible default for a localized default error description in the case that a sub-view has to display
 /// an ``AnyLocalizedError`` for a generic error.
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct DefaultErrorDescription: EnvironmentKey {
     static let defaultValue: LocalizedStringResource? = nil
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension EnvironmentValues {
     /// A localized string that is used as a default error description if no other description is available.
     ///

@@ -12,6 +12,7 @@ import HealthKit
 #endif
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleTypeProxy {
     /// Wraps an ``AnySampleType``.
     public init?(_ifPossible sampleType: any AnySampleType) { // swiftlint:disable:this cyclomatic_complexity
@@ -58,6 +59,7 @@ extension SampleTypeProxy {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleTypeProxy {
     /// Wraps an ``AnySampleType``.
     @_disfavoredOverload

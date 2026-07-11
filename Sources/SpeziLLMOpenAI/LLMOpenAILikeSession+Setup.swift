@@ -14,6 +14,7 @@ import SpeziKeychainStorage
 import SpeziLLM
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMOpenAILikeSession {
     /// Set up the OpenAI LLM execution client.
     ///

@@ -11,6 +11,7 @@ import SpeziBluetooth
 
 /// Support migration to the new variant appearance system.
 @_spi(Migration)
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol DeviceVariantMigration {
     /// Select an appearance for an already paired device.
     ///

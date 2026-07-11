@@ -20,6 +20,7 @@ import SwiftUI
 /// a value as part of e.g. a Chart or some other user-facing UI component.
 ///
 /// This type is primarily intended to be used in the context of the ``HealthChart``, but it can also be used outside of that.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct HealthChartDataPoint: Hashable, Identifiable { // swiftlint:disable:this file_types_order
     public let id: AnyHashable
     public let date: Date
@@ -68,6 +69,7 @@ public struct HealthChartDataPoint: Hashable, Identifiable { // swiftlint:disabl
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthChartDataPoint { // swiftlint:disable:this file_types_order
     /// The DataPoint's value (excluding its unit), formatted based on the unit.
     public var stringValue: String {
@@ -88,6 +90,7 @@ extension HealthChartDataPoint { // swiftlint:disable:this file_types_order
 
 
 /// How a ``HealthChartDataPoint`` based on a `HKStatistics` object should select its value.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum StatisticsAggregationOption: Sendable {
     /// The sum quantity
     case sum

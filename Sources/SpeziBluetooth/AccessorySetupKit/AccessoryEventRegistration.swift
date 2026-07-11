@@ -12,6 +12,7 @@ import Foundation
 /// An event handler registration for accessory events.
 ///
 /// It automatically cancels the subscription once this value is de-initialized.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct AccessoryEventRegistration: ~Copyable, Sendable {
     private let id: UUID
     private weak var setupKit: (AnyObject & Sendable)? // type erased as AccessorySetupKit is only available on iOS 18 platform.

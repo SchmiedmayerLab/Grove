@@ -37,6 +37,7 @@ import Spezi
 ///
 /// ### Categories
 /// - ``add(isolation:categories:)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public final class Notifications: Module, DefaultInitializable, EnvironmentAccessible {
     /// The total limit of simultaneously scheduled notifications.
     ///
@@ -189,6 +190,7 @@ public final class Notifications: Module, DefaultInitializable, EnvironmentAcces
 
 // MARK: Utils
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension UNNotificationContent {
     @objc package var scheduledDate: Date? {
         userInfoValue(for: Notifications.notificationContentUserInfoKeyScheduledDate, as: Date.self)
@@ -203,6 +205,7 @@ extension UNNotificationContent {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension UNMutableNotificationContent {
     @objc override package var scheduledDate: Date? { // swiftlint:disable:this override_in_extension
         get {

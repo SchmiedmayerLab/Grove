@@ -10,6 +10,7 @@ import HealthKit
 import ModelsR4
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKWorkout: FHIRObservationBuildable {
     /// Generates an observation that captures the type of physical activity performed for a single instance of physical activity, based on https://build.fhir.org/ig/HL7/physical-activity/StructureDefinition-pa-observation-activity-measure.html
     /// Note:  An `HKWorkout` object can also act as a container for other `HKSample` objects, which will need to be converted to observations individually.

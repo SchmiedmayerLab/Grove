@@ -109,6 +109,7 @@ import SwiftUI
 /// - ``discoveredDevices``
 /// - ``isScanningForNearbyDevices``
 /// - ``pair(with:timeout:)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class PairedDevices: ServiceModule {
     private enum InternalEvents: Sendable {
@@ -456,10 +457,12 @@ public final class PairedDevices: ServiceModule {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PairedDevices: Module, EnvironmentAccessible, DefaultInitializable, @unchecked Sendable {}
 
 // MARK: - Manual Discovery
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 extension PairedDevices {
     private func handleAdvertisementChange<Device: PairableDevice>(_ device: Device) {
@@ -579,6 +582,7 @@ extension PairedDevices {
 
 // MARK: - Device Pairing
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 extension PairedDevices {
     private func registerPairedDevice<Device: PairableDevice>(_ device: Device) async {
@@ -717,6 +721,7 @@ extension PairedDevices {
 
 // MARK: - Paired Peripheral Management
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 extension PairedDevices {
     private func fetchAllPairedInfos(previousPeripherals: [UUID: (any PairableDevice)] = [:]) {
@@ -1106,6 +1111,7 @@ extension PairedDevices {
 
 // MARK: Bluetooth
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PairedDevices {
     struct BluetoothCentralStateSubscription: Sendable {
         private enum Event: Sendable {
@@ -1161,6 +1167,7 @@ extension PairedDevices {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Bluetooth {
     nonisolated func pairableDevice(deviceTypeIdentifier: String) -> (any PairableDevice.Type)? {
         for descriptor in configuration {

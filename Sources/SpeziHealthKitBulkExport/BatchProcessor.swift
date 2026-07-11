@@ -13,6 +13,7 @@ public import SpeziHealthKit
 
 
 /// Component that receives fetched Health data for processing, as part of a ``BulkExportSession``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol BatchProcessor<Output>: Sendable {
     /// The type of the processor's output. Should be `Void` if the processor simply consumes the samples.
     associatedtype Output: Sendable

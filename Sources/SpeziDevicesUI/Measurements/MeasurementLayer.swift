@@ -12,6 +12,7 @@ import SpeziDevices
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct MeasurementLayer: View {
     private let measurement: HealthKitMeasurement
 
@@ -36,14 +37,17 @@ struct MeasurementLayer: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     MeasurementLayer(measurement: .weight(.mockWeighSample))
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     MeasurementLayer(measurement: .weight(.mockWeighSample, bmi: .mockBmiSample, height: .mockHeightSample))
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     MeasurementLayer(measurement: .bloodPressure(.mockBloodPressureSample, heartRate: .mockHeartRateSample))
 }

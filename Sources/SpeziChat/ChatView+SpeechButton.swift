@@ -85,6 +85,7 @@ extension View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     @Previewable @State var chat: Chat = .init(
         [

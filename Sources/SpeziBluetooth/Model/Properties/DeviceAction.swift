@@ -56,6 +56,7 @@ import Atomics
 ///
 /// ### Device Actions
 /// - ``DeviceActions``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @propertyWrapper
 public struct DeviceAction<Action: _BluetoothPeripheralAction>: Sendable {
     final class Storage: Sendable {
@@ -103,6 +104,7 @@ public struct DeviceAction<Action: _BluetoothPeripheralAction>: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DeviceAction: DeviceVisitable, ServiceVisitable {
     func accept<Visitor: DeviceVisitor>(_ visitor: inout Visitor) {
         visitor.visit(self)

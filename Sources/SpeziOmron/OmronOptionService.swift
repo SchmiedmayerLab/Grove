@@ -13,6 +13,7 @@ import SpeziBluetoothServices
 /// The Omron Option Service.
 ///
 /// Please refer to the respective Developer Guide for more information.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct OmronOptionService: BluetoothService, Sendable {
     public static let id: BTUUID = "5DF5E817-A945-4F81-89C0-3D4E9759C07C"
 

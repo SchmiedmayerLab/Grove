@@ -12,6 +12,7 @@ enum SpeziPropertyError: Error {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 protocol SpeziPropertyWrapper {
     /// Inject the global Spezi instance.
     ///
@@ -27,11 +28,13 @@ protocol SpeziPropertyWrapper {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SpeziPropertyWrapper {
     func inject(spezi: Spezi) {}
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Module {
     @MainActor
     func inject(spezi: Spezi) throws(SpeziPropertyError) {

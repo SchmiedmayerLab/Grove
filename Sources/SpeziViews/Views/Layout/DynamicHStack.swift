@@ -75,6 +75,7 @@ public enum DynamicLayout: Sendable {
 ///
 /// ### Checking the current layout
 /// - ``DynamicLayout``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct DynamicHStack<Content: View>: View {
     private let realignAfter: DynamicTypeSize
     private let horizontalAlignment: VerticalAlignment
@@ -155,6 +156,7 @@ extension DynamicLayout: PreferenceKey {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     List {
         DynamicHStack(verticalAlignment: .leading) {

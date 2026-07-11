@@ -130,6 +130,7 @@ private struct UserUpdate {
 /// ### Presenting the security alert
 /// - ``securityAlert``
 /// - ``FirebaseSecurityAlert``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 public final class FirebaseAccountService: AccountService { // swiftlint:disable:this type_body_length
     private static let supportedAccountKeys = AccountKeyCollection {
@@ -691,6 +692,7 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
 
 // MARK: - Listener and Handler
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FirebaseAccountService {
     @MainActor
     private func checkForInitialUserAccount() {
@@ -752,6 +754,7 @@ extension FirebaseAccountService {
 
 // MARK: - Sign In With Apple
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 extension FirebaseAccountService {
     func onAppleSignInRequest(request: ASAuthorizationAppleIDRequest) {
@@ -871,6 +874,7 @@ extension FirebaseAccountService {
 
 // MARK: - Infrastructure
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 extension FirebaseAccountService {
     nonisolated private static func resetLegacyStorage(_ keychainStorage: KeychainStorage, _ localStorage: LocalStorage, _ logger: Logger) {

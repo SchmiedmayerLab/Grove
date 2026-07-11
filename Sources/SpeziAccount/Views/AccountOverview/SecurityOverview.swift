@@ -11,6 +11,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(macOS, unavailable)
 @available(watchOS, unavailable)
 struct SecurityOverview: View {
@@ -75,6 +76,7 @@ struct SecurityOverview: View {
 
 
 #if DEBUG && !os(macOS) && !os(watchOS)
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     NavigationStack {
         AccountDetailsReader { account, details in

@@ -10,6 +10,7 @@
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct NotificationScenePhaseScheduling: ViewModifier {
     @Environment(Scheduler.self)
     private var scheduler: Scheduler? // modifier is injected by SchedulerNotifications and it doesn't have a direct scheduler dependency

@@ -61,6 +61,7 @@ extension RecordingInformation: Hashable, Sendable {}
 extension RecordingIdentification: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordingIdentification {
     func verifyAsciiInputs() throws {
         switch self {
@@ -73,6 +74,7 @@ extension RecordingIdentification {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordingInformation: EDFRepresentable {
     private static var longYearFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -94,6 +96,7 @@ extension RecordingInformation: EDFRepresentable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordingIdentification: ByteEncodable {
     public func encode(to byteBuffer: inout ByteBuffer) {
         switch self {

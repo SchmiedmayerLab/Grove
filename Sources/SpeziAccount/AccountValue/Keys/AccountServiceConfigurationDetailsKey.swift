@@ -9,6 +9,7 @@
 import SpeziFoundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails {
     struct AccountServiceConfigurationDetailsKey: DefaultProvidingKnowledgeSource {
         typealias Anchor = AccountAnchor

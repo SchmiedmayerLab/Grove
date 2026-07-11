@@ -29,6 +29,7 @@ public import SwiftUI
 /// ### Instance Properties
 /// - ``id``
 /// - ``timeout``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct CodeAccessGuard: _AccessGuardConfig {
     /// The result of evaluating a dynamic access guard against a user-entered passcode.
     ///
@@ -99,6 +100,7 @@ public struct CodeAccessGuard: _AccessGuardConfig {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CodeAccessGuard {
     /// Creates a passcode-based Access Guard
     public init(

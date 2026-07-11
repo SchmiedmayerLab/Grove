@@ -15,6 +15,7 @@ import SwiftUI
 /// and optionally a [FocusState](https://developer.apple.com/documentation/SwiftUI/FocusState) value.
 ///
 /// This particularly allows to run a validation from the outside of a view.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @dynamicMemberLookup
 @MainActor
 public struct CapturedValidationState {
@@ -47,6 +48,7 @@ public struct CapturedValidationState {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CapturedValidationState: Equatable, Sendable {
     nonisolated public static func == (lhs: CapturedValidationState, rhs: CapturedValidationState) -> Bool {
         lhs.engine === rhs.engine && lhs.input == rhs.input

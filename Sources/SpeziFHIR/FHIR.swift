@@ -44,6 +44,7 @@ import Spezi
 ///
 /// > Tip: You can learn more about how to use the store in the ``FHIRStore`` documentation.
 @available(*, deprecated, message: "We recommend using an app-specific `Standard` instead.")
+@available(iOS 18, macOS 15, watchOS 11, *)
 public actor FHIR: Standard {
     @Model public private(set) var store = FHIRStore()
 

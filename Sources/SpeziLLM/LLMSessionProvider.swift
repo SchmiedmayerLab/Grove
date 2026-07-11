@@ -10,6 +10,7 @@ import SwiftUI
 
 
 /// Refer to the documentation of ``View/LLMSessionProvider`` for information on how to use the `@LLMSessionProvider` property wrapper.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @propertyWrapper
 public struct _LLMSessionProvider<Schema: LLMSchema>: DynamicProperty {     // swiftlint:disable:this type_name
     /// Internal boxing type required to wrap the ``LLMSession``.
@@ -76,6 +77,7 @@ public struct _LLMSessionProvider<Schema: LLMSchema>: DynamicProperty {     // s
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     /// Instantiates an ``LLMSession`` from the passed ``LLMSchema``.
     ///

@@ -12,6 +12,7 @@ import HealthKitOnFHIRMacros
 import ModelsR4
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @SynthesizeDisplayProperty(
     HKElectrocardiogram.Classification.self,
     .notSet, .sinusRhythm, .atrialFibrillation, .inconclusiveLowHeartRate,
@@ -20,6 +21,7 @@ import ModelsR4
 extension HKElectrocardiogram.Classification: FHIRCodingConvertibleHKEnum {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @SynthesizeDisplayProperty(
     HKElectrocardiogram.SymptomsStatus.self,
     .notSet, .none, .present
@@ -27,6 +29,7 @@ extension HKElectrocardiogram.Classification: FHIRCodingConvertibleHKEnum {}
 extension HKElectrocardiogram.SymptomsStatus: FHIRCodingConvertibleHKEnum {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKElectrocardiogram {
     /// The `Symptoms` contain related `HKCategoryType` instances coded as `HKCategoryValueSeverity` enums related to an `HKElectrocardiogram`.
     public typealias Symptoms = [HKCategoryType: HKCategoryValueSeverity]
@@ -66,6 +69,7 @@ extension HKElectrocardiogram {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKElectrocardiogram: FHIRObservationBuildable {
     func build(_ observation: Observation, mapping: HKSampleMapping) throws {
         let mapping = mapping.electrocardiogramMapping

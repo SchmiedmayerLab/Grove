@@ -14,6 +14,7 @@ import ModelsR4
 import SpeziHealthKit
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRStore {
     /// Add a HealthKit sample to the FHIR store.
     /// - Parameters:

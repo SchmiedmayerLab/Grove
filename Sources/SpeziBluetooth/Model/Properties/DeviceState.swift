@@ -85,6 +85,7 @@ import Observation
 /// - ``wrappedValue``
 /// - ``projectedValue``
 /// - ``DeviceStateAccessor``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @propertyWrapper
 public struct DeviceState<Value: Sendable>: Sendable {
 #if compiler(<6)
@@ -155,6 +156,7 @@ public struct DeviceState<Value: Sendable>: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DeviceState: DeviceVisitable, ServiceVisitable {
     func accept<Visitor: DeviceVisitor>(_ visitor: inout Visitor) {
         visitor.visit(self)
@@ -166,6 +168,7 @@ extension DeviceState: DeviceVisitable, ServiceVisitable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DeviceState {
     var defaultValue: Value? {
         if let injected = storage.testInjections.load()?.injectedValue {

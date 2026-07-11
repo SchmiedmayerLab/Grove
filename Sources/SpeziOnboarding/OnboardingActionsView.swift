@@ -32,6 +32,7 @@ import SwiftUI
 ///     }
 /// )
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct OnboardingActionsView: View {
     private struct ButtonConfig {
         let title: Text
@@ -80,6 +81,7 @@ public struct OnboardingActionsView: View {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OnboardingActionsView {
     /// Creates an `OnboardingActionsView` instance that only contains a primary button.
     /// - Parameters:
@@ -206,6 +208,7 @@ extension View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     VStack {
         OnboardingActionsView("PRIMARY") {

@@ -13,6 +13,7 @@ import Foundation
 /// However, Swift is not smart enough to know that CB delegate methods (e.g., CBCentralManagerDelete or the CBPeripheralDelegate) are called
 /// on the SpeziBluetooth actor's dispatch queue and therefore are never sent over actor boundaries.
 /// This type helps us to assume the sendable property to bypass Swift concurrency checking
+@available(iOS 18, macOS 15, watchOS 11, *)
 @dynamicMemberLookup
 struct CBInstance<Value>: Sendable {
     nonisolated(unsafe) private let object: Value
@@ -57,6 +58,7 @@ struct CBInstance<Value>: Sendable {
 /// All accessor bindings of SpeziBluetooth property wrappers (a call like `deviceInformation.$manufacturerName` using ``Characteristic/projectedValue``) capture the current
 /// state of the represented value. For example, the ``CharacteristicAccessor`` binding will capture the current state of the characteristic when the binding was created.
 /// This effectively creates a stable view onto the characteristic properties. However, the accessor binding might be invalidated as soon as the characteristic changes, so don't store it for longer than required.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @globalActor
 public actor SpeziBluetooth {
     /// The shared actor instance.
@@ -81,6 +83,7 @@ public actor SpeziBluetooth {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SpeziBluetooth {
     /// Assume isolation to the global `SpeziBluetooth` actor.
     /// - Parameters:
@@ -115,6 +118,7 @@ extension SpeziBluetooth {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SpeziBluetooth {
     @_alwaysEmitIntoClient
     static func assumeIsolatedIfAvailableOrTask(

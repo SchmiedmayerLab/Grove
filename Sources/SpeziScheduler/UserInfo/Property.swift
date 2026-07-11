@@ -43,6 +43,7 @@ import SpeziFoundation
 ///
 /// ### Customize Encoding and Decoding
 /// - ``UserStorageCoding``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @attached(accessor, names: named(get), named(set))
 @attached(peer, names: prefixed(__Key_))
 public macro Property<Encoder: TopLevelEncoder, Decoder: TopLevelDecoder>(

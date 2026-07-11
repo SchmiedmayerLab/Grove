@@ -10,6 +10,7 @@ import Foundation
 import SpeziFoundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyDefinition {
     private enum CodingKeysV0: String, CodingKey {
         case schemaVersion
@@ -77,6 +78,7 @@ extension StudyDefinition {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyDefinition {
     private struct SchemaVersionAccessor: Decodable {
         let schemaVersion: Version

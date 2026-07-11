@@ -17,6 +17,7 @@ import Spezi
 /// Each configuration component defines the `HKObjectType`s it needs read and/or write access to,
 /// and, as part of the ``HealthKit-swift.class`` module's initialization, is given the opportunity
 /// to perform custom configuration actions.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol HealthKitConfigurationComponent {
     /// The HealthKit data types this component needs read and/or write access to.
     var dataAccessRequirements: HealthKit.DataAccessRequirements { get }
@@ -28,6 +29,7 @@ public protocol HealthKitConfigurationComponent {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKit {
     /// Defines the object and sample types the ``HealthKit-swift.class`` module requires read and/or write access to.
     public struct DataAccessRequirements: Hashable, Sendable {
@@ -99,6 +101,7 @@ extension HealthKit {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKObjectType {
     var effectiveObjectTypesForAuthorization: Set<HKObjectType> {
         if let sampleType = self.sampleType {

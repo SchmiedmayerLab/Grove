@@ -52,6 +52,7 @@ public import SwiftUI
 ///     (e.g.: because no samples from a matching `HKSource` exist), will not auto-update when a source that matches the filter adds new samples.
 ///     Instead, these samples will only show up when the view appears the next time.
 ///     If this is a likely scenario for your app, use a ``HealthKitQuery`` without a `SourceFilter` and then perform manual filtering on the resulting samples.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @propertyWrapper @MainActor
 public struct HealthKitQuery<Sample: _HKSampleWithSampleType>: DynamicProperty { // swiftlint:disable:this file_types_order
     private let input: SamplesQueryResults<Sample>.Input
@@ -133,6 +134,7 @@ public struct HealthKitQuery<Sample: _HKSampleWithSampleType>: DynamicProperty {
 /// An auto-updating HealthKit query over samples in the HealthKit database.
 ///
 /// This type is primarily intended to be used by the ``HealthKitStatisticsQuery`` property wrapper, but is also made available as part of the public API.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class SamplesQueryResults<Sample: _HKSampleWithSampleType>: @unchecked Sendable {
     /// The query input, defining what should be fetched from the HealthKit database.
@@ -246,6 +248,7 @@ public final class SamplesQueryResults<Sample: _HKSampleWithSampleType>: @unchec
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SamplesQueryResults: HealthKitQueryResults {
     public typealias Index = OrderedArray<Sample>.Index
     public typealias Element = Sample

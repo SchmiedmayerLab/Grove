@@ -13,6 +13,7 @@ import SwiftUI
 private let logger = Logger(subsystem: "edu.stanford.spezi.SpeziAccount", category: "AccountRequiredModifier")
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct AccountRequiredModifier<SetupSheet: View>: ViewModifier {
     private let enabled: Bool
     private let accountSetupIsComplete: (AccountDetails) -> Bool
@@ -82,6 +83,7 @@ struct AccountRequiredModifier<SetupSheet: View>: ViewModifier {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     /// Use this modifier to ensure that there is always an associated account in your app.
     ///

@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 enum CharacteristicOnChangeHandler {
     case value(_ closure: (Data) -> Void)
     case instance(_ closure: (GATTCharacteristic?) -> Void)

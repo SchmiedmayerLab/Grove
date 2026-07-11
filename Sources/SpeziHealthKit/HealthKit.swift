@@ -67,6 +67,7 @@ import SwiftUI
 ///
 /// ## See Also
 /// - <doc:ModuleConfiguration>
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class HealthKit: Module, EnvironmentAccessible, DefaultInitializable, @unchecked Sendable {
     /// The state of the HealthKit module's initial configuration operation.
@@ -182,6 +183,7 @@ public final class HealthKit: Module, EnvironmentAccessible, DefaultInitializabl
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKit {
     // MARK: Config State Handling
     
@@ -483,6 +485,7 @@ extension HealthKit {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKit {
     // MARK: HealthKit data collection
     
@@ -620,6 +623,7 @@ extension HealthKit {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKit.DataAccessRequirements {
     func overlaps(_ other: Self) -> Bool {
         !self.read.isDisjoint(with: other.read) || !self.write.isDisjoint(with: other.write)
@@ -634,6 +638,7 @@ extension HealthKit.DataAccessRequirements {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKUnit {
     /// Creates a unit as the composition of dividing a unit by another unit.
     @inlinable public static func / (lhs: HKUnit, rhs: HKUnit) -> HKUnit {
@@ -647,6 +652,7 @@ extension HKUnit {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKit {
     /// Whether the OS version the app is running on needs to work around Blood Pressure auth being skipped by HealthKit.
     ///
@@ -677,6 +683,7 @@ extension HealthKit {
 #endif
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKit {
     /// The `Bundle` of the SpeziHealthKit package.
     ///

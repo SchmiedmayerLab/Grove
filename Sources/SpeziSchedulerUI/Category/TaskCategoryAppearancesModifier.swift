@@ -11,6 +11,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct TaskCategoryAppearancesModifier: ViewModifier {
     let provider: TaskCategoryAppearances.AppearanceProvider
 
@@ -24,6 +25,7 @@ private struct TaskCategoryAppearancesModifier: ViewModifier {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     /// Specify the appearance to be used for a task category.
     /// - Parameters:

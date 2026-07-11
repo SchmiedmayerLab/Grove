@@ -59,6 +59,7 @@ public typealias LLMAnthropicParameters = LLMOpenAILikeParameters<AnthropicPlatf
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMAnthropicPlatform = LLMOpenAILikePlatform<AnthropicPlatformDefinition>
 
 
@@ -71,6 +72,7 @@ public typealias LLMAnthropicPlatform = LLMOpenAILikePlatform<AnthropicPlatformD
 ///
 /// - Tip: ``LLMAnthropicSchema`` also enables the function calling mechanism to establish a structured, bidirectional, and reliable communication between the ``LLMAnthropicPlatform`` LLMs and external tools.
 ///     For more details, refer to the [`LLMOpenAISchema`](../SpeziLLMOpenAI/SpeziLLMOpenAI.docc/SpeziLLMOpenAI.md) documentation.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMAnthropicSchema = LLMOpenAILikeSchema<AnthropicPlatformDefinition>
 
 
@@ -120,6 +122,7 @@ public typealias LLMAnthropicSchema = LLMOpenAILikeSchema<AnthropicPlatformDefin
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMAnthropicSession = LLMOpenAILikeSession<AnthropicPlatformDefinition>
 
 
@@ -128,10 +131,12 @@ public typealias LLMAnthropicSession = LLMOpenAILikeSession<AnthropicPlatformDef
 /// - Warning: Ensure that the ``LLMAnthropicPlatform`` is specified within the Spezi `Configuration` when using this view in the onboarding flow.
 ///
 /// - Important: Only use this if the corresponding LLM platform's config's auth token is set to `RemoteLLMInferenceAuthToken/keychain(_:CredentialsTag)`
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMAnthropicAPITokenOnboardingStep = LLMOpenAILikeAPITokenOnboardingStep<AnthropicPlatformDefinition>
 
 
 /// View to display an onboarding step for the user to select an Anthropic model.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMAnthropicModelOnboardingStep = LLMOpenAILikeModelOnboardingStep<AnthropicPlatformDefinition>
 
 

@@ -27,6 +27,7 @@ import Spezi
 ///
 /// ### Communicate changes as a Storage Provider
 /// - ``notifyAboutUpdatedDetails(for:_:)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public final class ExternalAccountStorage: Module, Sendable {
     /// Capture details that are externally stored, associated with their account id.
     public struct ExternallyStoredDetails: Sendable {

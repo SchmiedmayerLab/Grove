@@ -12,6 +12,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct DisplayView: DataDisplayView {
     private let value: PersonNameComponents
 
@@ -27,6 +28,7 @@ private struct DisplayView: DataDisplayView {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct EntryView: DataEntryView {
     @Environment(Account.self)
     private var account
@@ -81,6 +83,7 @@ private struct EntryView: DataEntryView {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails {
     /// The name of a user.
     @AccountKey(
@@ -95,5 +98,6 @@ extension AccountDetails {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @KeyEntry(\.name)
 public extension AccountKeys {} // swiftlint:disable:this no_extension_access_modifier

@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_documentation(visibility: internal)
 public protocol _AnyAccessGuardIdentifier<AccessGuard>: Hashable, Sendable { // swiftlint:disable:this type_name
     associatedtype AccessGuard: _AccessGuardConfig
@@ -43,11 +44,13 @@ public protocol _AnyAccessGuardIdentifier<AccessGuard>: Hashable, Sendable { // 
 ///
 /// ### Instance Properties
 /// - ``passcodeFallback``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct AccessGuardIdentifier<AccessGuard: _AccessGuardConfig>: _AnyAccessGuardIdentifier {
     @_spi(Internal) public let value: String
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccessGuardIdentifier {
     /// Creates a Passcode Access Guard Identifier
     public static func passcode(_ id: String) -> Self where AccessGuard == CodeAccessGuard {

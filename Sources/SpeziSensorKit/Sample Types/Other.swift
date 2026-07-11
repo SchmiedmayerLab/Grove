@@ -47,6 +47,7 @@ extension DefaultSensorKitSampleSafeRepresentation: Identifiable where Sample: I
 
 // MARK: SampleType Extensions
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SRWristTemperatureSession: SensorKitSampleProtocol {
     public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<SRWristTemperatureSession>
 }
@@ -58,16 +59,19 @@ extension SRPhotoplethysmogramSample: SensorKitSampleProtocol {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SRSpeechMetrics: SensorKitSampleProtocol {
     public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<SRSpeechMetrics>
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SRMediaEvent: SensorKitSampleProtocol {
     public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<SRMediaEvent>
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SRFaceMetrics: SensorKitSampleProtocol {
     public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<SRFaceMetrics>
 }

@@ -12,6 +12,7 @@ import HealthKit
 #endif
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AnySampleType {
     /// Returns the sample type's localized display title, for the specified language, if available.
     public func localizedTitle(in language: Locale.Language) -> String? {
@@ -19,6 +20,7 @@ extension AnySampleType {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AnySampleType {
     static func localizedTitle(for objectType: HKObjectType) -> String? {
         let bundle = HealthKit.bundle
@@ -42,6 +44,7 @@ extension AnySampleType {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Bundle {
     @_spi(Testing)
     public enum LocalizationLookupTable: Hashable, Sendable {

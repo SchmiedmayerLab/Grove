@@ -17,6 +17,7 @@ public import HealthKit
 
 
 /// Selects one of the specified units, based on the current locale.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @inlinable func localeDependentUnit(
     us: @autoclosure () -> HKUnit,
     uk: @autoclosure () -> HKUnit? = nil,
@@ -34,6 +35,7 @@ public import HealthKit
 
 // MARK: Quantity Types
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleType where Sample == HKQuantitySample {
     /// A quantity sample type that measures the number of steps the user has taken.
     @inlinable public static var stepCount: SampleType<HKQuantitySample> {
@@ -1603,6 +1605,7 @@ extension SampleType where Sample == HKQuantitySample {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKQuantityType {
     /// All well-known `HKQuantityType`s
     public static let allKnownQuantities: Set<HKQuantityType> = Set(
@@ -1610,6 +1613,7 @@ extension HKQuantityType {
     )
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKQuantityTypeIdentifier {
     /// All well-known `HKQuantityTypeIdentifier`s
     public static let allKnownIdentifiers: Set<HKQuantityTypeIdentifier> = {
@@ -1759,6 +1763,7 @@ extension HKQuantityTypeIdentifier {
 
 // MARK: Category Types
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleType where Sample == HKCategorySample {
     /// A category sample type that counts the number of hours in the day during which the user has stood and moved for at least one minute per hour.
     @inlinable public static var appleStandHour: SampleType<HKCategorySample> {
@@ -2588,6 +2593,7 @@ extension SampleType where Sample == HKCategorySample {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryType {
     /// All well-known `HKCategoryType`s
     public static let allKnownCategories: Set<HKCategoryType> = Set(
@@ -2595,6 +2601,7 @@ extension HKCategoryType {
     )
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryTypeIdentifier {
     /// All well-known `HKCategoryTypeIdentifier`s
     public static let allKnownIdentifiers: Set<HKCategoryTypeIdentifier> = {
@@ -2679,6 +2686,7 @@ extension HKCategoryTypeIdentifier {
 
 // MARK: Correlation Types
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleType where Sample == HKCorrelation {
     /// The sample type representing blood pressure correlation samples
     @inlinable public static var bloodPressure: SampleType<HKCorrelation> {
@@ -2715,6 +2723,7 @@ extension SampleType where Sample == HKCorrelation {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCorrelationType {
     /// All well-known `HKCorrelationType`s
     public static let allKnownCorrelations: Set<HKCorrelationType> = Set(
@@ -2722,6 +2731,7 @@ extension HKCorrelationType {
     )
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCorrelationTypeIdentifier {
     /// All well-known `HKCorrelationTypeIdentifier`s
     public static let allKnownIdentifiers: Set<HKCorrelationTypeIdentifier> = {
@@ -2734,6 +2744,7 @@ extension HKCorrelationTypeIdentifier {
 
 // MARK: Clinical Record Types
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(watchOS, unavailable)
 extension SampleType where Sample == HKClinicalRecord {
     /// A type identifier for records of allergic or intolerant reactions.
@@ -2853,6 +2864,7 @@ extension SampleType where Sample == HKClinicalRecord {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKClinicalType {
     /// All well-known `HKClinicalType`s
     public static let allKnownClinicalRecords: Set<HKClinicalType> = Set(
@@ -2860,6 +2872,7 @@ extension HKClinicalType {
     )
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKClinicalTypeIdentifier {
     /// All well-known `HKClinicalTypeIdentifier`s
     public static let allKnownIdentifiers: Set<HKClinicalTypeIdentifier> = {
@@ -2877,6 +2890,7 @@ extension HKClinicalTypeIdentifier {
     }()
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKObjectType {
     /// All well-known `HKObjectType`s
     public static let allKnownObjectTypes: Set<HKObjectType> = {
@@ -2909,6 +2923,7 @@ extension HKObjectType {
 
 // MARK: Other Sample Types
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleType where Sample == HKElectrocardiogram {
     /// The electrocardiogram sample type
     @inlinable public static var electrocardiogram: SampleType<HKElectrocardiogram> {
@@ -2920,6 +2935,7 @@ extension SampleType where Sample == HKElectrocardiogram {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleType where Sample == HKAudiogramSample {
     /// The audiogram sample type
     @inlinable public static var audiogram: SampleType<HKAudiogramSample> {
@@ -2931,6 +2947,7 @@ extension SampleType where Sample == HKAudiogramSample {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleType where Sample == HKWorkout {
     /// The workout sample type
     @inlinable public static var workout: SampleType<HKWorkout> {
@@ -2942,6 +2959,7 @@ extension SampleType where Sample == HKWorkout {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleType where Sample == HKVisionPrescription {
     /// The vision prescription sample type
     @inlinable public static var visionPrescription: SampleType<HKVisionPrescription> {
@@ -2965,6 +2983,7 @@ extension SampleType where Sample == HKStateOfMind {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleType where Sample == HKHeartbeatSeriesSample {
     /// The heartbeat series sample type
     @inlinable public static var heartbeatSeries: SampleType<HKHeartbeatSeriesSample> {
@@ -2976,6 +2995,7 @@ extension SampleType where Sample == HKHeartbeatSeriesSample {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleType where Sample == HKWorkoutRoute {
     /// The workout route sample type
     @inlinable public static var workoutRoute: SampleType<HKWorkoutRoute> {
@@ -3012,6 +3032,7 @@ extension SampleType where Sample == HKPHQ9Assessment {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleType {
     /// All currently-known "other" sample types, which are not quantity, correlation, category, or clinical samples.
     ///
@@ -3038,6 +3059,7 @@ extension SampleType {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCharacteristicTypeIdentifier {
     /// All well-known `HKCharacteristicTypeIdentifier`s
     public static let allKnownIdentifiers: Set<HKCharacteristicTypeIdentifier> = [

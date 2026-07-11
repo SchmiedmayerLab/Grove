@@ -22,6 +22,7 @@ private enum LoginFocusState {
 /// Every ``EmbeddableAccountService`` might provide a view that is directly integrated into the ``AccountSetup``
 /// view for more easy navigation. This view implements such a view for ``UserIdPasswordAccountService``-based
 /// account service implementations.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct LoginSetupView<PasswordReset: View>: View {
     private let loginClosure: (UserIdPasswordCredential) async throws -> Void
     private let passwordReset: PasswordReset

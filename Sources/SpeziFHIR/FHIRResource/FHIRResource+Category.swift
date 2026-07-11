@@ -41,6 +41,7 @@ extension FHIRResource {
         /// The ``FHIRStore`` property key path of the resource.
         ///
         /// - Note: Needs to be isolated on `MainActor` as the respective ``FHIRStore`` properties referred to by the `KeyPath` are isolated on the `MainActor`.
+        @available(iOS 18, macOS 15, watchOS 11, *)
         @MainActor var storeKeyPath: KeyPath<FHIRStore, Set<FHIRResource>> {
             switch self {
             case .allergyIntolerance: \.allergyIntolerances

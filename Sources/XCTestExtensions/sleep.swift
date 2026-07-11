@@ -13,11 +13,13 @@ import func unistd.usleep
 ///
 /// - Note: This exists as a synchronous alternative to [`Task.sleep(for:)`](https://developer.apple.com/documentation/swift/task/sleep(_:)),
 ///     in order to work around a bug in XCTest, where `async` UI test functions will sometimes hang at their suspension points.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public func sleep(for duration: Duration) {
     usleep(UInt32(duration.timeInterval * 1000000))
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Duration {
     /// The number of seconds in the `Duration`, as a `TimeInterval` value.
     ///

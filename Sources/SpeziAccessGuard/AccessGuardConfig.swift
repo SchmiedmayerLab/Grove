@@ -10,6 +10,7 @@ public import SwiftUI
 
 
 /// Access Guard Configuration
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_documentation(visibility: internal)
 public protocol _AccessGuardConfig: Sendable, Identifiable { // swiftlint:disable:this type_name
     /// The view used to unlock the access guard
@@ -30,6 +31,7 @@ public protocol _AccessGuardConfig: Sendable, Identifiable { // swiftlint:disabl
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _AccessGuardConfig {
     var typeErasedId: any _AnyAccessGuardIdentifier {
         id

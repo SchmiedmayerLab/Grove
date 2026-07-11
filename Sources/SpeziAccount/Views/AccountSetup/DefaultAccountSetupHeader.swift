@@ -13,6 +13,7 @@ import SwiftUI
 ///
 /// This view expects a ``Account`` object to be in the environment to dynamically
 /// present the appropriate subtitle.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct DefaultAccountSetupHeader: View {
     @Environment(Account.self)
     private var account
@@ -45,6 +46,7 @@ public struct DefaultAccountSetupHeader: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     DefaultAccountSetupHeader()
         .previewWith {
@@ -52,6 +54,7 @@ public struct DefaultAccountSetupHeader: View {
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     DefaultAccountSetupHeader()
         .previewWith {

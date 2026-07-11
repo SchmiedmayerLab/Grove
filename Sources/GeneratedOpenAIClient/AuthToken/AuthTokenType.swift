@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziKeychainStorage
+public import SpeziKeychainStorage
 
 
 /// The type of auth token for remote LLM services, such as the OpenAI or Fog layer.

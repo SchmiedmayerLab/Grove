@@ -87,6 +87,7 @@ import SpeziLLM
 ///     someAudioBuffer.append(pcm16)
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class LLMOpenAIRealtimeSession: LLMSession, SchemaProvidingLLMSession, Sendable {
     /// A Swift Logger that logs important information from the ``LLMOpenAIRealtimeSession``.

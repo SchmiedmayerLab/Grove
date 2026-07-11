@@ -26,6 +26,7 @@ import SpeziNumerics
 ///
 /// - Note: It is likely that other Omron Blood Pressure Cuffs are also supported with this implementation. However, they will be displayed with a generic device icon
 ///   in `SpeziDevicesUI` related components.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public final class OmronBloodPressureCuff: BluetoothDevice, Identifiable, OmronHealthDevice, BatteryPoweredDevice, @unchecked Sendable {
     public static let appearance: DeviceAppearance = .variants(defaultAppearance: Appearance(name: "Omron Blood Pressure Cuff"), variants: [
         Variant(
@@ -134,6 +135,7 @@ public final class OmronBloodPressureCuff: BluetoothDevice, Identifiable, OmronH
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_spi(TestingSupport)
 extension OmronBloodPressureCuff {
     /// Create a mock instance.
@@ -250,6 +252,7 @@ extension OmronBloodPressureCuff {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_spi(Migration)
 extension OmronBloodPressureCuff: DeviceVariantMigration {
     public static func selectAppearance(for deviceInfo: PairedDeviceInfo) -> (appearance: Appearance, variantId: String?) {

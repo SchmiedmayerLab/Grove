@@ -108,6 +108,7 @@ public struct UserProfileView: View {
         .preferredColorScheme(.dark)
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     UserProfileView(
         name: PersonNameComponents(givenName: "Vishnu", familyName: "Ravi"),

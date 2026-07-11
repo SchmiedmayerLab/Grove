@@ -10,6 +10,7 @@
 /// A mock ``LLMPlatform``, used for testing purposes.
 ///
 /// The platform is associated with the ``LLMMockSchema`` and enables the execution of the ``LLMMockSession``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public final class LLMMockPlatform: LLMPlatform {
     /// Queue that processed the LLM inference tasks in a structured concurrency manner.
     let queue: LLMInferenceQueue<String>

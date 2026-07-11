@@ -57,6 +57,7 @@ import Spezi
 /// - ``Appearance``
 /// - ``Variant``
 /// - ``DeviceVariantCriteria``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol BluetoothDevice: AnyObject, Module, Observable, Sendable {
     /// Describes the visual appearance of the device.
     ///
@@ -78,6 +79,7 @@ public protocol BluetoothDevice: AnyObject, Module, Observable, Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothDevice {
     /// Default device appearance that uses the type name as the name.
     public static var appearance: DeviceAppearance {

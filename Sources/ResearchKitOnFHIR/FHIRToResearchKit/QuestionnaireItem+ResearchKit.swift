@@ -8,6 +8,7 @@
 
 import FHIRModelsExtensions
 import ModelsR4
+#if ResearchKit
 import ResearchKit
 
 
@@ -330,3 +331,4 @@ extension QuestionnaireItem {
         return choices
     }
 }
+#endif

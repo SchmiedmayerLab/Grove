@@ -16,6 +16,7 @@ import SwiftUI
 /// Display contact information as defined by a `Contact`.
 ///
 /// This view represents the content define in a ``Contact``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct ContactView: View {
     private let contact: Contact
     
@@ -227,6 +228,7 @@ public struct ContactView: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct ContactView_Previews: PreviewProvider {
     static var mock: Contact {
         Contact(

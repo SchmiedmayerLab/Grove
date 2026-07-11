@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 private final class UIUpdate {
     private var dateTimer: Timer? {
@@ -90,6 +91,7 @@ private final class UIUpdate {
 ///     `DiscreteFormatStyle`. However, `ManagedViewUpdate` is especially handy, if other properties update on a time-dependent manner
 ///     (e.g., a button becoming enabled once a start date is reached).
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 @propertyWrapper
 public struct ManagedViewUpdate {
     private let uiUpdate = UIUpdate()
@@ -118,6 +120,7 @@ public struct ManagedViewUpdate {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ManagedViewUpdate: DynamicProperty {
     public func update() {
         uiUpdate.access() // track access to the state

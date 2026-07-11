@@ -9,6 +9,7 @@
 /// Read the current RSSI from the Bluetooth peripheral.
 ///
 /// For more information refer to ``DeviceActions/readRSSI``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct ReadRSSIAction: _BluetoothPeripheralAction, Sendable {
     public typealias ClosureType = @Sendable () async throws -> Int
 

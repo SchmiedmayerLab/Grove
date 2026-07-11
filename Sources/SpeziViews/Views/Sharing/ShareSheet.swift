@@ -51,6 +51,7 @@ private struct AppKitShareSheet {
 #endif
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     /// Share an item using the system share sheet.
     ///

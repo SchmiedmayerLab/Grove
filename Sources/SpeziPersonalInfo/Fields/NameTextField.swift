@@ -29,6 +29,7 @@ import SwiftUI
 /// ```
 ///
 /// - Note: A empty string will be automatically mapped to a `nil` value for the respective property of `PersonNameComponents`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct NameTextField<Label: View>: View {
     private let prompt: Text?
     private let label: Label
@@ -114,6 +115,7 @@ public struct NameTextField<Label: View>: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     @Previewable @State var name = PersonNameComponents()
     return List {

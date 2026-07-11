@@ -20,6 +20,7 @@ enum DependencyRelation: Hashable {
 /// Provides mechanism to communicate dependency requirements.
 ///
 /// This protocol allows to communicate dependency requirements of a ``Module`` to the ``DependencyManager``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 protocol DependencyDeclaration {
     /// Directly access the injected dependency of the dependency declaration.
     ///
@@ -53,6 +54,7 @@ protocol DependencyDeclaration {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Module {
     var dependencyDeclarations: [any DependencyDeclaration] {
         retrieveProperties(ofType: (any DependencyDeclaration).self)

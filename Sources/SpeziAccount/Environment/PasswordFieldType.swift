@@ -20,6 +20,7 @@ public enum PasswordFieldType {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PasswordFieldType: CustomLocalizedStringResourceConvertible {
     public var localizedStringResource: LocalizedStringResource {
         switch self {

@@ -27,6 +27,7 @@ import HealthKit
 /// - ``==(_:_:)-80mw5``
 /// - ``~=(_:_:)-(_,SampleType<Any>)``
 /// - ``~=(_:_:)-(SampleType<Any>,_)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol AnySampleType<Sample>: Hashable, Identifiable, Sendable where ID == String {
     /// The type of the sample type's underlying samples.
     ///
@@ -47,6 +48,7 @@ public protocol AnySampleType<Sample>: Hashable, Identifiable, Sendable where ID
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AnySampleType {
     /// The sample type's unique identifier, derived from its underlying `HKSampleType`
     @inlinable public var id: String {
@@ -66,6 +68,7 @@ extension AnySampleType {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AnySampleType where Sample._SampleType: _HKSampleTypeWithIdentifierType {
     /// The sample type's strongly typed identifier.
     @inlinable public var identifier: Sample._SampleType._Identifier {
@@ -74,6 +77,7 @@ extension AnySampleType where Sample._SampleType: _HKSampleTypeWithIdentifierTyp
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AnySampleType {
     /// Compare two sample types, based on their identifiers
     @inlinable public static func == (lhs: Self, rhs: Self) -> Bool {
@@ -94,32 +98,38 @@ extension AnySampleType {
 // swiftlint:disable static_operator
 
 /// Compare two sample types, based on their identifiers
+@available(iOS 18, macOS 15, watchOS 11, *)
 @inlinable public func == (lhs: any AnySampleType, rhs: any AnySampleType) -> Bool {
     lhs.id == rhs.id
 }
 
 /// Compare two sample types, based on their identifiers
+@available(iOS 18, macOS 15, watchOS 11, *)
 @inlinable public func == (lhs: any AnySampleType, rhs: SampleType<some Any>) -> Bool {
     lhs.id == rhs.id
 }
 
 /// Compare two sample types, based on their identifiers
+@available(iOS 18, macOS 15, watchOS 11, *)
 @inlinable public func == (lhs: SampleType<some Any>, rhs: any AnySampleType) -> Bool {
     lhs.id == rhs.id
 }
 
 /// Compare two sample types, based on their identifiers
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_disfavoredOverload
 @inlinable public func ~= (pattern: SampleType<some Any>, value: SampleType<some Any>) -> Bool {
     pattern.id == value.id
 }
 
 /// Compare two sample types, based on their identifiers
+@available(iOS 18, macOS 15, watchOS 11, *)
 @inlinable public func ~= (pattern: any AnySampleType, value: SampleType<some Any>) -> Bool {
     pattern.id == value.id
 }
 
 /// Compare two sample types, based on their identifiers
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_disfavoredOverload
 @inlinable public func ~= (pattern: SampleType<some Any>, value: any AnySampleType) -> Bool {
     pattern.id == value.id
@@ -128,6 +138,7 @@ extension AnySampleType {
 // swiftlint:enable static_operator
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AnySampleType {
     /// The sample types which should be used when requesting read/write authorization for this sample type with HealthKit.
     ///
@@ -151,6 +162,7 @@ extension AnySampleType {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKObjectType {
     /// The corresponding ``SampleType``, if possible.
     public var sampleType: (any AnySampleType)? {
@@ -199,6 +211,7 @@ extension HKObjectType {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 func collectAllUnderyingEffectiveSampleTypes<each S>(
     _ seq: repeat each S
 ) -> Set<HKSampleType> where repeat (each S): Sequence, repeat (each S).Element: AnySampleType {

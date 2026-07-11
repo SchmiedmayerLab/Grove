@@ -21,6 +21,7 @@ public import SwiftUI
 /// ```
 ///
 /// > Tip: You can allow a user to set the passcode using the ``SetAccessGuard`` view.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct AccessGuarded<GuardedView: View, Config: _AccessGuardConfig>: View {
     @AccessGuard<Config> private var accessGuard: Config._Model
     private let guarded: @MainActor () -> GuardedView
@@ -48,6 +49,7 @@ public struct AccessGuarded<GuardedView: View, Config: _AccessGuardConfig>: View
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     let identifier = AccessGuardIdentifier.passcode("edu.stanford.spezi.myView")
     AccessGuarded(identifier) {

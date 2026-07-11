@@ -10,6 +10,7 @@ import Algorithms
 public import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Bundle {
     /// The localization table in which a lookup should take place.
     public enum LocalizationLookupTable: Hashable, Sendable {

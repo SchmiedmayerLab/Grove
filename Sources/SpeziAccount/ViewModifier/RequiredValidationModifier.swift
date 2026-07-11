@@ -10,6 +10,7 @@ import SpeziValidation
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct RequiredValidationModifier<Key: AccountKey>: ViewModifier {
     @Environment(AccountDetailsBuilder.self)
     private var detailsBuilder
@@ -49,6 +50,7 @@ private struct RequiredValidationModifier<Key: AccountKey>: ViewModifier {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     @ViewBuilder
     func validateRequired<Key: AccountKey>(for key: Key.Type, _ value: Binding<Key.Value>) -> some View {

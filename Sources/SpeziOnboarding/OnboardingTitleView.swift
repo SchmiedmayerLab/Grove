@@ -14,6 +14,7 @@ import SwiftUI
 /// ```swift
 /// OnboardingTitleView(title: "Title", subtitle: "Subtitle")
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct OnboardingTitleView: View {
     private let title: Text
     private let subtitle: Text?
@@ -60,6 +61,7 @@ public struct OnboardingTitleView: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     OnboardingTitleView(title: String("Title"), subtitle: String("Subtitle"))
 }

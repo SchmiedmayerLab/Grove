@@ -10,6 +10,7 @@ import HealthKit
 import ModelsR4
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategorySample: FHIRObservationBuildable {
     func build(_ observation: Observation, mapping: HKSampleMapping) throws {
         guard let mapping = mapping.categorySampleMapping[self.categoryType] else {
@@ -52,6 +53,7 @@ extension HKCategorySample: FHIRObservationBuildable {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryType {
     fileprivate static func coding(forMetadataKey key: String) -> Coding? {
         switch key {
@@ -85,6 +87,7 @@ extension HKCategoryType {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryType {
     /// Information about the associated data carried by a sample of a specific category type.
     struct AssociatedDataInfo {
@@ -110,6 +113,7 @@ extension HKCategoryType {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryTypeIdentifier {
     /// The category type's associated (FHIR-compatible) Category Value Type.
     ///

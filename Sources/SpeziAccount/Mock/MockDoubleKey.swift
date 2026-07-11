@@ -10,6 +10,7 @@ import Foundation
 
 
 /// For internal previews and testing.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_spi(_Testing)
 public struct MockDoubleKey: AccountKey {
     public typealias Value = Double

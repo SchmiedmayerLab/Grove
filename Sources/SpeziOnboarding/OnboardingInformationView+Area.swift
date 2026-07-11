@@ -44,6 +44,7 @@ extension OnboardingInformationView {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OnboardingInformationView.Area {
     /// Creates a new area, using a custom icon view and localized string contents.
     ///

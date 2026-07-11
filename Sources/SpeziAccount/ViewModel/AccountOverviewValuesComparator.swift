@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct AccountOverviewValuesComparator: SortComparator {
     var order: SortOrder = .forward
 
@@ -60,6 +61,7 @@ struct AccountOverviewValuesComparator: SortComparator {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension  AccountOverviewValuesComparator {
     static func == (lhs: AccountOverviewValuesComparator, rhs: AccountOverviewValuesComparator) -> Bool {
         lhs.id == rhs.id

@@ -15,6 +15,7 @@ import SwiftUI
 /// Loads resources from a FHIR bundle from a provided set of bundles.
 ///
 /// The View assumes that the bundle contains a `ModelsR4.Patient` resource to identify the bundle and provide a human-readable name.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct FHIRBundleSelector: View {
     private struct PatientIdentifiedBundle: Identifiable {
         let id: String

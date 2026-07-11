@@ -30,6 +30,7 @@ import SwiftUI
 /// ### Shared Repository
 /// - ``AccountAnchor``
 /// - ``AccountStorage``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol AccountKey: KnowledgeSource<AccountAnchor>, SendableMetatype where Value: Sendable, Value: Equatable, Value: Codable {
     /// The view that is used to display a value for this account key.
     ///
@@ -72,6 +73,7 @@ public protocol AccountKey: KnowledgeSource<AccountAnchor>, SendableMetatype whe
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKey {
     /// A unique identifier for an account key. Bound to the process lifetime.
     static var id: ObjectIdentifier {
@@ -90,6 +92,7 @@ extension AccountKey {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKey where Value: StringProtocol {
     /// Default initial value for `String` values.
     public static var initialValue: InitialValue<Value> {
@@ -98,6 +101,7 @@ extension AccountKey where Value: StringProtocol {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKey where Value == Bool {
     /// Default initial value for `Bool` values.
     public static var initialValue: InitialValue<Value> {
@@ -106,6 +110,7 @@ extension AccountKey where Value == Bool {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKey where Value: AdditiveArithmetic {
     /// Default initial value for numeric values.
     public static var initialValue: InitialValue<Value> {
@@ -115,6 +120,7 @@ extension AccountKey where Value: AdditiveArithmetic {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKey where Value: ExpressibleByArrayLiteral {
     /// Default initial value for `Array` values.
     public static var initialValue: InitialValue<Value> {

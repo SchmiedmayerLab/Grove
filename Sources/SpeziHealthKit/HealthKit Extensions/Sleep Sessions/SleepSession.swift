@@ -40,6 +40,7 @@ import SpeziFoundation
 ///
 /// ### Creating SleepSessions
 /// - ``Swift/Collection/splitIntoSleepSessions(threshold:separateBySource:)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct SleepSession: Hashable, Sendable {
     public typealias Samples = [HKCategorySample]
     public typealias SleepPhase = HKCategoryValueSleepAnalysis
@@ -107,6 +108,7 @@ public struct SleepSession: Hashable, Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SleepSession {
     /// The total amount of time tracked as being awake.
     ///
@@ -140,6 +142,7 @@ extension SleepSession {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SleepSession {
     /// The total amount of time tracked for each sleep phase.
     ///
@@ -167,6 +170,7 @@ extension SleepSession {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SleepSession: RandomAccessCollection {
     public var startIndex: Samples.Index {
         samples.startIndex
@@ -180,6 +184,7 @@ extension SleepSession: RandomAccessCollection {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SleepSession: CustomStringConvertible {
     public var description: String {
         var desc = "SleepSession("
@@ -197,6 +202,7 @@ extension SleepSession: CustomStringConvertible {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategorySample {
     /// The sample's sleep phase, if applicable.
     public var sleepPhase: HKCategoryValueSleepAnalysis? {
@@ -208,6 +214,7 @@ extension HKCategorySample {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SleepSession.SleepPhase {
     /// All currently-known sleep phases
     public static let allKnownValues: Set<Self> = [

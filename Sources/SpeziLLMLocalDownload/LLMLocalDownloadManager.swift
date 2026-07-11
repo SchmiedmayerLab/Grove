@@ -7,6 +7,7 @@
 //
 
 import Foundation
+#if MLX
 import Hub
 import MLXLMCommon
 import Observation
@@ -23,6 +24,7 @@ import SpeziViews
 /// The current state of the ``LLMLocalDownloadManager`` is exposed via the ``LLMLocalDownloadManager/state`` property which
 /// is of type ``LLMLocalDownloadManager/DownloadState``, containing states such as ``LLMLocalDownloadManager/DownloadState/downloading(progress:)``
 /// which includes the progress of the download or ``LLMLocalDownloadManager/DownloadState/downloaded`` which indicates that the download has finished.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class LLMLocalDownloadManager: NSObject, Sendable {
     /// An enum containing all possible states of the ``LLMLocalDownloadManager``.
@@ -137,3 +139,4 @@ public final class LLMLocalDownloadManager: NSObject, Sendable {
             }
     }
 }
+#endif

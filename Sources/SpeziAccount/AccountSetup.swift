@@ -58,6 +58,7 @@ import SwiftUI
 /// ### Setup State
 /// - ``SwiftUICore/EnvironmentValues/accountSetupState``
 /// - ``AccountSetupState``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 public struct AccountSetup<Header: View, Continue: View>: View {
     private let setupCompleteClosure: @MainActor (AccountDetails) async -> Void
@@ -265,6 +266,7 @@ public struct AccountSetup<Header: View, Continue: View>: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     AccountSetup()
         .previewWith {
@@ -272,6 +274,7 @@ public struct AccountSetup<Header: View, Continue: View>: View {
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     AccountSetup()
         .previewWith {
@@ -279,6 +282,7 @@ public struct AccountSetup<Header: View, Continue: View>: View {
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     AccountSetup()
         .previewWith {
@@ -286,6 +290,7 @@ public struct AccountSetup<Header: View, Continue: View>: View {
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     AccountSetup()
         .previewWith {
@@ -293,6 +298,7 @@ public struct AccountSetup<Header: View, Continue: View>: View {
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     AccountSetup()
         .previewWith {
@@ -300,6 +306,7 @@ public struct AccountSetup<Header: View, Continue: View>: View {
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     var details = AccountDetails()
     details.userId = "lelandstanford@stanford.edu"
@@ -311,6 +318,7 @@ public struct AccountSetup<Header: View, Continue: View>: View {
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     var details = AccountDetails()
     details.userId = "lelandstanford@stanford.edu"
@@ -322,6 +330,7 @@ public struct AccountSetup<Header: View, Continue: View>: View {
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     var details = AccountDetails()
     details.userId = "lelandstanford@stanford.edu"

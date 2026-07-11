@@ -14,6 +14,7 @@ public import SensorKit
 
 // MARK: On-Wrist Detection
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SRWristDetection: SensorKitSampleProtocol {
     public typealias SafeRepresentation = SensorKitOnWristEventSample
     
@@ -27,6 +28,7 @@ extension SRWristDetection: SensorKitSampleProtocol {
 
 
 /// An On-Wrist Event collected by SensorKit.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct SensorKitOnWristEventSample: SensorKitSampleSafeRepresentation {
     /// The date when this sample was collected
     public let timestamp: Date

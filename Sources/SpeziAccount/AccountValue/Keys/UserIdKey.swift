@@ -12,6 +12,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct DisplayView: DataDisplayView {
     private let value: String
 
@@ -30,6 +31,7 @@ private struct DisplayView: DataDisplayView {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct EntryView: DataEntryView {
     @Environment(\.accountServiceConfiguration)
     private var configuration
@@ -51,6 +53,7 @@ private struct EntryView: DataEntryView {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails {
     /// A string-based, user-facing, unique user identifier.
     ///
@@ -76,10 +79,12 @@ extension AccountDetails {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @KeyEntry(\.userId)
 public extension AccountKeys {} // swiftlint:disable:this no_extension_access_modifier
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails.__Key_userId: ComputedKnowledgeSource {
     public typealias StoragePolicy = AlwaysCompute
 

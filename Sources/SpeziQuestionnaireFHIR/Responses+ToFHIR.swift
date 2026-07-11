@@ -22,6 +22,7 @@ private struct FHIRConversionError: LocalizedError {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SpeziQuestionnaire.QuestionnaireResponses {
     /// A custom response value that can be expressed as one or more FHIR R4 `QuestionnaireResponseItemAnswer`
     public protocol CustomResponseValueProtocolWithFHIRSupport: CustomResponseValueProtocol { // swiftlint:disable:this type_name
@@ -37,6 +38,7 @@ extension SpeziQuestionnaire.QuestionnaireResponses {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ModelsR4.QuestionnaireResponse {
     /// Creates a FHIR R4 `QuestionnaireResponse` from a Spezi `QuestionnaireResponses`.
     public convenience init(_ other: SpeziQuestionnaire.QuestionnaireResponses) throws {
@@ -54,6 +56,7 @@ extension ModelsR4.QuestionnaireResponse {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses.Responses {
     fileprivate struct FHIRConversionContext {
         /// All tasks in the questionnaire, in the current context.
@@ -83,6 +86,7 @@ extension QuestionnaireResponses.Responses {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses.Response {
     fileprivate struct FHIRConversionContext { // maybe also use this for the CustomResponseValue conversion?
         let task: SpeziQuestionnaire.Questionnaire.Task
@@ -238,6 +242,7 @@ extension QuestionnaireResponses.Response {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SpeziQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
     func toFHIRCoding() -> Coding {
         if let fhirCoding {
@@ -268,6 +273,7 @@ extension QuestionnaireResponseItem {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponseItemAnswer {
     convenience init(_ attachment: QuestionnaireResponses.CollectedAttachment) throws {
         let data = try Data(contentsOf: attachment.url)

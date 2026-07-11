@@ -26,6 +26,7 @@
 ///     public init() {}
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol LLMSchema: Sendable {
     /// The ``LLMPlatform`` responsible for turning the ``LLMSchema`` towards a ``LLMSession``.
     associatedtype Platform: LLMPlatform

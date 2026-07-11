@@ -13,6 +13,7 @@ import SpeziBluetooth
 ///
 /// This class partially implements the Bluetooth [Blood Pressure Service 1.1](https://www.bluetooth.com/specifications/specs/blood-pressure-service-1-1-1).
 /// - Note: The Enhance Blood Pressure Service is currently not supported.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct BloodPressureService: BluetoothService, Sendable {
     public static let id: BTUUID = "1810"
 

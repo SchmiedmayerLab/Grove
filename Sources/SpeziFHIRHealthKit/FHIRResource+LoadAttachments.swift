@@ -13,6 +13,7 @@ import SpeziFHIR
 import SpeziHealthKit
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 protocol HealthKitAttachmentsProvider {
     func getEncodedAttachments(
         for sample: HKSample
@@ -20,6 +21,7 @@ protocol HealthKitAttachmentsProvider {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct DefaultHealthKitAttachmentsProvider: HealthKitAttachmentsProvider {
     private let healthKit: HealthKit
     
@@ -49,6 +51,7 @@ struct DefaultHealthKitAttachmentsProvider: HealthKitAttachmentsProvider {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRResource {
     /// Loads attachments for the FHIR resource from a HealthKit sample.
     /// - Parameters:
@@ -166,4 +169,5 @@ extension FHIRResource {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKAttachmentStore: @retroactive @unchecked Sendable {}

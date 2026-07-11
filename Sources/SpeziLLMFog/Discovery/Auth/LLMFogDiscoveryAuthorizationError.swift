@@ -9,6 +9,7 @@
 import Foundation
 
 /// Error that occur during requesting access to the local network for discovering fog nodes.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum LLMFogDiscoveryAuthorizationError: LocalizedError {
     /// Indicates that the user denied the authorization to access the local network
     case authorizationDenied

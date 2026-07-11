@@ -11,6 +11,7 @@ import Foundation
 
 
 /// Mapping of Firestore error codes to a localized error.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum FirestoreError: LocalizedError {
     case cancelled
     case invalidArgument
@@ -33,6 +34,7 @@ public enum FirestoreError: LocalizedError {
     case unknown
     
     
+    @available(iOS 18, macOS 15, watchOS 11, *)
     private var errorDescriptionValue: String.LocalizationValue {
         switch self {
         case .cancelled:
@@ -76,6 +78,7 @@ public enum FirestoreError: LocalizedError {
         }
     }
 
+    @available(iOS 18, macOS 15, watchOS 11, *)
     public var errorDescription: String? {
         .init(localized: errorDescriptionValue, bundle: .module)
     }

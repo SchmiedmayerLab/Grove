@@ -22,6 +22,7 @@ import UserNotifications
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol SchedulerNotificationsConstraint: Standard {
     /// Customize the notification content of a notification for a `Task`.
     /// - Parameters:

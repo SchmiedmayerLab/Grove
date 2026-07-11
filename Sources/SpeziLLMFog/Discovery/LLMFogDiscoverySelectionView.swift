@@ -36,6 +36,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LLMFogDiscoverySelectionView: View {
     private enum Completion {
         case required((NWBrowser.Result) async throws -> Void)
@@ -252,6 +253,7 @@ public struct LLMFogDiscoverySelectionView: View {
 }
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     LLMFogDiscoverySelectionView { _ in }
         .previewWith {

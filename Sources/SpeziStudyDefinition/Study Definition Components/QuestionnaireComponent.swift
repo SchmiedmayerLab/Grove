@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyDefinition {
     /// Study Component which prompts the participant to answer a questionnaire
     public struct QuestionnaireComponent: Identifiable, StudyDefinitionElement {

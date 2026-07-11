@@ -13,6 +13,7 @@ import SQLite
 import SwiftData
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct IOS26StringLocalizationValuesMigration: ~Copyable {
     private struct MigrationError: Error {
         let message: String
@@ -82,6 +83,7 @@ struct IOS26StringLocalizationValuesMigration: ~Copyable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension String.LocalizationValue {
     fileprivate enum ConstructionError: Error {
         case unableToReadArguments

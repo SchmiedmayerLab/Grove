@@ -12,6 +12,7 @@ import SwiftUI
 
 
 /// A simple account summary displayed in the `AccountSetup` view when there is already a signed in user account.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct AccountSummaryBox: View {
     private let model: AccountDisplayModel
 
@@ -108,21 +109,25 @@ struct AccountSummaryBox: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     AccountSummaryBox(details: .createMock())
         .padding(.horizontal, ViewSizing.innerHorizontalPadding)
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     AccountSummaryBox(details: .createMock(userId: "leland.stanford"))
         .padding(.horizontal, ViewSizing.innerHorizontalPadding)
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     AccountSummaryBox(details: .createMock(userId: "leland.stanford", name: nil))
         .padding(.horizontal, ViewSizing.innerHorizontalPadding)
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     AccountSummaryBox(details: .createMock(name: nil))
         .padding(.horizontal, ViewSizing.innerHorizontalPadding)

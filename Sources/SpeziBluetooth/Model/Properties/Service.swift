@@ -38,6 +38,7 @@ import CoreBluetooth
 /// - ``wrappedValue``
 /// - ``projectedValue``
 /// - ``ServiceAccessor``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @propertyWrapper
 public struct Service<S: BluetoothService> {
     final class Storage: Sendable {
@@ -123,9 +124,11 @@ public struct Service<S: BluetoothService> {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Service: Sendable where S: Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Service: DeviceVisitable {
     func accept<Visitor: DeviceVisitor>(_ visitor: inout Visitor) {
         visitor.visit(self)

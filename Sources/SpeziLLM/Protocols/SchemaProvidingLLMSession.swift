@@ -10,6 +10,7 @@
 /// An ``LLMSession`` that exposes its ``LLMSchema`` configuration.
 ///
 /// This package-internal protocol allows access to the session's schema.
+@available(iOS 18, macOS 15, watchOS 11, *)
 package protocol SchemaProvidingLLMSession: LLMSession {
     /// The ``LLMSchema`` type associated with this session.
     associatedtype Schema: LLMSchema

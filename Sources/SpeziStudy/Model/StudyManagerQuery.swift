@@ -13,6 +13,7 @@ import SwiftUI
 
 
 /// Performs a SwiftData query in the ``StudyManager``'s `ModelContext`
+@available(iOS 18, macOS 15, watchOS 11, *)
 @propertyWrapper
 @MainActor
 public struct StudyManagerQuery<T: PersistentModel>: DynamicProperty { // swiftlint:disable:this file_types_order
@@ -63,6 +64,7 @@ public struct StudyManagerQuery<T: PersistentModel>: DynamicProperty { // swiftl
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 private final class Storage<T> {
     var viewUpdate: UInt8 = 0

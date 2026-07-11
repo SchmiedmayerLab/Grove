@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails {
     /// Use an `AccountKey` as a `CodingKey`.
     public struct AccountKeyCodingKey: CodingKey {
@@ -45,6 +46,7 @@ extension AccountDetails {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails {
     /// The configuration that is required to decode account details.
     ///
@@ -146,12 +148,15 @@ extension AccountDetails {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails.DecodingConfiguration: Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails.EncodingConfiguration: Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails: CodableWithConfiguration, Encodable {
     /// Decodes the contents of a account details collection.
     ///
@@ -217,6 +222,7 @@ extension AccountDetails: CodableWithConfiguration, Encodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails {
     fileprivate struct IdentifierMapping {
         let mapping: [ObjectIdentifier: String]

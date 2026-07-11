@@ -43,6 +43,7 @@ import SwiftUI
 ///
 /// ### Supporting Types
 /// - ``PickerValue``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct CaseIterablePicker<Value: PickerValue, Label: View>: View where Value.AllCases: RandomAccessCollection {
     // swiftlint:disable:previous file_types_order
     private let label: Label
@@ -125,6 +126,7 @@ public struct CaseIterablePicker<Value: PickerValue, Label: View>: View where Va
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CaseIterablePicker where Value: AnyOptional { // swiftlint:disable:this file_types_order
     /// Create a new case-iterable picker.
     /// - Parameters:
@@ -152,6 +154,7 @@ extension CaseIterablePicker where Value: AnyOptional { // swiftlint:disable:thi
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 private enum Version: PickerValue {
     case versionA
     case versionB
@@ -166,6 +169,7 @@ private enum Version: PickerValue {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     @Previewable @State var version: Version? = .versionA
     List {

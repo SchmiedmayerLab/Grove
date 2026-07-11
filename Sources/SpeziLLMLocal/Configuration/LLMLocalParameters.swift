@@ -9,6 +9,7 @@
 import Foundation
 
 /// Represents the parameters of the LLM.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LLMLocalParameters: Sendable {
     /// Defaults of possible LLMs parameter settings.
     public enum Defaults {

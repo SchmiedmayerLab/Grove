@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct TaskView<Header: View>: View {
     @Environment(QuestionnaireResponses.self) private var allResponses
     
@@ -95,6 +96,7 @@ struct TaskView<Header: View>: View {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionKindDefinition {
     @MainActor
     @ViewBuilder

@@ -23,6 +23,7 @@ import Spezi
 /// ### Reporting events
 /// Report events when implementing an `AccountService`.
 /// - ``reportEvent(_:)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public final class AccountNotifications: Module, DefaultInitializable, EnvironmentAccessible, @unchecked Sendable {
     /// Describes an Account event.
     public enum Event: Sendable {

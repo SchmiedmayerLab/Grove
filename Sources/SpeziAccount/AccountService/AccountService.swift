@@ -25,6 +25,7 @@ import Spezi
 ///
 /// - Note: The in-memory account service ``InMemoryAccountService`` that is useful for previews and testing is also a great example
 ///     on how to implement a account service.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol AccountService: Module, CustomStringConvertible, Sendable, EnvironmentAccessible {
     /// The configuration of the account service.
     var configuration: AccountServiceConfiguration { get }
@@ -54,6 +55,7 @@ public protocol AccountService: Module, CustomStringConvertible, Sendable, Envir
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountService {
     /// Default `CustomStringConvertible` returning the type name.
     public var description: String {

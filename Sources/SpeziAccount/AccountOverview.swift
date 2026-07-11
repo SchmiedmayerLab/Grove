@@ -55,6 +55,7 @@ import SwiftUI
 /// - ``CloseBehavior``
 /// - ``AccountDeletionBehavior``
 /// - ``init(close:deletion:additionalSections:)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(macOS, unavailable)
 @available(watchOS, unavailable)
 public struct AccountOverview<AdditionalSections: View>: View {
@@ -218,6 +219,7 @@ public struct AccountOverview<AdditionalSections: View>: View {
 
 
 #if DEBUG && !os(macOS) && !os(watchOS)
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     var details = AccountDetails()
     details.userId = "lelandstanford@stanford.edu"
@@ -245,6 +247,7 @@ public struct AccountOverview<AdditionalSections: View>: View {
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     NavigationStack {
         AccountOverview()

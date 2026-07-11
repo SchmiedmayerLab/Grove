@@ -11,6 +11,7 @@ import Foundation
 import UserNotifications
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Schedule {
     enum NotificationMatchingHint: Codable, Sendable, Hashable {
         case none

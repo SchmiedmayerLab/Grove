@@ -10,6 +10,7 @@
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct ModelModifier<Model: Observable & AnyObject>: ViewModifier {
     @State private var model: Model
 

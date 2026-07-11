@@ -76,6 +76,7 @@ public struct AnchoredFetcher<Sample: SensorKitSampleProtocol>: AsyncSequence {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SensorKit {
     /// Info about a device from which sensor data was collected.
     ///
@@ -110,6 +111,7 @@ extension SensorKit {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SensorKit.DeviceInfo: Hashable {
     public static func == (lhs: SensorKit.DeviceInfo, rhs: SensorKit.DeviceInfo) -> Bool {
         if ObjectIdentifier(lhs) == ObjectIdentifier(rhs) {
@@ -133,6 +135,7 @@ extension SensorKit.DeviceInfo: Hashable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SensorKit {
     public struct BatchInfo: Sendable {
         /// The time range queried for when SensorKit returned this batch's samples.

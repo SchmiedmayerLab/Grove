@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 final class BluetoothWorkItem {
     private let workItem: DispatchWorkItem
 

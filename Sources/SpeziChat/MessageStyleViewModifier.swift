@@ -9,6 +9,7 @@
 import SwiftUI
 
 /// Provides styling for the visualization of a textual ``ChatEntity`` within the ``ChatView``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct MessageStyleModifier: ViewModifier {
     private let chatAlignment: ChatEntity.Alignment
     private let backgroundColorUserChat: Color
@@ -89,6 +90,7 @@ extension View {
     ///     }
     /// }
     /// ```
+    @available(iOS 18, macOS 15, watchOS 11, *)
     func chatMessageStyle(alignment: ChatEntity.Alignment, backgroundColorUserChat: Color = .accentColor) -> some View {
         self.modifier(
             MessageStyleModifier(chatAlignment: alignment, backgroundColorUserChat: backgroundColorUserChat)

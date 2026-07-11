@@ -10,6 +10,7 @@ import RuntimeAssertions
 
 
 /// Gather information about modules with dependencies.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 public class DependencyManager: Sendable {
     /// Collection of already initialized modules.

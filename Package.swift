@@ -9,7 +9,6 @@
 //
 
 import CompilerPluginSupport
-import class Foundation.ProcessInfo
 import PackageDescription
 
 
@@ -20,15 +19,26 @@ var defaultPlugins: [Target.PluginUsage] {
     enableSwiftLint ? [.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")] : []
 }
 
+let textualTrait = "Textual"
+let mlxTrait = "MLX"
+let researchKitTrait = "ResearchKit"
+let optionalPackageTraits = [textualTrait, mlxTrait, researchKitTrait]
+
+let defaultEnabledTraits: Set<String> = Context.environment["SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS"] == "1"
+    ? Set(optionalPackageTraits)
+    : []
+let packagePlatforms: [SupportedPlatform] = [
+    .iOS(.v15),
+    .macOS(.v12),
+    .watchOS(.v8)
+]
+
 
 var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/antlr/antlr4.git", from: "4.13.1"),
     .package(url: "https://github.com/apple/FHIRModels.git", .upToNextMinor(from: "0.8.0")),
     .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "12.1.0"),
-    .package(url: "https://github.com/ml-explore/mlx-swift.git", .upToNextMinor(from: "0.29.1")),
-    .package(url: "https://github.com/ml-explore/mlx-swift-examples.git", from: "2.29.1"),
     .package(url: "https://github.com/marmelroy/PhoneNumberKit.git", from: "4.1.0"),
-    .package(url: "https://github.com/StanfordBDHG/ResearchKit.git", "3.1.4"..<"3.2.0"),
     .package(url: "https://github.com/stephencelis/SQLite.swift.git", .upToNextMinor(from: "0.16.0")),
     .package(url: "https://github.com/apple/swift-algorithms.git", from: "1.2.1"),
     .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.6.1"),
@@ -39,18 +49,20 @@ var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/gonzalezreal/swift-markdown-ui.git", from: "2.4.1"),
     .package(url: "https://github.com/apple/swift-nio.git", from: "2.59.0"),
     .package(url: "https://github.com/apple/swift-numerics.git", from: "1.1.1"),
-    .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.8.0"),
+    .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.13.0"),
     .package(url: "https://github.com/apple/swift-openapi-runtime.git", from: "1.8.0"),
     .package(url: "https://github.com/apple/swift-openapi-urlsession.git", from: "1.1.0"),
     .package(url: "https://github.com/FelixHerrmann/swift-package-list.git", from: "4.8.0"),
+    .package(url: "https://github.com/gonzalezreal/textual.git", .upToNextMinor(from: "0.3.1")),
+    .package(url: "https://github.com/ml-explore/mlx-swift.git", .upToNextMinor(from: "0.29.1")),
+    .package(url: "https://github.com/ml-explore/mlx-swift-examples.git", from: "2.29.1"),
+    .package(url: "https://github.com/huggingface/swift-transformers.git", from: "1.0.0"),
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing.git", from: "1.19.2"),
+    .package(url: "https://github.com/SchmiedmayerLab/ResearchKit.git", "3.1.4"..<"3.2.0"),
     .package(url: "https://github.com/swiftlang/swift-syntax.git", "602.0.0"..<"603.0.0"),
     .package(url: "https://github.com/dfed/swift-testing-expectation.git", .upToNextMinor(from: "0.1.4")),
-    .package(url: "https://github.com/huggingface/swift-transformers.git", from: "1.0.0"),
-    .package(url: "https://github.com/gonzalezreal/textual.git", .upToNextMinor(from: "0.3.1")),
     .package(url: "https://github.com/techprimate/TPPDF.git", from: "2.6.1"),
-    .package(url: "https://github.com/StanfordBDHG/zstd.git", exact: "1.5.8-beta.1"),
-    .package(url: "https://github.com/SchmiedmayerLab/ThreadLocal.git", .upToNextMinor(from: "0.1.4"))
+    .package(url: "https://github.com/StanfordBDHG/zstd.git", exact: "1.5.8-beta.1")
 ]
 
 if enableSwiftLint {
@@ -107,6 +119,7 @@ var products: [Product] = [
     // MARK: SpeziFoundation
     .library(name: "SpeziFoundation", targets: ["SpeziFoundation"]),
     .library(name: "SpeziLocalization", targets: ["SpeziLocalization"]),
+    .library(name: "ThreadLocal", targets: ["ThreadLocal"]),
     // MARK: SpeziHealthKit
     .library(name: "SpeziHealthKit", targets: ["SpeziHealthKit"]),
     .library(name: "SpeziHealthKitBulkExport", targets: ["SpeziHealthKitBulkExport"]),
@@ -305,8 +318,8 @@ var targets: [Target] = [
     .target(
         name: "ResearchKitOnFHIR",
         dependencies: [
-            .product(name: "ResearchKit", package: "ResearchKit"),
-            .product(name: "ResearchKitSwiftUI", package: "ResearchKit"),
+            .product(name: "ResearchKit", package: "ResearchKit", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
+            .product(name: "ResearchKitSwiftUI", package: "ResearchKit", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
             .product(name: "ModelsR4", package: "FHIRModels"),
             .target(name: "FHIRModelsExtensions"),
             .target(name: "FHIRPathParser")
@@ -322,7 +335,7 @@ var targets: [Target] = [
     .testTarget(
         name: "ResearchKitOnFHIRTests",
         dependencies: [
-            .target(name: "ResearchKitOnFHIR"),
+            .target(name: "ResearchKitOnFHIR", condition: .when(traits: [researchKitTrait])),
             .target(name: "FHIRQuestionnaires")
         ],
         exclude: [
@@ -597,7 +610,7 @@ var targets: [Target] = [
             .target(name: "SpeziSpeechRecognizer"),
             .target(name: "SpeziSpeechSynthesizer"),
             .target(name: "SpeziViews"),
-            .product(name: "Textual", package: "textual")
+            .product(name: "Textual", package: "textual", condition: .when(traits: [textualTrait]))
         ],
         exclude: [
             "CONTRIBUTORS.md",
@@ -956,6 +969,42 @@ var targets: [Target] = [
         ],
         plugins: [] + defaultPlugins
     ),
+    // MARK: ThreadLocal
+    .macro(
+        name: "ThreadLocalMacros",
+        dependencies: [
+            .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+            .product(name: "SwiftDiagnostics", package: "swift-syntax"),
+            .product(name: "SwiftSyntaxMacros", package: "swift-syntax")
+        ],
+        swiftSettings: [
+            .enableUpcomingFeature("ExistentialAny")
+        ],
+        plugins: [] + defaultPlugins
+    ),
+    .target(
+        name: "ThreadLocal",
+        dependencies: [
+            .target(name: "ThreadLocalMacros")
+        ],
+        exclude: [
+            "CONTRIBUTORS.md",
+            "LICENSE.md",
+            "LICENSES",
+            "README.md"
+        ],
+        plugins: [] + defaultPlugins
+    ),
+    .testTarget(
+        name: "ThreadLocalTests",
+        dependencies: [
+            .target(name: "ThreadLocal"),
+            .target(name: "ThreadLocalMacros"),
+            .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+            .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
+        ],
+        plugins: [] + defaultPlugins
+    ),
     // MARK: SpeziFoundation
     .systemLibrary(
         name: "SpeziCZlib",
@@ -973,7 +1022,7 @@ var targets: [Target] = [
             .product(name: "Algorithms", package: "swift-algorithms"),
             .target(name: "RuntimeAssertions"),
             .product(name: "Logging", package: "swift-log"),
-            .product(name: "ThreadLocal", package: "ThreadLocal")
+            .target(name: "ThreadLocal")
         ],
         exclude: [
             "CONTRIBUTORS.md",
@@ -1139,10 +1188,10 @@ var targets: [Target] = [
             .target(name: "SpeziLLM"),
             .target(name: "SpeziFoundation"),
             .target(name: "Spezi"),
-            .product(name: "MLX", package: "mlx-swift"),
-            .product(name: "MLXRandom", package: "mlx-swift"),
-            .product(name: "Transformers", package: "swift-transformers"),
-            .product(name: "MLXLLM", package: "mlx-swift-examples")
+            .product(name: "MLX", package: "mlx-swift", condition: .when(traits: [mlxTrait])),
+            .product(name: "MLXRandom", package: "mlx-swift", condition: .when(traits: [mlxTrait])),
+            .product(name: "Transformers", package: "swift-transformers", condition: .when(traits: [mlxTrait])),
+            .product(name: "MLXLLM", package: "mlx-swift-examples", condition: .when(traits: [mlxTrait]))
         ],
         resources: [
             .process("Resources")
@@ -1158,7 +1207,7 @@ var targets: [Target] = [
             .target(name: "SpeziOnboarding"),
             .target(name: "SpeziViews"),
             .target(name: "SpeziLLMLocal"),
-            .product(name: "MLXLLM", package: "mlx-swift-examples")
+            .product(name: "MLXLLM", package: "mlx-swift-examples", condition: .when(traits: [mlxTrait]))
         ],
         resources: [
             .process("Resources")
@@ -1271,7 +1320,8 @@ var targets: [Target] = [
             .process("Resources")
         ],
         swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
+            .enableUpcomingFeature("ExistentialAny"),
+            .enableUpcomingFeature("InternalImportsByDefault")
         ],
         plugins: [.plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")] + defaultPlugins
     ),
@@ -1507,7 +1557,7 @@ var targets: [Target] = [
     .target(
         name: "SpeziQuestionnaire",
         dependencies: [
-            .target(name: "SpeziQuestionnaireLegacy"),
+            .target(name: "SpeziQuestionnaireLegacy", condition: .when(traits: [researchKitTrait])),
             .target(name: "SpeziViews"),
             .product(name: "MarkdownUI", package: "swift-markdown-ui"),
             .product(name: "Numerics", package: "swift-numerics")
@@ -1558,9 +1608,9 @@ var targets: [Target] = [
         name: "SpeziQuestionnaireLegacy",
         dependencies: [
             .product(name: "ModelsR4", package: "FHIRModels"),
-            .product(name: "ResearchKit", package: "ResearchKit"),
-            .product(name: "ResearchKitSwiftUI", package: "ResearchKit"),
-            .target(name: "ResearchKitOnFHIR")
+            .product(name: "ResearchKit", package: "ResearchKit", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
+            .product(name: "ResearchKitSwiftUI", package: "ResearchKit", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
+            .target(name: "ResearchKitOnFHIR", condition: .when(platforms: [.iOS], traits: [researchKitTrait]))
         ],
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny"),
@@ -2077,21 +2127,23 @@ targets += [
 let package = Package(
     name: "Spezi",
     defaultLocalization: "en",
-    platforms: [
-        .iOS(.v18),
-        // macOS is declared so the swift-syntax-based macro targets (which always compile for the
-        // macOS host) build, and so macOS-15-gated APIs used by iOS-18 code (e.g. Swift Charts'
-        // ChartContentBuilder.buildBlock) resolve. .v15 matches the highest macOS floor among the
-        // merged packages (SpeziScheduler). iOS remains the only platform we currently target;
-        // full multi-platform support will be revisited later.
-        .macOS(.v15),
-        // watchOS is supported by a subset of the merged packages. .v11 matches the iOS-18 / macOS-15
-        // release wave and the highest watchOS floor among them (SpeziScheduler / SpeziStudy). Modules
-        // backed by frameworks without watchOS support (ResearchKit, TPPDF, Firebase, MLX, …) are not
-        // built for watchOS.
-        .watchOS(.v11)
-    ],
+    platforms: packagePlatforms,
     products: products,
+    traits: [
+        .default(enabledTraits: defaultEnabledTraits),
+        .trait(
+            name: textualTrait,
+            description: "Enable targets that depend on Textual for rich chat message rendering."
+        ),
+        .trait(
+            name: mlxTrait,
+            description: "Enable local LLM targets that depend on MLX and swift-transformers."
+        ),
+        .trait(
+            name: researchKitTrait,
+            description: "Enable legacy questionnaire targets that depend on ResearchKit."
+        )
+    ],
     dependencies: dependencies,
     targets: targets
 )

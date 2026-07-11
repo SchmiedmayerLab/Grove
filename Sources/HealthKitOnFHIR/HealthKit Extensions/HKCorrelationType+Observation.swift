@@ -10,6 +10,7 @@ import HealthKit
 import ModelsR4
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCorrelation: FHIRObservationBuildable {
     func build(_ observation: Observation, mapping: HKSampleMapping) throws {
         guard let mapping = mapping.correlationMapping[self.correlationType] else {

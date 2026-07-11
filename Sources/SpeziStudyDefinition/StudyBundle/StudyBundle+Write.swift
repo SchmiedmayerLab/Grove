@@ -10,6 +10,7 @@ import Foundation
 import SpeziLocalization
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyBundle {
     /// An error that can occur when creating a Study Bundle.
     @_spi(APISupport)

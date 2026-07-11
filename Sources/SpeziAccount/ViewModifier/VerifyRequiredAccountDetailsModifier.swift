@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct FollowUpSession: Identifiable {
     var id: String {
         details.userId
@@ -19,6 +20,7 @@ private struct FollowUpSession: Identifiable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct VerifyRequiredAccountDetailsModifier: ViewModifier {
     private struct DetailsState: Equatable {
         let signedIn: Bool

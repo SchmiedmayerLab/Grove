@@ -10,6 +10,7 @@ import Spezi
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Spezi {
     /// Unregisters for all remote notifications received through Apple Push Notification service.
     ///
@@ -53,6 +54,7 @@ extension Spezi {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension EnvironmentValues {
     /// Unregisters for all remote notifications received through Apple Push Notification service.
     ///
@@ -81,4 +83,5 @@ extension EnvironmentValues {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Spezi.UnregisterForRemoteNotificationsAction: Sendable {}

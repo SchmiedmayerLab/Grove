@@ -13,6 +13,7 @@ import SpeziFoundation
 /// A class-based builder interface for `AccountDetails` that can be passed around the view hierarchy.
 ///
 /// This type allows to easily build and modify an instance of ``AccountDetails``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 class AccountDetailsBuilder {
     var storage: AccountDetails
@@ -134,6 +135,7 @@ class AccountDetailsBuilder {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetailsBuilder: Collection {
     typealias Index = AccountStorage.Index
 
@@ -156,6 +158,7 @@ extension AccountDetailsBuilder: Collection {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetailsBuilder {
     @discardableResult
     func setEmptyValue(for accountKey: any AccountKey.Type) -> Self {
@@ -165,6 +168,7 @@ extension AccountDetailsBuilder {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKey {
     fileprivate static func setEmpty(in builder: AccountDetailsBuilder) {
         builder.set(Self.self, value: initialValue.value)

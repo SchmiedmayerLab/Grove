@@ -22,6 +22,7 @@ import SpeziLocalStorage
 ///
 /// It keeps track of the session's identity, and the stores the individual batches that need to be processed as part of the session.
 /// It also keeps track of the already-completed sample types, to prevent unnecessary duplicates when exporting.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct ExportSessionDescriptor: Codable {
     let sessionId: BulkExportSessionIdentifier
     let startDate: ExportSessionStartDate
@@ -93,6 +94,7 @@ struct ExportSessionDescriptor: Codable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ExportSessionDescriptor {
     /// Determines a resolved batch size, based on an input batch size and a sample type.
     ///
@@ -130,6 +132,7 @@ extension Calendar {
 // MARK: Default Batch Processors
 
 /// Batch Processor that simply passes through the unchanged samples.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct IdentityBatchProcessor: BatchProcessor {
     public typealias Output = [HKSample]
     
@@ -138,6 +141,7 @@ public struct IdentityBatchProcessor: BatchProcessor {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BatchProcessor where Self == IdentityBatchProcessor {
     /// A Batch Processor that simply returns the unprocessed samples.
     public static var identity: some BatchProcessor<[HKSample]> {

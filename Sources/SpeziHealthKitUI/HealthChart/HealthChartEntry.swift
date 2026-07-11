@@ -37,6 +37,7 @@ public struct HealthChartDrawingConfig: Hashable, Sendable {
 
 
 /// Type-erased entry in a health chart
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_documentation(visibility: internal)
 public protocol HealthChartEntryProtocol: Sendable {
     var isEmpty: Bool { get }
@@ -51,6 +52,7 @@ public protocol HealthChartEntryProtocol: Sendable {
 ///
 /// ## See Also
 /// - <doc:HealthChart>
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct HealthChartEntry<Results: HealthKitQueryResults>: Sendable {
     public typealias MakeDataPointImp = @Sendable (Results.Element, Results) -> HealthChartDataPoint?
     
@@ -123,6 +125,7 @@ public struct HealthChartEntry<Results: HealthKitQueryResults>: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthChartEntry: HealthChartEntryProtocol {
     public var drawingConfig: HealthChartDrawingConfig {
         switch variant {

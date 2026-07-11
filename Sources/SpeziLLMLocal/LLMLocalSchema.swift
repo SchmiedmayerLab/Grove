@@ -7,6 +7,7 @@
 //
 
 import Foundation
+#if MLX
 import MLXLLM
 import MLXLMCommon
 import SpeziChat
@@ -19,6 +20,7 @@ import SpeziLLM
 /// It is bound to a ``LLMLocalPlatform`` that is responsible for turning the ``LLMLocalSchema`` to an ``LLMLocalSession``.
 ///
 /// - Tip: For more information, refer to the documentation of the `LLMSchema` from SpeziLLM.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LLMLocalSchema: LLMSchema {
     public typealias Platform = LLMLocalPlatform
     
@@ -63,3 +65,4 @@ public struct LLMLocalSchema: LLMSchema {
         self.injectIntoContext = injectIntoContext
     }
 }
+#endif

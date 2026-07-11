@@ -13,6 +13,7 @@ import SpeziBluetooth
 ///
 /// This class partially implements the Bluetooth [Battery Service 1.1](https://www.bluetooth.com/specifications/specs/battery-service).
 /// - Note: The current implementation only implements mandatory characteristics.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct BatteryService: BluetoothService, Sendable {
     public static let id: BTUUID = "180F"
 

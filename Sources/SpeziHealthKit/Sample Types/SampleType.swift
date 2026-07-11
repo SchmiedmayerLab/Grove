@@ -14,6 +14,7 @@ import HealthKit
 #endif
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct SampleType<Sample: _HKSampleWithSampleType>: AnySampleType, Sendable/*, __SampleTypeAssignmentHack*/ {
     @_documentation(visibility: internal)
     public typealias Sample = Sample
@@ -78,6 +79,7 @@ public struct SampleType<Sample: _HKSampleWithSampleType>: AnySampleType, Sendab
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleType where Sample == HKQuantitySample {
     /// The recommended unit that should be used when displaying values of this sample type to a user.
     @inlinable public var displayUnit: HKUnit {
@@ -109,6 +111,7 @@ extension SampleType where Sample == HKQuantitySample {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleType where Sample == HKCorrelation {
     /// The correlation's associated sample types, if known.
     @inlinable public var associatedQuantityTypes: Set<SampleType<HKQuantitySample>> {
@@ -137,6 +140,7 @@ public struct _FakeLocalizedStringResource: ExpressibleByStringLiteral {
 }
 #endif
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleType {
     #if canImport(Darwin)
     // swiftlint:disable:next missing_docs

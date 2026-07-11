@@ -27,6 +27,7 @@ import SwiftUI
 ///     .navigationTitle("Schedule")
 /// ```
 @available(*, deprecated, renamed: "EventScheduleList", message: "Use EventScheduleList instead, which by default displays today's events.")
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct TodayList<Tile: View>: View {
     private let makeEventTile: @MainActor (Event) -> Tile
     

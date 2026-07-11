@@ -71,6 +71,7 @@ public final class RemoteNotificationRegistrationSupport: KnowledgeSource, Senda
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Spezi {
     /// Provides support to call the `registerForRemoteNotifications()` method on the application.
     ///

@@ -46,6 +46,7 @@ private struct _Label: UIViewRepresentable {
 
 
 /// A ``Label`` is a SwiftUI-based wrapper around a `UILabel` that allows the usage of an `NSTextAlignment` to e.g. justify the text.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct Label: View {
     private let text: TextContent
     private let textStyle: UIFont.TextStyle
@@ -118,6 +119,7 @@ public struct Label: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct Label_Previews: PreviewProvider {
     static var previews: some View {
         Label(verbatim: "This is very long text that wraps around multiple lines and adjusts the spacing between words accordingly.")

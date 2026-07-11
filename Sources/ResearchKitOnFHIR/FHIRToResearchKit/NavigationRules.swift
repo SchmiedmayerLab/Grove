@@ -7,6 +7,7 @@
 //
 
 import ModelsR4
+#if ResearchKit
 import ResearchKit
 
 
@@ -316,3 +317,4 @@ extension ORKResultPredicate {
         )
     }
 }
+#endif

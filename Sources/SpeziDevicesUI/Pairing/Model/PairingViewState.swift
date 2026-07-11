@@ -11,6 +11,7 @@ import SpeziDevices
 
 
 /// Pairing view state.
+@available(iOS 18, macOS 15, watchOS 11, *)
 enum PairingViewState {
     /// View is currently in discovery.
     case discovery

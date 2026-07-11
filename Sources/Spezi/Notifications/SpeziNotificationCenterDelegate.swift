@@ -10,6 +10,7 @@
 import UserNotifications
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 class SpeziNotificationCenterDelegate: NSObject {
 #if !os(tvOS)
     @MainActor
@@ -75,12 +76,15 @@ class SpeziNotificationCenterDelegate: NSObject {
 
 
 #if compiler(<6)
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SpeziNotificationCenterDelegate: UNUserNotificationCenterDelegate {}
 #else
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SpeziNotificationCenterDelegate: @preconcurrency UNUserNotificationCenterDelegate {}
 #endif
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SpeziAppDelegate {
     func setupNotificationDelegate() {
         guard !spezi.notificationHandler.isEmpty else {

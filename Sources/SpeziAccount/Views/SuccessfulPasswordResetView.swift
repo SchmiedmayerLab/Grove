@@ -10,6 +10,7 @@ import SwiftUI
 
 
 /// A simple success view for a password reset view.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct SuccessfulPasswordResetView: View {
     private let successfulLabelLocalization: LocalizedStringResource
 
@@ -44,6 +45,7 @@ public struct SuccessfulPasswordResetView: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     NavigationStack {
         SuccessfulPasswordResetView()

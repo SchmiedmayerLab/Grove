@@ -28,6 +28,7 @@ private struct EntryView: DataEntryView {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails {
     /// The primary, unique, stable and typically internal identifier for an user account.
     ///
@@ -56,6 +57,7 @@ extension AccountDetails {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @KeyEntry(\.accountId)
 public extension AccountKeys { // swiftlint:disable:this no_extension_access_modifier
 }

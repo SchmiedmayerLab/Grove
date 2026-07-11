@@ -151,6 +151,7 @@ private struct SwiftDataBluetoothHealthMeasurementWorkaroundContainer {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Model
 final class StoredMeasurement {
     @Attribute(.unique)

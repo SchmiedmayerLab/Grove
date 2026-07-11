@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @SpeziBluetooth
 final class KVOStateDidChangeObserver<Entity: NSObject, Value>: NSObject, Sendable {
     private var observation: NSKeyValueObservation?

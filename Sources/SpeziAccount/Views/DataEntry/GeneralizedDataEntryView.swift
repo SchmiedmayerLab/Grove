@@ -11,6 +11,7 @@ import SwiftUI
 
 
 /// Helper protocol to easily retrieve Wrapped.Key types with String value
+@available(iOS 18, macOS 15, watchOS 11, *)
 private protocol GeneralizedStringEntryView {
     @MainActor
     func validationRules() -> [ValidationRule]
@@ -24,6 +25,7 @@ private protocol GeneralizedStringEntryView {
 /// - If the value is of type `String` and the ``AccountService`` has a ``FieldValidationRules`` configuration for the given
 ///     ``AccountKey``, a [validate(input:rules:)](../../../SpeziValidation/SpeziValidation.docc/SpeziValidation.md)-5dac4)
 ///      modifier is automatically injected.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct GeneralizedDataEntryView<Key: AccountKey>: View {
     private var dataHookId: String {
         "DataHook-\(Key.self)"
@@ -91,6 +93,7 @@ struct GeneralizedDataEntryView<Key: AccountKey>: View {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension GeneralizedDataEntryView: GeneralizedStringEntryView where Key.Value == String {
     func validationRules() -> [ValidationRule] {
         if let rules = configuration.fieldValidationRules(for: Key.self) {

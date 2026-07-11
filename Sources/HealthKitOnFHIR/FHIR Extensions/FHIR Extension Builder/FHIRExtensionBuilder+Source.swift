@@ -29,6 +29,7 @@ extension FHIRExtensionUrls {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKDevice> {
     /// A FHIR Extension Builder that writes a  `HKDevice` into a FHIR `Observation`.
     public static var sourceDevice: Self {
@@ -62,6 +63,7 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKDevi
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKSourceRevision> {
     /// A FHIR Extension Builder that writes a `HKSourceRevision` into a FHIR `Observation`.
     public static var sourceRevision: Self {
@@ -109,6 +111,7 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKSour
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKObject> {
     /// A FHIR Extension Builder that writes a HealthKit object's `HKSourceRevision` into a FHIR `Observation` created from the sample.
     public static var sourceRevision: Self {
@@ -130,6 +133,7 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKObje
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKSourceRevision {
     /// We define this as an optional String objc-compatible property, so that we can encode it into an Extension using the API we have above.
     @objc fileprivate var OSVersion: String? {

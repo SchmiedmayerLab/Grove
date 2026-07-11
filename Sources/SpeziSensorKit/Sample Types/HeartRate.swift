@@ -10,6 +10,7 @@ public import CoreMotion
 public import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CMHighFrequencyHeartRateData: SensorKitSampleProtocol {
     public struct SafeRepresentation: SensorKitSampleSafeRepresentation {
         /// The point in time when the sample was recorded

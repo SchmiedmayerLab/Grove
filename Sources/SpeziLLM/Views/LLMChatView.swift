@@ -48,6 +48,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LLMChatView<Session: LLMSession>: View {
     /// The LLM in execution, as defined by the ``LLMSchema``.
     @Binding private var llm: Session
@@ -131,6 +132,7 @@ public struct LLMChatView<Session: LLMSession>: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     @Previewable @State var llm = LLMMockSession(.init(), schema: .init())
 

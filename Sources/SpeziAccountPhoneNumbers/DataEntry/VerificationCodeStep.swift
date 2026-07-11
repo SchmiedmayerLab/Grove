@@ -13,6 +13,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct VerificationCodeStep: View {
     @State private var viewState = ViewState.idle
     @Environment(\.colorScheme) private var colorScheme
@@ -64,6 +65,7 @@ struct VerificationCodeStep: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     VerificationCodeStep(codeLength: 6, onVerify: {})
         .environment(PhoneNumberViewModel())

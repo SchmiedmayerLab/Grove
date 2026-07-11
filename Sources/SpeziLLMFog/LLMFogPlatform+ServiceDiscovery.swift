@@ -9,6 +9,7 @@
 import Network
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMFogPlatform {
     /// Browse for mDNS services and return the final set observed after `mDnsBrowsingTimeout` elapses.
     static func discoverFogServices(

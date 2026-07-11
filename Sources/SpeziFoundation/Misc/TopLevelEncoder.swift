@@ -41,5 +41,7 @@ public protocol TopLevelEncoder<Output> {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension JSONEncoder: TopLevelEncoder {}
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PropertyListEncoder: TopLevelEncoder {}

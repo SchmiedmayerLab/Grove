@@ -133,6 +133,7 @@ extension LocalStorageSetting { // swiftlint:disable:this file_types_order
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LocalStorageKey { // swiftlint:disable:this file_types_order
     /// Creates a Local Storage Key that uses JSON to encode and decode its entries.
     public convenience init(_ key: String, setting: LocalStorageSetting = .default) where Value: Codable {

@@ -10,6 +10,7 @@ import CoreBluetooth
 import Foundation
 import SpeziFoundation
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @SpeziBluetooth
 class CharacteristicAccess: Sendable {
     enum Access {
@@ -66,6 +67,7 @@ class CharacteristicAccess: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @SpeziBluetooth
 final class CharacteristicAccesses: Sendable {
     private var ongoingAccesses: [CBCharacteristic: CharacteristicAccess] = [:]

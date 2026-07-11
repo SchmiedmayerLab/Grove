@@ -16,6 +16,7 @@ import SwiftUI
 /// The ``AccountSetup`` view uses the account section reported via the ``IdentityProvider`` property wrapper to group views.
 /// SpeziAccount provides some pre-defined groups to semantically group different Identity Provider, however you can easily create additional sections if required.
 /// The order of the section is defined by the ``rawValue`` in ascending order.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct AccountSetupSection {
     /// Defines the highest priority section.
     ///
@@ -47,6 +48,7 @@ public struct AccountSetupSection {
 ///
 /// Encapsulates all edit-able configuration of a ``IdentityProvider`` declaration.
 /// You may use the ``IdentityProvider/projectedValue`` (using the `$` notation) of your Identity Provider declaration to access and change this configuration.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class IdentityProviderConfiguration {
     private let _isEnabled: ManagedAtomic<Bool>
@@ -88,9 +90,11 @@ public final class IdentityProviderConfiguration {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountSetupSection: Sendable, Hashable, RawRepresentable, AtomicValue {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountSetupSection: Comparable {
     public static func < (lhs: Self, rhs: Self) -> Bool {
         lhs.rawValue < rhs.rawValue
@@ -98,4 +102,5 @@ extension AccountSetupSection: Comparable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension IdentityProviderConfiguration: Sendable {}

@@ -10,6 +10,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct CompletionPage: View {
     private let title: LocalizedStringResource
     private let message: LocalizedStringResource?

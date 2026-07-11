@@ -40,6 +40,7 @@ import SwiftUI
 /// - ``Binding/fetchError``
 /// - ``Binding``
 /// - ``projectedValue``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @propertyWrapper
 @MainActor
 public struct EventQuery {
@@ -119,6 +120,7 @@ public struct EventQuery {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension EventQuery: DynamicProperty {
     nonisolated public mutating func update() {
         // This is not really ideal, however we require MainActor isolation and `DynamicProperty` doesn't annotate this guarantee

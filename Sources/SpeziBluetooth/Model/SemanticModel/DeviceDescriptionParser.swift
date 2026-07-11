@@ -7,6 +7,7 @@
 //
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct CharacteristicsBuilder: ServiceVisitor {
     var characteristics: Set<CharacteristicDescription> = []
 
@@ -16,6 +17,7 @@ private struct CharacteristicsBuilder: ServiceVisitor {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct ServiceDescriptionBuilder: DeviceVisitor {
     var configurations: Set<ServiceDescription> = []
 
@@ -29,6 +31,7 @@ private struct ServiceDescriptionBuilder: DeviceVisitor {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothDevice {
     @SpeziBluetooth
     static func parseDeviceDescription() -> DeviceDescription {
@@ -41,6 +44,7 @@ extension BluetoothDevice {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DeviceDiscoveryDescriptor {
     @SpeziBluetooth
     func parseDiscoveryDescription() -> DiscoveryDescription {
@@ -50,6 +54,7 @@ extension DeviceDiscoveryDescriptor {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Set where Element == DeviceDiscoveryDescriptor {
     var deviceTypes: [any BluetoothDevice.Type] {
         map { configuration in

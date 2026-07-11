@@ -14,6 +14,7 @@ import SwiftUI
 ///
 /// The internal preference key to provide parent views access to all configured ``ValidationEngine`` and input
 /// state by capturing it into a ``CapturedValidationState``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct CapturedValidationStateKey: PreferenceKey {
     static var defaultValue: [CapturedValidationState] {
         []
@@ -25,6 +26,7 @@ struct CapturedValidationStateKey: PreferenceKey {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct ReceiveValidationModifier: ViewModifier {
     @ValidationState.Binding private var context: ValidationContext
 
@@ -56,6 +58,7 @@ private struct ReceiveValidationModifier: ViewModifier {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     /// Receive validation state of all subviews.
     ///

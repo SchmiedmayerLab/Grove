@@ -37,6 +37,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct AccountHeader: View {
     /// Default values for the ``AccountHeader`` view.
     @_documentation(visibility: internal)
@@ -103,6 +104,7 @@ public struct AccountHeader: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     var details = AccountDetails()
     details.userId = "lelandstanford@stanford.edu"
@@ -114,6 +116,7 @@ public struct AccountHeader: View {
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     AccountHeader(caption: Text(verbatim: "Email, Password, Preferences"))
         .previewWith {
@@ -122,6 +125,7 @@ public struct AccountHeader: View {
 }
 
 #if !os(macOS) && !os(watchOS)
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     var details = AccountDetails()
     details.userId = "lelandstanford@stanford.edu"
@@ -143,6 +147,7 @@ public struct AccountHeader: View {
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     var details = AccountDetails()
     details.userId = "lelandstanford@stanford.edu"
@@ -163,6 +168,7 @@ public struct AccountHeader: View {
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     NavigationStack {
         Form {

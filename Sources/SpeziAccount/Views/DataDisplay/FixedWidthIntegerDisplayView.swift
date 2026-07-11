@@ -12,6 +12,7 @@ import SwiftUI
 
 
 /// Displays the value of an `FixedWidthInteger`-based `AccountKey`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct FixedWidthIntegerDisplayView<Key: AccountKey>: DataDisplayView where Key.Value: FixedWidthInteger {
     private let value: Key.Value
     private let unit: Text
@@ -51,6 +52,7 @@ public struct FixedWidthIntegerDisplayView<Key: AccountKey>: DataDisplayView whe
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKey where Value: FixedWidthInteger {
     /// Default DataDisplay for `FixedWidthInteger`-based values.
     public typealias DataDisplay = FixedWidthIntegerDisplayView<Self>
@@ -58,6 +60,7 @@ extension AccountKey where Value: FixedWidthInteger {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     List {
         FixedWidthIntegerDisplayView<MockNumericKey>(3)

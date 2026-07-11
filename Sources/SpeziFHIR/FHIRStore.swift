@@ -16,6 +16,7 @@ import SpeziHealthKit
 /// `Module` to manage FHIR resources grouped into automatically computed and updated categories.
 ///
 /// The ``FHIRStore`` is automatically injected in the environment if you use the ``FHIR`` standard or can be used as a standalone module.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class FHIRStore: Module, EnvironmentAccessible, DefaultInitializable, @unchecked Sendable { // unchecked bc of the HealthKit dependency
     @ObservationIgnored @Dependency(HealthKit.self) package var healthKit
@@ -100,6 +101,7 @@ public final class FHIRStore: Module, EnvironmentAccessible, DefaultInitializabl
 
 // MARK: FHIRStore Resource Insertion
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRStore {
     /// Inserts a FHIR resource into the ``FHIRStore``, unless it is already in the store.
     ///
@@ -149,6 +151,7 @@ extension FHIRStore {
 
 // MARK: FHIRStore Resource Removal
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRStore {
     /// Removes a FHIR resource from the ``FHIRStore``.
     ///
@@ -203,6 +206,7 @@ extension FHIRStore {
 
 // MARK: FHIRStore Helpers
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRStore {
     @MainActor
     private func mutatingResourceCategories<Result>(
@@ -224,6 +228,7 @@ extension FHIRStore {
 
 // MARK: FHIRStore + Collection
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRStore: @MainActor Collection {
     public typealias Element = FHIRResource
     

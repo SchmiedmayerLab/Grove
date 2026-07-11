@@ -22,6 +22,7 @@ import Foundation
 /// - ``contactDetails``
 /// - ``personalDetails``
 /// - ``other``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct AccountKeyCategory {
     /// A category to group account credentials.
     public static let credentials = AccountKeyCategory(title: LocalizedStringResource("UP_CREDENTIALS", bundle: .atURL(from: .module)))
@@ -55,9 +56,11 @@ public struct AccountKeyCategory {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKeyCategory: Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKeyCategory: Identifiable, Hashable {
     /// A string based identifier relying on the key of the ``categoryTitle``.
     ///

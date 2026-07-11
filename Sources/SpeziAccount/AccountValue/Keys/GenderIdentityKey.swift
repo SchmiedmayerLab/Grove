@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails {
     /// The gender identity of a user.
     ///
@@ -24,5 +25,6 @@ extension AccountDetails {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @KeyEntry(\.genderIdentity)
 public extension AccountKeys {} // swiftlint:disable:this no_extension_access_modifier

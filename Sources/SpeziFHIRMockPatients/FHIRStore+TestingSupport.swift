@@ -10,6 +10,7 @@ import ModelsR4
 import SpeziFHIR
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRStore {
     /// Loads a mock resource into the `FHIRStore` for testing purposes.
     @MainActor

@@ -12,6 +12,7 @@ import Charts
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct SomeChartContent<Body: ChartContent>: ChartContent { // swiftlint:disable:this file_types_order
     private let content: () -> Body
     
