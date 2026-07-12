@@ -2124,22 +2124,6 @@ targets += [
 ]
 #endif
 
-// `swift test` compiles the WHOLE package — every target AND every library product — before running.
-// Most of this monorepo is Apple-only (SwiftUI / HealthKit / CoreBluetooth / OSLog / …), so a combined
-// Linux test build can't compile and fails before a single test runs. The Linux CI test job
-// (Scripts/run-package-tests.sh) sets SPEZI_LINUX_TEST_KEEP to the transitive target closure of the
-// sub-package's tests (derived from packages.toml + the dependency graph — not hardcoded here). We then
-// keep only those targets and drop the products, so `swift test` builds and actually RUNS exactly that
-// closure on Linux. The env var is set ONLY by that CI job, so ordinary Linux consumers of the package
-// still see the full, unmodified graph.
-#if os(Linux)
-if let keep = Context.environment["SPEZI_LINUX_TEST_KEEP"], !keep.isEmpty {
-    let keepSet = Set(keep.split(separator: ",").map(String.init))
-    targets = targets.filter { keepSet.contains($0.name) }
-    products = []
-}
-#endif
-
 let package = Package(
     name: "Spezi",
     defaultLocalization: "en",
