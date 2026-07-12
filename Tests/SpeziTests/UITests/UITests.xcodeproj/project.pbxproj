@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		653B21D03002D1F100C65C03 /* XCTestApp in Frameworks */ = {isa = PBXBuildFile; productRef = 653B21CF3002D1F100C65C03 /* XCTestApp */; };
-		653B21D23002D1F600C65C03 /* Spezi in Frameworks */ = {isa = PBXBuildFile; productRef = 653B21D13002D1F600C65C03 /* Spezi */; };
-		653B21D43002D1FF00C65C03 /* XCTestExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = 653B21D33002D1FF00C65C03 /* XCTestExtensions */; };
+		7BE3264F71CE8EBB991ADB0A /* XCTestApp in Frameworks */ = {isa = PBXBuildFile; productRef = D4831ADE86158D01DEB9A398 /* XCTestApp */; };
+		E2D9A00F5298DBC2E6503541 /* Spezi in Frameworks */ = {isa = PBXBuildFile; productRef = 056B45814927D7D150070684 /* Spezi */; };
+		9E8F22102FFB8E5B4406BC5E /* XCTestExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = EDD80945D33FB07E4B87ACFC /* XCTestExtensions */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,14 +44,14 @@
 		000000000000000130000000 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
-				653B21D23002D1F600C65C03 /* Spezi in Frameworks */,
-				653B21D03002D1F100C65C03 /* XCTestApp in Frameworks */,
+				7BE3264F71CE8EBB991ADB0A /* XCTestApp in Frameworks */,
+				E2D9A00F5298DBC2E6503541 /* Spezi in Frameworks */,
 			);
 		};
 		656490933002CEA900F1D55F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
-				653B21D43002D1FF00C65C03 /* XCTestExtensions in Frameworks */,
+				9E8F22102FFB8E5B4406BC5E /* XCTestExtensions in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -101,8 +101,8 @@
 			);
 			name = TestApp;
 			packageProductDependencies = (
-				653B21CF3002D1F100C65C03 /* XCTestApp */,
-				653B21D13002D1F600C65C03 /* Spezi */,
+				D4831ADE86158D01DEB9A398 /* XCTestApp */,
+				056B45814927D7D150070684 /* Spezi */,
 			);
 			productName = TestApp;
 			productReference = 000000000000000000000120 /* TestApp.app */;
@@ -126,7 +126,7 @@
 			);
 			name = TestAppUITests;
 			packageProductDependencies = (
-				653B21D33002D1FF00C65C03 /* XCTestExtensions */,
+				EDD80945D33FB07E4B87ACFC /* XCTestExtensions */,
 			);
 			productName = TestAppUITests;
 			productReference = 656490963002CEA900F1D55F /* TestAppUITests.xctest */;
@@ -344,7 +344,7 @@
 		000000000000000111000000 /* Debug configuration for PBXNativeTarget "TestApp" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = TestApp/TestApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "TestApp/TestApp.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -380,7 +380,7 @@
 		000000000000000112000000 /* Release configuration for PBXNativeTarget "TestApp" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = TestApp/TestApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "TestApp/TestApp.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -496,19 +496,19 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		653B21CF3002D1F100C65C03 /* XCTestApp */ = {
+		D4831ADE86158D01DEB9A398 /* XCTestApp */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* XCLocalSwiftPackageReference "../../../../Spezi" */;
+			package = 654293E43002D0F400AF6915 /* package */;
 			productName = XCTestApp;
 		};
-		653B21D13002D1F600C65C03 /* Spezi */ = {
+		056B45814927D7D150070684 /* Spezi */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* XCLocalSwiftPackageReference "../../../../Spezi" */;
+			package = 654293E43002D0F400AF6915 /* package */;
 			productName = Spezi;
 		};
-		653B21D33002D1FF00C65C03 /* XCTestExtensions */ = {
+		EDD80945D33FB07E4B87ACFC /* XCTestExtensions */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* XCLocalSwiftPackageReference "../../../../Spezi" */;
+			package = 654293E43002D0F400AF6915 /* package */;
 			productName = XCTestExtensions;
 		};
 /* End XCSwiftPackageProductDependency section */

@@ -7,6 +7,8 @@
 //
 
 import Foundation
+import HealthKit
+import SpeziHealthKit
 import XCTest
 import XCTHealthKit
 

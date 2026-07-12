@@ -7,30 +7,41 @@
 //
 
 import CoreLocation
+import Foundation
 
 
 /// Manages tasks that handle events from the `CLLocationManagerDelegate`
-final class LocationTaskManager {
+final class LocationTaskManager: @unchecked Sendable {
+    private let lock = NSLock()
     private var tasks: [LocationTask] = []
     
     /// Adds a new task
     /// - Parameter task: A task conforming to `LocationTask`
     func add(_ task: LocationTask) {
-        tasks.append(task)
+        lock.withLock {
+            tasks.append(task)
+        }
     }
     
     /// Removes a task
     /// - Parameter task: A task conforming to `LocationTask`
     func remove(_ task: LocationTask) {
-        if let index = tasks.firstIndex(where: { $0.id == task.id }) {
-            tasks.remove(at: index)
+        remove(id: task.id)
+    }
+
+    /// Removes a task with the provided identifier.
+    /// - Parameter id: The identifier of the task to remove.
+    func remove(id: UUID) {
+        lock.withLock {
+            tasks.removeAll { $0.id == id }
         }
     }
     
     /// Notifies all tasks of events received from `CLLocationManagerDelegate`.
     /// - Parameter event: The relevant `LocationManagerEvent`
     func notify(_ event: LocationManagerEvent) {
-        tasks.forEach {
+        let currentTasks = lock.withLock { self.tasks }
+        currentTasks.forEach {
             $0.process(event: event)
         }
     }

@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import os
 import FirebaseFirestore
 import Spezi
 import SpeziAccount
@@ -22,7 +23,7 @@ final class AccountTestModel {
     /// Flag to determine if an account was present upon the initial startup.
     var accountUponConfigure = false
 
-    init() {}
+    nonisolated init() {}
 }
 
 

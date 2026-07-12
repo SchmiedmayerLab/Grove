@@ -36,10 +36,12 @@ public final class SpeziLocation: Module, DefaultInitializable, EnvironmentAcces
     @MainActor
     public func requestWhenInUseAuthorization() async throws -> CLAuthorizationStatus {
         let task = LocationAuthorizationTask(component: self)
+        let taskID = task.id
+        let taskManager = self.taskManager
         return try await withTaskCancellationHandler {
             try await task.requestWhenInUseAuthorization()
         } onCancel: {
-            taskManager.remove(task)
+            taskManager.remove(id: taskID)
         }
     }
     
@@ -49,10 +51,12 @@ public final class SpeziLocation: Module, DefaultInitializable, EnvironmentAcces
     @MainActor
     public func requestAlwaysAuthorization() async throws -> CLAuthorizationStatus {
         let task = LocationAuthorizationTask(component: self)
+        let taskID = task.id
+        let taskManager = self.taskManager
         return try await withTaskCancellationHandler {
             try await task.requestAlwaysAuthorization()
         } onCancel: {
-            taskManager.remove(task)
+            taskManager.remove(id: taskID)
         }
     }
     
@@ -70,10 +74,12 @@ public final class SpeziLocation: Module, DefaultInitializable, EnvironmentAcces
     @MainActor
     public func getLatestLocations() async throws -> [CLLocation] {
         let task = GetLocationTask(component: self)
+        let taskID = task.id
+        let taskManager = self.taskManager
         let event = try await withTaskCancellationHandler {
             try await task.getLocation()
         } onCancel: {
-            taskManager.remove(task)
+            taskManager.remove(id: taskID)
         }
         return event.locations
     }

@@ -6,7 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
+import Foundation
 import HealthKit
+import HealthKitOnFHIR
+import ModelsR4
 import SwiftUI
 
 struct CreateWorkoutView: View {
@@ -19,7 +22,7 @@ struct CreateWorkoutView: View {
         Form {
             Section {
                 Button("Create Sample Workout") {
-                    Task {
+                    _Concurrency.Task { // ModelsR4 also has a `Task`
                         await createWorkout()
                         showingSheet.toggle()
                     }

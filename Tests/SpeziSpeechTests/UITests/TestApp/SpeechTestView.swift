@@ -119,6 +119,3 @@ struct SpeechTestView: View {
 #Preview {
     SpeechTestView()
 }
-
-
-extension SFSpeechRecognitionResult: @unchecked Sendable {}

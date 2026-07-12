@@ -20,10 +20,10 @@ import SwiftUI
 /// The `HKSample` metadata key we add to all samples created as testing data of historical samples.
 ///
 /// This exists to make it easier for someone to delete these samples from their iPhone, should they accidentally run this on a real device.
-let HKSampleMetadataKeyIsSpeziTestingData = "edu.stanford.spezi.healthkit.isTestingData"
+nonisolated let HKSampleMetadataKeyIsSpeziTestingData = "edu.stanford.spezi.healthkit.isTestingData"
 
 extension NSPredicate {
-    static var isSpeziTestingSample: NSPredicate {
+    nonisolated static var isSpeziTestingSample: NSPredicate {
         HKQuery.predicateForObjects(
             withMetadataKey: HKSampleMetadataKeyIsSpeziTestingData,
             operatorType: .equalTo,

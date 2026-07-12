@@ -170,6 +170,7 @@ uiTests = ["iOS"]
 platforms = ["iOS"]
 targets = ["SpeziSensorKit"]
 tests = ["SpeziSensorKitTests"]
+uiTests = ["iOS"]
 
 [SpeziSpeech]
 platforms = ["iOS", "macOS", "visionOS"]

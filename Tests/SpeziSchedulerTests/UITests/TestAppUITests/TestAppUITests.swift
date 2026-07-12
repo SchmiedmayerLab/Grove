@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import SpeziFoundation
 import XCTest
 import XCTestExtensions
 import XCTSpeziNotifications

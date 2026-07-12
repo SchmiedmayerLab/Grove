@@ -12,6 +12,8 @@ import Foundation
 import class ModelsR4.Questionnaire
 import SpeziFoundation
 import SpeziHealthKit
+import SpeziLocalization
+import SpeziScheduler
 import SpeziStudyDefinition
 
 

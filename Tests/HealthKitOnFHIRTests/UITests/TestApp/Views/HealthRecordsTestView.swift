@@ -6,7 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
+import Foundation
 import HealthKit
+import HealthKitOnFHIR
 import ModelsR4
 import SwiftUI
 

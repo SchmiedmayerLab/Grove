@@ -7,6 +7,7 @@
 //
 
 import SpeziConsent
+import SpeziFoundation
 import SpeziOnboarding
 import SpeziViews
 import SwiftUI

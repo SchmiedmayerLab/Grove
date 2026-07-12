@@ -8,6 +8,7 @@
 
 import Spezi
 import SpeziAccessGuard
+import SpeziFoundation
 import SwiftUI
 
 

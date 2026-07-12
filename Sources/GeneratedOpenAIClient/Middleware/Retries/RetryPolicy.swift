@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+
 /// Determines how many times to retry.
 public enum RetryPolicy: Hashable, Sendable {
     /// Never retry.

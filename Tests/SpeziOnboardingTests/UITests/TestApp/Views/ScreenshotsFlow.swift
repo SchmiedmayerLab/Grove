@@ -8,6 +8,7 @@
 
 // swiftlint:disable file_types_order line_length
 
+import SpeziFoundation
 import SpeziOnboarding
 import SpeziViews
 import SwiftUI

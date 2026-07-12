@@ -8,6 +8,7 @@
 
 #if os(iOS)
 @_spi(TestingSupport) import SpeziAccount
+import Spezi
 import SpeziOnboarding
 import SpeziViews
 import SwiftUI

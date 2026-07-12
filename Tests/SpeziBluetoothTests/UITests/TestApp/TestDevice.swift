@@ -18,7 +18,7 @@ final class TestDevice: BluetoothDevice, Identifiable, SomePeripheral, @unchecke
         @MainActor fileprivate(set) var didReceiveManufacturer = false
         @MainActor fileprivate(set) var didReceiveModel = false
 
-        init() {}
+        nonisolated init() {}
     }
 
     @DeviceState(\.id)
@@ -42,7 +42,7 @@ final class TestDevice: BluetoothDevice, Identifiable, SomePeripheral, @unchecke
     let testState = State()
     private(set) var passedRetainCountCheck = false
 
-    required init() {}
+    nonisolated required init() {}
 
     func configure() {
         let count = CFGetRetainCount(self)

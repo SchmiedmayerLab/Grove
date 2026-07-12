@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import FHIRQuestionnaires
 import ModelsR4
 import SwiftUI
 
