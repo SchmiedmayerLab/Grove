@@ -36,7 +36,7 @@ struct HealthRecordsTestView: View {
             Section {
                 ForEach(recordTypes.sorted(by: <), id: \.key) { key, value in
                     Button("Read \(value)") {
-                        _Concurrency.Task { // Models.R4 also has a `Task`
+                        Swift::Task { // Models.R4 also has a `Task`
                             do {
                                 let type = HKClinicalTypeIdentifier(rawValue: key)
                                 try await readHealthRecords(type: type)

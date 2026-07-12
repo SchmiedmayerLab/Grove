@@ -275,7 +275,7 @@ private struct AddHistoricalSamplesSection: View {
         }
         
         defer {
-            _Concurrency.Task { @MainActor in
+            Swift::Task { @MainActor in
                 addHistoricalSamplesProgress = nil
             }
         }
@@ -321,7 +321,7 @@ private struct SamplesCounter: BatchProcessor {
     
     func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) async throws -> Int {
         if let delay {
-            try await _Concurrency.Task.sleep(for: delay)
+            try await Swift::Task.sleep(for: delay)
         }
         return samples.count
     }

@@ -115,8 +115,8 @@ struct ScheduleView: View {
 
     private func hide() {
         hidden = true
-        _Concurrency.Task {
-            try? await _Concurrency.Task.sleep(for: .seconds(5))
+        Swift::Task {
+            try? await Swift::Task.sleep(for: .seconds(5))
             hidden = false
         }
     }

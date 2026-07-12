@@ -27,7 +27,7 @@ struct ReadDataView<Sample: _HKSampleWithSampleType>: View {
         Form {
             Section {
                 Button("Read \(sampleType.displayTitle)") {
-                    _Concurrency.Task { // ModelsR4 also has a `Task`
+                    Swift::Task {
                         try await readData()
                         showingSheet.toggle()
                     }

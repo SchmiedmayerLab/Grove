@@ -252,7 +252,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
         try #require(events.first).complete()
         #expect(try #require(events.first).isCompleted)
         #expect(try #require(try module.queryEvents(for: todayRange).first).isCompleted)
-        try await _Concurrency.Task.sleep(for: .seconds(0.5))
+        try await Swift::Task.sleep(for: .seconds(0.5))
         #expect(try #require(try module.queryEvents(for: todayRange).first).isCompleted)
         do {
             let events1 = try module.queryEvents(for: task, in: todayRange)

@@ -22,7 +22,7 @@ struct CreateWorkoutView: View {
         Form {
             Section {
                 Button("Create Sample Workout") {
-                    _Concurrency.Task { // ModelsR4 also has a `Task`
+                    Swift::Task {
                         await createWorkout()
                         showingSheet.toggle()
                     }
