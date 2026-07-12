@@ -135,19 +135,51 @@ run() { # <package> <platform> [mode: "ui"]
     return
   fi
   echo "==> $1 on $2"
-  # Writes an .xcresult bundle that the `test` CI job uploads as an artifact on failure.
+  # Xcode 26 SIGABRTs (exit 134, DVTInvalidation "message sent to invalidated object") when a single
+  # `xcodebuild test` launches a SECOND .xctest bundle: in-checkout writes during the run (DerivedData,
+  # the .xcresult, and Xcode's own .swiftpm user-state/scheme files) make Xcode re-resolve the package
+  # graph mid-action, which invalidates the test-bundle blueprints; messaging the next bundle's blueprint
+  # then crashes. So we run EACH test target in its OWN invocation via -only-testing:, so only one bundle
+  # is ever launched per process (a single-target package is simply a one-iteration loop). The build is
+  # shared through the common -derivedDataPath, so later targets reuse the first's build, and the per-bundle
+  # .xcresults are collapsed into one <Package>-<Platform>-Tests.xcresult so the output matches a plain run.
+  # The test-target list is the curated mapping in packages.toml — the same source the xctestplans are
+  # generated from (and that the Linux path above uses) — not a re-parse of the generated test plan.
+  local targets rc=0
+  targets="$(python3 -c "import tomllib; print(' '.join(tomllib.load(open('packages.toml','rb'))['$1']['tests']))")"
   local result="${1}-${2}-Tests.xcresult"
+  local parts=()
+  for tt in $targets; do
+    echo "==> $1 on $2: test bundle $tt"
+    local part="${1}-${2}-${tt}.xcresult"
+    rm -rf "$part"
+    xcodebuild test \
+      -scheme Spezi-Tests \
+      -testPlan "$1" \
+      -only-testing:"$tt" \
+      -destination "$(dest "$2")" \
+      -resultBundlePath "$part" \
+      -skipMacroValidation \
+      -skipPackagePluginValidation \
+      -derivedDataPath ".derivedData" \
+      $TESTING_FLOOR_DEPLOYMENT_TARGETS \
+    | beautify || rc=1
+    if [ -d "$part" ]; then parts+=("$part"); fi
+  done
+  # Collapse the per-bundle .xcresults into the single <Package>-<Platform>-Tests.xcresult the CI uploads,
+  # so the artifact is shaped identically regardless of how many bundles ran. (merge needs >=2 inputs; a
+  # single bundle is just renamed.)
   rm -rf "$result"
-  xcodebuild test \
-    -scheme Spezi-Tests \
-    -testPlan "$1" \
-    -destination "$(dest "$2")" \
-    -resultBundlePath "$result" \
-    -skipMacroValidation \
-    -skipPackagePluginValidation \
-    -derivedDataPath ".derivedData" \
-    $TESTING_FLOOR_DEPLOYMENT_TARGETS \
-  | beautify
+  if [ "${#parts[@]}" -ge 2 ]; then
+    if xcrun xcresulttool merge "${parts[@]}" --output-path "$result"; then
+      rm -rf "${parts[@]}"
+    else
+      echo "::warning::xcresulttool merge failed for $1/$2; leaving per-bundle .xcresults in place"
+    fi
+  elif [ "${#parts[@]}" -eq 1 ]; then
+    mv "${parts[0]}" "$result"
+  fi
+  return "$rc"
 }
 
 case "${1:-}" in
