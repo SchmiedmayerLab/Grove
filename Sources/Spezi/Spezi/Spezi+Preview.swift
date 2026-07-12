@@ -43,6 +43,7 @@ public enum LifecycleSimulationOptions {
 
 
 #if os(iOS) || os(visionOS) || os(tvOS)
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Spezi: DeprecatedLaunchOptionsCall {
     @available(*, deprecated, message: "Propagate deprecation warning.")
     package func callWillFinishLaunching(_ application: UIApplication, launchOptions: [UIApplication.LaunchOptionsKey: Any]) {
@@ -52,6 +53,7 @@ extension Spezi: DeprecatedLaunchOptionsCall {
 #endif
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     /// Configure Spezi for your previews using a Standard and a collection of Modules.
     ///

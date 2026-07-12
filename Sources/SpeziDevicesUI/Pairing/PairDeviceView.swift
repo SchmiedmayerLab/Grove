@@ -12,6 +12,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(macOS, unavailable)
 struct PairDeviceView<Collection: RandomAccessCollection>: View where Collection.Element == any PairableDevice {
     private let devices: Collection
@@ -114,6 +115,7 @@ struct PairDeviceView<Collection: RandomAccessCollection>: View where Collection
 
 
 #if DEBUG && !os(macOS)
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     SheetPreview {
         PairDeviceView(devices: [MockDevice.createMockDevice()], appName: "Example", state: .constant(.discovery)) { _ in
@@ -121,6 +123,7 @@ struct PairDeviceView<Collection: RandomAccessCollection>: View where Collection
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     SheetPreview {
         let device: [any PairableDevice] = [

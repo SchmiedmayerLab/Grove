@@ -14,6 +14,7 @@ import Foundation
 /// This protocol combines an ``AccountKey`` reference with user-printable information of the KeyPath to ``AccountDetails``.
 /// A custom description is derived from the KeyPath name. E.g., we derive a description
 /// like `"\.userId"` (as it's extension defined on ``AccountDetails``) for a more user friendly description.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol AccountKeyWithDescription: Sendable, CustomStringConvertible, CustomDebugStringConvertible {
     /// The associated `Key` type.
     associatedtype Key: AccountKey
@@ -23,6 +24,7 @@ public protocol AccountKeyWithDescription: Sendable, CustomStringConvertible, Cu
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct AccountKeyWithKeyPathDescription<Key: AccountKey>: AccountKeyWithDescription {
     let key: Key.Type
     let description: String
@@ -54,6 +56,7 @@ struct AccountKeyWithKeyPathDescription<Key: AccountKey>: AccountKeyWithDescript
 ///
 /// - ``AccountKeyCollectionBuilder``
 /// - ``AccountKeyWithDescription``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct AccountKeyCollection {
     private var elements: [any AccountKeyWithDescription]
 
@@ -104,6 +107,7 @@ public struct AccountKeyCollection {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKeyCollection: Sendable, AcceptingAccountKeyVisitor {
     public func acceptAll<Visitor: AccountKeyVisitor>(_ visitor: inout Visitor) -> Visitor.Final {
         self
@@ -113,6 +117,7 @@ extension AccountKeyCollection: Sendable, AcceptingAccountKeyVisitor {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKeyCollection: Collection {
     public var startIndex: Int {
         elements.startIndex

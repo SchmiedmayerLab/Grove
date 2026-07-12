@@ -14,6 +14,7 @@ import SwiftUI
 
 
 /// View that implements the UI for responding to "annotate image" tasks.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct AnnotateImageView: View {
     @Environment(\.colorScheme) private var colorScheme
     
@@ -83,6 +84,7 @@ struct AnnotateImageView: View {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AnnotateImageView {
     fileprivate static func ink(for region: AnnotateImageConfig.Region) -> PKInk {
         PKInk(.pen, color: UIColor(region.color))
@@ -90,6 +92,7 @@ extension AnnotateImageView {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AnnotateImageView {
     private struct Badge<Label: View>: View {
         private let label: Label
@@ -122,6 +125,7 @@ extension AnnotateImageView {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct Sheet: View {
     @Environment(\.dismiss) private var dismiss
     
@@ -221,6 +225,7 @@ private struct Sheet: View {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Sheet {
     private struct RegionRow: View {
         typealias Region = AnnotateImageConfig.Region

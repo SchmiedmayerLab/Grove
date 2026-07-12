@@ -15,6 +15,7 @@
 /// - ``preferLanguageMatch``
 /// - ``preferRegionMatch``
 /// - ``custom(_:)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum LocaleMatchingBehaviour: Sendable {
     /// Only perfect matches are allowed
     ///

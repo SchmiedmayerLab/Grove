@@ -14,6 +14,7 @@ import Spezi
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDataCollector {
     /// How this ``HealthKitSampleCollector`` was created, i.e. what it was created for.
     ///

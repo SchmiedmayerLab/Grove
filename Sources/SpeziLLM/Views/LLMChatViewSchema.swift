@@ -35,6 +35,7 @@ import SwiftUI
 /// ```
 ///
 /// The ``LLMChatViewSchema`` may also be passed a `ChatView/ChatExportFormat` to enable the chat export functionality and define the format of the to-be-exported `SpeziChat/Chat`; possible export formats are `.pdf`, `.text`, and `.json`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LLMChatViewSchema<Schema: LLMSchema>: View {
     @LLMSessionProvider<Schema> var llm: Schema.Platform.Session
     private let exportFormat: ChatView.ChatExportFormat?
@@ -61,6 +62,7 @@ public struct LLMChatViewSchema<Schema: LLMSchema>: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     NavigationStack {
         LLMChatViewSchema(with: LLMMockSchema())

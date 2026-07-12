@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 final class DeviceStateTestInjections<Value: Sendable>: Sendable {
     @ObservationIgnored nonisolated(unsafe) private var _subscriptions: ChangeSubscriptions<Value>?

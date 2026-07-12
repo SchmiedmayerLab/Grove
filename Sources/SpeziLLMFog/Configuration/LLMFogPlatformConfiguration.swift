@@ -11,6 +11,7 @@ import GeneratedOpenAIClient
 
 
 /// Represents the configuration of the Spezi ``LLMFogPlatform``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LLMFogPlatformConfiguration: Sendable {
     /// The connection type to the fog node.
     public enum ConnectionType: Hashable, Sendable {

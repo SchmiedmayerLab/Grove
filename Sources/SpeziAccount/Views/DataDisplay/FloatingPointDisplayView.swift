@@ -12,6 +12,7 @@ import SwiftUI
 
 
 /// Displays the value of an `BinaryFloatingPoint`-based `AccountKey`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct FloatingPointDisplayView<Key: AccountKey>: DataDisplayView where Key.Value: BinaryFloatingPoint {
     private let value: Key.Value
     private let formatStyle: FloatingPointFormatStyle<Key.Value>?
@@ -70,12 +71,14 @@ public struct FloatingPointDisplayView<Key: AccountKey>: DataDisplayView where K
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKey where Value: BinaryFloatingPoint {
     /// Default DataDisplay for `BinaryFloatingPoint`-based values.
     public typealias DataDisplay = FloatingPointDisplayView<Self>
 }
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     List {
         FloatingPointDisplayView<MockDoubleKey>(3.12456)

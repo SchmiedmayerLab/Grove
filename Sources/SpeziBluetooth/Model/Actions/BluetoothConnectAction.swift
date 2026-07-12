@@ -10,6 +10,7 @@
 /// Connect to the Bluetooth peripheral.
 ///
 /// For more information refer to ``DeviceActions/connect``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct BluetoothConnectAction: _BluetoothPeripheralAction, Sendable {
     public typealias ClosureType = @Sendable () async -> Void
 

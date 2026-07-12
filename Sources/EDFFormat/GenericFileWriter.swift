@@ -42,6 +42,7 @@ import NIOFoundationCompat
 /// // close file once finished
 /// try writer.close()
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias EDFFileWriter = GenericFileWriter<EDFSample>
 
 
@@ -75,6 +76,7 @@ public typealias EDFFileWriter = GenericFileWriter<EDFSample>
 /// // close file once finished
 /// try writer.close()
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias BDFFileWriter = GenericFileWriter<BDFSample>
 
 
@@ -111,6 +113,7 @@ public typealias BDFFileWriter = GenericFileWriter<BDFSample>
 /// // close file once finished
 /// try writer.close()
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public final class GenericFileWriter<S: Sample> {
     private static var dataRecordsCountOffset: UInt64 {
         8 + 80 + 80 + 8 + 8 + 8 + 44
@@ -301,9 +304,11 @@ public final class GenericFileWriter<S: Sample> {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension GenericFileWriter: @unchecked Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension GenericFileWriter {
     private static var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -362,6 +367,7 @@ extension GenericFileWriter {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension GenericFileWriter where S == EDFSample {
     /// Create a new EDF file writer.
     /// - Parameters:
@@ -376,6 +382,7 @@ extension GenericFileWriter where S == EDFSample {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension GenericFileWriter where S == BDFSample {
     /// Create a new BDF file writer.
     /// - Parameters:

@@ -46,6 +46,7 @@ extension GenericBluetoothPeripheral {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothPeripheral: GenericBluetoothPeripheral {
     nonisolated public var label: String {
         name ?? "Generic Peripheral"

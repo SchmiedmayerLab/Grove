@@ -12,6 +12,7 @@ import SpeziTesting
 
 
 /// Legacy implementation.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 @available(*, deprecated, message: "Please migrate to the 'SpeziTesting' library.")
 public func withDependencyResolution<S: Standard>(
@@ -23,6 +24,7 @@ public func withDependencyResolution<S: Standard>(
 }
 
 /// Legacy implementation.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 @available(*, deprecated, message: "Please migrate to the 'SpeziTesting' library.")
 public func withDependencyResolution(

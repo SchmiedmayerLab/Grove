@@ -12,6 +12,7 @@ public import Observation
 private import SpeziKeychainStorage
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 @MainActor
 public final class _BiometricAccessGuardModel: _AnyAccessGuardModel { // swiftlint:disable:this type_name
@@ -68,6 +69,7 @@ public final class _BiometricAccessGuardModel: _AnyAccessGuardModel { // swiftli
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccessGuardIdentifier where AccessGuard == BiometricAccessGuard {
     /// The identifier of the biometric access guard's passcode fallback.
     ///

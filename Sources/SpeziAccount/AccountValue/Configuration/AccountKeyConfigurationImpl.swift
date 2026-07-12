@@ -8,6 +8,7 @@
 
 
 /// A user-configured ``AccountKey``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol AccountKeyConfiguration: CustomStringConvertible, CustomDebugStringConvertible, Identifiable, Hashable, Sendable
     where ID == ObjectIdentifier {
     /// The associated ``AccountKey``.
@@ -24,6 +25,7 @@ public protocol AccountKeyConfiguration: CustomStringConvertible, CustomDebugStr
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct AccountKeyConfigurationImpl<Key: AccountKey>: AccountKeyConfiguration {
     let key: Key.Type
     let requirement: AccountKeyRequirement
@@ -38,6 +40,7 @@ struct AccountKeyConfigurationImpl<Key: AccountKey>: AccountKeyConfiguration {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKeyConfiguration {
     var keyWithDescription: any AccountKeyWithDescription {
         AccountKeyWithKeyPathDescription(key: key, description: keyPathDescription)
@@ -45,6 +48,7 @@ extension AccountKeyConfiguration {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKeyConfigurationImpl {
     var id: ObjectIdentifier {
         key.id

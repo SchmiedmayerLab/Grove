@@ -11,6 +11,7 @@ import HealthKit
 import ModelsR4
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKSample {
     /// A `ResourceProxy` containing an FHIR  `Observation` based on the concrete subclass of `HKSample`.
     ///
@@ -67,6 +68,7 @@ extension HKSample {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Sequence where Element: HKSample {
     /// Produces an Array of FHIR `ResourceProxies`.
     ///

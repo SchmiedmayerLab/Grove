@@ -10,6 +10,7 @@
 /// Describes how to discover a given `BluetoothDevice`.
 ///
 /// Provides a strategy on how to discovery given ``BluetoothDevice`` device type.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct DeviceDiscoveryDescriptor {
     /// The associated device type.
     public let deviceType: any BluetoothDevice.Type
@@ -23,9 +24,11 @@ public struct DeviceDiscoveryDescriptor {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DeviceDiscoveryDescriptor: Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DeviceDiscoveryDescriptor: Identifiable {
     public var id: DiscoveryCriteria {
         discoveryCriteria
@@ -33,6 +36,7 @@ extension DeviceDiscoveryDescriptor: Identifiable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DeviceDiscoveryDescriptor: Hashable {
     public static func == (lhs: DeviceDiscoveryDescriptor, rhs: DeviceDiscoveryDescriptor) -> Bool {
         lhs.discoveryCriteria == rhs.discoveryCriteria

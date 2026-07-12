@@ -18,6 +18,7 @@ private struct TextLine: Identifiable {
 /// A lazy loading text view that is especially useful for larger text files that should not be displayed all at once.
 ///
 /// Uses a `LazyVStack` under the hood to load and display the text line-by-line.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LazyText: View {
     private let content: TextContent
 
@@ -57,6 +58,7 @@ public struct LazyText: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct LazyText_Previews: PreviewProvider {
     static var previews: some View {
         ScrollView {

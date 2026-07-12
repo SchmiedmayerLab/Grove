@@ -15,6 +15,7 @@ public import SwiftUI
 /// Share a PDF representation of a ``ConsentDocument``.
 ///
 /// The ``ConsentShareButton`` observes a consent document's state, automatically disabling itself if the document can't yet be exported (e.g., because it hasn't been completed yet).
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct ConsentShareButton: View {
     private var consentDocument: ConsentDocument?
     private let exportConfiguration: ConsentDocument.ExportConfiguration

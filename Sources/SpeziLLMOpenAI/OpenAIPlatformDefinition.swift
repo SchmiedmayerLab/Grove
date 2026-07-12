@@ -79,6 +79,7 @@ public typealias LLMOpenAIParameters = LLMOpenAILikeParameters<OpenAIPlatformDef
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMOpenAIPlatform = LLMOpenAILikePlatform<OpenAIPlatformDefinition>
 
 
@@ -90,6 +91,7 @@ public typealias LLMOpenAIPlatform = LLMOpenAILikePlatform<OpenAIPlatformDefinit
 /// - Tip: ``LLMOpenAISchema`` also enables the function calling mechanism to establish a structured, bidirectional, and reliable communication between the OpenAI LLMs and external tools. For details, refer to ``LLMFunction`` and ``LLMFunction/Parameter`` or the <doc:FunctionCalling> DocC article.
 ///
 /// - Tip: For more information, refer to the documentation of the `LLMSchema` from SpeziLLM.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMOpenAISchema = LLMOpenAILikeSchema<OpenAIPlatformDefinition>
 
 
@@ -145,6 +147,7 @@ public typealias LLMOpenAISchema = LLMOpenAILikeSchema<OpenAIPlatformDefinition>
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMOpenAISession = LLMOpenAILikeSession<OpenAIPlatformDefinition>
 
 
@@ -153,10 +156,12 @@ public typealias LLMOpenAISession = LLMOpenAILikeSession<OpenAIPlatformDefinitio
 /// - Warning: Ensure that the ``LLMOpenAIPlatform`` is specified within the Spezi `Configuration` when using this view in the onboarding flow.
 ///
 /// - Important: Only use this if the corresponding LLM platform's config's auth token is set to `RemoteLLMInferenceAuthToken/keychain(_:CredentialsTag)`
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMOpenAIAPITokenOnboardingStep = LLMOpenAILikeAPITokenOnboardingStep<OpenAIPlatformDefinition>
 
 
 /// View to display an onboarding step for the user to select an OpenAI model.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMOpenAIModelOnboardingStep = LLMOpenAILikeModelOnboardingStep<OpenAIPlatformDefinition>
 
 

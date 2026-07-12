@@ -9,6 +9,7 @@
 import CoreBluetooth
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @SpeziBluetooth
 private struct SetupServiceVisitor: ServiceVisitor {
     private let bluetooth: Bluetooth
@@ -43,6 +44,7 @@ private struct SetupServiceVisitor: ServiceVisitor {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @SpeziBluetooth
 private struct SetupDeviceVisitor: DeviceVisitor {
     private let bluetooth: Bluetooth
@@ -87,6 +89,7 @@ private struct SetupDeviceVisitor: DeviceVisitor {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothDevice {
     @SpeziBluetooth
     func inject(peripheral: BluetoothPeripheral, using bluetooth: Bluetooth) -> Bool {

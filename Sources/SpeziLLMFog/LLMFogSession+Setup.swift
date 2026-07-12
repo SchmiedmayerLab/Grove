@@ -15,6 +15,7 @@ import SpeziKeychainStorage
 import SpeziLLM
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMFogSession {
     /// Set up the Fog LLM execution client.
     ///
@@ -147,6 +148,7 @@ extension LLMFogSession {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMFogSession {
     /// Discovers available fog services in the local network.
     fileprivate static func discoverFogService(

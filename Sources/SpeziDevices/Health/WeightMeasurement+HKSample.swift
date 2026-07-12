@@ -11,6 +11,7 @@ import HealthKit
 import SpeziBluetoothServices
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightMeasurement {
     /// Convert the weight measurement to the HealthKit representation.
     ///
@@ -81,6 +82,7 @@ extension WeightMeasurement {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKQuantitySample {
     /// Retrieve a mock weight sample.
     @_spi(TestingSupport)

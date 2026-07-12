@@ -16,6 +16,7 @@ import SwiftUI
 ///
 /// The secondary label describes the state of the Bluetooth peripheral (e.g., `connecting` or `connected`).
 /// It might be empty in a `disconnected` state.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct PeripheralSecondaryLabel: View {
     private let peripheral: any GenericBluetoothPeripheral
 
@@ -66,6 +67,7 @@ public struct PeripheralSecondaryLabel: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     List {
         PeripheralSecondaryLabel(MockBluetoothPeripheral(label: "MyDevice 1", state: .connecting))

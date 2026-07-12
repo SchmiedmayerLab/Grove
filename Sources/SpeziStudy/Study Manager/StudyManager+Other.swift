@@ -14,6 +14,7 @@ import SwiftData
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyManager {
     /// The user-facing action that is associated with a study-related `SpeziScheduler.Task`
     public enum ScheduledTaskAction: Hashable, Codable {
@@ -24,6 +25,7 @@ extension StudyManager {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Task.Context {
     typealias StudyContextOld = _StudyContextImpl<PersistentIdentifier>
     /// The study-related context of a Task
@@ -57,6 +59,7 @@ extension Task.Context {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Task.Category {
     /// An informational task, e.g. an article the user should read
     public static let informational = Self.custom("edu.stanford.spezi.SpeziStudy.task.informational")
@@ -73,6 +76,7 @@ extension Task.Category {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     /// Configures the SpeziStudy-specific task category appearances
     public func injectingCustomTaskCategoryAppearances() -> some View {
@@ -84,6 +88,7 @@ extension View {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SpeziScheduler.Schedule {
     /// Creates a `SpeziScheduler.Schedule` from a `StudyDefinition.ComponentSchedule.ScheduleDefinition.repeated`.
     ///
@@ -151,6 +156,7 @@ extension SpeziScheduler.Schedule {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Calendar {
     /// Obtains, for a `DateComponents/weekday` value, the corresponding `Locale.Weekday`.
     func weekday(from rawValue: Int) -> Locale.Weekday {

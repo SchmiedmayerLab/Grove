@@ -12,6 +12,7 @@ import HealthKit
 import Spezi
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_documentation(visibility: internal)
 @available(*, deprecated, renamed: "CollectSamples")
 public typealias CollectSample = CollectSamples // swiftlint:disable:this missing_docs
@@ -33,6 +34,7 @@ public typealias CollectSample = CollectSamples // swiftlint:disable:this missin
 /// Your app can specify an `NSPredicate` to filter which samples should be collected.
 /// For example, you could use this to limit your app's collection to only those samples whose values fall into a certain range,
 /// or only those with a specific metadata key present.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct CollectSamples<Sample: _HKSampleWithSampleType>: HealthKitConfigurationComponent {
     /// The time range for which new and deleted HealthKit samples should be collected.
     public enum TimeRange {

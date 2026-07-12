@@ -44,6 +44,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct MessageInputView: View {
     @Binding private var chat: Chat
     private let messagePlaceholder: String
@@ -224,6 +225,7 @@ public struct MessageInputView: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     @Previewable @State var chat = [
         ChatEntity(role: .user, content: "User Message!"),

@@ -33,6 +33,7 @@ import SwiftUI
 /// }
 /// ```
 ///
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct ListRow<Label: View, Content: View>: View { // swiftlint:disable:this file_types_order
     private let labeledContent: LabeledContent<Label, Content>
 
@@ -78,6 +79,7 @@ public struct ListRow<Label: View, Content: View>: View { // swiftlint:disable:t
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ListRow where Label == Text, Content == Text { // swiftlint:disable:this file_types_order
     /// Create a list row with a string value.
     /// - Parameters:
@@ -132,6 +134,7 @@ extension ListRow where Label == Text, Content == Text { // swiftlint:disable:th
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct PreviewList: View {
     @available(*, deprecated, message: "Propagate warnings.")
     var body: some View {
@@ -166,6 +169,7 @@ private struct PreviewList: View {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     PreviewList()
 }

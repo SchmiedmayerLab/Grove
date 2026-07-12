@@ -32,6 +32,7 @@ public import Observation
 /// - ``ChoiceResponse``
 /// - ``ImageAnnotation``
 /// - ``CollectedAttachment``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class QuestionnaireResponses: Identifiable {
     /// The responses object's variant.
@@ -153,6 +154,7 @@ public final class QuestionnaireResponses: Identifiable {
 
 // MARK: Completeness
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses {
     func hasResponse(for task: Questionnaire.Task) -> Bool {
         switch task.kind.variant {
@@ -212,6 +214,7 @@ extension QuestionnaireResponses {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses {
     /// Removes all responses that were collected for tasks that are currently disabled.
     ///

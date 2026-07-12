@@ -8,6 +8,7 @@
 
 import Foundation
 import ModelsR4
+#if ResearchKit
 import ResearchKit
 @_exported import class ResearchKit.ORKTaskResult
 
@@ -186,3 +187,4 @@ extension ORKTaskResult {
         return .attachment(Attachment(url: url.asFHIRURIPrimitive()))
     }
 }
+#endif

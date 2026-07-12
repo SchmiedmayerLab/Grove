@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if MLX
 import MLXLLM
 import SpeziLLMLocal
 import SpeziOnboarding
@@ -45,6 +46,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LLMLocalDownloadView: View {
     /// The ``LLMLocalDownloadManager`` manages the download and storage of the models.
     @State private var downloadManager: LLMLocalDownloadManager
@@ -206,6 +208,7 @@ public struct LLMLocalDownloadView: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     LLMLocalDownloadView(
         model: .llama3_2_3B_4bit,
@@ -213,4 +216,5 @@ public struct LLMLocalDownloadView: View {
         action: {}
     )
 }
+#endif
 #endif

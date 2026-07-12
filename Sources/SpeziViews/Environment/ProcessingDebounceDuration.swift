@@ -13,11 +13,13 @@ import SwiftUI
 ///
 /// This might be helpful to provide extensive customization points without introducing clutter in the initializer of views.
 /// The ``AsyncButton`` is one example where this `EnvironmentKey` is used.
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct ProcessingDebounceDuration: EnvironmentKey {
     static let defaultValue: Duration = .milliseconds(150)
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension EnvironmentValues {
     /// A `Duration` that provides a generalized configuration for debounce durations for any processing-related operations.
     ///

@@ -7,6 +7,7 @@
 //
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @SpeziBluetooth
 protocol BaseVisitor {
     mutating func visit<Action: _BluetoothPeripheralAction>(_ action: DeviceAction<Action>)
@@ -15,6 +16,7 @@ protocol BaseVisitor {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BaseVisitor {
     func visit<Action: _BluetoothPeripheralAction>(_ action: DeviceAction<Action>) {}
 

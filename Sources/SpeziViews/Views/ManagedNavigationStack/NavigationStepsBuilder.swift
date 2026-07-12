@@ -10,6 +10,7 @@ import Foundation
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ManagedNavigationStack {
     /// A result builder used to aggregate multiple SwiftUI `View`s within the ``ManagedNavigationStack``.
     @resultBuilder

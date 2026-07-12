@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct DatePickerRow: View {
     @Environment(\.calendar) private var cal
     let config: Questionnaire.Task.Kind.DateTimeConfig
@@ -55,6 +56,7 @@ struct DatePickerRow: View {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Questionnaire.Task.Kind.DateTimeConfig.Style {
     var components: Set<Calendar.Component> {
         switch self {

@@ -13,6 +13,7 @@ import SpeziChat
 import SpeziLLM
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMOpenAILikeSession {
     /// Based on the input prompt, generate the output via the OpenAI API.
     ///

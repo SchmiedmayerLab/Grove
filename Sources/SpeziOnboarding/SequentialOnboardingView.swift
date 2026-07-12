@@ -39,6 +39,7 @@ import SwiftUI
 ///     // Action that should be performed on pressing the "Continue" button ...
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct SequentialOnboardingView<Header: View>: View {
     /// A `Step` defines the way that information is displayed in an ``SequentialOnboardingView``.
     public struct Step {
@@ -171,6 +172,7 @@ public struct SequentialOnboardingView<Header: View>: View {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SequentialOnboardingView {
     /// Creates the default style of the `SequentialOnboardingView` that uses a combination of an ``OnboardingTitleView``
     /// and ``OnboardingActionsView``.
@@ -268,6 +270,7 @@ extension SequentialOnboardingView {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     SequentialOnboardingView(
         title: String("Title"),

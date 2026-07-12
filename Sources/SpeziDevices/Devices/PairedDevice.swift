@@ -10,6 +10,7 @@ import OSLog
 import SpeziBluetooth
 import SpeziFoundation
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 final class PairedDevice: Sendable {
     private enum ConnectionEvent {
         case disconnected
@@ -266,6 +267,7 @@ final class PairedDevice: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PairableDevice {
     @SpeziBluetooth
     fileprivate static func retrieveDevice(from bluetooth: Bluetooth, with id: UUID) async -> Self? {

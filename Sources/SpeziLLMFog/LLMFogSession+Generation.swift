@@ -13,6 +13,7 @@ import SpeziChat
 import SpeziLLM
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMFogSession {
     /// Based on the input prompt, generate the output via some OpenAI API, e.g., Ollama.
     ///

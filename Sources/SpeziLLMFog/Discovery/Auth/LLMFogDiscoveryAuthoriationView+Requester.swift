@@ -12,6 +12,7 @@ import Network
 import OSLog
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMFogDiscoveryAuthorizationView {
     /// Checks whether Local Network permission has been granted.
     /// If the authorization state is undetermined, it will request the user for permission.

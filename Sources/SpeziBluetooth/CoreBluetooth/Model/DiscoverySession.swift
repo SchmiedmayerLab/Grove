@@ -91,6 +91,7 @@ public struct BluetoothModuleDiscoveryState: BluetoothScanningState {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @SpeziBluetooth
 class DiscoverySession: Sendable {
     private let logger = Logger(subsystem: "edu.stanford.spezi.bluetooth", category: "DiscoverySession")
@@ -176,6 +177,7 @@ extension BluetoothModuleDiscoveryState: Hashable {}
 
 // MARK: - Auto Connect
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DiscoverySession {
     /// Checks and determines the device candidate for auto-connect.
     ///
@@ -240,6 +242,7 @@ extension DiscoverySession {
 
 // MARK: - Stale Advertisement Timeout
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DiscoverySession {
     /// Schedule a new `DiscoveryStaleTimer`, cancelling any previous one.
     /// - Parameters:

@@ -10,11 +10,13 @@
 /// Unregisters for all remote notifications received through Apple Push Notification service.
 ///
 /// Refer to the documentation of ``Spezi/unregisterRemoteNotifications``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_documentation(visibility: internal)
 @available(*, deprecated, renamed: "Spezi.UnregisterRemoteNotificationsAction", message: "Please use Spezi.UnregisterRemoteNotificationsAction")
 public typealias UnregisterRemoteNotificationsAction = Spezi.UnregisterRemoteNotificationsAction
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Spezi {
     /// Unregisters for all remote notifications received through Apple Push Notification service.
     ///

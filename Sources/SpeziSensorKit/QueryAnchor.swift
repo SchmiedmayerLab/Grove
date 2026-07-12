@@ -43,6 +43,7 @@ struct QueryAnchor: Hashable, Codable, Sendable {
 
 
 /// A `QueryAnchor` that is backed using Spezi LocalStorage.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public final class ManagedQueryAnchor: Sendable {
     private let get: @Sendable () throws -> QueryAnchor
     private let set: @Sendable (QueryAnchor) throws -> Void
@@ -78,6 +79,7 @@ public final class ManagedQueryAnchor: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ManagedQueryAnchor {
     /// Creates an ephemeral Managed Query Anchor, that does not persist itself to disk.
     ///

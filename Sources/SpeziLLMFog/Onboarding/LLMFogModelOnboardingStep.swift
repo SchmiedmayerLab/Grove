@@ -12,6 +12,7 @@ import SwiftUI
 
 
 /// View to display an onboarding step for the user to enter the to-be-used fog model.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LLMFogModelOnboardingStep: View {
     public enum Default {
         public static let models: [LLMFogParameters.FogModelType] = [

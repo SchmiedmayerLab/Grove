@@ -10,6 +10,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(tvOS, unavailable)
 private struct DisplayView: DataDisplayView { // swiftlint:disable:this file_types_order
     private let value: Date
@@ -36,6 +37,7 @@ private struct DisplayView: DataDisplayView { // swiftlint:disable:this file_typ
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(tvOS, unavailable)
 private struct EntryView: DataEntryView {
     @Binding private var value: Date
@@ -60,6 +62,7 @@ private struct EntryView: DataEntryView {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(tvOS, unavailable)
 extension AccountDetails {
     /// The date of birth of a user.
@@ -82,6 +85,7 @@ extension AccountDetails {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(tvOS, unavailable)
 @KeyEntry(\.dateOfBirth)
 public extension AccountKeys { // swiftlint:disable:this no_extension_access_modifier

@@ -82,6 +82,7 @@ import SwiftUI
 /// - ``shouldPresentMeasurements``
 /// - ``pendingMeasurements``
 /// - ``discardMeasurement(_:)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class HealthMeasurements: ServiceModule, EnvironmentAccessible, DefaultInitializable, @unchecked Sendable {
 #if compiler(<6)
@@ -285,6 +286,7 @@ public final class HealthMeasurements: ServiceModule, EnvironmentAccessible, Def
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthMeasurements {
     @MainActor
     func refreshFetchingMeasurements() throws {
@@ -338,6 +340,7 @@ extension HealthMeasurements {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthMeasurements {
     /// Call in preview simulator wrappers.
     ///

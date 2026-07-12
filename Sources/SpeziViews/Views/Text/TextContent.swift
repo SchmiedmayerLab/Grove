@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 enum TextContent {
     case string(_ value: String)
     case localized(_ value: LocalizedStringResource)

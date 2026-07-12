@@ -105,6 +105,7 @@ public import class UIKit.UIScene
 /// - ``isLocked(_:)``
 /// - ``resetAccessCode(for:)``
 /// - ``setupComplete(for:)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class AccessGuards: Module, EnvironmentAccessible, LifecycleHandler {
     private struct ModelKey: Hashable {
@@ -146,6 +147,7 @@ public final class AccessGuards: Module, EnvironmentAccessible, LifecycleHandler
 
 // MARK: Lifecycle
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccessGuards {
     @_documentation(visibility: internal)
     @MainActor
@@ -168,6 +170,7 @@ extension AccessGuards {
 
 // MARK: Operations
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccessGuards {
     func register(_ config: some _AccessGuardConfig) throws {
         guard !configs.contains(where: { ModelKey($0.typeErasedId) == ModelKey(config.typeErasedId) }) else {

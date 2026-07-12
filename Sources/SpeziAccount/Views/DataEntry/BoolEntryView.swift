@@ -12,6 +12,7 @@ import SwiftUI
 
 
 /// Entry or modify the value of an `String`-based `AccountKey`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct BoolEntryView<Key: AccountKey>: DataEntryView where Key.Value == Bool {
     @Binding private var value: Key.Value
 
@@ -40,6 +41,7 @@ public struct BoolEntryView<Key: AccountKey>: DataEntryView where Key.Value == B
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKey where Value == Bool {
     /// Default DataEntry for `Bool`-based values.
     ///
@@ -49,6 +51,7 @@ extension AccountKey where Value == Bool {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     @Previewable @State var value = false
     Form {
@@ -56,6 +59,7 @@ extension AccountKey where Value == Bool {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     @Previewable @State var value = true
     Form {

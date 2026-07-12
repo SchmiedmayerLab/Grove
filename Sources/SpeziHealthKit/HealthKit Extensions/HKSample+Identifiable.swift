@@ -11,6 +11,7 @@
 import HealthKit
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKSample: @retroactive Identifiable {
     /// The `uuid` identifier.
     public var id: UUID {
@@ -19,6 +20,7 @@ extension HKSample: @retroactive Identifiable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKSample {
     /// The sample's time range.
     public var timeRange: Range<Date> {

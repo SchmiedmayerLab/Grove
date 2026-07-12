@@ -14,6 +14,7 @@ import SwiftUI
 /// Entry or modify the value of an `PickerValue`-based `AccountKey`.
 ///
 /// For more information, refer to the documentation of `PickerValue`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct CaseIterablePickerEntryView<Key: AccountKey>: DataEntryView where Key.Value: PickerValue, Key.Value.AllCases: RandomAccessCollection {
     @Binding private var value: Key.Value
 
@@ -38,6 +39,7 @@ public struct CaseIterablePickerEntryView<Key: AccountKey>: DataEntryView where 
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKey where Value: PickerValue, Value.AllCases: RandomAccessCollection {
     /// Default DataEntry view for Values that conform to `PickerValue` (typically useful with enums)
     public typealias DataEntry = CaseIterablePickerEntryView<Self>
@@ -45,6 +47,7 @@ extension AccountKey where Value: PickerValue, Value.AllCases: RandomAccessColle
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     @Previewable @State var genderIdentity: GenderIdentity = .male
 
@@ -55,6 +58,7 @@ extension AccountKey where Value: PickerValue, Value.AllCases: RandomAccessColle
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     @Previewable @State var genderIdentity: GenderIdentity = .male
 

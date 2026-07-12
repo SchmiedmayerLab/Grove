@@ -8,6 +8,7 @@
 
 
 /// Building a set of `Discover` expressions to express what peripherals to discover.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @resultBuilder
 public enum DiscoveryDescriptorBuilder {
     /// Build a ``Discover`` expression to define a ``DeviceDiscoveryDescriptor``.

@@ -10,6 +10,7 @@ import DequeModule
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyDefinition {
     /// A criterion which must be satisfied for a person to be able to participate in a study.
     public indirect enum ParticipationCriterion: StudyDefinitionElement {
@@ -56,6 +57,7 @@ extension StudyDefinition {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyDefinition.ParticipationCriterion: ExpressibleByBooleanLiteral {
     /// Creates a `Criterion` that always evaluates to a specified Boolean value.
     ///
@@ -73,6 +75,7 @@ extension StudyDefinition.ParticipationCriterion: ExpressibleByBooleanLiteral {
 
 // MARK: Criterion Eval
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyDefinition.ParticipationCriterion {
     /// Context against which the ``StudyDefinition/ParticipationCriterion`` are evaluated.
     public struct EvaluationEnvironment {
@@ -126,6 +129,7 @@ extension StudyDefinition.ParticipationCriterion {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyDefinition.ParticipationCriterion {
     /// whether the criterion is a leaf element, i.e. doesn't contain any nested further criteria
     public var isLeaf: Bool {

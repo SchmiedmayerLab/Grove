@@ -13,6 +13,7 @@ import enum SpeziScheduler.NotificationThread
 import struct SpeziScheduler.NotificationTime
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyDefinition {
     /// A schedule, defining when a specific ``Component`` should get activated.
     ///
@@ -189,6 +190,7 @@ extension StudyDefinition {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyDefinition.ComponentSchedule.ScheduleDefinition: CustomStringConvertible {
     private static let ordinalsFormatter: NumberFormatter = {
         let fmt = NumberFormatter()
@@ -254,6 +256,7 @@ extension StudyDefinition.ComponentSchedule.ScheduleDefinition: CustomStringConv
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyLifecycleEvent: CustomDebugStringConvertible {
     public var debugDescription: String {
         switch self {

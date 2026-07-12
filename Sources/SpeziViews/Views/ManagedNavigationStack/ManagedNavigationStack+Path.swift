@@ -11,6 +11,7 @@ import OrderedCollections
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ManagedNavigationStack {
     /// Manages the current navigation state of a ``ManagedNavigationStack``.
     ///
@@ -75,6 +76,7 @@ extension ManagedNavigationStack {
 
 // MARK: Configuration & Management
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ManagedNavigationStack.Path {
     /// ``NavigationStepIdentifier`` of the first view in ``ManagedNavigationStack``.
     /// `nil` if the ``ManagedNavigationStack`` is empty.
@@ -211,6 +213,7 @@ extension ManagedNavigationStack.Path {
 
 // MARK: Navigation
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ManagedNavigationStack.Path {
     /// Internal function used to navigate to the respective `View` via the `NavigationStack.navigationDestination(for:)` function,
     /// either regularly declared within the ``ManagedNavigationStack`` or custom steps

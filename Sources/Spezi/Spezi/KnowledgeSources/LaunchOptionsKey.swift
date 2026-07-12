@@ -33,6 +33,7 @@ package struct LaunchOptionsKey: DefaultProvidingKnowledgeSource {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Spezi {
 #if os(iOS) || os(visionOS) || os(tvOS)
     /// The launch options of the application.

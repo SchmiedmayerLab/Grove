@@ -16,6 +16,7 @@ import SwiftUI
 ///
 /// The alert will request the user's password to authorize security-sensitive operations like account deletion or change of
 /// sensitive account details.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct FirebaseSecurityAlert: ViewModifier {
     @Environment(FirebaseAccountModel.self)
     private var firebaseModel: FirebaseAccountModel
@@ -86,6 +87,7 @@ public struct FirebaseSecurityAlert: ViewModifier {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     let model = FirebaseAccountModel()
 

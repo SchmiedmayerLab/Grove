@@ -14,11 +14,13 @@ protocol AccountKeyWithSetupView {
     func emptySetupView() -> AnyView
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct AccountKeyTypeWrapper<Key: AccountKey> {
     init() {}
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 extension AccountKey {
     static func emptyDataEntryView() -> AnyView {
@@ -67,6 +69,7 @@ extension AccountKey {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKeyTypeWrapper: AccountKeyWithSetupView where Key.DataDisplay: SetupDisplayView {
     @MainActor
     func emptySetupView() -> AnyView {

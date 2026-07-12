@@ -14,6 +14,7 @@ import SwiftUI
 
 
 /// Entry or modify the value of an `FixedWidthInteger`-based `AccountKey`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct FixedWidthIntegerEntryView<Key: AccountKey>: DataEntryView where Key.Value: FixedWidthInteger {
     @Environment(Account.self)
     private var account
@@ -73,6 +74,7 @@ public struct FixedWidthIntegerEntryView<Key: AccountKey>: DataEntryView where K
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ValidationRule {
     static func isDigit<Value: FixedWidthInteger>(for value: Value.Type = Value.self, radix: Int = 10) -> ValidationRule {
         ValidationRule(
@@ -85,6 +87,7 @@ extension ValidationRule {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKey where Value: FixedWidthInteger {
     /// Default DataEntry for `FixedWidthInteger`-based values.
     public typealias DataEntry = FixedWidthIntegerEntryView<Self>
@@ -92,6 +95,7 @@ extension AccountKey where Value: FixedWidthInteger {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     @Previewable @State var value = 3
     List {

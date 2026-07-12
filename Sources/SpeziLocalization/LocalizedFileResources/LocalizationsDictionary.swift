@@ -52,6 +52,7 @@ import Foundation
 /// ### Subscripts
 /// - ``subscript(_:using:fallback:)``
 /// - ``subscript(_:)
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LocalizationsDictionary<Value> {
     private var storage: [LocalizationKey: Value]
 
@@ -119,10 +120,14 @@ public struct LocalizationsDictionary<Value> {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LocalizationsDictionary: Equatable where Value: Equatable {}
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LocalizationsDictionary: Hashable where Value: Hashable {}
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LocalizationsDictionary: Sendable where Value: Sendable {}
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LocalizationsDictionary: Encodable where Value: Encodable {
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
@@ -130,6 +135,7 @@ extension LocalizationsDictionary: Encodable where Value: Encodable {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LocalizationsDictionary: Decodable where Value: Decodable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -137,6 +143,7 @@ extension LocalizationsDictionary: Decodable where Value: Decodable {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LocalizationsDictionary: Collection {
     public typealias Index = Dictionary<LocalizationKey, Value>.Index
     public typealias Element = Dictionary<LocalizationKey, Value>.Element
@@ -159,6 +166,7 @@ extension LocalizationsDictionary: Collection {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LocalizationsDictionary: ExpressibleByDictionaryLiteral {
     public init(dictionaryLiteral elements: (LocalizationKey, Value)...) {
         self.init(elements)

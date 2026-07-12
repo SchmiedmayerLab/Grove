@@ -12,6 +12,7 @@ import SpeziLLM
 import SpeziLLMOpenAI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMOpenAIRealtimeSession: FunctionCallLLMSession {
     @MainActor
     func listenToLLMEvents() { // swiftlint:disable:this cyclomatic_complexity

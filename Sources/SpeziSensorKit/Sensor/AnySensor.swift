@@ -38,6 +38,7 @@ public import SpeziFoundation
 /// - ``~=(_:_:)``
 /// - ``==(_:_:)-(Sensor<Any>,AnySensor)``
 /// - ``==(_:_:)-(AnySensor,Sensor<Any>)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol AnySensor<Sample>: Hashable, Identifiable, Sendable, CustomStringConvertible {
     /// The type of the sensor's resulting samples.
     associatedtype Sample: SensorKitSampleProtocol
@@ -61,6 +62,7 @@ public protocol AnySensor<Sample>: Hashable, Identifiable, Sendable, CustomStrin
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AnySensor {
     @inlinable public var id: String { // swiftlint:disable:this missing_docs
         srSensor.rawValue
@@ -74,18 +76,21 @@ extension AnySensor {
 // MARK: Other
 
 /// Compare two sensors, based on their identifiers
+@available(iOS 18, macOS 15, watchOS 11, *)
 @inlinable
 public func ~= (lhs: Sensor<some Any>, rhs: any AnySensor) -> Bool { // swiftlint:disable:this static_operator
     lhs.id == rhs.id
 }
 
 /// Compare two sensors, based on their identifiers
+@available(iOS 18, macOS 15, watchOS 11, *)
 @inlinable
 public func == (lhs: Sensor<some Any>, rhs: any AnySensor) -> Bool { // swiftlint:disable:this static_operator
     lhs.id == rhs.id
 }
 
 /// Compare two sensors, based on their identifiers
+@available(iOS 18, macOS 15, watchOS 11, *)
 @inlinable
 public func == (lhs: any AnySensor, rhs: Sensor<some Any>) -> Bool { // swiftlint:disable:this static_operator
     lhs.id == rhs.id

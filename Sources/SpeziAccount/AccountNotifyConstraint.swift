@@ -28,6 +28,7 @@ import Spezi
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol AccountNotifyConstraint: Standard {
     /// Notifies the Standard that an event for the currently associated user occurred.
     ///
@@ -41,6 +42,7 @@ public protocol AccountNotifyConstraint: Standard {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountNotifyConstraint {
     // swiftlint:disable:next missing_docs
     public func willLogOut(_ details: AccountDetails) async {}

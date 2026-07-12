@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 package protocol AudioCapableLLMSession: LLMSession {
     /// Returns a continuous stream of raw audio chunks (PCM16 format) produced by the underlying realtime LLM session.
     ///

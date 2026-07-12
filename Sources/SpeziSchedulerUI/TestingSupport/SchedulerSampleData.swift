@@ -14,6 +14,7 @@ import SwiftData
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_spi(TestingSupport)
 public struct SchedulerSampleData: PreviewModifier {
     public init() {}
@@ -66,6 +67,7 @@ public struct SchedulerSampleData: PreviewModifier {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PreviewTrait where T == Preview.ViewTraits {
     /// A preview modifier that provide sample data to the scheduler.
     ///

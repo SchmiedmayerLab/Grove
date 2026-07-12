@@ -10,6 +10,7 @@ import Foundation
 import OrderedCollections
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 @MainActor
 class ConnectedDevicesModel: Sendable {
@@ -52,6 +53,7 @@ class ConnectedDevicesModel: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothDevice {
     fileprivate var typeIdentifier: ObjectIdentifier {
         ObjectIdentifier(Self.self)

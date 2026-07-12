@@ -15,6 +15,7 @@ import OrderedCollections
 /// collected at signup or generally supported. You configure them by supplying an array of ``ConfiguredAccountKey``s.
 ///
 /// A configuration instance is created using ``AccountConfiguration`` and stored at ``Account/configuration``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @dynamicMemberLookup
 public struct AccountValueConfiguration {
     enum IncludeCollectedType {
@@ -137,6 +138,7 @@ public struct AccountValueConfiguration {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Array where Element == ConfiguredAccountKey {
     #if os(tvOS)
     /// The default array of ``ConfiguredAccountKey``s that `SpeziAccount` provides.
@@ -159,9 +161,11 @@ extension Array where Element == ConfiguredAccountKey {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountValueConfiguration: Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountValueConfiguration: Collection {
     public typealias Index = OrderedDictionary<ObjectIdentifier, any AccountKeyConfiguration>.Index
 
@@ -185,6 +189,7 @@ extension AccountValueConfiguration: Collection {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountValueConfiguration: ExpressibleByArrayLiteral {
     public init(arrayLiteral elements: ConfiguredAccountKey...) {
         self.init(elements)

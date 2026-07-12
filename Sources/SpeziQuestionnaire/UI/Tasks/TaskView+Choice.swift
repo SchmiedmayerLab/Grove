@@ -10,6 +10,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension TaskView {
     struct ChoiceAnswering: View { // better name?!!
         let task: Questionnaire.Task
@@ -55,6 +56,7 @@ extension TaskView {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension TaskView.ChoiceAnswering {
     // This needs to be a separate view bc of the sheet presentation
     private struct Row: View {

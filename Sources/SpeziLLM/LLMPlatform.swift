@@ -38,6 +38,7 @@ import Spezi
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol LLMPlatform: ServiceModule, EnvironmentAccessible, Sendable {
     /// The ``LLMSchema`` that is bound to the ``LLMPlatform``.
     associatedtype Schema: LLMSchema
@@ -60,12 +61,14 @@ public protocol LLMPlatform: ServiceModule, EnvironmentAccessible, Sendable {
     func callAsFunction(with: Schema) -> Session
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMPlatform {
     /// Default empty implementation of `run()` method of `ServiceModule`
     public func run() async {}
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMPlatform {
     /// Enables the identification of the ``LLMPlatform/Schema`` via an `ObjectIdentifier`.
     var schemaId: ObjectIdentifier {

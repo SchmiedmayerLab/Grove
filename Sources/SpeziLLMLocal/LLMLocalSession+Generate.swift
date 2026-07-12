@@ -7,6 +7,7 @@
 //
 
 import Foundation
+#if MLX
 import MLX
 import MLXLLM
 @preconcurrency import MLXLMCommon
@@ -16,6 +17,7 @@ import SpeziChat
 import SpeziLLM
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMLocalSession {
     private var generationParameters: GenerateParameters {
         .init(
@@ -207,3 +209,4 @@ extension LLMLocalSession {
         }
     }
 }
+#endif

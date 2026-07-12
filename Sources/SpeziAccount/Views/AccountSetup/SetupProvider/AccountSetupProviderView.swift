@@ -38,6 +38,7 @@ enum PresentedSetupStyle<Credentials: Sendable> {
 ///
 /// - Note: The above code example uses default components like ``SignupForm`` and the ``PasswordResetView``. You can provide your
 ///     own views using ``init(signup:passwordReset:)``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct AccountSetupProviderView<Signup: View, PasswordReset: View>: View {
     /// Optional login closure for providers that support userId-password-based credentials.
     private let loginClosure: ((UserIdPasswordCredential) async throws -> Void)?
@@ -238,6 +239,7 @@ public struct AccountSetupProviderView<Signup: View, PasswordReset: View>: View 
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     NavigationStack {
         AccountSetupProviderView { credential in
@@ -253,6 +255,7 @@ public struct AccountSetupProviderView<Signup: View, PasswordReset: View>: View 
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     NavigationStack {
         AccountSetupProviderView { credential in
@@ -269,6 +272,7 @@ public struct AccountSetupProviderView<Signup: View, PasswordReset: View>: View 
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     NavigationStack {
         AccountSetupProviderView { (credential: UserIdPasswordCredential) in
@@ -280,6 +284,7 @@ public struct AccountSetupProviderView<Signup: View, PasswordReset: View>: View 
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     NavigationStack {
         AccountSetupProviderView { (details: AccountDetails) in

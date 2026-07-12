@@ -14,6 +14,7 @@ enum VerificationStep {
     case verificationCode
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 class PhoneNumberViewModel {
     var phoneNumber: PhoneNumber?

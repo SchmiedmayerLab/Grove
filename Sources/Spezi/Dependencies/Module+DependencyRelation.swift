@@ -7,6 +7,7 @@
 //
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Module {
     func dependencyRelation(to module: DependencyReference) -> DependencyRelation {
         let relations = dependencyDeclarations.map { $0.dependencyRelation(to: module) }

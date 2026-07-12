@@ -12,6 +12,7 @@ import SwiftUI
 /// Icon-only info button.
 ///
 /// You can use this button, e.g., on the trailing side of a list row to provide additional information about an entity.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct InfoButton: View {
     private let label: Text
     private let action: () -> Void
@@ -53,6 +54,7 @@ public struct InfoButton: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     List {
         Button {

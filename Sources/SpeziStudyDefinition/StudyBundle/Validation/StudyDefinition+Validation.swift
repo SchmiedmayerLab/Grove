@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyDefinition {
     struct ValidationResult {
         var warnings = Set<ValidationWarning>()

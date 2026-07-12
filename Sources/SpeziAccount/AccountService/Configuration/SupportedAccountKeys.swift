@@ -27,6 +27,7 @@
 ///
 /// let configuration = AccountServiceConfiguration(supportedKeys: .exactly(supportedKeys))
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum SupportedAccountKeys: AccountServiceConfigurationKey {
     /// The ``AccountService`` is capable of storing arbitrary account keys.
     case arbitrary
@@ -51,6 +52,7 @@ public enum SupportedAccountKeys: AccountServiceConfigurationKey {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountServiceConfiguration {
     /// Access the supported account keys of an ``AccountService``.
     public var supportedAccountKeys: SupportedAccountKeys {

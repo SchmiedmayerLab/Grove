@@ -9,6 +9,7 @@
 public import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Duration {
     /// A duration given a number of minutes.
     ///
@@ -104,6 +105,7 @@ extension Duration {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Duration {
     /// The number of seconds in the `Duration`, as a `TimeInterval` value.
     @inlinable public var timeInterval: TimeInterval {

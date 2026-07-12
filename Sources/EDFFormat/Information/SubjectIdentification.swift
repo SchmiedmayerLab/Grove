@@ -60,6 +60,7 @@ extension PatientInformation: Hashable, Sendable {}
 extension SubjectIdentification: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SubjectIdentification {
     func verifyAsciiInputs() throws {
         switch self {
@@ -72,6 +73,7 @@ extension SubjectIdentification {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PatientInformation: EDFRepresentable {
     private static var birthdayFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -99,6 +101,7 @@ extension PatientInformation.Sex: EDFRepresentable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SubjectIdentification: ByteEncodable {
     public func encode(to byteBuffer: inout ByteBuffer) {
         switch self {

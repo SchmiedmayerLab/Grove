@@ -10,6 +10,7 @@ import Foundation
 
 
 /// A type erased version of `LocalizedError` with convenience initializers to do a best-effort transform an existing `Error` to an `LocalizedError`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct AnyLocalizedError: LocalizedError {
     private static let globalDefaultErrorDescription = LocalizedStringResource("DEFAULT_ERROR_DESCRIPTION", bundle: .atURL(Bundle.module.bundleURL))
 

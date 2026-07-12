@@ -19,6 +19,7 @@ import SwiftUI
 /// - An ``ValidationEngines`` object.
 /// - The ``SwiftUI/EnvironmentValues/accountServiceConfiguration`` environment variable.
 /// - The ``SwiftUI/EnvironmentValues/accountViewType`` environment variable.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct SignupSectionsView: View {
     private let sections: OrderedDictionary<AccountKeyCategory, [any AccountKey.Type]>
 
@@ -54,14 +55,17 @@ struct SignupSectionsView: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 private let credentials: [any AccountKey.Type] = [
     AccountKeys.userId,
     AccountKeys.password
 ]
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private let name: [any AccountKey.Type] = [
     AccountKeys.name
 ]
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     Form {
         SignupSectionsView(sections: [

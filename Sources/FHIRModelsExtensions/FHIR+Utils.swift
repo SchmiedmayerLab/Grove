@@ -45,6 +45,7 @@ extension Decimal {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRPrimitive where PrimitiveType == FHIRURI {
     /// Creates a new `FHIRPrimitive<FHIRURI>`, by appending the specified component.
     @inlinable

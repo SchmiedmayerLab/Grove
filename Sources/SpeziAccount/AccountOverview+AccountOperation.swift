@@ -10,6 +10,7 @@ import Foundation
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(macOS, unavailable)
 @available(watchOS, unavailable)
 protocol AccountOverviewDestructiveAccountOperation<ExtraSections> { // swiftlint:disable:this type_name
@@ -33,6 +34,7 @@ protocol AccountOverviewDestructiveAccountOperation<ExtraSections> { // swiftlin
 ///
 /// ### Static Properties
 /// - ``cancelButtonTitle``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct AccountOverviewOperationLabels: Sendable {
     /// The default "Cancel" button title
     public static let cancelButtonTitle = LocalizedStringResource("Cancel", bundle: .module)
@@ -66,6 +68,7 @@ public struct AccountOverviewOperationLabels: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountOverviewOperationLabels {
     /// The default labels for account logout
     public static let logout = Self(

@@ -14,6 +14,7 @@ import UniformTypeIdentifiers
 
 
 /// Reusable view that offers file import options from a range of sources.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct FilePicker: View {
     enum Item: Sendable {
         case file(URL)

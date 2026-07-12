@@ -41,6 +41,7 @@ import SwiftData
 /// - ``occurrence``
 /// - ``event``
 /// - ``task``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Model
 public final class Outcome {
     #Index<Outcome>([\.id], [\.occurrenceStartDate])
@@ -92,6 +93,7 @@ public final class Outcome {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Outcome {
     /// Retrieve or set the value for a given storage key.
     /// - Parameter source: The storage key.
@@ -123,6 +125,7 @@ extension Outcome {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Outcome: CustomStringConvertible {
     public var description: String {
         """

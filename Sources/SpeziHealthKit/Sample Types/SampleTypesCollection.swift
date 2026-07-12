@@ -28,6 +28,7 @@ import HealthKit
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct SampleTypesCollection: Hashable, Sendable, Codable {
     public typealias Storage = Set<SampleTypeProxy>
     
@@ -75,6 +76,7 @@ public struct SampleTypesCollection: Hashable, Sendable, Codable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleTypesCollection {
     /// The contained quantity types
     public var quantityTypes: [SampleType<HKQuantitySample>] {
@@ -104,6 +106,7 @@ extension SampleTypesCollection {
 
 // MARK: Mutations
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleTypesCollection {
     /// Inserts a sample type into the collection.
     ///
@@ -165,6 +168,7 @@ extension SampleTypesCollection {
 
 // MARK: Collection
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleTypesCollection: Collection {
     public typealias Index = Storage.Index
     public typealias Element = any AnySampleType
@@ -197,6 +201,7 @@ extension SampleTypesCollection: Collection {
 
 // MARK: ExpressibleByArrayLiteral
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleTypesCollection: ExpressibleByArrayLiteral {
     public init(arrayLiteral elements: any AnySampleType...) {
         self.init()

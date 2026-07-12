@@ -10,6 +10,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct AccountServiceButton<Label: View>: View {
     private let action: @MainActor () async throws -> Void
     private let label: Label
@@ -94,6 +95,7 @@ public struct AccountServiceButton<Label: View>: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     AccountServiceButton("E-Mail and Password") {
         print("Pressed")

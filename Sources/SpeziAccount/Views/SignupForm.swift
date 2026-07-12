@@ -18,6 +18,7 @@ import SwiftUI
 /// split into `Section`s according the their ``AccountKeyCategory`` (see ``AccountKey/category``).
 ///
 /// - Note: This view is built with the assumption to be placed inside a `NavigationStack` within a Sheet modifier.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct SignupForm<Header: View>: View {
     private let header: Header
     private let signupClosure: (AccountDetails) async throws -> Void
@@ -177,6 +178,7 @@ public struct SignupForm<Header: View>: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     NavigationStack {
         SignupForm { signupDetails in

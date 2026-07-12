@@ -15,6 +15,7 @@ import SpeziFoundation
 ///
 /// Main motivation is to have `BluetoothPeripheral` be implemented as an actor and moving state
 /// into a separate state container that is `@Observable`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 final class PeripheralStorage: ValueObservable, Sendable {
     private let _state: ManagedAtomicMainActorBuffered<PeripheralState>

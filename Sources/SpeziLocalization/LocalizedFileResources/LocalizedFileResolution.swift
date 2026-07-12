@@ -16,6 +16,7 @@ public enum LocalizedFileResolution {
     private static let logger = Logger(subsystem: "edu.stanford.spezi", category: "SpeziLocalization")
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LocalizedFileResolution {
     private struct ScoredCandidate: Hashable, Comparable, Sendable {
         let fileResource: LocalizedFileResource.Resolved
@@ -134,6 +135,7 @@ extension LocalizedFileResolution {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LocalizedFileResolution {
     /// Extract's information about a localized file.
     ///
@@ -151,6 +153,7 @@ extension LocalizedFileResolution {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension URL {
     fileprivate func matches(unlocalizedFilename: String) -> Bool {
         self.strippingLocalizationSuffix().pathComponents.ends(with: unlocalizedFilename.split(separator: "/"), by: ==)
@@ -170,6 +173,7 @@ extension URL {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Locale.Language {
     /// Constructs a new `Language`, by updating the receiver's region.
     public func withRegion(_ region: Locale.Region?) -> Self {

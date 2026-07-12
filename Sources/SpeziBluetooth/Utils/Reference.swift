@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 protocol AnyWeakDeviceReference {
     var anyValue: (any BluetoothDevice)? { get }
 
@@ -22,6 +23,7 @@ struct WeakReference<Value: AnyObject> {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeakReference: AnyWeakDeviceReference where Value: BluetoothDevice {
     var anyValue: (any BluetoothDevice)? {
         value

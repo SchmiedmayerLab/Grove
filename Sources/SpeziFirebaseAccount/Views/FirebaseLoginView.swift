@@ -10,6 +10,7 @@ import SpeziAccount
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct FirebaseLoginView: View {
     @Environment(FirebaseAccountService.self)
     private var service

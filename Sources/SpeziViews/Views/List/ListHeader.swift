@@ -12,6 +12,7 @@ import SwiftUI
 /// Header view for Lists or Forms.
 ///  
 /// A header view that can be used in List or Form views.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct ListHeader<Image: View, Title: View, Instructions: View>: View {
     private let image: Image
     private let title: Title
@@ -85,6 +86,7 @@ public struct ListHeader<Image: View, Title: View, Instructions: View>: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     List {
         ListHeader(systemImage: "person.fill.badge.plus") {
@@ -95,6 +97,7 @@ public struct ListHeader<Image: View, Title: View, Instructions: View>: View {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     List {
         ListHeader(systemImage: "person.fill.badge.plus") {

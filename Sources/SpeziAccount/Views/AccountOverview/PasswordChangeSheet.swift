@@ -12,6 +12,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 struct PasswordChangeSheet: View {
     private let accountDetails: AccountDetails
@@ -156,6 +157,7 @@ struct PasswordChangeSheet: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     NavigationStack {
         AccountDetailsReader { account, details in

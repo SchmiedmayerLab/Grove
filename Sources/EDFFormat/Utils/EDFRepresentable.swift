@@ -12,6 +12,7 @@ protocol EDFRepresentable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension String: EDFRepresentable {
     var edfString: String {
         let result = replacing(" ", with: "_")

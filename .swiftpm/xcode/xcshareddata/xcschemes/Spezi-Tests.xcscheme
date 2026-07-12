@@ -100,6 +100,9 @@
             reference = "container:Tests/TestPlans/SpeziViews.xctestplan">
          </TestPlanReference>
          <TestPlanReference
+            reference = "container:Tests/TestPlans/ThreadLocal.xctestplan">
+         </TestPlanReference>
+         <TestPlanReference
             reference = "container:Tests/TestPlans/XCTHealthKit.xctestplan">
          </TestPlanReference>
          <TestPlanReference

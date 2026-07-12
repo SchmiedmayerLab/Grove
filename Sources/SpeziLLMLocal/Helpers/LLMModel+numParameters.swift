@@ -6,9 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if MLX
 import MLXNN
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Module {
     /// Compute the number of parameters in a possibly quantized model
     public func numParameters() -> Int {
@@ -28,3 +30,4 @@ extension Module {
             .reduce(0, +)
     }
 }
+#endif

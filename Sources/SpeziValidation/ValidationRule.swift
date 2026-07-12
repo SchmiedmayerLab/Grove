@@ -63,6 +63,7 @@ enum CascadingValidationEffect {
 /// - ``minimalPassword``
 /// - ``mediumPassword``
 /// - ``strongPassword``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct ValidationRule: Identifiable, Sendable, Equatable {
     // we guarantee that the closure is only executed on the main thread
     /// A unique identifier for the ``ValidationRule``. Can be used to, e.g., match a ``FailedValidationResult`` to the ValidationRule.
@@ -156,6 +157,7 @@ public struct ValidationRule: Identifiable, Sendable, Equatable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ValidationRule {
     /// Annotates an given ``ValidationRule`` such that a processing ``ValidationEngine`` intercepts the current
     /// processing chain of validation rules, if the current validation rule determines a given input to be invalid.
@@ -167,6 +169,7 @@ extension ValidationRule {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ValidationRule: Decodable {
     enum CodingKeys: String, CodingKey {
         case rule

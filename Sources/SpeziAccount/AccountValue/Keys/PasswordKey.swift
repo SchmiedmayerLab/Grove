@@ -11,6 +11,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct EntryView: DataEntryView {
     @Environment(\.accountViewType)
     private var accountViewType
@@ -59,6 +60,7 @@ private struct EntryView: DataEntryView {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails {
     /// The password of a user.
     ///
@@ -75,5 +77,6 @@ extension AccountDetails {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @KeyEntry(\.password)
 public extension AccountKeys {} // swiftlint:disable:this no_extension_access_modifier

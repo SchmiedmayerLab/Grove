@@ -14,6 +14,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct DisplayView: SetupDisplayView {
     typealias Value = [PhoneNumber]
     @Environment(Account.self)
@@ -48,6 +49,7 @@ private struct DisplayView: SetupDisplayView {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails {
     /// The type of the phone numbers array.
     public typealias PhoneNumbersArray = [PhoneNumber]
@@ -64,5 +66,6 @@ extension AccountDetails {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @KeyEntry(\.phoneNumbers)
 public extension AccountKeys {} // swiftlint:disable:this no_extension_access_modifier

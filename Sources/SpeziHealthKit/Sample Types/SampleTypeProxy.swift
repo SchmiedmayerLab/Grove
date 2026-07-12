@@ -29,6 +29,7 @@ import SpeziFoundation
 ///     return imp(sampleType.underlyingSampleType)
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum SampleTypeProxy: Identifiable, Sendable {
     case quantity(SampleType<HKQuantitySample>)
     case correlation(SampleType<HKCorrelation>)
@@ -104,6 +105,7 @@ public enum SampleTypeProxy: Identifiable, Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleTypeProxy: Equatable, Hashable {
     @inlinable
     public static func == (lhs: Self, rhs: Self) -> Bool {
@@ -117,6 +119,7 @@ extension SampleTypeProxy: Equatable, Hashable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SampleTypeProxy: Codable {
     /// An error that can occur when decoding a ``SampleTypeProxy``.
     public enum SampleTypeDecodingError: Error {
@@ -226,6 +229,7 @@ extension SampleTypeProxy: Codable {
 
 
 /// Compare two sample types, based on their identifiers
+@available(iOS 18, macOS 15, watchOS 11, *)
 @inlinable // swiftlint:disable:next static_operator
 public func ~= (pattern: SampleType<some Any>, value: SampleTypeProxy) -> Bool {
     pattern.id == value.id

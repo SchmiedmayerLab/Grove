@@ -159,6 +159,7 @@ import SpeziFoundation
 /// - ``wrappedValue``
 /// - ``projectedValue``
 /// - ``CharacteristicAccessor``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @propertyWrapper
 public struct Characteristic<Value: Sendable>: Sendable {
     /// Storage unit for the property wrapper.
@@ -342,6 +343,7 @@ public struct Characteristic<Value: Sendable>: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Characteristic where Value: ByteEncodable {
     /// Declare a write-only characteristic.
     /// - Parameters:
@@ -354,6 +356,7 @@ extension Characteristic where Value: ByteEncodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Characteristic where Value: ByteDecodable {
     /// Declare a read-only characteristic.
     /// - Parameters:
@@ -367,6 +370,7 @@ extension Characteristic where Value: ByteDecodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Characteristic where Value: ByteCodable { // reduce ambiguity
     /// Declare a read and write characteristic.
     /// - Parameters:
@@ -380,6 +384,7 @@ extension Characteristic where Value: ByteCodable { // reduce ambiguity
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Characteristic: ServiceVisitable {
     func accept<Visitor: ServiceVisitor>(_ visitor: inout Visitor) {
         visitor.visit(self)

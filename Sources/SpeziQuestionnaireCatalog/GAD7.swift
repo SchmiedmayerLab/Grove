@@ -9,6 +9,7 @@
 public import SpeziQuestionnaire
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Questionnaire {
     /// Generalized Anxiety Disorder 7 Questionnaire
     ///
@@ -67,6 +68,7 @@ extension Questionnaire {
     )
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension [Questionnaire.Task.Kind.ChoiceConfig.Option] {
     fileprivate static let gad7Options: Self = [
         .init(id: "0", title: "Not at all"),

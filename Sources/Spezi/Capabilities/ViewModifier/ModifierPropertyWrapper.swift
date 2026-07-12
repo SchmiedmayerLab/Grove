@@ -11,6 +11,7 @@ import SwiftUI
 
 
 /// Refer to the documentation of ``Module/Modifier``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @propertyWrapper
 public class _ModifierPropertyWrapper<Modifier: ViewModifier> {
     // swiftlint:disable:previous type_name
@@ -58,6 +59,7 @@ public class _ModifierPropertyWrapper<Modifier: ViewModifier> {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _ModifierPropertyWrapper: SpeziPropertyWrapper {
     func clear() {
         collected = false
@@ -70,6 +72,7 @@ extension _ModifierPropertyWrapper: SpeziPropertyWrapper {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Module {
     /// Provide a SwiftUI `ViewModifier` to modify the global view hierarchy.
     ///
@@ -101,6 +104,7 @@ extension Module {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _ModifierPropertyWrapper: ViewModifierProvider {
     var viewModifier: (any ViewModifier)? {
         collected = true

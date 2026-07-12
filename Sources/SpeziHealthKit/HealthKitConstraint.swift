@@ -41,6 +41,7 @@ public import Spezi
 /// ### Responding to Health Store Changes
 /// - ``handleNewSamples(_:ofType:)``
 /// - ``handleDeletedObjects(_:ofType:)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol HealthKitConstraint: Standard {
     /// Notifies the `Standard` about the addition of a batch of HealthKit `HKSample` samples.
     /// - parameter addedSamples: The `HKSample`s that were added to the HealthKit database.

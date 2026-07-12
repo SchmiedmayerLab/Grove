@@ -39,6 +39,7 @@ public import SwiftUI
 ///     )
 /// )
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct SignatureView: View {
     /// The ``SignatureView``'s footer configuration
     public struct Footer: Sendable {
@@ -165,12 +166,14 @@ public struct SignatureView: View {
 
 
 #if DEBUG && !os(macOS)
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview("Base Signature View") {
     @Previewable @State var signature = PKDrawing()
     @Previewable @State var isSigning = false
     SignatureView(signature: $signature, isSigning: $isSigning)
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview("Including PersonNameComponents") {
     @Previewable @State var signature = PKDrawing()
     @Previewable @State var isSigning = false
@@ -184,6 +187,7 @@ public struct SignatureView: View {
     )
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview("Including PersonNameComponents and Date") {
     @Previewable @Environment(\.calendar) var cal
     @Previewable @State var signature = PKDrawing()
@@ -200,6 +204,7 @@ public struct SignatureView: View {
     )
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview("Including PersonNameComponents and Date with different format") {
     @Previewable @Environment(\.calendar) var cal
     @Previewable @State var signature = PKDrawing()

@@ -11,6 +11,7 @@ import SpeziBluetoothServices
 
 
 /// A battery powered Bluetooth device.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol BatteryPoweredDevice: BluetoothDevice {
     /// The battery service of the peripheral.
     ///

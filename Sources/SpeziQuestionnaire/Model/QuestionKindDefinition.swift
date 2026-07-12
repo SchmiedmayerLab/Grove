@@ -30,6 +30,7 @@ public import SwiftUI
 ///
 /// ### Related Types
 /// - ``QuestionKindConfig``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol QuestionKindDefinition: Sendable, SendableMetatype {
     associatedtype Config: QuestionKindConfig = EmptyQuestionKindConfig
     associatedtype View: SwiftUI.View
@@ -63,6 +64,7 @@ public protocol QuestionKindDefinition: Sendable, SendableMetatype {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionKindDefinition {
     // swiftlint:disable:next missing_docs
     public static func evaluateResponseValueComparison(
@@ -86,6 +88,7 @@ extension QuestionKindDefinition {
 ///
 /// ### Supporting Types
 /// - ``EmptyQuestionKindConfig``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol QuestionKindConfig: Hashable, Sendable {
     /// Any follow-up tasks a task with this config will ask, in response to some specific event (e.g., a selection)
     var followUpTasks: [Questionnaire.Task] { get }
@@ -95,6 +98,7 @@ public protocol QuestionKindConfig: Hashable, Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionKindConfig {
     // swiftlint:disable missing_docs
     public var followUpTasks: [Questionnaire.Task] { [] }
@@ -106,6 +110,7 @@ extension QuestionKindConfig {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct EmptyQuestionKindConfig: QuestionKindConfig {
     public init() {}
 }

@@ -47,6 +47,7 @@ public typealias AccountServiceConfigurationStorage = SendableValueRepository<Ac
 /// ### Shared Repository
 /// - ``AccountServiceConfigurationStorageAnchor``
 /// - ``AccountServiceConfigurationStorage``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct AccountServiceConfiguration: Sendable {
     /// The underlying storage container you access to implement your own ``AccountServiceConfigurationKey``.
     public let storage: AccountServiceConfigurationStorage

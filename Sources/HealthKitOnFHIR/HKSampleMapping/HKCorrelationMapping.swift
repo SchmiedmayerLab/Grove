@@ -14,6 +14,7 @@ public struct HKCorrelationMapping: Decodable, Sendable {
     /// A default instance of an ``HKCorrelationMapping`` instance allowing developers to customize the ``HKCorrelationMapping``.
     ///
     /// The default values are loaded from the `HKSampleMapping.json` resource in the ``HealthKitOnFHIR`` Swift Package.
+    @available(iOS 18, macOS 15, watchOS 11, *)
     public static let `default` = HKSampleMapping.default.correlationMapping
     
     

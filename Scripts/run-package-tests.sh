@@ -20,7 +20,22 @@
 set -euxo pipefail
 cd "$(dirname "$0")/.."
 
-PACKAGES="FHIRModelsExtensions HealthKitOnFHIR ResearchKitOnFHIR Spezi SpeziAccessGuard SpeziAccount SpeziBluetooth SpeziChat SpeziConsent SpeziContact SpeziDevices SpeziFHIR SpeziFileFormats SpeziFirebase SpeziFoundation SpeziHealthKit SpeziLLM SpeziLicense SpeziLocation SpeziNetworking SpeziNotifications SpeziOnboarding SpeziQuestionnaire SpeziScheduler SpeziSensorKit SpeziSpeech SpeziStorage SpeziStudy SpeziViews XCTHealthKit XCTRuntimeAssertions XCTestExtensions"
+# The package's deployment floor is iOS 15 (so iOS-15 apps can depend on it), but the TEST targets
+# cannot compile at iOS 15: swift-testing's @Suite macro rejects an @available attribute, and the test
+# fixtures use newer APIs held as stored properties (which can't be gated). Tests only ever run on the
+# current-OS-wave simulators (OS 26), so we build them at that deployment target — every API is then
+# available, so no test needs an availability annotation. The library products' iOS-15 compilation is
+# verified by the regular (non-test) package build, not here. Each override only affects the matching
+# platform's build, so passing all of them to every invocation is safe.
+TESTING_FLOOR_DEPLOYMENT_TARGETS="IPHONEOS_DEPLOYMENT_TARGET=26.0 MACOSX_DEPLOYMENT_TARGET=26.0 WATCHOS_DEPLOYMENT_TARGET=26.0 TVOS_DEPLOYMENT_TARGET=26.0 XROS_DEPLOYMENT_TARGET=26.0"
+
+# The optional integrations (Textual, MLX, ResearchKit) are behind default-off package traits so that
+# an iOS-15 consumer's default graph stays lean. Tests exercise the FULL feature set, so enable all
+# traits for the test build (the manifest reads this env var; per-platform `.when(platforms:)`
+# conditions still keep watchOS-/macOS-incompatible deps out of those platforms' graphs).
+export SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS=1
+
+PACKAGES="FHIRModelsExtensions HealthKitOnFHIR ResearchKitOnFHIR Spezi SpeziAccessGuard SpeziAccount SpeziBluetooth SpeziChat SpeziConsent SpeziContact SpeziDevices SpeziFHIR SpeziFileFormats SpeziFirebase SpeziFoundation SpeziHealthKit SpeziLLM SpeziLicense SpeziLocation SpeziNetworking SpeziNotifications SpeziOnboarding SpeziQuestionnaire SpeziScheduler SpeziSensorKit SpeziSpeech SpeziStorage SpeziStudy SpeziViews ThreadLocal XCTHealthKit XCTRuntimeAssertions XCTestExtensions"
 
 # package -> the platforms it was tested on upstream (the union CI matrix)
 platforms_for() { case "$1" in
@@ -53,6 +68,7 @@ platforms_for() { case "$1" in
     SpeziStorage) echo "iOS macOS macCatalyst watchOS visionOS" ;;
     SpeziStudy) echo "iOS macOS macCatalyst watchOS visionOS" ;;
     SpeziViews) echo "iOS visionOS tvOS watchOS macOS" ;;
+    ThreadLocal) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
     XCTHealthKit) echo "iOS" ;;
     XCTRuntimeAssertions) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
     XCTestExtensions) echo "iOS watchOS visionOS macOS" ;;
@@ -89,7 +105,7 @@ run() { # <package> <platform> [mode: "ui"]
       # Requires the `firebase` CLI (firebase-tools) on the runner — as the upstream CI also relied on.
       local root; root="$(pwd)"
       ( cd "$uidir" \
-        && firebase emulators:exec "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -resultBundlePath '$root/$result' -derivedDataPath '$root/.derivedData' -skipMacroValidation -skipPackagePluginValidation" ) \
+        && firebase emulators:exec "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -resultBundlePath '$root/$result' -derivedDataPath '$root/.derivedData' -skipMacroValidation -skipPackagePluginValidation $TESTING_FLOOR_DEPLOYMENT_TARGETS" ) \
       | beautify
       return
     fi
@@ -102,13 +118,16 @@ run() { # <package> <platform> [mode: "ui"]
       -skipMacroValidation \
       -skipPackagePluginValidation \
       -derivedDataPath ".derivedData" \
+      $TESTING_FLOOR_DEPLOYMENT_TARGETS \
     | beautify
     return
   fi
   if [ "$2" = "Linux" ]; then
-    # Linux has no Xcode test plans, and SwiftPM builds ONE combined <Package>PackageTests.xctest
-    # per package (so a subset can't be run). Instead compile-check each of the package's test
-    # targets (scoped via --target) on GitHub-hosted Linux — verifies the package still builds there.
+    # Linux has no Xcode test plans, and `swift test` compiles the WHOLE monorepo package (every target
+    # AND every library product) before running — most of the monorepo is Apple-only and can't build on
+    # Linux, so a combined test build fails before any test runs. Actually RUNNING a single sub-package's
+    # tests on Linux needs more work (tracked separately); for now, compile-check each of the package's
+    # test targets (scoped via --target, which SwiftPM resolves natively) to verify they still build.
     local tts
     tts="$(python3 -c "import tomllib; print(' '.join(tomllib.load(open('packages.toml','rb'))['$1']['tests']))")"
     for tt in $tts; do
@@ -118,18 +137,51 @@ run() { # <package> <platform> [mode: "ui"]
     return
   fi
   echo "==> $1 on $2"
-  # Writes an .xcresult bundle that the `test` CI job uploads as an artifact on failure.
+  # Xcode 26 SIGABRTs (exit 134, DVTInvalidation "message sent to invalidated object") when a single
+  # `xcodebuild test` launches a SECOND .xctest bundle: in-checkout writes during the run (DerivedData,
+  # the .xcresult, and Xcode's own .swiftpm user-state/scheme files) make Xcode re-resolve the package
+  # graph mid-action, which invalidates the test-bundle blueprints; messaging the next bundle's blueprint
+  # then crashes. So we run EACH test target in its OWN invocation via -only-testing:, so only one bundle
+  # is ever launched per process (a single-target package is simply a one-iteration loop). The build is
+  # shared through the common -derivedDataPath, so later targets reuse the first's build, and the per-bundle
+  # .xcresults are collapsed into one <Package>-<Platform>-Tests.xcresult so the output matches a plain run.
+  # The test-target list is the curated mapping in packages.toml — the same source the xctestplans are
+  # generated from (and that the Linux path above uses) — not a re-parse of the generated test plan.
+  local targets rc=0
+  targets="$(python3 -c "import tomllib; print(' '.join(tomllib.load(open('packages.toml','rb'))['$1']['tests']))")"
   local result="${1}-${2}-Tests.xcresult"
+  local parts=()
+  for tt in $targets; do
+    echo "==> $1 on $2: test bundle $tt"
+    local part="${1}-${2}-${tt}.xcresult"
+    rm -rf "$part"
+    xcodebuild test \
+      -scheme Spezi-Tests \
+      -testPlan "$1" \
+      -only-testing:"$tt" \
+      -destination "$(dest "$2")" \
+      -resultBundlePath "$part" \
+      -skipMacroValidation \
+      -skipPackagePluginValidation \
+      -derivedDataPath ".derivedData" \
+      $TESTING_FLOOR_DEPLOYMENT_TARGETS \
+    | beautify || rc=1
+    if [ -d "$part" ]; then parts+=("$part"); fi
+  done
+  # Collapse the per-bundle .xcresults into the single <Package>-<Platform>-Tests.xcresult the CI uploads,
+  # so the artifact is shaped identically regardless of how many bundles ran. (merge needs >=2 inputs; a
+  # single bundle is just renamed.)
   rm -rf "$result"
-  xcodebuild test \
-    -scheme Spezi-Tests \
-    -testPlan "$1" \
-    -destination "$(dest "$2")" \
-    -resultBundlePath "$result" \
-    -skipMacroValidation \
-    -skipPackagePluginValidation \
-    -derivedDataPath ".derivedData" \
-  | beautify
+  if [ "${#parts[@]}" -ge 2 ]; then
+    if xcrun xcresulttool merge "${parts[@]}" --output-path "$result"; then
+      rm -rf "${parts[@]}"
+    else
+      echo "::warning::xcresulttool merge failed for $1/$2; leaving per-bundle .xcresults in place"
+    fi
+  elif [ "${#parts[@]}" -eq 1 ]; then
+    mv "${parts[0]}" "$result"
+  fi
+  return "$rc"
 }
 
 case "${1:-}" in
@@ -138,7 +190,7 @@ case "${1:-}" in
   --all-ios)
     echo "==> entire package on iOS Simulator"
     xcodebuild test -scheme Spezi-Package -destination "$(dest iOS)" \
-      -skipMacroValidation -skipPackagePluginValidation | beautify ;;
+      -skipMacroValidation -skipPackagePluginValidation $TESTING_FLOOR_DEPLOYMENT_TARGETS | beautify ;;
   "")
     echo "usage: $0 <Package> [Platform] [ui] | --all-ios | --list" >&2; exit 1 ;;
   *)

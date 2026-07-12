@@ -10,6 +10,7 @@ import SwiftUI
 
 
 /// The underlying `ViewModifier` of `View/disabled(if:)`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct LLMChatViewDisabledModifier<L: LLMSession>: ViewModifier {
     let llm: L?
     
@@ -21,6 +22,7 @@ private struct LLMChatViewDisabledModifier<L: LLMSession>: ViewModifier {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     /// Disables the content block this modifier is attached to.
     ///

@@ -13,6 +13,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 @Observable
 class AccountOverviewFormViewModel {

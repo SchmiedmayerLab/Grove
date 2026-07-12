@@ -74,6 +74,7 @@ struct ChoiceRow<AccessoryIfSelected: View>: View {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct SimpleChoiceRow: View {
     private let id: String
     private let title: String

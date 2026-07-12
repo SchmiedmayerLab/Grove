@@ -22,6 +22,7 @@ import SwiftUI
 /// using ``HealthKit-swift.class/addHealthDataCollector(_:)-1sq79`` or ``HealthKit-swift.class/addHealthDataCollector(_:)-10bp6``.
 /// The ``HealthKit-swift.class`` module will establish a strong reference to the collector,
 /// which will exist for the entire lifetime of the application.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol HealthDataCollector: AnyObject {
     associatedtype Sample: _HKSampleWithSampleType
     
@@ -50,6 +51,7 @@ public protocol HealthDataCollector: AnyObject {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthDataCollector {
     var typeErasedSampleType: any AnySampleType {
         sampleType

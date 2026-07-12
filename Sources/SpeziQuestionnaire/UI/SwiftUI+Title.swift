@@ -20,6 +20,7 @@ struct ViewTitleConfig: Sendable {
         self.subtitle = subtitle.map { Text($0) }
     }
     
+    @available(iOS 18, macOS 15, watchOS 11, *)
     init(title: LocalizedStringResource, subtitle: LocalizedStringResource? = nil) {
         self.title = Text(title)
         self.subtitle = subtitle.map { Text($0) }

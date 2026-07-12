@@ -10,6 +10,7 @@ import SwiftUI
 
 
 /// Allows the definition of an enum of different test cases in your test application that are associated with SwiftUI views
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct TestAppTestsView<Tests: TestAppTests>: View {
     private let showCloseButton: Bool
 

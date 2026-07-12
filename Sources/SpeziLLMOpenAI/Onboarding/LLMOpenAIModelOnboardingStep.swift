@@ -12,6 +12,7 @@ import SwiftUI
 
 
 /// View to display an onboarding step for the user to select an OpenAI-like model.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LLMOpenAILikeModelOnboardingStep<PlatformDefinition: LLMOpenAILikePlatformDefinition>: View {
     @Environment(\.colorScheme) private var colorScheme
     
@@ -91,6 +92,7 @@ public struct LLMOpenAILikeModelOnboardingStep<PlatformDefinition: LLMOpenAILike
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMOpenAILikeModelOnboardingStep {
     /// - Parameters:
     ///   - actionText: Localized text that should appear on the action button.

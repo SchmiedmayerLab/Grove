@@ -22,6 +22,7 @@ extension FHIRExtensionUrls {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKObject> {
     /// A FHIR Extension Builder that writes encoded metadata of a HealthKit sample into a FHIR `Observation` created from the sample.
     public static var metadata: FHIRExtensionBuilder<HKObject> {
@@ -156,6 +157,7 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKObje
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKQuantitySampleMapping {
     private static let healthKitCodingSystemUrl = URL(string: "http://developer.apple.com/documentation/healthkit")!
     private static let unitsOfMeasureCodingSystemUrl = URL(string: "http://unitsofmeasure.org")!

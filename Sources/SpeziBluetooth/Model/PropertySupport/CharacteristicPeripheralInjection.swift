@@ -22,6 +22,7 @@ private protocol PrimitiveDecodableCharacteristic {
 
 
 /// Captures and synchronizes access to the state of a ``Characteristic`` property wrapper.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @SpeziBluetooth
 class CharacteristicPeripheralInjection<Value: Sendable>: Sendable {
     private let bluetooth: Bluetooth
@@ -185,6 +186,7 @@ class CharacteristicPeripheralInjection<Value: Sendable>: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CharacteristicPeripheralInjection: DecodableCharacteristic where Value: ByteDecodable {
     func handleUpdateValueAssumingIsolation(_ data: Data?) {
         if let data {
@@ -211,6 +213,7 @@ extension CharacteristicPeripheralInjection: DecodableCharacteristic where Value
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CharacteristicPeripheralInjection: PrimitiveDecodableCharacteristic where Value: PrimitiveByteDecodable {
     nonisolated fileprivate func decodePrimitiveValue<ValueType>(from data: Data, as value: ValueType.Type) -> ValueType? {
         guard let value = Value(data: data, endianness: .little) as? ValueType else {
@@ -221,6 +224,7 @@ extension CharacteristicPeripheralInjection: PrimitiveDecodableCharacteristic wh
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CharacteristicPeripheralInjection where Value: ByteDecodable {
     fileprivate func decodeValue(from data: Data) -> Value? {
         if let injection = self as? (any PrimitiveDecodableCharacteristic) {
@@ -231,6 +235,7 @@ extension CharacteristicPeripheralInjection where Value: ByteDecodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CharacteristicPeripheralInjection where Value: ByteEncodable {
     fileprivate func encodeValue(_ value: Value) -> Data {
         if let primitiveValue = value as? PrimitiveByteEncodable {
@@ -243,6 +248,7 @@ extension CharacteristicPeripheralInjection where Value: ByteEncodable {
 
 // MARK: - Accessors Support
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CharacteristicPeripheralInjection where Value: ByteDecodable {
     func read() async throws -> Value {
         guard let characteristic else {
@@ -260,6 +266,7 @@ extension CharacteristicPeripheralInjection where Value: ByteDecodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CharacteristicPeripheralInjection where Value: ByteEncodable {
     func write(_ value: Value) async throws {
         guard let characteristic else {
@@ -284,6 +291,7 @@ extension CharacteristicPeripheralInjection where Value: ByteEncodable {
 
 // MARK: - Control Point Support
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CharacteristicPeripheralInjection where Value: ControlPointCharacteristic {
     func sendRequest(_ value: Value, timeout: Duration = .seconds(20)) async throws -> Value {
         guard let characteristic else {
@@ -344,6 +352,7 @@ extension CharacteristicPeripheralInjection where Value: ControlPointCharacteris
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CharacteristicPeripheralInjection {
     fileprivate func fullFillControlPointRequest(_ value: Value) {
         if let controlPointTransaction {

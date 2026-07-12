@@ -10,6 +10,7 @@ import SpeziValidation
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct PasswordValidationRuleFooter: View {
     private let configuration: AccountServiceConfiguration
 
@@ -35,6 +36,7 @@ struct PasswordValidationRuleFooter: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     PasswordValidationRuleFooter(configuration: AccountServiceConfiguration(supportedKeys: .arbitrary) {
         FieldValidationRules(for: \.password, rules: .minimalPassword, .strongPassword) // doesn't make sense, but useful for preview

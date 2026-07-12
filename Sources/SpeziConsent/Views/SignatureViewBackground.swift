@@ -10,6 +10,7 @@ import SwiftUI
 
 
 /// The `SignatureViewBackground` provides the background view for the ``SignatureView`` including the name and the signature line.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct SignatureViewBackground: View {
     private let footer: SignatureView.Footer
     private let lineOffset: CGFloat
@@ -94,6 +95,7 @@ struct SignatureViewBackground: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview("No signature date") {
     let name = PersonNameComponents(givenName: "Leland", familyName: "Stanford")
     ZStack(alignment: .bottomLeading) {
@@ -104,6 +106,7 @@ struct SignatureViewBackground: View {
     .frame(height: 120)
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview("Including signature date") {
     let name = PersonNameComponents(givenName: "Leland", familyName: "Stanford")
     ZStack(alignment: .bottomLeading) {

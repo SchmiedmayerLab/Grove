@@ -9,6 +9,7 @@
 // swiftlint:disable file_types_order file_length
 
 private import Algorithms
+private import FHIRModelsExtensions
 public import Foundation
 public import ModelsR4
 private import SpeziFoundation
@@ -17,9 +18,11 @@ private import struct SwiftUI.Color
 private import UniformTypeIdentifiers
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private typealias FHIRConversionError = SpeziQuestionnaire.Questionnaire.FHIRConversionError
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SpeziQuestionnaire.Questionnaire {
     /// Controls conversion behaviour when creating a Spezi `Questionnaire` from a FHIR R4 `Questionnaire`
     public struct FHIRConversionOptions: Sendable {
@@ -82,6 +85,7 @@ extension SpeziQuestionnaire.Questionnaire {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct ConversionContext {
     let options: SpeziQuestionnaire.Questionnaire.FHIRConversionOptions
     /// The FHIR questionnaire being converted
@@ -91,6 +95,7 @@ private struct ConversionContext {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ModelsR4.Questionnaire {
     fileprivate func toSections(
         using options: SpeziQuestionnaire.Questionnaire.FHIRConversionOptions
@@ -151,6 +156,7 @@ extension ModelsR4.Questionnaire {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ModelsR4.QuestionnaireItem {
     /// - invariant: the item must be a top-level `group` item.
     fileprivate func toSection(
@@ -461,6 +467,7 @@ extension ModelsR4.Extension.ValueX {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ModelsR4.QuestionnaireItem {
     fileprivate func getLinkId() throws(FHIRConversionError) -> String {
         guard let linkId = self.linkId.value?.string else {
@@ -471,6 +478,7 @@ extension ModelsR4.QuestionnaireItem {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SpeziQuestionnaire.Questionnaire.Condition {
     fileprivate init(
         _ item: ModelsR4.QuestionnaireItem,
@@ -553,6 +561,7 @@ extension SpeziQuestionnaire.Questionnaire.Condition {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ModelsR4.QuestionnaireItemEnableWhen.AnswerX {
     fileprivate func toConditionValue() throws(FHIRConversionError) -> SpeziQuestionnaire.Questionnaire.Condition.Value {
         func unwrap<T>(_ value: T?) throws(FHIRConversionError) -> T {

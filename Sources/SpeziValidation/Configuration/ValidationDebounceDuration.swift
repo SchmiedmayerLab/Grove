@@ -10,11 +10,13 @@ import SwiftUI
 
 
 /// The debounce duration for Validation Engine
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct ValidationDebounceDurationKey: EnvironmentKey {
     static let defaultValue: Duration = .seconds(0.5)
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension EnvironmentValues {
     /// The configurable debounce duration for input submission.
     ///

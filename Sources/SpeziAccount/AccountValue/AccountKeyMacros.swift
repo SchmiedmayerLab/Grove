@@ -11,6 +11,7 @@ import SwiftUI
 
 
 /// A DataEntry and DataDisplay view that is empty and accepts never values.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct _EmptyDataView: DataDisplayView, DataEntryView { // swiftlint:disable:this type_name
     public typealias Value = Never
 
@@ -47,6 +48,7 @@ public struct _EmptyDataView: DataDisplayView, DataEntryView { // swiftlint:disa
 ///   - initial: The initial value used when entering
 ///   - displayView: A customized ``DataDisplayView`` that is used to display existing values of this account key.
 ///   - entryView: A customized ``DataEntryView`` that is used to enter new or edit existing values of this account key.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @attached(accessor, names: named(get), named(set))
 @attached(peer, names: prefixed(__Key_))
 public macro AccountKey<Value, DataDisplay: DataDisplayView, DataEntry: DataEntryView>(
@@ -84,6 +86,7 @@ public macro AccountKey<Value, DataDisplay: DataDisplayView, DataEntry: DataEntr
 ///   - value: The value type. This type must be equal to the type annotation of the property.
 ///   - displayView: A customized ``DataDisplayView`` that is used to display existing values of this account key.
 ///   - entryView: A customized ``DataEntryView`` that is used to enter new or edit existing values of this a
+@available(iOS 18, macOS 15, watchOS 11, *)
 @attached(accessor, names: named(get), named(set))
 @attached(peer, names: prefixed(__Key_))
 public macro AccountKey<Value: StringProtocol, DataDisplay: DataDisplayView, DataEntry: DataEntryView>(
@@ -120,6 +123,7 @@ public macro AccountKey<Value: StringProtocol, DataDisplay: DataDisplayView, Dat
 ///   - value: The value type. This type must be equal to the type annotation of the property.
 ///   - displayView: A customized ``DataDisplayView`` that is used to display existing values of this account key.
 ///   - entryView: A customized ``DataEntryView`` that is used to enter new or edit existing values of this a
+@available(iOS 18, macOS 15, watchOS 11, *)
 @attached(accessor, names: named(get), named(set))
 @attached(peer, names: prefixed(__Key_))
 public macro AccountKey<DataDisplay: DataDisplayView, DataEntry: DataEntryView>(
@@ -156,6 +160,7 @@ public macro AccountKey<DataDisplay: DataDisplayView, DataEntry: DataEntryView>(
 ///   - value: The value type. This type must be equal to the type annotation of the property.
 ///   - displayView: A customized ``DataDisplayView`` that is used to display existing values of this account key.
 ///   - entryView: A customized ``DataEntryView`` that is used to enter new or edit existing values of this a
+@available(iOS 18, macOS 15, watchOS 11, *)
 @attached(accessor, names: named(get), named(set))
 @attached(peer, names: prefixed(__Key_))
 public macro AccountKey<Value: AdditiveArithmetic, DataDisplay: DataDisplayView, DataEntry: DataEntryView>(
@@ -192,6 +197,7 @@ public macro AccountKey<Value: AdditiveArithmetic, DataDisplay: DataDisplayView,
 ///   - value: The value type. This type must be equal to the type annotation of the property.
 ///   - displayView: A customized ``DataDisplayView`` that is used to display existing values of this account key.
 ///   - entryView: A customized ``DataEntryView`` that is used to enter new or edit existing values of this a
+@available(iOS 18, macOS 15, watchOS 11, *)
 @attached(accessor, names: named(get), named(set))
 @attached(peer, names: prefixed(__Key_))
 public macro AccountKey<Value: ExpressibleByArrayLiteral, DataDisplay: DataDisplayView, DataEntry: DataEntryView>(

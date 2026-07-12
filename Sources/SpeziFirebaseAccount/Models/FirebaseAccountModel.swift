@@ -11,6 +11,7 @@ import Observation
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 @MainActor
 class FirebaseAccountModel {
@@ -36,4 +37,5 @@ class FirebaseAccountModel {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FirebaseAccountModel: Sendable {}

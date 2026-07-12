@@ -15,6 +15,7 @@ import SwiftUI
 
 
 /// Show the device details of a paired device.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct DeviceDetailsView: View {
     private enum Event {
         case forgetDevice
@@ -178,6 +179,7 @@ public struct DeviceDetailsView: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     NavigationStack {
         DeviceDetailsView(PairedDeviceInfo(
@@ -194,6 +196,7 @@ public struct DeviceDetailsView: View {
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     NavigationStack {
         DeviceDetailsView(PairedDeviceInfo(

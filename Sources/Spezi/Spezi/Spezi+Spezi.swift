@@ -7,6 +7,7 @@
 //
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Spezi {
     /// Access the global Spezi instance.
     ///

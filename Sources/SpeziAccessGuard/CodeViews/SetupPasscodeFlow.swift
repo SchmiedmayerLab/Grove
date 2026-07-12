@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct SetupPasscodeFlow: View {
     private enum Step: Hashable {
         case setCode

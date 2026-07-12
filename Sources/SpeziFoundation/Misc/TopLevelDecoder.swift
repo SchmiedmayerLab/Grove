@@ -51,5 +51,7 @@ public protocol TopLevelDecoder<Input> {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension JSONDecoder: TopLevelDecoder {}
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PropertyListDecoder: TopLevelDecoder {}

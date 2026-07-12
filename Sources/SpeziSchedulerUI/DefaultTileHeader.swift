@@ -13,6 +13,7 @@ import SwiftUI
 
 
 /// A default design for a tile that displays information about an event.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct DefaultTileHeader: View {
     @Environment(\.calendar)
     private var calendar
@@ -133,6 +134,7 @@ public struct DefaultTileHeader: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview(traits: .schedulerSampleData) {
     @EventQuery(in: .sampleEventRange)
     @Previewable var events
@@ -146,6 +148,7 @@ public struct DefaultTileHeader: View {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview(traits: .schedulerSampleData) {
     @EventQuery(in: .sampleEventRange)
     @Previewable var events
@@ -159,6 +162,7 @@ public struct DefaultTileHeader: View {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview(traits: .schedulerSampleData) {
     @EventQuery(in: .sampleEventRange)
     @Previewable var events

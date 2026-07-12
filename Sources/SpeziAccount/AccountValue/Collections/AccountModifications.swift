@@ -8,6 +8,7 @@
 
 
 /// A container that bundles added or modified ``AccountKey``s and removed ``AccountKey``s.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct AccountModifications {
     /// The set of modified (or added) ``AccountKey``s.
     public private(set) var modifiedDetails: AccountDetails
@@ -56,4 +57,5 @@ public struct AccountModifications {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountModifications: Sendable {}

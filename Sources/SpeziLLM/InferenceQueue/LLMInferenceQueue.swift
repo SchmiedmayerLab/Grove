@@ -82,6 +82,7 @@ package final class LLMInferenceQueue<Element>: Sendable {
     ///
     /// The task queue, and by extension this function, can only be run once. If the task queue is already
     /// running or has already been closed then a `LLMInferenceQueue/QueueError` is thrown.
+    @available(iOS 18, macOS 15, watchOS 11, *)
     package func runQueue() async throws {
         let stream = try self.stateLock.withWriteLock {
             switch self.state {

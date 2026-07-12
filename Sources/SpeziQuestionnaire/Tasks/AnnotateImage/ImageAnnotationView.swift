@@ -13,6 +13,7 @@ import SwiftUI
 
 
 /// View that overlays an editable `PKDrawing` onto a `UIImage`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct ImageAnnotationView: View {
     private let image: UIImage
     private let imageSizeInPixels: CGSize

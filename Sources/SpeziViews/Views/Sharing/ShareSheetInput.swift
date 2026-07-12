@@ -96,6 +96,7 @@ extension ShareSheetInput {
     
     #if !os(watchOS)
     /// Creates a new `ShareSheetInput`, for sharing a `PDFDocument`
+    @available(iOS 18, macOS 15, watchOS 11, *)
     public init(_ input: PDFDocument) {
         self.init(ShareableRepresentation(pdf: input))
     }

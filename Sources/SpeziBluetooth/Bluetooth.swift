@@ -230,6 +230,7 @@ import Spezi
 /// ### Manually Manage Powered State
 /// - ``powerOn()``
 /// - ``powerOff()``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public final class Bluetooth: Module, EnvironmentAccessible, @unchecked Sendable {
     @Observable
     class Storage {
@@ -607,6 +608,7 @@ public final class Bluetooth: Module, EnvironmentAccessible, @unchecked Sendable
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_spi(APISupport)
 extension Bluetooth: BluetoothScanner {
     /// Support for the auto connect modifier.
@@ -639,6 +641,7 @@ extension Bluetooth: BluetoothScanner {
 
 // MARK: - Device Handling
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Bluetooth {
     @SpeziBluetooth
     func prepareDevice<Device: BluetoothDevice>(id uuid: UUID, _ device: Device.Type, peripheral: BluetoothPeripheral) -> Device {
@@ -692,6 +695,7 @@ extension Bluetooth {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothDevice {
     fileprivate var weaklyReference: AnyWeakDeviceReference {
         WeakReference(self)

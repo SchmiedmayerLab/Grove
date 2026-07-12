@@ -19,6 +19,7 @@ import SwiftUI
 ///   - standard: The Spezi [`Standard`](../Spezi/Spezi.docc/Standard.md) to initialize.
 ///   - simulateLifecycle: Options to simulate behavior for [`LifecycleHandler`](../Spezi/Spezi.docc/Spezi.md)s.
 ///   - modules: The collection of Modules that are configured.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 public func withDependencyResolution<S: Standard>(
     standard: S,
@@ -48,6 +49,7 @@ public func withDependencyResolution<S: Standard>(
 /// - Parameters:
 ///   - simulateLifecycle: Options to simulate behavior for [`LifecycleHandler`](../Spezi/Spezi.docc/Spezi.md)s.
 ///   - modules: The collection of Modules that are configured.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 public func withDependencyResolution(
     simulateLifecycle: LifecycleSimulationOptions = .disabled,
@@ -62,6 +64,7 @@ public func withDependencyResolution(
 ///
 /// - Parameters:
 ///   - modules: The collection of Modules that are configured.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 public func withDependencyResolution(
     @ModuleBuilder _ modules: () -> ModuleCollection

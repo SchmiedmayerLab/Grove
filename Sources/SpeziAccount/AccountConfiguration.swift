@@ -19,6 +19,7 @@ import Spezi
 /// using the `@Dependency` property wrapper from other Spezi `Module`s.
 ///
 /// - Note: For more information on how to provide an ``AccountService`` refer to the <doc:Creating-your-own-Account-Service> article.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public final class AccountConfiguration {
     @Application(\.logger)
     private var logger
@@ -224,4 +225,5 @@ public final class AccountConfiguration {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountConfiguration: Module {}

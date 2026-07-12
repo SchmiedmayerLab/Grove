@@ -12,6 +12,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 struct SingleEditView<Key: AccountKey>: View {
     private let model: AccountOverviewFormViewModel
@@ -96,6 +97,7 @@ struct SingleEditView<Key: AccountKey>: View {
 }
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     NavigationStack {
         AccountDetailsReader { account, details in

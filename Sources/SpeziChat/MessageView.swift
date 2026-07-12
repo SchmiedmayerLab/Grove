@@ -7,7 +7,9 @@
 //
 
 import SwiftUI
+#if Textual
 import Textual
+#endif
 
 
 /// A reusable SwiftUI `View` to display the contents of a ``ChatEntity`` within a typical chat message bubble. This bubble is properly aligned according to the associated ``ChatEntity/Role``.
@@ -28,6 +30,7 @@ import Textual
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct MessageView: View {
     /// Indicates which types of ``ChatEntity/Role-swift.enum/hidden(type:)`` message roles should be hidden and not visualized.
     ///
@@ -75,9 +78,11 @@ public struct MessageView: View {
                     if isToolInteraction {
                         ToolInteractionView(entity: chat)
                     } else {
+                        #if Textual
                         StructuredText(markdown: chat.content)
                             .textual.structuredTextStyle(.gitHub)
                             .chatMessageStyle(alignment: chat.alignment)
+                        #endif
                     }
                 }
                 if chat.alignment == .leading {
@@ -99,6 +104,7 @@ public struct MessageView: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     ScrollView {
         VStack {

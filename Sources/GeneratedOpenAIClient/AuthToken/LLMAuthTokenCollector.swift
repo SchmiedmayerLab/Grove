@@ -6,15 +6,17 @@
 // SPDX-License-Identifier: MIT
 //
 
+package import Foundation
 import Spezi
-import SpeziKeychainStorage
+package import SpeziKeychainStorage
 import SpeziOnboarding
-import SwiftUI
+package import SwiftUI
 
 
 /// `View` for the user to enter an auth token for remote LLM inference.
 ///
 /// The displayed text is fully configurable via init parameters using `LocalizedStringResource`, with sensible fallback defaults.
+@available(iOS 18, macOS 15, watchOS 11, *)
 package struct LLMAuthTokenCollector: View {
     package struct CredentialsConfig: Sendable {
         public let tag: CredentialsTag
@@ -128,6 +130,7 @@ package struct LLMAuthTokenCollector: View {
 }
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     LLMAuthTokenCollector(
         credentialsConfig: .init(

@@ -73,6 +73,7 @@ extension CredentialsTag {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RemoteLLMInferenceAuthToken {
     /// Configures an auth token that uses the platform's default username and service identifier.
     public static func keychain<D>(for platform: LLMOpenAILikePlatform<D>.Type) -> Self {

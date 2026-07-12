@@ -11,6 +11,7 @@ import OSLog
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct FirebaseAccountModifier: ViewModifier {
     @Environment(\.authorizationController)
     private var authorizationController

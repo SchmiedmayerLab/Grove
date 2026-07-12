@@ -24,6 +24,7 @@ struct DiagnosticMessage: ExpressibleByStringLiteral, ExpressibleByStringInterpo
         message = value
     }
     
+    @available(iOS 18, macOS 15, watchOS 11, *)
     init(_ title: String, @ArrayBuilder<Item> items: () -> [Item]) {
         message = {
             let items = items().compactMap { item -> (key: String, value: String)? in
@@ -60,6 +61,7 @@ extension DiagnosticMessage {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private func desc(_ value: Any?) -> String? {
     switch value {
     case nil:

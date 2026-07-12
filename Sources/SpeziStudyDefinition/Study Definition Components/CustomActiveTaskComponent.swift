@@ -10,6 +10,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyDefinition {
     /// Study Component which prompts the user to perform a custom active task
     public struct CustomActiveTaskComponent: Identifiable, StudyDefinitionElement {
@@ -26,6 +27,7 @@ extension StudyDefinition {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyDefinition.CustomActiveTaskComponent {
     public struct ActiveTask: StudyDefinitionElement {
         public let identifier: String

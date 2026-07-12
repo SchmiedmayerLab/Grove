@@ -11,6 +11,7 @@ import SpeziBluetooth
 import SpeziFoundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 final class DiscoveredDevice: Sendable {
     nonisolated private static let logger = Logger(subsystem: "edu.stanford.spezi.SpeziDevices", category: "DiscoveredDevice")
 

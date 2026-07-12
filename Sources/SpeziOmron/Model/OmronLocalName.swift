@@ -84,6 +84,7 @@ public struct OmronLocalName {
 
     /// Initialize the local name from the raw value string.
     /// - Parameter rawValue: The local name raw value.
+    @available(iOS 18, macOS 15, watchOS 11, *)
     public init?(rawValue: String) {
         let pattern = Regex {
             TryCapture {
@@ -126,4 +127,5 @@ extension OmronLocalName.ModelIdentifier: Sendable, Hashable {}
 extension OmronLocalName.MacAddress: Sendable, Hashable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronLocalName: RawRepresentable, Sendable, Hashable {}

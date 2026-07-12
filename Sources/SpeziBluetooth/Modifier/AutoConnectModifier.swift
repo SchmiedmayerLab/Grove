@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     /// Scan for nearby Bluetooth devices and auto connect.
     ///

@@ -65,6 +65,7 @@ import SpeziLLM
 /// - Important: For development purposes, one is able to configure the fog node in the development mode, meaning no TLS connection (resulting in no need for custom certificates). See the `FogNode/README.md` for more details regarding server-side (so fog node) instructions.
 /// On the client-side within Spezi, one has to pass either ``LLMFogPlatformConfiguration/ConnectionType-swift.enum/http``(as shown above) or ``LLMFogPlatformConfiguration/ConnectionType-swift.enum/https(caCertificate:)`` with specifying the custom CA cert.
 /// If used in development mode, no custom CA certificate is required, ensuring a smooth and straightforward development process.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public final class LLMFogPlatform: LLMPlatform {
     /// A Swift Logger that logs important information from the ``LLMFogPlatform``.
     static let logger = Logger(subsystem: "edu.stanford.spezi", category: "SpeziLLMFog")
@@ -116,4 +117,5 @@ public final class LLMFogPlatform: LLMPlatform {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMFogPlatform: @unchecked Sendable {} // unchecked because of the `Dependency` property wrapper storage

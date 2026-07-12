@@ -13,6 +13,7 @@ import SpeziLLM
 import SpeziLLMOpenAI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 actor LLMOpenAIRealtimeConnection {
     private typealias FunctionCallArgs = Components.Schemas.RealtimeServerEventResponseFunctionCallArgumentsDone
     private typealias RealtimeErrorEvent = Components.Schemas.RealtimeServerEventError

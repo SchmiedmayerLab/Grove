@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct SignupProviderComplianceKey: PreferenceKey {
     struct Entry: Equatable {
         let date: Date
@@ -50,6 +51,7 @@ private struct SignupProviderComplianceKey: PreferenceKey {
 /// Use the ``SwiftUICore/View/reportSignupProviderCompliance(_:)`` to set the compliance for your custom signup provider, if necessary.
 ///
 /// - Note: The compliance preference is automatically set when using the ``SignupForm`` or the ``SignInWithAppleButton``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct SignupProviderCompliance {
     enum VisualizedAccountKeys: Sendable {
         case all
@@ -62,6 +64,7 @@ public struct SignupProviderCompliance {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SignupProviderCompliance {
     /// The signup provider is compliant.
     ///
@@ -96,6 +99,7 @@ extension SignupProviderCompliance {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SignupProviderCompliance.VisualizedAccountKeys: Equatable {
     static func == (lhs: Self, rhs: Self) -> Bool {
         switch (lhs, rhs) {
@@ -110,9 +114,11 @@ extension SignupProviderCompliance.VisualizedAccountKeys: Equatable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SignupProviderCompliance: Sendable, Equatable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     /// Informs the parent account setup view about compliance of the signup provider.
     ///

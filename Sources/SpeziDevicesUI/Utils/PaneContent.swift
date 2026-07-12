@@ -11,6 +11,7 @@ import SwiftUI
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct SheetPreview<Content: View>: View {
     private let content: Content
 
@@ -37,6 +38,7 @@ struct SheetPreview<Content: View>: View {
 #endif
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct PaneContent<Title: View, Subtitle: View, Content: View, Action: View>: View {
     private let title: Title
     private let subtitle: Subtitle?
@@ -106,6 +108,7 @@ struct PaneContent<Title: View, Subtitle: View, Content: View, Action: View>: Vi
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     SheetPreview {
         PaneContent(title: Text(verbatim: "The Title"), subtitle: Text(verbatim: "The Subtitle")) {

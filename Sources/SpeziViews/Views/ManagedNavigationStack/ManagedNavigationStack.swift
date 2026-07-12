@@ -112,6 +112,7 @@ import SwiftUI
 /// ### SwiftUI Environment Values
 /// - ``SwiftUICore/EnvironmentValues/isInManagedNavigationStack``
 /// - ``SwiftUICore/EnvironmentValues/isFirstInManagedNavigationStack``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct ManagedNavigationStack: View {
     static var logger: Logger { Logger(subsystem: "edu.stanford.spezi.SpeziViews", category: "ManagedNavigationStack") }
     
@@ -195,6 +196,7 @@ extension EnvironmentValues {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     @Previewable @State var path = ManagedNavigationStack.Path()
     

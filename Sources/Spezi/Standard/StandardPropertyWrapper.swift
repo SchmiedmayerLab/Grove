@@ -68,6 +68,7 @@ public class _StandardPropertyWrapper<Constraint> {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _StandardPropertyWrapper: SpeziPropertyWrapper {
     func inject(spezi: Spezi) throws(SpeziPropertyError) {
         switch load(spezi.standard) {

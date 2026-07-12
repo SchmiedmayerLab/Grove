@@ -7,6 +7,7 @@
 //
 
 import Foundation
+#if MLX
 import MLX
 import Spezi
 import SpeziFoundation
@@ -40,6 +41,7 @@ import OSLog
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public final class LLMLocalPlatform: LLMPlatform, DefaultInitializable {
     /// Configuration of the platform.
     public let configuration: LLMLocalPlatformConfiguration
@@ -110,3 +112,4 @@ public final class LLMLocalPlatform: LLMPlatform, DefaultInitializable {
         self.queue.shutdown()   // Safeguard shutdown of queue (should happen upon `ServiceModule/run() cancellation)
     }
 }
+#endif

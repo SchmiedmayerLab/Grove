@@ -9,6 +9,7 @@
 import HealthKit
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKSample {
     /// Gets the `TimeZone` from the sample's metadata if available
     /// - Returns: A `TimeZone` if the metadata contains a valid HKMetadataKeyTimeZone value, otherwise nil

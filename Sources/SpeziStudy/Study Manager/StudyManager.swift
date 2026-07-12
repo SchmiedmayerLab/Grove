@@ -49,6 +49,7 @@ import class UIKit.UIApplication
 ///
 /// ### Instance Properties
 /// - ``preferredLocale``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 public final class StudyManager: Module, EnvironmentAccessible, Sendable {
     /// How the ``StudyManager`` should persist its data.
@@ -224,6 +225,7 @@ public final class StudyManager: Module, EnvironmentAccessible, Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyManager {
     private struct MigrationError: Error {
         let message: String
@@ -392,6 +394,7 @@ extension StudyManager {
 
 // MARK: Study Participation and Lifecycle Management
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyManager {
     public enum StudyEnrollmentError: Error, LocalizedError {
         /// The user tried to enroll into a study with revision `X`, but they are already enrolled in revision `Y > X`.
@@ -717,6 +720,7 @@ extension StudyManager {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyManager {
     private struct StudyCollectedSampleTypes {
         var required: [any AnySampleType] = []
@@ -798,6 +802,7 @@ extension StudyManager {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyManager {
     private func handleLocaleUpdate() {
         try? registerStudyTasksWithScheduler(for: studyEnrollments)
@@ -805,6 +810,7 @@ extension StudyManager {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyManager {
     /// Informs the Study Manager about current study definitions.
     ///
@@ -827,6 +833,7 @@ extension StudyManager {
 
 // MARK: Event-Based Scheduling
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyManager {
     private func handleStudyLifecycleEvent(_ event: StudyLifecycleEvent, for studyBundle: StudyBundle, at date: Date) {
         logger.notice(

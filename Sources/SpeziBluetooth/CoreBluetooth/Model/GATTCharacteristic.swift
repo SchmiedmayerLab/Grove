@@ -22,6 +22,7 @@ struct CharacteristicAccessorCapture: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct GATTCharacteristicCapture: Sendable {
     let isNotifying: Bool
     let value: Data?
@@ -54,6 +55,7 @@ struct GATTCharacteristicCapture: Sendable {
 /// - ``properties``
 /// - ``descriptors``
 /// - ``service``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class GATTCharacteristic {
     let underlyingCharacteristic: CBCharacteristic
@@ -134,12 +136,15 @@ public final class GATTCharacteristic {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension GATTCharacteristic {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension GATTCharacteristic: Identifiable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension GATTCharacteristic: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
         "Characteristic(id: \(id), properties: \(properties), \(value.map { "value: \($0), " } ?? "")isNotifying, \(isNotifying))"
@@ -151,6 +156,7 @@ extension GATTCharacteristic: CustomStringConvertible, CustomDebugStringConverti
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension GATTCharacteristic: Hashable {
     public static func == (lhs: GATTCharacteristic, rhs: GATTCharacteristic) -> Bool {
         lhs.underlyingCharacteristic == rhs.underlyingCharacteristic

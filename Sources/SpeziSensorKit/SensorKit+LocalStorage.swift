@@ -10,6 +10,7 @@ import SpeziFoundation
 import SpeziLocalStorage
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SensorKit {
     // Essentially just a thread-safe dictionary that keeps track of our `LocalStorageKey`s used by the `SampleTypeScopedLocalStorage`.
     // The reason this exists is bc the LocalStorage API is intended to be used with long-lived LocalStorageKey objects, which doesn't easily

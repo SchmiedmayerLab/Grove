@@ -47,6 +47,7 @@ extension MarkdownDocument.Metadata {
     }
     
     /// The document's version, if present in the metadata
+    @available(iOS 18, macOS 15, watchOS 11, *)
     public var version: Version? {
         self["version"].flatMap { Version($0) }
     }

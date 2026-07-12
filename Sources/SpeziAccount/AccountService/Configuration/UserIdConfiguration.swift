@@ -18,6 +18,7 @@ import SwiftUI
 /// (e.g. if it's an email address or just some alphanumerical string).
 ///
 /// Access the configuration via the ``AccountServiceConfiguration/userIdConfiguration`` property.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct UserIdConfiguration: AccountServiceConfigurationKey, DefaultProvidingKnowledgeSource {
     public static let defaultValue: UserIdConfiguration = .emailAddress
 
@@ -61,6 +62,7 @@ public struct UserIdConfiguration: AccountServiceConfigurationKey, DefaultProvid
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension UserIdConfiguration {
 #if !os(macOS) && !os(watchOS)
     /// E-Mail-Address-based user id.
@@ -75,6 +77,7 @@ extension UserIdConfiguration {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountServiceConfiguration {
     /// Access the user id configuration of an ``AccountService``.
     public var userIdConfiguration: UserIdConfiguration {

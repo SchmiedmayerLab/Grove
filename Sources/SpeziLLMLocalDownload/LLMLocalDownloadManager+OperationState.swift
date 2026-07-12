@@ -6,12 +6,14 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if MLX
 import Foundation
 import SpeziViews
 
 // Needs to be in a separate file as an extension in the file of the ``LLMLocalDownloadManager`` will lead to
 // the "Circular reference resolving attached macro 'Observable'" error during compiling (see https://github.com/apple/swift/issues/66450)
 /// Maps the ``LLMLocalDownloadManager/DownloadState`` to the SpeziViews `ViewState` via the conformance to the SpeziViews `OperationState` protocol.
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMLocalDownloadManager.DownloadState: OperationState {
     public var representation: ViewState {
         switch self {
@@ -24,3 +26,4 @@ extension LLMLocalDownloadManager.DownloadState: OperationState {
         }
     }
 }
+#endif

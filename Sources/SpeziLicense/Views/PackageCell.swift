@@ -11,6 +11,7 @@ import SwiftPackageList
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct PackageCell: View {
     struct Config: Hashable {
         let name: String
@@ -119,6 +120,7 @@ extension Package {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview(traits: .sizeThatFitsLayout) {
     let mockPackage = Package(
         kind: .remoteSourceControl,

@@ -10,6 +10,7 @@ import Foundation
 
 
 /// An event that can happen over the course of a study's lifecycle.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum StudyLifecycleEvent: Hashable, Codable, Sendable {
     /// The event representing the participant's enrollment into the study
     case enrollment

@@ -64,6 +64,7 @@ import SpeziChat
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol LLMSession: AnyObject, Sendable {
     /// The state of the ``LLMSession`` indicated by the ``LLMState``.
     @MainActor var state: LLMState { get set }
@@ -81,6 +82,7 @@ public protocol LLMSession: AnyObject, Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMSession {
     /// Finishes the continuation with an error and sets the ``LLMSession/state`` to the respective error.
     ///

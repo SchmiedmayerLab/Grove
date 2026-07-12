@@ -7,6 +7,7 @@
 //
 
 import ModelsR4
+#if ResearchKit
 import ResearchKit
 @_exported import class ResearchKit.ORKNavigableOrderedTask
 
@@ -94,3 +95,4 @@ extension QuestionnaireItemType {
         }
     }
 }
+#endif

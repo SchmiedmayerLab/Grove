@@ -10,6 +10,7 @@ import SwiftUI
 
 
 // type and implementation copied from https://github.com/gonzalezreal/swift-markdown-ui/blob/a9c7615fb50323069c2979c69263973aa1b24a8f/Sources/MarkdownUI/Utility/ResizeToFit.swift
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct ResizeToFit: Layout {
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         guard let view = subviews.first else {

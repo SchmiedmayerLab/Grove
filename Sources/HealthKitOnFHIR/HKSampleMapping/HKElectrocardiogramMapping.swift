@@ -8,6 +8,7 @@
 
 
 /// An ``HKElectrocardiogramMapping`` allows developers to customize the mapping of an`HKElectrocardiogram` to an FHIR  observation.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct HKElectrocardiogramMapping: Decodable, Sendable {
     /// A default instance of an ``HKElectrocardiogramMapping`` instance allowing developers to customize the ``HKElectrocardiogramMapping``.
     ///

@@ -11,6 +11,7 @@ import SpeziFoundation
 
 
 /// Stores pairing state information.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct PairingContinuation {
     private let pairingContinuation: CheckedContinuation<Void, Error>
 
@@ -43,4 +44,5 @@ struct PairingContinuation {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PairingContinuation: Sendable {}

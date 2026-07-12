@@ -7,6 +7,7 @@
 //
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Questionnaire {
     /// All builtin question kinds, in no particular order.
     ///

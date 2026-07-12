@@ -67,6 +67,7 @@ extension LocalizedFileResource {
 
 // MARK: LocalizedFileResource.Resolved
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LocalizedFileResource {
     /// A resolved ``LocalizedFileResource``.
     ///

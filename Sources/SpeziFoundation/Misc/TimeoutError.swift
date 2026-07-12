@@ -15,6 +15,7 @@ public struct TimeoutError {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension TimeoutError: LocalizedError {
     public var errorDescription: String? {
         #if canImport(Darwin)
@@ -104,6 +105,7 @@ extension TimeoutError: LocalizedError {
 /// - Parameters:
 ///   - timeout: The duration of the timeout.
 ///   - action: The action to run once the timeout passed.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @inlinable
 public func withTimeout(of timeout: Duration, perform action: sending () async -> Void) async {
     try? await Task.sleep(for: timeout)

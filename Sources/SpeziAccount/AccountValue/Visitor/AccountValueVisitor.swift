@@ -10,6 +10,7 @@ import SpeziFoundation
 
 
 /// A collection type that is capable of accepting an ``AccountValueVisitor``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol AcceptingAccountValueVisitor {
     /// Accepts an ``AccountValueVisitor`` for all elements of the collection.
     /// - Parameter visitor: The visitor to accept.
@@ -39,6 +40,7 @@ public protocol AcceptingAccountValueVisitor {
 /// ```
 ///
 /// - Note: A visitor can implement the optional ``final()-cr4o`` method to return a result through the ``AcceptingAccountValueVisitor/acceptAll(_:)-9hgw5`` method.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol AccountValueVisitor {
     /// A optional final result type returned by ``final()-7apm4``.
     associatedtype Final = Void
@@ -68,6 +70,7 @@ public protocol AccountValueVisitor {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountValueVisitor {
     /// Default implementation forwarding to ``visit(_:_:)-35w7i``.
     public mutating func visit<Key: RequiredAccountKey>(_ key: Key.Type, _ value: Key.Value) {
@@ -76,12 +79,14 @@ extension AccountValueVisitor {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountValueVisitor where Final == Void {
     /// Default `Void` implementation.
     public func final() {}
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKey {
     fileprivate static func defaultAccept<Visitor: AccountValueVisitor>(_ visitor: inout Visitor, _ value: Value) {
         visitor.visit(Self.self, value)
@@ -98,6 +103,7 @@ extension AccountKey {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails {
     /// Default acceptAll visitor.
     public func acceptAll<Visitor: AccountValueVisitor>(_ visitor: inout Visitor) -> Visitor.Final {

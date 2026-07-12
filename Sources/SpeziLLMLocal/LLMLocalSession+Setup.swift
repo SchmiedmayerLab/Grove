@@ -7,11 +7,13 @@
 //
 
 import Foundation
+#if MLX
 import Hub
 import MLXLLM
 import MLXLMCommon
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMLocalSession {
     private func verifyModelDownload() -> Bool {
         let repo = Hub.Repo(id: self.schema.configuration.name)
@@ -75,3 +77,4 @@ extension LLMLocalSession {
         return true
     }
 }
+#endif

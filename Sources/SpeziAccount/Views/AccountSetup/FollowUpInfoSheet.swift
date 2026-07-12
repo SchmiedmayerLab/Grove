@@ -13,6 +13,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct FollowUpInfoFormHeader: View {
     var body: some View {
         ListHeader {
@@ -37,6 +38,7 @@ struct FollowUpInfoFormHeader: View {
 ///
 /// However, you can also use this view to design your own flow of requesting additional information. Just pass the account keys to the initializer that should be request from the user.
 /// - Note: The requirement level of the account keys is derived from the global ``AccountValueConfiguration``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 public struct FollowUpInfoSheet: View {
     /// Defines the behavior of the cancel button for the followup-info sheet.
@@ -201,6 +203,7 @@ public struct FollowUpInfoSheet: View {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FollowUpInfoSheet.CancelBehavior {
     var confirmationMessage: Text {
         switch self {
@@ -234,7 +237,9 @@ extension FollowUpInfoSheet.CancelBehavior {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 private let keys: [any AccountKey.Type] = [AccountKeys.name]
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     NavigationStack {
         FollowUpInfoSheet(keys: keys)

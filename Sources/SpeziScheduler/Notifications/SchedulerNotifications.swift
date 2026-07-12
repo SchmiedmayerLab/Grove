@@ -124,6 +124,7 @@ import UserNotifications
 /// - ``notificationCategory(for:)``
 /// - ``notificationThreadIdentifier(for:)``
 /// - ``notificationTaskIdKey``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 public final class SchedulerNotifications: Module, DefaultInitializable, EnvironmentAccessible, Sendable {
     @Application(\.logger)
@@ -338,6 +339,7 @@ public final class SchedulerNotifications: Module, DefaultInitializable, Environ
 
 // MARK: - Notification Scheduling
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SchedulerNotifications {
     // swiftlint:disable:next function_body_length cyclomatic_complexity
     private func scheduleNotifications(for scheduler: borrowing Scheduler) async throws {
@@ -517,6 +519,7 @@ extension SchedulerNotifications {
 
 // MARK: - NotificationHandler
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SchedulerNotifications: NotificationHandler {
     public func receiveIncomingNotification(_ notification: UNNotification) async -> UNNotificationPresentationOptions? {
         guard notification.request.isSpeziSchedulerRequest else {
@@ -530,6 +533,7 @@ extension SchedulerNotifications: NotificationHandler {
 
 // MARK: - Background Tasks
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SchedulerNotifications {
     @usableFromInline static var uiBackgroundModes: Set<BackgroundMode> {
         let modes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String]
@@ -621,6 +625,7 @@ extension SchedulerNotifications {
 
 // MARK: - Legacy Notifications
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LocalStorageKeys {
     fileprivate static let legacyTasks = LocalStorageKey<[LegacyTaskModel]>(
         "spezi.scheduler.tasks", // the legacy scheduler 1.0 used to store tasks at this location.
@@ -630,6 +635,7 @@ extension LocalStorageKeys {
     )
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SchedulerNotifications {
     /// Cancel scheduled and delivered notifications of the legacy SpeziScheduler 1.0
     fileprivate func purgeLegacyEventNotifications() {
@@ -662,6 +668,7 @@ extension SchedulerNotifications {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension UNNotificationRequest {
     var isSpeziSchedulerRequest: Bool {
         identifier.starts(with: SchedulerNotifications.baseNotificationId)

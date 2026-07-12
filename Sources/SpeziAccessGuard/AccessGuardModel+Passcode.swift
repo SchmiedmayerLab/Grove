@@ -11,6 +11,7 @@ public import Observation
 import SpeziKeychainStorage
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 @MainActor
 public final class _PasscodeAccessGuardModel: _AnyAccessGuardModel { // swiftlint:disable:this type_name

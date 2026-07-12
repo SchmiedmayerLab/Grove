@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct DevicesUnavailableView: View {
     private let pairNewDevice: (() -> Void)?
 
@@ -35,6 +36,7 @@ struct DevicesUnavailableView: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     DevicesUnavailableView {}
 }

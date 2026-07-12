@@ -24,6 +24,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct ContributionsList: View {
     struct ProjectInfo {
         let name: AppName
@@ -100,6 +101,7 @@ public struct ContributionsList: View {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ContributionsList {
     public struct AppName: Hashable, ExpressibleByStringLiteral, Sendable {
         /// The app name as present in the main bundle.
@@ -120,6 +122,7 @@ extension ContributionsList {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     let mockPackages = [
         Package(

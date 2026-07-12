@@ -79,6 +79,7 @@ public struct OnboardingInformationView: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     OnboardingInformationView {
         OnboardingInformationView.Area(

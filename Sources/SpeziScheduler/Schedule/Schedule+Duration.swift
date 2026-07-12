@@ -7,6 +7,7 @@
 //
 
 #if canImport(Darwin)
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Schedule {
     /// The duration of an occurrence.
     ///
@@ -39,6 +40,7 @@ extension Schedule {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Schedule.Duration {
     /// Determine if a duration is all day.
     @inlinable public var isAllDay: Bool {
@@ -106,9 +108,11 @@ extension Schedule.Duration {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Schedule.Duration: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Schedule.Duration: CustomStringConvertible {
     public var description: String {
         switch self {
@@ -123,6 +127,7 @@ extension Schedule.Duration: CustomStringConvertible {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Schedule.Duration {
     // Duration encodes itself as an unkeyed container with high and low Int64 values.
     // See https://github.com/swiftlang/swift/blob/eafb40588c17bf8f6405823f8bedb9428694a9bd/stdlib/public/core/Duration.swift#L238-L240.
@@ -154,12 +159,15 @@ extension Schedule.Duration {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Schedule.Duration.MappedDuration: Hashable, Sendable, Codable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Schedule.Duration.SwiftDataDuration: Hashable, Sendable, Codable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Schedule.Duration.SwiftDataDuration: CustomStringConvertible {
     var description: String {
         switch self {
@@ -174,6 +182,7 @@ extension Schedule.Duration.SwiftDataDuration: CustomStringConvertible {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Schedule.Duration.SwiftDataDuration {
     init(from duration: Schedule.Duration) {
         switch duration {
@@ -188,6 +197,7 @@ extension Schedule.Duration.SwiftDataDuration {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Schedule.Duration {
     init(from duration: Schedule.Duration.SwiftDataDuration) {
         switch duration {

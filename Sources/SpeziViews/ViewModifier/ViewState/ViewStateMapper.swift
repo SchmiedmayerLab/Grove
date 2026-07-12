@@ -9,6 +9,7 @@
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct ViewStateMapper<T: OperationState>: ViewModifier {
     private let operationState: T
     @Binding private var viewState: ViewState
@@ -29,6 +30,7 @@ private struct ViewStateMapper<T: OperationState>: ViewModifier {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     /// Continuously maps a state conforming to the ``OperationState`` protocol to a separately stored ``ViewState``.
     /// 

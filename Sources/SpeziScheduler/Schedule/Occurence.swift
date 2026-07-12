@@ -20,6 +20,7 @@ import Foundation
 /// - ``start``
 /// - ``end``
 /// - ``schedule``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @DebugDescription
 public struct Occurrence: Hashable, Sendable {
     /// The start date.
@@ -43,6 +44,7 @@ public struct Occurrence: Hashable, Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Occurrence: Comparable {
     public static func < (lhs: Occurrence, rhs: Occurrence) -> Bool {
         lhs.start < rhs.start
@@ -50,6 +52,7 @@ extension Occurrence: Comparable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Occurrence: CustomStringConvertible {
     public var description: String {
         "Occurrence(start: \(start), end: \(end))"

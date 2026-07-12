@@ -17,6 +17,7 @@ public import SpeziHealthKit
 import SpeziLocalStorage
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class BulkHealthExporter: Module, EnvironmentAccessible, @unchecked Sendable {
     @ObservationIgnored @Application(\.logger) var logger
@@ -49,6 +50,7 @@ public final class BulkHealthExporter: Module, EnvironmentAccessible, @unchecked
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BulkHealthExporter {
     /// An error that can occur when creating or deleting a ``BulkExportSession``.
     public enum SessionError: Error {
@@ -110,6 +112,7 @@ extension BulkHealthExporter {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BulkHealthExporter {
     static func localStorageKey(forSessionId id: BulkExportSessionIdentifier) -> String {
         "edu.stanford.spezi.HealthKit.BulkExport.\(id.rawValue)"

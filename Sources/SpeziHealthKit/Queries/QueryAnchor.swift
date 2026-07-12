@@ -44,6 +44,7 @@ import HealthKit
 ///     return samples
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct QueryAnchor: Hashable, Codable, Sendable {
     let hkAnchor: HKQueryAnchor?
     

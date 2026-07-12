@@ -75,6 +75,7 @@ extension HealthKitQueryTimeRange {
     /// An `NSPredicate` that matches all samples which fall into the time range.
     ///
     /// - Note: A `nil` value means that no predicate is needed. This would be equivalent to a predicate that always returns `true`.
+    @available(iOS 18, macOS 15, watchOS 11, *)
     public var predicate: NSPredicate? {
         if self == .ever {
             nil

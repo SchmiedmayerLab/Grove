@@ -9,6 +9,7 @@
 private import SpeziFoundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses {
     /// Controls task id lookup behaviour when evaluating a condition.
     private struct TaskLookupConfig {
@@ -117,6 +118,7 @@ extension QuestionnaireResponses {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses {
     /// - parameter condition: The ``Questionnaire/Condition`` that should be evaluated
     /// - parameter resolveTaskId: A closure that maps a task is to its task. The function uses this to resolve tasks that are referenced by the condition.
@@ -297,6 +299,7 @@ extension QuestionnaireResponses {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionKindDefinition {
     fileprivate static func evaluateResponseValueComparison(
         for config: any QuestionKindConfig,

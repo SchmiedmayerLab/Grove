@@ -12,6 +12,7 @@ import SwiftUI
 
 
 /// Displays the value of an `String`-based `AccountKey`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct StringDisplayView<Key: AccountKey>: DataDisplayView where Key.Value: StringProtocol {
     private let value: Key.Value
 
@@ -38,6 +39,7 @@ public struct StringDisplayView<Key: AccountKey>: DataDisplayView where Key.Valu
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKey where Value: StringProtocol {
     /// Default DataDisplay for `String`-based values.
     public typealias DataDisplay = StringDisplayView<Self>
@@ -45,6 +47,7 @@ extension AccountKey where Value: StringProtocol {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     List {
         StringDisplayView(\.userId, "leland.stanford")

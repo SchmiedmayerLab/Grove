@@ -23,6 +23,7 @@
 ///
 /// - Note: Use the ``DependencyCollectionBuilder`` if you want to create your own result builder that can build a ``DependencyCollection`` component
 ///     out of multiple `Module` expressions.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct DependencyCollection {
     private var entries: [any AnyDependencyContext]
 
@@ -107,6 +108,7 @@ public struct DependencyCollection {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DependencyCollection: DependencyDeclaration {
     var unsafeInjectedModules: [any Module] {
         entries.flatMap { entry in

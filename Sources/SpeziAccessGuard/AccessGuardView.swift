@@ -10,6 +10,7 @@ import Spezi
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct AccessGuardView<Guarded: View, Config: _AccessGuardConfig>: View {
     let config: Config
     var model: Config._Model

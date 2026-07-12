@@ -20,6 +20,7 @@ import TipKit
 ///
 /// - Note: The Module will automatically [`showAllTipsForTesting()`](https://developer.apple.com/documentation/tipkit/tips/showalltipsfortesting())
 ///     if either the Module is initialized within a SwiftUI preview or the `testingTips` <doc:SPI#RuntimeConfig> is supplied via the command line. 
+@available(iOS 18, macOS 15, watchOS 11, *)
 public final class ConfigureTipKit: Module, DefaultInitializable, EnvironmentAccessible {
     private let configuration: [Tips.ConfigurationOption]
 

@@ -12,6 +12,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(macOS, unavailable)
 @available(watchOS, unavailable)
 struct AccountOverviewForm<AdditionalSections: View>: View {
@@ -219,6 +220,7 @@ struct AccountOverviewForm<AdditionalSections: View>: View {
 
 
 extension View {
+    @available(iOS 18, macOS 15, watchOS 11, *)
     @available(macOS, unavailable)
     @available(watchOS, unavailable)
     @ViewBuilder

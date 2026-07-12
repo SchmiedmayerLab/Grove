@@ -14,6 +14,7 @@ import SpeziNumerics
 
 
 @_spi(TestingSupport)
+@available(iOS 18, macOS 15, watchOS 11, *)
 public final class MockDevice: PairableDevice, HealthDevice, BatteryPoweredDevice, @unchecked Sendable {
     public static let appearance: DeviceAppearance = .appearance(Appearance(name: "My Mock Device"))
 
@@ -73,6 +74,7 @@ public final class MockDevice: PairableDevice, HealthDevice, BatteryPoweredDevic
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension MockDevice {
     /// Create a new Mock Device instance.
     ///

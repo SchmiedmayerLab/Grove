@@ -11,6 +11,7 @@ import SpeziValidation
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct PhoneNumberEntryField: View {
     @Environment(PhoneNumberViewModel.self)
     private var phoneNumberViewModel
@@ -95,6 +96,7 @@ struct PhoneNumberEntryField: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     PhoneNumberEntryField()
 }

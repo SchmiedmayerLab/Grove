@@ -9,6 +9,7 @@
 import Foundation
 import SpeziFoundation
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 final class ServiceModuleGroup: Sendable {
     private enum Input {
         case run(any ServiceModule)

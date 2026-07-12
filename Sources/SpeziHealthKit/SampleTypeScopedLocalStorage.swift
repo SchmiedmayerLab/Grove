@@ -18,6 +18,7 @@ import SpeziLocalStorage
 // Were we not to use something like this for caching and re-using the keys, we'd need to create temporary `LocalStorageKey`s for
 // every load/store operation, which would of course work but would also defeat the whole purpose of having the `LocalStorageKey`s
 // be long-lived objects which are also used for e.g. locking / properly handling concurrent reads or writes.
+@available(iOS 18, macOS 15, watchOS 11, *)
 private enum LocalStorageKeysHandling {
     private struct DictKey: Hashable {
         let valueType: String
@@ -57,6 +58,7 @@ private enum LocalStorageKeysHandling {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct SampleTypeScopedLocalStorage<Value: SendableMetatype> {
     private let localStorage: LocalStorage
     private let makeStorageKey: @Sendable (any AnySampleType) -> LocalStorageKey<Value>

@@ -9,6 +9,7 @@
 import CoreBluetooth
 import Foundation
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct ServiceChangeProtocol {
     let removedCharacteristics: Set<BTUUID>
     let updatedCharacteristics: [GATTCharacteristic]
@@ -27,6 +28,7 @@ struct GATTServiceCapture: Sendable {
 /// - ``id``
 /// - ``isPrimary``
 /// - ``characteristics``
+@available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class GATTService {
     let underlyingService: CBService
@@ -102,9 +104,11 @@ public final class GATTService {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension GATTService: Identifiable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension GATTService: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
         "Service(id: \(id), isPrimary: \(isPrimary))"
@@ -116,6 +120,7 @@ extension GATTService: CustomStringConvertible, CustomDebugStringConvertible {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension GATTService: Hashable {
     public static func == (lhs: GATTService, rhs: GATTService) -> Bool {
         lhs.underlyingService == rhs.underlyingService

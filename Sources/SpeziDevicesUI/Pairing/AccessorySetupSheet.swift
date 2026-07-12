@@ -15,6 +15,7 @@ import SwiftUI
 
 
 /// Accessory Setup view displayed in a sheet.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(macOS, unavailable)
 public struct AccessorySetupSheet<Collection: RandomAccessCollection, PairingHint: View>: View where Collection.Element == any PairableDevice {
     private static var logger: Logger {
@@ -101,6 +102,7 @@ public struct AccessorySetupSheet<Collection: RandomAccessCollection, PairingHin
 
 
 #if DEBUG && !os(macOS)
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     Text(verbatim: "")
         .sheet(isPresented: .constant(true)) {
@@ -115,6 +117,7 @@ public struct AccessorySetupSheet<Collection: RandomAccessCollection, PairingHin
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     Text(verbatim: "")
         .sheet(isPresented: .constant(true)) {
@@ -132,6 +135,7 @@ public struct AccessorySetupSheet<Collection: RandomAccessCollection, PairingHin
         }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     Text(verbatim: "")
         .sheet(isPresented: .constant(true)) {

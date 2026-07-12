@@ -9,6 +9,7 @@
 public import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentSignatureForm {
     /// Configuration for the user-visible labels in a ``ConsentSignatureForm``.
     public struct Labels: Sendable {

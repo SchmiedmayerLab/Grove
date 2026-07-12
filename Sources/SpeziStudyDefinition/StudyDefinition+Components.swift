@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyDefinition {
     /// A Component within a ``StudyDefinition``
     ///
@@ -87,6 +88,7 @@ extension StudyDefinition {
 
 // MARK: Mutating
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyDefinition {
     /// Removes the component at the specified index from the study.
     ///

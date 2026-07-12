@@ -11,6 +11,7 @@ import MarkdownUI
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct MarkdownViewImageProvider: ImageProvider {
     private struct ImageLoadingView: View {
         let url: URL?

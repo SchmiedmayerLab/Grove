@@ -14,6 +14,7 @@ public import Foundation
 public import UniformTypeIdentifiers
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses {
     /// Storage container for task responses.
     ///
@@ -70,6 +71,7 @@ extension QuestionnaireResponses {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses.Responses: Collection {
     @_documentation(visibility: internal)
     public typealias Storage = [Questionnaire.Task.ID: QuestionnaireResponses.Response]
@@ -93,6 +95,7 @@ extension QuestionnaireResponses.Responses: Collection {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses {
     /// A custom value collected in response to a question within a questionnaire.
     public protocol CustomResponseValueProtocol: Hashable, Sendable, SendableMetatype {
@@ -105,6 +108,7 @@ extension QuestionnaireResponses {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses {
     /// A response that was collected for some task within a questionnaire.
     ///
@@ -253,6 +257,7 @@ extension QuestionnaireResponses {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses {
     public struct ChoiceResponse: Hashable, Sendable {
         public typealias Option = Questionnaire.Task.Kind.ChoiceConfig.Option
@@ -302,6 +307,7 @@ extension QuestionnaireResponses {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses.Responses {
     /// Accesses a nested ``QuestionnaireResponses/Responses`` instance, at the specified path.
     public subscript(path: QuestionnaireResponses.ResponsesPath) -> QuestionnaireResponses.Responses {
@@ -368,6 +374,7 @@ extension QuestionnaireResponses.Responses {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses.Response {
     fileprivate subscript(responsePath path: some Collection<QuestionnaireResponses.ResponsesPath.Element>) -> QuestionnaireResponses.Response {
         get {
@@ -421,6 +428,7 @@ extension QuestionnaireResponses.Response {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses.Response.Value {
     public var boolValue: Bool? { // swiftlint:disable:this discouraged_optional_boolean
         get { if case .bool(let value) = self { value } else { nil } }
@@ -468,6 +476,7 @@ extension QuestionnaireResponses.Response.Value {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses.Response.Value {
     public var isEmpty: Bool {
         switch self {
@@ -496,6 +505,7 @@ extension QuestionnaireResponses.Response.Value {
 
 // MARK: File Attachments
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses {
     public final class CollectedAttachment: Hashable, Identifiable, Sendable {
         private static let tmpDir = URL.temporaryDirectory.appending(path: "edu.stanford.SpeziQuestionnaire.TmpAttachment")
@@ -546,6 +556,7 @@ extension QuestionnaireResponses {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses.CollectedAttachment: Transferable {
     public static var transferRepresentation: some TransferRepresentation {
         FileRepresentation(importedContentType: .item) { input in

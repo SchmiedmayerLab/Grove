@@ -10,6 +10,7 @@
 /// Disconnect from the Bluetooth peripheral.
 ///
 /// For more information refer to ``DeviceActions/disconnect``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct BluetoothDisconnectAction: _BluetoothPeripheralAction, Sendable {
     public typealias ClosureType = @Sendable () async -> Void
 

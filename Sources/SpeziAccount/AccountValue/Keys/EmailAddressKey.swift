@@ -11,6 +11,7 @@ import SpeziValidation
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct EntryView: DataEntryView {
     @Binding private var email: String
 
@@ -26,6 +27,7 @@ private struct EntryView: DataEntryView {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails {
     /// The email address of a user.
     @AccountKey(
@@ -38,10 +40,12 @@ extension AccountDetails {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @KeyEntry(\.email)
 public extension AccountKeys {} // swiftlint:disable:this no_extension_access_modifier
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountDetails.__Key_email: OptionalComputedKnowledgeSource {
     public typealias StoragePolicy = AlwaysCompute
 

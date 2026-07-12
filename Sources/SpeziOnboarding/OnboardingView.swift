@@ -65,6 +65,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct OnboardingView<Header: View, Content: View, Footer: View>: View {
     @Environment(\.verticalScrollIndicatorVisibility) private var scrollIndicatorVisibility
     @Environment(\.isInManagedNavigationStack) private var isInManagedNavigationStack
@@ -221,6 +222,7 @@ extension EnvironmentValues {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OnboardingView {
     /// Disables the ``OnboardingView``'s implicit padding for the specified edges.
     ///
@@ -234,6 +236,7 @@ extension OnboardingView {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     let mock: [OnboardingInformationView.Area] = [
         OnboardingInformationView.Area(

@@ -14,6 +14,7 @@ import SwiftUI
 
 
 /// A row that displays information of a nearby Bluetooth peripheral in a List view.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct NearbyDeviceRow<Label: View>: View {
     private let peripheral: any GenericBluetoothPeripheral
     private let label: Label
@@ -101,6 +102,7 @@ public struct NearbyDeviceRow<Label: View>: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview { // swiftlint:disable:this closure_body_length
     List {
         NearbyDeviceRow(peripheral: MockBluetoothPeripheral(label: "MyDevice 1", state: .connecting)) {

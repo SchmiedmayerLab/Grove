@@ -30,6 +30,7 @@ import SwiftUI
 /// ### Legacy Initializers
 /// - ``init(markdown:state:)``
 /// - ``init(asyncMarkdown:state:)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct MarkdownView<CustomElementView: View>: View {
     /// Allows injecting views representing custom elements into the ``MarkdownView``
     public typealias CustomElementViewProvider = @MainActor (
@@ -193,6 +194,7 @@ public struct MarkdownView<CustomElementView: View>: View {
 
 // MARK: Backwards Compatibility
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension MarkdownView {
     /// Creates a new MarkdownView
     ///

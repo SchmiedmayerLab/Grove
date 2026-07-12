@@ -16,6 +16,7 @@ import SpeziBluetooth
 /// All characteristics are read-only and optional to implement.
 /// It is possible that none are implemented at all.
 /// For more information refer to the specification.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct DeviceInformationService: BluetoothService, Sendable {
     public static let id: BTUUID = "180A"
 

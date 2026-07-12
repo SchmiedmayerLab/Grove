@@ -14,11 +14,13 @@ import SwiftUI
 /// Registers to receive remote notifications through Apple Push Notification service.
 ///
 /// Refer to the documentation of ``Spezi/registerRemoteNotifications``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_documentation(visibility: internal)
 @available(*, deprecated, renamed: "Spezi.RegisterRemoteNotificationsAction", message: "Please use Spezi.RegisterRemoteNotificationsAction instead.")
 public typealias RegisterRemoteNotificationsAction = Spezi.RegisterRemoteNotificationsAction
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Spezi {
     /// Registers to receive remote notifications through Apple Push Notification service.
     ///

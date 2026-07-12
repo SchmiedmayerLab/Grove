@@ -7,6 +7,7 @@
 //
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 final class DeviceActionPeripheralInjection: Sendable {
     private let bluetooth: Bluetooth
     let peripheral: BluetoothPeripheral

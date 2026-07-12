@@ -13,6 +13,7 @@ import OSLog
 
 
 #if compiler(>=6)
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct FirestoreCompletion: Sendable {
     private static var logger: Logger {
         Logger(subsystem: "edu.stanford.spezi.firebase", category: "FirestoreCompletion")
@@ -63,6 +64,7 @@ private struct FirestoreCompletion: Sendable {
 #endif
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DocumentReference {
 #if compiler(>=6)
     /// Overwrite the data of a document with an encodable value.

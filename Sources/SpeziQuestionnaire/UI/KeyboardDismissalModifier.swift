@@ -10,6 +10,7 @@ import SpeziViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct KeyboardDismissalModifier: ViewModifier {
     @FocusState private var isFocused
     
@@ -36,6 +37,7 @@ private struct KeyboardDismissalModifier: ViewModifier {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     /// Places a checkmark button above the system keyboard, that ends editing in the view, causing the keyboard to dismiss.
     func enableDismissalViaKeyboardAccessory() -> some View {

@@ -178,6 +178,7 @@ extension Version: Equatable, Comparable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Version: LosslessStringConvertible {
     public var description: String {
         var desc = "\(major).\(minor).\(patch)"
@@ -215,6 +216,7 @@ extension Version: LosslessStringConvertible {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Version: ExpressibleByStringLiteral {
     /// Attempts to create a ``Version`` by parsing a `String` literal.
     ///
@@ -230,6 +232,7 @@ extension Version: ExpressibleByStringLiteral {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Version: Codable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()

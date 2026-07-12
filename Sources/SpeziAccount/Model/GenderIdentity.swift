@@ -29,6 +29,7 @@ public enum GenderIdentity: String, Sendable, CaseIterable, Identifiable, Hashab
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension GenderIdentity: CustomLocalizedStringResourceConvertible {
     private var localizationValue: String.LocalizationValue {
         switch self {

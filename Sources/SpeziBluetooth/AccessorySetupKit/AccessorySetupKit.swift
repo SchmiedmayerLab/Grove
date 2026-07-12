@@ -46,6 +46,7 @@ import Synchronization
 /// - ``supportedProtocols``
 /// - ``SupportedProtocol``
 @MainActor
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(iOS 18.0, *)
 public final class AccessorySetupKit {
     @MainActor
@@ -313,6 +314,7 @@ public final class AccessorySetupKit {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(iOS 18.0, *)
 extension AccessorySetupKit: Module, DefaultInitializable, Sendable {}
 
@@ -381,6 +383,7 @@ extension AccessorySetupKit.AccessoryEvent: CustomStringConvertible, CustomDebug
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(iOS 18.0, *)
 @available(macCatalyst, unavailable)
 extension AccessorySetupKit {
@@ -402,6 +405,7 @@ extension AccessorySetupKit {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @available(iOS 18.0, *)
 @available(macCatalyst, unavailable)
 extension AccessorySetupKit.SupportedProtocol {

@@ -32,6 +32,7 @@ struct DiscardButton: View {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct ConfirmMeasurementButton: View {
     private let confirm: @MainActor () async throws -> Void
     private let discard: () -> Void
@@ -64,6 +65,7 @@ struct ConfirmMeasurementButton: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     ConfirmMeasurementButton(viewState: .constant(.idle)) {
         print("Save")

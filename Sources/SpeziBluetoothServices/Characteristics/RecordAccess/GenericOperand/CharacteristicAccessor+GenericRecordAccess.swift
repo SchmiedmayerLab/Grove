@@ -8,6 +8,7 @@
 
 import SpeziBluetooth
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CharacteristicAccessor where Value: _RecordAccessControlPoint {
     /// Send Record Access request expecting a general response.
     ///
@@ -103,6 +104,7 @@ extension CharacteristicAccessor where Value: _RecordAccessControlPoint {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CharacteristicAccessor where Value == RecordAccessControlPoint<RecordAccessGenericOperand> {
     /// Send report stored records request.
     ///

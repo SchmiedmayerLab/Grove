@@ -14,6 +14,7 @@ import SpeziFoundation
 import SpeziLocalization
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyBundle.BundleValidationIssue {
     public enum QuestionnaireIssue: Hashable, Sendable {
         /// The questionnaire as a whole, or one of its items, it missing a field.
@@ -277,6 +278,7 @@ extension StudyBundle.BundleValidationIssue {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyBundle {
     func validateQuestionnaires() throws -> [BundleValidationIssue.QuestionnaireIssue] {
         try QuestionnaireValidator(studyBundle: self).run()
@@ -284,6 +286,7 @@ extension StudyBundle {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct QuestionnaireValidator: ~Copyable { // swiftlint:disable:this type_body_length
     typealias Issue = StudyBundle.BundleValidationIssue.QuestionnaireIssue
     typealias FileReference = StudyBundle.FileReference
@@ -772,6 +775,7 @@ private struct QuestionnaireValidator: ~Copyable { // swiftlint:disable:this typ
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireValidator {
     private enum ExpectedExtensionValueType: Hashable {
         case coding // maybe add an option to select which fields we should look at?

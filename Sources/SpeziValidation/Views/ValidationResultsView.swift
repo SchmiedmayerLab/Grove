@@ -11,6 +11,7 @@ import SwiftUI
 /// A view that displays the results of a ``ValidationEngine``.
 ///
 /// For more information on the content this view displays, refer to ``FailedValidationResult``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct ValidationResultsView: View {
     private let results: [FailedValidationResult]
 
@@ -34,6 +35,7 @@ public struct ValidationResultsView: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     ValidationResultsView(results: [
         .init(from: .nonEmpty),

@@ -1,0 +1,64 @@
+#
+# This source file is part of the Stanford Spezi open-source project
+#
+# SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+#
+# SPDX-License-Identifier: MIT
+#
+
+name: Deployment Floor
+
+# Compile-checks that the package still builds at its deployment floor (iOS 15 / macOS 12 / watchOS 8)
+# for both a real device and a simulator. Every API newer than the floor is gated behind an
+# `@available(iOS 18, macOS 15, watchOS 11, *)` clause; this job is what proves none was missed. The
+# regular Tests workflow can't catch a missing annotation — it builds at the current OS wave (OS 26),
+# where every API is available. Build-only: no tests run and the deployment target is never overridden.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-floor:
+    name: ${{ matrix.name }}
+    runs-on: macOS-26
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: iOS,     kind: device,    name: iOS 15 (device) }
+          - { platform: iOS,     kind: simulator, name: iOS 15 (simulator) }
+          - { platform: macOS,   kind: native,    name: macOS 12 }
+          - { platform: watchOS, kind: device,    name: watchOS 8 (device) }
+          - { platform: watchOS, kind: simulator, name: watchOS 8 (simulator) }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ${{ matrix.platform }} (${{ matrix.kind }}) at the deployment floor
+        run: Scripts/build-floor.sh "${{ matrix.platform }}" "${{ matrix.kind }}"
+
+  # Single gate to use as the required status check in branch protection. Does no work itself; it just
+  # aggregates the build-floor matrix. `if: always()` so it still reports when a matrix leg failed.
+  all-floor-builds-pass:
+    name: All floor builds pass
+    if: always()
+    needs: [build-floor]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify build-floor results
+        run: |
+          echo "build-floor = ${{ needs.build-floor.result }}"
+          if [ "${{ needs.build-floor.result }}" != "success" ]; then
+            echo "::error::One or more deployment-floor builds did not pass."
+            exit 1
+          fi
+          echo "The package compiles at its deployment floor on every platform."
