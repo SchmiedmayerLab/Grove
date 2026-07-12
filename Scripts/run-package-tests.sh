@@ -139,7 +139,15 @@ def deps(t):
     out = set()
     for dep in targets[t].get("dependencies", []):
         for key in ("byName", "target"):
-            if dep.get(key) and dep[key][0] in targets: out.add(dep[key][0])
+            v = dep.get(key)
+            if v and v[0] in targets:
+                # Honor `.when(platforms:)`: a Linux `dump-package` still lists such edges, tagged
+                # with platformNames — skip the ones that exclude Linux, exactly as SwiftPM would.
+                # (`#if canImport(Darwin)` edges are already absent from a Linux dump, so no handling needed.)
+                cond = v[1]
+                if cond and "linux" not in cond.get("platformNames", []):
+                    continue
+                out.add(v[0])
     return out
 seen, stack = set(), list(tomllib.load(open("packages.toml", "rb"))[sys.argv[1]]["tests"])
 while stack:
