@@ -211,6 +211,9 @@ platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "tvOS"]
 targets = ["XCTRuntimeAssertions", "RuntimeAssertions", "RuntimeAssertionsTesting"]
 tests = ["XCTRuntimeAssertionsTests", "RuntimeAssertionsTests"]
 self-hosted-ci = ["ui", "unit"]
+# This package's self-hosted jobs run run-package-tests.sh's tomllib path (Python 3.11+); pin them
+# to a self-hosted runner carrying the `python3.11+` label (older self-hosted machines have < 3.11).
+extra_runner_labels = ["python3.11+"]
 
 [XCTestExtensions]
 platforms = ["iOS", "macOS", "watchOS", "visionOS"]
