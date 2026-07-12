@@ -123,15 +123,37 @@ run() { # <package> <platform> [mode: "ui"]
     return
   fi
   if [ "$2" = "Linux" ]; then
-    # Linux has no Xcode test plans, and SwiftPM builds ONE combined <Package>PackageTests.xctest
-    # per package (so a subset can't be run). Instead compile-check each of the package's test
-    # targets (scoped via --target) on GitHub-hosted Linux — verifies the package still builds there.
-    local tts
+    # Linux has no Xcode test plans, and `swift test` compiles the WHOLE package (every target + product) —
+    # most of the monorepo is Apple-only and can't build on Linux, so an unscoped `swift test` fails before
+    # any test runs. Compute the transitive TARGET closure of this sub-package's tests from the manifest's
+    # dependency graph (rooted at packages.toml's `tests`), and hand it to the manifest via
+    # SPEZI_LINUX_TEST_KEEP; Package.swift's `#if os(Linux)` then keeps only those targets, so `swift test`
+    # builds and RUNS exactly this package's tests. The keep-set is derived, never hardcoded. (dump-package
+    # must run with SPEZI_LINUX_TEST_KEEP unset so it reports the full graph — hence compute it first.)
+    local tts keep
     tts="$(python3 -c "import tomllib; print(' '.join(tomllib.load(open('packages.toml','rb'))['$1']['tests']))")"
-    for tt in $tts; do
-      echo "==> $1 on Linux: swift build --target $tt (compile-check)"
-      swift build --target "$tt"
-    done
+    keep="$(swift package dump-package | python3 -c '
+import json, sys, tomllib
+targets = {t["name"]: t for t in json.load(sys.stdin)["targets"]}
+def deps(t):
+    out = set()
+    for dep in targets[t].get("dependencies", []):
+        for key in ("byName", "target"):
+            if dep.get(key) and dep[key][0] in targets: out.add(dep[key][0])
+    return out
+seen, stack = set(), list(tomllib.load(open("packages.toml", "rb"))[sys.argv[1]]["tests"])
+while stack:
+    n = stack.pop()
+    if n in seen or n not in targets: continue
+    seen.add(n); stack += deps(n)
+print(",".join(sorted(seen)))
+' "$1")"
+    echo "==> $1 on Linux: swift test (keep=$keep)"
+    local filters=()
+    for tt in $tts; do filters+=(--filter "$tt"); done
+    # Set the keep-set inline (not `export`) so it applies only to this `swift test` — the `dump-package`
+    # above must see the FULL graph, and a persistent export could leak into a later package's run.
+    SPEZI_LINUX_TEST_KEEP="$keep" swift test "${filters[@]}"
     return
   fi
   echo "==> $1 on $2"
