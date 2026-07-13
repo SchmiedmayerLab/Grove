@@ -101,9 +101,7 @@ public final class Spezi: Sendable { // swiftlint:disable:this type_body_length
 
     private let serviceGroup = ServiceModuleGroup(logger: Spezi.logger)
 
-    /// Guards `_storage`.
-    ///
-    /// Held only for the duration of a single `storage` access — never while module code runs.
+    /// Guards `_storage`; held only for the duration of a single `storage` access
     private let storageLock = RWLock()
 
     /// A shared repository to store any `KnowledgeSource`s restricted to the ``SpeziAnchor``.
@@ -113,8 +111,9 @@ public final class Spezi: Sendable { // swiftlint:disable:this type_body_length
     /// - Note: All accesses are guarded by `storageLock`: reads return a snapshot taken under the read lock;
     ///     mutations run in place under the write lock via the `_modify` accessor.
     #if canImport(Observation)
-    // Note that the attribute cannot be `#if`-wrapped on its own: the `@Observable` macro doesn't
-    // see through `#if` around attributes and would transform the property.
+    // we can't put just the `@ObservationIgnored` macro into the compiler directive
+    // (the issue being that the @Observation macro above won't properly pick it up),
+    // so we sadly need to declare the property twice...
     @ObservationIgnored nonisolated(unsafe) private var _storage: SpeziStorage
     #else
     nonisolated(unsafe) private var _storage: SpeziStorage
@@ -128,13 +127,12 @@ public final class Spezi: Sendable { // swiftlint:disable:this type_body_length
             return storageLock.withReadLock { _storage }
         }
         _modify {
-            // `yield` cannot appear inside a closure, so withMutation/withWriteLock are unrolled by hand here.
+            // `yield` cannot appear inside a closure, so withMutation and withWriteLock are unrolled by hand here.
             #if canImport(Observation)
             _$observationRegistrar.willSet(self, keyPath: \.storage)
             #endif
             storageLock._pthreadWriteLock()
             defer {
-                // defer also covers the unwind path if the caller's mutation throws
                 storageLock._pthreadUnlock()
                 #if canImport(Observation)
                 _$observationRegistrar.didSet(self, keyPath: \.storage)
