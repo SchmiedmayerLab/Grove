@@ -460,6 +460,9 @@ var targets: [Target] = [
             .target(name: "SpeziFoundation")
         ],
         exclude: targetExcludes("SpeziAccessGuard"),
+        resources: [
+            .process("Resources")
+        ],
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny"),
             .enableUpcomingFeature("InternalImportsByDefault")
@@ -707,6 +710,9 @@ var targets: [Target] = [
             .target(name: "SpeziPersonalInfo")
         ],
         exclude: targetExcludes("SpeziContact"),
+        resources: [
+            .process("Resources")
+        ],
         swiftSettings: [
             .enableExperimentalFeature("StrictConcurrency")
         ],
@@ -890,6 +896,9 @@ var targets: [Target] = [
             .product(name: "FirebaseAuth", package: "firebase-ios-sdk")
         ],
         exclude: targetExcludes("SpeziFirebaseAccount"),
+        resources: [
+            .process("Resources")
+        ],
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -916,6 +925,9 @@ var targets: [Target] = [
             .product(name: "Atomics", package: "swift-atomics")
         ],
         exclude: targetExcludes("SpeziFirestore"),
+        resources: [
+            .process("Resources")
+        ],
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],
@@ -1325,6 +1337,9 @@ var targets: [Target] = [
             .product(name: "SwiftPackageList", package: "swift-package-list")
         ],
         exclude: targetExcludes("SpeziLicense"),
+        resources: [
+            .process("Resources")
+        ],
         swiftSettings: [
             .enableUpcomingFeature("ExistentialAny")
         ],

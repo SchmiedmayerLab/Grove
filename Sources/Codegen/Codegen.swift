@@ -16,6 +16,7 @@ import SpeziHealthKit
 
 
 @main
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct Codegen: ParsableCommand {
     static var configuration: CommandConfiguration {
         CommandConfiguration(
@@ -52,10 +53,6 @@ struct Codegen: ParsableCommand {
     
     
     func run() throws {
-        guard #available(iOS 18, macOS 15, tvOS 18, watchOS 11, visionOS 2, *) else {
-            print("Must be run on macOS 15+")
-            Foundation.exit(EXIT_FAILURE)
-        }
         let file = makeIdentifierDefsFile()
         if let outputUrl {
             try Data(file.utf8).write(to: outputUrl)
@@ -191,6 +188,7 @@ private struct IdentifierDefinitionsFile: ~Copyable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension URL: @retroactive ExpressibleByArgument {
     public init?(argument: String) {
         self = URL(filePath: argument, relativeTo: .currentDirectory()).absoluteURL

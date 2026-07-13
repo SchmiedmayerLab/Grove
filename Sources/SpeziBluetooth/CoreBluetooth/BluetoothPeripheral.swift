@@ -887,7 +887,7 @@ extension BluetoothPeripheral {
 
             let name = peripheral.name
 
-            SpeziBluetooth.assumeIsolatedIfAvailableOrTask {
+            SpeziBluetooth.assumeIsolated {
                 device.storage.peripheralName = name
             }
         }
@@ -897,7 +897,7 @@ extension BluetoothPeripheral {
                 return
             }
 
-            SpeziBluetooth.assumeIsolatedIfAvailableOrTask {
+            SpeziBluetooth.assumeIsolated {
                 let rssi = RSSI.intValue
                 device.storage.rssi = rssi
 
@@ -923,7 +923,7 @@ extension BluetoothPeripheral {
             logger.debug("Services modified, invalidating \(serviceIds)")
 
             let peripheral = CBInstance(instantiatedOnDispatchQueue: peripheral)
-            SpeziBluetooth.assumeIsolatedIfAvailableOrTask {
+            SpeziBluetooth.assumeIsolated {
                 // update our local model!
                 device.invalidateServices(Set(serviceIds))
 
@@ -951,7 +951,7 @@ extension BluetoothPeripheral {
                 result = .success([])
             }
 
-            SpeziBluetooth.assumeIsolatedIfAvailableOrTask {
+            SpeziBluetooth.assumeIsolated {
                 if let cbServices {
                     device.discovered(services: cbServices.cbObject)
                 }
@@ -979,7 +979,7 @@ extension BluetoothPeripheral {
             }
 
             let service = CBInstance(instantiatedOnDispatchQueue: service)
-            SpeziBluetooth.assumeIsolatedIfAvailableOrTask {
+            SpeziBluetooth.assumeIsolated {
                 // update our model with latest characteristics!
                 device.synchronizeModel(for: service.cbObject)
 
@@ -1007,7 +1007,7 @@ extension BluetoothPeripheral {
             let capture = GATTCharacteristicCapture(from: characteristic)
             let characteristic = CBInstance(instantiatedOnDispatchQueue: characteristic)
 
-            SpeziBluetooth.assumeIsolatedIfAvailableOrTask {
+            SpeziBluetooth.assumeIsolated {
                 device.synchronizeModel(for: characteristic.cbObject, capture: capture)
             }
         }
@@ -1020,7 +1020,7 @@ extension BluetoothPeripheral {
             let capture = GATTCharacteristicCapture(from: characteristic)
             let characteristic = CBInstance(instantiatedOnDispatchQueue: characteristic)
 
-            SpeziBluetooth.assumeIsolatedIfAvailableOrTask { [logger] in
+            SpeziBluetooth.assumeIsolated { [logger] in
                 // make sure value is propagated beforehand
                 device.synchronizeModel(for: characteristic.cbObject, capture: capture)
 
@@ -1041,7 +1041,7 @@ extension BluetoothPeripheral {
             let capture = GATTCharacteristicCapture(from: characteristic)
             let characteristic = CBInstance(instantiatedOnDispatchQueue: characteristic)
 
-            SpeziBluetooth.assumeIsolatedIfAvailableOrTask { [logger] in
+            SpeziBluetooth.assumeIsolated { [logger] in
                 device.synchronizeModel(for: characteristic.cbObject, capture: capture)
 
                 let result: Result<Void, Error>
@@ -1065,7 +1065,7 @@ extension BluetoothPeripheral {
                 return
             }
 
-            SpeziBluetooth.assumeIsolatedIfAvailableOrTask {
+            SpeziBluetooth.assumeIsolated {
                 device.writeWithoutResponseAccess.resume()
             }
         }
@@ -1087,7 +1087,7 @@ extension BluetoothPeripheral {
             let capture = GATTCharacteristicCapture(from: characteristic)
             let characteristic = CBInstance(instantiatedOnDispatchQueue: characteristic)
 
-            SpeziBluetooth.assumeIsolatedIfAvailableOrTask { [logger] in
+            SpeziBluetooth.assumeIsolated { [logger] in
                 device.synchronizeModel(for: characteristic.cbObject, capture: capture)
 
                 if error == nil {

@@ -39,21 +39,14 @@ extension SampleTypeProxy {
             self = .heartbeatSeries(sampleType)
         case let sampleType as SampleType<HKVisionPrescription>:
             self = .visionPrescription(sampleType)
+        case let sampleType as SampleType<HKStateOfMind>:
+            self = .stateOfMind(sampleType)
+        case let sampleType as SampleType<HKGAD7Assessment>:
+            self = .gad7(sampleType)
+        case let sampleType as SampleType<HKPHQ9Assessment>:
+            self = .phq9(sampleType)
         default:
-            if #available(iOS 18.0, watchOS 11.0, macOS 15.0, visionOS 2.0, *) {
-                switch sampleType {
-                case let sampleType as SampleType<HKStateOfMind>:
-                    self = .stateOfMind(sampleType)
-                case let sampleType as SampleType<HKGAD7Assessment>:
-                    self = .gad7(sampleType)
-                case let sampleType as SampleType<HKPHQ9Assessment>:
-                    self = .phq9(sampleType)
-                default:
-                    return nil
-                }
-            } else {
-                return nil
-            }
+            return nil
         }
     }
 }
