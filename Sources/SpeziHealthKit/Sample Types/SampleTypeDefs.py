@@ -6,6 +6,8 @@
 # SPDX-License-Identifier: MIT
 #
 
+import os
+import re
 from typing import Optional, Any
 
 def localeDependentUnit(*, us: str, uk: Optional[str] = None, metric: str) -> str:
@@ -15,6 +17,69 @@ def localeDependentUnit(*, us: str, uk: Optional[str] = None, metric: str) -> st
         return f'localeDependentUnit(us: {us}, metric: {metric})'
 
 
+def _parse_version(version: str) -> tuple[int, ...]:
+    """Parse a version string ('18', '18.0', '16.4') or a SwiftPM enum token ('.v15') into a tuple."""
+    version = version.strip().strip('"').strip("'")
+    if version.startswith('.v'):
+        version = version[2:]
+    return tuple(int(part) for part in version.split('.') if part != '')
+
+
+def _is_satisfied_by_floor(version: str, floor: tuple[int, ...]) -> bool:
+    """True iff `version` is at or below `floor`, i.e. an availability check for it is redundant."""
+    parsed = _parse_version(version)
+    width = max(len(parsed), len(floor))
+    parsed = parsed + (0,) * (width - len(parsed))       # so 'iOS 15' and 'iOS 15.0' compare equal
+    padded_floor = floor + (0,) * (width - len(floor))
+    return parsed <= padded_floor
+
+
+def _load_deployment_target() -> dict[str, tuple[int, ...]]:
+    """
+    The package's effective per-platform deployment target, parsed from `packagePlatforms` in the
+    repo-root Package.swift so generated availability annotations always track the real floor. A
+    platform the package supports but does not explicitly pin (e.g. visionOS) falls back to SwiftPM's
+    implicit minimum.
+    """
+    # SwiftPM's implicit minimum for supported-but-unpinned platforms (only visionOS applies here).
+    floor: dict[str, tuple[int, ...]] = {'visionOS': (1, 0)}
+    manifest_path = os.path.normpath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'Package.swift')
+    )
+    with open(manifest_path, encoding='utf-8') as manifest:
+        source = manifest.read()
+    match = re.search(r'packagePlatforms\b.*?=\s*\[(.*?)\]', source, re.DOTALL)
+    if match is None:
+        raise RuntimeError(f'could not locate `packagePlatforms` in {manifest_path}')
+    for platform, version in re.findall(r'\.(\w+)\(\s*(\.v\d+|"[^"]+")\s*\)', match.group(1)):
+        floor[platform] = _parse_version(version)
+    return floor
+
+
+# The package's effective deployment target. An availability constraint at or below it is already
+# guaranteed by the deployment target, so it's redundant and gets dropped from the generated code —
+# leaving only the constraints that are genuinely stricter than what the package already requires.
+DEPLOYMENT_TARGET = _load_deployment_target()
+
+
+def _effective_floor(enclosing: Optional['Availability']) -> dict[str, tuple[int, ...]]:
+    """
+    The per-platform floor in effect at a given point: the package's deployment target, raised by an
+    enclosing `@available` gate when the emitted code is nested inside one. Only the platforms the
+    enclosing gate explicitly names are raised — `@available(..., *)` leaves every other platform at
+    its deployment minimum, which is why e.g. a visionOS constraint survives inside an iOS-only gate.
+    """
+    floor = dict(DEPLOYMENT_TARGET)
+    if enclosing is not None:
+        for platform, version in (('iOS', enclosing.iOS), ('macOS', enclosing.macOS), ('watchOS', enclosing.watchOS), ('visionOS', enclosing.visionOS)):
+            if version is None:
+                continue
+            parsed = _parse_version(version)
+            existing = floor.get(platform)
+            floor[platform] = parsed if existing is None else max(existing, parsed)
+    return floor
+
+
 class Availability(object):
     def __init__(self, *, iOS: Optional[str] = None, macOS: Optional[str] = None, watchOS: Optional[str] = None, visionOS: Optional[str] = None):
         self.iOS = iOS
@@ -22,17 +87,39 @@ class Availability(object):
         self.watchOS = watchOS
         self.visionOS = visionOS
     
-    def components(self) -> list[str]:
+    def components(self, enclosing: Optional['Availability'] = None) -> list[str]:
+        # Emit only the platform constraints that are stricter than the floor in effect at this point.
+        # That floor is the package's deployment target, raised by any enclosing `@available` gate the
+        # code is nested in: inside an `@available(iOS 18, ...)` extension the effective iOS floor is 18,
+        # so an `iOS 18.0` constraint is already guaranteed and gets dropped, whereas an `iOS 18.4` one
+        # is genuinely newer and is kept. Platforms the enclosing gate does not name stay bounded only
+        # by the deployment target, so e.g. a `visionOS 2.0` constraint survives inside an iOS-only gate.
+        floor = _effective_floor(enclosing)
         components: list[str] = []
-        if self.iOS is not None:
-            components.append(f'iOS {self.iOS}')
-        if self.macOS is not None:
-            components.append(f'macOS {self.macOS}')
-        if self.watchOS is not None:
-            components.append(f'watchOS {self.watchOS}')
-        if self.visionOS is not None:
-            components.append(f'visionOS {self.visionOS}')
+        for platform, version in (('iOS', self.iOS), ('macOS', self.macOS), ('watchOS', self.watchOS), ('visionOS', self.visionOS)):
+            if version is None:
+                continue
+            platform_floor = floor.get(platform)
+            if platform_floor is not None and _is_satisfied_by_floor(version, platform_floor):
+                continue
+            components.append(f'{platform} {version}')
         return components
+
+
+def is_availability_restricted(availability: Optional[Availability], enclosing: Optional[Availability] = None) -> bool:
+    """True iff `availability` still constrains at least one platform beyond the floor in effect — the
+    deployment target, raised by any enclosing `@available` gate (see `Availability.components`)."""
+    return availability is not None and len(availability.components(enclosing)) > 0
+
+
+# The availability of the generated `SampleType` API surface itself, mirroring the `@available` on
+# `struct SampleType` in SampleType.swift. Every generated top-level construct (the `SampleType`
+# extensions, the HealthKit-type helper extensions, `localeDependentUnit`) references either
+# `SampleType` (macOS 15+) or a HealthKit type (macOS 13+), neither of which the package's own floor
+# (macOS 12) guarantees — so all of them must carry at least this gate. It is routed through
+# `Availability.components()` like every other annotation, so should the deployment target ever rise
+# past it the now-redundant gate is dropped automatically.
+SAMPLE_TYPE_AVAILABILITY = Availability(iOS='18', macOS='15', watchOS='11')
 
 
 class SampleType(object):

@@ -9,6 +9,18 @@
 %{
 from typing import Optional
 from SampleTypeDefs import *
+
+def _make_availability_decl_imp(prefix: str, availability: Availability, trailing_comma: bool, enclosing: Optional[Availability]):
+    if not is_availability_restricted(availability, enclosing):
+        return ''
+    else:
+        return f'{prefix}available({', '.join(availability.components(enclosing))}, *){', ' if trailing_comma else ''}'
+
+def make_hashtag_available(availability: Availability, *, trailing_comma: bool, enclosing: Optional[Availability] = None) -> str:
+    return _make_availability_decl_imp('#', availability, trailing_comma, enclosing)
+
+def make_at_available(availability: Availability, *, enclosing: Optional[Availability] = None) -> str:
+    return _make_availability_decl_imp('@', availability, False, enclosing)
 }%
 
 // NOTE: This file was automatically generated and should not be edited.
@@ -21,6 +33,9 @@ public import HealthKit
 
 
 /// Selects one of the specified units, based on the current locale.
+% if is_availability_restricted(SAMPLE_TYPE_AVAILABILITY):
+${make_at_available(SAMPLE_TYPE_AVAILABILITY)}
+% end
 @inlinable func localeDependentUnit(
     us: @autoclosure () -> HKUnit,
     uk: @autoclosure () -> HKUnit? = nil,
@@ -39,14 +54,17 @@ public import HealthKit
 
 // MARK: ${display_title} Types
 
+% if is_availability_restricted(SAMPLE_TYPE_AVAILABILITY):
+${make_at_available(SAMPLE_TYPE_AVAILABILITY)}
+% end
 % if hk_class == 'HKClinicalRecord':
 @available(watchOS, unavailable)
 % end
 extension SampleType where Sample == ${hk_class} {
 % for ty in types:
     /// ${ty.doc}
-% if ty.availability is not None:
-    @available(${', '.join(ty.availability.components())}, *)
+% if is_availability_restricted(ty.availability, SAMPLE_TYPE_AVAILABILITY):
+    @available(${', '.join(ty.availability.components(SAMPLE_TYPE_AVAILABILITY))}, *)
 % end
     @inlinable public static var ${ty.property_name}: SampleType<${hk_class}> {
         SampleTypeCache.get(
@@ -62,25 +80,12 @@ extension SampleType where Sample == ${hk_class} {
     }
 % end
 
-%{
-def _make_availability_decl_imp(prefix: str, availability: Availability, trailing_comma: bool):
-    if availability is None:
-        return ''
-    else:
-        return f'{prefix}available({', '.join(availability.components())}, *){', ' if trailing_comma else ''}'
-
-def make_hashtag_available(availability: Availability, *, trailing_comma: bool) -> str:
-    return _make_availability_decl_imp('#', availability, trailing_comma)
-
-def make_at_available(availability: Availability) -> str:
-    return _make_availability_decl_imp('@', availability, False)
-}%
     /// Returns the shared ${display_title} type for the specified identifier.
     public init?(_ identifier: ${hk_sampletype_class}Identifier) where Sample == ${hk_class} {
-        if ${make_hashtag_available(types[0].availability, trailing_comma=True)}identifier == .${types[0].identifier} {
+        if ${make_hashtag_available(types[0].availability, trailing_comma=True, enclosing=SAMPLE_TYPE_AVAILABILITY)}identifier == .${types[0].identifier} {
             self = .${types[0].property_name}
         % for ty in types[1:]:
-        } else if ${make_hashtag_available(ty.availability, trailing_comma=True)}identifier == .${ty.identifier} {
+        } else if ${make_hashtag_available(ty.availability, trailing_comma=True, enclosing=SAMPLE_TYPE_AVAILABILITY)}identifier == .${ty.identifier} {
             self = .${ty.property_name}
         % end
         } else {
@@ -89,6 +94,9 @@ def make_at_available(availability: Availability) -> str:
     }
 }
 
+% if is_availability_restricted(SAMPLE_TYPE_AVAILABILITY):
+${make_at_available(SAMPLE_TYPE_AVAILABILITY)}
+% end
 extension ${hk_sampletype_class} {
     /// All well-known `${hk_sampletype_class}`s
     public static let allKnown${''.join(display_title_plural.split())}: Set<${hk_sampletype_class}> = Set(
@@ -96,12 +104,15 @@ extension ${hk_sampletype_class} {
     )
 }
 
+% if is_availability_restricted(SAMPLE_TYPE_AVAILABILITY):
+${make_at_available(SAMPLE_TYPE_AVAILABILITY)}
+% end
 extension ${hk_sampletype_class}Identifier {
     /// All well-known `${hk_sampletype_class}Identifier`s
     public static let allKnownIdentifiers: Set<${hk_sampletype_class}Identifier> = {
         var identifiers = Set<${hk_sampletype_class}Identifier>()
         % for ty in types:
-        % availability_check = make_hashtag_available(ty.availability, trailing_comma=False)
+        % availability_check = make_hashtag_available(ty.availability, trailing_comma=False, enclosing=SAMPLE_TYPE_AVAILABILITY)
         % if availability_check != '':
         if ${availability_check} {
             identifiers.insert(Self.${ty.identifier})
@@ -115,6 +126,9 @@ extension ${hk_sampletype_class}Identifier {
 }
 % end
 
+% if is_availability_restricted(SAMPLE_TYPE_AVAILABILITY):
+${make_at_available(SAMPLE_TYPE_AVAILABILITY)}
+% end
 extension HKObjectType {
     /// All well-known `HKObjectType`s
     public static let allKnownObjectTypes: Set<HKObjectType> = {
@@ -125,8 +139,8 @@ extension HKObjectType {
         types.formUnion(HKCharacteristicTypeIdentifier.allKnownIdentifiers.map { HKCharacteristicType($0) })
         // types.formUnion(SampleType<HKQuantitySample>.otherSampleTypes.map(\.hkSampleType))
         % for sample_type in other_sample_types:
-        % if sample_type.availability is not None:
-        if ${make_hashtag_available(sample_type.availability, trailing_comma=False)} {
+        % if is_availability_restricted(sample_type.availability, SAMPLE_TYPE_AVAILABILITY):
+        if ${make_hashtag_available(sample_type.availability, trailing_comma=False, enclosing=SAMPLE_TYPE_AVAILABILITY)} {
             types.insert(SampleType.${sample_type.sampleTypePropertyName}.hkSampleType)
         }
         % else:
@@ -141,8 +155,9 @@ extension HKObjectType {
 // MARK: Other Sample Types
 
 % for sample_type in other_sample_types:
-% if sample_type.availability:
-${make_at_available(sample_type.availability)}
+% extension_availability = sample_type.availability if is_availability_restricted(sample_type.availability) else SAMPLE_TYPE_AVAILABILITY
+% if is_availability_restricted(extension_availability):
+${make_at_available(extension_availability)}
 % end
 extension SampleType where Sample == ${sample_type.hkSampleClass} {
     /// ${sample_type.doc}
@@ -157,6 +172,9 @@ extension SampleType where Sample == ${sample_type.hkSampleClass} {
 
 % end
 
+% if is_availability_restricted(SAMPLE_TYPE_AVAILABILITY):
+${make_at_available(SAMPLE_TYPE_AVAILABILITY)}
+% end
 extension SampleType {
     /// All currently-known "other" sample types, which are not quantity, correlation, category, or clinical samples.
     ///
@@ -164,8 +182,8 @@ extension SampleType {
     public static var otherSampleTypes: [any AnySampleType] {
         var retval: [any AnySampleType] = []
         % for sample_type in other_sample_types:
-        % if sample_type.availability is not None:
-        if ${make_hashtag_available(sample_type.availability, trailing_comma=False)} {
+        % if is_availability_restricted(sample_type.availability, SAMPLE_TYPE_AVAILABILITY):
+        if ${make_hashtag_available(sample_type.availability, trailing_comma=False, enclosing=SAMPLE_TYPE_AVAILABILITY)} {
             retval.append(SpeziHealthKit.SampleType.${sample_type.sampleTypePropertyName})
         }
         % else:
@@ -177,6 +195,9 @@ extension SampleType {
 }
 
 
+% if is_availability_restricted(SAMPLE_TYPE_AVAILABILITY):
+${make_at_available(SAMPLE_TYPE_AVAILABILITY)}
+% end
 extension HKCharacteristicTypeIdentifier {
     /// All well-known `HKCharacteristicTypeIdentifier`s
     public static let allKnownIdentifiers: Set<HKCharacteristicTypeIdentifier> = [
