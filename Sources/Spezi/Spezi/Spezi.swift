@@ -11,6 +11,9 @@ import Foundation
 import OrderedCollections
 import RuntimeAssertions
 import SpeziFoundation
+#if canImport(Observation)
+import Observation
+#endif
 #if canImport(SwiftUI)
 import SwiftUI
 #endif
@@ -87,7 +90,7 @@ import SwiftUI
 /// ### Dynamically Loading Modules
 /// - ``loadModule(_:ownership:)``
 /// - ``unloadModule(_:)``
-#if canImport(SwiftUI)
+#if canImport(Observation)
 @Observable
 #endif
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -98,27 +101,48 @@ public final class Spezi: Sendable { // swiftlint:disable:this type_body_length
 
     private let serviceGroup = ServiceModuleGroup(logger: Spezi.logger)
 
+    /// Guards `_storage`.
+    ///
+    /// Held only for the duration of a single `storage` access — never while module code runs.
+    private let storageLock = RWLock()
+
     /// A shared repository to store any `KnowledgeSource`s restricted to the ``SpeziAnchor``.
     ///
     /// Every `Module` automatically conforms to `KnowledgeSource` and is stored within this storage object.
-#if canImport(SwiftUI)
-    // Work around https://github.com/swiftlang/swift/issues/81962 with manually tracked backing storage.
+    ///
+    /// - Note: All accesses are guarded by `storageLock`: reads return a snapshot taken under the read lock;
+    ///     mutations run in place under the write lock via the `_modify` accessor.
+    #if canImport(Observation)
+    // Note that the attribute cannot be `#if`-wrapped on its own: the `@Observable` macro doesn't
+    // see through `#if` around attributes and would transform the property.
     @ObservationIgnored nonisolated(unsafe) private var _storage: SpeziStorage
+    #else
+    nonisolated(unsafe) private var _storage: SpeziStorage
+    #endif
+    
     nonisolated var storage: SpeziStorage {
         get {
+            #if canImport(Observation)
             access(keyPath: \.storage)
-            return _storage
+            #endif
+            return storageLock.withReadLock { _storage }
         }
-        set {
-            withMutation(keyPath: \.storage) {
-                _storage = newValue
+        _modify {
+            // `yield` cannot appear inside a closure, so withMutation/withWriteLock are unrolled by hand here.
+            #if canImport(Observation)
+            _$observationRegistrar.willSet(self, keyPath: \.storage)
+            #endif
+            storageLock._pthreadWriteLock()
+            defer {
+                // defer also covers the unwind path if the caller's mutation throws
+                storageLock._pthreadUnlock()
+                #if canImport(Observation)
+                _$observationRegistrar.didSet(self, keyPath: \.storage)
+                #endif
             }
+            yield &_storage
         }
     }
-#else
-    // Writes are isolated to @MainActor; reads are nonisolated.
-    nonisolated(unsafe) var storage: SpeziStorage
-#endif
 
 #if canImport(SwiftUI)
     /// Key is either a UUID for `@Modifier` or `@Model` property wrappers, or a `ModuleReference` for `EnvironmentAccessible` modifiers.
@@ -169,12 +193,7 @@ public final class Spezi: Sendable { // swiftlint:disable:this type_body_length
 #endif
     
     @_spi(APISupport)
-    @MainActor public var modules: [any Module] {
-        _modules
-    }
-    
-    @_spi(APISupport)
-    public var _modules: [any Module] { // swiftlint:disable:this identifier_name
+    public var modules: [any Module] {
         storage.collect(allOf: (any AnyStoredModules).self)
             .reduce(into: []) { partialResult, modules in
                 partialResult.append(contentsOf: modules.anyModules)
@@ -215,11 +234,7 @@ public final class Spezi: Sendable { // swiftlint:disable:this type_body_length
         storage: consuming SpeziStorage = SpeziStorage()
     ) {
         self.standard = standard
-#if canImport(SwiftUI)
         self._storage = consume storage
-#else
-        self.storage = consume storage
-#endif
 
         do {
             try self.loadModules(modules, ownership: .spezi)
@@ -477,28 +492,25 @@ public final class Spezi: Sendable { // swiftlint:disable:this type_body_length
         guard removed != nil else {
             return
         }
-
         storage[CollectedModuleValues<Value>.self] = entries
-
         for module in modules {
             module.injectModuleValues(from: storage)
         }
     }
 
-#if canImport(SwiftUI)
+    #if canImport(SwiftUI)
     @MainActor
     func handleViewModifierRemoval(for id: UUID) {
         if _viewModifiers[id] != nil {
             _viewModifiers.removeValue(forKey: id)
         }
     }
-#endif
+    #endif
 
     func retrieveDependencyReplacement<M: Module>(for type: M.Type) -> M? {
         guard let storedModules = storage[StoredModulesKey<M>.self] else {
             return nil
         }
-
         let replacement = storedModules.retrieveFirstAvailable()
         storedModules.removeNilReferences(in: &storage) // if we ask for a replacement, there is opportunity to clean up weak reference objects
         return replacement
@@ -519,15 +531,8 @@ public final class Spezi: Sendable { // swiftlint:disable:this type_body_length
     
     @_spi(APISupport)
     @inlinable
-    @MainActor
     public func module<M: Module>(_ moduleType: M.Type = M.self) -> M? {
-        _module(moduleType)
-    }
-    
-    @_spi(APISupport)
-    @inlinable
-    public func _module<M: Module>(_ moduleType: M.Type = M.self) -> M? { // swiftlint:disable:this identifier_name
-        _modules.first { type(of: $0) == moduleType.self } as? M
+        modules.first { type(of: $0) == moduleType.self } as? M
     }
 }
 
