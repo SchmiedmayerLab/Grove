@@ -116,7 +116,7 @@ var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/antlr/antlr4.git", from: "4.13.1"),
     .package(url: "https://github.com/apple/FHIRModels.git", .upToNextMinor(from: "0.8.0")),
     .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "12.1.0"),
-    .package(url: "https://github.com/marmelroy/PhoneNumberKit.git", from: "4.1.0"),
+    .package(url: "https://github.com/PhoneNumberKit/PhoneNumberKit.git", from: "5.0.0"),
     .package(url: "https://github.com/stephencelis/SQLite.swift.git", .upToNextMinor(from: "0.16.0")),
     .package(url: "https://github.com/apple/swift-algorithms.git", from: "1.2.1"),
     .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.6.1"),
