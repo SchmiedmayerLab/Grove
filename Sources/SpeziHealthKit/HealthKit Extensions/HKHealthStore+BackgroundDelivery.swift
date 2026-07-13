@@ -10,7 +10,7 @@
 
 import HealthKit
 import OSLog
-import Spezi
+import class SpeziFoundation.AsyncSemaphore
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -31,19 +31,17 @@ extension HKHealthStore {
         }
     }
     
-    private static let activeObservationsLock = NSLock()
-    nonisolated(unsafe) private static var activeObservations: [HKObjectType: Int] = [:]
-    
-    @MainActor @discardableResult
+    @MainActor
+    @discardableResult
     func startBackgroundDelivery(
-        for sampleTypes: Set<HKSampleType>,
+        for sampleType: HKSampleType,
         withPredicate predicate: NSPredicate? = nil,
         updateHandler: @escaping @MainActor @Sendable (
             Result<(sampleTypes: Set<HKSampleType>, completionHandler: HKObserverQueryCompletionHandler), any Error>
         ) async -> Void
     ) async throws -> BackgroundObserverQueryInvalidator {
-        let queryDescriptors: [HKQueryDescriptor] = sampleTypes
-            .flatMap { $0.effectiveObjectTypesForAuthorization }
+        let queryDescriptors: [HKQueryDescriptor] = sampleType
+            .effectiveObjectTypesForAuthorization
             .compactMap { $0 as? HKSampleType }
             .map { HKQueryDescriptor(sampleType: $0, predicate: predicate) }
         let observerQuery = HKObserverQuery(queryDescriptors: queryDescriptors) { query, sampleTypes, completionHandler, error in
@@ -75,48 +73,60 @@ extension HKHealthStore {
                 await updateHandler(.success((sampleTypes, completionHandler)))
             }
         }
+        do {
+            var enabled = Set<HKSampleType>()
+            do {
+                for descriptor in queryDescriptors {
+                    try await enableBackgroundDelivery(for: descriptor.sampleType)
+                    enabled.insert(descriptor.sampleType)
+                }
+            } catch {
+                // if one of the sample types fails to enabled, we want to roll back the whole thing as best we can
+                for sampleType in enabled {
+                    try? await disableBackgroundDelivery(for: sampleType)
+                }
+                throw error
+            }
+        }
         self.execute(observerQuery)
-        try await enableBackgroundDelivery(for: queryDescriptors.mapIntoSet(\.sampleType))
         return .init(healthStore: self, query: observerQuery)
     }
+}
+
+
+extension HKHealthStore {
+    private static let backgroundDeliveryOperationsGate = AsyncSemaphore()
+    nonisolated(unsafe) private static var backgroundObserverCounts: [HKObjectType: Int] = [:]
     
     
-    func enableBackgroundDelivery(for objectTypes: Set<HKObjectType>) async throws {
-        var enabledObjectTypes: Set<HKObjectType> = []
-        do {
-            for objectType in objectTypes {
-                try await self.enableBackgroundDelivery(for: objectType, frequency: .immediate)
-                enabledObjectTypes.insert(objectType)
-                Self.activeObservationsLock.withLock {
-                    Self.activeObservations[objectType, default: 0] += 1
-                }
-            }
-        } catch {
-            HealthKit.logger.error("Could not enable HealthKit Backgound access for \(objectTypes): \(error.localizedDescription)")
-            // Revert all changes as enable background delivery for the object types failed.
-            disableBackgroundDelivery(for: enabledObjectTypes)
+    func enableBackgroundDelivery(for objectType: HKObjectType) async throws {
+        await Self.backgroundDeliveryOperationsGate.wait()
+        defer {
+            Self.backgroundDeliveryOperationsGate.signal()
         }
+        if Self.backgroundObserverCounts[objectType, default: 0] > 0 {
+            // already registered, we simply need to increcment the count.
+            Self.backgroundObserverCounts[objectType, default: 0] += 1
+            return
+        }
+        try await self.HealthKit::enableBackgroundDelivery(for: objectType, frequency: .immediate)
+        Self.backgroundObserverCounts[objectType] = 1
     }
     
     
-    func disableBackgroundDelivery(
-        for objectTypes: Set<HKObjectType>
-    ) {
-        Self.activeObservationsLock.withLock {
-            for objectType in objectTypes {
-                if let activeObservation = HKHealthStore.activeObservations[objectType] {
-                    let newActiveObservation = activeObservation - 1
-                    if newActiveObservation <= 0 {
-                        Self.activeObservations[objectType] = nil
-                        Task { @MainActor in
-                            try await self.disableBackgroundDelivery(for: objectType)
-                        }
-                    } else {
-                        Self.activeObservations[objectType] = newActiveObservation
-                    }
-                }
-            }
+    func disableBackgroundDelivery(for objectType: HKObjectType) async throws {
+        await Self.backgroundDeliveryOperationsGate.wait()
+        defer {
+            Self.backgroundDeliveryOperationsGate.signal()
         }
+        let numActiveObservers = HKHealthStore.backgroundObserverCounts[objectType, default: 0]
+        guard numActiveObservers > 0 else {
+            return
+        }
+        if numActiveObservers == 1 {
+            try await self.HealthKit::disableBackgroundDelivery(for: objectType)
+        }
+        HKHealthStore.backgroundObserverCounts[objectType] = numActiveObservers - 1
     }
 }
 

@@ -139,6 +139,14 @@ public struct ManagedNavigationStack: View {
         }
         .environment(path)
         .environment(\.isInManagedNavigationStack, true)
+        .onAppear {
+            if !path.didConfigure {
+                // Note: we intentionally perform the initial configuration in here, instead of in the init.
+                // The reason for this is that calling path.configure in the init will, for some reason, cause
+                // a neverending loop of view updates when using an external path. Calling it in here does not.
+                path.configure(elements: steps.elements, isComplete: isComplete, startAtStep: startStepSelector)
+            }
+        }
         .onChange(of: ObjectIdentifier(steps)) {
             // ensure the model uses the latest views from the initializer
             path.updateViews(with: steps.elements)
@@ -168,16 +176,6 @@ public struct ManagedNavigationStack: View {
         isComplete = didComplete
         self.externalPath = externalPath
         self.startStepSelector = startStepSelector
-        if !path.didConfigure {
-            // Note: we intentionally perform the initial configuration in here, instead of in the init.
-            // The reason for this is that calling path.configure in the init will, for some reason, cause
-            // a neverending loop of view updates when using an external path. Calling it in here does not.
-            configurePath()
-        }
-    }
-    
-    private func configurePath() {
-        path.configure(elements: steps.elements, isComplete: isComplete, startAtStep: startStepSelector)
     }
 }
 

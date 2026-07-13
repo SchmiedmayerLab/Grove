@@ -47,10 +47,8 @@ public actor InMemoryAccountStorageProvider: AccountStorageProvider, Environment
 
             // simulate loading from external storage
             Task {
-                try await Task.sleep(for: .seconds(1))
-
+                try? await Task.sleep(for: .seconds(1))
                 let details = records[accountId] ?? AccountDetails()
-
                 cache[accountId] = details
                 storage.notifyAboutUpdatedDetails(for: accountId, details)
             }

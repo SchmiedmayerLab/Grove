@@ -217,6 +217,8 @@ public struct MessageInputView: View {
                             message = result.bestTranscription.formattedString
                         }
                     }
+                } catch {
+                    print("Speech recognition error: \(error)")
                 }
             }
         }

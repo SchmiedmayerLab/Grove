@@ -100,11 +100,11 @@ public final class LocalStorageKey<Value>: LocalStorageKeys, @unchecked Sendable
     }
     
     func withReadLock<Result>(_ block: () throws -> Result) rethrows -> Result {
-        try lock.withReadLock(body: block)
+        try lock.withReadLock(block)
     }
     
     func withWriteLock<Result>(_ block: () throws -> Result) rethrows -> Result {
-        try lock.withWriteLock(body: block)
+        try lock.withWriteLock(block)
     }
     
     func informSubscribersAboutNewValue(_ newValue: Value?) {

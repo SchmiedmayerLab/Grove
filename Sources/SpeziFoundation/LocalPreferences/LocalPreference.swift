@@ -65,11 +65,27 @@ public import SwiftUI
 @available(iOS 18, macOS 15, watchOS 11, *)
 @propertyWrapper
 public struct LocalPreference<T: SendableMetatype>: DynamicProperty, Sendable {
+    private enum UsageContext {
+        case swiftUI, external
+    }
+    
     private let key: LocalPreferenceKey<T>
     private let store: LocalPreferencesStore
-    @State private var observer = UserDefaultsKeyObserver<T>()
+    private var usageContext: UsageContext = .external
     
-    /// The current value of the local preference..
+    private let externalObserver = UserDefaultsKeyObserver<T>()
+    @State private var swiftUIObserver = UserDefaultsKeyObserver<T>()
+    
+    private var observer: UserDefaultsKeyObserver<T> {
+        switch usageContext {
+        case .swiftUI:
+            swiftUIObserver
+        case .external:
+            externalObserver
+        }
+    }
+    
+    /// The current value of the local preference.
     public var wrappedValue: T {
         get {
             _ = observer.viewUpdate
@@ -102,7 +118,8 @@ public struct LocalPreference<T: SendableMetatype>: DynamicProperty, Sendable {
     }
     
     @_documentation(visibility: internal)
-    nonisolated public func update() {
+    nonisolated public mutating func update() {
+        usageContext = .swiftUI
         observer.configure(for: key, in: store)
     }
 }

@@ -195,21 +195,23 @@ public final class InMemoryAccountService: AccountService {
     public func configure() {
         let subscription = externalStorage.updatedDetails
         Task { [weak self] in
-            for await updatedDetails in subscription {
-                guard let self else {
-                    return
+            do throws(CancellationError) {
+                for await updatedDetails in subscription {
+                    guard let self else {
+                        return
+                    }
+                    guard let accountId = UUID(uuidString: updatedDetails.accountId),
+                          let storage = registeredUsers[accountId] else {
+                        continue
+                    }
+                    try await access.waitCheckingCancellation()
+                    var details = _buildUser(from: storage, isNew: false)
+                    details.add(contentsOf: updatedDetails.details)
+                    account.supplyUserDetails(details)
+                    access.signal()
                 }
-
-                guard let accountId = UUID(uuidString: updatedDetails.accountId),
-                      let storage = registeredUsers[accountId] else {
-                    continue
-                }
-
-                try await access.waitCheckingCancellation()
-                var details = _buildUser(from: storage, isNew: false)
-                details.add(contentsOf: updatedDetails.details)
-                account.supplyUserDetails(details)
-                access.signal()
+            } catch {
+                // ignored (only throws CancellationErrors)
             }
         }
     }
