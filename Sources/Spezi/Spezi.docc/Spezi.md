@@ -23,34 +23,34 @@ Unfortunately, DocC currently does not support dark mode images: https://github.
 -->
 @Row {
     @Column {
-        @Image(source: "../../SpeziConsent/SpeziConsent.docc/Resources/Consent1.png", alt: "Screenshot displaying the UI of the consent module.") {
+        @Image(source: "Consent1", alt: "Screenshot displaying the UI of the consent module.") {
             The [Spezi Onboarding](../../SpeziOnboarding/SpeziOnboarding.docc/SpeziOnboarding.md) and [Spezi Consent](../../SpeziConsent/SpeziConsent.docc/SpeziConsent.md) modules.
         }
     }
     @Column {
-        @Image(source: "../../SpeziDevicesUI/SpeziDevicesUI.docc/Resources/PairedDevices.png", alt: "Screenshot displaying Spezi Devices and Bluetooth pairing user interface.") {
+        @Image(source: "PairedDevices", alt: "Screenshot displaying Spezi Devices and Bluetooth pairing user interface.") {
             The [Spezi Bluetooth](../../SpeziBluetooth/SpeziBluetooth.docc/SpeziBluetooth.md) and [Spezi Devices](../../SpeziDevices/SpeziDevices.docc/SpeziDevices.md) modules.
         }
     }
     @Column {
-        @Image(source: "../../SpeziQuestionnaire/SpeziQuestionnaire.docc/Resources/Overview.png", alt: "Screenshot displaying the UI of the questionnaire module.") {
+        @Image(source: "QuestionnaireOverview", alt: "Screenshot displaying the UI of the questionnaire module.") {
             The [Spezi Questionnaire](../../SpeziQuestionnaire/SpeziQuestionnaire.docc/SpeziQuestionnaire.md) module.
         }
     }
 }
 @Row {
     @Column {
-        @Image(source: "../../SpeziAccount/SpeziAccount.docc/Resources/AccountSetup.png", alt: "Screenshot displaying the account setup view with email and password prompt and Sign In with Apple button using the Spezi Account module.") {
+        @Image(source: "AccountSetup", alt: "Screenshot displaying the account setup view with email and password prompt and Sign In with Apple button using the Spezi Account module.") {
             The [Spezi Account](../../SpeziAccount/SpeziAccount.docc/SpeziAccount.md) module.
         }
     }
     @Column {
-        @Image(source: "../../SpeziValidation/SpeziValidation.docc/Resources/Validation.png", alt: "Three different text fields showing validation errors with the Spezi Validation package.") {
+        @Image(source: "Validation", alt: "Three different text fields showing validation errors with the Spezi Validation package.") {
             The [Spezi Views](../../SpeziViews/SpeziViews.docc/SpeziViews.md) module, including the [SpeziValidation](../../SpeziValidation/SpeziValidation.docc/SpeziValidation.md) target.
         }
     }
     @Column {
-        @Image(source: "../../SpeziLLMLocal/SpeziLLMLocal.docc/Resources/ChatView.png", alt: "Chat view of a locally executed LLM using the Spezi LLM module.") {
+        @Image(source: "ChatView", alt: "Chat view of a locally executed LLM using the Spezi LLM module.") {
             The [Spezi LLM](../../SpeziLLM/SpeziLLM.docc/SpeziLLM.md) module.
         }
     }

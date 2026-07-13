@@ -35,6 +35,12 @@ TESTING_FLOOR_DEPLOYMENT_TARGETS="IPHONEOS_DEPLOYMENT_TARGET=26.0 MACOSX_DEPLOYM
 # conditions still keep watchOS-/macOS-incompatible deps out of those platforms' graphs).
 export SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS=1
 
+# DocC catalogs are never needed to compile or run the tests. Excluding them from the test build
+# (the manifest's targetExcludes() honors this flag) avoids unnecessary work; doc builds set it to 0
+# so DocC can still resolve their articles and assets. (`.license` files are excluded unconditionally
+# by the manifest to suppress SwiftPM unhandled-file warnings, independent of this flag.)
+export SPEZI_EXCLUDE_DOCC_CATALOGS="${SPEZI_EXCLUDE_DOCC_CATALOGS:-1}"
+
 PACKAGES="FHIRModelsExtensions HealthKitOnFHIR ResearchKitOnFHIR Spezi SpeziAccessGuard SpeziAccount SpeziBluetooth SpeziChat SpeziConsent SpeziContact SpeziDevices SpeziFHIR SpeziFileFormats SpeziFirebase SpeziFoundation SpeziHealthKit SpeziLLM SpeziLicense SpeziLocation SpeziNetworking SpeziNotifications SpeziOnboarding SpeziQuestionnaire SpeziScheduler SpeziSensorKit SpeziSpeech SpeziStorage SpeziStudy SpeziViews ThreadLocal XCTHealthKit XCTRuntimeAssertions XCTestExtensions"
 
 # package -> the platforms it was tested on upstream (the union CI matrix)

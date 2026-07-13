@@ -8,8 +8,7 @@ SPDX-License-Identifier: MIT
   
 -->
 
-SpeziOnboarding contributors
-====================
+# SpeziOnboarding contributors
 
 * [Paul Schmiedmayer](https://github.com/PSchmiedmayer)
 * [Vishnu Ravi](https://github.com/vishnuravi)

@@ -113,12 +113,6 @@ Default layouts and utilities to automatically adapt your view layouts to dynami
 - ``ReverseLabelStyle``
 - ``SwiftUI/LabelStyle/reverse``
 
-### Localization
-
-- ``Foundation/LocalizedStringResource/BundleDescription/atURL(from:)``
-- ``Foundation/LocalizedStringResource/localizedString(for:)``
-- ``Swift/StringProtocol/localized(_:)``
-
 ### Readers
 
 - ``HorizontalGeometryReader``

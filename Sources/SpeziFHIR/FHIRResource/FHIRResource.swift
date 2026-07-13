@@ -225,9 +225,9 @@ public struct FHIRResource: Identifiable, Hashable {
         
         switch versionedResource {
         case let .r4(resource):
-            return (try? String(decoding: encoder.encode(resource), as: UTF8.self)) ?? "{}"
+            return (try? encoder.encode(resource)).map { String(decoding: $0, as: UTF8.self) } ?? "{}"
         case let .dstu2(resource):
-            return (try? String(decoding: encoder.encode(resource), as: UTF8.self)) ?? "{}"
+            return (try? encoder.encode(resource)).map { String(decoding: $0, as: UTF8.self) } ?? "{}"
         }
     }
 }

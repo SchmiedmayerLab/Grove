@@ -44,7 +44,6 @@ struct CombinedShareSheetInput: Identifiable, Equatable {
 ///
 /// ## Topics
 /// ### Initializers
-/// - ``init(_:)-(HasDirectUIActivityViewControllerSupportHashable)``
 /// - ``init(_:id:)``
 /// - ``init(_:)-(NSItemProviderWriting)``
 /// - ``init(_:)-(T)``

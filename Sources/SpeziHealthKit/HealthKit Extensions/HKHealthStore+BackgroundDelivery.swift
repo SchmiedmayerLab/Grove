@@ -109,7 +109,7 @@ extension HKHealthStore {
                     if newActiveObservation <= 0 {
                         Self.activeObservations[objectType] = nil
                         Task { @MainActor in
-                            try await self.disableBackgroundDelivery(for: objectType)
+                            try? await self.disableBackgroundDelivery(for: objectType)
                         }
                     } else {
                         Self.activeObservations[objectType] = newActiveObservation

@@ -27,7 +27,7 @@ extension AnchoredFetcher {
         private let anchor: ManagedQueryAnchor
         private let quarantineCutoff: Date
         private let batchSize: TimeInterval
-        nonisolated(unsafe) private let device: SRDevice
+        private let device: SRDevice
         private var state: State = .initial
         
         init(
@@ -83,6 +83,7 @@ extension AnchoredFetcher {
                 try advanceState()
                 return try await next(isolation: isolation)
             case .process(let timeRange):
+                nonisolated(unsafe) let device = device
                 let results = try await sensor.fetch(from: device, timeRange: timeRange)
                 try advanceState()
                 let batchInfo = SensorKit.BatchInfo(timeRange: timeRange, device: SensorKit.DeviceInfo(device))

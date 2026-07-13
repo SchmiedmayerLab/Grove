@@ -67,9 +67,22 @@ public struct VerifiableTextField<FieldLabel: View, FieldFooter: View>: View {
         _ label: LocalizedStringResource,
         text: Binding<String>,
         type: TextFieldType = .text,
-        @ViewBuilder footer: () -> FieldFooter = { EmptyView() }
+        @ViewBuilder footer: () -> FieldFooter
     ) where FieldLabel == Text {
         self.init(text: text, type: type, label: { Text(label) }, footer: footer)
+    }
+
+    /// Create a new verifiable text field.
+    /// - Parameters:
+    ///   - label: The localized text label for the text field.
+    ///   - text: The binding to the stored value.
+    ///   - type: An optional ``TextFieldType``.
+    public init(
+        _ label: LocalizedStringResource,
+        text: Binding<String>,
+        type: TextFieldType = .text
+    ) where FieldLabel == Text, FieldFooter == EmptyView {
+        self.init(label, text: text, type: type, footer: EmptyView.init)
     }
 
     /// Create a new verifiable text field.
@@ -82,12 +95,25 @@ public struct VerifiableTextField<FieldLabel: View, FieldFooter: View>: View {
         text: Binding<String>,
         type: TextFieldType = .text,
         @ViewBuilder label: () -> FieldLabel,
-        @ViewBuilder footer: () -> FieldFooter = { EmptyView() }
+        @ViewBuilder footer: () -> FieldFooter
     ) {
         self._text = text
         self.fieldType = type
         self.label = label()
         self.textFieldFooter = footer()
+    }
+
+    /// Create a new verifiable text field.
+    /// - Parameters:
+    ///   - text: The binding to the stored value.
+    ///   - type: An optional ``TextFieldType``.
+    ///   - label: An arbitrary label for the text field.
+    public init(
+        text: Binding<String>,
+        type: TextFieldType = .text,
+        @ViewBuilder label: () -> FieldLabel
+    ) where FieldFooter == EmptyView {
+        self.init(text: text, type: type, label: label, footer: EmptyView.init)
     }
 }
 

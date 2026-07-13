@@ -10,8 +10,7 @@
              
 -->
 
-SpeziSensorKit contributors
-====================
+# SpeziSensorKit contributors
 
 * [Lukas Kollmer](https://github.com/lukaskollmer)
 * [Paul Schmiedmayer](https://github.com/PSchmiedmayer)

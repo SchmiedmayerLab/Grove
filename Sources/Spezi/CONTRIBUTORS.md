@@ -8,8 +8,7 @@ SPDX-License-Identifier: MIT
    
 -->
 
-Spezi contributors
-====================
+# Spezi contributors
 
 * [Paul Schmiedmayer](https://github.com/PSchmiedmayer)
 * [Andreas Bauer](https://github.com/bauer-andreas)

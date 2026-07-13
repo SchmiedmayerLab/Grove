@@ -94,6 +94,8 @@ private struct MockSecurityAlert: ViewModifier {
         }
     }
 
+    nonisolated init() {}
+
     func body(content: Content) -> some View {
         content
             .onAppear {
@@ -205,7 +207,11 @@ public final class InMemoryAccountService: AccountService {
                     continue
                 }
 
-                try await access.waitCheckingCancellation()
+                do {
+                    try await access.waitCheckingCancellation()
+                } catch {
+                    return
+                }
                 var details = _buildUser(from: storage, isNew: false)
                 details.add(contentsOf: updatedDetails.details)
                 account.supplyUserDetails(details)

@@ -90,7 +90,7 @@ extension XCTestCase {
     ///   - systemUnderTest: The app under test (`XCUIApplication`) that initiates the Health Records authorization.
     ///                      Defaults to a new `XCUIApplication` instance.
     ///   - healthApp: The `XCUIApplication` instance representing the Health app. Defaults to `.healthApp`.
-    ///   - account: The `HealthAppHealthRecordAccount` to use when authorizing access. Defaults to `.sampleA`.
+    ///   - accounts: The `HealthAppHealthRecordAccount`s to use when authorizing access. Defaults to all available sample accounts.
     ///   - healthRecordTypes: The clinical record types to enable for sharing. Defaults to all available types.
     ///   - automaticallyShareUpdates: A Boolean value indicating whether to enable automatic sharing of updates
     ///                                when prompted. Defaults to `true`.

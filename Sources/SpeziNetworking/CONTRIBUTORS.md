@@ -10,8 +10,7 @@
              
 -->
 
-SpeziNetworking contributors
-====================
+# SpeziNetworking contributors
 
 * [Paul Schmiedmayer](https://github.com/PSchmiedmayer)
 * [Andreas Bauer](https://github.com/bauer-andreas)

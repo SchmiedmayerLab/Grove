@@ -43,7 +43,7 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
     @Test("Test Invalid Parameters")
     func testLLMFunctionInvalidParameters() async throws {
         let llm = LLMOpenAISchema(
-            parameters: .init(modelType: "gpt-4o")
+            parameters: .init(modelType: .gpt4o)
         ) {
             LLMFunctionTestInvalid(someInitArg: "testArg")
         }

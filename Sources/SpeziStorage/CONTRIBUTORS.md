@@ -8,8 +8,7 @@ SPDX-License-Identifier: MIT
   
 -->
 
-SpeziStorage contributors
-====================
+# SpeziStorage contributors
 
 * [Paul Schmiedmayer](https://github.com/PSchmiedmayer)
 * [Vishnu Ravi](https://github.com/vishnuravi)

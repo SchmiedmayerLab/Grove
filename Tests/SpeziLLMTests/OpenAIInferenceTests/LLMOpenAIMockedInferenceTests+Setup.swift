@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import Foundation
 import GeneratedOpenAIClient
 import OpenAPIRuntime
 @testable import Spezi
@@ -42,51 +43,59 @@ extension LLMOpenAIMockedInferenceTests {
     
     /// Helper struct for building mocked streaming responses from the OpenAI API.
     struct ChatResponseBuilder {
+        private enum EncodingError: Error {
+            case invalidUTF8
+        }
+
         private static let responseChunkId = UUID().uuidString
         private static let responseTimestamp = Int(Date().timeIntervalSince1970)
         
         private let createMockChatResponse: (String) throws -> String = { message in
-            String(decoding: try JSONEncoder().encode(
-                Components.Schemas.CreateChatCompletionStreamResponse(
-                    id: Self.responseChunkId,
-                    choices: ([
-                        .init(
-                            delta: .init(content: message, role: .assistant),
-                            logprobs: .none,
-                            finish_reason: nil,
-                            index: 0
-                        )
-                    ]),
-                    created: Self.responseTimestamp,
-                    model: "spezi-mock",
-                    object: .chat_period_completion_period_chunk
-                )
-            ), as: UTF8.self)
+            try Self.utf8String(from: .init(
+                id: Self.responseChunkId,
+                choices: ([
+                    .init(
+                        delta: .init(content: message, role: .assistant),
+                        logprobs: .none,
+                        finish_reason: nil,
+                        index: 0
+                    )
+                ]),
+                created: Self.responseTimestamp,
+                model: "spezi-mock",
+                object: .chat_period_completion_period_chunk
+            ))
         }
         
         private let createMockFunctionCallResponse: (String, String) throws -> String = { name, arguments in
-            String(decoding: try JSONEncoder().encode(
-                Components.Schemas.CreateChatCompletionStreamResponse(
-                    id: Self.responseChunkId,
-                    choices: ([
-                        .init(
-                            delta: .init(
-                                content: .none,
-                                tool_calls: [.init(index: 0, id: UUID().uuidString, function: .init(name: name, arguments: arguments))]
-                            ),
-                            logprobs: .none,
-                            finish_reason: nil,
-                            index: 0
-                        )
-                    ]),
-                    created: Self.responseTimestamp,
-                    model: "spezi-mock",
-                    object: .chat_period_completion_period_chunk
-                )
-            ), as: UTF8.self)
+            try Self.utf8String(from: .init(
+                id: Self.responseChunkId,
+                choices: ([
+                    .init(
+                        delta: .init(
+                            content: .none,
+                            tool_calls: [.init(index: 0, id: UUID().uuidString, function: .init(name: name, arguments: arguments))]
+                        ),
+                        logprobs: .none,
+                        finish_reason: nil,
+                        index: 0
+                    )
+                ]),
+                created: Self.responseTimestamp,
+                model: "spezi-mock",
+                object: .chat_period_completion_period_chunk
+            ))
         }
         
         private var data: [String] = []
+
+        private static func utf8String(from response: Components.Schemas.CreateChatCompletionStreamResponse) throws -> String {
+            let data = try JSONEncoder().encode(response)
+            guard let string = String(data: data, encoding: .utf8) else {
+                throw EncodingError.invalidUTF8
+            }
+            return string
+        }
         
         /// Appends a standard assistant text message to the response.
         /// - Parameter text: The message content to append.

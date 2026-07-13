@@ -165,11 +165,9 @@ struct SampleTypesTests {
     @Test
     func sampleTypeSwitching() {
         let sampleType = SampleTypeProxy(.heartburn)
-        switch sampleType {
-        case .category(.heartburn):
-            #expect(Bool(true))
-        default:
+        guard case .category(.heartburn) = sampleType else {
             Issue.record("Pattern matching failed.")
+            return
         }
     }
 }

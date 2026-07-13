@@ -37,8 +37,7 @@ import SwiftUI
 /// - ``ConfigState``
 ///
 /// ### Registering Data Collectors
-/// - ``addHealthDataCollector(_:)-1sq79``
-/// - ``addHealthDataCollector(_:)-10bp6``
+/// - ``addHealthDataCollector(_:)-(CollectSamples<Any>)``
 /// - ``triggerDataSourceCollection()``
 /// - ``resetSampleCollection(for:)``
 ///

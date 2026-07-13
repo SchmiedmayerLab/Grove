@@ -29,6 +29,10 @@ struct MarkdownViewImageProvider: ImageProvider {
                 }
             }
         }
+
+        nonisolated init(url: URL?) {
+            self.url = url
+        }
     }
     
     func makeImage(url: URL?) -> some View {

@@ -98,11 +98,9 @@ public enum StartSessionError: Error {
 /// - ``failedBatches``
 /// - ``numTotalBatches``
 /// - ``numProcessedBatches``
-/// - ``currentBatch``
 /// - ``progress``
 /// ### Instance Methods
-/// - ``start(retryFailedBatches:)-23rws``
-/// - ``start(retryFailedBatches:)-9dmk0``
+/// - ``start(retryFailedBatches:concurrencyLevel:)``
 /// - ``pause()``
 /// ### Other
 /// - ``SpeziHealthKitBulkExport/==(_:_:)``

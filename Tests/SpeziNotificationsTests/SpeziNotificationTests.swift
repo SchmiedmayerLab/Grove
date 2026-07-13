@@ -117,7 +117,7 @@ final class NotificationsTests: XCTestCase {
 
         try await Task.sleep(for: .milliseconds(500)) // allow dispatch of Task above
 
-        let data = try XCTUnwrap("Hello World".data(using: .utf8))
+        let data = Data("Hello World".utf8)
 
 #if os(iOS) || os(visionOS) || os(tvOS)
         delegate.application(UIApplication.shared, didRegisterForRemoteNotificationsWithDeviceToken: data)

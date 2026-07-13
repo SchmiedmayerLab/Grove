@@ -35,12 +35,19 @@ extension XCUIApplication {
             buttons["Add Date of Birth"].tap()
         }
 
-        XCTAssertTrue(datePickers.firstMatch.waitForExistence(timeout: 2.0), "Failed to find date of birth picker")
-        datePickers.firstMatch.tap()
+        let datePicker = datePickers.firstMatch
+        XCTAssertTrue(datePicker.waitForExistence(timeout: 4.0), "Failed to find date of birth picker")
+        if datePicker.buttons.firstMatch.wait(for: \.isHittable, toEqual: true, timeout: 2.0) {
+            datePicker.buttons.firstMatch.tap()
+        } else {
+            XCTAssertTrue(datePicker.wait(for: \.isHittable, toEqual: true, timeout: 4.0), "Failed to find hittable date of birth picker")
+            datePicker.tap()
+        }
 
         // navigate to previous month and select the first date
-        XCTAssertTrue(datePickers.buttons["Previous Month"].waitForExistence(timeout: 2.0), "Couldn't find 'Previous Month' button")
-        datePickers.buttons["Previous Month"].tap()
+        let previousMonthButton = datePickers.buttons["Previous Month"]
+        XCTAssertTrue(previousMonthButton.wait(for: \.isHittable, toEqual: true, timeout: 4.0), "Couldn't find hittable 'Previous Month' button")
+        previousMonthButton.tap()
 
         // Tap the first button that contains "Friday" in its label
         let fridayButton = buttons.containing(NSPredicate(format: "label CONTAINS[c] %@", "Friday")).firstMatch

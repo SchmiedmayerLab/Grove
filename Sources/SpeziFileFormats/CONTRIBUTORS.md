@@ -10,7 +10,6 @@
              
 -->
 
-SpeziFileFormats contributors
-====================
+# SpeziFileFormats contributors
 
 * [Andreas Bauer](https://github.com/bauer-andreas)

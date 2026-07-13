@@ -56,7 +56,7 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
     @Test("Test Array Parameters")
     func testLLMFunctionArrayParameters() async throws {
         let llm = LLMOpenAISchema(
-            parameters: .init(modelType: "gpt-4o")
+            parameters: .init(modelType: .gpt4o)
         ) {
             LLMFunctionTestArray(someInitArg: "testArg")
         }

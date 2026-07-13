@@ -101,7 +101,24 @@ public final class Spezi: Sendable { // swiftlint:disable:this type_body_length
     /// A shared repository to store any `KnowledgeSource`s restricted to the ``SpeziAnchor``.
     ///
     /// Every `Module` automatically conforms to `KnowledgeSource` and is stored within this storage object.
-    nonisolated(unsafe) var storage: SpeziStorage // nonisolated, writes are all isolated to @MainActor, just reads are non-isolated
+#if canImport(SwiftUI)
+    // Work around https://github.com/swiftlang/swift/issues/81962 with manually tracked backing storage.
+    @ObservationIgnored nonisolated(unsafe) private var _storage: SpeziStorage
+    nonisolated var storage: SpeziStorage {
+        get {
+            access(keyPath: \.storage)
+            return _storage
+        }
+        set {
+            withMutation(keyPath: \.storage) {
+                _storage = newValue
+            }
+        }
+    }
+#else
+    // Writes are isolated to @MainActor; reads are nonisolated.
+    nonisolated(unsafe) var storage: SpeziStorage
+#endif
 
 #if canImport(SwiftUI)
     /// Key is either a UUID for `@Modifier` or `@Model` property wrappers, or a `ModuleReference` for `EnvironmentAccessible` modifiers.
@@ -198,7 +215,11 @@ public final class Spezi: Sendable { // swiftlint:disable:this type_body_length
         storage: consuming SpeziStorage = SpeziStorage()
     ) {
         self.standard = standard
+#if canImport(SwiftUI)
+        self._storage = consume storage
+#else
         self.storage = consume storage
+#endif
 
         do {
             try self.loadModules(modules, ownership: .spezi)

@@ -143,12 +143,12 @@ extension StudyBundle.BundleValidationIssue {
             }
             
             /// Creates a new ``Path`` that accesses the root-level field `name`.
-            static subscript(dynamicMember name: String) -> Self {
+            public static subscript(dynamicMember name: String) -> Self {
                 .root.appending(name)
             }
             
             /// Creates a new ``Path`` by appending a field access component.
-            subscript(dynamicMember name: String) -> Self {
+            public subscript(dynamicMember name: String) -> Self {
                 Self(components + CollectionOfOne(.field(name: name)))
             }
             

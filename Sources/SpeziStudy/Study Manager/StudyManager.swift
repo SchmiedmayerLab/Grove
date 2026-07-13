@@ -149,12 +149,17 @@ public final class StudyManager: Module, EnvironmentAccessible, Sendable {
     @_documentation(visibility: internal)
     public func configure() { // swiftlint:disable:this function_body_length
         typealias Task = _Concurrency.Task
-        Task { @MainActor in
-            let enrollments = try modelContext.fetch(FetchDescriptor<StudyEnrollment>())
-            try registerStudyTasksWithScheduler(for: enrollments)
-            try await setupStudyBackgroundComponents(for: enrollments)
-            try removeOrphanedTasks()
-            try removeOrphanedStudyBundles()
+        Task { @MainActor [self] in
+            let enrollments: [StudyEnrollment]
+            do {
+                enrollments = try modelContext.fetch(FetchDescriptor<StudyEnrollment>())
+                try registerStudyTasksWithScheduler(for: enrollments)
+                try await setupStudyBackgroundComponents(for: enrollments)
+                try removeOrphanedTasks()
+                try removeOrphanedStudyBundles()
+            } catch {
+                return
+            }
             #if targetEnvironment(simulator)
             if autosaveTask == nil {
                 autosaveTask = Task.detached {

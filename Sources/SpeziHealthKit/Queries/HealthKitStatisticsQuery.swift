@@ -163,7 +163,7 @@ extension HealthKit {
     /// - Note: There is a known bug, where a query that uses a `SourceFilter` and initially doesn't match any samples
     ///     (e.g.: because no samples from a matching `HKSource` exist), will not auto-update when a source that matches the filter adds new samples.
     ///     Instead, these samples will only be returned when the function is called again.
-    ///     If this is a likely scenario for your app, use ``continuousStatisticsQuery`` without a `SourceFilter` and perform filtering on the resulting samples.
+    ///     If this is a likely scenario for your app, use ``continuousStatisticsQuery(_:options:aggInterval:timeRange:source:filterPredicate:)`` without a `SourceFilter` and perform filtering on the resulting samples.
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, *)
     public func continuousStatisticsQuery(
         _ sampleType: SampleType<HKQuantitySample>,
@@ -198,7 +198,7 @@ extension HealthKit {
     /// - Note: There is a known bug, where a query that uses a `SourceFilter` and initially doesn't match any samples
     ///     (e.g.: because no samples from a matching `HKSource` exist), will not auto-update when a source that matches the filter adds new samples.
     ///     Instead, these samples will only be returned when the function is called again.
-    ///     If this is a likely scenario for your app, use ``continuousStatisticsQuery`` without a `SourceFilter` and perform filtering on the resulting samples.
+    ///     If this is a likely scenario for your app, use ``continuousStatisticsQuery(_:options:aggInterval:timeRange:source:filterPredicate:)`` without a `SourceFilter` and perform filtering on the resulting samples.
     @available(iOS, deprecated: 18.0)
     @available(macOS, deprecated: 15.0)
     @available(watchOS, deprecated: 11.0)

@@ -11,7 +11,7 @@ import ModelsR4
 
 
 extension FHIRResource {
-    /// Best effort function to transform the base64 data representatino of any ``FHIRAttachment`` to a string-based respresentation of the data type.
+    /// Best effort function to transform the base64 data representation of a FHIR attachment to a string-based representation of the data type.
     ///
     /// This funcationality is especially useful if the data content is inspected for debug purposes or passing it ot a LLM component.
     public func stringifyAttachments() throws {

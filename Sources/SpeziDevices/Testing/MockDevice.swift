@@ -61,7 +61,7 @@ public final class MockDevice: PairableDevice, HealthDevice, BatteryPoweredDevic
         if isInPairingMode { // automatically respond to pairing event
             if case .connected = state {
                 Task { @MainActor in
-                    try await Task.sleep(for: .seconds(2))
+                    try? await Task.sleep(for: .seconds(2))
 
                     guard case .connected = self.state else {
                         return

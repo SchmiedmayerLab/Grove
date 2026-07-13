@@ -17,7 +17,7 @@ extension ConsentDocument {
     public struct ExportConfiguration: Equatable, Sendable {
         /// Represents common paper sizes with their dimensions.
         ///
-        /// You can use the ``dimensions`` property to get the width and height of each paper size in points.
+            /// The dimensions are used to derive the width and height of each paper size in points.
         ///
         /// - Note: The dimensions are calculated based on the standard DPI (dots per inch) of 72 for print.
         public enum PaperSize: Equatable, Sendable {

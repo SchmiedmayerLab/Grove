@@ -8,8 +8,7 @@ SPDX-License-Identifier: MIT
   
 -->
 
-Spezi Questionnaire Contributors
-====================
+# Spezi Questionnaire Contributors
 
 * [Lukas Kollmer](https://github.com/lukaskollmer)
 * [Paul Schmiedmayer](https://github.com/PSchmiedmayer)

@@ -26,8 +26,8 @@ import SwiftUI
 /// - ``requestAccess(to:)``
 ///
 /// ## Anchored Querying
-/// - ``fetchAnchored(_:)``
-/// - ``resetQueryAnchor(for:)``
+/// - ``fetchAnchored(_:batchSize:)``
+/// - ``resetQueryAnchors(for:)``
 @available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class SensorKit: Module, EnvironmentAccessible, @unchecked Sendable {
@@ -154,7 +154,7 @@ extension SensorKit {
     
     /// Resets the query anchors for the specified sensor.
     ///
-    /// This will cause subsequent calls to ``fetchAnchored(_:)`` to potentially re-fetch already-processed samples.
+    /// This will cause subsequent calls to ``fetchAnchored(_:batchSize:)`` to potentially re-fetch already-processed samples.
     public func resetQueryAnchors(for sensor: any AnySensor) throws {
         try localStorage.deleteAll { rawKey in
             rawKey.starts(with: "\(SensorKit.queryAnchorKeyPrefix).\(sensor.id)")

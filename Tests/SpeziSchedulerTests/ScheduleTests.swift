@@ -8,7 +8,6 @@
 
 @testable import SpeziScheduler
 import XCTest
-import XCTSpezi
 
 
 final class ScheduleTests: XCTestCase {
