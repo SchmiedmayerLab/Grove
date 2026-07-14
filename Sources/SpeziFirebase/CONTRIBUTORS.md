@@ -8,8 +8,7 @@ SPDX-License-Identifier: MIT
   
 -->
 
-Spezi Firebase contributors
-====================
+# Spezi Firebase contributors
 
 * [Paul Schmiedmayer](https://github.com/PSchmiedmayer)
 * [Philipp Zagar](https://github.com/philippzagar)

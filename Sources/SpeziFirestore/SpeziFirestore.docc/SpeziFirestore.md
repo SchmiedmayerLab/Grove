@@ -39,9 +39,9 @@ class FirestoreExampleDelegate: SpeziAppDelegate {
 
 ### Document Reference
 
-- ``FirebaseFirestoreInternal/DocumentReference/setData(from:encoder:)``
-- ``FirebaseFirestoreInternal/DocumentReference/setData(from:merge:encoder:)``
-- ``FirebaseFirestoreInternal/DocumentReference/setData(from:mergeFields:encoder:)``
+- ``FirebaseFirestoreInternal/DocumentReference/setData(isolation:from:encoder:)``
+- ``FirebaseFirestoreInternal/DocumentReference/setData(isolation:from:merge:encoder:)``
+- ``FirebaseFirestoreInternal/DocumentReference/setData(isolation:from:mergeFields:encoder:)``
 
 ### Errors
 

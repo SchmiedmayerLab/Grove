@@ -54,7 +54,7 @@ You use the ``Sensor`` type to interact with individual SensorKit sensors.
 
 #### SensorKit Sample Safe Representations
 Since most sensors' returned samples aren't thread-safe, SpeziSensorKit provides so-called "safe representations" for most sensors, which are small Swift structs that act as `Sendable` representations of the data returned by a ``Sensor``.
-When you fetch data from a sensor (e.g., using ``Sensor/fetch(from:timeRange:)`` or ``SensorKit-class/fetchAnchored(_:)``), SpeziSensorKit automatically transforms the raw SensorKit samples into their respective safe representations.
+When you fetch data from a sensor (e.g., using ``Sensor/fetch(from:timeRange:)`` or ``SensorKit-class/fetchAnchored(_:batchSize:)``), SpeziSensorKit automatically transforms the raw SensorKit samples into their respective safe representations.
 For some sensors this step also performs additional pre-processing; for example, when fetching ECG data, SensorKit returns a bunch of individual [`SRElectrocardiogramSample`](https://developer.apple.com/documentation/sensorkit/srelectrocardiogramsample) objects each of which represents just a small part of the total ECG.
 Fetching ECG data via SpeziSensorKit implicitly processes the raw `SRElectrocardiogramSample`s into ``SensorKitECGSession``s, each of which represents a logical ECG session.
 
@@ -77,8 +77,8 @@ for device in devices {
 
 
 #### Fetching Data: Anchored Queries
-You can implement continuous SensorKit data fetching using the Anchored Fetching API (e.g., ``SensorKit-class/fetchAnchored(_:)``).
-The ``SensorKit-class/fetchAnchored(_:)`` function returns an `AsyncSequence` which fetches batches of SensorKit data on-demand (as the sequence is being iterated), and keeps track of the most recent already-fetched timestamp.
+You can implement continuous SensorKit data fetching using the Anchored Fetching API (e.g., ``SensorKit-class/fetchAnchored(_:batchSize:)``).
+The ``SensorKit-class/fetchAnchored(_:batchSize:)`` function returns an `AsyncSequence` which fetches batches of SensorKit data on-demand (as the sequence is being iterated), and keeps track of the most recent already-fetched timestamp.
 
 ```swift
 import SpeziSensorKit

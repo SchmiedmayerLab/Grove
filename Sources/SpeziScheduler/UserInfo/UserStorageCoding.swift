@@ -13,7 +13,7 @@ import SpeziFoundation
 
 /// Defining the coding strategy for a user storage property.
 ///
-/// This type defines the encoders and decoders for a user storage ``Property(coding:)``.
+/// This type defines the encoders and decoders for a user storage ``Property(coding:storageIdentifier:)``.
 ///
 /// Below is a code example that specifies ``json`` encoding for the `measurementType` property.
 ///

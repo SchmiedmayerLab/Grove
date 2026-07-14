@@ -124,6 +124,37 @@ struct ButtonTestView: View {
 }
 
 
+struct AsyncButtonDebounceTestView: View {
+    @State private var fastCompleted = false
+    @State private var slowCompleted = false
+    @State private var fastViewState: ViewState = .idle
+    @State private var slowViewState: ViewState = .idle
+
+    var body: some View {
+        Form {
+            Section("Fast Action") {
+                AsyncButton("Fast Debounced Action", state: $fastViewState) {
+                    try await Task.sleep(for: .milliseconds(100))
+                    fastCompleted = true
+                }
+                .asyncButtonProcessingStyle(.listRow)
+                Text("Fast Completed: \(fastCompleted.description)")
+            }
+
+            Section("Slow Action") {
+                AsyncButton("Slow Debounced Action", state: $slowViewState) {
+                    try await Task.sleep(for: .seconds(5))
+                    slowCompleted = true
+                }
+                .asyncButtonProcessingStyle(.listRow)
+                Text("Slow Completed: \(slowCompleted.description)")
+            }
+        }
+        .environment(\.processingDebounceDuration, .seconds(2))
+    }
+}
+
+
 #if DEBUG
 struct AsyncButtonTestView_Previews: PreviewProvider {
     static var previews: some View {

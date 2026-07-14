@@ -8,8 +8,7 @@ SPDX-License-Identifier: MIT
   
 -->
 
-SpeziHealthKit contributors
-====================
+# SpeziHealthKit contributors
 
 * [Lukas Kollmer](https://github.com/lukaskollmer)
 * [Andreas Bauer](https://github.com/bauer-andreas)

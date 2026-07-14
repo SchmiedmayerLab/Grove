@@ -32,7 +32,7 @@ extension Observation {
     ///
     /// The absolute timestamps (decimals representing the time interval since 1970) are stored using the ``FHIRExtensionUrls/absoluteTimeRangeStart`` and ``FHIRExtensionUrls/absoluteTimeRangeEnd`` urls.
     ///
-    /// - throws: If an error was encountered when converting the effective time range into the extension values. If the Observation's effecrive time uses an unsupported format (eg: `Timing`), ``HealthKitOnFHIRError/notSupported`` is thrown.
+    /// - throws: If an error was encountered when converting the effective time range into the extension values. If the Observation's effective time uses an unsupported format (e.g., `Timing`), an unsupported-format error is thrown.
     public func encodeAbsoluteTimeRangeIntoExtension() throws {
         removeAllExtensions(withUrl: FHIRExtensionUrls.absoluteTimeRangeStart)
         removeAllExtensions(withUrl: FHIRExtensionUrls.absoluteTimeRangeEnd)

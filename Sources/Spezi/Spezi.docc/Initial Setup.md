@@ -65,7 +65,7 @@ class ExampleAppDelegate: SpeziAppDelegate {
 }
 ```
 
-Different Spezi Modules can enforce ``Constraint``s on the Spezi ``Standard`` in your application that needs to be implemented, allowing modules to push data to a ``Standard`` for further processing and transformation.
+Different Spezi Modules can enforce constraints on the Spezi ``Standard`` in your application that needs to be implemented, allowing modules to push data to a ``Standard`` for further processing and transformation.
 
 For example, the Spezi HealthKit module requires that your  ``Standard`` instance in your Spezi application conforms to the [`HealthKitConstraint`](../../SpeziHealthKit/SpeziHealthKit.docc/SpeziHealthKit.md) protocol to receive HealthKit data:
 

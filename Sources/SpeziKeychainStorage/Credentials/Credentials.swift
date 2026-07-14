@@ -162,7 +162,6 @@ extension _CredentialsContainer { // swiftlint:disable:this file_types_order
 /// ### Credentials Attributes
 /// - ``username``
 /// - ``password``
-/// - ``account``
 /// - ``synchronizable``
 /// - ``accessControl``
 /// - ``accessGroup``
@@ -224,7 +223,6 @@ public struct Credentials: _CredentialsContainer, Hashable, @unchecked Sendable 
 /// -  ``username``
 /// -  ``password``
 /// -  ``service``
-/// -  ``account``
 /// - ``synchronizable``
 /// - ``accessControl``
 /// - ``accessGroup``
@@ -275,7 +273,6 @@ public struct GenericCredentials: _CredentialsContainer, @unchecked Sendable {
 /// - ``label``
 /// - ``isInvisible``
 /// - ``isNegative``
-/// - ``account``
 /// - ``securityDomain``
 /// - ``protocol``
 /// - ``authenticationType``
@@ -397,7 +394,7 @@ extension _CredentialsContainer {
     /// The password stored in the Credentials item.
     @_documentation(visibility: public)
     public var password: String {
-        get { self[kSecValueData, as: Data.self].map { String(decoding: $0, as: UTF8.self) } ?? "" }
+        get { self[kSecValueData, as: Data.self].flatMap { String(bytes: $0, encoding: .utf8) } ?? "" }
         set { self[kSecValueData] = Data(newValue.utf8) }
     }
 }

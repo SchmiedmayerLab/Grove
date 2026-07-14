@@ -27,6 +27,8 @@ extension ASAccessoryEventType: @retroactive CustomStringConvertible, @retroacti
             "accessoryRemoved"
         case .accessoryChanged:
             "accessoryChanged"
+        case .accessoryDiscovered:
+            "accessoryDiscovered"
         case .pickerDidPresent:
             "pickerDidPresent"
         case .pickerDidDismiss:

@@ -1,4 +1,4 @@
-# HealthKit
+# HealthKit Integration
 
 Convert Bluetooth measurement types to HealthKit samples.
 

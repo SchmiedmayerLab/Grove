@@ -68,7 +68,7 @@ public struct LocalPreference<T: SendableMetatype>: DynamicProperty, Sendable {
     private let key: LocalPreferenceKey<T>
     private let store: LocalPreferencesStore
     @State private var observer = UserDefaultsKeyObserver<T>()
-    
+
     /// The current value of the local preference..
     public var wrappedValue: T {
         get {
@@ -79,7 +79,7 @@ public struct LocalPreference<T: SendableMetatype>: DynamicProperty, Sendable {
             store[key] = newValue
         }
     }
-    
+
     /// A `Binding` that provides read-write access to the value.
     public var projectedValue: Binding<T> {
         _ = observer.viewUpdate
@@ -89,18 +89,18 @@ public struct LocalPreference<T: SendableMetatype>: DynamicProperty, Sendable {
             store[key] = $0
         }
     }
-    
+
     /// Creates a property for a local preference value.
     nonisolated public init(_ key: LocalPreferenceKey<T>) {
         self.init(key, store: .standard)
     }
-    
+
     /// Creates a property for a local preference value in a custom preferences store.
     nonisolated public init(_ key: LocalPreferenceKey<T>, store: LocalPreferencesStore) {
         self.key = key
         self.store = store
     }
-    
+
     @_documentation(visibility: internal)
     nonisolated public func update() {
         observer.configure(for: key, in: store)
@@ -130,18 +130,23 @@ private final class UserDefaultsKeyObserver<T: SendableMetatype>: NSObject, Send
         let config: Config
         let observation: ObservationInfo
     }
-    
+
     private let lock = RWLock()
     @ObservationIgnored nonisolated(unsafe) private var state: State?
-    // https://github.com/swiftlang/swift/issues/81962
-    nonisolated(unsafe) private(set) var viewUpdate: UInt64 = 0
+    // Work around https://github.com/swiftlang/swift/issues/81962 by keeping the backing storage out of macro expansion
+    // while explicitly preserving observation tracking.
+    @ObservationIgnored nonisolated(unsafe) private var _viewUpdate: UInt64 = 0
+    nonisolated var viewUpdate: UInt64 {
+        access(keyPath: \.viewUpdate)
+        return _viewUpdate
+    }
     // only used if observing via KVO
     @ObservationIgnored nonisolated(unsafe) private var lastSeenValue: T?
-    
+
     override nonisolated init() {
         super.init()
     }
-    
+
     func configure(for key: LocalPreferenceKey<T>, in store: LocalPreferencesStore) {
         let newConfig = State.Config(key: key, store: store)
         guard newConfig != state?.config else {
@@ -169,7 +174,7 @@ private final class UserDefaultsKeyObserver<T: SendableMetatype>: NSObject, Send
             state = .init(config: newConfig, observation: .notifications(token))
         }
     }
-    
+
     // swiftlint:disable:next block_based_kvo discouraged_optional_collection
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
         lock.withWriteLock {
@@ -178,10 +183,10 @@ private final class UserDefaultsKeyObserver<T: SendableMetatype>: NSObject, Send
                 super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
                 return
             }
-            viewUpdate &+= 1
+            updateView()
         }
     }
-    
+
     private func handleNCUpdate() {
         guard let state else {
             return
@@ -192,7 +197,7 @@ private final class UserDefaultsKeyObserver<T: SendableMetatype>: NSObject, Send
         }
         // T.self is any Equatable.Type
         guard let oldValue = lastSeenValue else {
-            viewUpdate &+= 1
+            updateView()
             return
         }
         precondition(((newValue as? any Equatable) != nil) == (T.self is any Equatable.Type))
@@ -202,13 +207,19 @@ private final class UserDefaultsKeyObserver<T: SendableMetatype>: NSObject, Send
                 return
             }
             // the value did actually change
-            viewUpdate &+= 1
+            updateView()
         } else {
             // the value is not Equatable, so we need to just assume that it changed (even though it might not have...)
-            viewUpdate &+= 1
+            updateView()
         }
     }
-    
+
+    private func updateView() {
+        withMutation(keyPath: \.viewUpdate) {
+            _viewUpdate &+= 1
+        }
+    }
+
     private func stop() {
         lastSeenValue = nil
         guard let state else {
@@ -222,7 +233,7 @@ private final class UserDefaultsKeyObserver<T: SendableMetatype>: NSObject, Send
         }
         self.state = nil
     }
-    
+
     deinit {
         // one small annoyance here is that @State objects don't necessarily get deallocated right away when the view that's owning them
         // gets dismissed. it seems that some SwiftUI view elements keep previously-presented-but-now-dismissed views in memory for a while,

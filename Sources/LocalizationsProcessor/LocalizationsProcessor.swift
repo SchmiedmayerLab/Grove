@@ -15,6 +15,7 @@ import Foundation
 import SpeziHealthKit
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private let allObjectTypes = HKObjectType.allKnownObjectTypes.sorted { $0.identifier < $1.identifier }
 
 
@@ -33,6 +34,7 @@ struct LocalizationEntry: Hashable {
 
 
 @main
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct LocalizationsProcessor: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Generate localized string catalogues for HealthKit data types",
@@ -112,6 +114,7 @@ struct LocalizationsProcessor: ParsableCommand {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct Localizations {
     private let displayNameKeys: [HKObjectType: String]
     private var mergedLoctables: [Locale: [String: [LocalizationEntry]]]
@@ -222,6 +225,7 @@ private struct Localizations {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Localizations {
     /// mapping of localization keys to lang-value dictionaries
     private static let hardcodedMappings: [String: [String: String]] = [
@@ -237,6 +241,7 @@ extension Localizations {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Locale.Language {
     static let english = Locale.Language(identifier: "en")
     static let englishUK = Locale.Language(identifier: "en_GB")
@@ -258,6 +263,7 @@ extension Locale: @retroactive ExpressibleByArgument {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension URL: @retroactive ExpressibleByArgument {
     public init?(argument: String) {
         self = URL(filePath: argument, relativeTo: .currentDirectory()).absoluteURL

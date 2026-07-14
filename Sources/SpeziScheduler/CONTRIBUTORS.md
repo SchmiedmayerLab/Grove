@@ -8,8 +8,7 @@ SPDX-License-Identifier: MIT
   
 -->
 
-Spezi Scheduler contributors
-====================
+# Spezi Scheduler contributors
 
 * [Paul Schmiedmayer](https://github.com/PSchmiedmayer)
 * [Andreas Bauer](https://github.com/bauer-andreas)

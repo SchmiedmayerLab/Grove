@@ -8,7 +8,6 @@ SPDX-License-Identifier: MIT
   
 -->
 
-Spezi FHIR contributors
-====================
+# Spezi FHIR contributors
 
 * [Paul Schmiedmayer](https://github.com/PSchmiedmayer)

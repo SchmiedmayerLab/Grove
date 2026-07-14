@@ -19,6 +19,10 @@
 #   self-hosted-ci = which test kinds run on the self-hosted runner (vs GitHub-hosted): a subset of
 #                    ["unit", "ui"]. Optional; default ["ui"] (= today's behavior). Linux unit jobs
 #                    always run on GitHub-hosted ubuntu regardless (the self-hosted runner is macOS).
+#   extra_runner_labels = additional runner labels to require for this package's self-hosted jobs, on
+#                    top of the base ["self-hosted", "macOS"]. Optional; default []. Emitted per job as
+#                    `selfHostedLabels` for the workflow's `runs-on` (e.g. ["python3.11+"] pins the
+#                    jobs to a self-hosted runner with a new-enough Python).
 # The dir -> package map used for change detection is derived from each package's targets+tests.
 #
 # Usage:
@@ -26,8 +30,8 @@
 #   git diff --name-only A B | affected-test-matrix.py
 #
 # Emits (to stdout, GITHUB_OUTPUT format):
-#   matrix={"include":[{"package":"SpeziAccount","platform":"macOS","selfHosted":false}, ...]}   # unit
-#   ui_matrix={"include":[{"package":"SpeziViews","platform":"iOS","selfHosted":true}, ...]}      # UI
+#   matrix={"include":[{"package":"SpeziAccount","platform":"macOS","selfHosted":false,"selfHostedLabels":"[...]"}, ...]}  # unit
+#   ui_matrix={"include":[{"package":"SpeziViews","platform":"iOS","selfHosted":true,"selfHostedLabels":"[...]"}, ...]}    # UI
 #   has_jobs=true|false
 #   has_ui_jobs=true|false
 #   affected=SpeziAccount,SpeziViews
@@ -87,15 +91,20 @@ def main():
         # ["unit", "ui"]. Default ["ui"] keeps today's behavior (UI on self-hosted, unit on
         # GitHub-hosted). Each emitted job carries a `selfHosted` bool the workflow `runs-on` reads.
         self_hosted = info.get("self-hosted-ci", ["ui"])
+        # Self-hosted runner label set for this package: base labels + any package-specific extras,
+        # emitted as a JSON string the workflow's `runs-on` reads via fromJson(matrix.selfHostedLabels).
+        self_hosted_labels = json.dumps(["self-hosted", "macOS"] + list(info.get("extra_runner_labels", [])))
         for platform in info["platforms"]:
             if platform in CI_PLATFORMS:  # TEMPORARY unit-test platform limit (see CI_PLATFORMS above)
                 # Linux unit jobs always use GitHub-hosted ubuntu (the self-hosted runner is macOS).
                 unit.append({"package": pkg, "platform": platform,
-                             "selfHosted": ("unit" in self_hosted) and platform != "Linux"})
+                             "selfHosted": ("unit" in self_hosted) and platform != "Linux",
+                             "selfHostedLabels": self_hosted_labels})
         for platform in info.get("uiTests", []):  # UI tests: per-project platforms from packages.toml
             if platform not in UI_PLATFORMS:  # TEMPORARY UI-test platform limit (see UI_PLATFORMS above)
                 continue
-            ui.append({"package": pkg, "platform": platform, "selfHosted": "ui" in self_hosted})
+            ui.append({"package": pkg, "platform": platform, "selfHosted": "ui" in self_hosted,
+                       "selfHostedLabels": self_hosted_labels})
 
     lines = [
         f'matrix={json.dumps({"include": unit})}',

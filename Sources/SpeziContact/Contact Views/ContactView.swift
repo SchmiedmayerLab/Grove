@@ -7,7 +7,6 @@
 //
 
 import Contacts
-@_implementationOnly import MessageUI
 import SpeziPersonalInfo
 import SpeziViews
 import SwiftUI

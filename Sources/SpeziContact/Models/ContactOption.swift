@@ -6,7 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
-@_implementationOnly import MessageUI
 import SwiftUI
 
 

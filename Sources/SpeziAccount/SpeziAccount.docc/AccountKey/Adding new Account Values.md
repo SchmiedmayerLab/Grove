@@ -23,7 +23,7 @@ This articles guides you through all the necessary steps to declare your custom 
 
 ### Declaring the property
 
-You use the ``AccountKey(id:name:category:as:initial:displayView:entryView:)`` macro to declare a new ``AccountKey``.
+You use the `@AccountKey` macro to declare a new ``AccountKey``.
 
 It is mandatory to provide a localizable ``AccountKey/name`` and the `Value` type.
 > Note: Refer to <doc:Value-Conformances> to learn more of the mandatory conformances for the `Value` type.
@@ -171,11 +171,7 @@ Still, you are required to evaluate to which extent validation has to be handled
 
 ### Account Key Declaration
 
-- ``AccountKey(id:name:category:as:initial:displayView:entryView:)``
-- ``AccountKey(id:name:category:as:displayView:entryView:)-7hix5``
-- ``AccountKey(id:name:category:as:displayView:entryView:)-2hptl``
-- ``AccountKey(id:name:category:as:displayView:entryView:)-73ut1``
-- ``AccountKey(id:name:category:as:displayView:entryView:)-945ks``
+- ``AccountKey``
 
 ### Key Entry Declaration
 

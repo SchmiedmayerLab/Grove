@@ -23,7 +23,7 @@ You use the `Scheduler` module to manage the persistence store of your tasks. It
 for tasks. It allows to modify the properties (e.g., schedule) of future events without affecting occurrences of the past.
 
 You create and automatically update your tasks
-using ``Scheduler/createOrUpdateTask(id:title:instructions:category:schedule:completionPolicy:tags:effectiveFrom:with:)``.
+using ``Scheduler/createOrUpdateTask(id:title:instructions:category:schedule:completionPolicy:scheduleNotifications:notificationThread:notificationTime:tags:effectiveFrom:shadowedOutcomesHandling:with:)``.
 
 Below is a example on how to create your own [`Module`](../../Spezi/Spezi.docc/Module/Module.md)
 to manage your tasks and ensure they are always up to date.
@@ -70,11 +70,11 @@ class MySchedulerModule: Module {
 ### Task
 
 - ``Task``
-- ``Task/ID-swift.struct``
+- ``Task/id``
 - ``Task/Category-swift.struct``
 - ``Event``
 - ``Outcome``
-- ``Property(coding:)``
+- ``Property(coding:storageIdentifier:)``
 - ``AllowedCompletionPolicy``
 
 ### Notifications

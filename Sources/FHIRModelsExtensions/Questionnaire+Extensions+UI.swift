@@ -6,10 +6,12 @@
 // SPDX-License-Identifier: MIT
 //
 
-#if canImport(UIKit)
+#if canImport(UIKit) && (os(iOS) || os(visionOS) || os(tvOS))
 
 public import ModelsR4
+#if os(iOS) || os(visionOS)
 public import enum UIKit.UIKeyboardType
+#endif
 public import enum UIKit.UITextAutocapitalizationType
 public import struct UIKit.UITextContentType
 

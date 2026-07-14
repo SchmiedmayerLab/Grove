@@ -14,7 +14,7 @@ import SpeziLocalization
 extension StudyBundle {
     /// A reference to a non-localized version of a file within a StudyBundle.
     ///
-    /// ``FileReference``s are non-localized references to files stored within a ``StudyBundle``; they can be resolved against a specific `Locale` using ``StudyBundle/resolve(_:in:using:)``.
+    /// ``FileReference``s are non-localized references to files stored within a ``StudyBundle``; they can be resolved against a specific `Locale` using ``StudyBundle/resolve(_:in:using:fallback:)``.
     public struct FileReference: Hashable, Sendable, Codable, CustomStringConvertible {
         /// A ``StudyBundle/FileReference``'s category.
         ///

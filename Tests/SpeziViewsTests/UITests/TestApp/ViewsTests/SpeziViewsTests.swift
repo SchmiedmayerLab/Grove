@@ -27,6 +27,7 @@ enum SpeziViewsTests: String, TestAppTests {
     case defaultErrorDescription = "Default Error Description"
     case anyLocalizableError = "AnyLocalizableError"
     case button = "Buttons"
+    case asyncButtonDebounce = "Async Button Debounce"
     case listRow = "List Row"
     case managedViewUpdate = "Managed View Update"
     case caseIterablePicker = "Picker"
@@ -100,6 +101,8 @@ enum SpeziViewsTests: String, TestAppTests {
             AnyLocalizableErrorTestView()
         case .button:
             ButtonTestView()
+        case .asyncButtonDebounce:
+            AsyncButtonDebounceTestView()
         case .listRow:
             List {
                 ListRow(verbatim: "Hello") {

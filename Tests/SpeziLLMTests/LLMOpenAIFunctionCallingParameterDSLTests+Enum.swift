@@ -61,7 +61,7 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
     @Test("Test Enum Parameters")
     func testLLMFunctionEnumParameters() async throws {
         let llm = LLMOpenAISchema(
-            parameters: .init(modelType: "gpt-4o")
+            parameters: .init(modelType: .gpt4o)
         ) {
             LLMFunctionTestEnum(someInitArg: "testArg")
         }

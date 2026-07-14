@@ -31,7 +31,7 @@ import SwiftData
 ///
 /// Tasks support storing additional metadata information.
 ///
-/// - Tip: Refer to the ``Property(coding:)`` macro on how to create new data types that can be stored alongside a task.
+/// - Tip: Refer to the ``Property(coding:storageIdentifier:)`` macro on how to create new data types that can be stored alongside a task.
 ///
 /// You can set additional information by supplying an additional closure that modifies the ``Context`` when creating or updating a task.
 /// The code example below assume that the `measurementType` exists to store the type of measurement the user should record to complete the task.
@@ -65,7 +65,7 @@ import SwiftData
 /// - ``notificationThread``
 ///
 /// ### Modifying a task
-/// - ``Scheduler/createOrUpdateTask(id:title:instructions:category:schedule:completionPolicy:tags:effectiveFrom:with:)``
+/// - ``Scheduler/createOrUpdateTask(id:title:instructions:category:schedule:completionPolicy:scheduleNotifications:notificationThread:notificationTime:tags:effectiveFrom:shadowedOutcomesHandling:with:)``
 /// - ``createUpdatedVersion(title:instructions:category:schedule:completionPolicy:scheduleNotifications:notificationThread:tags:effectiveFrom:with:)``
 ///
 /// ### Storing additional information
@@ -309,7 +309,6 @@ public final class Task { // swiftlint:disable:this type_body_length
     ///   - completionPolicy: The policy to decide when an event can be completed by the user.
     ///   - scheduleNotifications: Automatically schedule notifications for upcoming events.
     ///   - notificationThread: The behavior how task notifications are grouped in the notification center.
-    ///   - notificationTime: The time the tasks notifications should be sent out.
     ///   - tags: Custom tags associated with the task.
     ///   - effectiveFrom: The date this update is effective from.
     ///   - contextClosure: The updated context or `nil` if the context should not be updated.

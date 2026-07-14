@@ -83,7 +83,7 @@ public actor SpeziBluetooth {
 }
 
 
-@available(iOS 18, macOS 15, watchOS 11, *)
+@available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
 extension SpeziBluetooth {
     /// Assume isolation to the global `SpeziBluetooth` actor.
     /// - Parameters:
@@ -91,7 +91,6 @@ extension SpeziBluetooth {
     ///   - file: The file in which this method is called.
     ///   - line: The line in which this method is called.
     /// - Returns: Returns `T` from the `operation`.
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
     @_alwaysEmitIntoClient
     public static func assumeIsolated<T: Sendable>(
         _ operation: @SpeziBluetooth () throws -> T,
@@ -113,23 +112,6 @@ extension SpeziBluetooth {
         return try withoutActuallyEscaping(operation) { (_ function: @escaping YesActor) throws -> T in
             let rawFn = unsafeBitCast(function, to: NoActor.self)
             return try rawFn()
-        }
-    }
-}
-
-
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension SpeziBluetooth {
-    @_alwaysEmitIntoClient
-    static func assumeIsolatedIfAvailableOrTask(
-        _ operation: @SpeziBluetooth @escaping () -> Void,
-        file: StaticString = #fileID,
-        line: UInt = #line
-    ) {
-        if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *) {
-            assumeIsolated(operation, file: file, line: line)
-        } else {
-            Task(operation: operation)
         }
     }
 }

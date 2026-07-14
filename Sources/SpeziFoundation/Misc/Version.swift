@@ -15,7 +15,6 @@ import Foundation
 /// ### Creating a Version
 /// - ``init(_:_:_:)``
 /// - ``init(_:_:_:prereleaseIdentifiers:buildMetadata:)``
-/// - ``init(_:)``
 /// - ``init(_:)-(OperatingSystemVersion)``
 /// - ``init(stringLiteral:)``
 ///
@@ -220,7 +219,7 @@ extension Version: LosslessStringConvertible {
 extension Version: ExpressibleByStringLiteral {
     /// Attempts to create a ``Version`` by parsing a `String` literal.
     ///
-    /// - Note: The compiler will prefer this function over ``Version/init(_:)`` when calling e.g. `Version("1.2.3")`.
+    /// - Note: The compiler will prefer this function over `Version.init(_:)` when calling e.g. `Version("1.2.3")`.
     ///     If you want to call the failible initializer with a `String` literal, you need to add an explicit `init` call: `Version.init("1.2.3")`.
     ///     This is not applicable if the parameter is a non-literal expression of type `String`.
     public init(stringLiteral value: String) {

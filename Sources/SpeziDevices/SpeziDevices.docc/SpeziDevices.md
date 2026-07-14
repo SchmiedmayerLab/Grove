@@ -132,7 +132,6 @@ struct MyHomeView: View {
 - ``PairedDevices``
 - ``PairedDeviceInfo``
 - ``DevicePairingError``
-- ``ImageReference``
 
 ### Devices
 
@@ -146,5 +145,5 @@ struct MyHomeView: View {
 - ``HealthMeasurements``
 - ``HealthDevice``
 - ``BluetoothHealthMeasurement``
-- <doc:HealthKit>
+- <doc:HealthKit-Integration>
 - ``HealthKitMeasurement``

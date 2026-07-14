@@ -16,12 +16,12 @@ SPDX-License-Identifier: MIT
 
 ### Login
 
-- ``XCTest/XCUIApplication/login(email:password:)``
-- ``XCTest/XCUIApplication/login(username:password:)``
+- ``XCUIAutomation/XCUIApplication/login(email:password:)``
+- ``XCUIAutomation/XCUIApplication/login(username:password:)``
 
 ### Signup Form
 
-- ``XCTest/XCUIApplication/fillSignupForm(email:password:name:genderIdentity:supplyDateOfBirth:)``
-- ``XCTest/XCUIApplication/updateGenderIdentity(from:to:file:line:)``
-- ``XCTest/XCUIApplication/changeDateOfBirth()``
-- ``XCTest/XCUIApplication/closeSignupForm(discardChangesIfAsked:)``
+- ``XCUIAutomation/XCUIApplication/fillSignupForm(email:password:name:genderIdentity:supplyDateOfBirth:)``
+- ``XCUIAutomation/XCUIApplication/updateGenderIdentity(from:to:file:line:)``
+- ``XCUIAutomation/XCUIApplication/changeDateOfBirth()``
+- ``XCUIAutomation/XCUIApplication/closeSignupForm(discardChangesIfAsked:)``

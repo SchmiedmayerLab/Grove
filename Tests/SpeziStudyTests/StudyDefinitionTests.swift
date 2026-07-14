@@ -31,7 +31,7 @@ struct StudyDefinitionTests {
         let input1 = try JSONEncoder().encode(Self.testStudyBundle)
         #expect(try StudyDefinition.schemaVersion(of: input1, using: JSONDecoder()) == StudyDefinition.schemaVersion)
         
-        let input2 = try #require(#"{"schemaVersion":"1.2.3", "glorb": "florb"}"#.data(using: .utf8))
+        let input2 = Data(#"{"schemaVersion":"1.2.3", "glorb": "florb"}"#.utf8)
         #expect(try StudyDefinition.schemaVersion(of: input2, using: JSONDecoder()) == Version(1, 2, 3))
     }
     

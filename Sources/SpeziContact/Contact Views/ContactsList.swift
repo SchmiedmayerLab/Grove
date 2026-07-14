@@ -35,7 +35,7 @@ public struct ContactsList: View {
     
     
     /// Create a view displaying a list of  multiple `Contact`s.
-    /// - Parameter contact: The `Contact` instances to populate the list.
+    /// - Parameter contacts: The `Contact` instances to populate the list.
     public init(contacts: [Contact]) {
         self.contacts = contacts
     }

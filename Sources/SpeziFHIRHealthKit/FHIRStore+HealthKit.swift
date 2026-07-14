@@ -32,7 +32,7 @@ extension FHIRStore {
     }
     
     /// Remove a HealthKit sample delete object from the FHIR store.
-    /// - Parameter sample: The sample delete object that should be removed.
+    /// - Parameter deletedObject: The sample delete object that should be removed.
     @MainActor
     public func remove(_ deletedObject: HKDeletedObject) {
         removeResource(withHealthKitUUID: deletedObject.uuid.uuidString)

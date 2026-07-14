@@ -14,12 +14,14 @@ import ModelsR4
 /// Models a value type used by a `HKCategoryType`.
 protocol FHIRCodingConvertible {
     static var system: FHIRPrimitive<FHIRURI> { get }
-    
+
     var code: String { get }
     var display: String? { get }
-    
+
     init?(rawValue: Int)
 }
+
+protocol FHIRCodingConvertibleHKEnum: FHIRCodingConvertible {}
 
 extension FHIRCodingConvertible {
     var asCoding: Coding {
@@ -38,8 +40,6 @@ extension FHIRCodingConvertible where Self: RawRepresentable, RawValue == Int {
     }
 }
 
-
-protocol FHIRCodingConvertibleHKEnum: FHIRCodingConvertible {}
 
 extension FHIRCodingConvertibleHKEnum {
     static var system: FHIRPrimitive<FHIRURI> {

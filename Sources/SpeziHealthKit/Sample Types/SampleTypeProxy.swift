@@ -186,33 +186,26 @@ extension SampleTypeProxy: Codable {
             default:
                 throw SampleTypeDecodingError.unknownSampleTypeIdentifier(sampleTypeIdentifier)
             }
-        case .some(let cls):
-            if #available(iOS 18.0, watchOS 11.0, macOS 15.0, visionOS 2.0, *) {
-                switch cls {
-                case is HKStateOfMindType.Type:
-                    self = .stateOfMind(SampleType.stateOfMind)
-                case is HKScoredAssessmentType.Type:
-                    #if canImport(ObjectiveC)
-                    let scoredAssessmentType = try catchingNSException {
-                        HKScoredAssessmentType(.init(rawValue: sampleTypeIdentifier))
-                    }
-                    #else
-                    let scoredAssessmentType = HKScoredAssessmentType(.init(rawValue: sampleTypeIdentifier))
-                    #endif
-                    switch scoredAssessmentType {
-                    case .init(.GAD7):
-                        self = .gad7(SampleType.gad7)
-                    case .init(.PHQ9):
-                        self = .phq9(SampleType.phq9)
-                    default:
-                        throw SampleTypeDecodingError.unknownSampleTypeIdentifier(sampleTypeIdentifier)
-                    }
-                default:
-                    throw SampleTypeDecodingError.unknownSampleTypeClassname(sampleTypeClassname)
-                }
-            } else {
-                throw SampleTypeDecodingError.unknownSampleTypeClassname(sampleTypeClassname)
+        case is HKStateOfMindType.Type:
+            self = .stateOfMind(SampleType.stateOfMind)
+        case is HKScoredAssessmentType.Type:
+            #if canImport(ObjectiveC)
+            let scoredAssessmentType = try catchingNSException {
+                HKScoredAssessmentType(.init(rawValue: sampleTypeIdentifier))
             }
+            #else
+            let scoredAssessmentType = HKScoredAssessmentType(.init(rawValue: sampleTypeIdentifier))
+            #endif
+            switch scoredAssessmentType {
+            case .init(.GAD7):
+                self = .gad7(SampleType.gad7)
+            case .init(.PHQ9):
+                self = .phq9(SampleType.phq9)
+            default:
+                throw SampleTypeDecodingError.unknownSampleTypeIdentifier(sampleTypeIdentifier)
+            }
+        default:
+            throw SampleTypeDecodingError.unknownSampleTypeClassname(sampleTypeClassname)
         }
     }
     

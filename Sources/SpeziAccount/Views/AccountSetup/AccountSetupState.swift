@@ -97,7 +97,7 @@ extension EnvironmentValues {
     /// The current account setup state.
     ///
     /// This environment property can be retrieved for child views of the ``AccountSetup`` view to determine the current setup state.
-    /// Use this in the `Header` view passed to ``AccountSetup/init(setupComplete:header:`continue`:)``.
+    /// Use this in the `Header` view passed to ``AccountSetup/init(setupComplete:header:continue:)``.
     @Entry public var accountSetupState: AccountSetupState = .presentingSignup
 
     /// The current account setup state.

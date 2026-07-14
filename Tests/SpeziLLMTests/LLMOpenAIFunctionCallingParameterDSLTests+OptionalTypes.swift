@@ -79,7 +79,7 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
     @Test("Test Optional Parameters")
     func testLLMFunctionOptionalParameters() async throws { // swiftlint:disable:this function_body_length
         let llm = LLMOpenAISchema(
-            parameters: .init(modelType: "gpt-4o")
+            parameters: .init(modelType: .gpt4o)
         ) {
             LLMFunctionTestOptional(someInitArg: "testArg")
         }

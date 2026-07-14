@@ -109,7 +109,7 @@ struct NotificationsTests {
         async let registration = action()
         try await Task.sleep(for: .milliseconds(750)) // allow dispatch of Task above
 
-        let data = try #require("Hello World".data(using: .utf8))
+        let data = Data("Hello World".utf8)
 
 #if os(iOS) || os(visionOS) || os(tvOS)
         delegate.application(UIApplication.shared, didRegisterForRemoteNotificationsWithDeviceToken: data)

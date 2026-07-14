@@ -10,8 +10,8 @@
 import SpeziScheduler
 @_spi(TestingSupport)
 @testable import SpeziSchedulerUI
+import SpeziTesting
 import XCTest
-import XCTSpezi
 
 
 final class SchedulerSampleDataTests: XCTestCase {

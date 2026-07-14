@@ -25,19 +25,14 @@ public struct AccessoryEventRegistration: ~Copyable, Sendable {
     }
 
     static func cancel(id: UUID, setupKit: (AnyObject & Sendable)?, isolation: isolated (any Actor)? = #isolation) {
-#if os(iOS) && !targetEnvironment(macCatalyst)
-        guard #available(iOS 18, *) else {
-            return
-        }
-
+        #if os(iOS) && !targetEnvironment(macCatalyst)
         guard let setupKit, let typedSetupKit = setupKit as? AccessorySetupKit else {
             return
         }
-
         typedSetupKit.cancelHandler(for: id)
-#else
+        #else
         preconditionFailure("Not available on this platform!")
-#endif
+        #endif
     }
 
     /// Cancel the subscription.

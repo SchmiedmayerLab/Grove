@@ -15,7 +15,7 @@ final class BluetoothWorkItem {
 
     init(handler: @SpeziBluetooth @escaping @Sendable () -> Void) {
         self.workItem = DispatchWorkItem {
-            SpeziBluetooth.assumeIsolatedIfAvailableOrTask {
+            SpeziBluetooth.assumeIsolated {
                 handler()
             }
         }

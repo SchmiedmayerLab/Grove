@@ -52,7 +52,7 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
     @Test("Test Dictionary Parameters")
     func testLLMFunctionDictionaryParameters() async throws {
         let llm = LLMOpenAISchema(
-            parameters: .init(modelType: "gpt-4o")
+            parameters: .init(modelType: .gpt4o)
         ) {
             LLMFunctionTestDictionary()
         }

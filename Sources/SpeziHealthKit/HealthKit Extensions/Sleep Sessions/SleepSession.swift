@@ -92,13 +92,9 @@ public struct SleepSession: Hashable, Sendable {
         assert(samples.allSatisfy { $0.startDate <= $0.endDate })
         assert(samples.adjacentPairs().allSatisfy { $0.startDate <= $1.startDate })
         func calcTotalTime(samplesPredicate: @escaping (HKCategorySample) -> Bool) -> TimeInterval {
-            if #available(iOS 18, macOS 15, tvOS 18, watchOS 11, visionOS 2, *) {
-                return RangeSet<Date>(samples.lazy.filter(samplesPredicate).map { $0.timeRange })
-                    .ranges
-                    .reduce(into: 0) { $0 += $1.timeInterval }
-            } else {
-                return samples.reduce(into: 0) { $0 += $1.timeRange.timeInterval }
-            }
+            RangeSet<Date>(samples.lazy.filter(samplesPredicate).map { $0.timeRange })
+                .ranges
+                .reduce(into: 0) { $0 += $1.timeInterval }
         }
         timeSpentInSleepPhase = SleepPhase.allKnownValues.reduce(into: [:]) { mapping, phase in
             mapping[phase] = calcTotalTime { $0.sleepPhase == phase }

@@ -82,8 +82,11 @@ jobs:
     needs: detect
     if: needs.detect.outputs.has_jobs == 'true'
     # Runner per job: Linux -> GitHub-hosted ubuntu; otherwise self-hosted iff packages.toml's
-    # self-hosted-ci routed unit tests there (matrix.selfHosted), else GitHub-hosted macOS-26.
-    runs-on: ${{ matrix.platform == 'Linux' && 'ubuntu-latest' || (matrix.selfHosted && fromJson('["self-hosted", "macOS"]') || fromJson('["macOS-26"]')) }}
+    # self-hosted-ci routed unit tests there (matrix.selfHosted), else GitHub-hosted macOS-26. The
+    # self-hosted label set (matrix.selfHostedLabels) is the base ["self-hosted","macOS"] plus any
+    # per-package `extra_runner_labels` from packages.toml (e.g. "python3.11+"), computed by
+    # Scripts/affected-test-matrix.py.
+    runs-on: ${{ matrix.platform == 'Linux' && 'ubuntu-latest' || (matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macOS-26"]')) }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
@@ -107,7 +110,7 @@ jobs:
     if: needs.detect.outputs.has_ui_jobs == 'true'
     # UI tests run on the self-hosted runner by default (packages.toml self-hosted-ci defaults to
     # ["ui"]); a package can move its UI tests to GitHub-hosted by dropping "ui" from that list.
-    runs-on: ${{ matrix.selfHosted && fromJson('["self-hosted", "macOS"]') || fromJson('["macOS-26"]') }}
+    runs-on: ${{ matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macOS-26"]') }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.detect.outputs.ui_matrix) }}
