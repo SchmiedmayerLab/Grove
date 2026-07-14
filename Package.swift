@@ -135,6 +135,10 @@ var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/ml-explore/mlx-swift.git", .upToNextMinor(from: "0.29.1")),
     .package(url: "https://github.com/ml-explore/mlx-swift-examples.git", from: "2.29.1"),
     .package(url: "https://github.com/huggingface/swift-transformers.git", from: "1.0.0"),
+    // swift-transformers 1.0.0 (the only version mlx-swift-examples 2.29.1 allows, via its <1.1.0 cap)
+    // builds String-keyed Jinja objects, but swift-jinja 2.3.3 renamed that key type to `ObjectKey`.
+    // Pin below 2.3.3 until a newer mlx-swift-examples permits a swift-transformers that supports it.
+    .package(url: "https://github.com/huggingface/swift-jinja.git", "2.0.0"..<"2.3.3"),
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing.git", from: "1.19.2"),
     .package(url: "https://github.com/SchmiedmayerLab/ResearchKit.git", "3.1.4"..<"3.2.0"),
     .package(url: "https://github.com/swiftlang/swift-syntax.git", "602.0.0"..<"603.0.0"),
@@ -1178,6 +1182,9 @@ var targets: [Target] = [
             .product(name: "MLX", package: "mlx-swift", condition: .when(traits: [mlxTrait])),
             .product(name: "MLXRandom", package: "mlx-swift", condition: .when(traits: [mlxTrait])),
             .product(name: "Transformers", package: "swift-transformers", condition: .when(traits: [mlxTrait])),
+            // Gives the root swift-jinja version pin (see the dependencies list) a real consumer, so it
+            // doesn't trip SwiftPM's "unused dependency" warning. Transformers uses Jinja for chat templates.
+            .product(name: "Jinja", package: "swift-jinja", condition: .when(traits: [mlxTrait])),
             .product(name: "MLXLLM", package: "mlx-swift-examples", condition: .when(traits: [mlxTrait]))
         ],
         exclude: targetExcludes("SpeziLLMLocal"),
