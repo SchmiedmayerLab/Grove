@@ -16,11 +16,13 @@ import SwiftUI
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct TimeSubheadline: View {
+    @Environment(\.calendar) private var cal
+    
     private let measurement: HealthKitMeasurement
 
     var body: some View {
         Group {
-            if Calendar.current.isDateInToday(measurement.startDate) {
+            if cal.isDateInToday(measurement.startDate) {
                 Text("Today, \(Text(measurement.startDate, style: .time))", bundle: .module)
             } else {
                 Text(.now, style: .date) + Text(verbatim: ", ") + Text(.now, style: .time)

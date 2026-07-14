@@ -14,6 +14,7 @@ import SwiftUI
 struct CountryListSheet: View {
     @Environment(PhoneNumberViewModel.self) private var phoneNumberViewModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
     
     @State private var searchCountry = ""
     @State private var allCountries: [String] = []
@@ -63,7 +64,7 @@ struct CountryListSheet: View {
         }
         .task {
             var allCountries = phoneNumberViewModel.phoneNumberUtility.allCountries().filter { $0 != "001" }
-            if let currentCountryIndex = allCountries.firstIndex(where: { $0 == Locale.current.region?.identifier ?? "" }) {
+            if let currentCountryIndex = allCountries.firstIndex(where: { $0 == locale.region?.identifier ?? "" }) {
                 allCountries.insert(allCountries.remove(at: currentCountryIndex), at: 0)
             }
             self.allCountries = allCountries
