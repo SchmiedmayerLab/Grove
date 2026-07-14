@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import CoreLocation
+public import CoreLocation
 import Foundation
 
 

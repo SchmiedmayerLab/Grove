@@ -7,11 +7,11 @@
 //
 
 #if canImport(AccessorySetupKit) && !os(macOS)
-import AccessorySetupKit
+public import AccessorySetupKit
 #endif
-import Foundation
-import SpeziViews
-import SwiftData
+public import Foundation
+public import SpeziViews
+public import SwiftData
 
 
 /// Persistent information stored of a paired device.

@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+package import Foundation
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

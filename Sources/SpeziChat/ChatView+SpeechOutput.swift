@@ -7,7 +7,7 @@
 //
 
 import SpeziSpeechSynthesizer
-import SwiftUI
+public import SwiftUI
 
 
 /// The underlying `ViewModifier` of `View/speak(_:muted:)`.

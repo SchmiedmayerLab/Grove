@@ -7,7 +7,7 @@
 //
 
 import FirebaseFirestore
-import Foundation
+public import Foundation
 
 
 /// Mapping of Firestore error codes to a localized error.

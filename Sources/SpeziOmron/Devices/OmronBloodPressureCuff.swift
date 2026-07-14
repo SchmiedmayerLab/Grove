@@ -7,14 +7,14 @@
 //
 
 import CoreBluetooth
-import Foundation
+public import Foundation
 import OSLog
 @_spi(TestingSupport)
-import SpeziBluetooth
-import SpeziBluetoothServices
+public import SpeziBluetooth
+public import SpeziBluetoothServices
 @_spi(Migration)
-import SpeziDevices
-import SpeziNumerics
+public import SpeziDevices
+public import SpeziNumerics
 
 
 /// Implementation of a Omron Blood Pressure Cuff.

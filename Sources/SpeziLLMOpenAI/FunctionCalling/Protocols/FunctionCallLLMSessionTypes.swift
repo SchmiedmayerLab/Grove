@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziLLM
+package import SpeziLLM
 
 
 package enum FunctionCallLLMSessionTypes {

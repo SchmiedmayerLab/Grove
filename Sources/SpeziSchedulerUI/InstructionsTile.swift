@@ -7,9 +7,9 @@
 //
 
 @_spi(TestingSupport)
-import SpeziScheduler
+public import SpeziScheduler
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// A tile view that present instructions for an event.

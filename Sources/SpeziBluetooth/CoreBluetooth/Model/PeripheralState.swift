@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Atomics
-import CoreBluetooth
+public import Atomics
+public import CoreBluetooth
 
 
 /// Describes the state of a Bluetooth peripheral.

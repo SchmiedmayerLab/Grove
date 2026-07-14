@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import class ModelsR4.Bundle
+public import Foundation
+public import class ModelsR4.Bundle
 
 
 extension Foundation.Bundle {

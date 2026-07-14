@@ -7,12 +7,14 @@
 //
 
 #if canImport(AccessorySetupKit) && !os(macOS)
-import AccessorySetupKit
+public import AccessorySetupKit
 #endif
+public import Foundation
+public import Observation
 import OrderedCollections
 import OSLog
-import Spezi
-import SpeziBluetooth
+public import Spezi
+public import SpeziBluetooth
 import SpeziBluetoothServices
 @_spi(TestingSupport)
 import SpeziFoundation

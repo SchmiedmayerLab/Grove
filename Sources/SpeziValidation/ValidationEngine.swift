@@ -8,7 +8,7 @@
 
 import OSLog
 import SpeziFoundation
-import SwiftUI
+public import SwiftUI
 
 
 /// A model that is responsible to verify a list of ``ValidationRule``s.

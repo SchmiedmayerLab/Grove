@@ -7,8 +7,10 @@
 //
 
 
+public import Foundation
 import HealthKit
 import XCTest
+public import XCUIAutomation
 
 
 /// The input definition of a sample that should be added to the Health database

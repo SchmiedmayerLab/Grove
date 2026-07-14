@@ -6,11 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+public import Foundation
 @_spi(TestingSupport)
-import SpeziBluetooth
-import SpeziBluetoothServices
-import SpeziNumerics
+public import SpeziBluetooth
+public import SpeziBluetoothServices
+public import SpeziNumerics
 
 
 @_spi(TestingSupport)

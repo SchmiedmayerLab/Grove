@@ -7,7 +7,7 @@
 //
 
 #if canImport(Darwin)
-import SpeziFoundation
+public import SpeziFoundation
 
 
 /// The storage anchor for additional user info storage entries for an `Outcome`.

@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import ByteCoding
-import Foundation
+public import ByteCoding
+public import Foundation
 import NIOCore
 import XCTest
 

@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import NIOCore
+public import NIOCore
 
 
 extension ByteBuffer {

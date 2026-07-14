@@ -8,7 +8,7 @@
 
 import Foundation
 import RuntimeAssertions
-import Spezi
+public import Spezi
 
 
 /// Configure the `SpeziAccount` framework.

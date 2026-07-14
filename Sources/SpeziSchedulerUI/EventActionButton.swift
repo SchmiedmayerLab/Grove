@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziScheduler
+public import SpeziScheduler
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// A pre-styled button that can be used to complete an event.

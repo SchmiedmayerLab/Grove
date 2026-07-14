@@ -7,7 +7,7 @@
 //
 
 import Combine
-import SwiftUI
+public import SwiftUI
 
 
 /// Displays a ``Chat`` containing multiple ``ChatEntity``s with different ``ChatEntity/Role``s in a typical chat-like fashion.

@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+public import Foundation
 import OSLog
 
 private func optionalMax<Value: Comparable>(_ lhs: Value?, _ rhs: Value?) -> Value? {

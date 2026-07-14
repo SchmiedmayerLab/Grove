@@ -7,6 +7,7 @@
 //
 
 import XCTest
+public import XCUIAutomation
 
 // Use `xcrun simctl spawn booted launchctl list` to check for all bundle identifiers running on visionOS simulator.
 // If you are in search for an application bundle identifier you have a good chance of finding it there.

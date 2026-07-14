@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import ModelsR4
+public import ModelsR4
 
 
 extension ResourceProxy {

@@ -9,6 +9,7 @@
 import Foundation
 import OSLog
 import XCTest
+public import XCUIAutomation
 
 
 /// An internal flag that is used to test the flaky simulator text entry behavior in the iOS simulator.

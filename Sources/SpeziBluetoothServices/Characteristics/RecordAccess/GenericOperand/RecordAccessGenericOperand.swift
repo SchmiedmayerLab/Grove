@@ -7,7 +7,7 @@
 //
 
 import ByteCoding
-import NIOCore
+public import NIOCore
 
 
 /// A generic Record Access Operand used with most Bluetooth services.

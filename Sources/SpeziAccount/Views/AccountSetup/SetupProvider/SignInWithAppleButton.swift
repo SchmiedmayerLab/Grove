@@ -6,11 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
-import AuthenticationServices
+public import AuthenticationServices
 import Foundation
 import Spezi
-import SpeziViews
-import SwiftUI
+public import SpeziViews
+public import SwiftUI
 
 
 /// Create a Sign in with Apple button with Spezi Account support.

@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import SpeziBluetooth
-import SpeziBluetoothServices
+public import Foundation
+public import SpeziBluetooth
+public import SpeziBluetoothServices
 
 
 /// A generic Bluetooth device.

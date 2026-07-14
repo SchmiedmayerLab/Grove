@@ -7,9 +7,9 @@
 //
 
 #if canImport(FoundationEssentials)
-import FoundationEssentials
+package import FoundationEssentials
 #else
-import Foundation
+package import Foundation
 #endif
 import SpeziFoundation
 

@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import ByteCoding
-import CoreBluetooth
+public import ByteCoding
+public import CoreBluetooth
 
 
 /// Interact with a given Characteristic.

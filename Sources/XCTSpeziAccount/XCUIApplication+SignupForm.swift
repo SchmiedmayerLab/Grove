@@ -7,6 +7,7 @@
 //
 
 import XCTest
+public import XCUIAutomation
 
 
 extension XCUIApplication {

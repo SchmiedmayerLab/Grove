@@ -8,7 +8,7 @@
 
 import SpeziFoundation
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 extension OnboardingInformationView {

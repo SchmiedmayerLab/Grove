@@ -6,10 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
+public import CoreFoundation
 import CryptoKit
 import Foundation
 import Security
-import Spezi
+public import Spezi
 
 
 /// Securely store small chunks of sensitive data such as credentials and cryptographic keys, using the system keychain.

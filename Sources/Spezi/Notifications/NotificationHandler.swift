@@ -7,7 +7,7 @@
 //
 
 #if canImport(UserNotifications)
-import UserNotifications
+public import UserNotifications
 
 
 /// Get notified about receiving notifications.

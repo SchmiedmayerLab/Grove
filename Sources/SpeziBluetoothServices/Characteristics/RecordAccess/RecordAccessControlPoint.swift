@@ -6,10 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-import ByteCoding
+public import ByteCoding
 import Foundation
-import NIOCore
-import SpeziBluetooth
+public import NIOCore
+public import SpeziBluetooth
 
 
 /// Protocol for the Record Access Control Point characteristic.

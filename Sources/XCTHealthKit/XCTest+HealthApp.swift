@@ -7,7 +7,7 @@
 //
 
 
-import XCTest
+public import XCTest
 
 extension XCTestCase {
     /// Walks through the Health App onboarding flow, if necessary.

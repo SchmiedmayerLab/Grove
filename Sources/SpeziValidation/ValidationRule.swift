@@ -7,7 +7,7 @@
 //
 
 
-import Foundation
+public import Foundation
 import SpeziViews
 
 

@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziViews
+public import SpeziViews
 
 
 /// Describes the appearance of a device variant and criteria that identify the variant.

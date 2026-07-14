@@ -6,10 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-import ByteCoding
+public import ByteCoding
 import Foundation
-import NIOCore
-import SpeziNumerics
+public import NIOCore
+public import SpeziNumerics
 
 
 /// A PLX Spot-check Measurement, as defined in the [Bluetooth specification](https://www.bluetooth.com/specifications/specs/plxs-html/).

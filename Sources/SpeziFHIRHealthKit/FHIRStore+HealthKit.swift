@@ -6,11 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
-import HealthKit
+public import HealthKit
 import HealthKitOnFHIR
 import ModelsDSTU2
 import ModelsR4
-@_spi(Internal) import SpeziFHIR
+@_spi(Internal) public import SpeziFHIR
 import SpeziHealthKit
 
 

@@ -7,8 +7,8 @@
 //
 
 
-import CoreLocation
-import Foundation
+public import CoreLocation
+public import Foundation
 
 
 /// `LocationAuthorizationTask` is a class that conforms to the `LocationTask` protocol. It is designed to manage the process of requesting and handling location authorization from the user. This class interacts with `SpeziLocation` component to request and monitor changes in location authorization status.

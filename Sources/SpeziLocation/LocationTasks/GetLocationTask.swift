@@ -7,7 +7,7 @@
 //
 
 import CoreLocation
-import Foundation
+public import Foundation
 
 
 /// A task for getting the user's current location

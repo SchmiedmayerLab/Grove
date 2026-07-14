@@ -8,9 +8,9 @@
 
 import RegexBuilder
 import Spezi
-import SpeziFoundation
+public import SpeziFoundation
 import SpeziValidation
-import SwiftUI
+public import SwiftUI
 
 
 /// Entry or modify the value of an `FixedWidthInteger`-based `AccountKey`.

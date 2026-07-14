@@ -7,7 +7,7 @@
 //
 
 import FirebaseStorage
-import Spezi
+public import Spezi
 import SpeziFirebaseConfiguration
 
 

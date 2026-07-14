@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import AVFoundation
-import Observation
-import Spezi
+public import AVFoundation
+public import Observation
+public import Spezi
 
 
 /// Produces synthesized speech from text utterances.

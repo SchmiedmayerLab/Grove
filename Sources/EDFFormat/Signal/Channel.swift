@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import ByteCoding
-import NIO
+public import ByteCoding
+public import NIO
 
 
 /// Recorded data of a channel.

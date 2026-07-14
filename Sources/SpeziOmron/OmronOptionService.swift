@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziBluetooth
-import SpeziBluetoothServices
+public import SpeziBluetooth
+public import SpeziBluetoothServices
 
 
 /// The Omron Option Service.

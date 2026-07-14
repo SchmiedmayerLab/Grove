@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SwiftUI
+public import SwiftUI
 
 
 /// A ``UserProfileView`` allows you to display a user image and name in a circular profile view.

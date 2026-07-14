@@ -6,10 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Observation
+public import Foundation
+public import Observation
 import os
-import Speech
-import Spezi
+public import Speech
+public import Spezi
 
 
 /// Initiate and manage speech recognition.

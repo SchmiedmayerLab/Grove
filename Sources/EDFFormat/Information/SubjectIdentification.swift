@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import ByteCoding
-import Foundation
-import NIO
+public import ByteCoding
+public import Foundation
+public import NIO
 
 
 /// The structured representation of the `Local Subject Identification` field specified by EDF+.

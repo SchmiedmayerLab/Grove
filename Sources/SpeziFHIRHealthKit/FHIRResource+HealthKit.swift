@@ -6,12 +6,12 @@
 // SPDX-License-Identifier: MIT
 //
 
-import HealthKit
+public import HealthKit
 import HealthKitOnFHIR
 import ModelsDSTU2
 import ModelsR4
-import SpeziFHIR
-import SpeziHealthKit
+public import SpeziFHIR
+public import SpeziHealthKit
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

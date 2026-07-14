@@ -14,8 +14,8 @@ import MLXLLM
 import MLXLMCommon
 import MLXRandom
 import os
-import SpeziChat
-import SpeziLLM
+public import SpeziChat
+public import SpeziLLM
 
 
 /// Represents an ``LLMLocalSchema`` in execution.

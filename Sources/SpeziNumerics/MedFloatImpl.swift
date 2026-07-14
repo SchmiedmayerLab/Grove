@@ -8,9 +8,9 @@
 
 // swiftlint:disable file_length
 
-import ByteCoding
+public import ByteCoding
 import Foundation
-import NIOCore
+public import NIOCore
 
 
 /// Medical floating point value representation using base 10.

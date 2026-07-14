@@ -7,9 +7,10 @@
 //
 
 
+public import CoreFoundation
 import CryptoKit
 import Foundation
-import Security
+public import Security
 
 
 extension KeychainStorage {

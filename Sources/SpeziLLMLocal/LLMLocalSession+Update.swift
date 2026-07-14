@@ -7,8 +7,8 @@
 //
 
 #if MLX
-import Foundation
-import SpeziLLM
+public import Foundation
+public import SpeziLLM
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

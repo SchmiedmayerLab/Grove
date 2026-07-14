@@ -7,7 +7,7 @@
 //
 
 #if canImport(Darwin)
-import Foundation
+public import Foundation
 
 
 extension Date {

@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import NIOCore
+public import NIOCore
 
 
 extension PrimitiveByteDecodable where Self: RawRepresentable, Self.RawValue: PrimitiveByteDecodable {

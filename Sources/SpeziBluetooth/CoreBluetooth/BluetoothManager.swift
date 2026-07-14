@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import CoreBluetooth
+public import CoreBluetooth
 import NIOCore
 import Observation
 import OrderedCollections

@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import ByteCoding
-import Foundation
-import NIOCore
+public import ByteCoding
+public import Foundation
+public import NIOCore
 
 
 /// Exact time representing using weekday, date and time including fractions of seconds.

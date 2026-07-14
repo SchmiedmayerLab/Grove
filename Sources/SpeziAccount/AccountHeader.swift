@@ -8,7 +8,7 @@
 
 import Spezi
 import SpeziPersonalInfo
-import SwiftUI
+public import SwiftUI
 
 
 /// A account summary view that can be used to link to the `AccountOverview`.

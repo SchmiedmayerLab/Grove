@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import GeneratedOpenAIClient
+public import Foundation
+public import GeneratedOpenAIClient
 
 
 /// Represents the configuration of the Spezi ``LLMFogPlatform``.

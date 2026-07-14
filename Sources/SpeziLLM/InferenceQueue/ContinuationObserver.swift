@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Atomics
+public import Atomics
 
 /// A wrapper for a `AsyncThrowingStream/Continuation` that indicates if the continuation, and by extension the stream, is cancelled.
 ///

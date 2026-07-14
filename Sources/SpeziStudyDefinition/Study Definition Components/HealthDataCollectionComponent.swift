@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import SpeziHealthKit
-import SpeziHealthKitBulkExport
+public import Foundation
+public import SpeziHealthKit
+public import SpeziHealthKitBulkExport
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

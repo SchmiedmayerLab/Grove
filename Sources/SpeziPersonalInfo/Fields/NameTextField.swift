@@ -7,7 +7,7 @@
 //
 
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// A TextField for properties of `PersonNameComponents`.

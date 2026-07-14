@@ -8,8 +8,8 @@
 
 import Foundation
 import SwiftDiagnostics
-import SwiftSyntax
-import SwiftSyntaxMacros
+public import SwiftSyntax
+public import SwiftSyntaxMacros
 
 
 private struct SimpleError: Error {

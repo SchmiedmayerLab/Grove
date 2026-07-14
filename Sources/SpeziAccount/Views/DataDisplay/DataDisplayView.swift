@@ -7,7 +7,7 @@
 //
 
 import SpeziFoundation
-import SwiftUI
+public import SwiftUI
 
 
 /// Displays the value of an `AccountKey`.

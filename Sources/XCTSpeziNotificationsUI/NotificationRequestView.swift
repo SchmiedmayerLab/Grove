@@ -7,8 +7,8 @@
 //
 
 import SpeziViews
-import SwiftUI
-import UserNotifications
+public import SwiftUI
+public import UserNotifications
 
 
 /// Present the details of a notification request.

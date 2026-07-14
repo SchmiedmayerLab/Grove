@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import SpeziLLMOpenAI
+package import Foundation
+package import SpeziLLMOpenAI
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

@@ -7,7 +7,7 @@
 //
 
 import CoreBluetooth
-import Foundation
+public import Foundation
 import OSLog
 import SpeziFoundation
 

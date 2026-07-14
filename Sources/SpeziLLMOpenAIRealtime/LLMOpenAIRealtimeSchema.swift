@@ -8,8 +8,8 @@
 
 import Foundation
 import SpeziChat
-import SpeziLLM
-import SpeziLLMOpenAI
+public import SpeziLLM
+public import SpeziLLMOpenAI
 
 /// Defines the type and configuration of the ``LLMOpenAIRealtimeSession``.
 ///

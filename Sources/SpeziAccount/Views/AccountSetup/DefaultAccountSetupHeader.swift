@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SwiftUI
+public import SwiftUI
 
 
 /// A view which provides the default title and subtitle text.

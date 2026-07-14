@@ -7,7 +7,7 @@
 //
 
 import RuntimeAssertions
-import SpeziFoundation
+public import SpeziFoundation
 import SwiftUI
 
 

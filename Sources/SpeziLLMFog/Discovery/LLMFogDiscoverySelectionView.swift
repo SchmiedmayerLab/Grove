@@ -6,10 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Network
+public import Network
 import SpeziOnboarding
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// Select a preferred fog service to use.

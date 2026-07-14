@@ -7,11 +7,11 @@
 //
 
 #if canImport(AccessorySetupKit) && !os(macOS)
-import AccessorySetupKit
+public import AccessorySetupKit
 #endif
 import Foundation
 import OSLog
-import Spezi
+public import Spezi
 import Synchronization
 
 

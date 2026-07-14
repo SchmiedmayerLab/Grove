@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Security
+public import Security
 import Spezi
 import SpeziKeychainStorage
 

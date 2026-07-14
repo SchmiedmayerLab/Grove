@@ -7,6 +7,7 @@
 //
 
 #if canImport(SwiftUI)
+public import Foundation
 import SpeziFoundation
 import SwiftUI
 

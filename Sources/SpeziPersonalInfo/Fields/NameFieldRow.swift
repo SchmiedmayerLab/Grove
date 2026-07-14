@@ -7,7 +7,7 @@
 //
 
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// A `NameTextField` that always shows a description in front of the text field.

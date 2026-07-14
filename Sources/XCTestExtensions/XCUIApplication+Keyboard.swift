@@ -7,6 +7,7 @@
 //
 
 import XCTest
+public import XCUIAutomation
 
 /// Replicates Apples [SubmitLabel](https://developer.apple.com/documentation/swiftui/submitlabel).
 ///

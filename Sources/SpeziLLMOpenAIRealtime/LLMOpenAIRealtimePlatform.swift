@@ -11,8 +11,8 @@ import os
 import Spezi
 import SpeziFoundation
 import SpeziKeychainStorage
-import SpeziLLM
-import SpeziLLMOpenAI
+public import SpeziLLM
+public import SpeziLLMOpenAI
 
 
 /// LLM execution platform of an ``LLMOpenAIRealtimeSchema``.

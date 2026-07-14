@@ -7,7 +7,7 @@
 //
 
 
-import CoreLocation
+public import CoreLocation
 import Foundation
 
 

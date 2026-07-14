@@ -7,7 +7,7 @@
 //
 
 @_exported import Contacts.CNPostalAddress
-import SwiftUI
+public import SwiftUI
 
 
 /// Encodes the contact information.

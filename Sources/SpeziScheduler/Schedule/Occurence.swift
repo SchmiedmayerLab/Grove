@@ -7,7 +7,7 @@
 //
 
 #if canImport(Darwin)
-import Foundation
+public import Foundation
 
 
 /// A single Occurrence of a Schedule.

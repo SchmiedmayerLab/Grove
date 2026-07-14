@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import NIOCore
+public import Foundation
+public import NIOCore
 
 
 extension Data: ByteCodable {

@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import GeneratedOpenAIClient
+package import GeneratedOpenAIClient
 import OpenAPIRuntime
 import OSLog
 

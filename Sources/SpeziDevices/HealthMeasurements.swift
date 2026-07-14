@@ -6,11 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
-import HealthKit
+public import HealthKit
 import OSLog
-import Spezi
+public import Spezi
 import SpeziBluetooth
-import SpeziBluetoothServices
+public import SpeziBluetoothServices
 import SwiftData
 import SwiftUI
 

@@ -7,13 +7,13 @@
 //
 
 import CoreBluetooth
-import Foundation
+public import Foundation
 import OSLog
 @_spi(TestingSupport)
-import SpeziBluetooth
-import SpeziBluetoothServices
+public import SpeziBluetooth
+public import SpeziBluetoothServices
 @_spi(Migration)
-import SpeziDevices
+public import SpeziDevices
 import SpeziFoundation
 
 

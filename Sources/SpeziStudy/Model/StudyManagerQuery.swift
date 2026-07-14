@@ -7,9 +7,9 @@
 //
 
 import Combine
-import Foundation
-import SwiftData
-import SwiftUI
+public import Foundation
+public import SwiftData
+public import SwiftUI
 
 
 /// Performs a SwiftData query in the ``StudyManager``'s `ModelContext`

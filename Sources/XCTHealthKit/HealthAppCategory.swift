@@ -8,6 +8,7 @@
 
 
 import XCTest
+public import XCUIAutomation
 
 
 /// A category in the health app

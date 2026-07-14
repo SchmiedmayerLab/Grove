@@ -9,7 +9,7 @@
 import OrderedCollections
 import SpeziValidation
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// A generalized signup form used with arbitrary ``AccountService`` implementations.

@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Spezi
-@_spi(TestingSupport) import SpeziFoundation
-import TipKit
+public import Spezi
+@_spi(TestingSupport) public import SpeziFoundation
+public import TipKit
 
 
 /// Configure TipKit.

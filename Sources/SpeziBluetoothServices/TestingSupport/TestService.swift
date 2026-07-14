@@ -7,7 +7,7 @@
 //
 
 import CoreBluetooth
-import SpeziBluetooth
+public import SpeziBluetooth
 
 
 @_spi(TestingSupport)

@@ -8,7 +8,7 @@
 
 import Spezi
 import SpeziOnboarding
-import SwiftUI
+public import SwiftUI
 
 
 /// View to display an onboarding step for the user to enter the to-be-used fog model.

@@ -9,7 +9,7 @@
 #if canImport(Darwin)
 // swiftlint:disable file_length
 
-import Foundation
+public import Foundation
 
 
 /// A schedule to describe the occurrences of a task.

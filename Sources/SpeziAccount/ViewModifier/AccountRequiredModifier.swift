@@ -7,7 +7,7 @@
 //
 
 import OSLog
-import SwiftUI
+public import SwiftUI
 
 
 private let logger = Logger(subsystem: "edu.stanford.spezi.SpeziAccount", category: "AccountRequiredModifier")

@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import FHIRModelsExtensions
-import HealthKit
-import ModelsR4
+public import FHIRModelsExtensions
+public import HealthKit
+public import ModelsR4
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

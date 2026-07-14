@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import CoreLocation
+public import CoreLocation
 
 
 /// `LocationDelegate` is a subclass of `NSObject` that conforms to the `CLLocationManagerDelegate` protocol. It serves as a delegate for `CLLocationManager` to handle location updates and errors. This class is designed to work in conjunction with a `LocationTaskManager` to propagate location-related events.

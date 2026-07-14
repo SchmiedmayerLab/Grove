@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import Spezi
+public import Foundation
+public import Spezi
 import SpeziChat
 import SpeziFoundation
 

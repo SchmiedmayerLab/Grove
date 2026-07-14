@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziFoundation
+public import SpeziFoundation
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// Present informational content in a row-based style.

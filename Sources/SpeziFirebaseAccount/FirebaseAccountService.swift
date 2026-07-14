@@ -9,15 +9,15 @@
 // swiftlint:disable file_length
 
 import AuthenticationServices
-@preconcurrency import FirebaseAuth
+@preconcurrency public import FirebaseAuth
 import OSLog
 import Spezi
-import SpeziAccount
+public import SpeziAccount
 import SpeziFirebaseConfiguration
 import SpeziFoundation
 import SpeziKeychainStorage
 import SpeziLocalStorage
-import SpeziValidation
+public import SpeziValidation
 import SwiftUI
 
 

@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import HealthKit
-import XCTest
+public import HealthKit
+public import XCTest
 
 /// Sample health record data in the health app
 public enum HealthAppHealthRecordAccount: String, CaseIterable {

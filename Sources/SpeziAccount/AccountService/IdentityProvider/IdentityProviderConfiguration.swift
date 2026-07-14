@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Atomics
+public import Atomics
 import Spezi
-import SwiftUI
+public import SwiftUI
 
 
 /// Defines the section a `IdentityProvider` is grouped into when displayed with `AccountSetup`.

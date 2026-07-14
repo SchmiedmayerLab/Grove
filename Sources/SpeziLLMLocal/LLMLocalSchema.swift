@@ -10,8 +10,8 @@ import Foundation
 #if MLX
 import MLXLLM
 import MLXLMCommon
-import SpeziChat
-import SpeziLLM
+public import SpeziChat
+public import SpeziLLM
 
 
 /// Defines the type and configuration of the ``LLMLocalSession``.

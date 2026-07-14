@@ -6,10 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
+public import Foundation
 import OrderedCollections
 import OSLog
 @_spi(APISupport)
-import Spezi
+public import Spezi
 
 
 /// Connect and communicate with Bluetooth devices using modern programming paradigms.

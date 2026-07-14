@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SwiftUI
+public import SwiftUI
 
 
 /// Defines the type of `SpeziAccount` view a ``DataEntryView`` or ``DataDisplayView`` is placed in.

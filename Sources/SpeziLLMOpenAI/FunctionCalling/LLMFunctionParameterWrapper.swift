@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import OpenAPIRuntime
+public import OpenAPIRuntime
 import OSLog
 import SpeziFoundation
 import Synchronization

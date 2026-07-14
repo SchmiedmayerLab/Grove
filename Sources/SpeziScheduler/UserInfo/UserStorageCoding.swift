@@ -7,8 +7,8 @@
 //
 
 #if canImport(Darwin)
-import Foundation
-import SpeziFoundation
+public import Foundation
+public import SpeziFoundation
 
 
 /// Defining the coding strategy for a user storage property.

@@ -7,8 +7,9 @@
 //
 
 
-import HealthKit
+public import HealthKit
 import XCTest
+public import XCUIAutomation
 
 
 /// A Sample type within the Health app.

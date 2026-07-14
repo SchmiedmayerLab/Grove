@@ -6,9 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
+public import Foundation
 import SpeziNotifications
 import SwiftUI
-import UserNotifications
+public import UserNotifications
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

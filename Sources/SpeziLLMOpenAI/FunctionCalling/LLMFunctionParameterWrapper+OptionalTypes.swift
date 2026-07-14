@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziFoundation
+public import SpeziFoundation
 
 // swiftlint:disable discouraged_optional_boolean discouraged_optional_collection
 

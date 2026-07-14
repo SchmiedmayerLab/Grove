@@ -6,9 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
+public import Foundation
 import SpeziNotifications
 import UserNotifications
 import XCTest
+public import XCUIAutomation
 
 
 extension XCUIApplication {

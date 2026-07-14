@@ -7,12 +7,12 @@
 //
 
 #if canImport(Darwin)
-import Combine
-import Foundation
+public import Combine
+public import Foundation
 import RuntimeAssertions
-import Spezi
+public import Spezi
 import SpeziFoundation
-import SwiftData
+public import SwiftData
 import SwiftUI
 
 

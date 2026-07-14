@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziKeychainStorage
+public import SpeziKeychainStorage
 
 
 /// Constants used throughout the `SpeziLLMFog` target.

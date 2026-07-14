@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import OrderedCollections
+public import OrderedCollections
 
 
 /// The user-defined configuration of account values that all user accounts need to support.

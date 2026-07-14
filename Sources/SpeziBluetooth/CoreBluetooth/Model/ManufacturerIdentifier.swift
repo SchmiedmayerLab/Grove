@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import ByteCoding
-import NIOCore
+public import ByteCoding
+public import NIOCore
 
 
 /// Bluetooth SIG-assigned Manufacturer Identifier.

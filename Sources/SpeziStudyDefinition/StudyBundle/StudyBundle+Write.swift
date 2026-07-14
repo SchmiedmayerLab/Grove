@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import SpeziLocalization
+public import Foundation
+public import SpeziLocalization
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

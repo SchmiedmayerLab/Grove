@@ -7,7 +7,7 @@
 //
 
 import ByteCoding
-import CoreBluetooth
+public import CoreBluetooth
 import OSLog
 import SpeziBluetooth
 @_spi(TestingSupport)

@@ -6,7 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import HealthKit
+public import HealthKit
+public import Foundation
 
 
 /// An ``HKQuantitySampleMapping`` allows developers to customize the mapping of `HKQuantitySample`s to an FHIR observations.

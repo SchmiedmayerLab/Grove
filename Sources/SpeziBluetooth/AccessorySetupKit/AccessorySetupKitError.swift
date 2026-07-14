@@ -7,9 +7,9 @@
 //
 
 #if canImport(AccessorySetupKit) && !os(macOS)
-import AccessorySetupKit
+public import AccessorySetupKit
 #endif
-import Foundation
+public import Foundation
 
 
 /// The `ASError` from `AccessorySetupKit` mapped to Swift.
