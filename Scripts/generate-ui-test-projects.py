@@ -107,6 +107,8 @@ def modify_configuration(text: str, config_id: str, settings: dict[str, str], pl
 
     if settings:
         marker = "\t\t\tbuildSettings = {\n"
+        for key in settings:
+            block = re.sub(rf"^\t\t\t\t{re.escape(key)} = .*;\n", "", block, flags=re.MULTILINE)
         rendered = "".join(f"\t\t\t\t{key} = {quoted(str(value))};\n" for key, value in sorted(settings.items()))
         block = block.replace(marker, marker + rendered, 1)
     return text[:start] + block + text[end:]
@@ -262,6 +264,9 @@ def render_project(package: str, spec: dict[str, object], platforms: list[str], 
 
     app_settings = {str(key): str(value) for key, value in spec.get("app_settings", {}).items()}
     test_settings = {str(key): str(value) for key, value in spec.get("test_settings", {}).items()}
+    bundle_identifier = f"edu.stanford.spezi.{package.lower()}"
+    app_settings.setdefault("PRODUCT_BUNDLE_IDENTIFIER", f"{bundle_identifier}.testapp")
+    test_settings.setdefault("PRODUCT_BUNDLE_IDENTIFIER", f"{bundle_identifier}.testapp.uitests")
     for target, settings in (("TestApp", app_settings), ("TestAppUITests", test_settings)):
         if "INFOPLIST_FILE" in settings:
             text = add_membership_exception(text, package, target, settings["INFOPLIST_FILE"])

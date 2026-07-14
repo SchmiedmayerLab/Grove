@@ -105,6 +105,6 @@ extension RetryMiddleware: ClientMiddleware {
         case .exponential(let base):
             interval = base * pow(2, Double(attempt - 1))
         }
-        try await Task.sleep(for: .seconds(interval))
+        try await Task<Never, Never>.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
     }
 }

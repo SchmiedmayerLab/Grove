@@ -85,7 +85,7 @@ class TestAppUITests: XCTestCase {
 
             // Select "On My iPhone / iPad" directory, if necessary
             let predicate = NSPredicate(format: "label BEGINSWITH[c] %@", "On My")
-            let matchingStaticTexts = app.staticTexts.containing(predicate)
+            let matchingStaticTexts = app.staticTexts.matching(predicate)
             matchingStaticTexts.allElementsBoundByIndex.first?.tap()
 
             XCTAssert(app.buttons["Save"].waitForExistence(timeout: 5))

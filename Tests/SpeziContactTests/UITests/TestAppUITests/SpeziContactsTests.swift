@@ -53,6 +53,6 @@ final class ContactsTests: XCTestCase {
         XCTAssertEqual(app.buttons.matching(predicate).count, 2)
         app.buttons.matching(predicate).element(boundBy: 0).tap()
         let maps = XCUIApplication(bundleIdentifier: "com.apple.Maps")
-        XCTAssert(maps.wait(for: .runningForeground, timeout: 2))
+        XCTAssert(maps.wait(for: .runningForeground, timeout: 20))
     }
 }

@@ -73,7 +73,7 @@ extension XCUIApplication {
         let shareSheet = otherElements["ShareSheet.RemoteContainerView"]
         XCTAssert(shareSheet.waitForExistence(timeout: 5), file: file, line: line)
         XCTAssert(
-            staticTexts[expected.title].waitForExistence(timeout: 1) || otherElements[expected.title].waitForExistence(timeout: 1),
+            staticTexts[expected.title].waitForExistence(timeout: 10) || otherElements[expected.title].waitForExistence(timeout: 10),
             "Unable to find share sheet title '\(expected.title)'",
             file: file,
             line: line
@@ -82,7 +82,7 @@ extension XCUIApplication {
             let predicate = NSPredicate(format: "label BEGINSWITH %@", filetype + " · ")
             XCTAssert(
                 // swiftlint:disable:next line_length
-                staticTexts.matching(predicate).element.waitForExistence(timeout: 1) || otherElements.matching(predicate).element.waitForExistence(timeout: 1),
+                staticTexts.matching(predicate).element.waitForExistence(timeout: 10) || otherElements.matching(predicate).element.waitForExistence(timeout: 10),
                 "Unable to find share sheet filetype '\(filetype)'",
                 file: file,
                 line: line

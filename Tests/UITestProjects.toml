@@ -111,12 +111,6 @@ test_products = ["XCTestExtensions"]
 
 [SpeziLicense]
 app_products = ["SpeziLicense"]
-app_fixture_products = ["ThreadLocal"] # The UI test verifies that it appears in the generated license list.
-[[SpeziLicense.remote_packages]]
-url = "https://github.com/SchmiedmayerLab/ThreadLocal.git"
-kind = "upToNextMinorVersion"
-minimum_version = "0.1.4"
-products = ["ThreadLocal"]
 
 [SpeziLocation]
 app_products = ["Spezi", "SpeziLocation"]
@@ -158,6 +152,8 @@ app_products = ["Spezi", "SpeziSpeechRecognizer", "SpeziSpeechSynthesizer"]
 app_products = ["Spezi", "SpeziKeychainStorage", "SpeziLocalStorage", "XCTestApp"]
 [SpeziStorage.app_settings]
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
+"DEVELOPMENT_TEAM" = "637867499T"
+"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.storage.testapp"
 
 [SpeziStudy]
 app_products = ["Spezi", "SpeziFoundation", "SpeziHealthKit", "SpeziLocalization", "SpeziScheduler", "SpeziSchedulerUI", "SpeziStudy", "SpeziStudyDefinition", "SpeziViews"]

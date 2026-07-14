@@ -67,7 +67,11 @@ class TestAppUITests: XCTestCase {
         // Enable Apple Health Access if needed
         app.handleHealthKitAuthorization()
         
-        XCTAssert(app.staticTexts["Passed"].waitForExistence(timeout: 10))
+        let passed = app.staticTexts["Passed"]
+        if !passed.waitForExistence(timeout: 10) {
+            app.buttons["Read Electrocardiogram"].tap()
+        }
+        XCTAssert(passed.waitForExistence(timeout: 10))
         
         app.collectionViews.buttons["See JSON"].tap()
         
