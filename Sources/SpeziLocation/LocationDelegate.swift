@@ -33,7 +33,7 @@ public class LocationDelegate: NSObject, CLLocationManagerDelegate {
     /// - Parameters:
     ///   - manager: The location manager object that encountered the error.
     ///   - error: The error object containing the reason why location data could not be retrieved.
-    public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    public func locationManager(_ manager: CLLocationManager, didFailWithError error: any Error) {
         taskManager?.notify(.didFailWithError(error))
     }
     

@@ -7,7 +7,7 @@
 //
 
 public import HealthKit
-public import Foundation
+public import ObjectiveC
 
 
 /// An ``HKCategorySampleMapping`` allows developers to customize the mapping of `HKCategorySample`s to FHIR observations.

@@ -27,9 +27,9 @@ extension BluetoothService {
     func accept<Visitor: ServiceVisitor>(_ visitor: inout Visitor) {
         let mirror = Mirror(reflecting: self)
         for (_, child) in mirror.children {
-            if let visitable = child as? ServiceVisitable {
+            if let visitable = child as? any ServiceVisitable {
                 visitable.accept(&visitor)
-            } else if child is DeviceVisitable {
+            } else if child is any DeviceVisitable {
                 preconditionFailure("@Service declaration found in \(Self.self). @Service cannot be used within BluetoothService classes!")
             }
         }

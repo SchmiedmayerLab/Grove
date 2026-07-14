@@ -91,7 +91,7 @@ public struct DeviceState<Value: Sendable>: Sendable {
 #if compiler(<6)
     typealias KeyPathType = KeyPath<BluetoothPeripheral, Value>
 #else
-    typealias KeyPathType = KeyPath<BluetoothPeripheral, Value> & Sendable
+    typealias KeyPathType = any KeyPath<BluetoothPeripheral, Value> & Sendable
 #endif
 
     final class Storage: Sendable {
@@ -139,7 +139,7 @@ public struct DeviceState<Value: Sendable>: Sendable {
     #else
     /// Provide a `KeyPath` to the device state you want to access.
     /// - Parameter keyPath: The `KeyPath` to a property of the underlying ``BluetoothPeripheral`` instance.
-    public init(_ keyPath: KeyPath<BluetoothPeripheral, Value> & Sendable) {
+    public init(_ keyPath: any KeyPath<BluetoothPeripheral, Value> & Sendable) {
         self.storage = Storage(keyPath: keyPath)
     }
     #endif

@@ -15,13 +15,13 @@ import SpeziFoundation
 final class ControlPointTransaction<Value: Sendable>: Sendable {
     let id: UUID
 
-    private(set) var continuation: CheckedContinuation<Value, Error>?
+    private(set) var continuation: CheckedContinuation<Value, any Error>?
 
     init(id: UUID = UUID()) {
         self.id = id
     }
 
-    func assignContinuation(_ continuation: CheckedContinuation<Value, Error>) {
+    func assignContinuation(_ continuation: CheckedContinuation<Value, any Error>) {
         self.continuation = continuation
     }
 
@@ -37,7 +37,7 @@ final class ControlPointTransaction<Value: Sendable>: Sendable {
         resume(with: .success(value))
     }
 
-    private func resume(with result: Result<Value, Error>) {
+    private func resume(with result: Result<Value, any Error>) {
         guard let continuation else {
             return
         }

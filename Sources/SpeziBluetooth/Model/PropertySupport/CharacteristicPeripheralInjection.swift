@@ -76,7 +76,7 @@ class CharacteristicPeripheralInjection<Value: Sendable>: Sendable {
     func setup(defaultNotify: Bool) {
         registerCharacteristicInstanceChanges()
 
-        guard self is DecodableCharacteristic else {
+        guard self is any DecodableCharacteristic else {
             return
         }
         // value is readable!
@@ -172,7 +172,7 @@ class CharacteristicPeripheralInjection<Value: Sendable>: Sendable {
     }
 
     private func handleUpdatedValue(_ data: Data?) {
-        guard let decodable = self as? DecodableCharacteristic else {
+        guard let decodable = self as? any DecodableCharacteristic else {
             return
         }
 
@@ -238,7 +238,7 @@ extension CharacteristicPeripheralInjection where Value: ByteDecodable {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension CharacteristicPeripheralInjection where Value: ByteEncodable {
     fileprivate func encodeValue(_ value: Value) -> Data {
-        if let primitiveValue = value as? PrimitiveByteEncodable {
+        if let primitiveValue = value as? any PrimitiveByteEncodable {
             return primitiveValue.encode(endianness: .little)
         }
         return value.encode()

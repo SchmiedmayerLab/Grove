@@ -104,7 +104,7 @@ class DiscoverySession: Sendable {
     private var autoConnectItem: BluetoothWorkItem?
     private(set) var staleTimer: DiscoveryStaleTimer?
 
-    private var connectionAttempt: Task<Void, Error>? {
+    private var connectionAttempt: Task<Void, any Error>? {
         willSet {
             connectionAttempt?.cancel()
         }

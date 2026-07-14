@@ -7,7 +7,7 @@
 //
 
 public import HealthKit
-public import Foundation
+public import ObjectiveC
 
 
 /// An ``HKCorrelationMapping`` allows developers to customize the mapping of `HKCorrelation`s to an FHIR observations.

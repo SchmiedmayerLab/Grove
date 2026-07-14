@@ -112,7 +112,7 @@ extension AccessorySetupKitError {
     }
 
 
-    static func mapError(_ error: Error) -> Error {
+    static func mapError(_ error: any Error) -> any Error {
         if let asError = error as? ASError {
             AccessorySetupKitError(from: asError)
         } else {

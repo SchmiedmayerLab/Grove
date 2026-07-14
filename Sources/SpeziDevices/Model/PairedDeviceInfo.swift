@@ -49,7 +49,7 @@ public final class PairedDeviceInfo {
     /// Could not retrieve the device from the Bluetooth central.
     @Transient public internal(set) var notLocatable: Bool = false
     @Transient private var _icon: ImageReference?
-    @Transient private var _accessory: (AnyObject & Sendable)?
+    @Transient private var _accessory: (any AnyObject & Sendable)?
     /// The result of the last connection attempt done by SpeziDevices.
     ///
     /// You can use this to visualize erroneous cases where connection attempts is failing repeatedly or failed completely and won't be retried.

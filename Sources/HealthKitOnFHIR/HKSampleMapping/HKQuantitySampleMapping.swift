@@ -7,7 +7,7 @@
 //
 
 public import HealthKit
-public import Foundation
+public import ObjectiveC
 
 
 /// An ``HKQuantitySampleMapping`` allows developers to customize the mapping of `HKQuantitySample`s to an FHIR observations.

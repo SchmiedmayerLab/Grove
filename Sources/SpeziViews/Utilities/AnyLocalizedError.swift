@@ -32,7 +32,7 @@ public struct AnyLocalizedError: LocalizedError {
     /// - Parameters:
     ///   - error: The error instance that should be wrapped.
     ///   - defaultErrorDescription: The localized default error description that should be used if the `error` does not provide any context to create an error description.
-    public init(error: Error, defaultErrorDescription: LocalizedStringResource? = nil) {
+    public init(error: any Error, defaultErrorDescription: LocalizedStringResource? = nil) {
         self.init(error: error, defaultErrorDescription: String(localized: defaultErrorDescription ?? Self.globalDefaultErrorDescription))
     }
     
@@ -44,9 +44,9 @@ public struct AnyLocalizedError: LocalizedError {
     /// - Parameters:
     ///   - error: The error instance that should be wrapped.
     ///   - defaultErrorDescription: The localized default error description that should be used if the `error` does not provide any context to create an error description.
-    public init(error: Error, defaultErrorDescription: String) {
+    public init(error: any Error, defaultErrorDescription: String) {
         switch error {
-        case let localizedError as LocalizedError:
+        case let localizedError as any LocalizedError:
             self.errorDescription = localizedError.errorDescription ?? defaultErrorDescription
             self.failureReason = localizedError.failureReason
             self.helpAnchor = localizedError.helpAnchor
@@ -57,7 +57,7 @@ public struct AnyLocalizedError: LocalizedError {
             self.failureReason = error.localizedFailureReason
             self.helpAnchor = error.helpAnchor
             self.recoverySuggestion = error.localizedRecoverySuggestion
-        case let customStringConvertible as CustomStringConvertible:
+        case let customStringConvertible as any CustomStringConvertible:
             self.errorDescription = customStringConvertible.description
         default:
             self.errorDescription = defaultErrorDescription

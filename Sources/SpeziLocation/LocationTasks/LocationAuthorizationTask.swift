@@ -17,7 +17,7 @@ public class LocationAuthorizationTask: LocationTask {
     public let id = UUID()
     
     /// A continuation used to asynchronously handle the response to authorization requests.
-    private var continuation: CheckedContinuation<CLAuthorizationStatus, Error>?
+    private var continuation: CheckedContinuation<CLAuthorizationStatus, any Error>?
     
     /// A weak reference to the `SpeziLocation` component, responsible for accessing and managing location services.
     private weak var component: SpeziLocation?
