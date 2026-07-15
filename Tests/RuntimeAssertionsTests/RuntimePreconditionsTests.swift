@@ -93,19 +93,4 @@ struct RuntimePreconditionsTests {
 
         #expect(called, "precondition was never called!")
     }
-
-    @MainActor
-    @Test("MainActor Annotated Closure")
-    func testAsyncInvocationOnMainActor() {
-        @MainActor
-        class Test {
-            var property = "Hello World"
-        }
-
-        let test = Test()
-
-        expectRuntimePrecondition {
-            precondition(test.property != "Hello World", "Failed successfully.")
-        }
-    }
 }

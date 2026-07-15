@@ -42,43 +42,32 @@ func foo() {
 
 ### Testing Runtime Assertions
 
-In your unit tests you can use the `expectRuntimeAssertion(expectedCount:_:assertion:sourceLocation:_:)` and
-`expectRuntimePrecondition(timeout:_:precondition:sourceLocation:_:)` functions to test a block of code for which you expect
-a runtime assertion to occur.
-
-Below is a short code example demonstrating this for assertions:
+With Swift 6.3 or newer, use Swift Testing's native exit-test support on a supported host platform such as macOS:
 
 ```swift
-import RuntimeAssertionsTesting
 import Testing
 
+#if os(macOS)
 @Test
-func testAssertion() {
-    expectRuntimeAssertion {
-        // code containing a call to assert() of the runtime support ...
+func testPrecondition() async throws {
+    let result = try await #require(
+        processExitsWith: .failure,
+        observing: [\.standardErrorContent]
+    ) {
+        // code containing a call to RuntimeAssertions.precondition(...)
     }
+
+    let standardError = String(decoding: result.standardErrorContent, as: UTF8.self)
+    #expect(standardError.contains("Expected failure message"))
 }
+#endif
 ```
 
-Below is a short code example demonstrating this for preconditions:
+Exit tests run the expression in a child process. Construct non-`Codable` or non-`Sendable` fixtures inside the exit-test closure,
+and validate a distinctive stderr message so an unrelated crash cannot satisfy the test.
 
-```swift
-import RuntimeAssertionsTesting
-import Testing
-
-@Test
-func testPrecondition() {
-    expectRuntimePrecondition {
-        // code containing a call to precondition() of the runtime support ...
-    }
-}
-```
-
-> Tip: Both expectation methods also support the execution of `async` code.
-
-Import the `RuntimeAssertionsTesting` module if you use Swift Testing; import `XCTRuntimeAssertions` if you use XCTest.
-
-> Important: Don't import `RuntimeAssertionsTesting` or `XCTRuntimeAssertions` in your application target.
+The `RuntimeAssertionsTesting` product remains available for source compatibility on platforms without native exit tests, but all
+of its APIs are deprecated. Don't import it in your application target.
 
 ## Contributing
 

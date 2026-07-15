@@ -207,6 +207,41 @@ def render_project(package: str, spec: dict[str, object], platforms: list[str], 
         entries = [f"{dependency_id} /* {product} */," for product, dependency_id, _ in products[target]]
         text = replace_object_list(text, object_id, "packageProductDependencies", entries)
 
+    app_plugins = [str(plugin) for plugin in spec.get("app_plugins", [])]
+    plugin_dependencies = []
+    plugin_products = []
+    for plugin in app_plugins:
+        if plugin not in remote_by_product:
+            raise ValueError(f"{package}: plugin {plugin} must be declared by a remote package")
+        product_id = stable_id(package, "TestApp", plugin, "plugin-product")
+        dependency_id = stable_id(package, "TestApp", plugin, "plugin-dependency")
+        remote_id = remote_by_product[plugin][0]
+        plugin_dependencies.append(f"{dependency_id} /* PBXTargetDependency */,")
+        plugin_products.append((plugin, product_id, dependency_id, remote_id))
+
+    if plugin_dependencies:
+        start, end = object_range(text, APP_TARGET_ID)
+        block = text[start:end]
+        marker = "\t\t\tbuildRules = (\n\t\t\t);\n"
+        dependencies = "\t\t\tdependencies = (\n" + "".join(
+            f"\t\t\t\t{entry}\n" for entry in plugin_dependencies
+        ) + "\t\t\t);\n"
+        block = block.replace(marker, marker + dependencies, 1)
+        text = text[:start] + block + text[end:]
+
+        target_dependencies = "\n".join(
+            f"\t\t{dependency_id} /* PBXTargetDependency */ = {{\n"
+            "\t\t\tisa = PBXTargetDependency;\n"
+            f"\t\t\tproductRef = {product_id} /* {plugin} */;\n"
+            "\t\t};"
+            for plugin, product_id, dependency_id, _ in plugin_products
+        )
+        text = text.replace(
+            "/* End PBXTargetDependency section */",
+            target_dependencies + "\n/* End PBXTargetDependency section */",
+            1,
+        )
+
     package_entries = [f'{LOCAL_PACKAGE_ID} /* XCLocalSwiftPackageReference "../../.." */,']
     package_entries += [f'{remote_id} /* XCRemoteSwiftPackageReference "{remote["url"]}" */,' for remote_id, remote in remote_ids]
     # packageReferences is nested in PBXProject, whose TargetAttributes dictionary contains other objects;
@@ -260,6 +295,14 @@ def render_project(package: str, spec: dict[str, object], platforms: list[str], 
                 f"\t\t\tproductName = {product};\n"
                 "\t\t};"
             )
+    for plugin, product_id, _, remote_id in plugin_products:
+        dependency_objects.append(
+            f"\t\t{product_id} /* {plugin} */ = {{\n"
+            "\t\t\tisa = XCSwiftPackageProductDependency;\n"
+            f"\t\t\tpackage = {remote_id} /* package */;\n"
+            f"\t\t\tproductName = {quoted(f'plugin:{plugin}')};\n"
+            "\t\t};"
+        )
     text = replace_section(text, "XCSwiftPackageProductDependency", "\n".join(dependency_objects))
 
     app_settings = {str(key): str(value) for key, value in spec.get("app_settings", {}).items()}

@@ -577,9 +577,7 @@ extension XCUIApplication {
         
         let countryField = searchFields["Your country"].firstMatch
         XCTAssertTrue(countryField.waitForExistence(timeout: timeout))
-        countryField.tap()
-        countryField.tap()
-        countryField.typeText("US")
+        try countryField.enter(value: "US", options: .disableKeyboardDismiss)
         
         let countryCode = staticTexts["+1"].firstMatch
         XCTAssertTrue(countryCode.waitForExistence(timeout: timeout))

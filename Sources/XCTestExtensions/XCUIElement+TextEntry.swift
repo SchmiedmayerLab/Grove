@@ -169,7 +169,15 @@ extension XCUIElement {
                 return
             }
             let valueAfterDelete = waitForTextFieldValueToSettle()
-            let numDeletedChars = lengthBeforeDelete - valueAfterDelete.count
+            var numDeletedChars = lengthBeforeDelete - valueAfterDelete.count
+            if numDeletedChars <= 0 {
+                try selectTextField(options: options)
+                #if !os(watchOS)
+                typeKey(XCUIKeyboardKey.rightArrow, modifierFlags: .command)
+                #endif
+                typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: count))
+                numDeletedChars = lengthBeforeDelete - waitForTextFieldValueToSettle().count
+            }
             guard numDeletedChars > 0 else {
                 throw XCTestError(.failureWhileWaiting)
             }
@@ -307,7 +315,7 @@ extension XCUIElement {
     }
 
     #if !os(macOS) && !targetEnvironment(macCatalyst)
-    private func waitForKeyboardOrFocus(in app: XCUIApplication, timeout: TimeInterval = 5.0) -> Bool {
+    private func waitForKeyboardOrFocus(in app: XCUIApplication, timeout: TimeInterval = 10.0) -> Bool {
         if app.keyboards.firstMatch.waitForExistence(timeout: timeout) {
             return true
         }

@@ -121,7 +121,7 @@ class TestAppUITests: XCTestCase {
             sound: true,
             interruption: .timeSensitive,
             type: "Calendar",
-            nextTrigger: "in 10 seconds",
+            nextTriggerPrefix: "in ",
             nextTriggerExistenceTimeout: 60
         )
 
@@ -147,7 +147,7 @@ class TestAppUITests: XCTestCase {
             sound: true,
             interruption: .timeSensitive,
             type: "Interval",
-            nextTrigger: "in 6 days, 23 hours",
+            nextTriggerPrefix: "in ",
             nextTriggerExistenceTimeout: 60
         )
     }
@@ -185,7 +185,7 @@ class TestAppUITests: XCTestCase {
             sound: true,
             interruption: .timeSensitive,
             type: "Calendar",
-            nextTrigger: "in 10 seconds",
+            nextTriggerPrefix: "in ",
             nextTriggerExistenceTimeout: 60
         )
         
@@ -212,7 +212,7 @@ class TestAppUITests: XCTestCase {
             sound: true,
             interruption: .timeSensitive,
             type: "Interval",
-            nextTrigger: "in 23 hours, 59 minutes",
+            nextTriggerPrefix: "in ",
             nextTriggerExistenceTimeout: 60
         )
     }

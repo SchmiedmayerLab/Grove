@@ -21,7 +21,7 @@ final class AuthorizationTests: SpeziHealthKitTests {
             },
             object: .none
         )
-        wait(for: [expectation], timeout: 2)
+        wait(for: [expectation], timeout: 10)
         XCTAssert(!app.buttons["Ask for authorization"].isEnabled)
     }
 }

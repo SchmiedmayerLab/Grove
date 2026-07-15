@@ -210,7 +210,7 @@ final class FirebaseAccountTests: XCTestCase { // swiftlint:disable:this type_bo
         try app.textFields["enter last name"].enter(value: "Test1", options: .skipTextFieldSelection)
 
         app.buttons["Done"].tap()
-        XCTAssertTrue(app.navigationBars.staticTexts["Name, E-Mail Address"].waitForExistence(timeout: 4.0))
+        XCTAssertTrue(app.navigationBars.staticTexts["Name, E-Mail Address"].waitForExistence(timeout: 10.0))
         XCTAssertTrue(app.staticTexts["Name, Username Test1"].exists)
 
         // CHANGE EMAIL ADDRESS

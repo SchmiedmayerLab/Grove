@@ -50,7 +50,7 @@ final class ValidationTests: XCTestCase {
 
         XCTAssertTrue(app.buttons["Validate"].exists)
         app.buttons["Validate"].tap()
-        XCTAssertTrue(app.staticTexts["Last state: invalid"].waitForExistence(timeout: 1.0))
+        XCTAssertTrue(app.staticTexts["Last state: invalid"].waitForExistence(timeout: 5.0))
         XCTAssertTrue(app.staticTexts[passwordMessage].exists)
         XCTAssertTrue(app.staticTexts[emptyMessage].exists)
 

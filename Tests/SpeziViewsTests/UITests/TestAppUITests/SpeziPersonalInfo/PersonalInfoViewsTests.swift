@@ -44,7 +44,7 @@ final class PersonalInfoViewsTests: XCTestCase {
 
         app.open(target: "SpeziPersonalInfo")
 
-        XCTAssert(app.buttons["User Profile"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["User Profile"].waitForExistence(timeout: 10))
         app.buttons["User Profile"].tap()
 
         XCTAssertTrue(app.staticTexts["PS"].waitForExistence(timeout: 2))

@@ -66,7 +66,7 @@ extension XCUIApplication {
                 return
             }
             let searchTabBarButton = self.tabBars.buttons["Search"]
-            guard searchTabBarButton.waitForExistence(timeout: 2) && searchTabBarButton.isHittable else {
+            guard searchTabBarButton.waitForExistence(timeout: 10) && searchTabBarButton.isHittable else {
                 if dismissAccountSheetIfNecessary() {
                     try goToBrowseTab()
                     return

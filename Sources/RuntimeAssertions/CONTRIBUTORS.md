@@ -8,7 +8,7 @@ SPDX-License-Identifier: MIT
 
 -->
 
-# XCTRuntimeAssertions contributors
+# RuntimeAssertions contributors
 
 * [Paul Schmiedmayer](https://github.com/PSchmiedmayer)
 * [Andreas Bauer](https://github.com/bauer-andreas)

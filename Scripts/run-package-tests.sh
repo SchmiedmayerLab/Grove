@@ -46,7 +46,7 @@ export SPEZI_EXCLUDE_DOCC_CATALOGS="${SPEZI_EXCLUDE_DOCC_CATALOGS:-1}"
 DERIVED_DATA_PATH="${RUNNER_TEMP:+$RUNNER_TEMP/spezi}"
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$PWD/.derivedData}"
 
-PACKAGES="FHIRModelsExtensions HealthKitOnFHIR ResearchKitOnFHIR Spezi SpeziAccessGuard SpeziAccount SpeziBluetooth SpeziChat SpeziConsent SpeziContact SpeziDevices SpeziFHIR SpeziFileFormats SpeziFirebase SpeziFoundation SpeziHealthKit SpeziLLM SpeziLicense SpeziLocation SpeziNetworking SpeziNotifications SpeziOnboarding SpeziQuestionnaire SpeziScheduler SpeziSensorKit SpeziSpeech SpeziStorage SpeziStudy SpeziViews ThreadLocal XCTHealthKit XCTRuntimeAssertions XCTestExtensions"
+PACKAGES="FHIRModelsExtensions HealthKitOnFHIR ResearchKitOnFHIR Spezi SpeziAccessGuard SpeziAccount SpeziBluetooth SpeziChat SpeziConsent SpeziContact SpeziDevices SpeziFHIR SpeziFileFormats SpeziFirebase SpeziFoundation SpeziHealthKit SpeziLLM SpeziLicense SpeziLocation SpeziNetworking SpeziNotifications SpeziOnboarding SpeziQuestionnaire SpeziScheduler SpeziSensorKit SpeziSpeech SpeziStorage SpeziStudy SpeziViews ThreadLocal XCTHealthKit RuntimeAssertions XCTestExtensions"
 
 # package -> the platforms it was tested on upstream (the union CI matrix)
 platforms_for() { case "$1" in
@@ -81,7 +81,7 @@ platforms_for() { case "$1" in
     SpeziViews) echo "iOS visionOS tvOS watchOS macOS" ;;
     ThreadLocal) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
     XCTHealthKit) echo "iOS" ;;
-    XCTRuntimeAssertions) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
+    RuntimeAssertions) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
     XCTestExtensions) echo "iOS watchOS visionOS macOS" ;;
     *) echo "" ;;
   esac; }
@@ -116,7 +116,7 @@ run() { # <package> <platform> [mode: "ui"]
       # Requires the `firebase` CLI (firebase-tools) on the runner — as the upstream CI also relied on.
       local root; root="$(pwd)"
       ( cd "$uidir" \
-        && firebase emulators:exec "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -resultBundlePath '$root/$result' -derivedDataPath '$DERIVED_DATA_PATH' -skipMacroValidation -skipPackagePluginValidation $TESTING_FLOOR_DEPLOYMENT_TARGETS" ) \
+        && firebase emulators:exec "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -parallel-testing-enabled NO -resultBundlePath '$root/$result' -derivedDataPath '$DERIVED_DATA_PATH' -skipMacroValidation -skipPackagePluginValidation $TESTING_FLOOR_DEPLOYMENT_TARGETS" ) \
       | beautify
       return
     fi
@@ -125,6 +125,7 @@ run() { # <package> <platform> [mode: "ui"]
       -scheme TestApp \
       -configuration Debug \
       -destination "$(dest "$2")" \
+      -parallel-testing-enabled NO \
       -resultBundlePath "$result" \
       -skipMacroValidation \
       -skipPackagePluginValidation \

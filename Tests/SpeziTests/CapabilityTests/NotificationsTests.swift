@@ -7,7 +7,7 @@
 //
 
 #if canImport(UserNotifications)
-@testable import Spezi
+@_spi(APISupport) @testable import Spezi
 import SwiftUI
 import Testing
 import UserNotifications
@@ -107,7 +107,9 @@ struct NotificationsTests {
         let action = module.registerRemoteNotifications
 
         async let registration = action()
-        await Task.yield()
+        while !delegate.spezi.remoteNotificationRegistrationSupport.isWaitingForRegistration {
+            await Task.yield()
+        }
 
         let data = Data("Hello World".utf8)
 
@@ -137,7 +139,9 @@ struct NotificationsTests {
         let action = module.registerRemoteNotifications
 
         async let registration = action()
-        await Task.yield()
+        while !delegate.spezi.remoteNotificationRegistrationSupport.isWaitingForRegistration {
+            await Task.yield()
+        }
 
 #if os(iOS) || os(visionOS) || os(tvOS)
         delegate.application(UIApplication.shared, didFailToRegisterForRemoteNotificationsWithError: TestError.testError)

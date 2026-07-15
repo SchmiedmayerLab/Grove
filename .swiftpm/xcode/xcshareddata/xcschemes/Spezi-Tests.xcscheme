@@ -107,7 +107,7 @@
             reference = "container:Tests/TestPlans/XCTHealthKit.xctestplan">
          </TestPlanReference>
          <TestPlanReference
-            reference = "container:Tests/TestPlans/XCTRuntimeAssertions.xctestplan">
+            reference = "container:Tests/TestPlans/RuntimeAssertions.xctestplan">
          </TestPlanReference>
          <TestPlanReference
             reference = "container:Tests/TestPlans/XCTestExtensions.xctestplan">

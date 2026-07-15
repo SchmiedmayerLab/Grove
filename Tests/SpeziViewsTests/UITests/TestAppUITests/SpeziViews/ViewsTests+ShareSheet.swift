@@ -27,24 +27,29 @@ extension ViewsTests {
         app.buttons["Share Text"].tap()
         app.assertShareSheetHeader(.init(title: "Hello Spezi!", filetype: nil))
         app.buttons["header.closeButton"].tap()
+        XCTAssert(app.otherElements["ShareSheet.RemoteContainerView"].waitForNonExistence(timeout: 5))
         
         app.buttons["Share TIFF UIImage via URL"].tap()
         app.assertShareSheetHeader(.init(title: "jellybeans_USC-SIPI", filetype: "TIFF Image"))
         app.buttons["header.closeButton"].tap()
+        XCTAssert(app.otherElements["ShareSheet.RemoteContainerView"].waitForNonExistence(timeout: 5))
         
         app.buttons["Share PNG UIImage via URL"].tap()
         app.assertShareSheetHeader(.init(title: "PM5544", filetype: "PNG Image"))
         app.buttons["header.closeButton"].tap()
+        XCTAssert(app.otherElements["ShareSheet.RemoteContainerView"].waitForNonExistence(timeout: 5))
         
         app.collectionViews.firstMatch.swipeUp() // out of the window on visionOS and iPadOS
         
         app.buttons["Share PDF"].tap()
         app.assertShareSheetHeader(.init(title: "spezi my beloved", filetype: "PDF Document"))
         app.buttons["header.closeButton"].tap()
+        XCTAssert(app.otherElements["ShareSheet.RemoteContainerView"].waitForNonExistence(timeout: 5))
         
         app.buttons["Share PDF via URL"].tap()
         app.assertShareSheetHeader(.init(title: "spezi my beloved", filetype: "PDF Document"))
         app.buttons["header.closeButton"].tap()
+        XCTAssert(app.otherElements["ShareSheet.RemoteContainerView"].waitForNonExistence(timeout: 5))
         
         app.buttons["Share 2 PDFs"].tap()
         app.assertShareSheetHeader(.init(title: "2 Documents"))

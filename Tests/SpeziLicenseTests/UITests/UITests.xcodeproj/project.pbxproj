@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		BDD7B6731DDE8E4CF14AF222 /* SpeziLicense in Frameworks */ = {isa = PBXBuildFile; productRef = 886ED8C4CCB2B2303901238D /* SpeziLicense */; };
+		8F6C3300D5A038F4E3EE49DD /* libzstd in Frameworks */ = {isa = PBXBuildFile; productRef = 836BB95A52304CEDB371853C /* libzstd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -43,6 +44,7 @@
 			isa = PBXFrameworksBuildPhase;
 			files = (
 				BDD7B6731DDE8E4CF14AF222 /* SpeziLicense in Frameworks */,
+				8F6C3300D5A038F4E3EE49DD /* libzstd in Frameworks */,
 			);
 		};
 		656490933002CEA900F1D55F /* Frameworks */ = {
@@ -92,12 +94,16 @@
 			);
 			buildRules = (
 			);
+			dependencies = (
+				E68EE8BF427AF90408EFE581 /* PBXTargetDependency */,
+			);
 			fileSystemSynchronizedGroups = (
 				000000000000000000000010 /* TestApp */,
 			);
 			name = TestApp;
 			packageProductDependencies = (
 				886ED8C4CCB2B2303901238D /* SpeziLicense */,
+				836BB95A52304CEDB371853C /* libzstd */,
 			);
 			productName = TestApp;
 			productReference = 000000000000000000000120 /* TestApp.app */;
@@ -156,6 +162,8 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				654293E43002D0F400AF6915 /* XCLocalSwiftPackageReference "../../.." */,
+				27A79EF8D6B2100ACB2A0765 /* XCRemoteSwiftPackageReference "https://github.com/FelixHerrmann/swift-package-list" */,
+				20E4224D1E76DC0A9A750EDA /* XCRemoteSwiftPackageReference "https://github.com/SchmiedmayerLab/zstd.git" */,
 			);
 			preferredProjectObjectVersion = 90;
 			productRefGroup = 000000000000000000000020 /* Products */;
@@ -199,6 +207,10 @@
 			isa = PBXTargetDependency;
 			target = 000000000000000100000000 /* TestApp */;
 			targetProxy = 6564909A3002CEA900F1D55F /* PBXContainerItemProxy */;
+		};
+		E68EE8BF427AF90408EFE581 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = E2C7F09EC939CF2B7979DBF5 /* SwiftPackageListPlugin */;
 		};
 /* End PBXTargetDependency section */
 
@@ -483,11 +495,40 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		27A79EF8D6B2100ACB2A0765 /* XCRemoteSwiftPackageReference "https://github.com/FelixHerrmann/swift-package-list" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/FelixHerrmann/swift-package-list";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.10.0;
+			};
+		};
+		20E4224D1E76DC0A9A750EDA /* XCRemoteSwiftPackageReference "https://github.com/SchmiedmayerLab/zstd.git" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SchmiedmayerLab/zstd.git";
+			requirement = {
+				kind = exactVersion;
+				version = 1.5.8-beta.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		886ED8C4CCB2B2303901238D /* SpeziLicense */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 654293E43002D0F400AF6915 /* package */;
 			productName = SpeziLicense;
+		};
+		836BB95A52304CEDB371853C /* libzstd */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 20E4224D1E76DC0A9A750EDA /* package */;
+			productName = libzstd;
+		};
+		E2C7F09EC939CF2B7979DBF5 /* SwiftPackageListPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 27A79EF8D6B2100ACB2A0765 /* package */;
+			productName = "plugin:SwiftPackageListPlugin";
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

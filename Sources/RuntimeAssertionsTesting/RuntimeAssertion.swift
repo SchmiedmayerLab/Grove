@@ -17,6 +17,7 @@ import Testing
 ///   - sourceLocation: The source location to which recorded expectations and issues should be attributed.
 ///   - expression: The expression to be evaluated.
 ///   - assertion: Validate and handle the contents of the assertion.
+@available(*, deprecated, message: "Use Swift 6.3's #expect(processExitsWith:) on a supported host platform such as macOS.")
 public func expectRuntimeAssertion<T, E: Error>(
     _ comment: Comment? = nil,
     expectedCount: UInt = 1,
@@ -37,6 +38,7 @@ public func expectRuntimeAssertion<T, E: Error>(
 ///   - sourceLocation: The source location to which recorded expectations and issues should be attributed.
 ///   - expression: The expression to be evaluated.
 ///   - assertion: Validate and handle the contents of the assertion.
+@available(*, deprecated, message: "Use Swift 6.3's #expect(processExitsWith:) on a supported host platform such as macOS.")
 public func expectRuntimeAssertion<T, E: Error>(
     _ comment: Comment? = nil,
     expectedCount: UInt = 1,

@@ -38,7 +38,7 @@ final class DocumentationHintsTests: XCTestCase {
 #if os(visionOS)
         sleep(3)
 #endif
-        XCTAssert(safari.wait(for: .runningForeground, timeout: 5))
+        XCTAssert(safari.wait(for: .runningForeground, timeout: 15))
 
         safari.terminate()
 

@@ -111,6 +111,18 @@ test_products = ["XCTestExtensions"]
 
 [SpeziLicense]
 app_products = ["SpeziLicense"]
+app_fixture_products = ["libzstd"] # The UI test verifies that zstd appears in the generated license list.
+app_plugins = ["SwiftPackageListPlugin"]
+[[SpeziLicense.remote_packages]]
+url = "https://github.com/FelixHerrmann/swift-package-list"
+kind = "upToNextMajorVersion"
+minimum_version = "4.10.0"
+products = ["SwiftPackageListPlugin"]
+[[SpeziLicense.remote_packages]]
+url = "https://github.com/SchmiedmayerLab/zstd.git"
+kind = "exactVersion"
+version = "1.5.8-beta.1"
+products = ["libzstd"]
 
 [SpeziLocation]
 app_products = ["Spezi", "SpeziLocation"]

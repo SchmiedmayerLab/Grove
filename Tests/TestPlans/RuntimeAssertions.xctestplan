@@ -20,11 +20,6 @@
         "containerPath" : "container:",
         "identifier" : "RuntimeAssertionsTesting",
         "name" : "RuntimeAssertionsTesting"
-      },
-      {
-        "containerPath" : "container:",
-        "identifier" : "XCTRuntimeAssertions",
-        "name" : "XCTRuntimeAssertions"
       }
     ]
     }
@@ -35,13 +30,6 @@
           "containerPath" : "container:",
           "identifier" : "RuntimeAssertionsTests",
           "name" : "RuntimeAssertionsTests"
-        }
-      },
-      {
-        "target" : {
-          "containerPath" : "container:",
-          "identifier" : "XCTRuntimeAssertionsTests",
-          "name" : "XCTRuntimeAssertionsTests"
         }
       }
   ],

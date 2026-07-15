@@ -13,4 +13,3 @@ builder:
       documentation_targets:
       - RuntimeAssertions
       - RuntimeAssertionsTesting
-      - XCTRuntimeAssertions

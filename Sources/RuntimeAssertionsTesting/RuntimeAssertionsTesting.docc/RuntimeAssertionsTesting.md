@@ -10,59 +10,51 @@ SPDX-License-Identifier: MIT
 
 -->
 
-Test assertions and preconditions using Swift Testing.
+Deprecated compatibility helpers for testing runtime assertions and preconditions.
 
 ## Overview
 
-This package allows developers to test assertions and preconditions in tests using Swift Testing.
+The APIs in this module are deprecated. With Swift 6.3 or newer, use Swift Testing's native
+`#expect(processExitsWith:)` or `#require(processExitsWith:)` macro on a supported host platform such as macOS.
 
 > Note: Make sure to use the `RuntimeAssertions` runtime support in your system under test.
 
-### Testing Runtime Assertions
-
-In your unit tests you can use the ``expectRuntimeAssertion(_:expectedCount:sourceLocation:_:assertion:)-25h24`` and
-``expectRuntimePrecondition(timeout:_:sourceLocation:_:precondition:)-5w4q1`` functions to test a block of code for which you expect
-a runtime assertion to occur.
-
-Below is a short code example demonstrating this for assertions:
+### Migrating to Native Exit Tests
 
 ```swift
-import RuntimeAssertionsTesting
 import Testing
 
+#if os(macOS)
 @Test
-func testAssertion() {
-    expectRuntimeAssertion {
-        // code containing a call to assert() of the runtime support ...
+func testPrecondition() async throws {
+    let result = try await #require(
+        processExitsWith: .failure,
+        observing: [\.standardErrorContent]
+    ) {
+        // code containing a call to RuntimeAssertions.precondition(...)
     }
+
+    let standardError = String(decoding: result.standardErrorContent, as: UTF8.self)
+    #expect(standardError.contains("Expected failure message"))
 }
+#endif
 ```
 
-Below is a short code example demonstrating this for preconditions:
+Native exit tests execute their closure in a child process. Values captured by the closure must be `Codable` and `Sendable`,
+and mutations made in the child process are not visible to the parent test. Validate a distinctive stderr message so an unrelated
+crash or thrown error cannot satisfy the expected failure.
 
-```swift
-import RuntimeAssertionsTesting
-import Testing
-
-@Test
-func testPrecondition() {
-    expectRuntimePrecondition {
-        // code containing a call to precondition() of the runtime support ...
-    }
-}
-```
-
-> Tip: Both expectation methods also support the execution of `async` code.
+The compatibility APIs below remain available so existing tests can migrate incrementally, including on platforms where native
+exit tests are unavailable. They should not be used in new tests.
 
 
 ## Topics
 
-### Testing Assertions
+### Deprecated Assertion Compatibility
 
 - ``expectRuntimeAssertion(_:expectedCount:sourceLocation:_:assertion:)-25h24``
-- ``expectRuntimePrecondition(timeout:_:sourceLocation:_:precondition:)-5w4q1``
 
-### Testing Preconditions
+### Deprecated Precondition Compatibility
 
 - ``expectRuntimePrecondition(timeout:_:sourceLocation:_:precondition:)-5w4q1``
 - ``expectNoRuntimePrecondition(timeout:_:sourceLocation:_:precondition:)-kae3``

@@ -22,6 +22,10 @@ public final class RemoteNotificationRegistrationSupport: KnowledgeSource, Senda
     fileprivate(set) var continuation: CheckedContinuation<Data, any Error>?
     fileprivate(set) var access = AsyncSemaphore()
 
+    package var isWaitingForRegistration: Bool {
+        continuation != nil
+    }
+
 
     nonisolated init() {}
 

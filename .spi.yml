@@ -72,7 +72,6 @@ builder:
         - XCTHealthKit
         - RuntimeAssertions
         - RuntimeAssertionsTesting
-        - XCTRuntimeAssertions
         - XCTestApp
         - XCTestExtensions
         - SpeziSchedulerUI
