@@ -9,8 +9,7 @@
 public import Foundation
 import SpeziNotifications
 import UserNotifications
-import XCTest
-public import XCUIAutomation
+public import XCTest
 
 
 extension XCUIApplication {

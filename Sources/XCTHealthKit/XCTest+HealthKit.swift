@@ -7,8 +7,7 @@
 //
 
 public import Foundation
-import XCTest
-public import XCUIAutomation
+public import XCTest
 
 
 struct XCTHealthKitError: Error {
