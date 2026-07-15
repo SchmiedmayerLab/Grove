@@ -39,11 +39,11 @@ let defaultEnabledTraits: Set<String> = Context.environment["SPEZI_ENABLE_DEFAUL
 // Compile/test builds can exclude DocC catalogs to avoid SwiftPM unhandled-file warnings.
 // Documentation builds keep them included so DocC can resolve articles and assets.
 let excludeDocCCatalogs = Context.environment["SPEZI_EXCLUDE_DOCC_CATALOGS"] == "1"
-let packagePlatforms: [SupportedPlatform] = [
-    .iOS(isLoweredDeploymentTargetEnabled ? .v15 : .v18),
-    .macOS(isLoweredDeploymentTargetEnabled ? .v12 : .v15),
-    .watchOS(isLoweredDeploymentTargetEnabled ? .v8 : .v11)
-]
+let packagePlatforms: [SupportedPlatform] = if isLoweredDeploymentTargetEnabled {
+    [.iOS(.v15), .macOS(.v12), .watchOS(.v8)]
+} else {
+    [.iOS(.v18), .macOS(.v15), .watchOS(.v11)]
+}
 
 let packageDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
 
