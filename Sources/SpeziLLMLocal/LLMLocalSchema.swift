@@ -6,11 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
 #if MLX
+import Foundation
 import MLXLLM
 import MLXLMCommon
-public import SpeziChat
 public import SpeziLLM
 
 

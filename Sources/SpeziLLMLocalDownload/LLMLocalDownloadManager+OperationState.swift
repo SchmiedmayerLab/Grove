@@ -8,7 +8,7 @@
 
 #if MLX
 import Foundation
-import SpeziViews
+public import SpeziViews
 
 // Needs to be in a separate file as an extension in the file of the ``LLMLocalDownloadManager`` will lead to
 // the "Circular reference resolving attached macro 'Observable'" error during compiling (see https://github.com/apple/swift/issues/66450)

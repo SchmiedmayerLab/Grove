@@ -7,7 +7,7 @@
 //
 
 #if MLX
-import MLXNN
+public import MLXNN
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

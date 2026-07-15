@@ -15,8 +15,10 @@ import struct Foundation.URL
 import PackageDescription
 
 
-// Toggle SwiftLint by setting this to `true`.
+/// Toggle SwiftLint by setting this to `true`.
 let enableSwiftLint = false
+
+let isLoweredDeploymentTargetEnabled = true
 
 var defaultPlugins: [Target.PluginUsage] {
     enableSwiftLint ? [.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")] : []
@@ -39,9 +41,9 @@ let defaultEnabledTraits: Set<String> = Context.environment["SPEZI_ENABLE_DEFAUL
 // Documentation builds keep them included so DocC can resolve articles and assets.
 let excludeDocCCatalogs = Context.environment["SPEZI_EXCLUDE_DOCC_CATALOGS"] == "1"
 let packagePlatforms: [SupportedPlatform] = [
-    .iOS(.v15),
-    .macOS(.v12),
-    .watchOS(.v8)
+    .iOS(isLoweredDeploymentTargetEnabled ? .v15 : .v18),
+    .macOS(isLoweredDeploymentTargetEnabled ? .v12 : .v15),
+    .watchOS(isLoweredDeploymentTargetEnabled ? .v8 : .v11)
 ]
 
 let packageDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()

@@ -6,15 +6,15 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
 #if MLX
-@preconcurrency import Hub
+import Foundation
+@preconcurrency package import Hub
 import MLX
-import MLXLLM
-import MLXLMCommon
+public import MLXLLM
+public import MLXLMCommon
 import MLXRandom
+public import Observation
 import os
-public import SpeziChat
 public import SpeziLLM
 
 

@@ -7,10 +7,6 @@
 //
 
 #if MLX
-public import Foundation
-public import SpeziLLM
-
-
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMLocalSession {
     /// Creates a new ``LLMLocalSession`` with updated ``LLMLocalParameters`` and ``LLMLocalSamplingParameters``.
