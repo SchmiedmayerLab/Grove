@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import OpenAPIRuntime
+public import OpenAPIRuntime
 
 
 /// Represents an LLM function calling parameter in the form of an `array` element.

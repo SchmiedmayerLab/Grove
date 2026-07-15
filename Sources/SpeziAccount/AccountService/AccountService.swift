@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Spezi
+public import Spezi
 
 
 /// A component that manages user details.

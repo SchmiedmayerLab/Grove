@@ -7,7 +7,7 @@
 //
 
 import ByteCoding
-import CoreBluetooth
+public import CoreBluetooth
 import OSLog
 import SpeziBluetooth
 @_spi(TestingSupport)
@@ -123,7 +123,7 @@ final class TestPeripheral: NSObject, CBPeripheralManagerDelegate {
         }
     }
 
-    nonisolated func peripheralManager(_ peripheral: CBPeripheralManager, didAdd service: CBService, error: Error?) {
+    nonisolated func peripheralManager(_ peripheral: CBPeripheralManager, didAdd service: CBService, error: (any Error)?) {
         if let error = error {
             logger.error("Error adding service \(service.uuid): \(error.localizedDescription)")
             return
@@ -135,7 +135,7 @@ final class TestPeripheral: NSObject, CBPeripheralManagerDelegate {
         }
     }
 
-    nonisolated func peripheralManagerDidStartAdvertising(_ peripheral: CBPeripheralManager, error: Error?) {
+    nonisolated func peripheralManagerDidStartAdvertising(_ peripheral: CBPeripheralManager, error: (any Error)?) {
         if let error = error {
             logger.error("Error starting advertising: \(error.localizedDescription)")
         } else {

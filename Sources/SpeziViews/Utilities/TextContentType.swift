@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SwiftUI
+public import SwiftUI
 
 #if os(watchOS)
 /// TextContentType typealias that is platform-agnostic.

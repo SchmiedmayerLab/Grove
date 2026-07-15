@@ -7,9 +7,9 @@
 //
 
 @_spi(TestingSupport)
-import SpeziScheduler
+public import SpeziScheduler
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// A default design for a tile that displays information about an event.

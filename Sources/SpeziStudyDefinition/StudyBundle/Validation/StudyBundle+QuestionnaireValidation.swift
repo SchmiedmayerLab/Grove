@@ -9,7 +9,7 @@
 // swiftlint:disable file_length file_types_order
 
 import Foundation
-import ModelsR4
+public import ModelsR4
 import SpeziFoundation
 import SpeziLocalization
 

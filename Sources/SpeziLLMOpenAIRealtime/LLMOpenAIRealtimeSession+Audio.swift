@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+public import Foundation
 import GeneratedOpenAIClient
-import SpeziLLM
+public import SpeziLLM
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

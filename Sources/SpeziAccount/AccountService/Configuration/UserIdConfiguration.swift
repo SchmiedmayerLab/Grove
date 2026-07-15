@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziFoundation
-import SpeziViews
-import SwiftUI
+public import SpeziFoundation
+public import SpeziViews
+public import SwiftUI
 
 
 /// The user id configuration of an `AccountService`.

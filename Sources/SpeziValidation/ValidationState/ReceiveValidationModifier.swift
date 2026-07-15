@@ -7,7 +7,7 @@
 //
 
 import SpeziFoundation
-import SwiftUI
+public import SwiftUI
 
 
 /// Provide access to validation state to the parent view.

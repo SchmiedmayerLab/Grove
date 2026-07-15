@@ -6,10 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
+public import Foundation
 import OrderedCollections
 import OSLog
 @_spi(APISupport)
-import Spezi
+public import Spezi
 
 
 /// Connect and communicate with Bluetooth devices using modern programming paradigms.
@@ -295,7 +296,7 @@ public final class Bluetooth: Module, EnvironmentAccessible, @unchecked Sendable
     /// Devices might be part of `nearbyDevices` as well or just retrieved devices that are eventually connected.
     /// Values are stored weakly. All properties (like `@Characteristic`, `@DeviceState` or `@DeviceAction`) store a reference to `Bluetooth` and report once they are de-initialized
     /// to clear the respective initialized devices from this dictionary.
-    @SpeziBluetooth private var initializedDevices: OrderedDictionary<UUID, AnyWeakDeviceReference> = [:]
+    @SpeziBluetooth private var initializedDevices: OrderedDictionary<UUID, any AnyWeakDeviceReference> = [:]
 
     @Application(\.spezi)
     private var spezi
@@ -664,7 +665,7 @@ extension Bluetooth {
         observePeripheralState(of: peripheral.id) // register \.state onChange closure
 
 
-        precondition(!(device is EnvironmentAccessible), "Cannot load BluetoothDevice \(Device.self) that conforms to \(EnvironmentAccessible.self)!")
+        precondition(!(device is any EnvironmentAccessible), "Cannot load BluetoothDevice \(Device.self) that conforms to \((any EnvironmentAccessible).self)!")
 
         return device
     }
@@ -697,7 +698,7 @@ extension Bluetooth {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothDevice {
-    fileprivate var weaklyReference: AnyWeakDeviceReference {
+    fileprivate var weaklyReference: any AnyWeakDeviceReference {
         WeakReference(self)
     }
 }

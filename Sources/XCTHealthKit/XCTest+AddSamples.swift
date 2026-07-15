@@ -7,7 +7,7 @@
 //
 
 import HealthKit
-import XCTest
+public import XCTest
 
 
 extension XCTestCase {

@@ -6,10 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import GeneratedOpenAIClient
-import OpenAPIRuntime
-import SpeziKeychainStorage
+public import Foundation
+public import GeneratedOpenAIClient
+public import OpenAPIRuntime
+public import SpeziKeychainStorage
 
 
 /// Represents the configuration of an OpenAI-like `LLMPlatform`.

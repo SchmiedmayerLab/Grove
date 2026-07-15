@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import FirebaseCore
-import FirebaseCoreExtension
-import Spezi
+public import FirebaseCore
+public import FirebaseCoreExtension
+public import Spezi
 
 
 /// Configure the Firebase application.

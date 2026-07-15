@@ -7,7 +7,7 @@
 //
 
 import CoreBluetooth
-import Foundation
+public import Foundation
 import OSLog
 import SpeziFoundation
 
@@ -69,19 +69,19 @@ public class BluetoothPeripheral { // swiftlint:disable:this type_body_length
     private let storage: PeripheralStorage
 
     /// Managed asynchronous accesses for an ongoing connection attempt.
-    private let connectAccess = ManagedAsynchronousAccess<Void, Error>()
+    private let connectAccess = ManagedAsynchronousAccess<Void, any Error>()
     /// Managed asynchronous accesses for an ongoing disconnect attempt.
     private let disconnectAccess = ManagedAsynchronousAccess<Void, Never>()
     /// Manage asynchronous accesses per characteristic.
     private let characteristicAccesses = CharacteristicAccesses()
     /// Managed asynchronous accesses for an ongoing writhe without response.
-    private let writeWithoutResponseAccess = ManagedAsynchronousAccess<Void, Error>()
+    private let writeWithoutResponseAccess = ManagedAsynchronousAccess<Void, any Error>()
     /// Managed asynchronous accesses for the rssi read action.
-    private let rssiAccess = ManagedAsynchronousAccess<Int, Error>()
+    private let rssiAccess = ManagedAsynchronousAccess<Int, any Error>()
     /// Managed asynchronous accesses for service discovery.
-    private let discoverServicesAccess = ManagedAsynchronousAccess<[BTUUID], Error>()
+    private let discoverServicesAccess = ManagedAsynchronousAccess<[BTUUID], any Error>()
     /// Managed asynchronous accesses for characteristic discovery of a given service.
-    private var discoverCharacteristicAccesses: [BTUUID: ManagedAsynchronousAccess<Void, Error>] = [:]
+    private var discoverCharacteristicAccesses: [BTUUID: ManagedAsynchronousAccess<Void, any Error>] = [:]
 
     /// On-change handler registrations for all characteristics.
     private var onChangeHandlers: [CharacteristicLocator: [UUID: CharacteristicOnChangeHandler]] = [:]
@@ -372,7 +372,7 @@ public class BluetoothPeripheral { // swiftlint:disable:this type_body_length
             logger.debug("Discovering all characteristics on \(service) for peripheral \(self)")
         }
 
-        let access: ManagedAsynchronousAccess<Void, Error>
+        let access: ManagedAsynchronousAccess<Void, any Error>
         if let existing = discoverCharacteristicAccesses[service.id] {
             access = existing
         } else {
@@ -447,7 +447,7 @@ public class BluetoothPeripheral { // swiftlint:disable:this type_body_length
     }
 
     /// Handles a disconnect or failed connection attempt.
-    func handleDisconnect(error: Error?) {
+    func handleDisconnect(error: (any Error)?) {
         // ensure that it is updated instantly.
         storage.update(state: PeripheralState(from: cbPeripheral.state))
 
@@ -811,7 +811,7 @@ public class BluetoothPeripheral { // swiftlint:disable:this type_body_length
 // MARK: Delegate Accessors
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothPeripheral {
-    private func receivedUpdatedValue(for characteristic: CBCharacteristic, result: Result<Data, Error>) {
+    private func receivedUpdatedValue(for characteristic: CBCharacteristic, result: Result<Data, any Error>) {
         if case let .success(data) = result,
            let service = characteristic.service {
             let locator = CharacteristicLocator(serviceId: BTUUID(from: service.uuid), characteristicId: BTUUID(from: characteristic.uuid))
@@ -892,7 +892,7 @@ extension BluetoothPeripheral {
             }
         }
 
-        func peripheral(_ peripheral: CBPeripheral, didReadRSSI RSSI: NSNumber, error: Error?) {
+        func peripheral(_ peripheral: CBPeripheral, didReadRSSI RSSI: NSNumber, error: (any Error)?) {
             guard let device else {
                 return
             }
@@ -901,7 +901,7 @@ extension BluetoothPeripheral {
                 let rssi = RSSI.intValue
                 device.storage.rssi = rssi
 
-                let result: Result<Int, Error> = error.map { .failure($0) } ?? .success(rssi)
+                let result: Result<Int, any Error> = error.map { .failure($0) } ?? .success(rssi)
                 device.rssiAccess.resume(with: result)
             }
         }
@@ -932,13 +932,13 @@ extension BluetoothPeripheral {
             }
         }
 
-        func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+        func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: (any Error)?) {
             guard let device else {
                 return
             }
 
             let cbServices = peripheral.services.map { CBInstance(instantiatedOnDispatchQueue: $0) }
-            let result: Result<[BTUUID], Error>
+            let result: Result<[BTUUID], any Error>
 
             if let error {
                 logger.error("Error discovering services: \(error.localizedDescription)")
@@ -960,12 +960,12 @@ extension BluetoothPeripheral {
             }
         }
 
-        func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
+        func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: (any Error)?) {
             guard let device else {
                 return
             }
 
-            let result: Result<Void, Error>
+            let result: Result<Void, any Error>
             if let error {
                 logger.error("Error discovering characteristics for service \(service.uuid): \(error.localizedDescription)")
                 result = .failure(error)
@@ -993,7 +993,7 @@ extension BluetoothPeripheral {
             }
         }
 
-        func peripheral(_ peripheral: CBPeripheral, didDiscoverDescriptorsFor characteristic: CBCharacteristic, error: Error?) {
+        func peripheral(_ peripheral: CBPeripheral, didDiscoverDescriptorsFor characteristic: CBCharacteristic, error: (any Error)?) {
             guard let device else {
                 return
             }
@@ -1012,7 +1012,7 @@ extension BluetoothPeripheral {
             }
         }
 
-        func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
+        func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: (any Error)?) {
             guard let device else {
                 return
             }
@@ -1033,7 +1033,7 @@ extension BluetoothPeripheral {
             }
         }
 
-        func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
+        func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: (any Error)?) {
             guard let device else {
                 return
             }
@@ -1044,7 +1044,7 @@ extension BluetoothPeripheral {
             SpeziBluetooth.assumeIsolated { [logger] in
                 device.synchronizeModel(for: characteristic.cbObject, capture: capture)
 
-                let result: Result<Void, Error>
+                let result: Result<Void, any Error>
                 if let error {
                     result = .failure(error)
                     logger.warning("Received erroneous write response for \(characteristic.uuid) without an ongoing access: \(error)")
@@ -1066,17 +1066,17 @@ extension BluetoothPeripheral {
             }
 
             SpeziBluetooth.assumeIsolated {
-                device.writeWithoutResponseAccess.resume()
+                _ = device.writeWithoutResponseAccess.resume()
             }
         }
 
-        func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
+        func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: (any Error)?) {
             guard let device else {
                 return
             }
 
 
-            let result: Result<Void, Error>
+            let result: Result<Void, any Error>
             if let error {
                 logger.error("Error changing notification state for \(characteristic.uuid): \(error)")
                 result = .failure(error)

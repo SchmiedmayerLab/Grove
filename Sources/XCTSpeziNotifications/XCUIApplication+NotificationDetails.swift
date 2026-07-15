@@ -7,8 +7,8 @@
 //
 
 import SpeziNotifications
-import UserNotifications
-import XCTest
+public import UserNotifications
+public import XCTest
 
 
 extension XCUIApplication {

@@ -20,5 +20,5 @@ enum PairingViewState {
     /// Device is paired and shown to the user for acknowledgment.
     case paired(any PairableDevice)
     /// Pairing error occurred and is displayed to the user.
-    case error(LocalizedError)
+    case error(any LocalizedError)
 }

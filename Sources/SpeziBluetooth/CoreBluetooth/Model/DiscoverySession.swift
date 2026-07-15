@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+public import Foundation
 import OSLog
 
 private func optionalMax<Value: Comparable>(_ lhs: Value?, _ rhs: Value?) -> Value? {
@@ -104,7 +104,7 @@ class DiscoverySession: Sendable {
     private var autoConnectItem: BluetoothWorkItem?
     private(set) var staleTimer: DiscoveryStaleTimer?
 
-    private var connectionAttempt: Task<Void, Error>? {
+    private var connectionAttempt: Task<Void, any Error>? {
         willSet {
             connectionAttempt?.cancel()
         }

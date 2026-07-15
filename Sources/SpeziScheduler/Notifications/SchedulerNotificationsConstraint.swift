@@ -7,8 +7,8 @@
 //
 
 #if canImport(Darwin)
-import Spezi
-import UserNotifications
+public import Spezi
+public import UserNotifications
 
 
 /// Customize the notification content of SpeziScheduler notifications.

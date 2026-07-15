@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import NIOCore
-import SpeziBluetoothServices
+public import struct NIOCore.ByteBuffer
+public import SpeziBluetoothServices
 
 
 /// The Record Access Operand format for the Omron Record Access Control Point characteristic.

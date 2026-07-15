@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziBluetooth
+public import SpeziBluetooth
 
 
 /// Bluetooth Health Thermometer Service implementation.

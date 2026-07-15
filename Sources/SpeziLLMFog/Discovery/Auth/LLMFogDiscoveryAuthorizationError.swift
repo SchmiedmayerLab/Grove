@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+public import Foundation
 
 /// Error that occur during requesting access to the local network for discovering fog nodes.
 @available(iOS 18, macOS 15, watchOS 11, *)

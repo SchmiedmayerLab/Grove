@@ -195,7 +195,7 @@ struct ResearchKitToFHIRTests {
         let testValue = ValueCoding(code: "testCode", system: "http://biodesign.stanford.edu/test-system", display: "Test Code")
 
         let choiceResult = ORKChoiceQuestionResult(identifier: "choiceResult")
-        choiceResult.choiceAnswers = [testValue.rawValue as NSSecureCoding & NSCopying & NSObjectProtocol]
+        choiceResult.choiceAnswers = [testValue.rawValue as any NSSecureCoding & NSCopying & NSObjectProtocol]
         let taskResult = createTaskResult(choiceResult)
 
         let fhirResponse = taskResult.fhirResponse
@@ -230,7 +230,7 @@ struct ResearchKitToFHIRTests {
         ]
 
         let choiceResult = ORKChoiceQuestionResult(identifier: "choiceResult")
-        choiceResult.choiceAnswers = testValues.map { $0.rawValue as NSSecureCoding & NSCopying & NSObjectProtocol }
+        choiceResult.choiceAnswers = testValues.map { $0.rawValue as any NSSecureCoding & NSCopying & NSObjectProtocol }
 
         let taskResult = createTaskResult(choiceResult)
 

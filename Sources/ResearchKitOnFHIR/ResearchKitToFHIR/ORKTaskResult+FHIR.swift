@@ -6,11 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import ModelsR4
 #if ResearchKit
-import ResearchKit
-@_exported import class ResearchKit.ORKTaskResult
+
+import Foundation
+public import ModelsR4
+public import ResearchKit
 
 
 extension ORKTaskResult {

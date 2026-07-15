@@ -7,7 +7,7 @@
 //
 
 import Combine
-import SwiftUI
+public import SwiftUI
 
 
 /// Access ``LocalStorage`` entries within a SwiftUI View.

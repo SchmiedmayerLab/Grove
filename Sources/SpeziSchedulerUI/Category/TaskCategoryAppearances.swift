@@ -6,10 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import SpeziScheduler
-import SpeziViews
-import SwiftUI
+public import Foundation
+public import SpeziScheduler
+public import SpeziViews
+public import SwiftUI
 
 
 /// Stores all configured category appearances for the view hierarchy.

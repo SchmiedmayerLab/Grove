@@ -7,6 +7,7 @@
 //
 
 
+public import CoreFoundation
 import Foundation
 import Security
 

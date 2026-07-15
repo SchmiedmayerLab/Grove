@@ -7,9 +7,9 @@
 //
 
 #if canImport(AccessorySetupKit) && !os(macOS)
-import AccessorySetupKit
+public import AccessorySetupKit
 #endif
-import Foundation
+public import Foundation
 
 
 /// The `ASError` from `AccessorySetupKit` mapped to Swift.
@@ -112,7 +112,7 @@ extension AccessorySetupKitError {
     }
 
 
-    static func mapError(_ error: Error) -> Error {
+    static func mapError(_ error: any Error) -> any Error {
         if let asError = error as? ASError {
             AccessorySetupKitError(from: asError)
         } else {

@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziChat
+public import SpeziChat
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 /// Chat view that enables users to interact with an LLM based on an ``LLMSession``.
 ///

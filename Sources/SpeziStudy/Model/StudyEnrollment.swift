@@ -7,9 +7,9 @@
 //
 
 
-import Foundation
-import SpeziStudyDefinition
-import SwiftData
+public import Foundation
+public import SpeziStudyDefinition
+public import SwiftData
 
 
 /// Tracks a user's enrollment into a study.

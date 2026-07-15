@@ -9,9 +9,9 @@
 import OSLog
 import SpeziBluetooth
 @_spi(TestingSupport)
-import SpeziDevices
+public import SpeziDevices
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// Accessory Setup view displayed in a sheet.

@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SwiftUI
+public import SwiftUI
 
 
 /// Automatically run a ``TestAppTestCase`` instance and display the result for a UI test to use.

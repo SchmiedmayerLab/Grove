@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import SwiftUI
+public import SwiftUI
 
 #if !os(macOS) && !os(watchOS)
 private struct _Label: UIViewRepresentable {

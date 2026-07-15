@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziViews
+public import SpeziViews
 
 
 /// Describes how a bluetooth device should be visually presented to the user.

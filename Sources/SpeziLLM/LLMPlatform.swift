@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import Spezi
+public import Spezi
 
 
 /// LLM execution platform of an ``LLMSchema``.

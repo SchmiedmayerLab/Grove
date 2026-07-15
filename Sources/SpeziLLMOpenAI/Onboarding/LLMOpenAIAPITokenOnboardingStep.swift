@@ -10,7 +10,7 @@ import GeneratedOpenAIClient
 import Spezi
 import SpeziKeychainStorage
 import SpeziOnboarding
-import SwiftUI
+public import SwiftUI
 
 
 /// View to display an onboarding step for the user to enter an API key for an OpenAI-like platform.

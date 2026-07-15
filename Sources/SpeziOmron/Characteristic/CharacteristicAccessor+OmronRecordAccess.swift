@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziBluetooth
+public import SpeziBluetooth
 @_spi(APISupport)
-import SpeziBluetoothServices
+public import SpeziBluetoothServices
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

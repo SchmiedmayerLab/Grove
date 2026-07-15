@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import UserNotifications
+public import UserNotifications
 
 
 extension UNNotificationInterruptionLevel: @retroactive CustomStringConvertible, @retroactive CustomDebugStringConvertible {

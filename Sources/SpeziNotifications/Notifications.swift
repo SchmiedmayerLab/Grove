@@ -6,8 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Spezi
-@preconcurrency import UserNotifications
+package import Foundation
+public import Spezi
+private import SpeziFoundation
+@preconcurrency public import UserNotifications
 
 
 /// Interact with local notifications.
@@ -60,7 +62,7 @@ public final class Notifications: Module, DefaultInitializable, EnvironmentAcces
 
     /// Configure the local notifications module.
     public init() {
-        if NSClassFromString("XCTest") != nil {
+        if ProcessInfo.isRunningInXCTest {
             // When the module exists as part of a Unit Test, we can't access the UNUserNotificationCenter, because no test host exists.
             // Calling `+[UNUserNotificationCenter current]` in such a scenario will lead to a runtime crash.
             // In order to avoid this, and allow modules that depend on the Notifications module to not crash during unit tests,

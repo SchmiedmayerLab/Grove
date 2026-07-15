@@ -7,7 +7,7 @@
 //
 
 import ModelsR4
-import SpeziFHIR
+public import SpeziFHIR
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

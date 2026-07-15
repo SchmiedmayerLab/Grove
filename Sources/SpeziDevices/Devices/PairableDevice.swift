@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziBluetooth
+public import SpeziBluetooth
 
 
 /// A Bluetooth device that is pairable.

@@ -10,8 +10,8 @@
 
 // swiftlint:disable file_types_order
 
-import ArgumentParser
-import Foundation
+public import ArgumentParser
+public import Foundation
 import SpeziHealthKit
 
 

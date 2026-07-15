@@ -6,10 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-import ByteCoding
+public import ByteCoding
 import Foundation
-import NIOCore
-import SpeziNumerics
+public import struct NIOCore.ByteBuffer
+public import SpeziNumerics
 
 
 /// Intermediate cuff pressure values while  a measurement is in progress.

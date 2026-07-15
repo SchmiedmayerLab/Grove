@@ -9,8 +9,9 @@
 
 // swiftlint:disable attributes
 
-import Foundation
-import Security
+public import CoreFoundation
+public import Foundation
+public import Security
 
 
 // MARK: Credentials Container

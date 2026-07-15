@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import SpeziLLM
+public import SpeziLLM
 
 
 /// Errors that can occur by interacting with the OpenAI API.

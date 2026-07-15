@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import CoreBluetooth
+public import CoreBluetooth
 import NIOCore
 import Observation
 import OrderedCollections
@@ -521,7 +521,7 @@ public class BluetoothManager: Observable, Sendable, Identifiable { // swiftlint
         await device.handleConnect()
     }
 
-    private func discardDevice(device: BluetoothPeripheral, error: Error?) {
+    private func discardDevice(device: BluetoothPeripheral, error: (any Error)?) {
         if let discoverySession, isScanning {
             // we will keep discarded devices for max 2s before the stale timer kicks off
             let backdateInterval = max(0, discoverySession.advertisementStaleInterval - 2)
@@ -752,7 +752,7 @@ extension BluetoothManager {
             }
         }
 
-        func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
+        func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: (any Error)?) {
             guard let manager else {
                 return
             }
@@ -783,7 +783,7 @@ extension BluetoothManager {
         }
 
 
-        func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
+        func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: (any Error)?) {
             guard let manager else {
                 return
             }

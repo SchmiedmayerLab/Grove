@@ -8,9 +8,9 @@
 
 // swiftlint:disable file_types_order
 
-import Foundation
-import SpeziKeychainStorage
-import SpeziLLMOpenAI
+public import Foundation
+public import SpeziKeychainStorage
+public import SpeziLLMOpenAI
 
 
 /// Defines the Anthropic LLM platform.

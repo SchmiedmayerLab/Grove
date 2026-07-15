@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import CoreBluetooth
+public import CoreBluetooth
 import Foundation
 
 @available(iOS 18, macOS 15, watchOS 11, *)

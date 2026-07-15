@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Spezi
+public import Spezi
 
 
 /// A `Spezi` Standard that allows to react to certain Account-based events.

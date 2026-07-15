@@ -6,8 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import ModelsR4
 #if ResearchKit
+
+import ModelsR4
 import ResearchKit
 
 

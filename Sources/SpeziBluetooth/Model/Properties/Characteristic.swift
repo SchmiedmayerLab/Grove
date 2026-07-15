@@ -7,7 +7,7 @@
 //
 
 import Atomics
-import ByteCoding
+public import ByteCoding
 import CoreBluetooth
 import Foundation
 import SpeziFoundation

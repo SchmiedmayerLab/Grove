@@ -7,10 +7,10 @@
 //
 
 import enum ModelsDSTU2.ResourceProxy
-import class ModelsR4.Bundle
-import Observation
-import Spezi
-import SpeziHealthKit
+public import class ModelsR4.Bundle
+public import Observation
+public import Spezi
+package import SpeziHealthKit
 
 
 /// `Module` to manage FHIR resources grouped into automatically computed and updated categories.

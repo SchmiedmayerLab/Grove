@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SwiftUI
+public import SwiftUI
 
 
 /// The semantic use of a password field.
@@ -50,10 +50,6 @@ extension PasswordFieldType: Sendable, Hashable {}
 
 
 extension EnvironmentValues {
-    private struct PasswordFieldTypeKey: EnvironmentKey {
-        static let defaultValue: PasswordFieldType = .password
-    }
-
     /// The semantic use of a password field.
     ///
     /// ## Topics

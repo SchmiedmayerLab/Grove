@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import CoreBluetooth
+public import CoreBluetooth
 import OSLog
-import SpeziBluetooth
+public import SpeziBluetooth
 
 
 /// Bluetooth Current Time Service implementation.

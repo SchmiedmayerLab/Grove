@@ -7,7 +7,7 @@
 //
 
 #if canImport(AccessorySetupKit) && !os(macOS)
-import AccessorySetupKit
+public import AccessorySetupKit
 
 
 @available(iOS 18, *)

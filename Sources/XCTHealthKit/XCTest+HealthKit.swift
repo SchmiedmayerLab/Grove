@@ -6,7 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import XCTest
+public import Foundation
+public import XCTest
 
 
 struct XCTHealthKitError: Error {

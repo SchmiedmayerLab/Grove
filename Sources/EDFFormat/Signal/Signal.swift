@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import ByteCoding
+public import ByteCoding
 import Foundation
-import NIO
+public import NIO
 
 
 /// A description of a signal.

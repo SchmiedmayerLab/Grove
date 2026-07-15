@@ -7,11 +7,11 @@
 //
 
 @_spi(TestingSupport)
-import ByteCoding
-import CoreBluetooth
-import NIOCore
+public import ByteCoding
+public import CoreBluetooth
+public import struct NIOCore.ByteBuffer
 @_spi(TestingSupport)
-import SpeziBluetooth
+public import SpeziBluetooth
 
 
 /// An event emitted by the test peripheral.

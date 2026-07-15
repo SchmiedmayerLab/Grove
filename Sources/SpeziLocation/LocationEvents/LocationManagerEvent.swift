@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import CoreLocation
+public import CoreLocation
 import Foundation
 
 
@@ -30,5 +30,5 @@ public enum LocationManagerEvent {
     /// Event for when an error occurs while updating locations.
     /// - Parameter error: An `Error` object that provides details about the error.
     /// This case is used when there is an error during location updates, such as failure to retrieve location data or hardware-related issues.
-    case didFailWithError(_ error: Error)
+    case didFailWithError(_ error: any Error)
 }

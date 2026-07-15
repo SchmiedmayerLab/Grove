@@ -7,7 +7,7 @@
 //
 
 
-import SwiftUI
+public import SwiftUI
 
 
 /// Read the account details from the SwiftUI environment.

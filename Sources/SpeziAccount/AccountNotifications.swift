@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import Spezi
+public import Spezi
 
 
 /// Manage Account events and notifications.

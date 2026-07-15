@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import NIOCore
+public import struct NIOCore.ByteBuffer
 
 
 extension String: ByteCodable {

@@ -7,7 +7,7 @@
 //
 
 import SpeziFoundation
-import SwiftUI
+public import SwiftUI
 
 
 /// Handles entry of a new or existing value of an `AccountKey`.

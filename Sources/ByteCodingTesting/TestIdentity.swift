@@ -6,10 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-import ByteCoding
-import Foundation
+public import ByteCoding
+public import Foundation
 import NIOCore
-import Testing
+public import Testing
 
 
 /// Tests the identity invariant of a `ByteCodable` implementation.

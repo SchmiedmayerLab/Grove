@@ -11,8 +11,8 @@ import SwiftUI
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
-final class SurroundingScanModifiers: EnvironmentKey, Sendable {
-    static let defaultValue = SurroundingScanModifiers()
+final class SurroundingScanModifiers: Sendable {
+    static let shared = SurroundingScanModifiers()
 
     @MainActor private var registeredModifiers: [AnyHashable: [UUID: any BluetoothScanningState]] = [:]
 
@@ -63,12 +63,5 @@ final class SurroundingScanModifiers: EnvironmentKey, Sendable {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension EnvironmentValues {
-    var surroundingScanModifiers: SurroundingScanModifiers {
-        get {
-            self[SurroundingScanModifiers.self]
-        }
-        set {
-            self[SurroundingScanModifiers.self] = newValue
-        }
-    }
+    @Entry var surroundingScanModifiers: SurroundingScanModifiers = .shared
 }

@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Spezi
+public import Spezi
 
 
 /// In Memory Storage Provider useful for testing and Previews.

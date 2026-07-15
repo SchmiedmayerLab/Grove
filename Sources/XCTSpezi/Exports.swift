@@ -7,7 +7,7 @@
 //
 
 #if canImport(SwiftUI)
-import Spezi
+public import Spezi
 import SpeziTesting
 
 

@@ -7,7 +7,7 @@
 //
 
 import SpeziFoundation
-import SwiftUI
+public import SwiftUI
 
 
 /// Enables outer views to get access to the current width calculated by the ``HorizontalGeometryReader``

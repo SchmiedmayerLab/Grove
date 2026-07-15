@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+public import Foundation
 import GeneratedOpenAIClient
 import OpenAPIRuntime
 import OpenAPIURLSession
@@ -14,7 +14,7 @@ import os
 import SpeziChat
 import SpeziFoundation
 import SpeziKeychainStorage
-import SpeziLLM
+public import SpeziLLM
 
 
 /// Represents an ``LLMFogSchema`` in execution.

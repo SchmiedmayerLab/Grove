@@ -6,8 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import Security
+public import CoreFoundation
+public import Foundation
+public import Security
 
 
 extension SecKey { // swiftlint:disable:this file_types_order

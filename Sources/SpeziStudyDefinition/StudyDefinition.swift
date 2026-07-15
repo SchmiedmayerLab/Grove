@@ -6,10 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import SpeziFoundation
-import SpeziHealthKit
-import SpeziLocalization
+public import Foundation
+public import SpeziFoundation
+public import SpeziHealthKit
+public import SpeziLocalization
 
 
 /// A type that can appear in a ``StudyDefinition``.

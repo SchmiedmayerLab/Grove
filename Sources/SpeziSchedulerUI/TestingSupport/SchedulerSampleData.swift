@@ -9,9 +9,9 @@
 import Spezi
 @_spi(Internal)
 @_spi(TestingSupport)
-import SpeziScheduler
-import SwiftData
-import SwiftUI
+public import SpeziScheduler
+public import SwiftData
+public import SwiftUI
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

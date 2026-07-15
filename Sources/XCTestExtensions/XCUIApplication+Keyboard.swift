@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import XCTest
+public import XCTest
 
 /// Replicates Apples [SubmitLabel](https://developer.apple.com/documentation/swiftui/submitlabel).
 ///

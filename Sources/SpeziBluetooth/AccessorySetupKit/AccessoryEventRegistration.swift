@@ -15,7 +15,7 @@ import Foundation
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct AccessoryEventRegistration: ~Copyable, Sendable {
     private let id: UUID
-    private weak var setupKit: (AnyObject & Sendable)? // type erased as AccessorySetupKit is only available on iOS 18 platform.
+    private weak var setupKit: (any AnyObject & Sendable)? // type erased as AccessorySetupKit is only available on iOS 18 platform.
 
     @available(iOS 18.0, *)
     @available(macCatalyst, unavailable)
@@ -24,7 +24,7 @@ public struct AccessoryEventRegistration: ~Copyable, Sendable {
         self.setupKit = setupKit
     }
 
-    static func cancel(id: UUID, setupKit: (AnyObject & Sendable)?, isolation: isolated (any Actor)? = #isolation) {
+    static func cancel(id: UUID, setupKit: (any AnyObject & Sendable)?, isolation: isolated (any Actor)? = #isolation) {
         #if os(iOS) && !targetEnvironment(macCatalyst)
         guard let setupKit, let typedSetupKit = setupKit as? AccessorySetupKit else {
             return

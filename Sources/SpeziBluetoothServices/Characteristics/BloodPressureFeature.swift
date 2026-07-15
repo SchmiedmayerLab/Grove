@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import ByteCoding
+public import ByteCoding
 import Foundation
-import NIOCore
+public import struct NIOCore.ByteBuffer
 
 
 /// Features of a weight scale.

@@ -11,17 +11,17 @@ import CoreLocation
 
 /// Manages tasks that handle events from the `CLLocationManagerDelegate`
 final class LocationTaskManager {
-    private var tasks: [LocationTask] = []
+    private var tasks: [any LocationTask] = []
     
     /// Adds a new task
     /// - Parameter task: A task conforming to `LocationTask`
-    func add(_ task: LocationTask) {
+    func add(_ task: any LocationTask) {
         tasks.append(task)
     }
     
     /// Removes a task
     /// - Parameter task: A task conforming to `LocationTask`
-    func remove(_ task: LocationTask) {
+    func remove(_ task: any LocationTask) {
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
             tasks.remove(at: index)
         }

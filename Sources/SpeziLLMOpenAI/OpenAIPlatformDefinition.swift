@@ -8,9 +8,9 @@
 
 // swiftlint:disable file_types_order
 
-import Foundation
+public import Foundation
 import GeneratedOpenAIClient
-import SpeziKeychainStorage
+public import SpeziKeychainStorage
 
 
 /// The OpenAI platform's definition.

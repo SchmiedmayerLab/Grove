@@ -8,17 +8,17 @@
 
 // swiftlint:disable file_types_order
 
-import Foundation
-import class ModelsR4.Questionnaire
+public import Foundation
+public import class ModelsR4.Questionnaire
 #if canImport(OSLog)
 import OSLog
 #else
 import Logging
 #endif
 import SpeziFoundation
-import SpeziLocalization
+public import SpeziLocalization
 #if canImport(UniformTypeIdentifiers)
-import UniformTypeIdentifiers
+public import UniformTypeIdentifiers
 
 
 extension UTType {

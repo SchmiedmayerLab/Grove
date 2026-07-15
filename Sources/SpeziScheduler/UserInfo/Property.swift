@@ -7,7 +7,7 @@
 //
 
 #if canImport(Darwin)
-import SpeziFoundation
+public import SpeziFoundation
 
 
 /// Add additional properties to an `Outcome` or `Task`.

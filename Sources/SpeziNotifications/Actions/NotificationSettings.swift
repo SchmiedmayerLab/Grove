@@ -7,8 +7,8 @@
 //
 
 import Spezi
-import SwiftUI
-import UserNotifications
+public import SwiftUI
+public import UserNotifications
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

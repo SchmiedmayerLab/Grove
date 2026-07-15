@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziViews
-import SwiftUI
+public import SpeziViews
+public import SwiftUI
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

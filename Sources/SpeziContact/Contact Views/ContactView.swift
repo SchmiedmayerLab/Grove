@@ -9,7 +9,7 @@
 import Contacts
 import SpeziPersonalInfo
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// Display contact information as defined by a `Contact`.

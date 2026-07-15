@@ -7,7 +7,7 @@
 //
 
 #if canImport(SwiftUI)
-import SwiftUI
+public import SwiftUI
 
 
 /// Delegate methods are related to the  `UIApplication` and ``Spezi/Spezi`` lifecycle.

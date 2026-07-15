@@ -259,7 +259,7 @@ final class PairedDevice: Sendable {
         if let model = device.deviceInformation.modelNumber {
             info.model = model
         }
-        if let batteryPowered = device as? BatteryPoweredDevice,
+        if let batteryPowered = device as? any BatteryPoweredDevice,
            let battery = batteryPowered.battery.batteryLevel {
             info.lastBatteryPercentage = battery
         }

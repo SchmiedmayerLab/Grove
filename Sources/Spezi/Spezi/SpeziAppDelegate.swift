@@ -7,7 +7,7 @@
 //
 
 #if canImport(SwiftUI)
-import SwiftUI
+public import SwiftUI
 
 
 /// Configure the Spezi-based application using the ``SpeziAppDelegate/configuration`` property.

@@ -8,7 +8,7 @@
 
 import SpeziValidation
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 enum PresentedSetupStyle<Credentials: Sendable> {

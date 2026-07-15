@@ -8,10 +8,10 @@
 
 #if MLX
 import MLXLLM
-import SpeziLLMLocal
+public import SpeziLLMLocal
 import SpeziOnboarding
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// Provides an onboarding view for downloading locally executed Spezi LLMs to the device.

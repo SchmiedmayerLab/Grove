@@ -7,8 +7,8 @@
 //
 
 import Foundation
-import Network
-import SpeziLLM
+public import Network
+public import SpeziLLM
 
 
 /// Errors that can occur by interacting with Fog LLMs.

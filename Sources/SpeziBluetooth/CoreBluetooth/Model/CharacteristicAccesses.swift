@@ -14,9 +14,9 @@ import SpeziFoundation
 @SpeziBluetooth
 class CharacteristicAccess: Sendable {
     enum Access {
-        case read(CheckedContinuation<Data, Error>)
-        case write(CheckedContinuation<Void, Error>)
-        case notify(CheckedContinuation<Void, Error>)
+        case read(CheckedContinuation<Data, any Error>)
+        case write(CheckedContinuation<Void, any Error>)
+        case notify(CheckedContinuation<Void, any Error>)
     }
 
 
@@ -87,7 +87,7 @@ final class CharacteristicAccesses: Sendable {
         for characteristic: CBCharacteristic,
         returning _: Value.Type,
         action: () -> Void,
-        mapping: (CheckedContinuation<Value, Error>) -> CharacteristicAccess.Access
+        mapping: (CheckedContinuation<Value, any Error>) -> CharacteristicAccess.Access
     ) async throws -> Value {
         let access = makeAccess(for: characteristic)
 
@@ -118,7 +118,7 @@ final class CharacteristicAccesses: Sendable {
 
 
     @discardableResult
-    func resumeRead(with result: Result<Data, Error>, for characteristic: CBCharacteristic) -> Bool {
+    func resumeRead(with result: Result<Data, any Error>, for characteristic: CBCharacteristic) -> Bool {
         guard let access = ongoingAccesses[characteristic],
               case let .read(continuation) = access.value else {
             return false
@@ -129,7 +129,7 @@ final class CharacteristicAccesses: Sendable {
         return true
     }
 
-    func resumeWrite(with result: Result<Void, Error>, for characteristic: CBCharacteristic) -> Bool {
+    func resumeWrite(with result: Result<Void, any Error>, for characteristic: CBCharacteristic) -> Bool {
         guard let access = ongoingAccesses[characteristic],
               case let .write(continuation) = access.value else {
             return false
@@ -140,7 +140,7 @@ final class CharacteristicAccesses: Sendable {
         return true
     }
 
-    func resumeNotify(with result: Result<Void, Error>, for characteristic: CBCharacteristic) -> Bool {
+    func resumeNotify(with result: Result<Void, any Error>, for characteristic: CBCharacteristic) -> Bool {
         guard let access = ongoingAccesses[characteristic],
               case let .notify(continuation) = access.value else {
             return false

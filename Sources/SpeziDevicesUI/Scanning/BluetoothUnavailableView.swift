@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziBluetooth
-import SwiftUI
+public import SpeziBluetooth
+public import SwiftUI
 
 
 /// Informational view displaying the reason why Bluetooth is currently not available.

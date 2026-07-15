@@ -8,7 +8,7 @@
 
 
 import OSLog
-import SwiftUI
+public import SwiftUI
 
 
 /// Managed Navigation Stack with programmatic control over navigation within the stack.

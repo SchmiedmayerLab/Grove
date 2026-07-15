@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SwiftUI
+public import SwiftUI
 
 
 /// A SwiftUI `PreferenceKey` that is used by the ``MessageInputView`` to propagate the height of the view up the view hierarchy.

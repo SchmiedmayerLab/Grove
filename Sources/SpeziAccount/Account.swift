@@ -7,8 +7,8 @@
 //
 
 import os
-import Spezi
-import SwiftUI
+public import Spezi
+public import SwiftUI
 
 
 /// The primary entry point for UI components and ``AccountService``s to interact with ``SpeziAccount`` interfaces.

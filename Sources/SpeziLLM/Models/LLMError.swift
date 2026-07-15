@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+public import Foundation
 
 
 /// Defines universally occurring `Error`s while handling LLMs with SpeziLLM.

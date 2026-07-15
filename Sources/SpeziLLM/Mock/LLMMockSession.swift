@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Observation
+public import Observation
 import SpeziChat
 
 

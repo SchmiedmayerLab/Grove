@@ -7,7 +7,7 @@
 //
 
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// Login or signup for a user account.

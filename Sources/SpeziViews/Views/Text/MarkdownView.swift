@@ -7,8 +7,8 @@
 //
 
 import MarkdownUI
-import SpeziFoundation
-import SwiftUI
+public import SpeziFoundation
+public import SwiftUI
 
 
 /// Displays a Markdown document, with optional support for dynamic and interactive content.

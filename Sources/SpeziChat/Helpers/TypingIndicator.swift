@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SwiftUI
+public import SwiftUI
 
 /// Creates a typing indicator animation for pending messages.
 /// The animation consists of three dots that fade in and out in a sequential, wave-like pattern.

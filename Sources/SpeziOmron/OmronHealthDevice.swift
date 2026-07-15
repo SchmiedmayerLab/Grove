@@ -7,7 +7,7 @@
 //
 
 import SpeziBluetooth
-import SpeziDevices
+public import SpeziDevices
 
 
 /// An Omron Health Device.

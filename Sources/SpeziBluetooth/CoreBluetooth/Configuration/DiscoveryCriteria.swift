@@ -7,9 +7,9 @@
 //
 
 #if canImport(AccessorySetupKit) && !os(macOS)
-import AccessorySetupKit
+public import AccessorySetupKit
 #endif
-import SpeziFoundation
+public import SpeziFoundation
 
 
 /// The criteria by which we identify a discovered device.

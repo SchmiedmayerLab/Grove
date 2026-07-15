@@ -7,7 +7,7 @@
 //
 
 import SpeziFoundation
-import SwiftUI
+public import SwiftUI
 
 
 /// A type that can be rendered as a picker (like enum values).

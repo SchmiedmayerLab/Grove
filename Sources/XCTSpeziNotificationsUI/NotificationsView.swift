@@ -9,7 +9,7 @@
 import OSLog
 import SpeziNotifications
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// Fully integrated notifications view that shows the list of pending notifications.

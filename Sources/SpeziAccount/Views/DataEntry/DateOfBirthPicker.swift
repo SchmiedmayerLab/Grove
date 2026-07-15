@@ -14,6 +14,8 @@ import SwiftUI
 @available(iOS 18, macOS 15, watchOS 11, *)
 @available(tvOS, unavailable)
 struct DateOfBirthPicker: View {
+    @Environment(\.calendar) private var cal
+    
     private let title: LocalizedStringResource
     private let isRequired: Bool
     
@@ -23,14 +25,11 @@ struct DateOfBirthPicker: View {
     @State private var layout: DynamicLayout?
     
     private var dateRange: ClosedRange<Date> {
-        let calendar = Calendar.current
         let startDateComponents = DateComponents(year: 1800, month: 1, day: 1)
         let endDate = Date.now
-        
-        guard let startDate = calendar.date(from: startDateComponents) else {
+        guard let startDate = cal.date(from: startDateComponents) else {
             fatalError("Could not translate \(startDateComponents) to a valid date.")
         }
-        
         return startDate...endDate
     }
     

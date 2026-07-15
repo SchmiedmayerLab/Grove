@@ -6,11 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+public import Foundation
 import SpeziFoundation
-import enum SpeziScheduler.AllowedCompletionPolicy
-import enum SpeziScheduler.NotificationThread
-import struct SpeziScheduler.NotificationTime
+public import enum SpeziScheduler.AllowedCompletionPolicy
+public import enum SpeziScheduler.NotificationThread
+public import struct SpeziScheduler.NotificationTime
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

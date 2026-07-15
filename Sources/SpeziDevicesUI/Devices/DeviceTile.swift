@@ -7,8 +7,8 @@
 //
 
 @_spi(TestingSupport)
-import SpeziDevices
-import SwiftUI
+public import SpeziDevices
+public import SwiftUI
 
 
 /// A tile showing a paired device.

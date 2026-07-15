@@ -48,14 +48,14 @@ struct ValueCoding: Equatable, Codable, RawRepresentable {
         self = valueCoding
     }
     
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         self.code = try values.decode(String.self, forKey: .code)
         self.system = try values.decode(String.self, forKey: .system)
         self.display = try values.decodeIfPresent(String.self, forKey: .display)
     }
     
-    func encode(to encoder: Encoder) throws {
+    func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(code, forKey: .code)
         try container.encode(system, forKey: .system)

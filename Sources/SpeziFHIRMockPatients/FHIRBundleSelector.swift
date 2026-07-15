@@ -6,10 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-import class ModelsR4.Bundle
-import class ModelsR4.Patient
+public import class ModelsR4.Bundle
+public import class ModelsR4.Patient
 import SpeziFHIR
-import SwiftUI
+public import SwiftUI
 
 
 /// Loads resources from a FHIR bundle from a provided set of bundles.

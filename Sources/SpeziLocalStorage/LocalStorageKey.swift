@@ -7,8 +7,8 @@
 //
 
 import Combine
-import Foundation
-import SpeziFoundation
+public import Foundation
+public import SpeziFoundation
 
 
 /// Used to statically define ``LocalStorageKey``s.

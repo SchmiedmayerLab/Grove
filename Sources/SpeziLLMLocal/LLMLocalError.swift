@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import SpeziLLM
+public import SpeziLLM
 
 
 /// Describes possible errors that occur during the execution of ``LLMLocalSession`` via the SpeziLLM `LLMRunner`.

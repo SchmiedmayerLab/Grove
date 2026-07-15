@@ -12,7 +12,7 @@ import AppKit
 import UIKit
 #endif
 import Foundation
-import SwiftUI
+public import SwiftUI
 
 
 #if canImport(UIKit) && !os(watchOS)

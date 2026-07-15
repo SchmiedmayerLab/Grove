@@ -10,7 +10,7 @@ import OrderedCollections
 import Spezi
 import SpeziValidation
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

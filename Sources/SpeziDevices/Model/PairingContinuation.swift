@@ -13,10 +13,10 @@ import SpeziFoundation
 /// Stores pairing state information.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct PairingContinuation {
-    private let pairingContinuation: CheckedContinuation<Void, Error>
+    private let pairingContinuation: CheckedContinuation<Void, any Error>
 
     /// Create a new pairing continuation management object.
-    init(_ continuation: CheckedContinuation<Void, Error>) {
+    init(_ continuation: CheckedContinuation<Void, any Error>) {
         self.pairingContinuation = continuation
     }
 

@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import ByteCoding
-import NIOCore
+public import ByteCoding
+public import struct NIOCore.ByteBuffer
 
 
 /// The operator applying to the operand.

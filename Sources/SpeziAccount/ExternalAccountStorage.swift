@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import Spezi
+public import Spezi
 
 
 /// Interact with an external storage provider.
