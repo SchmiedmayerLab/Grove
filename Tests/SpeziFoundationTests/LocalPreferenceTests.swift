@@ -9,7 +9,7 @@
 // swiftlint:disable empty_string discouraged_optional_boolean type_body_length file_length
 
 import Foundation
-@testable import SpeziFoundation
+@testable public import SpeziFoundation
 import Testing
 
 

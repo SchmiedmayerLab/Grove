@@ -16,7 +16,7 @@ import SpeziBluetoothServices
 @_spi(TestingSupport)
 import SpeziDevices
 @_spi(TestingSupport)
-@testable import SpeziOmron
+@testable public import SpeziOmron
 import Testing
 
 
