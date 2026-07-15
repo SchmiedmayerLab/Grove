@@ -7,7 +7,8 @@
 //
 
 public import Foundation
-public import NIOCore
+public import struct NIOCore.ByteBuffer
+public import enum NIOCore.Endianness
 import NIOFoundationCompat
 
 

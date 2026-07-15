@@ -8,7 +8,7 @@
 
 public import ByteCoding
 import Foundation
-public import NIOCore
+public import struct NIOCore.ByteBuffer
 
 
 /// The current time and a reason for adjustment.

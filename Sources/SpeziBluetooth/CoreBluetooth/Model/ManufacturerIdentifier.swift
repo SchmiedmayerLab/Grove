@@ -7,7 +7,7 @@
 //
 
 public import ByteCoding
-public import NIOCore
+public import struct NIOCore.ByteBuffer
 
 
 /// Bluetooth SIG-assigned Manufacturer Identifier.

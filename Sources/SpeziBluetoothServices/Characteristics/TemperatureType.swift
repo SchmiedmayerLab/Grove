@@ -7,7 +7,7 @@
 //
 
 public import ByteCoding
-public import NIOCore
+public import struct NIOCore.ByteBuffer
 
 
 /// The location of a temperature measurement.

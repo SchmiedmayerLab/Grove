@@ -6,7 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import NIOCore
+public import struct NIOCore.ByteBuffer
+public import enum NIOCore.Endianness
 
 
 /// `ByteCodable` types that are a `FixedWithInteger`.

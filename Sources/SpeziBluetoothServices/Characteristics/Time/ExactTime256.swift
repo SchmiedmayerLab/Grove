@@ -8,7 +8,7 @@
 
 public import ByteCoding
 public import Foundation
-public import NIOCore
+public import struct NIOCore.ByteBuffer
 
 
 /// Exact time representing using weekday, date and time including fractions of seconds.

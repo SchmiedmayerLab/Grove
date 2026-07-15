@@ -9,7 +9,7 @@
 @_spi(TestingSupport)
 public import ByteCoding
 public import CoreBluetooth
-public import NIOCore
+public import struct NIOCore.ByteBuffer
 @_spi(TestingSupport)
 public import SpeziBluetooth
 

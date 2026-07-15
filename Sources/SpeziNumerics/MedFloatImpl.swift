@@ -10,7 +10,8 @@
 
 public import ByteCoding
 import Foundation
-public import NIOCore
+public import struct NIOCore.ByteBuffer
+public import enum NIOCore.Endianness
 
 
 /// Medical floating point value representation using base 10.

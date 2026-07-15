@@ -7,7 +7,7 @@
 //
 
 public import Foundation
-public import NIOCore
+public import struct NIOCore.ByteBuffer
 
 
 extension Data: ByteCodable {

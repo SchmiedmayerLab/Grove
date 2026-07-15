@@ -8,7 +8,7 @@
 
 public import ByteCoding
 public import Foundation
-public import NIOCore
+public import struct NIOCore.ByteBuffer
 
 
 /// Date and time information.

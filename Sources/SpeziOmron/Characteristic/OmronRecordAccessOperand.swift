@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-public import NIOCore
+public import struct NIOCore.ByteBuffer
 public import SpeziBluetoothServices
 
 

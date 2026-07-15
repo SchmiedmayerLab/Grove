@@ -7,7 +7,7 @@
 //
 
 public import ByteCoding
-public import NIOCore
+public import struct NIOCore.ByteBuffer
 
 
 /// Range-based filter criteria format for the generic operand.

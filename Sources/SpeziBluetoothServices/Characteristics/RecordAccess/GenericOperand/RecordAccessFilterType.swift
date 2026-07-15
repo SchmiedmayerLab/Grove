@@ -8,7 +8,7 @@
 
 public import ByteCoding
 import Foundation
-public import NIOCore
+public import struct NIOCore.ByteBuffer
 
 
 /// Filter types used with the generic operand.
