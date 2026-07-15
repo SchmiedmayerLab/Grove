@@ -6,12 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
 #if MLX
+import Foundation
 import MLXLLM
 import MLXLMCommon
-import SpeziChat
-import SpeziLLM
+public import SpeziLLM
 
 
 /// Defines the type and configuration of the ``LLMLocalSession``.

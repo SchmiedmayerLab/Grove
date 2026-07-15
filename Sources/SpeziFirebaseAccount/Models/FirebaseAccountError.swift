@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-@preconcurrency import FirebaseAuth
-import Foundation
+@preconcurrency public import FirebaseAuth
+public import Foundation
 
 
 /// Error thrown by the `FirebaseAccountService`.

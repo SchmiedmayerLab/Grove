@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import HealthKit
-import XCTest
+public import Foundation
+public import HealthKit
+public import XCTest
 
 
 /// Characteristics which should be entered into the health app.

@@ -8,7 +8,7 @@
 
 #if canImport(Darwin)
 import Foundation
-import SpeziFoundation
+public import SpeziFoundation
 
 
 /// Property lists can never store single values (unlike JSON). Therefore, we always embed values into a container.

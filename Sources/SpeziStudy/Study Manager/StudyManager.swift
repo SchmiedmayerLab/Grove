@@ -10,8 +10,8 @@
 
 import Algorithms
 import Combine
-import Foundation
-import Spezi
+public import Foundation
+public import Spezi
 import SpeziFoundation
 import SpeziHealthKit
 import SpeziLocalStorage
@@ -20,7 +20,7 @@ import SpeziScheduler
 import SpeziSchedulerUI
 @_documentation(visibility: internal)
 @_exported import SpeziStudyDefinition
-import SwiftData
+public import SwiftData
 import SwiftUI
 #if canImport(UIKit) && !os(watchOS)
 import class UIKit.UIApplication

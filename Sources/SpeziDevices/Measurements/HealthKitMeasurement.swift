@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import HealthKit
+public import HealthKit
 
 
 /// A collection of HealthKit samples that form a measurement.

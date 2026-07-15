@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import FirebaseFirestore
+public import FirebaseFirestore
 
 
 extension FirestoreSettings {

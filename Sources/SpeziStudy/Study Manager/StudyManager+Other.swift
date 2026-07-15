@@ -6,13 +6,13 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+public import Foundation
 import class ModelsR4.Questionnaire
 import SpeziFoundation
-import SpeziScheduler
-import SpeziStudyDefinition
+public import SpeziScheduler
+public import SpeziStudyDefinition
 import SwiftData
-import SwiftUI
+public import SwiftUI
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

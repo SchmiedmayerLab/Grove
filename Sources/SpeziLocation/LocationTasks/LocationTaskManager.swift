@@ -13,11 +13,11 @@ import Foundation
 /// Manages tasks that handle events from the `CLLocationManagerDelegate`
 final class LocationTaskManager: @unchecked Sendable {
     private let lock = NSLock()
-    private var tasks: [LocationTask] = []
+    private var tasks: [any LocationTask] = []
     
     /// Adds a new task
     /// - Parameter task: A task conforming to `LocationTask`
-    func add(_ task: LocationTask) {
+    func add(_ task: any LocationTask) {
         lock.withLock {
             tasks.append(task)
         }
@@ -25,7 +25,7 @@ final class LocationTaskManager: @unchecked Sendable {
     
     /// Removes a task
     /// - Parameter task: A task conforming to `LocationTask`
-    func remove(_ task: LocationTask) {
+    func remove(_ task: any LocationTask) {
         remove(id: task.id)
     }
 

@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziFoundation
+public import SpeziFoundation
 
 
 /// A `KnowledgeSource` that implements a configuration option for ``AccountServiceConfiguration``.

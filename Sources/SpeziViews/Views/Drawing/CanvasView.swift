@@ -7,8 +7,8 @@
 //
 
 #if canImport(PencilKit) && !os(macOS)
-import PencilKit
-import SwiftUI
+public import PencilKit
+public import SwiftUI
 
 
 /// The ``CanvasView`` provides a SwiftUI wrapper around the PencilKit `PKCanvasView`.

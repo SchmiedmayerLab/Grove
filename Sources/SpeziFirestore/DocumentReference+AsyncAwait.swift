@@ -7,7 +7,7 @@
 //
 
 import Atomics
-import FirebaseFirestore
+public import FirebaseFirestore
 import Foundation
 import OSLog
 

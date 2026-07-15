@@ -7,9 +7,9 @@
 //
 
 
-import CoreLocation
+public import CoreLocation
 import Foundation
-import Spezi
+public import Spezi
 
 
 public final class SpeziLocation: Module, DefaultInitializable, EnvironmentAccessible {

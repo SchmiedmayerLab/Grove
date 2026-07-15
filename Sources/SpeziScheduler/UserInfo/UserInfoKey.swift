@@ -7,8 +7,8 @@
 //
 
 #if canImport(Darwin)
-import Foundation
-import SpeziFoundation
+public import Foundation
+public import SpeziFoundation
 
 
 /// A typed-key for entries in the user info store of scheduler components.

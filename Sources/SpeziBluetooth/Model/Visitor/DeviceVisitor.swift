@@ -27,9 +27,9 @@ extension BluetoothDevice {
     func accept<Visitor: DeviceVisitor>(_ visitor: inout Visitor) {
         let mirror = Mirror(reflecting: self)
         for (_, child) in mirror.children {
-            if let visitable = child as? DeviceVisitable {
+            if let visitable = child as? any DeviceVisitable {
                 visitable.accept(&visitor)
-            } else if child is ServiceVisitable {
+            } else if child is any ServiceVisitable {
                 preconditionFailure("@Characteristic declaration found in \(Self.self). @Characteristic cannot be used within the BluetoothDevice class!")
             }
         }

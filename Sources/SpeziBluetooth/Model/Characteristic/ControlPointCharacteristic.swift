@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import ByteCoding
+public import ByteCoding
 
 
 /// Mark a characteristic to have control point semantics.

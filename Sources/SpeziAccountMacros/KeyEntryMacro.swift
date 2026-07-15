@@ -8,8 +8,8 @@
 
 
 import SwiftDiagnostics
-import SwiftSyntax
-import SwiftSyntaxMacros
+public import SwiftSyntax
+public import SwiftSyntaxMacros
 
 
 /// The `@KeyEntry` macro.

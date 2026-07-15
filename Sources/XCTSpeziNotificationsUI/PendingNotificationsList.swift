@@ -8,7 +8,7 @@
 
 import SpeziNotifications
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 import UserNotifications
 
 

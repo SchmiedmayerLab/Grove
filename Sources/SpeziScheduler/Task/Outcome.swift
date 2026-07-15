@@ -7,9 +7,9 @@
 //
 
 #if canImport(Darwin)
-import Foundation
-import SpeziFoundation
-import SwiftData
+public import Foundation
+public import SpeziFoundation
+public import SwiftData
 
 
 /// The outcome of an event.

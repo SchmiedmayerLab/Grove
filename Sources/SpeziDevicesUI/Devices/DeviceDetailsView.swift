@@ -9,9 +9,9 @@
 import SpeziBluetooth
 @_spi(Internal)
 @_spi(TestingSupport)
-import SpeziDevices
+public import SpeziDevices
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// Show the device details of a paired device.

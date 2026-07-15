@@ -11,7 +11,7 @@ import Speech
 @_spi(TestingSupport) import SpeziFoundation
 import SpeziSpeechRecognizer
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// A reusable SwiftUI `View` to handle text-based or speech-based user input.

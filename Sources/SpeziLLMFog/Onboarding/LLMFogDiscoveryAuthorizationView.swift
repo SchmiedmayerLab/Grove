@@ -8,7 +8,7 @@
 
 import SpeziOnboarding
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// Informs users about the required local network access of ``SpeziLLMFog`` and provides a button to start the request for authorization.

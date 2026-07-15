@@ -7,7 +7,7 @@
 //
 
 #if canImport(SwiftUI)
-import SwiftUI
+public import SwiftUI
 
 
 /// Refer to the documentation of ``Module/Model``.

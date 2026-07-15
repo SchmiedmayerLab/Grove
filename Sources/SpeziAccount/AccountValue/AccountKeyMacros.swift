@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import SwiftUI
+public import Foundation
+public import SwiftUI
 
 
 /// A DataEntry and DataDisplay view that is empty and accepts never values.

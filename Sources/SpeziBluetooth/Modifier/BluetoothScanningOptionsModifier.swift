@@ -7,7 +7,7 @@
 //
 
 
-import SwiftUI
+public import SwiftUI
 
 
 private struct BluetoothScanningOptionsModifier: ViewModifier {

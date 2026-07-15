@@ -7,7 +7,7 @@
 //
 
 #if !os(watchOS) && canImport(BackgroundTasks)
-import BackgroundTasks
+public import BackgroundTasks
 
 
 @available(macOS, unavailable)

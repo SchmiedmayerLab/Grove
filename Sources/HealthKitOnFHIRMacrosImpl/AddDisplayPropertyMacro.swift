@@ -6,10 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Algorithms
-import SwiftDiagnostics
-import SwiftSyntax
-import SwiftSyntaxMacros
+private import Algorithms
+private import SwiftDiagnostics
+public import SwiftSyntax
+public import SwiftSyntaxMacros
 
 
 /// The `@SynthesizeDisplayPropertyMacro` macro.

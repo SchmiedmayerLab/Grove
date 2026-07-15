@@ -7,7 +7,7 @@
 //
 
 import CoreLocation
-import Foundation
+public import Foundation
 
 
 /// A task for getting the user's current location
@@ -16,7 +16,7 @@ public class GetLocationTask: LocationTask {
     public let id = UUID()
     
     /// An optional continuation used to handle asynchronous location updates or errors.
-    private var continuation: CheckedContinuation<LocationUpdateEvent, Error>?
+    private var continuation: CheckedContinuation<LocationUpdateEvent, any Error>?
     
     /// A weak reference to a `SpeziLocation` component, used to interact with location services.
     private weak var component: SpeziLocation?

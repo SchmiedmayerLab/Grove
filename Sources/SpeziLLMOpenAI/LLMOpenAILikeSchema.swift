@@ -8,7 +8,7 @@
 
 import Foundation
 import SpeziChat
-import SpeziLLM
+public import SpeziLLM
 
 
 /// Defines the type and configuration of the ``LLMOpenAISession``.

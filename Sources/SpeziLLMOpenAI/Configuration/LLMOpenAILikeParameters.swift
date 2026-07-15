@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import GeneratedOpenAIClient
+public import GeneratedOpenAIClient
 import OpenAPIRuntime
 
 

@@ -66,7 +66,7 @@ final class DiscoveredDevice: Sendable {
         return false
     }
 
-    func assignContinuation(_ continuation: CheckedContinuation<Void, Error>) {
+    func assignContinuation(_ continuation: CheckedContinuation<Void, any Error>) {
         nsLock.withLock {
             self.ongoingPairing?.signalCancellation()
             self.ongoingPairing = PairingContinuation(continuation)

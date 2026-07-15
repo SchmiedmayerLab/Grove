@@ -9,7 +9,7 @@
 import SpeziAccount
 import SpeziValidation
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// An alert to authorize security-sensitive operations.

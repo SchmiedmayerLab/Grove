@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SwiftUI
+public import SwiftUI
 
 /// A view that displays the results of a ``ValidationEngine``.
 ///

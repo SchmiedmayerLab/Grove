@@ -8,7 +8,7 @@
 
 import SpeziFoundation
 #if canImport(SwiftUI)
-import SwiftUI
+public import SwiftUI
 #endif
 
 package struct LaunchOptionsKey: DefaultProvidingKnowledgeSource {

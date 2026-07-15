@@ -6,11 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
-import HealthKit
+public import HealthKit
 import OSLog
-import Spezi
+public import Spezi
 import SpeziBluetooth
-import SpeziBluetoothServices
+public import SpeziBluetoothServices
 import SwiftData
 import SwiftUI
 
@@ -89,8 +89,8 @@ public final class HealthMeasurements: ServiceModule, EnvironmentAccessible, Def
     public typealias WeightScaleKeyPath<Device> = KeyPath<Device, WeightScaleService>
     public typealias BloodPressureKeyPath<Device> = KeyPath<Device, BloodPressureService>
 #else
-    public typealias WeightScaleKeyPath<Device> = KeyPath<Device, WeightScaleService> & Sendable
-    public typealias BloodPressureKeyPath<Device> = KeyPath<Device, BloodPressureService> & Sendable
+    public typealias WeightScaleKeyPath<Device> = any KeyPath<Device, WeightScaleService> & Sendable
+    public typealias BloodPressureKeyPath<Device> = any KeyPath<Device, BloodPressureService> & Sendable
 #endif
 
     private let logger = Logger(subsystem: "ENGAGEHF", category: "HealthMeasurements")

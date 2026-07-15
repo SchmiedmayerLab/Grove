@@ -6,17 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SwiftUI
-
-
-/// An `EnvironmentKey` that provides a generalized configuration for debounce durations for any processing-related operations.
-///
-/// This might be helpful to provide extensive customization points without introducing clutter in the initializer of views.
-/// The ``AsyncButton`` is one example where this `EnvironmentKey` is used.
-@available(iOS 18, macOS 15, watchOS 11, *)
-private struct ProcessingDebounceDuration: EnvironmentKey {
-    static let defaultValue: Duration = .milliseconds(150)
-}
+public import SwiftUI
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -27,12 +17,5 @@ extension EnvironmentValues {
     /// The ``AsyncButton`` is one example where this `EnvironmentKey` is used.
     ///
     /// - Note: The default value is `150ms`.
-    public var processingDebounceDuration: Duration {
-        get {
-            self[ProcessingDebounceDuration.self]
-        }
-        set {
-            self[ProcessingDebounceDuration.self] = newValue
-        }
-    }
+    @Entry public var processingDebounceDuration: Duration = .milliseconds(150)
 }

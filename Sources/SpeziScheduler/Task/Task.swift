@@ -9,9 +9,9 @@
 #if canImport(Darwin)
 // swiftlint:disable file_length
 
-import Foundation
-import SpeziFoundation
-import SwiftData
+public import Foundation
+public import SpeziFoundation
+public import SwiftData
 
 
 /// A task that a user is supposed to perform.

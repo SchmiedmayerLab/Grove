@@ -8,7 +8,7 @@
 
 // swiftlint:disable file_types_order
 
-import ByteCoding
+public import ByteCoding
 
 
 /// Medical 16-bit float representation using base 10.

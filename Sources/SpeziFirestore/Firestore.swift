@@ -7,8 +7,8 @@
 //
 
 import FirebaseCore
-import FirebaseFirestore
-import Spezi
+public import FirebaseFirestore
+public import Spezi
 import SpeziFirebaseConfiguration
 import SwiftUI
 

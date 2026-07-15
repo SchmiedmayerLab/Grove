@@ -6,9 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if ResearchKit
+
 import FHIRModelsExtensions
 import ModelsR4
-#if ResearchKit
 import ResearchKit
 
 
@@ -292,7 +293,7 @@ extension QuestionnaireItem {
                     continue
                 }
                 let valueCoding = ValueCoding(code: code, system: system, display: display)
-                let choice = ORKTextChoice(text: display, value: valueCoding.rawValue as NSSecureCoding & NSCopying & NSObjectProtocol)
+                let choice = ORKTextChoice(text: display, value: valueCoding.rawValue as any NSSecureCoding & NSCopying & NSObjectProtocol)
                 choices.append(choice)
             }
         } else {
@@ -310,7 +311,7 @@ extension QuestionnaireItem {
                     continue
                 }
                 let valueCoding = ValueCoding(code: code, system: system, display: display)
-                let choice = ORKTextChoice(text: display, value: valueCoding.rawValue as NSSecureCoding & NSCopying & NSObjectProtocol)
+                let choice = ORKTextChoice(text: display, value: valueCoding.rawValue as any NSSecureCoding & NSCopying & NSObjectProtocol)
                 choices.append(choice)
             }
             
@@ -320,7 +321,7 @@ extension QuestionnaireItem {
                 let otherChoice = ORKTextChoiceOther.choice(
                     withText: otherChoiceText,
                     detailText: nil,
-                    value: otherChoiceText as NSSecureCoding & NSCopying & NSObjectProtocol,
+                    value: otherChoiceText as any NSSecureCoding & NSCopying & NSObjectProtocol,
                     exclusive: true,
                     textViewPlaceholderText: ""
                 )

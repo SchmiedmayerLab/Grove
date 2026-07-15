@@ -10,8 +10,8 @@ import Foundation
 import OSLog
 import Spezi
 import SpeziFoundation
-import SpeziKeychainStorage
-import SpeziLLM
+public import SpeziKeychainStorage
+public import SpeziLLM
 
 
 /// A `LLMPlatform` that is interoperable with the OpenAI API.

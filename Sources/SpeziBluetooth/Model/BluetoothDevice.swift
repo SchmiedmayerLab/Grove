@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Observation
-import Spezi
+public import Observation
+public import Spezi
 
 
 /// A Bluetooth device implementation.

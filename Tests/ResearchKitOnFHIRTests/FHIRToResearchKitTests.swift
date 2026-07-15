@@ -9,6 +9,7 @@
 import FHIRQuestionnaires
 import Foundation
 import ModelsR4
+import ResearchKit
 @testable import ResearchKitOnFHIR
 import Testing
 

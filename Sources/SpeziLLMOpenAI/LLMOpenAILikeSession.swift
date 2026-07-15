@@ -6,16 +6,16 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Atomics
-import Foundation
+package import Atomics
+public import Foundation
 import GeneratedOpenAIClient
 import OpenAPIRuntime
 import OpenAPIURLSession
-import os
+package import os
 import SpeziChat
 import SpeziFoundation
 import SpeziKeychainStorage
-import SpeziLLM
+public import SpeziLLM
 
 /// Represents an ``LLMOpenAILikeSchema`` in execution.
 ///

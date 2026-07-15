@@ -7,7 +7,7 @@
 //
 
 #if canImport(Darwin)
-import Foundation
+public import Foundation
 
 
 /// A type that has localized title and instructions.

@@ -7,8 +7,9 @@
 //
 
 
+public import Foundation
 import HealthKit
-import XCTest
+public import XCTest
 
 
 /// The input definition of a sample that should be added to the Health database

@@ -6,10 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Atomics
+package import Atomics
 import Foundation
-import OSLog
-import SpeziLLM
+package import OSLog
+package import SpeziLLM
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

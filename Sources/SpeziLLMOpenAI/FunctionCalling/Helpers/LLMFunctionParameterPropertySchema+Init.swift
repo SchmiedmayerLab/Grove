@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import OpenAPIRuntime
+public import OpenAPIRuntime
 
 
 /// Convenience extension to initialize a simple object-type function calling schema definition.

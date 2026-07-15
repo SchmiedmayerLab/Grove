@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SwiftUI
+public import SwiftUI
 
 
 /// A label style that shows the title and icon in reverse layout compared to the standard `titleAndIcon` label style.

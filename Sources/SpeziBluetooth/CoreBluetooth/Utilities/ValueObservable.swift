@@ -24,7 +24,7 @@ final class ValueObservationRegistrar<Observable: ValueObservable>: Sendable {
     }
 
     @SpeziBluetooth private var id: UInt64 = 0
-    @SpeziBluetooth private var observations: [UInt64: AnyValueObservation] = [:]
+    @SpeziBluetooth private var observations: [UInt64: any AnyValueObservation] = [:]
     @SpeziBluetooth private var keyPathIndex: [AnyKeyPath: Set<UInt64>] = [:]
 
     init() {}

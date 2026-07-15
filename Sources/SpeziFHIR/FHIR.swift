@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Spezi
+public import Spezi
 
 
 /// Spezi standard to support the development of FHIR-based digital health applications.

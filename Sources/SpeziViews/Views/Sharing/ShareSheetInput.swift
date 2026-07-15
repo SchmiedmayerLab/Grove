@@ -8,9 +8,9 @@
 
 // swiftlint:disable file_types_order
 
-import Foundation
+public import Foundation
 #if !os(watchOS)
-import class PDFKit.PDFDocument
+public import class PDFKit.PDFDocument
 #endif
 
 

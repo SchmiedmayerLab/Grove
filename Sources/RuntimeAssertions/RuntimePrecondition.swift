@@ -6,9 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-
-
+package import Foundation
 private struct UnsafeSendable<Value>: @unchecked Sendable {
     let value: Value
 }

@@ -7,7 +7,7 @@
 //
 
 import RuntimeAssertions
-import Testing
+public import Testing
 
 
 /// Test assertions that use `assert` or `assertionFailure` of the `RuntimeAssertions` library.

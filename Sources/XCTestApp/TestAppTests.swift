@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SwiftUI
+public import SwiftUI
 
 
 /// Allows the definition of an enum of different test cases in your test application that are associated with SwiftUI views.

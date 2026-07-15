@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziViews
-import SwiftUI
+public import SpeziViews
+public import SwiftUI
 
 
 /// Unified style for action buttons in an onboarding flow.

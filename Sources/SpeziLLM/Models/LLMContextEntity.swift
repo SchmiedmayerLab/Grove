@@ -6,11 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+public import Foundation
 #if canImport(UIKit)
-import class UIKit.UIImage
+public import class UIKit.UIImage
 #elseif canImport(AppKit)
-import AppKit
+public import AppKit
 #endif
 
 

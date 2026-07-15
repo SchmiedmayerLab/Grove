@@ -7,7 +7,7 @@
 //
 
 #if canImport(SwiftUI)
-import SwiftUI
+public import SwiftUI
 
 
 #if os(iOS) || os(visionOS) || os(tvOS)

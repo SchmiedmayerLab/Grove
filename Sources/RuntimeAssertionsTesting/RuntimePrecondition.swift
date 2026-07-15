@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+public import Foundation
 import RuntimeAssertions
-import Testing
+public import Testing
 
 
 /// Test assertions that use `precondition` or `preconditionFailure` of the `RuntimeAssertions` library.

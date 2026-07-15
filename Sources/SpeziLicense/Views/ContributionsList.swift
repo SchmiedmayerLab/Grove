@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SwiftPackageList
-import SwiftUI
+public import SwiftPackageList
+public import SwiftUI
 
 
 /// Present a `ContributionsList` including all used Swift Packages to the user.

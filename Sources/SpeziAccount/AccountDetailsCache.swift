@@ -7,8 +7,8 @@
 //
 
 import Foundation
-import Spezi
-import SpeziLocalStorage
+public import Spezi
+public import SpeziLocalStorage
 
 
 /// Locally cache account details on disk.

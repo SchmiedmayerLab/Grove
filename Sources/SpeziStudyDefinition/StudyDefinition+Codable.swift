@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import SpeziFoundation
+public import SpeziFoundation
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-@preconcurrency import PhoneNumberKit
-import Spezi
+@preconcurrency public import PhoneNumberKit
+public import Spezi
 import SwiftUI
 
 

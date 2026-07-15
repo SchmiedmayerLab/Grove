@@ -7,12 +7,14 @@
 //
 
 #if canImport(AccessorySetupKit) && !os(macOS)
-import AccessorySetupKit
+public import AccessorySetupKit
 #endif
+public import Foundation
+public import Observation
 import OrderedCollections
 import OSLog
-import Spezi
-import SpeziBluetooth
+public import Spezi
+public import SpeziBluetooth
 import SpeziBluetoothServices
 @_spi(TestingSupport)
 import SpeziFoundation
@@ -776,7 +778,7 @@ extension PairedDevices {
                 continue
             }
 
-            if let migration = deviceType as? DeviceVariantMigration.Type,
+            if let migration = deviceType as? any DeviceVariantMigration.Type,
                case .variants = deviceType.appearance,
                deviceInfo.variantIdentifier == nil {
                 let (appearance, variantId) = migration.selectAppearance(for: deviceInfo)
@@ -978,7 +980,7 @@ extension PairedDevices {
             }
 
             let appearance: Appearance
-            if let migration = descriptor.deviceType as? DeviceVariantMigration.Type,
+            if let migration = descriptor.deviceType as? any DeviceVariantMigration.Type,
                case .variants = descriptor.deviceType.appearance,
                device.info.variantIdentifier == nil {
                 let (deviceAppearance, _) = migration.selectAppearance(for: device.info)

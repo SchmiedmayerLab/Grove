@@ -7,9 +7,9 @@
 //
 
 
-import SpeziScheduler
+public import SpeziScheduler
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// An overview of all task for a specific day.

@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import HealthKit
-import SpeziBluetoothServices
+public import HealthKit
+public import SpeziBluetoothServices
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

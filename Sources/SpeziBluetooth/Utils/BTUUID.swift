@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import CoreBluetooth
+public import CoreBluetooth
 
 
 /// A universally unique identifier, as defined by Bluetooth standards.

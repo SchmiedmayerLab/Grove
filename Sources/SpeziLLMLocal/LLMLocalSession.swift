@@ -6,16 +6,16 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
 #if MLX
-@preconcurrency import Hub
+import Foundation
+@preconcurrency package import Hub
 import MLX
-import MLXLLM
-import MLXLMCommon
+public import MLXLLM
+public import MLXLMCommon
 import MLXRandom
+public import Observation
 import os
-import SpeziChat
-import SpeziLLM
+public import SpeziLLM
 
 
 /// Represents an ``LLMLocalSchema`` in execution.

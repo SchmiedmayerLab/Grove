@@ -7,7 +7,7 @@
 //
 
 
-import XCTest
+public import XCTest
 
 
 /// A category in the health app

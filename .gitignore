@@ -21,7 +21,7 @@ Package.resolved
 !.swiftpm/xcode/xcshareddata/xcschemes/Spezi-Tests.xcscheme
 .build
 .xcodebuild
-.derivedData
+.derivedData*
 coverage.lcov
 *.xcresult
 

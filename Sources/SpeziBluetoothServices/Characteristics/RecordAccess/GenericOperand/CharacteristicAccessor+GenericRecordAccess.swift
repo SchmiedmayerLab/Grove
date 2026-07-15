@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziBluetooth
+public import SpeziBluetooth
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension CharacteristicAccessor where Value: _RecordAccessControlPoint {

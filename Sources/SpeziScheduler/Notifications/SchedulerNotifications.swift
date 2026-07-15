@@ -11,14 +11,14 @@ import Algorithms
 #if canImport(BackgroundTasks) // not available on watchOS
 import BackgroundTasks
 #endif
-import Foundation
-import Spezi
-import SpeziFoundation
+public import Foundation
+public import Spezi
+public import SpeziFoundation
 import SpeziLocalStorage
 import SpeziNotifications
 import SwiftData
 import struct SwiftUI.AppStorage
-import UserNotifications
+public import UserNotifications
 
 
 /// Manage notifications for the Scheduler.

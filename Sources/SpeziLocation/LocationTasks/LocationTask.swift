@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+public import Foundation
 
 
 /// A protocol for creating objects for managing events from `CLLocationManagerDelegate`

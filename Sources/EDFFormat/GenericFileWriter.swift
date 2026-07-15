@@ -7,7 +7,7 @@
 //
 
 import ByteCoding
-import Foundation
+public import Foundation
 import NIO
 import NIOFoundationCompat
 

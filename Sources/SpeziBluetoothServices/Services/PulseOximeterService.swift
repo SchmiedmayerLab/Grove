@@ -9,7 +9,7 @@
 import ByteCoding
 import Foundation
 import NIOCore
-import SpeziBluetooth
+public import SpeziBluetooth
 import SpeziNumerics
 
 

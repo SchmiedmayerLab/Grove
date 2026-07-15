@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Atomics
-import CoreBluetooth
+public import Atomics
+public import CoreBluetooth
 
 
 /// Represents the various states of Bluetooth.

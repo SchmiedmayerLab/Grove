@@ -7,7 +7,7 @@
 //
 
 #if canImport(Darwin)
-import Foundation
+public import Foundation
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

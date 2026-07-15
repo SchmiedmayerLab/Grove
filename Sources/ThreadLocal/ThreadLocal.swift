@@ -8,7 +8,7 @@
 
 // swiftlint:disable type_name identifier_name
 
-import Foundation
+public import Foundation
 #if os(Linux)
 import Glibc
 #else

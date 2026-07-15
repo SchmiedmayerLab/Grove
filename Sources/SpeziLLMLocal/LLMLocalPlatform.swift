@@ -9,9 +9,9 @@
 import Foundation
 #if MLX
 import MLX
-import Spezi
+public import Spezi
 import SpeziFoundation
-import SpeziLLM
+public import SpeziLLM
 #if targetEnvironment(simulator)
 import OSLog
 #endif

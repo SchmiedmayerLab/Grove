@@ -1,9 +1,8 @@
 // swift-tools-version:6.3
-
 //
 // This source file is part of the Stanford Spezi open-source project
 //
-// SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
 // SPDX-License-Identifier: MIT
 //
@@ -15,12 +14,19 @@ import struct Foundation.URL
 import PackageDescription
 
 
-// Toggle SwiftLint by setting this to `true`.
+/// Toggle SwiftLint by setting this to `true`.
 let enableSwiftLint = false
+
+let isLoweredDeploymentTargetEnabled = true
 
 var defaultPlugins: [Target.PluginUsage] {
     enableSwiftLint ? [.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")] : []
 }
+
+let defaultSwiftSettings: [SwiftSetting] = [
+    .enableUpcomingFeature("ExistentialAny"),
+    .enableUpcomingFeature("InternalImportsByDefault")
+]
 
 let textualTrait = "Textual"
 let mlxTrait = "MLX"
@@ -33,11 +39,12 @@ let defaultEnabledTraits: Set<String> = Context.environment["SPEZI_ENABLE_DEFAUL
 // Compile/test builds can exclude DocC catalogs to avoid SwiftPM unhandled-file warnings.
 // Documentation builds keep them included so DocC can resolve articles and assets.
 let excludeDocCCatalogs = Context.environment["SPEZI_EXCLUDE_DOCC_CATALOGS"] == "1"
-let packagePlatforms: [SupportedPlatform] = [
-    .iOS(.v15),
-    .macOS(.v12),
-    .watchOS(.v8)
-]
+
+let packagePlatforms: [SupportedPlatform] = if isLoweredDeploymentTargetEnabled {
+    [.iOS(.v15), .macOS(.v12), .watchOS(.v8)]
+} else {
+    [.iOS(.v18), .macOS(.v15), .watchOS(.v11)]
+}
 
 let packageDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
 
@@ -280,10 +287,7 @@ var targets: [Target] = [
             .product(name: "ModelsR4", package: "FHIRModels")
         ],
         exclude: targetExcludes("FHIRModelsExtensions"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny"),
-            .enableUpcomingFeature("InternalImportsByDefault")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -303,6 +307,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -311,6 +316,7 @@ var targets: [Target] = [
             .target(name: "FHIRModelsExtensions"),
             .target(name: "FHIRQuestionnaires")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -318,6 +324,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "FHIRPathParser")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: HealthKitOnFHIR
@@ -329,9 +336,7 @@ var targets: [Target] = [
             .product(name: "SwiftDiagnostics", package: "swift-syntax"),
             .product(name: "Algorithms", package: "swift-algorithms")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -339,6 +344,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "HealthKitOnFHIRMacrosImpl")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -352,9 +358,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -364,9 +368,7 @@ var targets: [Target] = [
             .target(name: "SpeziFoundation")
         ],
         exclude: testTargetExcludes("HealthKitOnFHIRTests", additional: ["UITests"]),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -378,6 +380,7 @@ var targets: [Target] = [
             .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
             .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: ResearchKitOnFHIR
@@ -391,6 +394,7 @@ var targets: [Target] = [
             .target(name: "FHIRPathParser")
         ],
         exclude: targetExcludes("ResearchKitOnFHIR"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -400,6 +404,7 @@ var targets: [Target] = [
             .target(name: "FHIRQuestionnaires")
         ],
         exclude: testTargetExcludes("ResearchKitOnFHIRTests", additional: ["UITests"]),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: Spezi
@@ -411,9 +416,7 @@ var targets: [Target] = [
             .product(name: "OrderedCollections", package: "swift-collections")
         ],
         exclude: targetExcludes("Spezi"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -422,9 +425,7 @@ var targets: [Target] = [
             .target(name: "Spezi")
         ],
         exclude: targetExcludes("SpeziTesting"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -433,9 +434,7 @@ var targets: [Target] = [
             .target(name: "Spezi"),
             .target(name: "SpeziTesting")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -446,8 +445,7 @@ var targets: [Target] = [
             .product(name: "TestingExpectation", package: "swift-testing-expectation")
         ],
         exclude: testTargetExcludes("SpeziTests", additional: ["UITests"]),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny"),
+        swiftSettings: defaultSwiftSettings + [
             .define("DEBUG", .when(configuration: .debug))
         ],
         plugins: [] + defaultPlugins
@@ -465,10 +463,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny"),
-            .enableUpcomingFeature("InternalImportsByDefault")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -482,9 +477,7 @@ var targets: [Target] = [
         resources: [
             .process("__Snapshots__")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziAccount
@@ -495,9 +488,7 @@ var targets: [Target] = [
             .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
             .product(name: "SwiftDiagnostics", package: "swift-syntax")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -518,9 +509,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -530,9 +519,7 @@ var targets: [Target] = [
             .target(name: "XCTestExtensions")
         ],
         exclude: targetExcludes("XCTSpeziAccount"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -545,9 +532,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -563,9 +548,7 @@ var targets: [Target] = [
         resources: [
             .process("__Snapshots__")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -575,9 +558,7 @@ var targets: [Target] = [
             .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
             .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziBluetooth
@@ -596,6 +577,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -606,6 +588,7 @@ var targets: [Target] = [
             .target(name: "SpeziNumerics")
         ],
         exclude: targetExcludes("SpeziBluetoothServices"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .executableTarget(
@@ -616,6 +599,7 @@ var targets: [Target] = [
             .target(name: "ByteCoding")
         ],
         exclude: targetExcludes("TestPeripheral"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -625,6 +609,7 @@ var targets: [Target] = [
             .target(name: "SpeziBluetoothServices")
         ],
         exclude: testTargetExcludes("SpeziBluetoothTests", additional: ["UITests"]),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -635,6 +620,7 @@ var targets: [Target] = [
             .product(name: "NIOCore", package: "swift-nio"),
             .target(name: "ByteCodingTesting")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziChat
@@ -651,9 +637,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -662,6 +646,7 @@ var targets: [Target] = [
             .target(name: "SpeziChat")
         ],
         exclude: testTargetExcludes("SpeziChatTests", additional: ["UITests"]),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziConsent
@@ -680,10 +665,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny"),
-            .enableUpcomingFeature("InternalImportsByDefault")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -698,9 +680,7 @@ var targets: [Target] = [
             .process("Resources"),
             .process("__Snapshots__")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziContact
@@ -714,7 +694,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
+        swiftSettings: defaultSwiftSettings + [
             .enableExperimentalFeature("StrictConcurrency")
         ],
         plugins: [] + defaultPlugins
@@ -725,7 +705,7 @@ var targets: [Target] = [
             .target(name: "SpeziContact")
         ],
         exclude: testTargetExcludes("SpeziContactTests", additional: ["UITests"]),
-        swiftSettings: [
+        swiftSettings: defaultSwiftSettings + [
             .enableExperimentalFeature("StrictConcurrency")
         ],
         plugins: [] + defaultPlugins
@@ -742,6 +722,7 @@ var targets: [Target] = [
             .target(name: "Spezi")
         ],
         exclude: targetExcludes("SpeziDevices"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -756,6 +737,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -769,6 +751,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -781,6 +764,7 @@ var targets: [Target] = [
             .target(name: "SpeziBluetoothServices")
         ],
         exclude: testTargetExcludes("SpeziDevicesTests", additional: ["UITests"]),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -790,6 +774,7 @@ var targets: [Target] = [
             .target(name: "SpeziBluetooth"),
             .target(name: "ByteCodingTesting")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziFHIR
@@ -803,9 +788,7 @@ var targets: [Target] = [
             .target(name: "SpeziHealthKit")
         ],
         exclude: targetExcludes("SpeziFHIR"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -815,9 +798,7 @@ var targets: [Target] = [
             .target(name: "HealthKitOnFHIR"),
             .target(name: "SpeziHealthKit")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -830,9 +811,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -844,15 +823,14 @@ var targets: [Target] = [
             .target(name: "SpeziHealthKit")
         ],
         exclude: testTargetExcludes("SpeziFHIRTests", additional: ["UITests"]),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziFileFormats
     .target(
         name: "SpeziFileFormats",
         exclude: targetExcludes("SpeziFileFormats"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -862,7 +840,7 @@ var targets: [Target] = [
             .target(name: "SpeziNumerics")
         ],
         exclude: targetExcludes("EDFFormat"),
-        swiftSettings: [
+        swiftSettings: defaultSwiftSettings + [
             .enableExperimentalFeature("StrictConcurrency")
         ],
         plugins: [] + defaultPlugins
@@ -873,7 +851,7 @@ var targets: [Target] = [
             .target(name: "ByteCoding"),
             .target(name: "EDFFormat")
         ],
-        swiftSettings: [
+        swiftSettings: defaultSwiftSettings + [
             .enableExperimentalFeature("StrictConcurrency")
         ],
         plugins: [] + defaultPlugins
@@ -882,6 +860,7 @@ var targets: [Target] = [
     .target(
         name: "SpeziFirebase",
         exclude: targetExcludes("SpeziFirebase"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -900,9 +879,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -912,9 +889,7 @@ var targets: [Target] = [
             .product(name: "FirebaseFirestore", package: "firebase-ios-sdk")
         ],
         exclude: targetExcludes("SpeziFirebaseConfiguration"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -929,9 +904,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -942,9 +915,7 @@ var targets: [Target] = [
             .product(name: "FirebaseStorage", package: "firebase-ios-sdk")
         ],
         exclude: targetExcludes("SpeziFirebaseStorage"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -956,9 +927,7 @@ var targets: [Target] = [
             .target(name: "SpeziFirestore")
         ],
         exclude: targetExcludes("SpeziFirebaseAccountStorage"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -969,9 +938,7 @@ var targets: [Target] = [
             .target(name: "SpeziFirestore")
         ],
         exclude: testTargetExcludes("SpeziFirebaseTests", additional: ["UITests"]),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: ThreadLocal
@@ -982,9 +949,7 @@ var targets: [Target] = [
             .product(name: "SwiftDiagnostics", package: "swift-syntax"),
             .product(name: "SwiftSyntaxMacros", package: "swift-syntax")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -998,6 +963,7 @@ var targets: [Target] = [
             "LICENSES",
             "README.md"
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1008,6 +974,7 @@ var targets: [Target] = [
             .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
             .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziFoundation
@@ -1033,10 +1000,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny"),
-            .enableUpcomingFeature("InternalImportsByDefault")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1050,10 +1014,7 @@ var targets: [Target] = [
             .product(name: "Algorithms", package: "swift-algorithms")
         ],
         exclude: targetExcludes("SpeziLocalization"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny"),
-            .enableUpcomingFeature("InternalImportsByDefault")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1062,9 +1023,7 @@ var targets: [Target] = [
             .target(name: "SpeziFoundation")
         ],
         exclude: testTargetExcludes("SpeziFoundationTests", additional: ["UITests"]),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1077,9 +1036,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziHealthKit
@@ -1101,10 +1058,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny"),
-            .enableUpcomingFeature("InternalImportsByDefault")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1115,10 +1069,7 @@ var targets: [Target] = [
             .target(name: "SpeziLocalStorage", condition: .when(platforms: [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS]))
         ],
         exclude: targetExcludes("SpeziHealthKitBulkExport"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny"),
-            .enableUpcomingFeature("InternalImportsByDefault")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1128,10 +1079,7 @@ var targets: [Target] = [
             .target(name: "SpeziFoundation")
         ],
         exclude: targetExcludes("SpeziHealthKitUI"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny"),
-            .enableUpcomingFeature("InternalImportsByDefault")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1147,9 +1095,7 @@ var targets: [Target] = [
         resources: [
             .process("__Snapshots__")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziLLM
@@ -1164,9 +1110,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1187,9 +1131,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1204,9 +1146,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1226,9 +1166,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1249,9 +1187,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1261,9 +1197,7 @@ var targets: [Target] = [
             .target(name: "SpeziKeychainStorage")
         ],
         exclude: targetExcludes("SpeziLLMAnthropic"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1273,9 +1207,7 @@ var targets: [Target] = [
             .target(name: "SpeziKeychainStorage")
         ],
         exclude: targetExcludes("SpeziLLMGemini"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1292,9 +1224,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1313,10 +1243,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny"),
-            .enableUpcomingFeature("InternalImportsByDefault")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [.plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")] + defaultPlugins
     ),
     .testTarget(
@@ -1328,9 +1255,7 @@ var targets: [Target] = [
             .target(name: "SpeziLLMOpenAI")
         ],
         exclude: testTargetExcludes("SpeziLLMTests", additional: ["UITests"]),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziLicense
@@ -1343,9 +1268,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1355,9 +1278,7 @@ var targets: [Target] = [
             .target(name: "Spezi")
         ],
         exclude: testTargetExcludes("SpeziLicenseTests", additional: ["UITests"]),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziLocation
@@ -1367,8 +1288,8 @@ var targets: [Target] = [
             .target(name: "Spezi")
         ],
         exclude: targetExcludes("SpeziLocation"),
-        swiftSettings: [
-            .swiftLanguageMode(.v5)
+        swiftSettings: defaultSwiftSettings + [
+            .swiftLanguageMode(.v5) // TODO???
         ],
         plugins: [] + defaultPlugins
     ),
@@ -1378,8 +1299,8 @@ var targets: [Target] = [
             .target(name: "SpeziLocation")
         ],
         exclude: testTargetExcludes("SpeziLocationTests", additional: ["UITests"]),
-        swiftSettings: [
-            .swiftLanguageMode(.v5)
+        swiftSettings: defaultSwiftSettings + [
+            .swiftLanguageMode(.v5) // TODO???
         ],
         plugins: [] + defaultPlugins
     ),
@@ -1387,6 +1308,7 @@ var targets: [Target] = [
     .target(
         name: "SpeziNetworking",
         exclude: targetExcludes("SpeziNetworking"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1396,6 +1318,7 @@ var targets: [Target] = [
             .product(name: "NIOFoundationCompat", package: "swift-nio")
         ],
         exclude: targetExcludes("ByteCoding"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1405,6 +1328,7 @@ var targets: [Target] = [
             .product(name: "NIOCore", package: "swift-nio")
         ],
         exclude: targetExcludes("SpeziNumerics"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1413,6 +1337,7 @@ var targets: [Target] = [
             .target(name: "ByteCoding")
         ],
         exclude: targetExcludes("ByteCodingTesting"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1421,6 +1346,7 @@ var targets: [Target] = [
             .target(name: "ByteCoding")
         ],
         exclude: targetExcludes("XCTByteCoding"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1429,6 +1355,7 @@ var targets: [Target] = [
             .target(name: "ByteCoding"),
             .target(name: "ByteCodingTesting")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1439,6 +1366,7 @@ var targets: [Target] = [
             .target(name: "ByteCodingTesting"),
             .product(name: "RealModule", package: "swift-numerics")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziNotifications
@@ -1448,9 +1376,7 @@ var targets: [Target] = [
             .target(name: "Spezi")
         ],
         exclude: targetExcludes("SpeziNotifications"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1459,9 +1385,7 @@ var targets: [Target] = [
             .target(name: "SpeziNotifications")
         ],
         exclude: targetExcludes("XCTSpeziNotifications"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1474,9 +1398,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1487,9 +1409,7 @@ var targets: [Target] = [
             .target(name: "XCTSpezi")
         ],
         exclude: testTargetExcludes("SpeziNotificationsTests", additional: ["UITests"]),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziOnboarding
@@ -1503,9 +1423,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1514,9 +1432,7 @@ var targets: [Target] = [
             .target(name: "SpeziOnboarding")
         ],
         exclude: testTargetExcludes("SpeziOnboardingTests", additional: ["UITests"]),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziQuestionnaire
@@ -1532,10 +1448,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny"),
-            .enableUpcomingFeature("InternalImportsByDefault")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1543,10 +1456,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "SpeziQuestionnaire")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny"),
-            .enableUpcomingFeature("InternalImportsByDefault")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1559,10 +1469,7 @@ var targets: [Target] = [
             .target(name: "SpeziFoundation")
         ],
         exclude: targetExcludes("SpeziQuestionnaireFHIR"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny"),
-            .enableUpcomingFeature("InternalImportsByDefault")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1573,10 +1480,7 @@ var targets: [Target] = [
             .product(name: "ResearchKitSwiftUI", package: "ResearchKit", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
             .target(name: "ResearchKitOnFHIR", condition: .when(platforms: [.iOS], traits: [researchKitTrait]))
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny"),
-            .enableUpcomingFeature("InternalImportsByDefault")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1584,10 +1488,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "XCTestExtensions")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny"),
-            .enableUpcomingFeature("InternalImportsByDefault")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1604,6 +1505,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziScheduler
@@ -1628,9 +1530,7 @@ var targets: [Target] = [
             return deps
         }(),
         exclude: targetExcludes("SpeziScheduler"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziSensorKit
@@ -1642,10 +1542,7 @@ var targets: [Target] = [
             .target(name: "SpeziLocalStorage")
         ],
         exclude: targetExcludes("SpeziSensorKit"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny"),
-            .enableUpcomingFeature("InternalImportsByDefault")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1654,12 +1551,14 @@ var targets: [Target] = [
             .target(name: "SpeziSensorKit")
         ],
         exclude: testTargetExcludes("SpeziSensorKitTests", additional: ["UITests"]),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziSpeech
     .target(
         name: "SpeziSpeech",
         exclude: targetExcludes("SpeziSpeech"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1668,6 +1567,7 @@ var targets: [Target] = [
             .target(name: "Spezi")
         ],
         exclude: targetExcludes("SpeziSpeechRecognizer"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1676,6 +1576,7 @@ var targets: [Target] = [
             .target(name: "Spezi")
         ],
         exclude: targetExcludes("SpeziSpeechSynthesizer"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1685,12 +1586,14 @@ var targets: [Target] = [
             .target(name: "SpeziSpeechSynthesizer")
         ],
         exclude: testTargetExcludes("SpeziSpeechTests", additional: ["UITests"]),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziStorage
     .target(
         name: "SpeziStorage",
         exclude: targetExcludes("SpeziStorage"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1700,9 +1603,7 @@ var targets: [Target] = [
             .target(name: "RuntimeAssertions")
         ],
         exclude: targetExcludes("SpeziKeychainStorage"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1713,9 +1614,7 @@ var targets: [Target] = [
             .target(name: "SpeziKeychainStorage")
         ],
         exclude: targetExcludes("SpeziLocalStorage"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1725,9 +1624,7 @@ var targets: [Target] = [
             .target(name: "XCTSpezi")
         ],
         exclude: testTargetExcludes("SpeziStorageTests", additional: ["UITests"]),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziStudy
@@ -1747,9 +1644,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1772,9 +1667,7 @@ var targets: [Target] = [
             .process("Resources/questionnaires"),
             .copy("Resources/assets")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziViews
@@ -1790,6 +1683,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1801,6 +1695,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1814,6 +1709,7 @@ var targets: [Target] = [
         resources: [
             .process("Resources")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1827,12 +1723,14 @@ var targets: [Target] = [
         resources: [
             .process("__Snapshots__")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: XCTHealthKit
     .target(
         name: "XCTHealthKit",
         exclude: targetExcludes("XCTHealthKit"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1841,12 +1739,14 @@ var targets: [Target] = [
             .target(name: "XCTHealthKit")
         ],
         exclude: testTargetExcludes("XCTHealthKitTests", additional: ["UITests"]),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: RuntimeAssertions
     .target(
         name: "RuntimeAssertions",
         exclude: targetExcludes("RuntimeAssertions"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1855,6 +1755,7 @@ var targets: [Target] = [
             .target(name: "RuntimeAssertions")
         ],
         exclude: targetExcludes("RuntimeAssertionsTesting"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1863,17 +1764,20 @@ var targets: [Target] = [
             .target(name: "RuntimeAssertions"),
             .target(name: "RuntimeAssertionsTesting")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: XCTestExtensions
     .target(
         name: "XCTestApp",
         exclude: targetExcludes("XCTestApp"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
         name: "XCTestExtensions",
         exclude: targetExcludes("XCTestExtensions"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1882,6 +1786,7 @@ var targets: [Target] = [
             .target(name: "XCTestExtensions")
         ],
         exclude: testTargetExcludes("XCTestExtensionsTests", additional: ["UITests"]),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
 ]
@@ -1896,9 +1801,7 @@ targets += [
             .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
             .product(name: "SwiftDiagnostics", package: "swift-syntax")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziScheduler
@@ -1912,9 +1815,7 @@ targets += [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziScheduler
@@ -1932,9 +1833,7 @@ targets += [
         resources: [
             .process("Resources")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziScheduler
@@ -1950,9 +1849,7 @@ targets += [
         resources: [
             .process("__Snapshots__")
         ],
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziStudy
@@ -1969,9 +1866,7 @@ targets += [
             .product(name: "Algorithms", package: "swift-algorithms")
         ],
         exclude: targetExcludes("SpeziStudy"),
-        swiftSettings: [
-            .enableUpcomingFeature("ExistentialAny")
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
 ]
@@ -1986,6 +1881,7 @@ targets += [
             .target(name: "SpeziHealthKit"),
             .product(name: "ArgumentParser", package: "swift-argument-parser")
         ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziHealthKit
@@ -1996,6 +1892,7 @@ targets += [
             .product(name: "ArgumentParser", package: "swift-argument-parser")
         ],
         exclude: targetExcludes("Codegen", additional: ["HKTypeIdentifierDefs+Linux.swift.gyb"]),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
 ]

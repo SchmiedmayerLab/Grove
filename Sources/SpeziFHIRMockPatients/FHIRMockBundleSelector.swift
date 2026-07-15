@@ -7,7 +7,7 @@
 //
 
 import ModelsR4
-import SwiftUI
+public import SwiftUI
 
 
 /// Loads resources from a FHIR bundle from a provided set of mock bundles defined as an extension on `ModelsR4.Bundle`.

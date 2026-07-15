@@ -8,7 +8,7 @@
 
 import SpeziValidation
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// A password reset view implementation.

@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import ModelsDSTU2
-import ModelsR4
+public import Foundation
+public import ModelsDSTU2
+public import ModelsR4
 
 
 /// Represents a FHIR (Fast Healthcare Interoperability Resources) entity.

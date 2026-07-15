@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import XCTest
+public import XCTest
 import XCTestExtensions
 
 

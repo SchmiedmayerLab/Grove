@@ -6,7 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import HealthKit
+public import Foundation
+public import HealthKit
 
 
 /// A ``MappedUnit`` instance is used to specify a unit mapping for FHIR observations mapped from HealthKit's `HKUnit`s.

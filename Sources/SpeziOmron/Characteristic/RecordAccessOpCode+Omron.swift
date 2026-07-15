@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziBluetoothServices
+public import SpeziBluetoothServices
 
 
 extension RecordAccessOpCode {

@@ -6,10 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Observation
+public import Foundation
+public import Observation
 import os
-import Speech
-import Spezi
+public import Speech
+public import Spezi
 
 
 /// Initiate and manage speech recognition.
@@ -116,7 +117,7 @@ public final class SpeechRecognizer: NSObject, Module, DefaultInitializable, Env
     /// Starts the speech recognition process.
     ///
     /// - Returns: An asynchronous stream that yields the speech recognition results.
-    public func start() -> AsyncThrowingStream<SFSpeechRecognitionResult, Error> { // swiftlint:disable:this function_body_length
+    public func start() -> AsyncThrowingStream<SFSpeechRecognitionResult, any Error> { // swiftlint:disable:this function_body_length
         AsyncThrowingStream { continuation in // swiftlint:disable:this closure_body_length
             guard !isRecording else {
                 SpeechRecognizer.logger.warning(

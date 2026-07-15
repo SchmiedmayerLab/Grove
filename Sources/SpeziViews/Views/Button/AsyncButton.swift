@@ -8,7 +8,7 @@
 
 // swiftlint:disable file_types_order
 
-import SwiftUI
+public import SwiftUI
 
 
 private enum AsyncButtonGroupResult {

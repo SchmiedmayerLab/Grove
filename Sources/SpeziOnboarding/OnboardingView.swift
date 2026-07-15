@@ -7,7 +7,7 @@
 //
 
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// Present onboarding information in a unified style.

@@ -9,7 +9,7 @@
 #if canImport(Darwin)
 import Combine
 import SwiftData
-import SwiftUI
+public import SwiftUI
 
 
 /// Query events in your SwiftUI view.

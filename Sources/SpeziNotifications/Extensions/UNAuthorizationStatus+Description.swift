@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import UserNotifications
+public import UserNotifications
 
 
 extension UNAuthorizationStatus: @retroactive CustomStringConvertible, @retroactive CustomDebugStringConvertible {

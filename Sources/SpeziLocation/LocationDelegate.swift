@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import CoreLocation
+public import CoreLocation
 
 
 /// `LocationDelegate` is a subclass of `NSObject` that conforms to the `CLLocationManagerDelegate` protocol. It serves as a delegate for `CLLocationManager` to handle location updates and errors. This class is designed to work in conjunction with a `LocationTaskManager` to propagate location-related events.
@@ -33,7 +33,7 @@ public class LocationDelegate: NSObject, CLLocationManagerDelegate {
     /// - Parameters:
     ///   - manager: The location manager object that encountered the error.
     ///   - error: The error object containing the reason why location data could not be retrieved.
-    public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    public func locationManager(_ manager: CLLocationManager, didFailWithError error: any Error) {
         taskManager?.notify(.didFailWithError(error))
     }
     

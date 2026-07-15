@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SwiftUI
+public import SwiftUI
 
 
 /// Refer to the documentation of ``View/LLMSessionProvider`` for information on how to use the `@LLMSessionProvider` property wrapper.

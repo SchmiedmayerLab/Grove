@@ -8,7 +8,7 @@
 
 import SpeziBluetooth
 import SpeziDevices
-import SwiftUI
+public import SwiftUI
 
 
 /// Devices view showing grid of paired devices and provides functionality to pair new devices.

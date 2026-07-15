@@ -7,7 +7,7 @@
 //
 
 #if canImport(SwiftUI)
-import SwiftUI
+public import SwiftUI
 
 
 /// Places a ``Module`` into the SwiftUI environment.

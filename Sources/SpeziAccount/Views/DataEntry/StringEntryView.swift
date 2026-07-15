@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziFoundation
+public import SpeziFoundation
 import SpeziValidation
-import SwiftUI
+public import SwiftUI
 
 
 /// Entry or modify the value of an `String`-based `AccountKey`.

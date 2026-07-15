@@ -8,8 +8,8 @@
 
 import SpeziBluetooth
 @_spi(TestingSupport)
-import SpeziDevices
-import SwiftUI
+public import SpeziDevices
+public import SwiftUI
 
 
 /// The label of a bluetooth peripheral.

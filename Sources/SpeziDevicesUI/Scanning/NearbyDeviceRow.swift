@@ -8,9 +8,9 @@
 
 import SpeziBluetooth
 @_spi(TestingSupport)
-import SpeziDevices
+public import SpeziDevices
 import SpeziViews
-import SwiftUI
+public import SwiftUI
 
 
 /// A row that displays information of a nearby Bluetooth peripheral in a List view.

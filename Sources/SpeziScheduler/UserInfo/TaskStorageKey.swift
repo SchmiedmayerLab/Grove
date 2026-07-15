@@ -7,7 +7,7 @@
 //
 
 #if canImport(Darwin)
-import SpeziFoundation
+public import SpeziFoundation
 
 
 /// Storage anchor for the additional storage of a task.

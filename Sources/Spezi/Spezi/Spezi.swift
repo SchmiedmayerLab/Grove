@@ -10,9 +10,9 @@
 import Foundation
 import OrderedCollections
 import RuntimeAssertions
-import SpeziFoundation
+public import SpeziFoundation
 #if canImport(Observation)
-import Observation
+public import Observation
 #endif
 #if canImport(SwiftUI)
 import SwiftUI

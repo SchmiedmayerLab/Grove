@@ -7,12 +7,12 @@
 //
 
 import Foundation
-import Network
+public import Network
 import os.log
 import Spezi
 import SpeziFoundation
 import SpeziKeychainStorage
-import SpeziLLM
+public import SpeziLLM
 
 
 /// LLM execution platform of an ``LLMFogSchema``.
