@@ -70,7 +70,7 @@ extension XCUIElement {
     /// The difference between this property and accessing `value` directly is that `value` will, if the text field is empty, return the placeholder value, whereas this property will return an empty string.
     /// Get the current value so we can assert if the text entry was correct.
     public var textFieldValue: String {
-        guard elementType == .textField || elementType == .secureTextField else {
+        guard elementType == .textField || elementType == .secureTextField || elementType == .searchField else {
             XCTFail("Not a text field")
             return ""
         }
