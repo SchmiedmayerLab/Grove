@@ -114,7 +114,7 @@ public struct OnboardingConsentView: View {
 extension View {
     @ViewBuilder
     fileprivate func interactiveGlassEffect() -> some View {
-        #if compiler(>=6.2) && !os(visionOS)
+        #if !os(visionOS)
         if #available(iOS 26, macOS 26, tvOS 26, watchOS 26, *) {
             self.glassEffect(.regular.interactive())
         } else {

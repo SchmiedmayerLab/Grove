@@ -11,6 +11,12 @@
         }
       }
     },
+    "2" : {
+
+    },
+    "Awesome Book" : {
+
+    },
     "Completed" : {
       "comment" : "Completed Tile. Subtitle",
       "localizations" : {
@@ -27,6 +33,9 @@
           }
         }
       }
+    },
+    "Create a new Account" : {
+
     },
     "DEFAULT_ERROR_DESCRIPTION" : {
       "localizations" : {
@@ -50,6 +59,9 @@
         }
       }
     },
+    "Device" : {
+
+    },
     "Dismiss" : {
       "localizations" : {
         "sv" : {
@@ -59,6 +71,15 @@
           }
         }
       }
+    },
+    "Empty" : {
+
+    },
+    "Entry" : {
+
+    },
+    "Entry Info" : {
+
     },
     "Error" : {
       "comment" : "View State default error title",
@@ -83,6 +104,15 @@
         }
       }
     },
+    "First Step" : {
+
+    },
+    "Hello" : {
+
+    },
+    "Hello World" : {
+
+    },
     "ILLEGAL_NAVIGATION_STEP" : {
       "localizations" : {
         "de" : {
@@ -98,6 +128,12 @@
           }
         }
       }
+    },
+    "is drawing" : {
+
+    },
+    "Long Device Name" : {
+
     },
     "MARKDOWN_LOADING_ERROR" : {
       "localizations" : {
@@ -121,6 +157,9 @@
         }
       }
     },
+    "Next" : {
+
+    },
     "None" : {
       "localizations" : {
         "sv" : {
@@ -140,6 +179,33 @@
           }
         }
       }
+    },
+    "Please fill out the details below to create your new account." : {
+
+    },
+    "Second Step" : {
+
+    },
+    "Test" : {
+
+    },
+    "The magic value" : {
+
+    },
+    "There" : {
+
+    },
+    "This a nice book recommendation" : {
+
+    },
+    "tool" : {
+
+    },
+    "Value" : {
+
+    },
+    "Version" : {
+
     }
   },
   "version" : "1.0"

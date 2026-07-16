@@ -48,18 +48,11 @@ extension HKElectrocardiogram {
             try await healthKit.askForAuthorization(for: .init(
                 read: HKElectrocardiogram.correlatedSymptomTypes.map(\.hkSampleType)
             ))
-            #if swift(>=6.3)
             // SAFETY: the predicate doesn't use a block and therefore is Sendable.
             nonisolated(unsafe) let predicate = HKQuery.predicateForObjectsAssociated(electrocardiogram: self)
-            #endif
             let symptoms: Symptoms = try await withThrowingTaskGroup(of: Symptoms.self) { taskGroup in
                 for categoryType in HKElectrocardiogram.correlatedSymptomTypes {
                     taskGroup.addTask {
-                        #if swift(>=6.3)
-                        let predicate = predicate
-                        #else
-                        let predicate = HKQuery.predicateForObjectsAssociated(electrocardiogram: self)
-                        #endif
                         let samples = try await healthKit.query(categoryType, timeRange: .ever, predicate: predicate)
                         guard let sample = samples.first, let value = HKCategoryValueSeverity(rawValue: sample.value) else {
                             return [:]

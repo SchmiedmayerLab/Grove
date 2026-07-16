@@ -88,11 +88,7 @@ import Observation
 @available(iOS 18, macOS 15, watchOS 11, *)
 @propertyWrapper
 public struct DeviceState<Value: Sendable>: Sendable {
-#if compiler(<6)
-    typealias KeyPathType = KeyPath<BluetoothPeripheral, Value>
-#else
     typealias KeyPathType = any KeyPath<BluetoothPeripheral, Value> & Sendable
-#endif
 
     final class Storage: Sendable {
         let keyPath: KeyPathType
@@ -130,19 +126,11 @@ public struct DeviceState<Value: Sendable>: Sendable {
         DeviceStateAccessor(storage)
     }
 
-    #if compiler(<6)
-    /// Provide a `KeyPath` to the device state you want to access.
-    /// - Parameter keyPath: The `KeyPath` to a property of the underlying ``BluetoothPeripheral`` instance.
-    public init(_ keyPath: KeyPath<BluetoothPeripheral, Value>) {
-        self.storage = Storage(keyPath: keyPath)
-    }
-    #else
     /// Provide a `KeyPath` to the device state you want to access.
     /// - Parameter keyPath: The `KeyPath` to a property of the underlying ``BluetoothPeripheral`` instance.
     public init(_ keyPath: any KeyPath<BluetoothPeripheral, Value> & Sendable) {
         self.storage = Storage(keyPath: keyPath)
     }
-    #endif
 
 
     @SpeziBluetooth

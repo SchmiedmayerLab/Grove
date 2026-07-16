@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "PRIMARY" : {
+
+    },
     "SEQUENTIAL_ONBOARDING_NEXT" : {
       "localizations" : {
         "de" : {
