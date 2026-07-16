@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import PencilKit
 import QuickLook
 import SpeziConsent
 import SpeziOnboarding

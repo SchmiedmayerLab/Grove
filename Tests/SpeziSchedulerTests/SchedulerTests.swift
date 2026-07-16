@@ -8,6 +8,7 @@
 
 // swiftlint:disable file_length function_body_length file_types_order
 
+import Foundation
 import Spezi
 @_spi(TestingSupport)
 @_spi(APISupport)
@@ -15,8 +16,6 @@ import Spezi
 import SpeziTesting
 import SwiftData
 import Testing
-import XCTest
-import XCTRuntimeAssertions
 
 
 @Suite
@@ -252,7 +251,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
         try #require(events.first).complete()
         #expect(try #require(events.first).isCompleted)
         #expect(try #require(try module.queryEvents(for: todayRange).first).isCompleted)
-        try await _Concurrency.Task.sleep(for: .seconds(0.5))
+        try await Swift::Task.sleep(for: .seconds(0.5))
         #expect(try #require(try module.queryEvents(for: todayRange).first).isCompleted)
         do {
             let events1 = try module.queryEvents(for: task, in: todayRange)
@@ -983,22 +982,23 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
 }
 
 
-final class OtherSchedulerTests: XCTestCase {
-    @MainActor
-    func testSandboxDetection() throws {
-        #if os(macOS) || targetEnvironment(macCatalyst)
-        // we expect this to fail, since we're on macOS and the unit tests are not sandboxed
-        XCTAssertRuntimePrecondition { @Sendable in
+#if os(macOS)
+@Suite
+struct SchedulerExitTests {
+    @Test
+    func sandboxDetection() async throws {
+        let result = try await #require(
+            processExitsWith: .failure,
+            observing: [\.standardErrorContent]
+        ) {
             _ = Scheduler(persistence: .onDisk)
         }
-        #else
-        // we expect this not to fail, since we're in a non-macOS (ie, sandboxed) environment
-        XCTAssertNoRuntimePrecondition { @Sendable in
-            _ = Scheduler(persistence: .onDisk)
-        }
-        #endif
+
+        let standardError = String(decoding: result.standardErrorContent, as: UTF8.self)
+        #expect(standardError.contains("The current application is running in a non-sandboxed environment."))
     }
 }
+#endif
 
 
 /// Faithful reproduction of the pre-PR `UserInfoStorage` `Codable` conformance, used by

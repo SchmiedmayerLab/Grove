@@ -7,7 +7,7 @@
 //
 
 #if canImport(UserNotifications)
-@testable import Spezi
+@_spi(APISupport) @testable import Spezi
 import SwiftUI
 import Testing
 import UserNotifications
@@ -107,7 +107,9 @@ struct NotificationsTests {
         let action = module.registerRemoteNotifications
 
         async let registration = action()
-        try await Task.sleep(for: .milliseconds(750)) // allow dispatch of Task above
+        while !delegate.spezi.remoteNotificationRegistrationSupport.isWaitingForRegistration {
+            await Task.yield()
+        }
 
         let data = Data("Hello World".utf8)
 
@@ -118,8 +120,6 @@ struct NotificationsTests {
 #elseif os(macOS)
         delegate.application(NSApplication.shared, didRegisterForRemoteNotificationsWithDeviceToken: data)
 #endif
-
-        try await Task.sleep(for: .milliseconds(750)) // allow dispatch of Task above
 
         _ = try await registration
         #expect(module.lastDeviceToken == data)
@@ -139,8 +139,9 @@ struct NotificationsTests {
         let action = module.registerRemoteNotifications
 
         async let registration = action()
-
-        try await Task.sleep(for: .milliseconds(500)) // allow dispatch of Task above
+        while !delegate.spezi.remoteNotificationRegistrationSupport.isWaitingForRegistration {
+            await Task.yield()
+        }
 
 #if os(iOS) || os(visionOS) || os(tvOS)
         delegate.application(UIApplication.shared, didFailToRegisterForRemoteNotificationsWithError: TestError.testError)
@@ -149,8 +150,6 @@ struct NotificationsTests {
 #elseif os(macOS)
         delegate.application(NSApplication.shared, didFailToRegisterForRemoteNotificationsWithError: TestError.testError)
 #endif
-
-        try await Task.sleep(for: .milliseconds(500)) // allow dispatch of Task above
 
         do {
             _ = try await registration

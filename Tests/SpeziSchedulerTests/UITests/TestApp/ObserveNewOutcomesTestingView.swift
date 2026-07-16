@@ -8,6 +8,7 @@
 
 import Foundation
 import Spezi
+import SpeziFoundation
 @_spi(APISupport)
 import SpeziScheduler
 import SpeziSchedulerUI

@@ -8,6 +8,7 @@
 
 import OSLog
 import Spezi
+import SpeziNotifications
 @_spi(Testing)
 import SpeziScheduler
 import SpeziViews

@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import Algorithms
 import HealthKit
 import SpeziHealthKit
 import SpeziHealthKitUI

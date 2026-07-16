@@ -20,7 +20,7 @@
 #               ["unit", "ui"]. Optional; defaults to ["ui"] — UI tests on the self-hosted runner,
 #               unit tests on GitHub-hosted (today's behavior). Add "unit" (e.g. ["unit", "ui"]) to
 #               also route a package's unit tests to the self-hosted runner — useful for tests that
-#               need more CPU cores (e.g. XCTRuntimeAssertions, whose cooperative-pool-blocking tests
+#               need more CPU cores (e.g. RuntimeAssertions, whose cooperative-pool-blocking tests
 #               starve on the few-vCPU GitHub runner). Linux unit jobs always stay on GitHub-hosted
 #               ubuntu regardless (the self-hosted runner is macOS).
 # Note: SpeziFoundation's "CZlib" is a directory name (Sources/CZlib); its Swift target is "SpeziCZlib".
@@ -170,6 +170,7 @@ uiTests = ["iOS"]
 platforms = ["iOS"]
 targets = ["SpeziSensorKit"]
 tests = ["SpeziSensorKitTests"]
+uiTests = ["iOS"]
 
 [SpeziSpeech]
 platforms = ["iOS", "macOS", "visionOS"]
@@ -206,10 +207,10 @@ targets = ["XCTHealthKit"]
 tests = ["XCTHealthKitTests"]
 uiTests = ["iOS"]
 
-[XCTRuntimeAssertions]
+[RuntimeAssertions]
 platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "tvOS"]
-targets = ["XCTRuntimeAssertions", "RuntimeAssertions", "RuntimeAssertionsTesting"]
-tests = ["XCTRuntimeAssertionsTests", "RuntimeAssertionsTests"]
+targets = ["RuntimeAssertions", "RuntimeAssertionsTesting"]
+tests = ["RuntimeAssertionsTests"]
 self-hosted-ci = ["ui", "unit"]
 # This package's self-hosted jobs run run-package-tests.sh's tomllib path (Python 3.11+); pin them
 # to a self-hosted runner carrying the `python3.11+` label (older self-hosted machines have < 3.11).

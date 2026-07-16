@@ -32,7 +32,7 @@ struct NotificationScenePhaseScheduling: ViewModifier {
 
                 switch scenePhase {
                 case .active:
-                    _Concurrency.Task { @MainActor in
+                    Swift::Task { @MainActor in
                         await schedulerNotifications.checkForInitialScheduling(scheduler: scheduler)
                     }
                 case .background, .inactive:

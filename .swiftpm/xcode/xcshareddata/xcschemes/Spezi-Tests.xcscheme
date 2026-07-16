@@ -13,7 +13,8 @@
       shouldUseLaunchSchemeArgsEnv = "YES">
       <TestPlans>
          <TestPlanReference
-            reference = "container:Tests/TestPlans/FHIRModelsExtensions.xctestplan" default = "YES">
+            reference = "container:Tests/TestPlans/FHIRModelsExtensions.xctestplan"
+            default = "YES">
          </TestPlanReference>
          <TestPlanReference
             reference = "container:Tests/TestPlans/HealthKitOnFHIR.xctestplan">
@@ -106,11 +107,37 @@
             reference = "container:Tests/TestPlans/XCTHealthKit.xctestplan">
          </TestPlanReference>
          <TestPlanReference
-            reference = "container:Tests/TestPlans/XCTRuntimeAssertions.xctestplan">
+            reference = "container:Tests/TestPlans/RuntimeAssertions.xctestplan">
          </TestPlanReference>
          <TestPlanReference
             reference = "container:Tests/TestPlans/XCTestExtensions.xctestplan">
          </TestPlanReference>
       </TestPlans>
    </TestAction>
+   <LaunchAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      launchStyle = "0"
+      useCustomWorkingDirectory = "NO"
+      ignoresPersistentStateOnLaunch = "NO"
+      debugDocumentVersioning = "YES"
+      debugServiceExtension = "internal"
+      allowLocationSimulation = "YES"
+      queueDebuggingEnabled = "No">
+   </LaunchAction>
+   <ProfileAction
+      buildConfiguration = "Release"
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      savedToolIdentifier = ""
+      useCustomWorkingDirectory = "NO"
+      debugDocumentVersioning = "YES">
+   </ProfileAction>
+   <AnalyzeAction
+      buildConfiguration = "Debug">
+   </AnalyzeAction>
+   <ArchiveAction
+      buildConfiguration = "Release"
+      revealArchiveInOrganizer = "YES">
+   </ArchiveAction>
 </Scheme>

@@ -23,6 +23,14 @@ permissions:
   contents: read
 
 jobs:
+  ui-test-projects:
+    name: UI Test Project Consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify generated UI test projects
+        run: python3 Scripts/generate-ui-test-projects.py --check
+
   reuse:
     name: REUSE Compliance Check
     runs-on: ubuntu-latest

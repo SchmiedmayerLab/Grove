@@ -85,7 +85,7 @@ class TestAppUITests: XCTestCase {
 
             // Select "On My iPhone / iPad" directory, if necessary
             let predicate = NSPredicate(format: "label BEGINSWITH[c] %@", "On My")
-            let matchingStaticTexts = app.staticTexts.containing(predicate)
+            let matchingStaticTexts = app.staticTexts.matching(predicate)
             matchingStaticTexts.allElementsBoundByIndex.first?.tap()
 
             XCTAssert(app.buttons["Save"].waitForExistence(timeout: 5))
@@ -114,16 +114,24 @@ class TestAppUITests: XCTestCase {
             if filesApp.buttons["Done"].waitForExistence(timeout: 2) {
                 filesApp.buttons["Done"].tap()
             }
+
+            if filesApp.buttons["Browse"].waitForExistence(timeout: 5) {
+                filesApp.buttons["Browse"].tap()
+            }
+            let filesLocation = filesApp.staticTexts.matching(predicate).firstMatch
+            if filesLocation.waitForExistence(timeout: 5) {
+                filesLocation.tap()
+            }
             
             // Check if file exists - If not, try the export procedure again
             // Saving to files is very flakey on the runners, needs multiple attempts to succeed
-            if filesApp.staticTexts["Exported Chat"].waitForExistence(timeout: 2) {
+            if filesApp.staticTexts["Exported Chat"].waitForExistence(timeout: 5) {
                 break
             }
         }
         
         // Open File
-        XCTAssert(filesApp.staticTexts["Exported Chat"].waitForExistence(timeout: 2))
+        XCTAssert(filesApp.staticTexts["Exported Chat"].waitForExistence(timeout: 5))
         XCTAssert(filesApp.collectionViews["File View"].cells["Exported Chat, pdf"].waitForExistence(timeout: 2))
         
         XCTAssert(filesApp.collectionViews["File View"].cells["Exported Chat, pdf"].images.firstMatch.waitForExistence(timeout: 2))

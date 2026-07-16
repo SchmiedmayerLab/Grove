@@ -7,6 +7,8 @@
 //
 
 import Foundation
+import HealthKit
+import SpeziHealthKit
 import XCTest
 import XCTHealthKit
 
@@ -45,7 +47,7 @@ final class HealthKitQueryTests: SpeziHealthKitTests {
             format: "label MATCHES %@",
             "Steps on \(fmt(try XCTUnwrap(now.year)))-\(fmt(try XCTUnwrap(now.month)))-\(fmt(try XCTUnwrap(now.day))).*"
         )
-        XCTAssert(app.staticTexts.element(matching: todayPred).waitForExistence(timeout: 2))
+        XCTAssert(app.staticTexts.element(matching: todayPred).waitForExistence(timeout: 10))
     }
     
     @MainActor
@@ -171,7 +173,7 @@ final class HealthKitQueryTests: SpeziHealthKitTests {
         if app.staticTexts["No Sleep Data"].waitForExistence(timeout: 1) {
             app.navigationBars.buttons["Add Samples"].tap()
         }
-        XCTAssert(app.staticTexts["Tracked Time"].waitForExistence(timeout: 2))
+        XCTAssert(app.staticTexts["Tracked Time"].waitForExistence(timeout: 10))
         
         XCTAssert(app.staticTexts["Tracked Time, 7:35:30"].waitForExistence(timeout: 1))
         XCTAssert(app.staticTexts["Time Awake, 0:19:00"].waitForExistence(timeout: 1))

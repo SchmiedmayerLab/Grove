@@ -9,6 +9,7 @@
 // swiftlint:disable all
 
 import Foundation
+import GeneratedOpenAIClient
 import Spezi
 #if os(iOS)
 import FirebaseAuth

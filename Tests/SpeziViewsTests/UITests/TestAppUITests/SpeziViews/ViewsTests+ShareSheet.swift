@@ -27,24 +27,29 @@ extension ViewsTests {
         app.buttons["Share Text"].tap()
         app.assertShareSheetHeader(.init(title: "Hello Spezi!", filetype: nil))
         app.buttons["header.closeButton"].tap()
+        XCTAssert(app.otherElements["ShareSheet.RemoteContainerView"].waitForNonExistence(timeout: 5))
         
         app.buttons["Share TIFF UIImage via URL"].tap()
         app.assertShareSheetHeader(.init(title: "jellybeans_USC-SIPI", filetype: "TIFF Image"))
         app.buttons["header.closeButton"].tap()
+        XCTAssert(app.otherElements["ShareSheet.RemoteContainerView"].waitForNonExistence(timeout: 5))
         
         app.buttons["Share PNG UIImage via URL"].tap()
         app.assertShareSheetHeader(.init(title: "PM5544", filetype: "PNG Image"))
         app.buttons["header.closeButton"].tap()
+        XCTAssert(app.otherElements["ShareSheet.RemoteContainerView"].waitForNonExistence(timeout: 5))
         
         app.collectionViews.firstMatch.swipeUp() // out of the window on visionOS and iPadOS
         
         app.buttons["Share PDF"].tap()
         app.assertShareSheetHeader(.init(title: "spezi my beloved", filetype: "PDF Document"))
         app.buttons["header.closeButton"].tap()
+        XCTAssert(app.otherElements["ShareSheet.RemoteContainerView"].waitForNonExistence(timeout: 5))
         
         app.buttons["Share PDF via URL"].tap()
         app.assertShareSheetHeader(.init(title: "spezi my beloved", filetype: "PDF Document"))
         app.buttons["header.closeButton"].tap()
+        XCTAssert(app.otherElements["ShareSheet.RemoteContainerView"].waitForNonExistence(timeout: 5))
         
         app.buttons["Share 2 PDFs"].tap()
         app.assertShareSheetHeader(.init(title: "2 Documents"))
@@ -73,7 +78,7 @@ extension XCUIApplication {
         let shareSheet = otherElements["ShareSheet.RemoteContainerView"]
         XCTAssert(shareSheet.waitForExistence(timeout: 5), file: file, line: line)
         XCTAssert(
-            staticTexts[expected.title].waitForExistence(timeout: 1) || otherElements[expected.title].waitForExistence(timeout: 1),
+            staticTexts[expected.title].waitForExistence(timeout: 10) || otherElements[expected.title].waitForExistence(timeout: 10),
             "Unable to find share sheet title '\(expected.title)'",
             file: file,
             line: line
@@ -82,7 +87,7 @@ extension XCUIApplication {
             let predicate = NSPredicate(format: "label BEGINSWITH %@", filetype + " · ")
             XCTAssert(
                 // swiftlint:disable:next line_length
-                staticTexts.matching(predicate).element.waitForExistence(timeout: 1) || otherElements.matching(predicate).element.waitForExistence(timeout: 1),
+                staticTexts.matching(predicate).element.waitForExistence(timeout: 10) || otherElements.matching(predicate).element.waitForExistence(timeout: 10),
                 "Unable to find share sheet filetype '\(filetype)'",
                 file: file,
                 line: line

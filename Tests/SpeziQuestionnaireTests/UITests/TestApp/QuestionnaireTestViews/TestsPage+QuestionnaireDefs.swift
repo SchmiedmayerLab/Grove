@@ -10,6 +10,7 @@
 
 import SpeziQuestionnaire
 import SwiftUI
+import UniformTypeIdentifiers
 
 
 struct AcknowledgeDisclaimerQuestionKind: QuestionKindDefinition {

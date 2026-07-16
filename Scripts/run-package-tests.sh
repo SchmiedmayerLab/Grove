@@ -41,7 +41,12 @@ export SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS=1
 # by the manifest to suppress SwiftPM unhandled-file warnings, independent of this flag.)
 export SPEZI_EXCLUDE_DOCC_CATALOGS="${SPEZI_EXCLUDE_DOCC_CATALOGS:-1}"
 
-PACKAGES="FHIRModelsExtensions HealthKitOnFHIR ResearchKitOnFHIR Spezi SpeziAccessGuard SpeziAccount SpeziBluetooth SpeziChat SpeziConsent SpeziContact SpeziDevices SpeziFHIR SpeziFileFormats SpeziFirebase SpeziFoundation SpeziHealthKit SpeziLLM SpeziLicense SpeziLocation SpeziNetworking SpeziNotifications SpeziOnboarding SpeziQuestionnaire SpeziScheduler SpeziSensorKit SpeziSpeech SpeziStorage SpeziStudy SpeziViews ThreadLocal XCTHealthKit XCTRuntimeAssertions XCTestExtensions"
+# Keep Xcode's high-churn build output outside the package checkout in CI. Xcode 26 can otherwise
+# observe its own DerivedData/result writes as package-graph changes and invalidate a running test bundle.
+DERIVED_DATA_PATH="${RUNNER_TEMP:+$RUNNER_TEMP/spezi}"
+DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$PWD/.derivedData}"
+
+PACKAGES="FHIRModelsExtensions HealthKitOnFHIR ResearchKitOnFHIR Spezi SpeziAccessGuard SpeziAccount SpeziBluetooth SpeziChat SpeziConsent SpeziContact SpeziDevices SpeziFHIR SpeziFileFormats SpeziFirebase SpeziFoundation SpeziHealthKit SpeziLLM SpeziLicense SpeziLocation SpeziNetworking SpeziNotifications SpeziOnboarding SpeziQuestionnaire SpeziScheduler SpeziSensorKit SpeziSpeech SpeziStorage SpeziStudy SpeziViews ThreadLocal XCTHealthKit RuntimeAssertions XCTestExtensions"
 
 # package -> the platforms it was tested on upstream (the union CI matrix)
 platforms_for() { case "$1" in
@@ -76,7 +81,7 @@ platforms_for() { case "$1" in
     SpeziViews) echo "iOS visionOS tvOS watchOS macOS" ;;
     ThreadLocal) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
     XCTHealthKit) echo "iOS" ;;
-    XCTRuntimeAssertions) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
+    RuntimeAssertions) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
     XCTestExtensions) echo "iOS watchOS visionOS macOS" ;;
     *) echo "" ;;
   esac; }
@@ -111,7 +116,7 @@ run() { # <package> <platform> [mode: "ui"]
       # Requires the `firebase` CLI (firebase-tools) on the runner — as the upstream CI also relied on.
       local root; root="$(pwd)"
       ( cd "$uidir" \
-        && firebase emulators:exec "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -resultBundlePath '$root/$result' -derivedDataPath '$root/.derivedData' -skipMacroValidation -skipPackagePluginValidation $TESTING_FLOOR_DEPLOYMENT_TARGETS" ) \
+        && firebase emulators:exec "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -parallel-testing-enabled NO -resultBundlePath '$root/$result' -derivedDataPath '$DERIVED_DATA_PATH' -skipMacroValidation -skipPackagePluginValidation $TESTING_FLOOR_DEPLOYMENT_TARGETS" ) \
       | beautify
       return
     fi
@@ -120,10 +125,11 @@ run() { # <package> <platform> [mode: "ui"]
       -scheme TestApp \
       -configuration Debug \
       -destination "$(dest "$2")" \
+      -parallel-testing-enabled NO \
       -resultBundlePath "$result" \
       -skipMacroValidation \
       -skipPackagePluginValidation \
-      -derivedDataPath ".derivedData" \
+      -derivedDataPath "$DERIVED_DATA_PATH" \
       $TESTING_FLOOR_DEPLOYMENT_TARGETS \
     | beautify
     return
@@ -160,19 +166,26 @@ run() { # <package> <platform> [mode: "ui"]
   for tt in $targets; do
     echo "==> $1 on $2: test bundle $tt"
     local part="${1}-${2}-${tt}.xcresult"
-    rm -rf "$part"
+    local part_path="$part"
+    if [ -n "${RUNNER_TEMP:-}" ]; then
+      part_path="$RUNNER_TEMP/$part"
+    fi
+    rm -rf "$part" "$part_path"
     xcodebuild test \
       -scheme Spezi-Tests \
       -testPlan "$1" \
       -only-testing:"$tt" \
       -destination "$(dest "$2")" \
-      -resultBundlePath "$part" \
+      -resultBundlePath "$part_path" \
       -skipMacroValidation \
       -skipPackagePluginValidation \
-      -derivedDataPath ".derivedData" \
+      -derivedDataPath "$DERIVED_DATA_PATH" \
       $TESTING_FLOOR_DEPLOYMENT_TARGETS \
     | beautify || rc=1
-    if [ -d "$part" ]; then parts+=("$part"); fi
+    if [ -d "$part_path" ]; then
+      if [ "$part_path" != "$part" ]; then mv "$part_path" "$part"; fi
+      parts+=("$part")
+    fi
   done
   # Collapse the per-bundle .xcresults into the single <Package>-<Platform>-Tests.xcresult the CI uploads,
   # so the artifact is shaped identically regardless of how many bundles ran. (merge needs >=2 inputs; a

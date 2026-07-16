@@ -115,7 +115,7 @@ public final class Scheduler: Module, EnvironmentAccessible, DefaultInitializabl
     /// This is benefitial since it means that we'll be able to skip unnecessary `save()`s if multiple changes are made to the context directly after each other.
     @MainActor
     private final class SaveTask {
-        private typealias Task = _Concurrency.Task
+        private typealias Task = Swift::Task
 
         private unowned let scheduler: Scheduler
         private var saveTask: Task<Void, Never>?
@@ -859,7 +859,7 @@ extension Scheduler {
                 return
             }
             let id = id
-            _Concurrency.Task { @MainActor in
+            Swift::Task { @MainActor in
                 scheduler.outcomeObservers.removeValue(forKey: id)
             }
         }

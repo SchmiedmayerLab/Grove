@@ -9,6 +9,7 @@
 import FHIRQuestionnaires
 import ModelsR4
 import ResearchKit
+import ResearchKitOnFHIR
 import ResearchKitSwiftUI
 import SwiftUI
 

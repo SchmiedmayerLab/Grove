@@ -231,8 +231,8 @@ public final class SchedulerNotifications: Module, DefaultInitializable, Environ
             return
         }
         queuedForNextTick = true
-        _Concurrency.Task { @MainActor in
-            await _Concurrency.Task.yield()
+        Swift::Task { @MainActor in
+            await Swift::Task.yield()
             queuedForNextTick = false
             await _scheduleNotificationsUpdate(using: scheduler)
         }
@@ -266,7 +266,7 @@ public final class SchedulerNotifications: Module, DefaultInitializable, Environ
             logger.debug("Background fetch is not enabled. Skipping registering background task for notification scheduling.")
             #endif
         }
-        _Concurrency.Task { @MainActor in
+        Swift::Task { @MainActor in
             await self.checkForInitialScheduling(scheduler: scheduler)
         }
     }
@@ -311,8 +311,8 @@ public final class SchedulerNotifications: Module, DefaultInitializable, Environ
         defer {
             scheduleNotificationAccess.signal()
         }
-        let task = _Concurrency.Task { @MainActor in
-            await _Concurrency.Task.yield()
+        let task = Swift::Task { @MainActor in
+            await Swift::Task.yield()
             try await scheduleNotifications(for: scheduler)
         }
         #if !(os(macOS) || os(watchOS))
@@ -596,7 +596,7 @@ extension SchedulerNotifications {
     ///   - scheduler: The scheduler to retrieve the events from.
     @available(macOS, unavailable)
     private func handleNotificationsRefresh(for processingTask: BGAppRefreshTask, using scheduler: Scheduler) {
-        let task = _Concurrency.Task { @MainActor in
+        let task = Swift::Task { @MainActor in
             do {
                 try await scheduleNotificationAccess.waitCheckingCancellation()
             } catch {

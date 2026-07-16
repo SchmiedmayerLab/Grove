@@ -12,6 +12,7 @@ import Foundation
 import SpeziFoundation
 import SpeziViews
 import SwiftUI
+import UniformTypeIdentifiers
 #if canImport(UIKit)
 import UIKit
 #elseif canImport(AppKit)

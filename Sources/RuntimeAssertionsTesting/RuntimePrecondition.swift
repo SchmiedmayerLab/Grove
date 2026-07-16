@@ -13,9 +13,8 @@ public import Testing
 
 /// Test assertions that use `precondition` or `preconditionFailure` of the `RuntimeAssertions` library.
 ///
-/// - Important: The `expression` is executed on a background thread, even though it is not annotated as `@Sendable`. This is by design. Preconditions return `Never` and, therefore,
-/// need to be run on a separate thread that can block forever. Without this workaround, testing preconditions that are isolated to `@MainActor` would be impossible.
-/// Make sure to only run isolated parts of your code that don't suffer from concurrency issues in such a scenario.
+/// - Important: The `expression` executes on a background thread so a triggered precondition can block forever. Do not pass an
+/// actor-isolated expression or access actor-isolated state from it. Use Swift Testing's native exit tests for actor-isolated code.
 ///
 /// - Parameters:
 ///   - timeout: A timeout defining how long to wait for the precondition to be triggered.
@@ -23,6 +22,7 @@ public import Testing
 ///   - sourceLocation: The source location to which recorded expectations and issues should be attributed.
 ///   - expression: The expression to be evaluated.
 ///   - precondition: Validate and handle the contents of the precondition.
+@available(*, deprecated, message: "Use Swift 6.3's #expect(processExitsWith:) on a supported host platform such as macOS.")
 public func expectRuntimePrecondition(
     timeout: TimeInterval = 2,
     _ comment: Comment? = nil,
@@ -37,9 +37,8 @@ public func expectRuntimePrecondition(
 
 /// Test the absence of assertions that use `precondition` or `preconditionFailure` of the `RuntimeAssertions` library.
 ///
-/// - Important: The `expression` is executed on a background thread, even though it is not annotated as `@Sendable`. This is by design. Preconditions return `Never` and, therefore,
-/// need to be run on a separate thread that can block forever. Without this workaround, testing preconditions that are isolated to `@MainActor` would be impossible.
-/// Make sure to only run isolated parts of your code that don't suffer from concurrency issues in such a scenario.
+/// - Important: The `expression` executes on a background thread so a triggered precondition can block forever. Do not pass an
+/// actor-isolated expression or access actor-isolated state from it. Use Swift Testing's native exit tests for actor-isolated code.
 ///
 /// - Parameters:
 ///   - timeout: A timeout defining how long to wait for the precondition to be triggered.
@@ -47,6 +46,7 @@ public func expectRuntimePrecondition(
 ///   - sourceLocation: The source location to which recorded expectations and issues should be attributed.
 ///   - expression: The expression to be evaluated.
 ///   - precondition: Validate and handle the contents of the precondition.
+@available(*, deprecated, message: "Use Swift 6.3's #expect(processExitsWith:) on a supported host platform such as macOS.")
 public func expectNoRuntimePrecondition(
     timeout: TimeInterval = 2,
     _ comment: Comment? = nil,
@@ -62,9 +62,8 @@ public func expectNoRuntimePrecondition(
 
 /// Test assertions that use `precondition` or `preconditionFailure` of the `RuntimeAssertions` library.
 /// 
-/// - Important: The `expression` is executed on a background thread, even though it is not annotated as `@Sendable`. This is by design. Preconditions return `Never` and, therefore,
-/// need to be run on a separate thread that can block forever. Without this workaround, testing preconditions that are isolated to `@MainActor` would be impossible.
-/// Make sure to only run isolated parts of your code that don't suffer from concurrency issues in such a scenario.
+/// - Important: The `expression` executes outside the caller's actor context so a triggered precondition can block forever. Do not
+/// pass an actor-isolated expression or access actor-isolated state from it. Use Swift Testing's native exit tests for actor-isolated code.
 /// 
 /// - Parameters:
 ///   - timeout: A timeout defining how long to wait for the precondition to be triggered.
@@ -72,6 +71,7 @@ public func expectNoRuntimePrecondition(
 ///   - sourceLocation: The source location to which recorded expectations and issues should be attributed.
 ///   - expression: The expression to be evaluated.
 ///   - precondition: Validate and handle the contents of the precondition.
+@available(*, deprecated, message: "Use Swift 6.3's #expect(processExitsWith:) on a supported host platform such as macOS.")
 public func expectRuntimePrecondition(
     timeout: TimeInterval = 2,
     _ comment: Comment? = nil,
@@ -86,9 +86,8 @@ public func expectRuntimePrecondition(
 
 /// Test the absence of assertions that use `precondition` or `preconditionFailure` of the `RuntimeAssertions` library.
 ///
-/// - Important: The `expression` is executed on a background thread, even though it is not annotated as `@Sendable`. This is by design. Preconditions return `Never` and, therefore,
-/// need to be run on a separate thread that can block forever. Without this workaround, testing preconditions that are isolated to `@MainActor` would be impossible.
-/// Make sure to only run isolated parts of your code that don't suffer from concurrency issues in such a scenario.
+/// - Important: The `expression` executes outside the caller's actor context so a triggered precondition can block forever. Do not
+/// pass an actor-isolated expression or access actor-isolated state from it. Use Swift Testing's native exit tests for actor-isolated code.
 ///
 /// - Parameters:
 ///   - timeout: A timeout defining how long to wait for the precondition to be triggered.
@@ -96,6 +95,7 @@ public func expectRuntimePrecondition(
 ///   - sourceLocation: The source location to which recorded expectations and issues should be attributed.
 ///   - expression: The expression to be evaluated.
 ///   - precondition: Validate and handle the contents of the precondition.
+@available(*, deprecated, message: "Use Swift 6.3's #expect(processExitsWith:) on a supported host platform such as macOS.")
 public func expectNoRuntimePrecondition(
     timeout: TimeInterval = 2,
     _ comment: Comment? = nil,

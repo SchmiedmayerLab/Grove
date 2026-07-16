@@ -31,6 +31,7 @@ public class LocationAuthorizationTask: LocationTask {
     /// Asynchronously requests permission from the user to always access their location. This method can throw an error if the `SpeziLocation` component is not found.
     /// - Returns: The current `CLAuthorizationStatus`.
     /// - Throws: `LocationError.componentNotFound` if the `SpeziLocation` component is not available.
+    @MainActor
     public func requestAlwaysAuthorization() async throws -> CLAuthorizationStatus {
         guard let component else {
             throw LocationError.componentNotFound
@@ -52,6 +53,7 @@ public class LocationAuthorizationTask: LocationTask {
     /// Asynchronously requests permission from the user to access their location when the app is in use. This method can throw an error if the `SpeziLocation` component is not found.
     /// - Returns: The current `CLAuthorizationStatus`.
     /// - Throws: `LocationError.componentNotFound` if the `SpeziLocation` component is not available.
+    @MainActor
     public func requestWhenInUseAuthorization() async throws -> CLAuthorizationStatus {
         guard let component else {
             throw LocationError.componentNotFound

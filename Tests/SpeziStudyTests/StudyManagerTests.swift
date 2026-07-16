@@ -227,7 +227,7 @@ final class StudyManagerTests {
         try #expect(studyManager.scheduler.queryTasks(for: allTime).count == 3)
         try studyManager.removeOrphanedTasks()
         
-        try await _Concurrency.Task.sleep(for: .seconds(0.2))
+        try await Swift::Task.sleep(for: .seconds(0.2))
         try #expect(studyManager.scheduler.queryTasks(for: allTime).isEmpty)
     }
     
@@ -303,7 +303,7 @@ final class StudyManagerTests {
             #expect(welcomeEvents.count == 1)
             #expect(try !#require(welcomeEvents.first).isCompleted)
             try #require(welcomeEvents.first).complete()
-            try await _Concurrency.Task.sleep(for: .seconds(0.2))
+            try await Swift::Task.sleep(for: .seconds(0.2))
             #expect(try scheduler.queryEvents(for: nextYear).filter {
                 $0.task.id.contains(Self.welcomeArticleComponentId.uuidString)
             }.count { !$0.isCompleted } == 0)

@@ -10,6 +10,7 @@ package import Foundation
 package import HTTPTypes
 package import OpenAPIRuntime
 
+
 /// Middleware that retries HTTP requests based on defined conditions.
 package struct RetryMiddleware: Sendable {
     /// Signals that trigger evaluation of the retry policy.

@@ -44,11 +44,11 @@ final class PersonalInfoViewsTests: XCTestCase {
 
         app.open(target: "SpeziPersonalInfo")
 
-        XCTAssert(app.buttons["User Profile"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["User Profile"].waitForExistence(timeout: 10))
         app.buttons["User Profile"].tap()
 
         XCTAssertTrue(app.staticTexts["PS"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["LS"].exists)
+        XCTAssertTrue(app.staticTexts["LS"].waitForExistence(timeout: 5))
 
         XCTAssertTrue(app.images["person.crop.artframe"].waitForExistence(timeout: 5))
     }

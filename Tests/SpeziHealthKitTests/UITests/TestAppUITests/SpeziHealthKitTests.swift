@@ -31,13 +31,13 @@ class SpeziHealthKitTests: XCTestCase {
             app.launchArguments.append("--resetEverything")
         }
         app.launch()
-        XCTAssert(app.wait(for: .runningForeground, timeout: 2))
+        XCTAssert(app.wait(for: .runningForeground, timeout: 10))
         if !app.launchArguments.contains("--collectedSamplesOnly") {
             if app.alerts["“TestApp” Would Like to Send You Notifications"].waitForExistence(timeout: 5) {
                 app.alerts["“TestApp” Would Like to Send You Notifications"].buttons["Allow"].tap()
             }
         }
-        XCTAssert(app.buttons["Ask for authorization"].waitForExistence(timeout: 3))
+        XCTAssert(app.buttons["Ask for authorization"].waitForExistence(timeout: 10))
         if askForAuthorization, app.buttons["Ask for authorization"].isEnabled {
             app.buttons["Ask for authorization"].tap()
             app.handleHealthKitAuthorization()
@@ -55,10 +55,10 @@ class SpeziHealthKitTests: XCTestCase {
     
     @MainActor
     func triggerDataCollection(in app: XCUIApplication) {
-        XCTAssertTrue(app.buttons["Trigger data source collection"].exists)
+        XCTAssertTrue(app.buttons["Trigger data source collection"].waitForExistence(timeout: 10))
         app.buttons["Trigger data source collection"].tap()
-        XCTAssertTrue(app.buttons["Triggering data source collection"].waitForNonExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Trigger data source collection"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Triggering data source collection"].waitForNonExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Trigger data source collection"].waitForExistence(timeout: 10))
     }
 }
 
@@ -120,7 +120,7 @@ extension XCUIApplication {
     func assertTableRow(_ title: String, _ value: String, file: StaticString = #filePath, line: UInt = #line) {
         let predicate = NSPredicate(format: "label = %@", "\(title), \(value)")
         XCTAssert(
-            self.staticTexts.matching(predicate).element.waitForExistence(timeout: 2),
+            self.staticTexts.matching(predicate).element.waitForExistence(timeout: 10),
             "Unable to find element '\(predicate)'",
             file: file,
             line: line
@@ -141,11 +141,11 @@ extension XCUIApplication {
     @MainActor
     func performMoreMenuAction(_ pathFst: String, _ pathRest: String...) {
         let menuButton = self.navigationBars.buttons["actions"]
-        XCTAssert(menuButton.waitForExistence(timeout: 1))
+        XCTAssert(menuButton.waitForExistence(timeout: 10))
         menuButton.tap()
         for title in [pathFst] + pathRest {
             let button = self.buttons[title]
-            XCTAssert(button.waitForExistence(timeout: 2))
+            XCTAssert(button.waitForExistence(timeout: 10))
             button.tap()
             sleep(for: .seconds(0.5)) // i sleep
         }

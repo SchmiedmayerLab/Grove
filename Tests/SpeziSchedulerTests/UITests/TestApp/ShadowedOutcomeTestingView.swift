@@ -8,6 +8,7 @@
 
 import Foundation
 import Spezi
+import SpeziFoundation
 import SpeziScheduler
 import SwiftUI
 import XCTestApp

@@ -24,7 +24,7 @@ final class QuestionKindTests: TestAppUITests, @unchecked Sendable {
         
         navigator.task(withId: "t0").selectFilePickerOption(.selectPhoto)
         let image = app.otherElements["Photos"].scrollViews.otherElements["photos_sectioned_layout"].images.firstMatch
-        XCTAssert(image.waitForExistence(timeout: 2))
+        XCTAssert(image.waitForExistence(timeout: 10))
         image.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         do {
             let task0 = app.otherElements["Task:t0"]

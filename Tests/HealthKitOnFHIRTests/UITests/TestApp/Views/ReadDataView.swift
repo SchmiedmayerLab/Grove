@@ -6,7 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
+import Foundation
 import HealthKit
+import HealthKitOnFHIR
+import ModelsR4
 import SpeziHealthKit
 import SwiftUI
 
@@ -24,7 +27,7 @@ struct ReadDataView<Sample: _HKSampleWithSampleType>: View {
         Form {
             Section {
                 Button("Read \(sampleType.displayTitle)") {
-                    Task {
+                    Swift::Task {
                         try await readData()
                         showingSheet.toggle()
                     }

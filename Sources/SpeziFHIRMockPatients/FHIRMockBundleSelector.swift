@@ -32,7 +32,7 @@ public struct FHIRMockPatientSelection: View {
             }
         }
             .task {
-                _Concurrency.Task.detached {    // Workaround but enables us to not mark `import ModelsR4` as `@preconcurrency`
+                Swift::Task.detached {    // Workaround but enables us to not mark `import ModelsR4` as `@preconcurrency`
                     let bundles = await ModelsR4.Bundle.mockPatients
                     await MainActor.run {
                         self.bundles = bundles

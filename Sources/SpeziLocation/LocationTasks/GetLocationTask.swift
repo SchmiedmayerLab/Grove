@@ -30,6 +30,7 @@ public class GetLocationTask: LocationTask {
     /// Asynchronously requests the user's current location. This method can throw an error if the `SpeziLocation` component is not found.
     /// - Returns: A `LocationUpdateEvent` representing the latest location update or an error event.
     /// - Throws: `LocationError.componentNotFound` if the `SpeziLocation` component is not available.
+    @MainActor
     public func getLocation() async throws -> LocationUpdateEvent {
         guard let component else {
             throw LocationError.componentNotFound

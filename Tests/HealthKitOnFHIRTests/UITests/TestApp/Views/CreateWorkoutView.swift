@@ -6,7 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
+import Foundation
 import HealthKit
+import HealthKitOnFHIR
+import ModelsR4
 import SwiftUI
 
 struct CreateWorkoutView: View {
@@ -19,7 +22,7 @@ struct CreateWorkoutView: View {
         Form {
             Section {
                 Button("Create Sample Workout") {
-                    Task {
+                    Swift::Task {
                         await createWorkout()
                         showingSheet.toggle()
                     }

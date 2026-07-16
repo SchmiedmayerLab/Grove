@@ -6,7 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
-import RuntimeAssertionsTesting
 import SpeziFoundation
 import Testing
 
@@ -98,29 +97,35 @@ struct OrderedArrayTests {
         #expect(array.capacity == capacity)
     }
     
-    #if DEBUG || canImport(Darwin)
+    #if os(macOS)
     @Test
-    func unsafeOperations() throws {
-        var array = OrderedArray<Int> { $0 < $1 }
-        array.insert(12)
-        array.insert(5)
-        #expect(array.elementsEqual([5, 12]))
-
-        expectRuntimePrecondition {
+    func unsafelyInsertingOutOfOrderFails() async throws {
+        let result = try await #require(
+            processExitsWith: .failure,
+            observing: [\.standardErrorContent]
+        ) {
+            var array = OrderedArray<Int> { $0 < $1 }
+            array.insert(contentsOf: [12, 5])
             array.unsafelyInsert(7, at: array.startIndex)
-            // since the preconditionFailure call was caught, rather than it terminating the program, we need to undo the change
         }
-        #expect(array.elementsEqual([7, 5, 12]))
-        array.remove(at: array.startIndex)
-        #expect(array.elementsEqual([5, 12]))
 
-        expectRuntimePrecondition {
+        let standardError = String(decoding: result.standardErrorContent, as: UTF8.self)
+        #expect(standardError.contains("contains unordered elements"))
+    }
+
+    @Test
+    func unsafelyMutatingOutOfOrderFails() async throws {
+        let result = try await #require(
+            processExitsWith: .failure,
+            observing: [\.standardErrorContent]
+        ) {
+            var array = OrderedArray<Int> { $0 < $1 }
+            array.insert(contentsOf: [12, 5])
             array[unsafe: array.startIndex] += 12
         }
-        #expect(array.elementsEqual([17, 12]))
-        // since the preconditionFailure call was caught, rather than it terminating the program, we need to undo the change
-        array.remove(at: array.startIndex)
-        #expect(array.elementsEqual([12]))
+
+        let standardError = String(decoding: result.standardErrorContent, as: UTF8.self)
+        #expect(standardError.contains("contains unordered elements"))
     }
     #endif
 }

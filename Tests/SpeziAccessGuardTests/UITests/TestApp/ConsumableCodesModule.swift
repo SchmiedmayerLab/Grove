@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import Foundation
 import Observation
 import Spezi
 import SpeziAccessGuard

@@ -38,8 +38,12 @@ final class CanvasViewTests: XCTestCase {
         let canvasView = app.scrollViews["Canvas"].firstMatch
         canvasView.swipeRight()
         canvasView.swipeDown()
-        
-        XCTAssert(app.staticTexts["Did Draw Anything, true"].waitForExistence(timeout: 2))
+
+        let didDraw = app.staticTexts["Did Draw Anything, true"]
+        if !didDraw.waitForExistence(timeout: 5) {
+            canvasView.swipeRight()
+        }
+        XCTAssert(didDraw.waitForExistence(timeout: 5))
         
         app.buttons["Toggle Tool Picker"].tap()
         XCTAssertTrue(toolPicker.waitForExistence(timeout: 5))

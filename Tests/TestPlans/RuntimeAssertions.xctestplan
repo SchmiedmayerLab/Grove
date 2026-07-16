@@ -1,0 +1,37 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000033",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "RuntimeAssertions",
+        "name" : "RuntimeAssertions"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "RuntimeAssertionsTesting",
+        "name" : "RuntimeAssertionsTesting"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "RuntimeAssertionsTests",
+          "name" : "RuntimeAssertionsTests"
+        }
+      }
+  ],
+  "version" : 1
+}

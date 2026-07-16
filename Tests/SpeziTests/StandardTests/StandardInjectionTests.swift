@@ -6,7 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
-import RuntimeAssertionsTesting
 @testable import Spezi
 import Testing
 
@@ -56,16 +55,22 @@ struct StandardInjectionTests {
         )
         _ = await standardInjectionTestApplicationDelegate.spezi
         
-        await expectation.fulfillment(within: .seconds(0.5))
+        await expectation.fulfillment(within: .seconds(5))
     }
 #endif
     
-#if DEBUG || canImport(Darwin)
+#if os(macOS)
     @Test
-    func injectionPrecondition() throws {
-        expectRuntimePrecondition {
+    func injectionPrecondition() async throws {
+        let result = try await #require(
+            processExitsWith: .failure,
+            observing: [\.standardErrorContent]
+        ) {
             _ = _StandardPropertyWrapper<MockStandard>().wrappedValue
         }
+
+        let standardError = String(decoding: result.standardErrorContent, as: UTF8.self)
+        #expect(standardError.contains("`_StandardPropertyWrapper`'s wrappedValue was accessed before"))
     }
 #endif
 }

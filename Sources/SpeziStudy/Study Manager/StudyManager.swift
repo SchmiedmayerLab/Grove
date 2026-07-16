@@ -88,7 +88,7 @@ public final class StudyManager: Module, EnvironmentAccessible, Sendable {
     }
     
     #if targetEnvironment(simulator)
-    private var autosaveTask: _Concurrency.Task<Void, Never>?
+    private var autosaveTask: Swift::Task<Void, Never>?
     #endif
     
     let modelContainer: ModelContainer
@@ -148,7 +148,7 @@ public final class StudyManager: Module, EnvironmentAccessible, Sendable {
     
     @_documentation(visibility: internal)
     public func configure() { // swiftlint:disable:this function_body_length
-        typealias Task = _Concurrency.Task
+        typealias Task = Swift::Task
         Task { @MainActor [self] in
             let enrollments: [StudyEnrollment]
             do {

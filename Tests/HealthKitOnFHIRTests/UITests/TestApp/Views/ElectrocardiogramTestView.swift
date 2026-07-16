@@ -26,7 +26,7 @@ struct ElectrocardiogramTestView: View {
         Form {
             Section {
                 Button("Read Electrocardiogram") {
-                    _Concurrency.Task {
+                    Swift::Task {
                         try await readElectrocardiogramTest()
                     }
                 }
@@ -35,7 +35,7 @@ struct ElectrocardiogramTestView: View {
                 }
                 if observation != nil {
                     Button("See JSON") {
-                        _Concurrency.Task {
+                        Swift::Task {
                             try readCreateJSON()
                             showingSheet.toggle()
                         }

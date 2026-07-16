@@ -421,31 +421,28 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         XCTAssertTrue(app.navigationBars.staticTexts["Sign-In & Security"].waitForExistence(timeout: 4.0))
     }
     
+    
     @MainActor
-    func testAddPhoneNumber() async throws {
+    func testAddPhoneNumber() throws {
         let app = XCUIApplication()
         app.launch(credentials: .createAndSignIn)
-        
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
         XCTAssertTrue(app.staticTexts["Spezi Account"].waitForExistence(timeout: 5.0))
 
         app.openAccountOverview()
-        
-#if os(visionOS)
+        #if os(visionOS)
         app.scrollUpInOverview()
-#endif
+        #endif
         
         XCTAssertTrue(app.buttons["Phone Numbers"].exists)
         app.buttons["Phone Numbers"].tap()
-        
-        try await app.addPhoneNumber("6502345678", otc: "012345")
-        
+        try app.addPhoneNumber("6502345678", otc: "012345")
         XCTAssertTrue(app.staticTexts["+1 (650) 234-5678"].waitForExistence(timeout: 8.0))
-        
         app.navigationBars.buttons.firstMatch.tap() // navigate back
         XCTAssertTrue(app.staticTexts["+1 (650) 234-5678"].exists)
     }
 
+    
     @MainActor
     func testRemovePhoneNumber() async throws {
         let app = XCUIApplication()
@@ -567,7 +564,7 @@ extension XCUIApplication {
     }
 #endif
     
-    fileprivate func addPhoneNumber(_ phoneNumber: String, otc: String) async throws {
+    fileprivate func addPhoneNumber(_ phoneNumber: String, otc: String) throws {
         let timeout = 8.0
 
         tapButton("Add Phone Number", timeout: timeout)
@@ -577,9 +574,10 @@ extension XCUIApplication {
         
         let countryField = searchFields["Your country"].firstMatch
         XCTAssertTrue(countryField.waitForExistence(timeout: timeout))
+        // The search field needs two taps to reliably take keyboard focus; see #103.
         countryField.tap()
         countryField.tap()
-        countryField.typeText("US")
+        try countryField.enter(value: "US", options: [.disableKeyboardDismiss, .skipTextFieldSelection])
         
         let countryCode = staticTexts["+1"].firstMatch
         XCTAssertTrue(countryCode.waitForExistence(timeout: timeout))

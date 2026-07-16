@@ -216,13 +216,6 @@
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "XCTRuntimeAssertionsTests",
-        "name": "XCTRuntimeAssertionsTests"
-      }
-    },
-    {
-      "target": {
-        "containerPath": "container:",
         "identifier": "XCTestExtensionsTests",
         "name": "XCTestExtensionsTests"
       }

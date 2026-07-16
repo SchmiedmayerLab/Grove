@@ -260,10 +260,9 @@ var products: [Product] = [
     .library(name: "SpeziValidation", targets: ["SpeziValidation"]),
     // MARK: XCTHealthKit
     .library(name: "XCTHealthKit", targets: ["XCTHealthKit"]),
-    // MARK: XCTRuntimeAssertions
+    // MARK: RuntimeAssertions
     .library(name: "RuntimeAssertions", targets: ["RuntimeAssertions"]),
     .library(name: "RuntimeAssertionsTesting", targets: ["RuntimeAssertionsTesting"]),
-    .library(name: "XCTRuntimeAssertions", targets: ["XCTRuntimeAssertions"]),
     // MARK: XCTestExtensions
     .library(name: "XCTestApp", targets: ["XCTestApp"]),
     .library(name: "XCTestExtensions", targets: ["XCTestExtensions"])
@@ -443,7 +442,6 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "Spezi"),
             .target(name: "SpeziTesting"),
-            .target(name: "RuntimeAssertionsTesting"),
             .product(name: "TestingExpectation", package: "swift-testing-expectation")
         ],
         exclude: testTargetExcludes("SpeziTests", additional: ["UITests"]),
@@ -542,7 +540,6 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "SpeziAccount"),
             .target(name: "SpeziAccountPhoneNumbers"),
-            .target(name: "XCTRuntimeAssertions"),
             .target(name: "Spezi"),
             .target(name: "SpeziTesting"),
             .product(name: "SnapshotTesting", package: "swift-snapshot-testing", condition: .when(platforms: [.iOS]))
@@ -1023,8 +1020,7 @@ var targets: [Target] = [
     .testTarget(
         name: "SpeziFoundationTests",
         dependencies: [
-            .target(name: "SpeziFoundation"),
-            .target(name: "RuntimeAssertionsTesting")
+            .target(name: "SpeziFoundation")
         ],
         exclude: testTargetExcludes("SpeziFoundationTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
@@ -1746,13 +1742,11 @@ var targets: [Target] = [
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: XCTRuntimeAssertions
+    // MARK: RuntimeAssertions
     .target(
         name: "RuntimeAssertions",
         exclude: targetExcludes("RuntimeAssertions"),
-        swiftSettings: defaultSwiftSettings + [
-            .swiftLanguageMode(.v5) // TODO we used to have a comment why this was important! bring it back! (also applies to the targets below)
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
@@ -1761,20 +1755,7 @@ var targets: [Target] = [
             .target(name: "RuntimeAssertions")
         ],
         exclude: targetExcludes("RuntimeAssertionsTesting"),
-        swiftSettings: defaultSwiftSettings + [
-            .swiftLanguageMode(.v5)
-        ],
-        plugins: [] + defaultPlugins
-    ),
-    .target(
-        name: "XCTRuntimeAssertions",
-        dependencies: [
-            .target(name: "RuntimeAssertions")
-        ],
-        exclude: targetExcludes("XCTRuntimeAssertions"),
-        swiftSettings: defaultSwiftSettings + [
-            .swiftLanguageMode(.v5)
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
@@ -1783,19 +1764,7 @@ var targets: [Target] = [
             .target(name: "RuntimeAssertions"),
             .target(name: "RuntimeAssertionsTesting")
         ],
-        swiftSettings: defaultSwiftSettings + [
-            .swiftLanguageMode(.v5)
-        ],
-        plugins: [] + defaultPlugins
-    ),
-    .testTarget(
-        name: "XCTRuntimeAssertionsTests",
-        dependencies: [
-            .target(name: "XCTRuntimeAssertions")
-        ],
-        swiftSettings: defaultSwiftSettings + [
-            .swiftLanguageMode(.v5)
-        ],
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: XCTestExtensions
@@ -1857,7 +1826,6 @@ targets += [
             .target(name: "SpeziSchedulerMacros"),
             .target(name: "XCTSpezi"),
             .target(name: "SpeziLocalStorage"),
-            .target(name: "XCTRuntimeAssertions"),
             .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
             .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
         ],
@@ -1951,5 +1919,6 @@ let package = Package(
         )
     ],
     dependencies: dependencies,
-    targets: targets
+    targets: targets,
+    swiftLanguageModes: [.v6]
 )

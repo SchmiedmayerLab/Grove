@@ -1,0 +1,204 @@
+# This source file is part of the Stanford Spezi open-source project
+#
+# SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+#
+# SPDX-License-Identifier: MIT
+#
+# Direct product dependencies and the few build-setting exceptions for generated UI-test projects.
+# Platform and device-family declarations are derived from packages.toml.
+# Fixture products are intentional non-imported dependencies needed for runtime test behavior.
+
+[HealthKitOnFHIR]
+app_products = ["HealthKitOnFHIR", "Spezi", "SpeziHealthKit"]
+test_products = ["XCTHealthKit", "XCTestExtensions"]
+[HealthKitOnFHIR.app_settings]
+"CODE_SIGN_ENTITLEMENTS" = "TestApp/Support Files/TestApp.entitlements"
+"INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription" = "Please provide health records access to test"
+"INFOPLIST_KEY_NSHealthShareUsageDescription" = "Please provide read permission to test the module's functionality."
+"INFOPLIST_KEY_NSHealthUpdateUsageDescription" = "Please provide update permission to test the module's functionality."
+
+[ResearchKitOnFHIR]
+app_products = ["FHIRQuestionnaires", "ResearchKitOnFHIR"]
+[ResearchKitOnFHIR.app_settings]
+"INFOPLIST_KEY_NSCameraUsageDescription" = "Uses camera to test image capture"
+
+[SpeziAccessGuard]
+app_products = ["Spezi", "SpeziAccessGuard", "SpeziFoundation", "SpeziViews"]
+[SpeziAccessGuard.app_settings]
+"INFOPLIST_KEY_CFBundleAllowMixedLocalizations" = "YES"
+"INFOPLIST_KEY_NSFaceIDUsageDescription" = "Used to test biometric-based authentication."
+
+[SpeziAccount]
+app_products = ["ArgumentParser", "Spezi", "SpeziAccount", "SpeziAccountPhoneNumbers", "SpeziValidation", "SpeziViews"]
+test_products = ["XCTestExtensions", "XCTSpeziAccount"]
+[SpeziAccount.app_settings]
+"CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
+"INFOPLIST_KEY_CFBundleAllowMixedLocalizations" = "YES"
+[[SpeziAccount.remote_packages]]
+url = "https://github.com/apple/swift-argument-parser.git"
+kind = "upToNextMajorVersion"
+minimum_version = "1.0.0"
+products = ["ArgumentParser"]
+
+[SpeziBluetooth]
+app_products = ["ByteCoding", "Spezi", "SpeziBluetooth", "SpeziBluetoothServices", "SpeziViews"]
+test_products = ["SpeziBluetooth", "SpeziBluetoothServices", "XCTestExtensions"]
+[SpeziBluetooth.app_settings]
+"INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription" = "This App uses Bluetooth to connect to nearby devices."
+
+[SpeziChat]
+app_products = ["SpeziChat"]
+test_products = ["XCTestExtensions"]
+[SpeziChat.app_settings]
+"INFOPLIST_KEY_NSMicrophoneUsageDescription" = "Microphone used to record voice for text input."
+"INFOPLIST_KEY_NSSpeechRecognitionUsageDescription" = "Speech recognition necessary for transcribing voice input."
+
+[SpeziConsent]
+app_products = ["Spezi", "SpeziConsent", "SpeziFoundation", "SpeziOnboarding", "SpeziViews"]
+test_products = ["SpeziFoundation", "XCTestExtensions"]
+
+[SpeziContact]
+app_products = ["SpeziContact"]
+
+[SpeziDevices]
+app_products = ["ByteCoding", "Spezi", "SpeziBluetooth", "SpeziBluetoothServices", "SpeziDevices", "SpeziDevicesUI", "SpeziOmron", "SpeziViews"]
+test_products = ["XCTestExtensions"]
+[SpeziDevices.app_settings]
+"INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription" = "Uses Bluetooth for testing."
+
+[SpeziFHIR]
+app_products = ["Spezi", "SpeziFHIR", "SpeziFHIRHealthKit", "SpeziFHIRMockPatients", "SpeziHealthKit", "SpeziViews"]
+[SpeziFHIR.app_settings]
+"CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
+"INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription" = "The Test App uses the health data to test the Spezi FHIR Package."
+"INFOPLIST_KEY_NSHealthShareUsageDescription" = "The TestApp accesses your HealthKit data to run the tests."
+"INFOPLIST_KEY_NSHealthUpdateUsageDescription" = "The Test App uses the health data to test the Spezi FHIR Package."
+
+[SpeziFirebase]
+app_products = ["Spezi", "SpeziAccount", "SpeziFirebaseAccount", "SpeziFirebaseAccountStorage", "SpeziFirestore", "SpeziFirebaseStorage", "SpeziPersonalInfo", "SpeziValidation", "SpeziViews"]
+test_products = ["XCTestExtensions", "XCTSpeziAccount"]
+[SpeziFirebase.app_settings]
+"CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
+[SpeziFirebase.test_settings]
+"INFOPLIST_FILE" = "TestAppUITests/Info.plist"
+
+[SpeziFoundation]
+app_products = ["SpeziFoundation"]
+test_products = ["XCTestExtensions"]
+
+[SpeziHealthKit]
+app_products = ["Algorithms", "Spezi", "SpeziFoundation", "SpeziHealthKit", "SpeziHealthKitBulkExport", "SpeziHealthKitUI", "SpeziViews"]
+test_products = ["XCTestExtensions", "SpeziHealthKit", "XCTHealthKit"]
+[SpeziHealthKit.app_settings]
+"CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
+"INFOPLIST_KEY_CFBundleAllowMixedLocalizations" = "YES"
+"INFOPLIST_KEY_NSHealthShareUsageDescription" = "The TestApp accesses your HealthKit data to run the tests."
+"INFOPLIST_KEY_NSHealthUpdateUsageDescription" = "The TestApp writes test samples to your HealthKit database to have testing data. There is a mechanism for deleting this (and only this!!!) data."
+[[SpeziHealthKit.remote_packages]]
+url = "https://github.com/apple/swift-algorithms.git"
+kind = "upToNextMajorVersion"
+minimum_version = "1.2.1"
+products = ["Algorithms"]
+
+[SpeziLLM]
+app_products = ["Spezi", "SpeziAccount", "SpeziChat", "SpeziFirebaseAccount", "SpeziFirebaseAccountStorage", "SpeziKeychainStorage", "SpeziLLM", "SpeziLLMAnthropic", "SpeziLLMFog", "SpeziLLMGemini", "SpeziLLMLocal", "SpeziLLMLocalDownload", "SpeziLLMOpenAI", "SpeziLLMOpenAIRealtime", "SpeziOnboarding", "SpeziViews"]
+test_products = ["XCTestExtensions"]
+[SpeziLLM.app_settings]
+"INFOPLIST_FILE" = "TestApp/Info.plist"
+"INFOPLIST_KEY_NSLocalNetworkUsageDescription" = "This app uses the local network to discover nearby fog node services."
+"INFOPLIST_KEY_NSMicrophoneUsageDescription" = "The Test Application uses the micophone to test the dication functionality."
+"INFOPLIST_KEY_NSSpeechRecognitionUsageDescription" = "Speech recognition necessary for transcribing voice input."
+
+[SpeziLicense]
+app_products = ["SpeziLicense"]
+app_fixture_products = ["libzstd"] # The UI test verifies that zstd appears in the generated license list.
+app_plugins = ["SwiftPackageListPlugin"]
+[[SpeziLicense.remote_packages]]
+url = "https://github.com/FelixHerrmann/swift-package-list"
+kind = "upToNextMajorVersion"
+minimum_version = "4.10.0"
+products = ["SwiftPackageListPlugin"]
+[[SpeziLicense.remote_packages]]
+url = "https://github.com/SchmiedmayerLab/zstd.git"
+kind = "exactVersion"
+version = "1.5.8-beta.1"
+products = ["libzstd"]
+
+[SpeziLocation]
+app_products = ["Spezi", "SpeziLocation"]
+test_products = ["XCTestExtensions"]
+[SpeziLocation.app_settings]
+"INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription" = "Used for testing location module."
+"INFOPLIST_KEY_NSLocationWhenInUseUsageDescription" = "Used for testing location module."
+
+[SpeziNotifications]
+app_products = ["Spezi", "SpeziNotifications", "SpeziViews", "XCTSpeziNotificationsUI"]
+test_products = ["XCTSpeziNotifications", "XCTestExtensions"]
+[SpeziNotifications.app_settings]
+"CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
+
+[SpeziOnboarding]
+app_products = ["Spezi", "SpeziFoundation", "SpeziOnboarding", "SpeziViews"]
+test_products = ["XCTestExtensions"]
+
+[SpeziQuestionnaire]
+app_products = ["FHIRQuestionnaires", "Spezi", "SpeziQuestionnaire", "SpeziQuestionnaireCatalog", "SpeziQuestionnaireFHIR", "SpeziViews"]
+test_products = ["SpeziFoundation", "XCTSpeziQuestionnaire", "XCTestExtensions"]
+[SpeziScheduler]
+app_products = ["Spezi", "SpeziFoundation", "SpeziNotifications", "SpeziScheduler", "SpeziSchedulerUI", "SpeziViews", "XCTSpeziNotificationsUI", "XCTestApp"]
+test_products = ["SpeziFoundation", "XCTestExtensions", "XCTSpeziNotifications"]
+[SpeziScheduler.app_settings]
+"CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
+"INFOPLIST_FILE" = "TestApp/Info.plist"
+
+[SpeziSensorKit]
+app_products = ["SpeziSensorKit"]
+
+[SpeziSpeech]
+app_products = ["Spezi", "SpeziSpeechRecognizer", "SpeziSpeechSynthesizer"]
+[SpeziSpeech.app_settings]
+"INFOPLIST_KEY_NSMicrophoneUsageDescription" = "This app needs access to your microphone for voice input."
+"INFOPLIST_KEY_NSSpeechRecognitionUsageDescription" = "This app needs access to Speech recognition in order to translate voice input."
+
+[SpeziStorage]
+app_products = ["Spezi", "SpeziKeychainStorage", "SpeziLocalStorage", "XCTestApp"]
+[SpeziStorage.app_settings]
+"CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
+"DEVELOPMENT_TEAM" = "637867499T"
+"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.storage.testapp"
+
+[SpeziStudy]
+app_products = ["Spezi", "SpeziFoundation", "SpeziHealthKit", "SpeziLocalization", "SpeziScheduler", "SpeziSchedulerUI", "SpeziStudy", "SpeziStudyDefinition", "SpeziViews"]
+test_products = ["XCTHealthKit", "XCTestExtensions"]
+[SpeziStudy.app_settings]
+"CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
+"INFOPLIST_KEY_NSHealthShareUsageDescription" = "The app can perform automated collection of Health data, if the user consents"
+[Spezi]
+app_products = ["XCTestApp", "Spezi"]
+test_products = ["XCTestExtensions"]
+[Spezi.app_settings]
+"CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
+
+[SpeziViews]
+app_products = ["SpeziViews", "XCTestApp", "SpeziPersonalInfo", "SpeziValidation", "Spezi", "SpeziFoundation"]
+test_products = ["XCTestExtensions", "Algorithms", "SpeziFoundation"]
+[[SpeziViews.remote_packages]]
+url = "https://github.com/apple/swift-algorithms.git"
+kind = "upToNextMajorVersion"
+minimum_version = "1.2.1"
+products = ["Algorithms"]
+
+[XCTHealthKit]
+test_products = ["XCTHealthKit", "XCTestExtensions"]
+[XCTHealthKit.app_settings]
+"CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
+"INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription" = "The Test App needs access to the HealthKit records to enable unit tests."
+"INFOPLIST_KEY_NSHealthShareUsageDescription" = "The Test App needs access to the HealthKit records to enable unit tests."
+
+[XCTestExtensions]
+app_products = ["XCTestApp"]
+test_products = ["XCTestExtensions"]
+[XCTestExtensions.app_settings]
+"CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
+"INFOPLIST_FILE" = "TestApp/Info.plist"
+"INFOPLIST_KEY_NSHealthShareUsageDescription" = "The Test App needs access to the HealthKit records to enable unit tests."

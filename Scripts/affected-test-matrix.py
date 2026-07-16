@@ -51,7 +51,7 @@ for _pkg, _info in PKGS.items():
 # Any change to these means "run everything" (shared manifest / test infra / CI / lint / pkg defs).
 GLOBAL_PREFIXES = (
     "Package.swift", "Package@", "Package.resolved", "packages.toml",
-    ".swiftlint.yml", ".github/", "Scripts/", "Tests/TestPlans/", ".swiftpm/",
+    ".swiftlint.yml", ".github/", "Scripts/", "Tests/TestPlans/", "Tests/UITestProjects.toml", ".swiftpm/",
 )
 
 # TEMPORARY: limit UNIT-test scheduling to these platforms (macCatalyst/visionOS/tvOS excluded for

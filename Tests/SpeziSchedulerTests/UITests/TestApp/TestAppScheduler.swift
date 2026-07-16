@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import OSLog
 import Spezi
 import SpeziScheduler
 import SpeziViews

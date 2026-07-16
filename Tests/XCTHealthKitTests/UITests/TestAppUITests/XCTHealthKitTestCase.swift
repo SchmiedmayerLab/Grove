@@ -7,6 +7,7 @@
 //
 
 import XCTest
+import XCTHealthKit
 
 
 class XCTHealthKitTestCase: XCTestCase {
