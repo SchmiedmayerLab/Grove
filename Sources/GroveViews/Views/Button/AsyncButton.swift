@@ -83,7 +83,7 @@ public struct AsyncButton<Label: View>: View {
 
     private let role: ButtonRole?
     private let action: @MainActor () async throws -> Void
-    private let label: Label
+    private let label: Label?
 
     @Environment(\.defaultErrorDescription)
     private var defaultErrorDescription
@@ -113,6 +113,27 @@ public struct AsyncButton<Label: View>: View {
     }
 
     public var body: some View {
+        Group {
+            if let label {
+                customLabelButton(label)
+            } else if #available(iOS 26, macOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
+                roleOnlyButton
+            }
+        }
+        .disabled(consideredDisabled)
+        .task {
+            actionSignal = AsyncStream.makeStream() // durability over multiple appears
+            for await event in actionSignal.stream {
+                switch event {
+                case let .runAction(closure):
+                    await self.runAction(closure)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func customLabelButton(_ label: Label) -> some View {
         Button(role: role, action: submitAction) {
             switch processingStyle {
             case .overlay:
@@ -129,14 +150,25 @@ public struct AsyncButton<Label: View>: View {
                 }
             }
         }
-        .disabled(consideredDisabled)
-        .task {
-            actionSignal = AsyncStream.makeStream() // durability over multiple appears
-            for await event in actionSignal.stream {
-                switch event {
-                case let .runAction(closure):
-                    await self.runAction(closure)
-                }
+    }
+
+    @available(iOS 26, macOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+    @ViewBuilder
+    private var roleOnlyButton: some View {
+        if let role {
+            switch processingStyle {
+            case .overlay:
+                Button(role: role, action: submitAction)
+                    .processingOverlay(isProcessing: isConsideredProcessing)
+            case .listRow:
+                Button(role: role, action: submitAction)
+                    .foregroundStyle(consideredDisabled ? .tertiary : .primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .overlay(alignment: .trailing) {
+                        if isConsideredProcessing {
+                            ProgressView()
+                        }
+                    }
             }
         }
     }
@@ -244,6 +276,23 @@ public struct AsyncButton<Label: View>: View {
         self.label = label()
     }
 
+    /// Creates an async throwing button with a system-provided label for the supplied role.
+    /// - Parameters:
+    ///   - role: A button role that determines the system-provided label.
+    ///   - state: A ``ViewState`` binding that is used to propagate any error caught in the button action.
+    ///         It may also be used to externally control or observe the button's processing state.
+    ///   - action: An asynchronous button action.
+    @available(iOS 26, macOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+    public init(
+        role: ButtonRole,
+        state: Binding<ViewState>,
+        action: @MainActor @escaping () async throws -> Void
+    ) where Label == DefaultButtonLabel {
+        self.role = role
+        self._viewState = state
+        self.action = action
+        self.label = nil
+    }
 
     private func submitAction() {
         guard buttonState == .idle else {

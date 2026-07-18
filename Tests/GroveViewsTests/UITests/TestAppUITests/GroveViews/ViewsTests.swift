@@ -168,12 +168,38 @@ final class ViewsTests: XCTestCase {
         let app = XCUIApplication()
         XCTAssertTrue(app.launchAndWait(for: app.buttons["AsyncButton Toolbar Behaviour"]))
         app.buttons["AsyncButton Toolbar Behaviour"].tap()
+        XCTAssert(app.staticTexts["Did cancel, false"].waitForExistence(timeout: 2))
         XCTAssert(app.staticTexts["Did tap, false"].waitForExistence(timeout: 2))
+        let cancelButton = app.navigationBars["AsyncButtonInToolbar"].buttons["Role Only Cancel"]
+        XCTAssert(cancelButton.waitForExistence(timeout: 2))
+        XCTAssertEqual(cancelButton.label, "Cancel")
+        cancelButton.tap()
+        XCTAssert(app.staticTexts["Did cancel, true"].waitForExistence(timeout: 2))
 
         let toolbarButton = app.navigationBars["AsyncButtonInToolbar"].buttons["Tap Me!"]
         XCTAssert(toolbarButton.wait(for: \.isHittable, toEqual: true, timeout: 2))
         toolbarButton.tap()
         XCTAssert(app.staticTexts["Did tap, true"].waitForExistence(timeout: 2))
+
+        let overlayButton = app.buttons["Role Only Overlay"]
+        XCTAssert(overlayButton.waitForExistence(timeout: 2))
+        XCTAssertEqual(overlayButton.label, "Done")
+        overlayButton.tap()
+        XCTAssert(app.activityIndicators.firstMatch.waitForExistence(timeout: 2))
+        XCTAssertFalse(overlayButton.isEnabled)
+        XCTAssert(app.staticTexts["Overlay completed, true"].waitForExistence(timeout: 4))
+        XCTAssert(app.activityIndicators.firstMatch.waitForNonExistence(timeout: 2))
+        XCTAssertTrue(overlayButton.isEnabled)
+
+        let listRowButton = app.buttons["Role Only List Row"]
+        XCTAssert(listRowButton.waitForExistence(timeout: 2))
+        XCTAssertEqual(listRowButton.label, "Done")
+        listRowButton.tap()
+        XCTAssert(app.activityIndicators.firstMatch.waitForExistence(timeout: 2))
+        XCTAssertFalse(listRowButton.isEnabled)
+        XCTAssert(app.staticTexts["List row completed, true"].waitForExistence(timeout: 4))
+        XCTAssert(app.activityIndicators.firstMatch.waitForNonExistence(timeout: 2))
+        XCTAssertTrue(listRowButton.isEnabled)
     }
 
     @MainActor
