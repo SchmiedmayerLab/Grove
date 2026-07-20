@@ -30,6 +30,7 @@ private import SpeziHealthKit
 /// - ``averageHeartRate``
 /// - ``voltageMeasurements``
 /// - ``voltagePrecision``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct ECGTypeFHIRMapping: Sendable {
     /// The FHIR codings defined as `Coding`s used for the `HKElectrocardiogram`.
     public var codings: [Coding]
@@ -74,6 +75,7 @@ public struct ECGTypeFHIRMapping: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ECGTypeFHIRMapping {
     /// The default FHIR mapping for `HKElectrocardiogram` samples.
     public static let `default` = Self(

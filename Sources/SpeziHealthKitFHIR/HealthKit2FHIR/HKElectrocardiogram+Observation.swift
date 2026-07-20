@@ -245,6 +245,7 @@ extension HKElectrocardiogram: FHIRObservationBuildable {
     .notSet, .sinusRhythm, .atrialFibrillation, .inconclusiveLowHeartRate,
     .inconclusiveHighHeartRate, .inconclusivePoorReading, .inconclusiveOther, .unrecognized
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKElectrocardiogram.Classification: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -252,6 +253,7 @@ extension HKElectrocardiogram.Classification: FHIRCodingConvertibleHKEnum {}
     HKElectrocardiogram.SymptomsStatus.self,
     .notSet, .none, .present
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKElectrocardiogram.SymptomsStatus: FHIRCodingConvertibleHKEnum {}
 
 #endif

@@ -30,6 +30,7 @@ public typealias QuantityTypesFHIRMapping = [SampleType<HKQuantitySample>: Quant
 ///
 /// ### Supporting Types
 /// - ``Unit``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct QuantityTypeFHIRMapping: Sendable {
     public struct Unit: Sendable {
         public let hkUnit: HKUnit
@@ -57,6 +58,7 @@ public struct QuantityTypeFHIRMapping: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRPrimitive<FHIRURI> {
     // swiftlint:disable force_unwrapping
     internal static let loincSystem: Self = "http://loinc.org".asFHIRURIPrimitive()!
@@ -67,6 +69,7 @@ extension FHIRPrimitive<FHIRURI> {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Coding {
     init(_ sampleType: SampleType<HKQuantitySample>) {
         self.init(
@@ -78,6 +81,7 @@ extension Coding {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuantityTypesFHIRMapping {
     /// The default FHIR mapping for HealthKit Quantity types
     public static let `default`: Self = { // swiftlint:disable:this closure_body_length

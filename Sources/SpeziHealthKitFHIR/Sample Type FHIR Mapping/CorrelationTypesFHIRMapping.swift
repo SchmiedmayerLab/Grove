@@ -27,6 +27,7 @@ public typealias CorrelationTypesFHIRMapping = [SampleType<HKCorrelation>: Corre
 /// ### Instance Properties
 /// - ``codings``
 /// - ``categories``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct CorrelationTypeFHIRMapping: Sendable {
     public let codings: [Coding]
     public let categories: [Coding]
@@ -38,6 +39,7 @@ public struct CorrelationTypeFHIRMapping: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CorrelationTypesFHIRMapping {
     /// The default FHIR mapping for HealthKit Correlation types
     public static let `default`: Self = [

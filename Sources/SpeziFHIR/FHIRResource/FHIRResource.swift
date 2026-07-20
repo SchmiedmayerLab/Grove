@@ -14,9 +14,10 @@ public import ModelsDSTU2
 public import ModelsR4
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRExtensionURL {
     /// The resource's associated HealthKit HKSample identifier, if applicable.
-    public static let hkSampleId = Self("https://bdh.stanford.edu/fhir/defs/HealthKitSampleID")
+    public static let hkSampleId = Self(FHIRResource.hkSampleIdUrlString)
 }
 
 /// Represents a FHIR (Fast Healthcare Interoperability Resources) entity.
@@ -84,6 +85,13 @@ public struct FHIRResource: Identifiable, Hashable, Sendable {
         }
     }
     
+    /// The url of the FHIR extension holding a resource's associated HealthKit HKSample identifier.
+    ///
+    /// String form of ``FHIRExtensionURL/hkSampleId`` (which derives from this constant), kept as a plain
+    /// `String` so that it — unlike the `FHIRExtensionURL`-typed version — is usable below the iOS-18
+    /// availability floor.
+    static let hkSampleIdUrlString = "https://bdh.stanford.edu/fhir/defs/HealthKitSampleID"
+
     /// The `uuid` of the `HKSample` from which this FHIRResource was created, if applicable.
     var healthKitSampleId: String? {
         switch versionedResource {
@@ -92,11 +100,11 @@ public struct FHIRResource: Identifiable, Hashable, Sendable {
             // itself): the FHIRTypeWithExtensions overloads only exist on the concrete types, so they
             // aren't visible on an `any DomainResource` existential.
             return (resource as? any ModelsR4.DomainResource)?
-                .extensions(for: FHIRExtensionURL.hkSampleId.url.absoluteString)
+                .extensions(for: Self.hkSampleIdUrlString)
                 .first?.value?.idString
         case .dstu2(let resource):
             return (resource as? any ModelsDSTU2.DomainResource)?
-                .extensions(for: FHIRExtensionURL.hkSampleId.url.absoluteString)
+                .extensions(for: Self.hkSampleIdUrlString)
                 .first?.value?.idString
         }
     }

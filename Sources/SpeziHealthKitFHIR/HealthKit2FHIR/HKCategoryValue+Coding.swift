@@ -58,6 +58,7 @@ extension FHIRCodingConvertibleHKEnum {
     HKCategoryValueVaginalBleeding.self,
     .unspecified, .light, .medium, .heavy, .none
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryValueVaginalBleeding: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -65,6 +66,7 @@ extension HKCategoryValueVaginalBleeding: FHIRCodingConvertibleHKEnum {}
     HKCategoryValueCervicalMucusQuality.self,
     .dry, .sticky, .creamy, .watery, .eggWhite
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryValueCervicalMucusQuality: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -72,6 +74,7 @@ extension HKCategoryValueCervicalMucusQuality: FHIRCodingConvertibleHKEnum {}
     HKCategoryValueMenstrualFlow.self,
     .unspecified, .light, .medium, .heavy, .none
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryValueMenstrualFlow: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -79,6 +82,7 @@ extension HKCategoryValueMenstrualFlow: FHIRCodingConvertibleHKEnum {}
     HKCategoryValueOvulationTestResult.self,
     .negative, .luteinizingHormoneSurge, .indeterminate, .estrogenSurge
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryValueOvulationTestResult: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -86,6 +90,7 @@ extension HKCategoryValueOvulationTestResult: FHIRCodingConvertibleHKEnum {}
     HKCategoryValueContraceptive.self,
     .unspecified, .implant, .injection, .intrauterineDevice, .intravaginalRing, .oral, .patch
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryValueContraceptive: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -93,6 +98,7 @@ extension HKCategoryValueContraceptive: FHIRCodingConvertibleHKEnum {}
     HKCategoryValueSleepAnalysis.self,
     .inBed, .asleepUnspecified, .awake, .asleepCore, .asleepDeep, .asleepREM
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryValueSleepAnalysis: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -100,6 +106,7 @@ extension HKCategoryValueSleepAnalysis: FHIRCodingConvertibleHKEnum {}
     HKCategoryValueAppetiteChanges.self,
     .unspecified, .noChange, .decreased, .increased
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryValueAppetiteChanges: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -107,6 +114,7 @@ extension HKCategoryValueAppetiteChanges: FHIRCodingConvertibleHKEnum {}
     HKCategoryValueEnvironmentalAudioExposureEvent.self,
     .momentaryLimit
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryValueEnvironmentalAudioExposureEvent: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -114,6 +122,7 @@ extension HKCategoryValueEnvironmentalAudioExposureEvent: FHIRCodingConvertibleH
     HKCategoryValueHeadphoneAudioExposureEvent.self,
     .sevenDayLimit
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryValueHeadphoneAudioExposureEvent: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -121,6 +130,7 @@ extension HKCategoryValueHeadphoneAudioExposureEvent: FHIRCodingConvertibleHKEnu
     HKCategoryValueLowCardioFitnessEvent.self,
     .lowFitness
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryValueLowCardioFitnessEvent: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -128,6 +138,7 @@ extension HKCategoryValueLowCardioFitnessEvent: FHIRCodingConvertibleHKEnum {}
     HKAppleWalkingSteadinessClassification.self,
     .ok, .low, .veryLow
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKAppleWalkingSteadinessClassification: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -135,6 +146,7 @@ extension HKAppleWalkingSteadinessClassification: FHIRCodingConvertibleHKEnum {}
     HKCategoryValueAppleWalkingSteadinessEvent.self,
     .initialLow, .initialVeryLow, .repeatLow, .repeatVeryLow
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryValueAppleWalkingSteadinessEvent: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -142,6 +154,7 @@ extension HKCategoryValueAppleWalkingSteadinessEvent: FHIRCodingConvertibleHKEnu
     HKCategoryValuePregnancyTestResult.self,
     .negative, .positive, .indeterminate
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryValuePregnancyTestResult: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -149,6 +162,7 @@ extension HKCategoryValuePregnancyTestResult: FHIRCodingConvertibleHKEnum {}
     HKCategoryValueProgesteroneTestResult.self,
     .negative, .positive, .indeterminate
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryValueProgesteroneTestResult: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -156,6 +170,7 @@ extension HKCategoryValueProgesteroneTestResult: FHIRCodingConvertibleHKEnum {}
     HKCategoryValueAppleStandHour.self,
     .stood, .idle
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryValueAppleStandHour: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -163,6 +178,7 @@ extension HKCategoryValueAppleStandHour: FHIRCodingConvertibleHKEnum {}
     HKCategoryValueSeverity.self,
     .unspecified, .notPresent, .mild, .moderate, .severe
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryValueSeverity: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -170,6 +186,7 @@ extension HKCategoryValueSeverity: FHIRCodingConvertibleHKEnum {}
     HKCategoryValuePresence.self,
     .present, .notPresent
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryValuePresence: FHIRCodingConvertibleHKEnum {}
 
 #endif

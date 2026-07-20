@@ -17,6 +17,7 @@ import SpeziHealthKitFHIRMacros
     HKAppleECGAlgorithmVersion.self,
     .version1, .version2
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKAppleECGAlgorithmVersion: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -24,6 +25,7 @@ extension HKAppleECGAlgorithmVersion: FHIRCodingConvertibleHKEnum {}
     HKBloodGlucoseMealTime.self,
     .preprandial, .postprandial
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKBloodGlucoseMealTime: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -32,12 +34,14 @@ extension HKBloodGlucoseMealTime: FHIRCodingConvertibleHKEnum {}
     .other, .armpit, .body, .ear, .finger, .gastroIntestinal,
     .mouth, .rectum, .toe, .earDrum, .temporalArtery, .forehead
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKBodyTemperatureSensorLocation: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 @SynthesizeDisplayProperty(
     HKCyclingFunctionalThresholdPowerTestType.self,
     .maxExercise60Minute, .maxExercise20Minute, .rampTest, .predictionExercise)
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCyclingFunctionalThresholdPowerTestType: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -45,6 +49,7 @@ extension HKCyclingFunctionalThresholdPowerTestType: FHIRCodingConvertibleHKEnum
     HKDevicePlacementSide.self,
     .unknown, .left, .right, .central
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKDevicePlacementSide: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -52,6 +57,7 @@ extension HKDevicePlacementSide: FHIRCodingConvertibleHKEnum {}
     HKHeartRateMotionContext.self,
     .notSet, .sedentary, .active
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKHeartRateMotionContext: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -59,6 +65,7 @@ extension HKHeartRateMotionContext: FHIRCodingConvertibleHKEnum {}
     HKHeartRateRecoveryTestType.self,
     .maxExercise, .predictionSubMaxExercise, .predictionNonExercise
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKHeartRateRecoveryTestType: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -66,6 +73,7 @@ extension HKHeartRateRecoveryTestType: FHIRCodingConvertibleHKEnum {}
     HKHeartRateSensorLocation.self,
     .other, .chest, .wrist, .finger, .hand, .earLobe, .foot
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKHeartRateSensorLocation: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -73,6 +81,7 @@ extension HKHeartRateSensorLocation: FHIRCodingConvertibleHKEnum {}
     HKInsulinDeliveryReason.self,
     .basal, .bolus
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKInsulinDeliveryReason: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -80,6 +89,7 @@ extension HKInsulinDeliveryReason: FHIRCodingConvertibleHKEnum {}
     HKPhysicalEffortEstimationType.self,
     .activityLookup, .deviceSensed
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKPhysicalEffortEstimationType: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -87,6 +97,7 @@ extension HKPhysicalEffortEstimationType: FHIRCodingConvertibleHKEnum {}
     HKSwimmingStrokeStyle.self,
     .unknown, .mixed, .freestyle, .backstroke, .breaststroke, .butterfly, .kickboard
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKSwimmingStrokeStyle: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -94,6 +105,7 @@ extension HKSwimmingStrokeStyle: FHIRCodingConvertibleHKEnum {}
     HKUserMotionContext.self,
     .notSet, .stationary, .active
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKUserMotionContext: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -102,6 +114,7 @@ extension HKUserMotionContext: FHIRCodingConvertibleHKEnum {}
     .maxExercise, .predictionSubMaxExercise, .predictionNonExercise,
     additionalCases: "predictionStepTest"
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKVO2MaxTestType: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -109,6 +122,7 @@ extension HKVO2MaxTestType: FHIRCodingConvertibleHKEnum {}
     HKWaterSalinity.self,
     .freshWater, .saltWater
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKWaterSalinity: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -119,6 +133,7 @@ extension HKWaterSalinity: FHIRCodingConvertibleHKEnum {}
     .freezingRain, .mixedRainAndHail, .mixedRainAndSnow, .mixedRainAndSleet, .mixedSnowAndSleet,
     .drizzle, .scatteredShowers, .showers, .thunderstorms, .tropicalStorm, .hurricane, .tornado
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKWeatherCondition: FHIRCodingConvertibleHKEnum {}
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -126,6 +141,7 @@ extension HKWeatherCondition: FHIRCodingConvertibleHKEnum {}
     HKWorkoutSwimmingLocationType.self,
     .unknown, .pool, .openWater
 )
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKWorkoutSwimmingLocationType: FHIRCodingConvertibleHKEnum {}
 
 #endif

@@ -227,8 +227,6 @@ extension QuestionnaireResponses.Response {
                     guard self.value.choiceValue.selectedOptions.contains(option.id) else {
                         throw FHIRConversionError("Found a nested answer for a choice option that isn't selected ('\(option.id)')")
                     }
-                    // Value-semantics port: `first(where:)` now returns a copy, so we mutate the
-                    // matching answer in place via its index instead of through a reference.
                     guard let answerIdx = responseItem.answer?.firstIndex(where: { $0.value == .coding(option.toFHIRCoding()) }) else {
                         throw FHIRConversionError("Unable to find answer for choice option")
                     }

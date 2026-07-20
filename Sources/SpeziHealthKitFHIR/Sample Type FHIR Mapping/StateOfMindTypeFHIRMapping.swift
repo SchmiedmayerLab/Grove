@@ -27,6 +27,7 @@ public import ModelsR4
 /// - ``valenceClassification``
 /// - ``label``
 /// - ``association``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct StateOfMindTypeFHIRMapping: Sendable {
     /// The FHIR codings defined as ``MappedCode``s to be used for `HKStateOfMind` samples
     public let codings: [Coding]
@@ -63,6 +64,7 @@ public struct StateOfMindTypeFHIRMapping: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StateOfMindTypeFHIRMapping {
     /// The default FHIR mapping for `HKStateOfMind` samples.
     public static let `default` = Self(

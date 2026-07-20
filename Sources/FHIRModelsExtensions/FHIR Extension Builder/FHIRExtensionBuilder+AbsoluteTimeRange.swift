@@ -10,6 +10,7 @@ private import Foundation
 public import ModelsR4
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRExtensionURL {
     /// Url of a FHIR Extension containing, if applicable, the absolute start date timestamp of a FHIR `Observation`.
     public static let absoluteTimeRangeStart = Self("https://bdh.stanford.edu/fhir/defs/absoluteTimeRangeStart")
@@ -19,6 +20,7 @@ extension FHIRExtensionURL {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Observation {
     /// Writes the Observation's absolute effective start and end date into a FHIR Extension.
     ///

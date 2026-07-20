@@ -161,7 +161,7 @@ struct QuestionnaireSectionView<Header: View>: View {
     @ToolbarContentBuilder
     private func toolbarContent(using scrollViewProxy: ScrollViewProxy) -> some ToolbarContent {
         let doneButton = Group {
-            if #available(iOS 26, *) {
+            if #available(iOS 26, macOS 26, *) {
                 AsyncButton(role: .confirm, state: $viewState) {
                     await _advance(using: scrollViewProxy)
                 } label: {
@@ -296,7 +296,7 @@ extension QuestionnaireSectionView {
         }
         
         @ViewBuilder private var button: some View {
-            if #available(iOS 26, *) {
+            if #available(iOS 26, macOS 26, *) {
                 Button(role: .cancel) {
                     showConfirmation = true
                 }

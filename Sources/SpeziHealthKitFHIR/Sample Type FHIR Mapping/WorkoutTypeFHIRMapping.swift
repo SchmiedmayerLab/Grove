@@ -22,6 +22,7 @@ public import ModelsR4
 /// ### Instance Properties
 /// - ``codings``
 /// - ``categories``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct WorkoutTypeFHIRMapping: Sendable {
     public let codings: [Coding]
     public let categories: [Coding]
@@ -33,6 +34,7 @@ public struct WorkoutTypeFHIRMapping: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WorkoutTypeFHIRMapping {
     /// The default FHIR mapping for `HKWorkout` samples
     public static let `default` = Self(

@@ -26,6 +26,7 @@ public typealias CategoryTypesFHIRMapping = [SampleType<HKCategorySample>: Categ
 ///
 /// ### Instance Properties
 /// - ``codings``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct CategoryTypeFHIRMapping: Sendable {
     public var codings: [Coding]
     public var categories: [Coding]
@@ -37,6 +38,7 @@ public struct CategoryTypeFHIRMapping: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CategoryTypesFHIRMapping {
     /// The default FHIR mapping for HealthKit Category types
     public static let `default`: Self = HKCategoryType.allKnownCategories.reduce(into: [:]) { mapping, categoryType in

@@ -35,6 +35,7 @@ extension HKWorkout: FHIRObservationBuildable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKWorkoutActivityType {
     var fhirWorkoutTypeValue: String {
         get throws {

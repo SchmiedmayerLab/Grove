@@ -12,6 +12,7 @@ public import ModelsR4
 
 
 /// Helper type for contructing and managing FHIR Extension URLs.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct FHIRExtensionURL: Sendable {
     /// The underlying `URL`.
     public let url: URL
@@ -37,6 +38,7 @@ public struct FHIRExtensionURL: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRExtensionURL {
     /// R4 `FHIRPrimitive<FHIRURI>`
     @inlinable public var r4: ModelsR4.FHIRPrimitive<ModelsR4.FHIRURI> { // swiftlint:disable:this identifier_name
@@ -50,6 +52,7 @@ extension FHIRExtensionURL {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRExtensionURL {
     /// Creates a new `FHIRExtensionURL` by appending a component.
     @inlinable
@@ -73,6 +76,7 @@ extension FHIRExtensionURL {
 
 // swiftlint:disable missing_docs discouraged_optional_collection function_default_parameter_at_end
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ModelsR4.Extension {
     @inlinable
     public init(

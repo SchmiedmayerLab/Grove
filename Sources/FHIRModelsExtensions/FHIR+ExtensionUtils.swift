@@ -33,6 +33,7 @@ extension FHIRTypeWithExtensions {
     }
 
     /// Retrieves all FHIR Extensions for the specified url.
+    @available(iOS 18, macOS 15, watchOS 11, *)
     @inlinable
     public func extensions(for url: FHIRExtensionURL) -> [Extension] {
         extensions(for: url.r4)
@@ -99,6 +100,7 @@ extension FHIRTypeWithExtensions {
     /// Removes the first extension that matches the specified url.
     ///
     /// - returns: the removed extension element, if any.
+    @available(iOS 18, macOS 15, watchOS 11, *)
     @inlinable @discardableResult
     public mutating func removeFirstExtension(withUrl url: FHIRExtensionURL) -> Extension? {
         removeFirstExtension(withUrl: url.r4)
@@ -121,6 +123,7 @@ extension FHIRTypeWithExtensions {
     /// Removes all extension that matches the specified url.
     ///
     /// - returns: the removed extension elements, if any.
+    @available(iOS 18, macOS 15, watchOS 11, *)
     @inlinable @discardableResult
     public mutating func removeAllExtensions(withUrl url: FHIRExtensionURL) -> [Extension]? {
         removeAllExtensions(withUrl: url.r4)

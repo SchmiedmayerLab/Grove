@@ -14,6 +14,7 @@ public import HealthKit
 import ModelsR4
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRExtensionURL {
     /// Url of a FHIR Extension containing, if applicable, encoded `HKDevice` of the `HKObject` from which a FHIR `Observation` was created.
     public static let sourceDevice = Self("https://bdh.stanford.edu/fhir/defs/sourceDevice")

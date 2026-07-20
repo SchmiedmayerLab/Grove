@@ -8,6 +8,7 @@
 
 
 /// Error thrown by the SpeziHealthKitFHIR module if transforming a specific `HKSample` type to an FHIR resource was not possible.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum SpeziHealthKitFHIRError: Error {
     /// Indicates that a specific `HKSample` type is currently not supported by SpeziHealthKitFHIIR.
     case notSupported

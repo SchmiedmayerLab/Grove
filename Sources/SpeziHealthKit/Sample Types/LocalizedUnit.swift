@@ -15,6 +15,7 @@ public import HealthKit
 
 
 /// Locale-aware `HKUnit`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LocalizedUnit: Sendable {
     /// The metric variant of the unit..
     public let metric: HKUnit

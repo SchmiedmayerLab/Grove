@@ -15,6 +15,7 @@ import SpeziFHIR
 import SpeziHealthKit
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKSample {
     /// An attachment that was loaded from the health store
     fileprivate struct LoadedAttachment: Sendable {

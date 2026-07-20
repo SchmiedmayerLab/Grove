@@ -32,12 +32,14 @@ public final class FHIRStore: Module, DefaultInitializable, Sendable {
 
 
 #if canImport(SwiftUI)
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRStore: EnvironmentAccessible {}
 #endif
 
 
 // MARK: FHIRStore Resource Accessors
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRStore {
     /// `FHIRResource`s with category `allergyIntolerance`.
     @MainActor public var allergyIntolerances: Set<FHIRResource> {
