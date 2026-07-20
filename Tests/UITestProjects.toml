@@ -8,10 +8,10 @@
 # Platform and device-family declarations are derived from packages.toml.
 # Fixture products are intentional non-imported dependencies needed for runtime test behavior.
 
-[HealthKitOnFHIR]
-app_products = ["HealthKitOnFHIR", "Spezi", "SpeziHealthKit"]
+[SpeziHealthKitFHIR]
+app_products = ["SpeziHealthKitFHIR", "Spezi", "SpeziHealthKit"]
 test_products = ["XCTHealthKit", "XCTestExtensions"]
-[HealthKitOnFHIR.app_settings]
+[SpeziHealthKitFHIR.app_settings]
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/Support Files/TestApp.entitlements"
 "INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription" = "Please provide health records access to test"
 "INFOPLIST_KEY_NSHealthShareUsageDescription" = "Please provide read permission to test the module's functionality."

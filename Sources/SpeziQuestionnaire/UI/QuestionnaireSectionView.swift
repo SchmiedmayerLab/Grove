@@ -84,7 +84,9 @@ struct QuestionnaireSectionView<Header: View>: View {
             }
         }
         .navigationTitle(titleConfig)
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline) // in case the title is long
+        #endif
         // disallow navigating around while an action is being performed
         .navigationBarBackButtonHidden(viewState == .processing)
         .accessibilityIdentifier("SpeziQuestionnaireSection")

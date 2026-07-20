@@ -30,12 +30,6 @@ platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "tvOS"]
 targets = ["FHIRModelsExtensions", "FHIRPathParser", "FHIRQuestionnaires"]
 tests = ["FHIRModelsExtensionsTests", "FHIRPathParserTests"]
 
-[HealthKitOnFHIR]
-platforms = ["iOS", "macOS", "watchOS"]
-targets = ["HealthKitOnFHIR", "HealthKitOnFHIRMacros", "HealthKitOnFHIRMacrosImpl"]
-tests = ["HealthKitOnFHIRTests", "HealthKitOnFHIRMacrosTests"]
-uiTests = ["iOS"]
-
 [ResearchKitOnFHIR]
 platforms = ["iOS"]
 targets = ["ResearchKitOnFHIR"]
@@ -91,8 +85,8 @@ tests = ["SpeziDevicesTests", "SpeziOmronTests"]
 uiTests = ["iOS"]
 
 [SpeziFHIR]
-platforms = ["iOS"]
-targets = ["SpeziFHIR", "SpeziFHIRHealthKit", "SpeziFHIRMockPatients"]
+platforms = ["iOS", "macOS"]
+targets = ["SpeziFHIR", "SpeziFHIRMockPatients"]
 tests = ["SpeziFHIRTests"]
 uiTests = ["iOS"]
 
@@ -117,6 +111,15 @@ uiTests = ["iOS"]
 platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "Linux"]
 targets = ["SpeziHealthKit", "Codegen", "LocalizationsProcessor", "SpeziHealthKitBulkExport", "SpeziHealthKitUI"]
 tests = ["SpeziHealthKitTests"]
+uiTests = ["iOS"]
+
+# Formerly the standalone HealthKitOnFHIR package; merged into SpeziHealthKit by its PR #86 (see
+# Package.swift). Kept as its own scheduling entry rather than folded into [SpeziHealthKit], so its
+# UITests project keeps a home and CI stays granular -- the test matrix is directory-based.
+[SpeziHealthKitFHIR]
+platforms = ["iOS", "macOS", "watchOS"]
+targets = ["SpeziHealthKitFHIR", "SpeziHealthKitFHIRMacros", "SpeziHealthKitFHIRMacrosImpl"]
+tests = ["SpeziHealthKitFHIRTests", "SpeziHealthKitFHIRMacrosTests"]
 uiTests = ["iOS"]
 
 [SpeziLLM]
@@ -155,7 +158,7 @@ tests = ["SpeziOnboardingTests"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
 
 [SpeziQuestionnaire]
-platforms = ["iOS"]
+platforms = ["iOS", "macOS"]
 targets = ["SpeziQuestionnaire", "SpeziQuestionnaireCatalog", "SpeziQuestionnaireFHIR", "SpeziQuestionnaireLegacy", "XCTSpeziQuestionnaire"]
 tests = ["SpeziQuestionnaireTests"]
 uiTests = ["iOS", "iPadOS"]

@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if ResearchKit && os(iOS)
 public import ModelsR4
 
 
@@ -18,3 +19,5 @@ public enum QuestionnaireResult {
     /// The questionnaire task failed due to an error.
     case failed(_ error: any Error)
 }
+
+#endif

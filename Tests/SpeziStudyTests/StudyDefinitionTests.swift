@@ -9,7 +9,7 @@
 // swiftlint:disable line_length
 
 import Foundation
-import class ModelsR4.Questionnaire
+import struct ModelsR4.Questionnaire
 import SpeziFoundation
 import SpeziHealthKit
 import SpeziHealthKitBulkExport

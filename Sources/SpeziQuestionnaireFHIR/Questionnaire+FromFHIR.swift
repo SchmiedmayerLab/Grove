@@ -115,12 +115,14 @@ extension ModelsR4.Questionnaire {
                     topLevelItems.append(item)
                 } else {
                     let group = ModelsR4.QuestionnaireItem(
+                        item: [item],
                         linkId: "___\(nextGroupIdx)".asFHIRStringPrimitive(),
                         type: .init(.group)
                     )
-                    nextGroupIdx += 1
                     topLevelItems.append(group)
-                    group.item = [item]
+                    nextGroupIdx += 1
+                    // Note: the group, being a value type, must be muteted in place via its index.
+                    let groupIdx = topLevelItems.count - 1
                     while let item = itemsIterator.next() {
                         // gobble up all following non-group items, until we reach the next group
                         guard let itemType = item.type.value else {
@@ -131,7 +133,7 @@ extension ModelsR4.Questionnaire {
                             continue l1
                         } else {
                             // SAFETY: we just set this to a non-nil value a couple lines earlier
-                            group.item!.append(item) // swiftlint:disable:this force_unwrapping
+                            topLevelItems[groupIdx].item!.append(item) // swiftlint:disable:this force_unwrapping
                         }
                     }
                 }

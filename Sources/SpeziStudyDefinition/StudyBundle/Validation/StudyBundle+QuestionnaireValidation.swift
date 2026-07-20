@@ -216,6 +216,17 @@ extension StudyBundle.BundleValidationIssue {
             
             private init(value: any Hashable) { // swiftlint:disable:this cyclomatic_complexity
                 switch value {
+                case let value as any FHIRPrimitiveProtocol:
+                    // FHIRModels 0.9 port: FHIRPrimitive is unconditionally Sendable now, which makes the
+                    // `(any Hashable & Sendable)?` catch-all a viable (and, depending on context, preferred)
+                    // overload for FHIRPrimitive arguments — on 0.8 the `FHIRPrimitive<some ...>?` overload
+                    // was the only viable one and unwrapped statically. Unwrap dynamically as well, so the
+                    // normalization no longer depends on which of the two initializers the call site picked.
+                    if let inner = value.value {
+                        self.init(value: inner as any Hashable)
+                    } else {
+                        self = .none
+                    }
                 case let value as FHIRString:
                     self.init(value: value.string)
                 case let value as FHIRInteger:

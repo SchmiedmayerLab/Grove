@@ -1,5 +1,5 @@
 //
-// This source file is part of the HealthKitOnFHIR open source project
+// This source file is part of the Stanford Spezi open source project
 //
 // SPDX-FileCopyrightText: 2025 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -9,17 +9,13 @@
 public import ModelsR4
 
 
-/// Namespace containing URLs of some custom FHIR Extensions.
-public enum FHIRExtensionUrls {}
-
-
 /// Type-erased version of a ``FHIRExtensionBuilder``
 public protocol FHIRExtensionBuilderProtocol<Input> {
     /// The extension builder's input type.
     associatedtype Input
     
     /// Applies the extension builder to an `Observation`, using the specified input.
-    func apply(input: Input, to observation: Observation) throws
+    func apply(input: Input, to observation: inout Observation) throws
 }
 
 
@@ -37,37 +33,38 @@ public protocol FHIRExtensionBuilderProtocol<Input> {
 /// - ``apply(typeErasedInput:to:)``
 ///
 /// ### Supporting Types
-/// - ``FHIRExtensionUrls``
+/// - ``FHIRExtensionURL``
 /// - ``FHIRExtensionBuilderProtocol``
 ///
 /// ### Other
 /// - ``ModelsR4/Observation/apply(_:input:)``
 /// - ``ModelsR4/Observation/apply(_:)``
 public struct FHIRExtensionBuilder<Input>: FHIRExtensionBuilderProtocol, Sendable {
-    private let impl: @Sendable (_ input: Input, _ observation: Observation) throws -> Void
+    private let impl: @Sendable (_ input: Input, _ observation: inout Observation) throws -> Void
     
-    /// Creates a new Extension Builder.
-    public init(_ action: @escaping @Sendable (_ input: Input, _ observation: Observation) throws -> Void) {
+    /// Creates an Extension Builder.
+    public init(_ action: @escaping @Sendable (_ input: Input, _ observation: inout Observation) throws -> Void) {
         self.impl = action
     }
     
-    /// Creates a new Extension Builder.
-    public init(_ action: @escaping @Sendable (_ observation: Observation) throws -> Void) where Input == Void {
+    /// Creates an Extension Builder.
+    public init(_ action: @escaping @Sendable (_ observation: inout Observation) throws -> Void) where Input == Void {
         self.init { _, observation in
-            try action(observation)
+            try action(&observation)
         }
     }
     
-    public func apply(input: Input, to observation: Observation) throws {
-        try impl(input, observation)
+    /// Applies an extension builder to an input.
+    public func apply(input: Input, to observation: inout Observation) throws {
+        try impl(input, &observation)
     }
 }
 
 
 extension FHIRExtensionBuilderProtocol {
     /// Applies the extension builder to an `Observation`.
-    public func apply(to observation: Observation) throws where Input == Void {
-        try apply(input: (), to: observation)
+    public func apply(to observation: inout Observation) throws where Input == Void {
+        try apply(input: (), to: &observation)
     }
     
     /// Attempts to apply the extension builder to an `Observation`, using the specified input.
@@ -78,13 +75,13 @@ extension FHIRExtensionBuilderProtocol {
     /// - returns: A boolean value indicating whether the input was able to be coerced to the expected input type, and the builder was invoked.
     @available(iOS 18, macOS 15, watchOS 11, *)
     @discardableResult
-    public func apply(typeErasedInput input: Any, to observation: Observation) throws -> Bool {
+    public func apply(typeErasedInput input: Any, to observation: inout Observation) throws -> Bool {
         if let input = input as? Input {
-            try apply(input: input, to: observation)
+            try apply(input: input, to: &observation)
             return true
         } else if let self = self as? any FHIRExtensionBuilderProtocol<Void> {
             // if the observation builder takes Void
-            try self.apply(to: observation)
+            try self.apply(to: &observation)
             return true
         } else {
             return false
@@ -95,12 +92,12 @@ extension FHIRExtensionBuilderProtocol {
 
 extension Observation {
     /// Applies a ``FHIRExtensionBuilder`` to the `Observation`.
-    public func apply<Input>(_ builder: FHIRExtensionBuilder<Input>, input: Input) throws {
-        try builder.apply(input: input, to: self)
+    public mutating func apply<Input>(_ builder: FHIRExtensionBuilder<Input>, input: Input) throws {
+        try builder.apply(input: input, to: &self)
     }
     
     /// Applies a ``FHIRExtensionBuilder`` to the `Observation`.
-    public func apply(_ builder: FHIRExtensionBuilder<Void>) throws {
-        try builder.apply(to: self)
+    public mutating func apply(_ builder: FHIRExtensionBuilder<Void>) throws {
+        try builder.apply(to: &self)
     }
 }

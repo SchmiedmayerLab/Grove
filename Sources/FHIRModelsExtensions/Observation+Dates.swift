@@ -1,5 +1,5 @@
 //
-// This source file is part of the HealthKitOnFHIR open source project
+// This source file is part of the Stanford Spezi open source project
 //
 // SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -13,7 +13,7 @@ public import ModelsR4
 extension Observation {
     /// Sets the `Observation`'s effective date.
     @inlinable
-    public func setEffective(startDate: Date, endDate: Date, timeZone: TimeZone) throws {
+    public mutating func setEffective(startDate: Date, endDate: Date, timeZone: TimeZone) throws {
         if startDate == endDate {
             effective = .dateTime(FHIRPrimitive(try DateTime(date: startDate, timeZone: timeZone)))
         } else {
@@ -26,7 +26,7 @@ extension Observation {
     
     /// Sets the `Observation`'s issued date.
     @inlinable
-    public func setIssued(on date: Date) throws {
+    public mutating func setIssued(on date: Date) throws {
         issued = FHIRPrimitive(try Instant(date: date))
     }
 }

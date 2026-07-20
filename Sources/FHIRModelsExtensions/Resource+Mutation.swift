@@ -1,41 +1,36 @@
 //
-// This source file is part of the HealthKitOnFHIR open source project
+// This source file is part of the Stanford Spezi open source project
 //
 // SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
 // SPDX-License-Identifier: MIT
 //
 
-public import ModelsR4
+public import FMCore
 
 
-/// we need this as a protocol extension, bc we can't use `Self` in the KeyPath type if it's a normal extension on eg Resource.
-@_marker
-@_documentation(visibility: internal)
-public protocol FHIRResourceMutationExtensions {}
-
-extension ModelsR4.FHIRAbstractResource: FHIRResourceMutationExtensions {}
-extension ModelsR4.Element: FHIRResourceMutationExtensions {}
-
-
-extension FHIRResourceMutationExtensions {
+extension FHIRType {
     /// Appends an element to a `Collection`-typed property.
     @inlinable
-    public func appendElement<C: RangeReplaceableCollection>(_ element: C.Element, to keyPath: ReferenceWritableKeyPath<Self, C?>) {
-        appendElements(CollectionOfOne(element), to: keyPath)
+    public mutating func append<C: RangeReplaceableCollection>(_ element: C.Element, to keyPath: WritableKeyPath<Self, C?>) {
+        append(CollectionOfOne(element), to: keyPath)
     }
     
     /// Appends multiple elements to a `Collection`-typed property.
     @inlinable
-    public func appendElements<C: RangeReplaceableCollection>(
-        _ elements: some Collection<C.Element>,
-        to keyPath: ReferenceWritableKeyPath<Self, C?>
+    public mutating func append<C: RangeReplaceableCollection>(
+        _ elements: some Sequence<C.Element>,
+        to keyPath: WritableKeyPath<Self, C?>
     ) {
         if self[keyPath: keyPath] == nil {
             self[keyPath: keyPath] = C()
-            self[keyPath: keyPath]!.reserveCapacity(elements.count) // swiftlint:disable:this force_unwrapping
+            // swiftlint:disable force_unwrapping
+            self[keyPath: keyPath]!.reserveCapacity(elements.underestimatedCount)
         } else {
-            self[keyPath: keyPath]!.reserveCapacity(self[keyPath: keyPath]!.count + elements.count) // swiftlint:disable:this force_unwrapping
+            self[keyPath: keyPath]!.reserveCapacity(
+                self[keyPath: keyPath]!.count + elements.underestimatedCount
+            )
+            // swiftlint:enable force_unwrapping
         }
         self[keyPath: keyPath]?.append(contentsOf: elements)
     }
@@ -46,8 +41,8 @@ extension FHIRResourceMutationExtensions {
     ///
     /// - returns: the removed element, if any.
     @inlinable
-    public func removeFirstElement<C: RangeReplaceableCollection>(
-        of keyPath: ReferenceWritableKeyPath<Self, C?>,
+    public mutating func removeFirst<C: RangeReplaceableCollection>(
+        of keyPath: WritableKeyPath<Self, C?>,
         where predicate: (C.Element) -> Bool
     ) -> C.Element? {
         guard var elements = self[keyPath: keyPath], let idx = elements.firstIndex(where: predicate) else {
@@ -64,8 +59,8 @@ extension FHIRResourceMutationExtensions {
     ///
     /// - returns: the removed elements, if any.
     @inlinable
-    public func removeAllElements<C: RangeReplaceableCollection>(
-        of keyPath: ReferenceWritableKeyPath<Self, C?>,
+    public mutating func removeAll<C: RangeReplaceableCollection>(
+        of keyPath: WritableKeyPath<Self, C?>,
         where predicate: (C.Element) -> Bool
     ) -> [C.Element]? { // swiftlint:disable:this discouraged_optional_collection
         guard var elements = self[keyPath: keyPath] else {

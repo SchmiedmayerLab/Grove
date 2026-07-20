@@ -10,6 +10,7 @@ public import ModelsR4
 
 
 extension ResourceProxy {
+    // NOTE: Should consider removing this at some point?
     /// Provides a best-effort human readable display name for the resource.
     public var displayName: String {
         switch self {

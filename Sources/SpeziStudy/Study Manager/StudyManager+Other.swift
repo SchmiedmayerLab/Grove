@@ -7,7 +7,7 @@
 //
 
 public import Foundation
-import class ModelsR4.Questionnaire
+import struct ModelsR4.Questionnaire
 import SpeziFoundation
 public import SpeziScheduler
 public import SpeziStudyDefinition

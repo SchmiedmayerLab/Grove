@@ -26,6 +26,7 @@ public struct AnnotateImageConfig: QuestionKindConfig {
     public enum InputImage: Hashable, Sendable {
         case namedInMainBundle(filename: String)
         
+#if canImport(UIKit)
         public func image() -> UIImage? {
             switch self {
             case .namedInMainBundle(let filename):
@@ -37,6 +38,7 @@ public struct AnnotateImageConfig: QuestionKindConfig {
                 return UIImage(data: data)
             }
         }
+        #endif
     }
     
     public struct Region: Hashable, Identifiable, Sendable {
@@ -88,10 +90,16 @@ public struct AnnotateImageQuestionKind: QuestionKindDefinition {
         using config: AnnotateImageConfig,
         response: Binding<QuestionnaireResponses.Response>
     ) -> some View {
+        #if canImport(UIKit)
         AnnotateImageView(
             task: task,
             config: config,
             response: response.value.annotatedImageValue.withDefault(.init())
         )
+        #else
+        // Image annotation is only available on UIKit platforms; the question kind still exists
+        // elsewhere (so questionnaires using it can be parsed), it just cannot be rendered.
+        EmptyView()
+        #endif
     }
 }

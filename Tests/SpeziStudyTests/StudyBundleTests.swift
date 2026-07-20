@@ -9,7 +9,7 @@
 // swiftlint:disable type_contents_order
 
 import Foundation
-import class ModelsR4.Questionnaire
+import struct ModelsR4.Questionnaire
 import SpeziFoundation
 import SpeziHealthKit
 import SpeziHealthKitBulkExport

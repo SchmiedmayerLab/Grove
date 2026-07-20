@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(UIKit)
 import Numerics
 import PencilKit
 import SpeziViews
@@ -65,3 +66,4 @@ struct ImageAnnotationView: View {
         self.tool = tool
     }
 }
+#endif

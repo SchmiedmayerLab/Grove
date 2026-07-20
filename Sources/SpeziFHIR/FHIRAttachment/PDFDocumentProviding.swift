@@ -6,12 +6,15 @@
 // SPDX-License-Identifier: MIT
 //
 
+// swiftlint:disable file_types_order
+
 // PDFKit is unavailable on watchOS; the PDF-backed attachment handling is gated out there.
 #if canImport(PDFKit)
+
+import Foundation
 import PDFKit
 
 
-// swiftlint:disable file_types_order
 /// Protocol for creating PDFDocument objects - makes testing possible.
 protocol PDFDocumentProviding {
     /// Creates a PDF document from raw data.
@@ -20,10 +23,12 @@ protocol PDFDocumentProviding {
     func createPDFDocument(from data: Data) -> PDFDocument?
 }
 
+
 /// Default implementation using the PDFDocument class from PDFKit.
 struct DefaultPDFDocumentProvider: PDFDocumentProviding {
     func createPDFDocument(from data: Data) -> PDFDocument? {
         PDFDocument(data: data)
     }
 }
+
 #endif

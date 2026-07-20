@@ -8,7 +8,9 @@
 
 public import PencilKit
 private import SpeziViews
+#if canImport(UIKit)
 public import class UIKit.UIImage
+#endif
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -34,6 +36,7 @@ extension QuestionnaireResponses {
         }
         
         /// Produces an image by overlaying the drawing onto a base image.
+#if canImport(UIKit)
         public func draw(onto baseImage: UIImage) -> UIImage? {
             let scale = baseImage.scale
             guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
@@ -73,5 +76,6 @@ extension QuestionnaireResponses {
                 UIImage(cgImage: $0, scale: scale, orientation: baseImage.imageOrientation)
             }
         }
+        #endif
     }
 }

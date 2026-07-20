@@ -8,6 +8,7 @@
 
 // swiftlint:disable file_types_order
 
+#if canImport(UIKit)
 import PencilKit
 import SpeziViews
 import SwiftUI
@@ -257,3 +258,4 @@ extension Sheet {
         }
     }
 }
+#endif

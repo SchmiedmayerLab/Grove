@@ -17,13 +17,13 @@ struct FileThumbnail: View {
     private let url: URL
     private let size: CGSize
     private let representationTypes: QLThumbnailGenerator.Request.RepresentationTypes
-    @State private var image: UIImage?
-    
+    // CGImage rather than UIImage, so that the view works on both UIKit and AppKit platforms.
+    @State private var image: CGImage?
+
     var body: some View {
         VStack {
             if let image {
-                Image(uiImage: image)
-                    .accessibilityHidden(true)
+                Image(decorative: image, scale: scale)
             }
         }
         .task(id: url) {
@@ -37,10 +37,10 @@ struct FileThumbnail: View {
             guard let thumbnail = try? await generator.generateBestRepresentation(for: request) else {
                 return
             }
-            self.image = thumbnail.uiImage
+            self.image = thumbnail.cgImage
         }
     }
-    
+
     init(
         url: URL,
         size: CGSize = CGSize(width: 50, height: 50),

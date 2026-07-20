@@ -17,7 +17,7 @@
             default = "YES">
          </TestPlanReference>
          <TestPlanReference
-            reference = "container:Tests/TestPlans/HealthKitOnFHIR.xctestplan">
+            reference = "container:Tests/TestPlans/SpeziHealthKitFHIR.xctestplan">
          </TestPlanReference>
          <TestPlanReference
             reference = "container:Tests/TestPlans/ResearchKitOnFHIR.xctestplan">

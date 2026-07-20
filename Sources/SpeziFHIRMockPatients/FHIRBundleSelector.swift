@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-public import class ModelsR4.Bundle
-public import class ModelsR4.Patient
+public import struct ModelsR4.Bundle
+public import struct ModelsR4.Patient
 import SpeziFHIR
 public import SwiftUI
 

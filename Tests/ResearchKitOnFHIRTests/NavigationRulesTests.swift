@@ -20,22 +20,25 @@ struct NavigationRulesTests {
         secondItemType: QuestionnaireItemType,
         enableWhen: QuestionnaireItemEnableWhen
     ) throws -> ORKNavigableOrderedTask {
-        let questionnaire = Questionnaire(status: FHIRPrimitive(PublicationStatus.draft))
-        questionnaire.url = FHIRPrimitive(FHIRURI(stringLiteral: "http://biodesign.stanford.edu/fhir/questionnaire/navigation-rule-test"))
-        let questionnaireItemFirst = QuestionnaireItem(
-            linkId: FHIRPrimitive(FHIRString(firstItemID)),
-            type: FHIRPrimitive(firstItemType)
+        let questionnaire = Questionnaire(
+            item: [
+                QuestionnaireItem(
+                    linkId: FHIRPrimitive(FHIRString(firstItemID)),
+                    type: FHIRPrimitive(firstItemType)
+                ),
+                QuestionnaireItem(
+                    enableWhen: [enableWhen],
+                    linkId: FHIRPrimitive(FHIRString(secondItemID)),
+                    type: FHIRPrimitive(secondItemType)
+                )
+            ],
+            status: FHIRPrimitive(PublicationStatus.draft),
+            url: FHIRPrimitive(FHIRURI(stringLiteral: "http://biodesign.stanford.edu/fhir/questionnaire/navigation-rule-test"))
         )
-        let questionnaireItemSecond = QuestionnaireItem(
-            enableWhen: [enableWhen],
-            linkId: FHIRPrimitive(FHIRString(secondItemID)),
-            type: FHIRPrimitive(secondItemType)
-        )
-        questionnaire.item = [questionnaireItemFirst, questionnaireItemSecond]
-        let orkNavigableOrderedTask = try ORKNavigableOrderedTask(questionnaire: questionnaire)
-        return orkNavigableOrderedTask
+        return try ORKNavigableOrderedTask(questionnaire: questionnaire)
     }
-
+    
+    
     @Test("Integer equal")
     func testIntegerEqual() throws {
         let firstItemID = UUID().uuidString, secondItemID = UUID().uuidString
@@ -44,7 +47,6 @@ struct NavigationRulesTests {
             operator: FHIRPrimitive(QuestionnaireItemOperator.equal),
             question: FHIRPrimitive(FHIRString(firstItemID))
         )
-
         let task = try createORKNavigableOrderedTask(
             firstItemID: firstItemID,
             firstItemType: .integer,
@@ -54,7 +56,8 @@ struct NavigationRulesTests {
         )
         #expect(task.skipNavigationRule(forStepIdentifier: secondItemID) != nil)
     }
-
+    
+    
     @Test("Integer not equal")
     func testIntegerNotEqual() throws {
         let firstItemID = UUID().uuidString, secondItemID = UUID().uuidString
@@ -63,7 +66,6 @@ struct NavigationRulesTests {
             operator: FHIRPrimitive(QuestionnaireItemOperator.notEqual),
             question: FHIRPrimitive(FHIRString(firstItemID))
         )
-
         let task = try createORKNavigableOrderedTask(
             firstItemID: firstItemID,
             firstItemType: .integer,
@@ -73,7 +75,8 @@ struct NavigationRulesTests {
         )
         #expect(task.skipNavigationRule(forStepIdentifier: secondItemID) != nil)
     }
-
+    
+    
     @Test("Integer less than or equal")
     func testIntegerLessThanOrEqual() throws {
         let firstItemID = UUID().uuidString, secondItemID = UUID().uuidString
@@ -82,7 +85,6 @@ struct NavigationRulesTests {
             operator: FHIRPrimitive(QuestionnaireItemOperator.lessThanOrEqual),
             question: FHIRPrimitive(FHIRString(firstItemID))
         )
-
         let task = try createORKNavigableOrderedTask(
             firstItemID: firstItemID,
             firstItemType: .integer,
@@ -92,7 +94,8 @@ struct NavigationRulesTests {
         )
         #expect(task.skipNavigationRule(forStepIdentifier: secondItemID) != nil)
     }
-
+    
+    
     @Test("Integer greater than or equal")
     func testIntegerGreaterThanOrEqual() throws {
         let firstItemID = UUID().uuidString, secondItemID = UUID().uuidString
@@ -101,7 +104,6 @@ struct NavigationRulesTests {
             operator: FHIRPrimitive(QuestionnaireItemOperator.greaterThanOrEqual),
             question: FHIRPrimitive(FHIRString(firstItemID))
         )
-
         let task = try createORKNavigableOrderedTask(
             firstItemID: firstItemID,
             firstItemType: .integer,
@@ -111,7 +113,8 @@ struct NavigationRulesTests {
         )
         #expect(task.skipNavigationRule(forStepIdentifier: secondItemID) != nil)
     }
-
+    
+    
     @Test("Decimal equal")
     func testDecimalEqual() throws {
         let firstItemID = UUID().uuidString, secondItemID = UUID().uuidString
@@ -120,7 +123,6 @@ struct NavigationRulesTests {
             operator: FHIRPrimitive(QuestionnaireItemOperator.equal),
             question: FHIRPrimitive(FHIRString(firstItemID))
         )
-
         let task = try createORKNavigableOrderedTask(
             firstItemID: firstItemID,
             firstItemType: .decimal,
@@ -130,7 +132,8 @@ struct NavigationRulesTests {
         )
         #expect(task.skipNavigationRule(forStepIdentifier: secondItemID) != nil)
     }
-
+    
+    
     @Test("Decimal not equal")
     func testDecimalNotEqual() throws {
         let firstItemID = UUID().uuidString, secondItemID = UUID().uuidString
@@ -139,7 +142,6 @@ struct NavigationRulesTests {
             operator: FHIRPrimitive(QuestionnaireItemOperator.notEqual),
             question: FHIRPrimitive(FHIRString(firstItemID))
         )
-
         let task = try createORKNavigableOrderedTask(
             firstItemID: firstItemID,
             firstItemType: .decimal,
@@ -149,7 +151,8 @@ struct NavigationRulesTests {
         )
         #expect(task.skipNavigationRule(forStepIdentifier: secondItemID) != nil)
     }
-
+    
+    
     @Test("Decimal greater than or equal")
     func testDecimalGreaterThanOrEqual() throws {
         let firstItemID = UUID().uuidString, secondItemID = UUID().uuidString
@@ -158,7 +161,6 @@ struct NavigationRulesTests {
             operator: FHIRPrimitive(QuestionnaireItemOperator.greaterThanOrEqual),
             question: FHIRPrimitive(FHIRString(firstItemID))
         )
-
         let task = try createORKNavigableOrderedTask(
             firstItemID: firstItemID,
             firstItemType: .decimal,
@@ -168,7 +170,8 @@ struct NavigationRulesTests {
         )
         #expect(task.skipNavigationRule(forStepIdentifier: secondItemID) != nil)
     }
-
+    
+    
     @Test("Decimal less than or equal")
     func testDecimalLessThanOrEqual() throws {
         let firstItemID = UUID().uuidString, secondItemID = UUID().uuidString
@@ -177,7 +180,6 @@ struct NavigationRulesTests {
             operator: FHIRPrimitive(QuestionnaireItemOperator.lessThanOrEqual),
             question: FHIRPrimitive(FHIRString(firstItemID))
         )
-
         let task = try createORKNavigableOrderedTask(
             firstItemID: firstItemID,
             firstItemType: .decimal,
@@ -187,7 +189,8 @@ struct NavigationRulesTests {
         )
         #expect(task.skipNavigationRule(forStepIdentifier: secondItemID) != nil)
     }
-
+    
+    
     @Test("Date less than")
     func testDateLessThan() throws {
         let firstItemID = UUID().uuidString, secondItemID = UUID().uuidString
@@ -196,7 +199,6 @@ struct NavigationRulesTests {
             operator: FHIRPrimitive(QuestionnaireItemOperator.lessThan),
             question: FHIRPrimitive(FHIRString(firstItemID))
         )
-
         let task = try createORKNavigableOrderedTask(
             firstItemID: firstItemID,
             firstItemType: .date,
@@ -206,7 +208,8 @@ struct NavigationRulesTests {
         )
         #expect(task.skipNavigationRule(forStepIdentifier: secondItemID) != nil)
     }
-
+    
+    
     @Test("Date greater than")
     func testDateGreaterThan() throws {
         let firstItemID = UUID().uuidString, secondItemID = UUID().uuidString
@@ -215,7 +218,6 @@ struct NavigationRulesTests {
             operator: FHIRPrimitive(QuestionnaireItemOperator.greaterThan),
             question: FHIRPrimitive(FHIRString(firstItemID))
         )
-
         let task = try createORKNavigableOrderedTask(
             firstItemID: firstItemID,
             firstItemType: .date,
@@ -225,7 +227,8 @@ struct NavigationRulesTests {
         )
         #expect(task.skipNavigationRule(forStepIdentifier: secondItemID) != nil)
     }
-
+    
+    
     @Test("Coding equal")
     func testCodingEqual() throws {
         let firstItemID = UUID().uuidString, secondItemID = UUID().uuidString
@@ -247,7 +250,8 @@ struct NavigationRulesTests {
         )
         #expect(task.skipNavigationRule(forStepIdentifier: secondItemID) != nil)
     }
-
+    
+    
     @Test("Coding not equal")
     func testCodingNotEqual() throws {
         let firstItemID = UUID().uuidString, secondItemID = UUID().uuidString

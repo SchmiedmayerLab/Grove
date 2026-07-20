@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if ResearchKit && os(iOS)
 public import ModelsR4
 #if ResearchKit
 private import ResearchKit
@@ -120,4 +121,6 @@ public struct QuestionnaireView: View { // @available(*, deprecated, renamed: "S
         }
     }
 }
+#endif
+
 #endif
