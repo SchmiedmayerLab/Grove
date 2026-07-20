@@ -1106,9 +1106,6 @@ var targets: [Target] = [
             .product(name: "MLX", package: "mlx-swift", condition: .when(traits: [mlxTrait])),
             .product(name: "MLXRandom", package: "mlx-swift", condition: .when(traits: [mlxTrait])),
             .product(name: "Transformers", package: "swift-transformers", condition: .when(traits: [mlxTrait])),
-            // Gives the root swift-jinja version pin (see the dependencies list) a real consumer, so it
-            // doesn't trip SwiftPM's "unused dependency" warning. Transformers uses Jinja for chat templates.
-            .product(name: "Jinja", package: "swift-jinja", condition: .when(traits: [mlxTrait])),
             .product(name: "MLXLLM", package: "mlx-swift-examples", condition: .when(traits: [mlxTrait]))
         ],
         exclude: targetExcludes("SpeziLLMLocal"),
