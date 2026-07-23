@@ -8,6 +8,7 @@
 
 // swiftlint:disable file_types_order
 
+private import OSLog
 public import SensorKit
 public import SpeziFoundation
 
@@ -41,6 +42,13 @@ extension AnySensor {
         let reader = SRSensorReader(self)
         let delegate = StartStopRecordingDelegate(sensor: self)
         reader.delegate = delegate
+        // SRSensorReader.delegate is weak; keep the delegate (and reader) alive until the
+        // XPC round-trip has resumed the continuation, otherwise the callback may be dropped
+        // and the continuation leaked.
+        // (same for all other similar functions in this file.)
+        defer {
+            withExtendedLifetime((reader, delegate)) {}
+        }
         try await withCheckedThrowingContinuation { continuation in
             delegate.continuation = continuation
             reader.startRecording()
@@ -52,6 +60,10 @@ extension AnySensor {
         let reader = SRSensorReader(self)
         let delegate = StartStopRecordingDelegate(sensor: self)
         reader.delegate = delegate
+        // see `startRecording()` re delegate/reader lifetimes.
+        defer {
+            withExtendedLifetime((reader, delegate)) {}
+        }
         try await withCheckedThrowingContinuation { continuation in
             delegate.continuation = continuation
             reader.stopRecording()
@@ -63,6 +75,10 @@ extension AnySensor {
         let reader = SRSensorReader(self)
         let delegate = DevicesFetcherDelegate(sensor: self)
         reader.delegate = delegate
+        // see `startRecording()` re delegate/reader lifetimes.
+        defer {
+            withExtendedLifetime((reader, delegate)) {}
+        }
         return try await withCheckedThrowingContinuation { continuation in
             delegate.continuation = continuation
             reader.fetchDevices()
@@ -77,6 +93,10 @@ extension AnySensor {
     public func fetch(from device: SRDevice, timeRange: Range<Date>) async throws -> [Sample.SafeRepresentation] {
         let reader = SRSensorReader(self)
         let delegate = SamplesFetcherDelegate(self)
+        // see `startRecording()` re delegate/reader lifetimes.
+        defer {
+            withExtendedLifetime((reader, delegate)) {}
+        }
         return try await withCheckedThrowingContinuation { continuation in
             delegate.continuation = continuation
             reader.delegate = delegate
@@ -164,6 +184,7 @@ private final class DevicesFetcherDelegate: NSObject, SRSensorReaderDelegate {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 private final class SamplesFetcherDelegate<Sample: SensorKitSampleProtocol>: NSObject, SRSensorReaderDelegate {
+    private let logger = Logger(subsystem: "edu.stanford.SpeziSensorKit", category: "SamplesFetcherDelegate")
     private let sensor: Sensor<Sample>
     var continuation: CheckedContinuation<[Sample.SafeRepresentation], any Error>?
     private var results: [SensorKit.FetchResult<Sample>] = []
@@ -178,8 +199,13 @@ private final class SamplesFetcherDelegate<Sample: SensorKitSampleProtocol>: NSO
             // should be unreachable
             return true
         }
-        let fetchResult = SensorKit.FetchResult(result, for: self.sensor)
-        self.results.append(fetchResult)
+        do {
+            let fetchResult = try SensorKit.FetchResult(result, for: self.sensor)
+            self.results.append(fetchResult)
+        } catch {
+            // SensorKit returned something we can't interpret; skip this batch rather than crash.
+            logger.error("Error processing fetch result: \(error)")
+        }
         return true
     }
     
