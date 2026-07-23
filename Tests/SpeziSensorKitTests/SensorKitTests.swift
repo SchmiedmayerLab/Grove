@@ -13,6 +13,7 @@ import Testing
 @Suite
 struct SensorKitTests {
     @Test
+    @available(iOS 18, *)
     func hmmm() {
         let module = SensorKit()
         #expect(module.authorizationStatus(for: .heartRate) == .notDetermined)

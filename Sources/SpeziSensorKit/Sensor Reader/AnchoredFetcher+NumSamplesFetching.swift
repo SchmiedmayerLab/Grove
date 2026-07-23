@@ -54,6 +54,15 @@ extension AnchoredFetcher {
             return try await delegate.nextBatch()
         }
         
+        /// Explicit witness for the legacy `next()` requirement.
+        ///
+        /// Needed to work around https://github.com/swiftlang/swift/issues/87849
+        /// Can be removed once the deployment target is iOS 18.4+
+        @inlinable
+        func next() async throws(Failure) -> Element? {
+            try await next(isolation: nil)
+        }
+        
         deinit {
             // if the iterator is destroyed, we explicitly tell the fetch delegate to stop.
             // this is required to prevent SensorKit from providing us more and more data in

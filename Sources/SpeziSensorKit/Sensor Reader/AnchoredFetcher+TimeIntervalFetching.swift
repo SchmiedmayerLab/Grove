@@ -90,5 +90,13 @@ extension AnchoredFetcher {
                 return (batchInfo, results)
             }
         }
+        
+        /// Explicit witness for the legacy `next()` requirement.
+        ///
+        /// Needed to work around https://github.com/swiftlang/swift/issues/87849
+        /// Can be removed once the deployment target is iOS 18.4+
+        mutating func next() async throws(Failure) -> Element? {
+            try await next(isolation: nil)
+        }
     }
 }
