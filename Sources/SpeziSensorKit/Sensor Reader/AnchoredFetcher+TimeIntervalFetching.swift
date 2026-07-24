@@ -45,7 +45,7 @@ extension AnchoredFetcher {
             self.sensor = sensor
             self.anchor = anchor
             self.quarantineCutoff = quarantineCutoff
-            self.batchSize = max(batchSize, Self.minAllowedBatchSize)
+            self.batchSize = Swift::max(batchSize, Self.minAllowedBatchSize)
             self.device = device
             if self.batchSize <= 0 || !self.batchSize.isNormal {
                 state = .done
