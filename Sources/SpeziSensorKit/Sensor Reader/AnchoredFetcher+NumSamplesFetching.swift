@@ -161,6 +161,9 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
     private let semaphore = DispatchSemaphore(value: 0)
     nonisolated(unsafe) private var nextBatchContinuation: CheckedContinuation<Element?, any Error>?
     
+    /// Creates a new instance
+    ///
+    /// - parameter batchSize: Must be greater than zero.
     init(sensor: Sensor<Sample>, deviceInfo: SensorKit.DeviceInfo, batchSize: Int, anchor: ManagedQueryAnchor) {
         self.logger = Logger(subsystem: "edu.stanford.SpeziSensorKit", category: "\(Self.self)")
         self.sensor = sensor
@@ -168,6 +171,10 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         self.batchSize = batchSize
         self.anchor = anchor
         self.samples.reserveCapacity(batchSize + (batchSize / 5))
+        if batchSize <= 0 {
+            logger.error("Crated \(Self.self) with invalid batch size (\(batchSize)). This will never yield any samples.")
+            state = .terminated
+        }
     }
     
     func nextBatch() async throws -> Element? {

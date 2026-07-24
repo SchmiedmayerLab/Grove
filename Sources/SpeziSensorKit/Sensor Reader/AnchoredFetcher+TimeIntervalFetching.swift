@@ -17,7 +17,9 @@ extension AnchoredFetcher {
     /// Async iterator that fetches samples batched by time interval.
     struct TimeIntervalBasedFetcher: AsyncIteratorProtocol {
         private enum State {
+            /// The fetcher hasn't run at all yet.
             case initial
+            /// The next `next()` call should fetch and return samples for `timeRange`
             case process(timeRange: Range<Date>)
             /// The data fetcher is done, i.e. has fetched (and returned) all data that is currently available.
             case done
@@ -42,6 +44,11 @@ extension AnchoredFetcher {
             self.quarantineCutoff = quarantineCutoff
             self.batchSize = batchSize
             self.device = device
+            if batchSize <= 0 {
+                state = .done
+                let logger = Logger(subsystem: "edu.stanford.Spezi", category: "SpeziSensorKit")
+                logger.error("Created \(Self.self) with batch size <= 0. This is not allowed. The fetcher will never return any results.")
+            }
         }
         
         private mutating func advanceState() throws {
@@ -86,8 +93,14 @@ extension AnchoredFetcher {
                 nonisolated(unsafe) let device = device
                 let results = try await sensor.fetch(from: device, timeRange: timeRange)
                 try advanceState()
-                let batchInfo = SensorKit.BatchInfo(timeRange: timeRange, device: SensorKit.DeviceInfo(device))
-                return (batchInfo, results)
+                if !results.isEmpty {
+                    // the batch is not empty, so we simply return it and that's it.
+                    let batchInfo = SensorKit.BatchInfo(timeRange: timeRange, device: SensorKit.DeviceInfo(device))
+                    return (batchInfo, results)
+                } else {
+                    // the batch is empty, i.e. there were no samples for the timeRange
+                    return try await next(isolation: isolation)
+                }
             }
         }
         

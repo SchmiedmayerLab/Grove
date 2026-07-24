@@ -22,6 +22,8 @@ public enum BatchSize: Hashable, Sendable {
     case numberOfSamples(_ numSamples: Int)
     
     /// Each batch should contain the samples from a time period of length `duration`.
+    ///
+    /// - Important: `duration` must be greater than zero.
     case timeInterval(_ duration: Duration)
     
     @inlinable internal static var `default`: Self {
