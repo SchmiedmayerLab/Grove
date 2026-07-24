@@ -26,7 +26,7 @@ extension AnchoredFetcher {
         }
         
         /// The minimum allowed batch size; any batch sizes smaller than this value will be "rounded up" to this batch size.
-        private static let minAllowedBatchSize: TimeInterval = 0.5
+        private static var minAllowedBatchSize: TimeInterval { 0.5 }
         
         private let sensor: Sensor<Sample>
         private let anchor: ManagedQueryAnchor
