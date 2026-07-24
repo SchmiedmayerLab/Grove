@@ -88,19 +88,9 @@ extension AnchoredFetcher {
                 return nil
             case .initial:
                 try advanceState()
-                return try await next(isolation: isolation)
-            case .process(let timeRange):
-                nonisolated(unsafe) let device = device
-                let results = try await sensor.fetch(from: device, timeRange: timeRange)
-                try advanceState()
-                if !results.isEmpty {
-                    // the batch is not empty, so we simply return it and that's it.
-                    let batchInfo = SensorKit.BatchInfo(timeRange: timeRange, device: SensorKit.DeviceInfo(device))
-                    return (batchInfo, results)
-                } else {
-                    // the batch is empty, i.e. there were no samples for the timeRange
-                    return try await next(isolation: isolation)
-                }
+                return try await fetchNextBatch(isolation: isolation)
+            case .process:
+                return try await fetchNextBatch(isolation: isolation)
             }
         }
         
@@ -110,6 +100,40 @@ extension AnchoredFetcher {
         /// Can be removed once the deployment target is iOS 18.4+
         mutating func next() async throws(Failure) -> Element? {
             try await next(isolation: nil)
+        }
+        
+        /// Fetches the next non-empty batch, or returns `nil` if there are none.
+        ///
+        /// This function advances the state as it moves through the fetches.
+        private mutating func fetchNextBatch(isolation: isolated (any Actor)?) async throws(Failure) -> Element? {
+            nonisolated(unsafe) let device = device
+            // SAFETY:
+            // this loop will terminate eventually:
+            // - if SensorKit returns at least one sample for the time range we're processing (i.e., the batch is not empty)
+            // - if we advance forward sufficiently far, so that the fetcher's next time range is within the sensor's quarantine period
+            while true {
+                switch state {
+                case .process(let timeRange):
+                    let results = try await sensor.fetch(from: device, timeRange: timeRange)
+                    try advanceState()
+                    if !results.isEmpty {
+                        // the batch is not empty, so we simply return it and that's it.
+                        let batchInfo = SensorKit.BatchInfo(timeRange: timeRange, device: SensorKit.DeviceInfo(device))
+                        return (batchInfo, results)
+                    } else {
+                        // the batch is empty, i.e. there were no samples for the time range.
+                        // the easy way here would be to simply not have the loop and instead
+                        // just `return try await next(isolation: isolation)`, but since we
+                        // don't know how small the batch size is, and how many empty batches there might be,
+                        // we don't want to have the risk of potentially effectively unbounded recursion,
+                        // so we instead implement it as a loop
+                        continue
+                    }
+                case .done, .initial:
+                    // initial is unreachable here, so we simply group it in with done
+                    return nil
+                }
+            }
         }
     }
 }
