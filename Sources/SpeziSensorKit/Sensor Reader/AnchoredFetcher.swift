@@ -41,6 +41,10 @@ public struct AnchoredFetcher<Sample: SensorKitSampleProtocol>: AsyncSequence {
     @_AsyncIteratorBuilder<Element, Failure>
     public consuming func makeAsyncIterator() -> some AsyncIteratorProtocol<Element, Failure> {
         if sensor.id == Sensor.ecg.id {
+            // we need to fetch all ECGs at once, since each recording will consist of a series of
+            // separate `SRElectrocardiogramSample` objects, and we can't risk accidentally
+            // splitting in the middle of that, since we then would not be able to correctly post-process
+            // these samples into SensorKitECGSession objects.
             timeIntervalBasedIterator(batchDuration: Duration(secondsComponent: .max, attosecondsComponent: 0))
         } else {
             switch batchSize {

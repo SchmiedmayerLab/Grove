@@ -121,6 +121,15 @@ where A.Element == B.Element, A.Failure == B.Failure {
             return try await base.next(isolation: actor)
         }
     }
+    
+    /// Explicit witness for the legacy `next()` requirement.
+    ///
+    /// Needed to work around https://github.com/swiftlang/swift/issues/87849
+    /// Can be removed once the deployment target is iOS 18.4+
+    @inlinable
+    public mutating func next() async throws(Failure) -> Element? {
+        try await next(isolation: nil)
+    }
 }
 
 
@@ -140,6 +149,15 @@ public struct _EmptyAsyncSequence<Element, Failure: Error>: AsyncSequence, Async
     
     @inlinable
     public func next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Element? {
+        nil
+    }
+    
+    /// Explicit witness for the legacy `next()` requirement.
+    ///
+    /// Needed to work around https://github.com/swiftlang/swift/issues/87849
+    /// Can be removed once the deployment target is iOS 18.4+
+    @inlinable
+    public func next() async throws(Failure) -> Element? {
         nil
     }
 }
@@ -169,6 +187,15 @@ where A.Element == B.Element, A.Failure == B.Failure {
             try await _sndIt.next(isolation: actor)
         }
     }
+    
+    /// Explicit witness for the legacy `next()` requirement.
+    ///
+    /// Needed to work around https://github.com/swiftlang/swift/issues/87849
+    /// Can be removed once the deployment target is iOS 18.4+
+    @inlinable
+    public mutating func next() async throws(Failure) -> Element? {
+        try await next(isolation: nil)
+    }
 }
 
 
@@ -195,6 +222,15 @@ public struct _AsyncIteratorSequence<Base: AsyncIteratorProtocol>: AsyncSequence
     @inlinable
     public mutating func next(isolation actor: isolated (any Actor)?) async throws(Base.Failure) -> Base.Element? {
         try await _base.next(isolation: actor)
+    }
+    
+    /// Explicit witness for the legacy `next()` requirement.
+    ///
+    /// Needed to work around https://github.com/swiftlang/swift/issues/87849
+    /// Can be removed once the deployment target is iOS 18.4+
+    @inlinable
+    public mutating func next() async throws(Base.Failure) -> Base.Element? {
+        try await next(isolation: nil)
     }
 }
 
