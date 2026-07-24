@@ -25,6 +25,9 @@ extension AnchoredFetcher {
             case done
         }
         
+        /// The minimum allowed batch size; any batch sizes smaller than this value will be "rounded up" to this batch size.
+        private static let minAllowedBatchSize: TimeInterval = 0.5
+        
         private let sensor: Sensor<Sample>
         private let anchor: ManagedQueryAnchor
         private let quarantineCutoff: Date
@@ -42,12 +45,12 @@ extension AnchoredFetcher {
             self.sensor = sensor
             self.anchor = anchor
             self.quarantineCutoff = quarantineCutoff
-            self.batchSize = batchSize
+            self.batchSize = max(batchSize, Self.minAllowedBatchSize)
             self.device = device
-            if batchSize <= 0 || !batchSize.isNormal {
+            if self.batchSize <= 0 || !self.batchSize.isNormal {
                 state = .done
                 let logger = Logger(subsystem: "edu.stanford.Spezi", category: "SpeziSensorKit")
-                logger.error("Created \(Self.self) with batch size <= 0. This is not allowed. The fetcher will never return any results.")
+                logger.error("Created \(Self.self) with invalid batch size. This is not allowed. The fetcher will never return any results.")
             }
         }
         
