@@ -13,6 +13,18 @@ import SpeziFoundation
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension SensorKit {
+    /// Thrown by ``FetchResult/init`` if the input `SRFetchResult`'s carried data fails to be casted into ``Sensor``'s expected type.
+    struct FetchResultTypeError: Error, CustomStringConvertible {
+        let sensor: any AnySensor
+        let expectedType: Any.Type
+        let actualType: Any.Type
+        
+        var description: String {
+            "Invalid SRFetchResult data type for \(sensor); expected \(expectedType), but got \(actualType)"
+        }
+    }
+    
+    
     /// A batch of samples returned by SensorKit
     public struct FetchResult<Sample: SensorKitSampleProtocol>: Hashable {
         /// The SensorKit framework's timestamp associated with this batch of samples
@@ -20,14 +32,23 @@ extension SensorKit {
         /// The samples.
         public let samples: [Sample]
         
-        @inlinable
-        init(_ fetchResult: SRFetchResult<AnyObject>, for sensor: Sensor<Sample>) {
+        init(_ fetchResult: SRFetchResult<AnyObject>, for sensor: Sensor<Sample>) throws {
             sensorKitTimestamp = Date(fetchResult.timestamp)
-            samples = switch sensor.sensorKitFetchReturnType {
+            // IMPORTANT: accessing the `SRFetchResult.sample` is where SensorKit (if needed) will lazily materialize the batch;
+            // for some sensors (eg PPG, or motion), this getter will perform actual O(n) decoding work, delegated to the sensor's
+            // respective underlying framework.
+            let object: AnyObject = fetchResult.sample
+            switch sensor.sensorKitFetchReturnType {
             case .object:
-                [unsafeDowncast(fetchResult.sample, to: Sample.self)]
+                guard let sample = object as? Sample else {
+                    throw SensorKit.FetchResultTypeError(sensor: sensor, expectedType: Sample.self, actualType: type(of: object))
+                }
+                samples = [sample]
             case .array:
-                Array(_immutableCocoaArray: unsafeDowncast(fetchResult.sample, to: NSArray.self))
+                guard let samples = object as? [Sample] else {
+                    throw SensorKit.FetchResultTypeError(sensor: sensor, expectedType: [Sample].self, actualType: type(of: object))
+                }
+                self.samples = samples
             }
         }
     }
