@@ -44,7 +44,7 @@ extension AnchoredFetcher {
             self.quarantineCutoff = quarantineCutoff
             self.batchSize = batchSize
             self.device = device
-            if batchSize <= 0 {
+            if batchSize <= 0 || !batchSize.isNormal {
                 state = .done
                 let logger = Logger(subsystem: "edu.stanford.Spezi", category: "SpeziSensorKit")
                 logger.error("Created \(Self.self) with batch size <= 0. This is not allowed. The fetcher will never return any results.")
