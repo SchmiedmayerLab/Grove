@@ -197,3 +197,14 @@ extension Questionnaire {
         }
     }
 }
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension Questionnaire.Section {
+    func nextEnabledTask(after task: Questionnaire.Task, using responses: QuestionnaireResponses) -> Questionnaire.Task? {
+        guard let taskIdx = tasks.firstIndex(of: task) else {
+            return nil
+        }
+        return tasks[taskIdx...].dropFirst().first { responses.shouldEnable(task: $0) }
+    }
+}

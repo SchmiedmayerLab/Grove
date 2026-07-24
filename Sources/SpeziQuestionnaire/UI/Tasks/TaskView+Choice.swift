@@ -61,6 +61,7 @@ extension TaskView.ChoiceAnswering {
     // This needs to be a separate view bc of the sheet presentation
     private struct Row: View {
         @Environment(QuestionnaireResponses.self) private var responses
+        @Environment(\.scrollToNextTask) private var scrollToNextTask
         
         let task: Questionnaire.Task
         let config: Questionnaire.Task.Kind.ChoiceConfig
@@ -99,6 +100,10 @@ extension TaskView.ChoiceAnswering {
                 if !oldSelectionState, config.followUpTasks.contains(where: { innerResponses.shouldEnable(task: $0) }) {
                     // the option wasn't selected before, but is now, and also we have some follow up tasks.
                     isShowingFollowUpQuestionsSheet = true
+                }
+                if !isShowingFollowUpQuestionsSheet, !config.allowsMultipleSelection, !oldSelectionState {
+                    // if we just selected an option in a single-choice question, and there are no follow-up questions, we scroll to the next task.
+                    scrollToNextTask()
                 }
             }
             .sheet(isPresented: $isShowingFollowUpQuestionsSheet) {

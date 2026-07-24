@@ -56,6 +56,14 @@ struct QuestionnaireSectionView<Header: View>: View {
                         }
                     }
                     .id(task.id)
+                    .environment(\.scrollToNextTask) {
+                        guard let nextTask = section.nextEnabledTask(after: task, using: responses) else {
+                            return
+                        }
+                        withAnimation {
+                            scrollViewProxy.scrollTo(nextTask.id, anchor: .top)
+                        }
+                    }
                 }
                 // disallow mutating responses while an action is being performed
                 .disabled(viewState == .processing)
@@ -244,6 +252,12 @@ struct QuestionnaireSectionView<Header: View>: View {
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension EnvironmentValues {
+    @Entry var scrollToNextTask: () -> Void = {}
+}
+
+
 extension QuestionnaireSectionView {
     private struct CancelButton: View {
         let context: Context

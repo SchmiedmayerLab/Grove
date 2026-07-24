@@ -3,19 +3,19 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 90;
+	objectVersion = 100;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		E346C216FF93E1994E923A78 /* FHIRQuestionnaires in Frameworks */ = {isa = PBXBuildFile; productRef = C42C632B324EE0A413AE9A80 /* FHIRQuestionnaires */; };
+		2CAE510812ECAB53D4822A8B /* XCTestExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = B374EA5B5265FE76F04D5E03 /* XCTestExtensions */; };
+		3EDDFD7F8F1598CBE840ECEE /* SpeziQuestionnaireCatalog in Frameworks */ = {isa = PBXBuildFile; productRef = 941A30F1AD43ADBC3EF80471 /* SpeziQuestionnaireCatalog */; };
+		42CC0CAA7CF692D98C174E66 /* SpeziViews in Frameworks */ = {isa = PBXBuildFile; productRef = EE6CD7F3E2C8B5BB204055B2 /* SpeziViews */; };
 		482849496CC21BF4F7829823 /* Spezi in Frameworks */ = {isa = PBXBuildFile; productRef = DE39B104C8E9D52C840279E6 /* Spezi */; };
 		C9BD22421DFCF674EAAF6E94 /* SpeziQuestionnaire in Frameworks */ = {isa = PBXBuildFile; productRef = 2DB20FA524433BB5610875F8 /* SpeziQuestionnaire */; };
-		3EDDFD7F8F1598CBE840ECEE /* SpeziQuestionnaireCatalog in Frameworks */ = {isa = PBXBuildFile; productRef = 941A30F1AD43ADBC3EF80471 /* SpeziQuestionnaireCatalog */; };
 		D0CBE161B0EB6D0DBD27399A /* SpeziQuestionnaireFHIR in Frameworks */ = {isa = PBXBuildFile; productRef = 0AD58D86B0005AF892750F2B /* SpeziQuestionnaireFHIR */; };
-		42CC0CAA7CF692D98C174E66 /* SpeziViews in Frameworks */ = {isa = PBXBuildFile; productRef = EE6CD7F3E2C8B5BB204055B2 /* SpeziViews */; };
 		D5C87BAE6827801CCF9834CA /* SpeziFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 4014C3044963C03C26723F7C /* SpeziFoundation */; };
+		E346C216FF93E1994E923A78 /* FHIRQuestionnaires in Frameworks */ = {isa = PBXBuildFile; productRef = C42C632B324EE0A413AE9A80 /* FHIRQuestionnaires */; };
 		F011D253924E3B5EFE33B513 /* XCTSpeziQuestionnaire in Frameworks */ = {isa = PBXBuildFile; productRef = 10F23789A57C52D5A3BB62A6 /* XCTSpeziQuestionnaire */; };
-		2CAE510812ECAB53D4822A8B /* XCTestExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = B374EA5B5265FE76F04D5E03 /* XCTestExtensions */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -362,7 +362,6 @@
 		000000000000000111000000 /* Debug configuration for PBXNativeTarget "TestApp" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.speziquestionnaire.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -380,6 +379,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = edu.stanford.spezi.speziquestionnaire.testapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -396,7 +396,6 @@
 		000000000000000112000000 /* Release configuration for PBXNativeTarget "TestApp" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.speziquestionnaire.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -414,6 +413,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = edu.stanford.spezi.speziquestionnaire.testapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -430,12 +430,12 @@
 		6564909C3002CEA900F1D55F /* Debug configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.speziquestionnaire.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = edu.stanford.spezi.speziquestionnaire.testapp.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -452,12 +452,12 @@
 		6564909D3002CEA900F1D55F /* Release configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.speziquestionnaire.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = edu.stanford.spezi.speziquestionnaire.testapp.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -504,54 +504,58 @@
 		654293E43002D0F400AF6915 /* XCLocalSwiftPackageReference "../../.." */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../../..;
+			traits = (
+				ResearchKit,
+				default,
+			);
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		0AD58D86B0005AF892750F2B /* SpeziQuestionnaireFHIR */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 654293E43002D0F400AF6915 /* XCLocalSwiftPackageReference "../../.." */;
+			productName = SpeziQuestionnaireFHIR;
+		};
+		10F23789A57C52D5A3BB62A6 /* XCTSpeziQuestionnaire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 654293E43002D0F400AF6915 /* XCLocalSwiftPackageReference "../../.." */;
+			productName = XCTSpeziQuestionnaire;
+		};
+		2DB20FA524433BB5610875F8 /* SpeziQuestionnaire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 654293E43002D0F400AF6915 /* XCLocalSwiftPackageReference "../../.." */;
+			productName = SpeziQuestionnaire;
+		};
+		4014C3044963C03C26723F7C /* SpeziFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 654293E43002D0F400AF6915 /* XCLocalSwiftPackageReference "../../.." */;
+			productName = SpeziFoundation;
+		};
+		941A30F1AD43ADBC3EF80471 /* SpeziQuestionnaireCatalog */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 654293E43002D0F400AF6915 /* XCLocalSwiftPackageReference "../../.." */;
+			productName = SpeziQuestionnaireCatalog;
+		};
+		B374EA5B5265FE76F04D5E03 /* XCTestExtensions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 654293E43002D0F400AF6915 /* XCLocalSwiftPackageReference "../../.." */;
+			productName = XCTestExtensions;
+		};
 		C42C632B324EE0A413AE9A80 /* FHIRQuestionnaires */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* package */;
+			package = 654293E43002D0F400AF6915 /* XCLocalSwiftPackageReference "../../.." */;
 			productName = FHIRQuestionnaires;
 		};
 		DE39B104C8E9D52C840279E6 /* Spezi */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* package */;
+			package = 654293E43002D0F400AF6915 /* XCLocalSwiftPackageReference "../../.." */;
 			productName = Spezi;
-		};
-		2DB20FA524433BB5610875F8 /* SpeziQuestionnaire */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* package */;
-			productName = SpeziQuestionnaire;
-		};
-		941A30F1AD43ADBC3EF80471 /* SpeziQuestionnaireCatalog */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* package */;
-			productName = SpeziQuestionnaireCatalog;
-		};
-		0AD58D86B0005AF892750F2B /* SpeziQuestionnaireFHIR */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* package */;
-			productName = SpeziQuestionnaireFHIR;
 		};
 		EE6CD7F3E2C8B5BB204055B2 /* SpeziViews */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* package */;
+			package = 654293E43002D0F400AF6915 /* XCLocalSwiftPackageReference "../../.." */;
 			productName = SpeziViews;
-		};
-		4014C3044963C03C26723F7C /* SpeziFoundation */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* package */;
-			productName = SpeziFoundation;
-		};
-		10F23789A57C52D5A3BB62A6 /* XCTSpeziQuestionnaire */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* package */;
-			productName = XCTSpeziQuestionnaire;
-		};
-		B374EA5B5265FE76F04D5E03 /* XCTestExtensions */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* package */;
-			productName = XCTestExtensions;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -17,7 +17,7 @@ import PackageDescription
 /// Toggle SwiftLint by setting this to `true`.
 let enableSwiftLint = false
 
-let isLoweredDeploymentTargetEnabled = true
+let isLoweredDeploymentTargetEnabled = false
 
 var defaultPlugins: [Target.PluginUsage] {
     enableSwiftLint ? [.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")] : []
@@ -238,6 +238,7 @@ var products: [Product] = [
     .library(name: "SpeziQuestionnaire", targets: ["SpeziQuestionnaire"]),
     .library(name: "SpeziQuestionnaireCatalog", targets: ["SpeziQuestionnaireCatalog"]),
     .library(name: "SpeziQuestionnaireFHIR", targets: ["SpeziQuestionnaireFHIR"]),
+    .library(name: "SpeziQuestionnaireLegacy", targets: ["SpeziQuestionnaireLegacy"]),
     .library(name: "XCTSpeziQuestionnaire", targets: ["XCTSpeziQuestionnaire"]),
     // MARK: SpeziScheduler
     .library(name: "SpeziScheduler", targets: ["SpeziScheduler"]),

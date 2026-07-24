@@ -7,11 +7,12 @@
 //
 
 import FHIRQuestionnaires
-import class ModelsR4.Questionnaire
-import class ModelsR4.QuestionnaireResponse
+import struct ModelsR4.Questionnaire
+import struct ModelsR4.QuestionnaireResponse
 import SpeziQuestionnaire
 import SpeziQuestionnaireCatalog
 import SpeziQuestionnaireFHIR
+import SpeziQuestionnaireLegacy
 import SpeziViews
 import SwiftUI
 import UniformTypeIdentifiers
