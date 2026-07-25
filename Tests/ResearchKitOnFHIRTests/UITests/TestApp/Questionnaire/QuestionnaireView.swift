@@ -98,7 +98,7 @@ extension QuestionnaireResponseItem {
             switch answer.value {
             case .attachment(var attachment):
                 guard let fileUrl = attachment.url?.value?.url else {
-                    continue
+                    break
                 }
                 let newFileUrl = newAttachmentsDir.appendingPathComponent(fileUrl.lastPathComponent)
                 try! FileManager.default.moveItem(at: fileUrl, to: newFileUrl)

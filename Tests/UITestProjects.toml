@@ -23,6 +23,7 @@ test_products = ["XCTHealthKit", "XCTestExtensions"]
 
 [ResearchKitOnFHIR]
 app_products = ["FHIRQuestionnaires", "ResearchKitOnFHIR"]
+traits = ["ResearchKit"]
 [ResearchKitOnFHIR.app_settings]
 "INFOPLIST_KEY_NSCameraUsageDescription" = "Uses camera to test image capture"
 
