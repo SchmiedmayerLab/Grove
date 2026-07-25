@@ -7,6 +7,10 @@
 # Direct product dependencies and the few build-setting exceptions for generated UI-test projects.
 # Platform and device-family declarations are derived from packages.toml.
 # Fixture products are intentional non-imported dependencies needed for runtime test behavior.
+# `traits` enables the listed monorepo package traits on the project's package reference, for
+# TestApps whose products require them (CI additionally enables all default traits via the
+# SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS environment variable; the project-level declaration is what
+# makes the TestApp build in Xcode and in plain xcodebuild invocations).
 
 [SpeziHealthKitFHIR]
 app_products = ["SpeziHealthKitFHIR", "Spezi", "SpeziHealthKit"]
@@ -144,6 +148,7 @@ test_products = ["XCTestExtensions"]
 [SpeziQuestionnaire]
 app_products = ["FHIRQuestionnaires", "Spezi", "SpeziQuestionnaire", "SpeziQuestionnaireCatalog", "SpeziQuestionnaireFHIR", "SpeziViews"]
 test_products = ["SpeziFoundation", "XCTSpeziQuestionnaire", "XCTestExtensions"]
+traits = ["ResearchKit"]
 [SpeziScheduler]
 app_products = ["Spezi", "SpeziFoundation", "SpeziNotifications", "SpeziScheduler", "SpeziSchedulerUI", "SpeziViews", "XCTSpeziNotificationsUI", "XCTestApp"]
 test_products = ["SpeziFoundation", "XCTestExtensions", "XCTSpeziNotifications"]

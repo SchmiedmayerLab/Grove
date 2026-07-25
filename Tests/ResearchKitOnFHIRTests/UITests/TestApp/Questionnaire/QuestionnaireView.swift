@@ -37,14 +37,11 @@ struct QuestionnaireView: View {
         defer {
             dismiss()
         }
-
         guard case let .completed(result) = result else {
             return // user cancelled
         }
-
         // Convert the ResearchKit task results into FHIR
-        let fhirResponse = result.fhirResponse
-
+        var fhirResponse = result.fhirResponse
         // First, we will look for any attachments in the QuestionnaireResponse
         // and move them from their temporary location to a permanent location.
         do {
@@ -55,49 +52,23 @@ struct QuestionnaireView: View {
                 appropriateFor: nil,
                 create: false
             )
-
             let outputDirectory = documentDirectory.appendingPathComponent(UUID().uuidString)
             try FileManager.default.createDirectory(
                 at: outputDirectory,
                 withIntermediateDirectories: true,
                 attributes: nil
             )
-
             // Search for attachments in the QuestionnaireResponse and move them to the newly created directory.
-            if let responseItems = fhirResponse.item {
-                for item in responseItems {
-                    if case let .attachment(value) = item.answer?.first?.value {
-                        guard let fileURL = value.url?.value?.url else {
-                            continue
-                        }
-
-                        let fileName = fileURL.lastPathComponent
-                        let newPath = outputDirectory.appendingPathComponent(fileName)
-
-                        do {
-                            try FileManager.default.moveItem(at: fileURL, to: newPath)
-
-                            // Update the item's answer with the new URL.
-                            item.answer?.first?.value = .attachment(
-                                Attachment(url: newPath.asFHIRURIPrimitive())
-                            )
-                        } catch {
-                            print(error.localizedDescription)
-                            continue
-                        }
-                    }
-                }
+            fhirResponse.item?.modifyInPlace { item in
+                item.moveAttachments(to: outputDirectory)
             }
         } catch {
             print(error.localizedDescription)
         }
-
         fhirResponse.subject = Reference(reference: FHIRPrimitive(FHIRString("My Patient")))
-
         guard let questionnaireIdentifier = fhirResponse.questionnaire?.value?.url else {
             return
         }
-
         responseStorage.append(fhirResponse, for: questionnaireIdentifier)
     }
 
@@ -121,11 +92,44 @@ struct QuestionnaireView: View {
 }
 
 
-struct QuestionnaireView_Previews: PreviewProvider {
-    @State private static var questionnaire: Questionnaire? = .textValidationExample
-    
-    
-    static var previews: some View {
-        QuestionnaireView(questionnaire: $questionnaire)
+extension QuestionnaireResponseItem {
+    mutating func moveAttachments(to newAttachmentsDir: URL) {
+        answer?.modifyInPlace { answer in
+            switch answer.value {
+            case .attachment(var attachment):
+                guard let fileUrl = attachment.url?.value?.url else {
+                    continue
+                }
+                let newFileUrl = newAttachmentsDir.appendingPathComponent(fileUrl.lastPathComponent)
+                try! FileManager.default.moveItem(at: fileUrl, to: newFileUrl)
+                attachment.url = newFileUrl.asFHIRURIPrimitive()
+                answer.value = .attachment(attachment)
+            default:
+                break
+            }
+            answer.item?.modifyInPlace { item in
+                item.moveAttachments(to: newAttachmentsDir)
+            }
+        }
+        item?.modifyInPlace { item in
+            item.moveAttachments(to: newAttachmentsDir)
+        }
     }
+}
+
+
+extension MutableCollection {
+    // intentionally not throwing as we'd end up with a half-updated collection...
+    mutating func modifyInPlace(_ transform: (inout Element) -> Void) {
+        for idx in indices {
+            transform(&self[idx])
+        }
+    }
+}
+
+
+#Preview {
+    @Previewable @State var questionnaire: Questionnaire? = .textValidationExample
+    
+    QuestionnaireView(questionnaire: $questionnaire)
 }
