@@ -22,7 +22,7 @@ public typealias CategoryTypesFHIRMapping = [SampleType<HKCategorySample>: Categ
 /// ## Topics
 ///
 /// ### Initializers
-/// - ``init(codings:)``
+/// - ``init(codings:categories:)``
 ///
 /// ### Instance Properties
 /// - ``codings``

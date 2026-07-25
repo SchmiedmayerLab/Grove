@@ -22,7 +22,7 @@ public typealias QuantityTypesFHIRMapping = [SampleType<HKQuantitySample>: Quant
 /// ## Topics
 ///
 /// ### Initializers
-/// - ``init(codings:unit:)``
+/// - ``init(codings:categories:unit:)``
 ///
 /// ### Instance Properties
 /// - ``codings``

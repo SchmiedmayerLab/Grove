@@ -29,9 +29,9 @@ public import ModelsR4
 /// - ``association``
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct StateOfMindTypeFHIRMapping: Sendable {
-    /// The FHIR codings defined as ``MappedCode``s to be used for `HKStateOfMind` samples
+    /// The FHIR codings defined as `Coding`s to be used for `HKStateOfMind` samples
     public let codings: [Coding]
-    /// The FHIR categories defined as ``MappedCode``s to be used for `HKStateOfMind` samples
+    /// The FHIR categories defined as `Coding`s to be used for `HKStateOfMind` samples
     public let categories: [Coding]
     /// The mapping for a `HKStateOfMind` sample's kind.
     public let kind: CategoryTypeFHIRMapping

@@ -34,7 +34,7 @@ extension HKElectrocardiogram {
     ///   - voltageMeasurements: the ECG's associated raw voltage measurements.
     ///   - mapping: The ``SampleTypesFHIRMapping`` used to populate the FHIR observation.
     ///   - issuedDate: `Instant` specifying when this version of the resource was made available. Defaults to `Date.now`.
-    ///   - extensions: ``FHIRExtensionBuilder``s that should be applied to the resulting `Observation`.
+    ///   - extensions: `FHIRExtensionBuilder`s that should be applied to the resulting `Observation`.
     public func observation(
         symptoms: Symptoms,
         voltageMeasurements: VoltageMeasurements,

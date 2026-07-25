@@ -19,6 +19,7 @@ extension FHIRStore {
     /// Add a HealthKit sample to the FHIR store.
     /// - Parameters:
     ///   - sample: The sample that should be added.
+    ///   - healthKit: The `HealthKit` module to be used when fetching attachments.
     ///   - loadHealthKitAttachments: Indicates if the `HKAttachmentStore` should be queried for any document references found in clinical records.
     public func add(
         _ sample: HKSample,
@@ -34,7 +35,7 @@ extension FHIRStore {
     }
     
     /// Remove a HealthKit sample delete object from the FHIR store.
-    /// - Parameter sample: The sample delete object that should be removed.
+    /// - Parameter deletedObject: The sample delete object that should be removed.
     @MainActor
     public func remove(_ deletedObject: HKDeletedObject) {
         removeResource(withHealthKitUUID: deletedObject.uuid.uuidString)

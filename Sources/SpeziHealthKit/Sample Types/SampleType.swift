@@ -196,7 +196,7 @@ extension SampleType {
     /// Use this initializer only if the sample type you want to work with isn't already defined by SpeziHealthKit.
     /// - parameter identifier: The sample type's underlying `HKQuantityTypeIdentifier`
     /// - parameter displayTitle: The localized string which should be used when displaying this sample type's title in a user-visible context.
-    /// - parameter canonicalTitle: The sample type's canonical, locale-independent title.
+    /// - parameter canonicalTitle: The sample type's canonical, non-localized title.
     /// - parameter canonicalUnit: The sample type's canonical unit.
     /// - parameter displayUnits: The sample type's localized display units.
     /// - parameter expectedValuesRange: If applicable, the expected range the individual sample values will most likely fall into.
@@ -221,6 +221,7 @@ extension SampleType {
     /// Use this initializer only if the sample type you want to work with isn't already defined by SpeziHealthKit.
     /// - parameter identifier: The sample type's underlying `HKCorrelationTypeIdentifier`
     /// - parameter displayTitle: The localized string which should be used when displaying this sample type's title in a user-visible context.
+    /// - parameter canonicalTitle: The sample type's canonical, non-localized title.
     /// - parameter associatedQuantityTypes: The sample type's associated quantity sample types. E.g.: for the blood pressure correlation type, the associated quantity types would be systolic and siastolic blood pressure.
     @inlinable public static func correlation(
         _ identifier: HKCorrelationTypeIdentifier,
@@ -240,6 +241,7 @@ extension SampleType {
     /// Use this initializer only if the sample type you want to work with isn't already defined by SpeziHealthKit.
     /// - parameter identifier: The sample type's underlying `HKCategoryTypeIdentifier`
     /// - parameter displayTitle: The localized string which should be used when displaying this sample type's title in a user-visible context.
+    /// - parameter canonicalTitle: The sample type's canonical, non-localized title.
     @inlinable public static func category(
         _ identifier: HKCategoryTypeIdentifier,
         displayTitle: LocalizedStringResource? = nil,
@@ -252,6 +254,7 @@ extension SampleType {
     /// Use this initializer only if the sample type you want to work with isn't already defined by SpeziHealthKit.
     /// - parameter identifier: The sample type's underlying `HKClinicalTypeIdentifier`
     /// - parameter displayTitle: The localized string which should be used when displaying this sample type's title in a user-visible context.
+    /// - parameter canonicalTitle: The sample type's canonical, non-localized title.
     @available(watchOS, unavailable)
     @inlinable public static func clinical(
         _ identifier: HKClinicalTypeIdentifier,

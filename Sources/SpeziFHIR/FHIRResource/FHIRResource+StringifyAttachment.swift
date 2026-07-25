@@ -40,8 +40,7 @@ extension FHIRResource {
             }
             throw ProcessingError.dstu2AttachmentsUnavailable
             for idx in docRef.content.indices {
-                // TODO(DSTU2) // swiftlint:disable:this todo
-//                try service.stringify(attachment: &docRef.content[idx].attachment)
+                try service.stringify(attachment: &docRef.content[idx].attachment)
             }
             self = .init(versionedResource: .dstu2(docRef), displayName: self.displayName)
         }

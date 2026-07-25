@@ -810,9 +810,9 @@ extension QuestionnaireValidator {
     /// - parameter expectedType: The expected type of the extension entry.
     private mutating func checkExtensions( // swiftlint:disable:this function_body_length cyclomatic_complexity function_parameter_count
         with url: String,
-        of otherElement: Element,
+        of otherElement: any Element,
         at otherFileRef: LocalizedFileReference,
-        against baseElement: Element,
+        against baseElement: any Element,
         at baseFileRef: LocalizedFileReference,
         path: Path,
         require: Bool,

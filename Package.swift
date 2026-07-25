@@ -59,7 +59,7 @@ let excludeDocCCatalogs = Context.environment["SPEZI_EXCLUDE_DOCC_CATALOGS"] == 
 let packagePlatforms: [SupportedPlatform] = if isLoweredDeploymentTargetEnabled {
     [.iOS(.v15), .macOS(.v12), .watchOS(.v8)]
 } else {
-    [.iOS(.v18), .macOS(.v15), .watchOS(.v11)]
+    [.iOS(.v17), .macOS(.v14), .watchOS(.v10)]
 }
 
 let packageDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
@@ -88,7 +88,6 @@ func reusableExcludes(in targetPath: String, additional: [String] = []) -> [Stri
         + doccCatalogExcludes(in: targetPath, skipping: existingAdditionalExcludes)
         + licenseExcludes(in: targetPath, skipping: existingAdditionalExcludes)
         + existingAdditionalExcludes
-
     var seenExcludes: Set<String> = []
     return excludes.filter { seenExcludes.insert($0).inserted }
 }
@@ -108,7 +107,6 @@ func doccCatalogExcludes(in targetPath: String, skipping skippedExcludes: [Strin
     guard excludeDocCCatalogs else {
         return []
     }
-
     return matchingFiles(in: targetPath, skipping: skippedExcludes) { relativePath in
         relativePath.hasSuffix(".docc")
     }
@@ -119,14 +117,12 @@ func matchingFiles(in targetPath: String, skipping skippedExcludes: [String], wh
     guard let enumerator = FileManager.default.enumerator(atPath: targetDirectory.path) else {
         return []
     }
-
     var excludes: [String] = []
     while let relativePath = enumerator.nextObject() as? String {
         guard !skippedExcludes.contains(where: { relativePath == $0 || relativePath.hasPrefix("\($0)/") }) else {
             enumerator.skipDescendants()
             continue
         }
-
         if matches(relativePath) {
             excludes.append(relativePath)
             enumerator.skipDescendants()
