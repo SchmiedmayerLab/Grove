@@ -63,6 +63,16 @@ extension CorrelationTypesFHIRMapping {
                     system: "http://terminology.hl7.org/CodeSystem/observation-category"
                 )
             ]
+        ),
+        .food: CorrelationTypeFHIRMapping(
+            codings: [
+                Coding(
+                    code: "80453-4",
+                    display: "Food intake panel",
+                    system: .loincSystem
+                )
+            ],
+            categories: []
         )
     ]
 }
