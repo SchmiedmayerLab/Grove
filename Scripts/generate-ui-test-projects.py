@@ -263,13 +263,17 @@ def render_project(package: str, spec: dict[str, object], platforms: list[str], 
     if count != 1:
         raise ValueError("Could not replace PBXProject packageReferences")
 
-    # Traits declared in the spec are enabled on the monorepo package reference. The trailing
-    # `default` pseudo-trait mirrors Xcode's own serialization of the trait toggle, keeping a
-    # GUI round-trip churn-free. (The env-var mechanism in run-package-tests.sh is unaffected.)
+    # Traits declared in the spec are enabled on the monorepo package reference.
+    # NEVER include the `default` pseudo-trait here: combining it with a named trait makes
+    # xcodebuild (Xcode 26.5/26.6) crash with an IDESwiftPackageCore sortedInsert exception during
+    # package resolution. Note that Xcode's GUI trait toggle WRITES `(X, default)` — after any GUI
+    # edit, regenerate so the committed form stays `default`-free. An explicit list replaces the
+    # default set, which is fine: these TestApps need exactly the listed traits (CI's
+    # SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS=1 only affects trait-less projects).
     traits = [str(trait) for trait in spec.get("traits", [])]
+    if "default" in traits:
+        raise ValueError(f"{package}: the `default` pseudo-trait must not be listed (crashes xcodebuild)")
     if traits:
-        if "default" not in traits:
-            traits.append("default")
         marker = "\t\t\trelativePath = ../../..;\n"
         if text.count(marker) != 1:
             raise ValueError(f"{package}: could not locate the local package reference to attach traits")

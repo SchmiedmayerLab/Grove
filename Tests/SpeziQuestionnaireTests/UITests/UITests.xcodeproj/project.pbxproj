@@ -506,7 +506,6 @@
 			relativePath = ../../..;
 			traits = (
 				ResearchKit,
-				default,
 			);
 		};
 /* End XCLocalSwiftPackageReference section */
