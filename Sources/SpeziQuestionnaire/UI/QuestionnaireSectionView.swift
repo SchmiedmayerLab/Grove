@@ -45,7 +45,7 @@ struct QuestionnaireSectionView<Header: View>: View {
     
     var body: some View {
         @Bindable var responses = responses
-        ScrollViewReader { scrollViewProxy in
+        ScrollViewReader { scrollViewProxy in // swiftlint:disable:this closure_body_length
             Form {
                 header
                 ForEach(section.tasks) { task in

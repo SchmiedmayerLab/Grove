@@ -231,7 +231,8 @@ extension QuestionnaireResponses.Response {
                         throw FHIRConversionError("Unable to find answer for choice option")
                     }
                     // SAFETY: the guard above proved `answer` is non-nil
-                    responseItem.answer![answerIdx].item = try responses.toFHIR(using: .init(allTasks: task.kind.followUpTasks)) // swiftlint:disable:this force_unwrapping
+                    responseItem.answer![answerIdx].item = try responses.toFHIR(using: .init(allTasks: task.kind.followUpTasks))
+                    // swiftlint:disable:previous force_unwrapping
                 }
             }
         default:

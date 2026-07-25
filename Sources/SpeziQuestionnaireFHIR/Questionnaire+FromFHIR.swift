@@ -97,7 +97,7 @@ private struct ConversionContext {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ModelsR4.Questionnaire {
-    fileprivate func toSections(
+    fileprivate func toSections( // swiftlint:disable:this function_body_length
         using options: SpeziQuestionnaire.Questionnaire.FHIRConversionOptions
     ) throws(SpeziQuestionnaire.Questionnaire.FHIRConversionError) -> [SpeziQuestionnaire.Questionnaire.Section] {
         guard let items = item, !items.isEmpty else {

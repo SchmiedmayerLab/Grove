@@ -59,6 +59,12 @@ public struct FHIRResource: Identifiable, Hashable, Sendable {
         @_spi(Testing) public let healthKitUUID: String?
     }
     
+    /// The url of the FHIR extension holding a resource's associated HealthKit HKSample identifier.
+    ///
+    /// String form of ``FHIRExtensionURL/hkSampleId`` (which derives from this constant), kept as a plain
+    /// `String` so that it — unlike the `FHIRExtensionURL`-typed version — is usable below the iOS-18
+    /// availability floor.
+    static let hkSampleIdUrlString = "https://bdh.stanford.edu/fhir/defs/HealthKitSampleID"
     
     /// The version-specific FHIR resource.
     public let versionedResource: VersionedFHIRResource
@@ -84,13 +90,6 @@ public struct FHIRResource: Identifiable, Hashable, Sendable {
             resource.id?.value?.string
         }
     }
-    
-    /// The url of the FHIR extension holding a resource's associated HealthKit HKSample identifier.
-    ///
-    /// String form of ``FHIRExtensionURL/hkSampleId`` (which derives from this constant), kept as a plain
-    /// `String` so that it — unlike the `FHIRExtensionURL`-typed version — is usable below the iOS-18
-    /// availability floor.
-    static let hkSampleIdUrlString = "https://bdh.stanford.edu/fhir/defs/HealthKitSampleID"
 
     /// The `uuid` of the `HKSample` from which this FHIRResource was created, if applicable.
     var healthKitSampleId: String? {

@@ -21,9 +21,17 @@ set -euxo pipefail
 cd "$(dirname "$0")/.."
 
 # Log the toolchain environment, so CI logs carry the context needed to interpret and reproduce a run.
+# Must stay OS-agnostic: the Linux legs run this script too, and under `set -e` a missing
+# macOS-only tool would abort the run before any test starts.
 echo "==> environment"
-sw_vers
-xcodebuild -version
+if [ "$(uname -s)" = "Darwin" ]; then
+  sw_vers
+  xcodebuild -version
+else
+  uname -srm
+  # PRETTY_NAME identifies the distro + version on any systemd-era Linux.
+  grep PRETTY_NAME /etc/os-release || true
+fi
 swift --version
 
 # The package's deployment floor is iOS 15 (so iOS-15 apps can depend on it), but the TEST targets

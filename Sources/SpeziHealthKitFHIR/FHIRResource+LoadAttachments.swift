@@ -53,7 +53,7 @@ extension FHIRResource {
     /// - Parameters:
     ///   - healthKitSample: The HealthKit sample containing attachments.
     ///   - store: The health store to use. Defaults to a new `HKHealthStore` instance.
-    mutating func loadAttachments(from sample: HKSample, using healthKit: HealthKit) async throws {
+    mutating func loadAttachments(from sample: HKSample, using healthKit: HealthKit) async throws { // swiftlint:disable:this type_contents_order
         guard category == .document || category == .diagnostic else {
             return
         }
@@ -77,7 +77,8 @@ extension FHIRResource {
         case var reference as ModelsR4.DocumentReference:
             for attachment in attachments {
                 let b64Binary = FHIRPrimitive(ModelsR4.Base64Binary(attachment.data.base64EncodedString()))
-                let attachmentContentType: ModelsR4.FHIRPrimitive = (attachment.contentType.preferredMIMEType ?? attachment.contentType.identifier).asFHIRStringPrimitive()
+                let attachmentContentType: ModelsR4.FHIRPrimitive = (attachment.contentType.preferredMIMEType ?? attachment.contentType.identifier)
+                    .asFHIRStringPrimitive()
                 if let matchingContentIdx = reference.content.firstIndex(where: {
                     $0.attachment.contentType == attachmentContentType && $0.attachment.data == nil
                 }) {
@@ -90,7 +91,8 @@ extension FHIRResource {
         case var report as ModelsR4.DiagnosticReport:
             for attachment in attachments {
                 let b64Binary = FHIRPrimitive(ModelsR4.Base64Binary(attachment.data.base64EncodedString()))
-                let attachmentContentType: ModelsR4.FHIRPrimitive = (attachment.contentType.preferredMIMEType ?? attachment.contentType.identifier).asFHIRStringPrimitive()
+                let attachmentContentType: ModelsR4.FHIRPrimitive = (attachment.contentType.preferredMIMEType ?? attachment.contentType.identifier)
+                    .asFHIRStringPrimitive()
                 if let matchingAttachmentIdx = (report.presentedForm ?? []).firstIndex(where: {
                     $0.contentType == attachmentContentType && $0.data == nil
                 }) {

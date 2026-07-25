@@ -2499,7 +2499,7 @@ struct HKQuantitySampleTests {
     
     @Test
     func simpleSampleToJson() throws {
-        let date = Calendar.current.date(from: .init(year: 2026, month: 4, day: 21, hour: 12, minute: 7))!
+        let date = try #require(Calendar.current.date(from: .init(year: 2026, month: 4, day: 21, hour: 12, minute: 7)))
         let sample = HKQuantitySample(
             type: HKQuantityType(.heartRate),
             quantity: HKQuantity(unit: .count() / .minute(), doubleValue: 91),

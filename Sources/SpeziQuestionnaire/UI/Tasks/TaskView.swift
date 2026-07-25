@@ -83,7 +83,7 @@ struct TaskView<Header: View>: View {
     }
     
     @ViewBuilder private var yesNoRows: some View {
-        // TODO unify this w/ tge regylar choiceRow thing!!! 
+        // unify this w/ tge regular choiceRow thing!!!
         SimpleChoiceRow(option: .init(id: "true", title: "Yes"), isSelected: Binding {
             response.value.boolValue == true
         } set: { isSelected in
