@@ -46,7 +46,7 @@ export SPEZI_EXCLUDE_DOCC_CATALOGS="${SPEZI_EXCLUDE_DOCC_CATALOGS:-1}"
 DERIVED_DATA_PATH="${RUNNER_TEMP:+$RUNNER_TEMP/spezi}"
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$PWD/.derivedData}"
 
-PACKAGES="FHIRModelsExtensions HealthKitOnFHIR ResearchKitOnFHIR Spezi SpeziAccessGuard SpeziAccount SpeziBluetooth SpeziChat SpeziConsent SpeziContact SpeziDevices SpeziFHIR SpeziFileFormats SpeziFirebase SpeziFoundation SpeziHealthKit SpeziLLM SpeziLicense SpeziLocation SpeziNetworking SpeziNotifications SpeziOnboarding SpeziQuestionnaire SpeziScheduler SpeziSensorKit SpeziSpeech SpeziStorage SpeziStudy SpeziViews ThreadLocal XCTHealthKit RuntimeAssertions XCTestExtensions"
+PACKAGES="FHIRModelsExtensions HealthKitOnFHIR ResearchKitOnFHIR Spezi SpeziAccessGuard SpeziAccount SpeziBluetooth SpeziChat SpeziConsent SpeziContact SpeziDevices SpeziFHIR SpeziFileFormats SpeziFirebase SpeziFoundation SpeziHealthKit SpeziLLM SpeziLicense SpeziLocation SpeziNetworking SpeziNotifications SpeziOnboarding SpeziQuestionnaire SpeziScheduler SpeziSensorKit SpeziSpeech SpeziStorage SpeziStudy SpeziVapor SpeziViews ThreadLocal XCTHealthKit RuntimeAssertions XCTestExtensions"
 
 # package -> the platforms it was tested on upstream (the union CI matrix)
 platforms_for() { case "$1" in
@@ -78,6 +78,7 @@ platforms_for() { case "$1" in
     SpeziSpeech) echo "iOS visionOS macOS" ;;
     SpeziStorage) echo "iOS macOS macCatalyst watchOS visionOS" ;;
     SpeziStudy) echo "iOS macOS macCatalyst watchOS visionOS" ;;
+    SpeziVapor) echo "macOS Linux" ;;
     SpeziViews) echo "iOS visionOS tvOS watchOS macOS" ;;
     ThreadLocal) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
     XCTHealthKit) echo "iOS" ;;

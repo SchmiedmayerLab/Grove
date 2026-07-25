@@ -98,6 +98,9 @@
             reference = "container:Tests/TestPlans/SpeziStudy.xctestplan">
          </TestPlanReference>
          <TestPlanReference
+            reference = "container:Tests/TestPlans/SpeziVapor.xctestplan">
+         </TestPlanReference>
+         <TestPlanReference
             reference = "container:Tests/TestPlans/SpeziViews.xctestplan">
          </TestPlanReference>
          <TestPlanReference

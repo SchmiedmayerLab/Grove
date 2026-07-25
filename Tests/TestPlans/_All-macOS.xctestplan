@@ -202,6 +202,13 @@
     {
       "target": {
         "containerPath": "container:",
+        "identifier": "SpeziVaporTests",
+        "name": "SpeziVaporTests"
+      }
+    },
+    {
+      "target": {
+        "containerPath": "container:",
         "identifier": "SpeziTests",
         "name": "SpeziTests"
       }

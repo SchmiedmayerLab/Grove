@@ -133,6 +133,7 @@ var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/apple/swift-log.git", from: "1.6.2"),
     .package(url: "https://github.com/gonzalezreal/swift-markdown-ui.git", from: "2.4.1"),
     .package(url: "https://github.com/apple/swift-nio.git", from: "2.59.0"),
+    .package(url: "https://github.com/vapor/vapor.git", from: "4.115.0"),
     .package(url: "https://github.com/apple/swift-numerics.git", from: "1.1.1"),
     .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.13.0"),
     .package(url: "https://github.com/apple/swift-openapi-runtime.git", from: "1.8.0"),
@@ -174,6 +175,7 @@ var products: [Product] = [
     .library(name: "Spezi", targets: ["Spezi"]),
     .library(name: "SpeziTesting", targets: ["SpeziTesting"]),
     .library(name: "XCTSpezi", targets: ["XCTSpezi"]),
+    .library(name: "SpeziVapor", targets: ["SpeziVapor"]),
     // MARK: SpeziAccessGuard
     .library(name: "SpeziAccessGuard", targets: ["SpeziAccessGuard"]),
     // MARK: SpeziAccount
@@ -448,6 +450,28 @@ var targets: [Target] = [
         swiftSettings: defaultSwiftSettings + [
             .define("DEBUG", .when(configuration: .debug))
         ],
+        plugins: [] + defaultPlugins
+    ),
+    // MARK: SpeziVapor
+    .target(
+        name: "SpeziVapor",
+        dependencies: [
+            .target(name: "Spezi"),
+            .product(name: "Vapor", package: "vapor")
+        ],
+        exclude: targetExcludes("SpeziVapor"),
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .testTarget(
+        name: "SpeziVaporTests",
+        dependencies: [
+            .target(name: "Spezi"),
+            .target(name: "SpeziVapor"),
+            .product(name: "VaporTesting", package: "vapor")
+        ],
+        exclude: testTargetExcludes("SpeziVaporTests"),
+        swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     // MARK: SpeziAccessGuard

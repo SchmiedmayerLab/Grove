@@ -190,6 +190,11 @@ targets = ["SpeziStudy", "SpeziStudyDefinition"]
 tests = ["SpeziStudyTests"]
 uiTests = ["iOS"]
 
+[SpeziVapor]
+platforms = ["macOS", "Linux"]
+targets = ["SpeziVapor"]
+tests = ["SpeziVaporTests"]
+
 [SpeziViews]
 platforms = ["iOS", "macOS", "watchOS", "visionOS", "tvOS"]
 targets = ["SpeziViews", "SpeziPersonalInfo", "SpeziValidation"]
