@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		7E0956D7C60EA8F2CF03C716 /* Spezi in Frameworks */ = {isa = PBXBuildFile; productRef = 942A3AA18A6120DB028E750E /* Spezi */; };
 		46365EAFA5A9A5FF16BF3875 /* SpeziFHIR in Frameworks */ = {isa = PBXBuildFile; productRef = 86F678B84DC3CF0561EC5D3C /* SpeziFHIR */; };
-		1B6BE9698AA3991AE115EABB /* SpeziFHIRHealthKit in Frameworks */ = {isa = PBXBuildFile; productRef = E95329A498967CBD4A7F5D52 /* SpeziFHIRHealthKit */; };
+		EB0ACCD34CC3EFFEE758A03B /* SpeziHealthKitFHIR in Frameworks */ = {isa = PBXBuildFile; productRef = 554AD38AA669E1F5145491A4 /* SpeziHealthKitFHIR */; };
 		1E0A30E380B921A88C4D9B1E /* SpeziFHIRMockPatients in Frameworks */ = {isa = PBXBuildFile; productRef = 12983AB1E6D4A45FA6FF2F3C /* SpeziFHIRMockPatients */; };
 		F0D7AE0D33041E4C41FF0D61 /* SpeziHealthKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4A7235F5DC686CCBA923EAD5 /* SpeziHealthKit */; };
 		BD63CCD74C3894133BB8971E /* SpeziViews in Frameworks */ = {isa = PBXBuildFile; productRef = FAA39F41DBA88557259A946A /* SpeziViews */; };
@@ -49,7 +49,7 @@
 			files = (
 				7E0956D7C60EA8F2CF03C716 /* Spezi in Frameworks */,
 				46365EAFA5A9A5FF16BF3875 /* SpeziFHIR in Frameworks */,
-				1B6BE9698AA3991AE115EABB /* SpeziFHIRHealthKit in Frameworks */,
+				EB0ACCD34CC3EFFEE758A03B /* SpeziHealthKitFHIR in Frameworks */,
 				1E0A30E380B921A88C4D9B1E /* SpeziFHIRMockPatients in Frameworks */,
 				F0D7AE0D33041E4C41FF0D61 /* SpeziHealthKit in Frameworks */,
 				BD63CCD74C3894133BB8971E /* SpeziViews in Frameworks */,
@@ -109,7 +109,7 @@
 			packageProductDependencies = (
 				942A3AA18A6120DB028E750E /* Spezi */,
 				86F678B84DC3CF0561EC5D3C /* SpeziFHIR */,
-				E95329A498967CBD4A7F5D52 /* SpeziFHIRHealthKit */,
+				554AD38AA669E1F5145491A4 /* SpeziHealthKitFHIR */,
 				12983AB1E6D4A45FA6FF2F3C /* SpeziFHIRMockPatients */,
 				4A7235F5DC686CCBA923EAD5 /* SpeziHealthKit */,
 				FAA39F41DBA88557259A946A /* SpeziViews */,
@@ -517,10 +517,10 @@
 			package = 654293E43002D0F400AF6915 /* package */;
 			productName = SpeziFHIR;
 		};
-		E95329A498967CBD4A7F5D52 /* SpeziFHIRHealthKit */ = {
+		554AD38AA669E1F5145491A4 /* SpeziHealthKitFHIR */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 654293E43002D0F400AF6915 /* package */;
-			productName = SpeziFHIRHealthKit;
+			productName = SpeziHealthKitFHIR;
 		};
 		12983AB1E6D4A45FA6FF2F3C /* SpeziFHIRMockPatients */ = {
 			isa = XCSwiftPackageProductDependency;

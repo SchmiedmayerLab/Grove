@@ -8,7 +8,6 @@
 
 #if ResearchKit && os(iOS)
 public import ModelsR4
-#if ResearchKit
 private import ResearchKit
 private import ResearchKitOnFHIR
 public import ResearchKitSwiftUI
@@ -121,6 +120,5 @@ public struct QuestionnaireView: View { // @available(*, deprecated, renamed: "S
         }
     }
 }
-#endif
 
 #endif

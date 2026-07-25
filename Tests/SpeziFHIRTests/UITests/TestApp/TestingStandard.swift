@@ -9,7 +9,7 @@
 import os
 import Spezi
 import SpeziFHIR
-import SpeziFHIRHealthKit
+import SpeziHealthKitFHIR
 import SpeziHealthKit
 
 

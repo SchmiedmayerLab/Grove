@@ -20,6 +20,12 @@
 set -euxo pipefail
 cd "$(dirname "$0")/.."
 
+# Log the toolchain environment, so CI logs carry the context needed to interpret and reproduce a run.
+echo "==> environment"
+sw_vers
+xcodebuild -version
+swift --version
+
 # The package's deployment floor is iOS 15 (so iOS-15 apps can depend on it), but the TEST targets
 # cannot compile at iOS 15: swift-testing's @Suite macro rejects an @available attribute, and the test
 # fixtures use newer APIs held as stored properties (which can't be gated). Tests only ever run on the

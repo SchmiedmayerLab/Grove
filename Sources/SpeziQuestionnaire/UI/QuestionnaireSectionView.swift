@@ -252,12 +252,12 @@ struct QuestionnaireSectionView<Header: View>: View {
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
-@available(iOS 18, macOS 15, watchOS 11, *)
 extension EnvironmentValues {
     @Entry var scrollToNextTask: () -> Void = {}
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireSectionView {
     private struct CancelButton: View {
         let context: Context

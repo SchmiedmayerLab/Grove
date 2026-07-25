@@ -67,7 +67,7 @@ test_products = ["XCTestExtensions"]
 "INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription" = "Uses Bluetooth for testing."
 
 [SpeziFHIR]
-app_products = ["Spezi", "SpeziFHIR", "SpeziFHIRHealthKit", "SpeziFHIRMockPatients", "SpeziHealthKit", "SpeziViews"]
+app_products = ["Spezi", "SpeziFHIR", "SpeziHealthKitFHIR", "SpeziFHIRMockPatients", "SpeziHealthKit", "SpeziViews"]
 [SpeziFHIR.app_settings]
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 "INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription" = "The Test App uses the health data to test the Spezi FHIR Package."
