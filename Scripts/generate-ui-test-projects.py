@@ -10,13 +10,19 @@
 
 from __future__ import annotations
 
+import sys
+
+# tomllib needs Python 3.11+; checking the version (rather than try-importing) also lets Pylance
+# mark the rest of the file unreachable instead of flagging the import when an older interpreter is selected.
+if sys.version_info < (3, 11):
+    sys.exit("error: this script requires Python 3.11+ (uses tomllib)")
+
 import argparse
 import difflib
 import hashlib
 import json
 from pathlib import Path
 import re
-import sys
 import tomllib
 
 

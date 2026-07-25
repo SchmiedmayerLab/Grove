@@ -54,7 +54,10 @@ swift package dump-package > "$DD.dump.json" 2>/dev/null || swift package dump-p
 # on macOS runners — mis-parses a heredoc nested in command substitution.
 ANALYZER=".derivedData/floor-analyze.py"
 cat > "$ANALYZER" <<'PY'
-import json, sys, tomllib
+import sys
+if sys.version_info < (3, 11):
+    sys.exit("error: this script requires Python 3.11+ (uses tomllib)")
+import json, tomllib
 dump = json.load(open(sys.argv[1])); plat = sys.argv[2]
 toml = tomllib.load(open('packages.toml', 'rb'))
 plat_l = plat.lower()

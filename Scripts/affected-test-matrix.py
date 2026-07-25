@@ -35,7 +35,14 @@
 #   has_jobs=true|false
 #   has_ui_jobs=true|false
 #   affected=SpeziAccount,SpeziViews
-import json, os, sys, tomllib
+import sys
+
+# tomllib needs Python 3.11+; checking the version (rather than try-importing) also lets Pylance
+# mark the rest of the file unreachable instead of flagging the import when an older interpreter is selected.
+if sys.version_info < (3, 11):
+    sys.exit("error: this script requires Python 3.11+ (uses tomllib)")
+
+import json, os, tomllib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 with open(os.path.join(ROOT, "packages.toml"), "rb") as f:
