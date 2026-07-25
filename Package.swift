@@ -17,7 +17,11 @@ import PackageDescription
 /// Toggle SwiftLint by setting this to `true`.
 let enableSwiftLint = false
 
-let isLoweredDeploymentTargetEnabled = false
+// Lowered (iOS 15 / macOS 12 / watchOS 8) deployment targets are OFF by default, so the default
+// package graph may depend on iOS-18+-only dependencies. The deployment-floor CI legs
+// (Scripts/build-floor.sh) opt in via this environment variable; the planned iOS-15 mirror repo
+// instead flips the default (and disables all traits).
+let isLoweredDeploymentTargetEnabled = Context.environment["SPEZI_LOWERED_DEPLOYMENT_TARGETS"] == "1"
 
 var defaultPlugins: [Target.PluginUsage] {
     enableSwiftLint ? [.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")] : []

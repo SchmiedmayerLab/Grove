@@ -40,6 +40,7 @@ case "$PLATFORM:$KIND" in
 esac
 
 # Make sure a lowered floor, not the current OS wave, is what we compile against.
+export SPEZI_LOWERED_DEPLOYMENT_TARGETS=1
 unset SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS || true
 # Everything lives under the gitignored `.derivedData/` so a build leaves the checkout clean.
 mkdir -p .derivedData
