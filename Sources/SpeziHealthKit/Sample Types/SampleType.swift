@@ -196,7 +196,9 @@ extension SampleType {
     /// Use this initializer only if the sample type you want to work with isn't already defined by SpeziHealthKit.
     /// - parameter identifier: The sample type's underlying `HKQuantityTypeIdentifier`
     /// - parameter displayTitle: The localized string which should be used when displaying this sample type's title in a user-visible context.
-    /// - parameter displayUnit: The unit which should be used when displaying values of this quantity type to the user.
+    /// - parameter canonicalTitle: The sample type's canonical, locale-independent title.
+    /// - parameter canonicalUnit: The sample type's canonical unit.
+    /// - parameter displayUnits: The sample type's localized display units.
     /// - parameter expectedValuesRange: If applicable, the expected range the individual sample values will most likely fall into.
     ///     Providing this information allows some components to optimize how they display data belonging to this sample type.
     @inlinable public static func quantity(

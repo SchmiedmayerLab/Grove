@@ -17,7 +17,7 @@ public import ModelsR4
 extension HKSample {
     /// A `ResourceProxy` containing an FHIR  `Observation` based on the concrete subclass of `HKSample`.
     ///
-    /// - parameter mapping: A mapping to map `HKSample`s to corresponding FHIR observations allowing the customization of, e.g., codings and units. See ``HKSampleMapping``.
+    /// - parameter mapping: A mapping to map `HKSample`s to corresponding FHIR observations allowing the customization of, e.g., codings and units. See ``SampleTypesFHIRMapping``.
     /// - parameter issuedDate: `Instant` specifying when this version of the resource was made available. Defaults to `Date.now`.
     /// - parameter extensions: Any ``FHIRExtensionBuilder``s that should be applied to each of the produced observations.
     ///     The ``FHIRExtensionBuilder/sourceDevice-9m1t7``, ``FHIRExtensionBuilder/sourceRevision-8b3xb``, and ``FHIRExtensionBuilder/metadata`` extension builders are always enabled when creating a FHIR `Observation`s from a `HKSample`.
@@ -78,7 +78,7 @@ extension Sequence where Element: HKSample {
     ///
     /// - Note: This method provides significant performance improvements as compared to calling ``HealthKit/HKSample/resource(withMapping:issuedDate:extensions:)`` for each element in the collection.
     ///
-    /// - parameter mapping: A mapping to map `HKSample`s to corresponding FHIR observations allowing the customization of, e.g., codings and units. See ``HKSampleMapping``.
+    /// - parameter mapping: A mapping to map `HKSample`s to corresponding FHIR observations allowing the customization of, e.g., codings and units. See ``SampleTypesFHIRMapping``.
     /// - parameter issuedDate: `Instant` specifying when this version of the resource was made available. Defaults to `Date.now`.
     /// - parameter extensions: Any ``FHIRExtensionBuilder``s that should be applied to each of the produced observations.
     ///     The ``FHIRExtensionBuilder/sourceDevice-9m1t7``, ``FHIRExtensionBuilder/sourceRevision-8b3xb``, and ``FHIRExtensionBuilder/metadata`` extension builders are always enabled when creating a FHIR `Observation`s from a `HKSample`.
@@ -97,7 +97,7 @@ extension Sequence where Element: HKSample {
     ///
     /// - Note: This method provides significant performance improvements as compared to calling ``HealthKit/HKSample/resource(withMapping:issuedDate:extensions:)`` on each element in the collection.
     ///
-    /// - parameter mapping: A mapping to map `HKSample`s to corresponding FHIR observations allowing the customization of, e.g., codings and units. See ``HKSampleMapping``.
+    /// - parameter mapping: A mapping to map `HKSample`s to corresponding FHIR observations allowing the customization of, e.g., codings and units. See ``SampleTypesFHIRMapping``.
     /// - parameter issuedDate: `Instant` specifying when this version of the resource was made available. Defaults to `Date.now`.
     /// - parameter extensions: Any ``FHIRExtensionBuilder``s that should be applied to each of the produced observations.
     ///     The ``FHIRExtensionBuilder/sourceDevice-9m1t7``, ``FHIRExtensionBuilder/sourceRevision-8b3xb``, and ``FHIRExtensionBuilder/metadata`` extension builders are always enabled when creating a FHIR `Observation`s from a `HKSample`.

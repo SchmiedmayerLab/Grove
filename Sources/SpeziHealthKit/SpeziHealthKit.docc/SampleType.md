@@ -54,10 +54,10 @@ For example, the sample type representing heart rate samples (``SampleType/heart
 - ``SampleType/phq9``
 
 ### Creating new SampleTypes
-- ``SampleType/quantity(_:displayTitle:displayUnit:expectedValuesRange:)``
-- ``SampleType/correlation(_:displayTitle:associatedQuantityTypes:)``
-- ``SampleType/category(_:displayTitle:)``
-- ``SampleType/clinical(_:displayTitle:)``
+- ``SampleType/quantity(_:displayTitle:canonicalTitle:canonicalUnit:displayUnits:expectedValuesRange:)``
+- ``SampleType/correlation(_:displayTitle:canonicalTitle:associatedQuantityTypes:)``
+- ``SampleType/category(_:displayTitle:canonicalTitle:)``
+- ``SampleType/clinical(_:displayTitle:canonicalTitle:)``
 
 ### Comparing Sample Types
 - ``SampleType/==(_:_:)-8xhr4``

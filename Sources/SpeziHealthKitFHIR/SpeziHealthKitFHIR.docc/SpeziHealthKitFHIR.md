@@ -158,11 +158,11 @@ let sample: HKQuantitySample = // ...
 let observation = try sample.resource().get(if: Observation.self)
 ```
 
-Codes and units can be customized by passing in a custom `HKSampleMapping` instance to the `resource(withMapping:)` method.
+Codes and units can be customized by passing in a custom `SampleTypesFHIRMapping` instance to the `resource(withMapping:)` method.
 
 ```swift
 let sample: HKQuantitySample = // ...
-let sampleMapping: HKSampleMapping = // ...
+let sampleMapping: SampleTypesFHIRMapping = // ...
 let observation = try sample.resource(withMapping: sampleMapping).get(if: Observation.self)
 ```
 
@@ -252,7 +252,7 @@ The following example generates the following FHIR observation:
 
 ### Mapping HealthKit Samples into FHIR Observations
 - ``HealthKit/HKSample/resource(withMapping:issuedDate:extensions:)``
-- ``HealthKit/HKSampleType/resourceType``
+- ``HealthKit/HKSampleType/fhirResourceType``
 - ``HealthKit/HKElectrocardiogram/observation(symptoms:voltageMeasurements:withMapping:issuedDate:extensions:)``
 
 ### Supported HealthKit HKSample Types
