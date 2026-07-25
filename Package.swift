@@ -23,6 +23,18 @@ let enableSwiftLint = false
 // instead flips the default (and disables all traits).
 let isLoweredDeploymentTargetEnabled = Context.environment["SPEZI_LOWERED_DEPLOYMENT_TARGETS"] == "1"
 
+// FHIRModels >= 0.9 cannot link for armv7k: its struct-based models exceed the 32-bit Mach-O
+// scattered-relocation limit, and the App Store rejects watchOS-8-target binaries that lack the
+// armv7k slice (ITMS-90733) — so no watchOS-8 consumer could ever ship the FHIR stack anyway.
+// In the lowered configuration the FHIRModels dependency (and, transitively, every target whose
+// closure embeds it) is therefore unavailable on watchOS; everything else keeps the watchOS 8 floor.
+// The floor-build analyzer (Scripts/build-floor.sh) understands this convention: an *external*
+// product dependency carrying a platform-only condition marks its target as unsupported on the
+// excluded platforms.
+let fhirModelsCondition: TargetDependencyCondition? = isLoweredDeploymentTargetEnabled
+    ? .when(platforms: [.iOS, .macOS, .macCatalyst, .visionOS, .tvOS, .linux])
+    : nil
+
 var defaultPlugins: [Target.PluginUsage] {
     enableSwiftLint ? [.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")] : []
 }
@@ -286,8 +298,8 @@ var targets: [Target] = [
         name: "FHIRModelsExtensions",
         dependencies: [
             .target(name: "FHIRPathParser"),
-            .product(name: "ModelsR4", package: "FHIRModels"),
-            .product(name: "ModelsDSTU2", package: "FHIRModels")
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
+            .product(name: "ModelsDSTU2", package: "FHIRModels", condition: fhirModelsCondition)
         ],
         exclude: targetExcludes("FHIRModelsExtensions", additional: ["FHIR+ExtensionUtils.swift.gyb"]),
         swiftSettings: defaultSwiftSettings,
@@ -304,7 +316,7 @@ var targets: [Target] = [
     .target(
         name: "FHIRQuestionnaires",
         dependencies: [
-            .product(name: "ModelsR4", package: "FHIRModels")
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
         ],
         exclude: targetExcludes("FHIRQuestionnaires"),
         resources: [
@@ -357,8 +369,8 @@ var targets: [Target] = [
             .target(name: "SpeziHealthKit"),
             .target(name: "SpeziFoundation"),
             .target(name: "SpeziFHIR"),
-            .product(name: "ModelsR4", package: "FHIRModels"),
-            .product(name: "ModelsDSTU2", package: "FHIRModels"),
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
+            .product(name: "ModelsDSTU2", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions")
         ],
         exclude: targetExcludes("SpeziHealthKitFHIR"),
@@ -393,7 +405,7 @@ var targets: [Target] = [
         dependencies: [
             .product(name: "ResearchKit", package: "ResearchKit", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
             .product(name: "ResearchKitSwiftUI", package: "ResearchKit", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
-            .product(name: "ModelsR4", package: "FHIRModels"),
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions"),
             .target(name: "FHIRPathParser")
         ],
@@ -787,8 +799,8 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "Spezi"),
             .target(name: "FHIRModelsExtensions"),
-            .product(name: "ModelsR4", package: "FHIRModels"),
-            .product(name: "ModelsDSTU2", package: "FHIRModels")
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
+            .product(name: "ModelsDSTU2", package: "FHIRModels", condition: fhirModelsCondition)
         ],
         exclude: targetExcludes("SpeziFHIR"),
         swiftSettings: defaultSwiftSettings,
@@ -798,7 +810,7 @@ var targets: [Target] = [
         name: "SpeziFHIRMockPatients",
         dependencies: [
             .target(name: "SpeziFHIR"),
-            .product(name: "ModelsR4", package: "FHIRModels")
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
         ],
         exclude: targetExcludes("SpeziFHIRMockPatients"),
         resources: [
@@ -1449,7 +1461,7 @@ var targets: [Target] = [
         name: "SpeziQuestionnaireFHIR",
         dependencies: [
             .target(name: "SpeziQuestionnaire"),
-            .product(name: "ModelsR4", package: "FHIRModels"),
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions"),
             .product(name: "Algorithms", package: "swift-algorithms"),
             .target(name: "SpeziFoundation")
@@ -1461,7 +1473,7 @@ var targets: [Target] = [
     .target(
         name: "SpeziQuestionnaireLegacy",
         dependencies: [
-            .product(name: "ModelsR4", package: "FHIRModels"),
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .product(name: "ResearchKit", package: "ResearchKit", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
             .product(name: "ResearchKitSwiftUI", package: "ResearchKit", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
             .target(name: "ResearchKitOnFHIR", condition: .when(platforms: [.iOS], traits: [researchKitTrait]))
@@ -1483,7 +1495,7 @@ var targets: [Target] = [
             .target(name: "SpeziQuestionnaire"),
             .target(name: "SpeziQuestionnaireCatalog"),
             .target(name: "SpeziQuestionnaireFHIR"),
-            .product(name: "ModelsR4", package: "FHIRModels"),
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions"),
             .target(name: "FHIRQuestionnaires")
         ],
@@ -1617,7 +1629,7 @@ var targets: [Target] = [
     .target(
         name: "SpeziStudyDefinition",
         dependencies: [
-            .product(name: "ModelsR4", package: "FHIRModels"),
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "SpeziHealthKit"),
             .target(name: "SpeziHealthKitBulkExport"),
             .target(name: "SpeziFoundation"),
@@ -1638,7 +1650,7 @@ var targets: [Target] = [
         dependencies: { () -> [Target.Dependency] in
             var deps: [Target.Dependency] = [
                 .target(name: "SpeziStudyDefinition"),
-                .product(name: "ModelsR4", package: "FHIRModels")
+                .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
             ]
             #if canImport(Darwin)
             deps += [
@@ -1844,7 +1856,7 @@ targets += [
         dependencies: [
             .target(name: "SpeziStudyDefinition"),
             .target(name: "Spezi"),
-            .product(name: "ModelsR4", package: "FHIRModels"),
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "SpeziHealthKit"),
             .target(name: "SpeziLocalStorage"),
             .target(name: "SpeziScheduler"),
