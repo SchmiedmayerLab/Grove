@@ -18,7 +18,7 @@ import SpeziHealthKit
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HKSample {
     /// An attachment that was loaded from the health store
-    /* fileprivate but testable */ struct LoadedAttachment: Sendable {
+    struct LoadedAttachment: Sendable {
         let id: UUID
         let contentType: UTType
         let data: Data
@@ -72,7 +72,7 @@ extension FHIRResource {
     }
     
     /// Adds attachments into the resource
-    /* private but testable */  static func process(_ attachments: [HKSample.LoadedAttachment], into resource: inout any ModelsR4.Resource) throws {
+    static func process(_ attachments: [HKSample.LoadedAttachment], into resource: inout any ModelsR4.Resource) throws {
         switch resource {
         case var reference as ModelsR4.DocumentReference:
             for attachment in attachments {
@@ -113,7 +113,7 @@ extension FHIRResource {
         }
     }
 
-    /* private but testable */  static func process(_ attachments: [HKSample.LoadedAttachment], into resource: inout any ModelsDSTU2.Resource) throws {
+    static func process(_ attachments: [HKSample.LoadedAttachment], into resource: inout any ModelsDSTU2.Resource) throws {
         switch resource {
         case var reference as ModelsDSTU2.DocumentReference:
             for attachment in attachments {
