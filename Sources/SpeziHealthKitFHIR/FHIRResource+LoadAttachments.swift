@@ -18,7 +18,7 @@ import SpeziHealthKit
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HKSample {
     /// An attachment that was loaded from the health store
-    fileprivate struct LoadedAttachment: Sendable {
+    /* fileprivate but testable */ struct LoadedAttachment: Sendable {
         let id: UUID
         let contentType: UTType
         let data: Data
@@ -72,7 +72,7 @@ extension FHIRResource {
     }
     
     /// Adds attachments into the resource
-    private static func process(_ attachments: [HKSample.LoadedAttachment], into resource: inout any ModelsR4.Resource) throws {
+    /* private but testable */  static func process(_ attachments: [HKSample.LoadedAttachment], into resource: inout any ModelsR4.Resource) throws {
         switch resource {
         case var reference as ModelsR4.DocumentReference:
             for attachment in attachments {
@@ -109,55 +109,49 @@ extension FHIRResource {
                 resource = report
             }
         default:
-            print("Unexpected FHIR type in the document parsing path: \(resource)")
+            throw SpeziHealthKitFHIRError.invalidFHIRResource
         }
     }
 
-    private static func process(_ attachments: [HKSample.LoadedAttachment], into resource: inout any ModelsDSTU2.Resource) throws {
-        throw NSError(domain: "edu.stanford.SpeziFHIR", code: 0, userInfo: [
-            NSLocalizedDescriptionKey: "DSTU2 resource attachment processing is currently unavailable"
-        ])
-        // TODO(DSTU2) // swiftlint:disable:this todo
-//        switch resource {
-//        case let reference as ModelsDSTU2.DocumentReference:
-//            for attachment in encodedAttachments {
-//                let data = FHIRPrimitive(ModelsDSTU2.Base64Binary(attachment.base64EncodedString))
-//                if let matchingContent = reference.content.first(where: {
-//                    $0.attachment.contentType?.value?.string == attachment.identifier && $0.attachment.data == nil
-//                }) {
-//                    matchingContent.attachment.data = data
-//                } else {
-//                    reference.content.append(
-//                        DocumentReferenceContent(
-//                            attachment: Attachment(contentType: FHIRPrimitive(stringLiteral: attachment.identifier), data: data)
-//                        )
-//                    )
-//                }
-//                resource = reference
-//            }
-//        case let report as ModelsDSTU2.DiagnosticReport:
-//            for attachment in encodedAttachments {
-//                let data = FHIRPrimitive(ModelsDSTU2.Base64Binary(attachment.base64EncodedString))
-//                if let presentedForms = report.presentedForm {
-//                    if let matchingAttachment = presentedForms.first(where: {
-//                        $0.contentType?.value?.string == attachment.identifier && $0.data == nil
-//                    }) {
-//                        matchingAttachment.data = data
-//                    } else {
-//                        report.presentedForm?.append(
-//                            Attachment(contentType: FHIRPrimitive(stringLiteral: attachment.identifier), data: data)
-//                        )
-//                    }
-//                } else {
-//                    report.presentedForm = [
-//                        Attachment(contentType: FHIRPrimitive(stringLiteral: attachment.identifier), data: data)
-//                    ]
-//                }
-//                resource = report
-//            }
-//        default:
-//            print("Unexpected FHIR type in the document parsing path: \(resource.description)")
-//        }
+    /* private but testable */  static func process(_ attachments: [HKSample.LoadedAttachment], into resource: inout any ModelsDSTU2.Resource) throws {
+        switch resource {
+        case var reference as ModelsDSTU2.DocumentReference:
+            for attachment in attachments {
+                let b64Binary = FHIRPrimitive(ModelsDSTU2.Base64Binary(attachment.data.base64EncodedString()))
+                let attachmentContentType: ModelsDSTU2.FHIRPrimitive = (attachment.contentType.preferredMIMEType ?? attachment.contentType.identifier)
+                    .asFHIRStringPrimitive()
+                if let matchingContentIdx = reference.content.firstIndex(where: {
+                    $0.attachment.contentType == attachmentContentType && $0.attachment.data == nil
+                }) {
+                    reference.content[matchingContentIdx].attachment.data = b64Binary
+                } else {
+                    reference.content.append(DocumentReferenceContent(attachment: Attachment(contentType: attachmentContentType, data: b64Binary)))
+                }
+                resource = reference
+            }
+        case var report as ModelsDSTU2.DiagnosticReport:
+            for attachment in attachments {
+                let b64Binary = FHIRPrimitive(ModelsDSTU2.Base64Binary(attachment.data.base64EncodedString()))
+                let attachmentContentType: ModelsDSTU2.FHIRPrimitive = (attachment.contentType.preferredMIMEType ?? attachment.contentType.identifier)
+                    .asFHIRStringPrimitive()
+                if let matchingAttachmentIdx = (report.presentedForm ?? []).firstIndex(where: {
+                    $0.contentType == attachmentContentType && $0.data == nil
+                }) {
+                    // SAFETY: if there is an index, we know that the array is not nil.
+                    // swiftlint:disable:next force_unwrapping
+                    report.presentedForm![matchingAttachmentIdx].data = b64Binary
+                } else {
+                    if report.presentedForm == nil {
+                        report.presentedForm = []
+                    }
+                    // swiftlint:disable:next force_unwrapping
+                    report.presentedForm!.append(Attachment(contentType: attachmentContentType, data: b64Binary))
+                }
+                resource = report
+            }
+        default:
+            throw SpeziHealthKitFHIRError.invalidFHIRResource
+        }
     }
 }
 

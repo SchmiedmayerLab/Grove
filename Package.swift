@@ -59,7 +59,7 @@ let excludeDocCCatalogs = Context.environment["SPEZI_EXCLUDE_DOCC_CATALOGS"] == 
 let packagePlatforms: [SupportedPlatform] = if isLoweredDeploymentTargetEnabled {
     [.iOS(.v15), .macOS(.v12), .watchOS(.v8)]
 } else {
-    [.iOS(.v17), .macOS(.v14), .watchOS(.v10)]
+    [.iOS(.v18), .macOS(.v15), .watchOS(.v11)]
 }
 
 let packageDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
@@ -818,7 +818,8 @@ var targets: [Target] = [
     .testTarget(
         name: "SpeziFHIRTests",
         dependencies: [
-            .target(name: "SpeziFHIR")
+            .target(name: "SpeziFHIR"),
+            "SpeziHealthKitFHIR"
         ],
         exclude: testTargetExcludes("SpeziFHIRTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
