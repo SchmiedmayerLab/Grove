@@ -9,7 +9,7 @@
 import Vapor
 
 
-@available(macOS 26, *)
+@available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *)
 extension Application {
     /// Access Spezi configuration and modules.
     public var spezi: SpeziVapor {

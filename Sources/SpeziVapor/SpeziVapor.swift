@@ -43,7 +43,7 @@ import Vapor
 /// ```swift
 /// let myModule = req.spezi[MyModule.self]
 /// ```
-@available(macOS 26, *)
+@available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *)
 public struct SpeziVapor: Sendable {
     private enum SpeziStorageKey: StorageKey {
         typealias Value = Spezi
