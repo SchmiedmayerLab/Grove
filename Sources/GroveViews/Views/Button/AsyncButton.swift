@@ -132,26 +132,6 @@ public struct AsyncButton<Label: View>: View {
         }
     }
 
-    @ViewBuilder
-    private func customLabelButton(_ label: Label) -> some View {
-        Button(role: role, action: submitAction) {
-            switch processingStyle {
-            case .overlay:
-                label
-                    .processingOverlay(isProcessing: isConsideredProcessing)
-            case .listRow:
-                ListRow {
-                    label
-                        .foregroundStyle(consideredDisabled ? .tertiary : .primary)
-                } content: {
-                    if isConsideredProcessing {
-                        ProgressView()
-                    }
-                }
-            }
-        }
-    }
-
     @available(iOS 26, macOS 26, tvOS 26, watchOS 26, visionOS 26, *)
     @ViewBuilder
     private var roleOnlyButton: some View {
@@ -292,6 +272,34 @@ public struct AsyncButton<Label: View>: View {
         self._viewState = state
         self.action = action
         self.label = nil
+    }
+
+    @ViewBuilder
+    private func customLabelButton(_ label: Label) -> some View {
+        Button(role: role, action: submitAction) {
+            switch processingStyle {
+            case .overlay:
+                label
+                    .processingOverlay(isProcessing: isConsideredProcessing)
+            case .listRow:
+                ListRow {
+                    label
+                        .foregroundStyle(consideredDisabled ? .tertiary : .primary)
+                } content: {
+                    if isConsideredProcessing {
+                        ProgressView()
+                    }
+                }
+            }
+        }
+        .accessibilityRepresentation {
+            Button(role: role, action: submitAction) {
+                label
+            }
+            if isConsideredProcessing {
+                ProgressView()
+            }
+        }
     }
 
     private func submitAction() {
