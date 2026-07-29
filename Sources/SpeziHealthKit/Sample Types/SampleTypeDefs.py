@@ -279,15 +279,15 @@ quantity_types: list[SampleType] = [
     quantity_type(
         identifier='runningSpeed',
         canonical_title='Running Speed',
-        unit='.meterUnit(with: .kilo) / .hour()',
-        display_unit=LocaleDependentUnit(us='.mile() / .hour()'),
+        unit='.meter() / .second()',
+        display_unit=LocaleDependentUnit(us='.mile() / .hour()', metric='.meterUnit(with: .kilo) / .hour()'),
         doc='A quantity sample type that measures the runner’s speed.'
     ),
     quantity_type(
         identifier='runningStrideLength',
         canonical_title='Running Stride Length',
         unit='.meter()',
-        display_unit=LocaleDependentUnit(us='.foot()'),
+        display_unit=LocaleDependentUnit(us='.foot()', metric='.meterUnit(with: .centi)'),
         doc='A quantity sample type that measures the distance covered by a single step while running.'
     ),
     quantity_type(
@@ -856,8 +856,8 @@ quantity_types: list[SampleType] = [
     quantity_type(
         identifier='walkingStepLength',
         canonical_title='Walking Step Length',
-        unit='.meterUnit(with: .centi)',
-        display_unit=LocaleDependentUnit(us='.inch()'),
+        unit='.meter()',
+        display_unit=LocaleDependentUnit(us='.inch()', metric='.meterUnit(with: .centi)'),
         doc='A quantity sample type that measures the average length of the user’s step when walking steadily over flat ground.'
     ),
     quantity_type(
@@ -923,8 +923,8 @@ quantity_types: list[SampleType] = [
         availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
         identifier='crossCountrySkiingSpeed',
         canonical_title='Cross Country Skiing Speed',
-        unit='.meterUnit(with: .kilo) / .hour()',
-        display_unit=LocaleDependentUnit(us='.mile() / .hour()'),
+        unit='.meter() / .second()',
+        display_unit=LocaleDependentUnit(us='.mile() / .hour()', metric='.meterUnit(with: .kilo) / .hour()'),
         doc='A quantity sample that records cross-country skiing speed.'
     ),
     quantity_type(
@@ -948,8 +948,8 @@ quantity_types: list[SampleType] = [
     quantity_type(
         identifier='cyclingSpeed',
         canonical_title='Cycling Speed',
-        unit='.meterUnit(with: .kilo) / .hour()',
-        display_unit=LocaleDependentUnit(us='.mile() / .hour()'),
+        unit='.meter() / .second()',
+        display_unit=LocaleDependentUnit(us='.mile() / .hour()', metric='.meterUnit(with: .kilo) / .hour()'),
         doc='A quantity sample that records cycling speed.'
     ),
     quantity_type(
@@ -1001,8 +1001,8 @@ quantity_types: list[SampleType] = [
         availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
         identifier='paddleSportsSpeed',
         canonical_title='Paddle Sports Speed',
-        unit='.meterUnit(with: .kilo) / .hour()',
-        display_unit=LocaleDependentUnit(us='.mile() / .hour()'),
+        unit='.meter() / .second()',
+        display_unit=LocaleDependentUnit(us='.mile() / .hour()', metric='.meterUnit(with: .kilo) / .hour()'),
         doc='A quantity sample that records paddle sports speed.'
     ),
     quantity_type(
@@ -1015,8 +1015,8 @@ quantity_types: list[SampleType] = [
         availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
         identifier='rowingSpeed',
         canonical_title='Rowing Speed',
-        unit='.meterUnit(with: .kilo) / .hour()',
-        display_unit=LocaleDependentUnit(us='.mile() / .hour()'),
+        unit='.meter() / .second()',
+        display_unit=LocaleDependentUnit(us='.mile() / .hour()', metric='.meterUnit(with: .kilo) / .hour()'),
         doc='A quantity sample that records rowing speed.'
     ),
     quantity_type(

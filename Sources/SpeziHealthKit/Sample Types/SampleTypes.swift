@@ -82,7 +82,7 @@ extension SampleType where Sample == HKQuantitySample {
             default: .quantity(
                 .runningSpeed,
                 canonicalTitle: "Running Speed",
-                canonicalUnit: .meterUnit(with: .kilo) / .hour(),
+                canonicalUnit: .meter() / .second(),
                 displayUnits: LocalizedUnit(metric: .meterUnit(with: .kilo) / .hour(), us: .mile() / .hour())
             )
         )
@@ -96,7 +96,7 @@ extension SampleType where Sample == HKQuantitySample {
                 .runningStrideLength,
                 canonicalTitle: "Running Stride Length",
                 canonicalUnit: .meter(),
-                displayUnits: LocalizedUnit(metric: .meter(), us: .foot())
+                displayUnits: LocalizedUnit(metric: .meterUnit(with: .centi), us: .foot())
             )
         )
     }
@@ -1267,7 +1267,7 @@ extension SampleType where Sample == HKQuantitySample {
             default: .quantity(
                 .walkingStepLength,
                 canonicalTitle: "Walking Step Length",
-                canonicalUnit: .meterUnit(with: .centi),
+                canonicalUnit: .meter(),
                 displayUnits: LocalizedUnit(metric: .meterUnit(with: .centi), us: .inch())
             )
         )
@@ -1386,7 +1386,7 @@ extension SampleType where Sample == HKQuantitySample {
             default: .quantity(
                 .crossCountrySkiingSpeed,
                 canonicalTitle: "Cross Country Skiing Speed",
-                canonicalUnit: .meterUnit(with: .kilo) / .hour(),
+                canonicalUnit: .meter() / .second(),
                 displayUnits: LocalizedUnit(metric: .meterUnit(with: .kilo) / .hour(), us: .mile() / .hour())
             )
         )
@@ -1438,7 +1438,7 @@ extension SampleType where Sample == HKQuantitySample {
             default: .quantity(
                 .cyclingSpeed,
                 canonicalTitle: "Cycling Speed",
-                canonicalUnit: .meterUnit(with: .kilo) / .hour(),
+                canonicalUnit: .meter() / .second(),
                 displayUnits: LocalizedUnit(metric: .meterUnit(with: .kilo) / .hour(), us: .mile() / .hour())
             )
         )
@@ -1535,7 +1535,7 @@ extension SampleType where Sample == HKQuantitySample {
             default: .quantity(
                 .paddleSportsSpeed,
                 canonicalTitle: "Paddle Sports Speed",
-                canonicalUnit: .meterUnit(with: .kilo) / .hour(),
+                canonicalUnit: .meter() / .second(),
                 displayUnits: LocalizedUnit(metric: .meterUnit(with: .kilo) / .hour(), us: .mile() / .hour())
             )
         )
@@ -1562,7 +1562,7 @@ extension SampleType where Sample == HKQuantitySample {
             default: .quantity(
                 .rowingSpeed,
                 canonicalTitle: "Rowing Speed",
-                canonicalUnit: .meterUnit(with: .kilo) / .hour(),
+                canonicalUnit: .meter() / .second(),
                 displayUnits: LocalizedUnit(metric: .meterUnit(with: .kilo) / .hour(), us: .mile() / .hour())
             )
         )

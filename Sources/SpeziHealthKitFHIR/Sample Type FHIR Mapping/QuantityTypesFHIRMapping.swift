@@ -112,6 +112,7 @@ extension Coding {
 extension QuantityTypesFHIRMapping {
     /// The default FHIR mapping for HealthKit Quantity types
     public static let `default`: Self = { // swiftlint:disable:this closure_body_length
+        // NOTE: for all of the entries here, it is important that the UCUM unit (the `code` param in the `addMapping` function) be equivalent to the sample type's canonical healthkit unit.
         var mapping: Self = [:]
         func addMapping(
             for sampleType: SampleType<HKQuantitySample>,
@@ -325,9 +326,9 @@ extension QuantityTypesFHIRMapping {
         )
         addMapping(
             for: .cyclingSpeed,
-            unitString: "km/h",
+            unitString: "m/s",
             system: .unitsOfMeasureSystem,
-            code: "km/h"
+            code: "m/s"
         )
         do {
             let byUnit: [String: [SampleType<HKQuantitySample>]] = [
@@ -654,9 +655,9 @@ extension QuantityTypesFHIRMapping {
         }
         addMapping(for: .runningGroundContactTime, unitString: "ms", system: .unitsOfMeasureSystem, code: "ms")
         addMapping(for: .runningPower, unitString: "watt", system: .unitsOfMeasureSystem, code: "W")
-        addMapping(for: .runningSpeed, unitString: "km/h", system: .unitsOfMeasureSystem, code: "km/h")
-        addMapping(for: .runningStrideLength, unitString: "meters", system: .unitsOfMeasureSystem, code: "m")
-        addMapping(for: .runningVerticalOscillation, unitString: "m", system: .unitsOfMeasureSystem, code: "m")
+        addMapping(for: .runningSpeed, unitString: "m/s", system: .unitsOfMeasureSystem, code: "m/s")
+        addMapping(for: .runningStrideLength, unitString: "m", system: .unitsOfMeasureSystem, code: "m")
+        addMapping(for: .runningVerticalOscillation, unitString: "cm", system: .unitsOfMeasureSystem, code: "cm")
         addMapping(
             for: .sixMinuteWalkTestDistance,
             extraCodings: [
