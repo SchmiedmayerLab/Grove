@@ -128,9 +128,7 @@ extension ECGTypeFHIRMapping {
             ],
             unit: QuantityTypeFHIRMapping.Unit(
                 hkUnit: .count(),
-                unit: "measurements",
-                system: nil,
-                code: nil
+                unit: "measurements"
             )
         ),
         samplingFrequency: QuantityTypeFHIRMapping(

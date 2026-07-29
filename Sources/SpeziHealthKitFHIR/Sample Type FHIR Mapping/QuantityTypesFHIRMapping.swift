@@ -32,13 +32,33 @@ public typealias QuantityTypesFHIRMapping = [SampleType<HKQuantitySample>: Quant
 /// - ``Unit``
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct QuantityTypeFHIRMapping: Sendable {
+    /// Defines the unit used by the observation's quantity.
     public struct Unit: Sendable {
+        /// The `HKUnit` to use when obtaining the `HKQuantitySample`'s value.
         public let hkUnit: HKUnit
+        /// Human-displayable unit string. Must represent the same unit as ``hkUnit``.
         public let unit: String
+        /// Code system used by ``code`` (e.g., UCUM)
         public let system: FHIRPrimitive<FHIRURI>?
+        /// Coded unit, in ``system``
         public let code: FHIRPrimitive<FHIRString>?
         
-        public init(hkUnit: HKUnit, unit: String, system: FHIRPrimitive<FHIRURI>?, code: FHIRPrimitive<FHIRString>?) {
+        fileprivate init(hkUnit: HKUnit, unit: String, system: FHIRPrimitive<FHIRURI>?, code: FHIRPrimitive<FHIRString>?) {
+            assert((system == nil) == (code == nil))
+            self.hkUnit = hkUnit
+            self.unit = unit
+            self.system = system
+            self.code = code
+        }
+        
+        public init(hkUnit: HKUnit, unit: String) {
+            self.hkUnit = hkUnit
+            self.unit = unit
+            self.system = nil
+            self.code = nil
+        }
+        
+        public init(hkUnit: HKUnit, unit: String, system: FHIRPrimitive<FHIRURI>, code: FHIRPrimitive<FHIRString>) {
             self.hkUnit = hkUnit
             self.unit = unit
             self.system = system
@@ -46,8 +66,15 @@ public struct QuantityTypeFHIRMapping: Sendable {
         }
     }
     
+    /// The FHIR `Coding`s to include in the resulting FHIR `Observation`.
+    ///
+    /// These codings will be appended to `code.coding` within the `Observation`.
     public let codings: [Coding]
+    /// The FHIR `Coding`s to set as the resulting FHIR `Observation`'s `category`.
+    ///
+    /// Each coding is wrapped in its own `CodeableConcept` and appended to the `Observation`'s `category`.
     public let categories: [Coding]
+    /// Controls how the resulting FHIR `Observation`'s quantity is constructed.
     public let unit: Unit
     
     public init(codings: [Coding], categories: [Coding] = [], unit: Unit) {
@@ -90,10 +117,11 @@ extension QuantityTypesFHIRMapping {
             for sampleType: SampleType<HKQuantitySample>,
             extraCodings: [Coding] = [],
             case categories: [Coding] = [],
-            code: FHIRPrimitive<FHIRString>?,
             unitString: String,
-            system: FHIRPrimitive<FHIRURI>?
+            system: FHIRPrimitive<FHIRURI>?,
+            code: FHIRPrimitive<FHIRString>?
         ) {
+            assert((system == nil) == (code == nil))
             mapping[sampleType] = QuantityTypeFHIRMapping(
                 codings: extraCodings + [Coding(sampleType)],
                 categories: categories,
@@ -114,19 +142,19 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: "kcal",
             unitString: "kcal",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "kcal"
         )
-        addMapping(for: .appleExerciseTime, code: "min", unitString: "min", system: .unitsOfMeasureSystem)
-        addMapping(for: .appleMoveTime, code: "min", unitString: "min", system: .unitsOfMeasureSystem)
+        addMapping(for: .appleExerciseTime, unitString: "min", system: .unitsOfMeasureSystem, code: "min")
+        addMapping(for: .appleMoveTime, unitString: "min", system: .unitsOfMeasureSystem, code: "min")
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
-            addMapping(for: .appleSleepingBreathingDisturbances, code: nil, unitString: "count", system: nil)
+            addMapping(for: .appleSleepingBreathingDisturbances, unitString: "count", system: nil, code: nil)
         }
-        addMapping(for: .appleSleepingWristTemperature, code: "Cel", unitString: "C", system: .unitsOfMeasureSystem)
-        addMapping(for: .appleStandTime, code: "min", unitString: "min", system: .unitsOfMeasureSystem)
-        addMapping(for: .appleWalkingSteadiness, code: "%", unitString: "%", system: .unitsOfMeasureSystem)
-        addMapping(for: .atrialFibrillationBurden, code: "%", unitString: "%", system: .unitsOfMeasureSystem)
+        addMapping(for: .appleSleepingWristTemperature, unitString: "C", system: .unitsOfMeasureSystem, code: "Cel")
+        addMapping(for: .appleStandTime, unitString: "min", system: .unitsOfMeasureSystem, code: "min")
+        addMapping(for: .appleWalkingSteadiness, unitString: "%", system: .unitsOfMeasureSystem, code: "%")
+        addMapping(for: .atrialFibrillationBurden, unitString: "%", system: .unitsOfMeasureSystem, code: "%")
         addMapping(
             for: .basalBodyTemperature,
             extraCodings: [
@@ -140,11 +168,11 @@ extension QuantityTypesFHIRMapping {
                     system: .snomedCT
                 )
             ],
-            code: "Cel",
             unitString: "C",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "Cel"
         )
-        addMapping(for: .basalEnergyBurned, code: "kcal", unitString: "kcal", system: .unitsOfMeasureSystem)
+        addMapping(for: .basalEnergyBurned, unitString: "kcal", system: .unitsOfMeasureSystem, code: "kcal")
         addMapping(
             for: .bloodAlcoholContent,
             extraCodings: [
@@ -154,9 +182,9 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: "%",
             unitString: "%",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "%"
         )
         addMapping(
             for: .bloodGlucose,
@@ -167,9 +195,9 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: "mg/dL",
             unitString: "mg/dL",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "mg/dL"
         )
         addMapping(
             for: .bloodPressureDiastolic,
@@ -185,9 +213,9 @@ extension QuantityTypesFHIRMapping {
                     system: .snomedCT
                 )
             ],
-            code: "mm[Hg]",
             unitString: "mmHg",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "mm[Hg]"
         )
         addMapping(
             for: .bloodPressureSystolic,
@@ -203,9 +231,9 @@ extension QuantityTypesFHIRMapping {
                     system: .snomedCT
                 )
             ],
-            code: "mm[Hg]",
             unitString: "mmHg",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "mm[Hg]"
         )
         addMapping(
             for: .bodyFatPercentage,
@@ -216,9 +244,9 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: "%",
             unitString: "%",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "%"
         )
         addMapping(
             for: .bodyMass,
@@ -234,9 +262,9 @@ extension QuantityTypesFHIRMapping {
                     system: .snomedCT
                 )
             ],
-            code: "kg",
             unitString: "kg",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "kg"
         )
         addMapping(
             for: .bodyMassIndex,
@@ -247,9 +275,9 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: "kg/m2",
             unitString: "kg/m^2",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "kg/m2"
         )
         addMapping(
             for: .bodyTemperature,
@@ -265,41 +293,41 @@ extension QuantityTypesFHIRMapping {
                     system: .snomedCT
                 )
             ],
-            code: "Cel",
             unitString: "C",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "Cel"
         )
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
             addMapping(
                 for: .crossCountrySkiingSpeed,
-                code: "m/s",
                 unitString: "m/s",
-                system: .unitsOfMeasureSystem
+                system: .unitsOfMeasureSystem,
+                code: "m/s"
             )
         }
         addMapping(
             for: .cyclingCadence,
-            code: "/min",
             unitString: "r/min",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "/min"
         )
         addMapping(
             for: .cyclingFunctionalThresholdPower,
-            code: "W",
             unitString: "watt",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "W"
         )
         addMapping(
             for: .cyclingPower,
-            code: "W",
             unitString: "watt",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "W"
         )
         addMapping(
             for: .cyclingSpeed,
-            code: "km/h",
             unitString: "km/h",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "km/h"
         )
         do {
             let byUnit: [String: [SampleType<HKQuantitySample>]] = [
@@ -313,9 +341,9 @@ extension QuantityTypesFHIRMapping {
                 for sampleType in sampleTypes {
                     addMapping(
                         for: sampleType,
-                        code: unit.asFHIRStringPrimitive(),
                         unitString: unit,
-                        system: .unitsOfMeasureSystem
+                        system: .unitsOfMeasureSystem,
+                        code: unit.asFHIRStringPrimitive()
                     )
                 }
             }
@@ -330,9 +358,9 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: "kcal",
             unitString: "kcal",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "kcal"
         )
         addMapping(
             for: .dietaryFiber,
@@ -343,9 +371,9 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: "g",
             unitString: "g",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "g"
         )
         
         addMapping(
@@ -362,9 +390,9 @@ extension QuantityTypesFHIRMapping {
                     system: .snomedCT
                 )
             ],
-            code: "l",
             unitString: "l",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "l"
         )
         
         do {
@@ -380,7 +408,7 @@ extension QuantityTypesFHIRMapping {
                 ]
             }
             for sampleType in sampleTypes {
-                addMapping(for: sampleType, code: "m", unitString: "m", system: .unitsOfMeasureSystem)
+                addMapping(for: sampleType, unitString: "m", system: .unitsOfMeasureSystem, code: "m")
             }
         }
         addMapping(
@@ -392,36 +420,36 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: "m",
             unitString: "m",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "m"
         )
         addMapping(
             for: .distanceWalkingRunning,
             extraCodings: [
                 // ???
             ],
-            code: "m",
             unitString: "m",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "m"
         )
         addMapping(
             for: .distanceWheelchair,
             extraCodings: [
                 // ???
             ],
-            code: "m",
             unitString: "m",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "m"
         )
         
-        addMapping(for: .electrodermalActivity, code: "mcS", unitString: "microsiemens", system: .unitsOfMeasureSystem)
-        addMapping(for: .environmentalAudioExposure, code: "dB(SPL)", unitString: "dB(SPL)", system: .unitsOfMeasureSystem)
-        addMapping(for: .environmentalSoundReduction, code: "dB(HL)", unitString: "dB(HL)", system: .unitsOfMeasureSystem)
+        addMapping(for: .electrodermalActivity, unitString: "microsiemens", system: .unitsOfMeasureSystem, code: "mcS")
+        addMapping(for: .environmentalAudioExposure, unitString: "dB(SPL)", system: .unitsOfMeasureSystem, code: "dB(SPL)")
+        addMapping(for: .environmentalSoundReduction, unitString: "dB(HL)", system: .unitsOfMeasureSystem, code: "dB(HL)")
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
-            addMapping(for: .estimatedWorkoutEffortScore, code: nil, unitString: "effort", system: nil)
+            addMapping(for: .estimatedWorkoutEffortScore, unitString: "effort", system: nil, code: nil)
         }
-        addMapping(for: .heartRateRecoveryOneMinute, code: "/min", unitString: "beats/minute", system: .unitsOfMeasureSystem)
+        addMapping(for: .heartRateRecoveryOneMinute, unitString: "beats/minute", system: .unitsOfMeasureSystem, code: "/min")
         addMapping(
             for: .flightsClimbed,
             extraCodings: [
@@ -431,9 +459,9 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: nil,
             unitString: "flights",
-            system: nil
+            system: nil,
+            code: nil
         )
         addMapping(
             for: .forcedExpiratoryVolume1,
@@ -444,9 +472,9 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: "L",
             unitString: "L",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "L"
         )
         addMapping(
             for: .forcedVitalCapacity,
@@ -457,11 +485,11 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: "L",
             unitString: "L",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "L"
         )
-        addMapping(for: .headphoneAudioExposure, code: "dB(SPL)", unitString: "dB(SPL)", system: .unitsOfMeasureSystem)
+        addMapping(for: .headphoneAudioExposure, unitString: "dB(SPL)", system: .unitsOfMeasureSystem, code: "dB(SPL)")
         addMapping(
             for: .heartRate,
             extraCodings: [
@@ -476,9 +504,9 @@ extension QuantityTypesFHIRMapping {
                     system: .snomedCT
                 )
             ],
-            code: "/min",
             unitString: "beats/minute",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "/min"
         )
         addMapping(
             for: .heartRateVariabilitySDNN,
@@ -489,9 +517,9 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: "ms",
             unitString: "ms",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "ms"
         )
         addMapping(
             for: .height,
@@ -507,12 +535,12 @@ extension QuantityTypesFHIRMapping {
                     system: .snomedCT
                 )
             ],
-            code: "cm",
             unitString: "cm",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "cm"
         )
-        addMapping(for: .inhalerUsage, code: nil, unitString: "count", system: nil)
-        addMapping(for: .insulinDelivery, code: "IU", unitString: "IU", system: .unitsOfMeasureSystem)
+        addMapping(for: .inhalerUsage, unitString: "count", system: nil, code: nil)
+        addMapping(for: .insulinDelivery, unitString: "IU", system: .unitsOfMeasureSystem, code: "IU")
         addMapping(
             for: .leanBodyMass,
             extraCodings: [
@@ -522,13 +550,13 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: "kg",
             unitString: "kg",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "kg"
         )
-        addMapping(for: .nikeFuel, code: nil, unitString: "nikeFuel", system: nil)
-        addMapping(for: .numberOfAlcoholicBeverages, code: nil, unitString: "beverages", system: nil)
-        addMapping(for: .numberOfTimesFallen, code: nil, unitString: "falls", system: nil)
+        addMapping(for: .nikeFuel, unitString: "nikeFuel", system: nil, code: nil)
+        addMapping(for: .numberOfAlcoholicBeverages, unitString: "beverages", system: nil, code: nil)
+        addMapping(for: .numberOfTimesFallen, unitString: "falls", system: nil, code: nil)
         addMapping(
             for: .bloodOxygen,
             extraCodings: [
@@ -543,12 +571,12 @@ extension QuantityTypesFHIRMapping {
                     system: .snomedCT
                 )
             ],
-            code: "%",
             unitString: "%",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "%"
         )
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
-            addMapping(for: .paddleSportsSpeed, code: "m/s", unitString: "m/s", system: .unitsOfMeasureSystem)
+            addMapping(for: .paddleSportsSpeed, unitString: "m/s", system: .unitsOfMeasureSystem, code: "m/s")
         }
         addMapping(
             for: .peakExpiratoryFlowRate,
@@ -559,9 +587,9 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: "L/min",
             unitString: "L/min",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "L/min"
         )
         addMapping(
             for: .peripheralPerfusionIndex,
@@ -572,11 +600,11 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: "%",
             unitString: "%",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "%"
         )
-        addMapping(for: .physicalEffort, code: "kcal/(kg.h)", unitString: "kcal/(kg.h)", system: .unitsOfMeasureSystem)
+        addMapping(for: .physicalEffort, unitString: "kcal/(kg.h)", system: .unitsOfMeasureSystem, code: "kcal/(kg.h)")
         addMapping(
             for: .pushCount,
             extraCodings: [
@@ -586,9 +614,9 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: nil,
             unitString: "wheelchair pushes",
-            system: nil
+            system: nil,
+            code: nil
         )
         addMapping(
             for: .respiratoryRate,
@@ -604,9 +632,9 @@ extension QuantityTypesFHIRMapping {
                     system: .snomedCT
                 )
             ],
-            code: "/min",
             unitString: "breaths/minute",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "/min"
         )
         addMapping(
             for: .restingHeartRate,
@@ -617,18 +645,18 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: "/min",
             unitString: "beats/minute",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "/min"
         )
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
-            addMapping(for: .rowingSpeed, code: "m/s", unitString: "m/s", system: .unitsOfMeasureSystem)
+            addMapping(for: .rowingSpeed, unitString: "m/s", system: .unitsOfMeasureSystem, code: "m/s")
         }
-        addMapping(for: .runningGroundContactTime, code: "ms", unitString: "ms", system: .unitsOfMeasureSystem)
-        addMapping(for: .runningPower, code: "W", unitString: "watt", system: .unitsOfMeasureSystem)
-        addMapping(for: .runningSpeed, code: "km/h", unitString: "km/h", system: .unitsOfMeasureSystem)
-        addMapping(for: .runningStrideLength, code: "m", unitString: "meters", system: .unitsOfMeasureSystem)
-        addMapping(for: .runningVerticalOscillation, code: "m", unitString: "m", system: .unitsOfMeasureSystem)
+        addMapping(for: .runningGroundContactTime, unitString: "ms", system: .unitsOfMeasureSystem, code: "ms")
+        addMapping(for: .runningPower, unitString: "watt", system: .unitsOfMeasureSystem, code: "W")
+        addMapping(for: .runningSpeed, unitString: "km/h", system: .unitsOfMeasureSystem, code: "km/h")
+        addMapping(for: .runningStrideLength, unitString: "meters", system: .unitsOfMeasureSystem, code: "m")
+        addMapping(for: .runningVerticalOscillation, unitString: "m", system: .unitsOfMeasureSystem, code: "m")
         addMapping(
             for: .sixMinuteWalkTestDistance,
             extraCodings: [
@@ -638,12 +666,12 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: "m",
             unitString: "m",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "m"
         )
-        addMapping(for: .stairAscentSpeed, code: "m/s", unitString: "m/s", system: .unitsOfMeasureSystem)
-        addMapping(for: .stairDescentSpeed, code: "m/s", unitString: "m/s", system: .unitsOfMeasureSystem)
+        addMapping(for: .stairAscentSpeed, unitString: "m/s", system: .unitsOfMeasureSystem, code: "m/s")
+        addMapping(for: .stairDescentSpeed, unitString: "m/s", system: .unitsOfMeasureSystem, code: "m/s")
         addMapping(
             for: .stepCount,
             extraCodings: [
@@ -653,15 +681,15 @@ extension QuantityTypesFHIRMapping {
                     system: .loincSystem
                 )
             ],
-            code: nil,
             unitString: "steps",
-            system: nil
+            system: nil,
+            code: nil
         )
-        addMapping(for: .swimmingStrokeCount, code: nil, unitString: "strokes", system: nil)
-        addMapping(for: .timeInDaylight, code: "min", unitString: "min", system: .unitsOfMeasureSystem)
-        addMapping(for: .underwaterDepth, code: "m", unitString: "m", system: .unitsOfMeasureSystem)
-        addMapping(for: .uvExposure, code: nil, unitString: "count", system: nil)
-        addMapping(for: .vo2Max, code: "mL/kg/min", unitString: "mL/kg/min", system: .unitsOfMeasureSystem)
+        addMapping(for: .swimmingStrokeCount, unitString: "strokes", system: nil, code: nil)
+        addMapping(for: .timeInDaylight, unitString: "min", system: .unitsOfMeasureSystem, code: "min")
+        addMapping(for: .underwaterDepth, unitString: "m", system: .unitsOfMeasureSystem, code: "m")
+        addMapping(for: .uvExposure, unitString: "count", system: nil, code: nil)
+        addMapping(for: .vo2Max, unitString: "mL/kg/min", system: .unitsOfMeasureSystem, code: "mL/kg/min")
         addMapping(
             for: .waistCircumference,
             extraCodings: [
@@ -676,18 +704,18 @@ extension QuantityTypesFHIRMapping {
                     system: .snomedCT
                 )
             ],
-            code: "cm",
             unitString: "cm",
-            system: .unitsOfMeasureSystem
+            system: .unitsOfMeasureSystem,
+            code: "cm"
         )
-        addMapping(for: .walkingAsymmetryPercentage, code: "%", unitString: "%", system: .unitsOfMeasureSystem)
-        addMapping(for: .walkingDoubleSupportPercentage, code: "%", unitString: "%", system: .unitsOfMeasureSystem)
-        addMapping(for: .walkingHeartRateAverage, code: "/min", unitString: "beats/minute", system: .unitsOfMeasureSystem)
-        addMapping(for: .walkingSpeed, code: "m/s", unitString: "m/s", system: .unitsOfMeasureSystem)
-        addMapping(for: .walkingStepLength, code: "m", unitString: "m", system: .unitsOfMeasureSystem)
-        addMapping(for: .waterTemperature, code: "Cel", unitString: "C", system: .unitsOfMeasureSystem)
+        addMapping(for: .walkingAsymmetryPercentage, unitString: "%", system: .unitsOfMeasureSystem, code: "%")
+        addMapping(for: .walkingDoubleSupportPercentage, unitString: "%", system: .unitsOfMeasureSystem, code: "%")
+        addMapping(for: .walkingHeartRateAverage, unitString: "beats/minute", system: .unitsOfMeasureSystem, code: "/min")
+        addMapping(for: .walkingSpeed, unitString: "m/s", system: .unitsOfMeasureSystem, code: "m/s")
+        addMapping(for: .walkingStepLength, unitString: "m", system: .unitsOfMeasureSystem, code: "m")
+        addMapping(for: .waterTemperature, unitString: "C", system: .unitsOfMeasureSystem, code: "Cel")
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
-            addMapping(for: .workoutEffortScore, code: nil, unitString: "effort", system: nil)
+            addMapping(for: .workoutEffortScore, unitString: "effort", system: nil, code: nil)
         }
         return mapping
     }()
