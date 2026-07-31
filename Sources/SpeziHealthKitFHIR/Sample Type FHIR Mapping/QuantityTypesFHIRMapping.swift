@@ -115,6 +115,14 @@ extension QuantityTypesFHIRMapping {
     public static let `default`: Self = { // swiftlint:disable:this closure_body_length
         // NOTE: for all of the entries here, it is important that the UCUM unit (the `code` param in the `addMapping` function) be equivalent to the sample type's canonical healthkit unit.
         var mapping: Self = [:]
+        /// Adds an entry to the mapping being built up
+        ///
+        /// - parameter sampleType: The `SampleType<HKQuantitySample>` to which the entry belongs
+        /// - parameter extraCodings: Additional FHIR `Coding`s to add
+        /// - parameter categories: FHIR categories to add
+        /// - parameter unitString: Human-readable representation of the unit.
+        ///     Must be semantically equivalent to `sampleType.canonicalUnit`.
+        ///     Exists as a separate input to allow a `HKUnit.count()`-based sample type such as e.g. floorsClimbed to instead use "floors" as its human-readable unit.
         func addMapping(
             for sampleType: SampleType<HKQuantitySample>,
             extraCodings: [Coding] = [],
@@ -124,6 +132,7 @@ extension QuantityTypesFHIRMapping {
             code: FHIRPrimitive<FHIRString>?
         ) {
             assert((system == nil) == (code == nil))
+            assert(mapping[sampleType] == nil, "Sample Type '\(sampleType)' already has an entry!")
             mapping[sampleType] = QuantityTypeFHIRMapping(
                 codings: extraCodings + [Coding(sampleType)],
                 categories: categories,
@@ -167,6 +176,7 @@ extension QuantityTypesFHIRMapping {
                 ),
                 Coding(
                     code: "300076005",
+                    display: "Basal body temperature",
                     system: .snomedCT
                 )
             ],
@@ -445,7 +455,7 @@ extension QuantityTypesFHIRMapping {
             code: "m"
         )
         
-        addMapping(for: .electrodermalActivity, unitString: "microsiemens", system: .unitsOfMeasureSystem, code: "mcS")
+        addMapping(for: .electrodermalActivity, unitString: "microsiemens", system: .unitsOfMeasureSystem, code: "uS")
         addMapping(for: .environmentalAudioExposure, unitString: "dB(SPL)", system: .unitsOfMeasureSystem, code: "dB(SPL)")
         addMapping(for: .environmentalSoundReduction, unitString: "dB(HL)", system: .unitsOfMeasureSystem, code: "dB(HL)")
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {

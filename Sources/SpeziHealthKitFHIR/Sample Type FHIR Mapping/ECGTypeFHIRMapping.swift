@@ -163,7 +163,7 @@ extension ECGTypeFHIRMapping {
                 hkUnit: .count() / .minute(),
                 unit: "beats/minute",
                 system: "http://unitsofmeasure.org",
-                code: "/minute"
+                code: "/min"
             )
         ),
         voltageMeasurements: QuantityTypeFHIRMapping(
