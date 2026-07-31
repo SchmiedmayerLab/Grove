@@ -50,7 +50,14 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKObje
                             String(cString: _getObjCTypeEncoding(type))
                         }
                         switch String(cString: value.objCType) {
-                        case "c", typeEncoding(Bool.self), typeEncoding(ObjCBool.self):
+                        case "c" where value.intValue == 0 || value.intValue == 1:
+                            // if the number reports as a char (int8), and it's value is 0 or 1, we treat it as a boolean value.
+                            // we need to do this as ObjC bools are encoded as chars.
+                            // the likelihood of a HKSample containing an int8-typed metadata entry that is actually supposed to be a
+                            // numeric value is significantly lower than the sample containing a boolean-typed metadata value
+                            // originating from ObjC.
+                            fallthrough
+                        case typeEncoding(Bool.self), typeEncoding(ObjCBool.self):
                             extensionValue = .boolean(value.boolValue.asPrimitive())
                         default:
                             extensionValue = .decimal(FHIRPrimitive(FHIRDecimal(value.decimalValue)))
