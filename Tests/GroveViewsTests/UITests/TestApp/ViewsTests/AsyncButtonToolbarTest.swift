@@ -15,6 +15,7 @@ struct AsyncButtonToolbarTestSheet: View {
     @State private var didCancel = false
     @State private var didFinishListRowAction = false
     @State private var didFinishOverlayAction = false
+    @State private var didFinishStatelessAction = false
     @State private var didTap = false
     @State private var listRowState: ViewState = .idle
     @State private var overlayState: ViewState = .idle
@@ -39,6 +40,13 @@ struct AsyncButtonToolbarTestSheet: View {
                     .asyncButtonProcessingStyle(.listRow)
                     .accessibilityIdentifier("Role Only List Row")
                     LabeledContent("List row completed", value: didFinishListRowAction.description)
+                }
+                Section("Role-only without state") {
+                    AsyncButton(role: .confirm) {
+                        didFinishStatelessAction = true
+                    }
+                    .accessibilityIdentifier("Role Only Stateless")
+                    LabeledContent("Stateless completed", value: didFinishStatelessAction.description)
                 }
             }
             .navigationTitle("AsyncButtonInToolbar")
