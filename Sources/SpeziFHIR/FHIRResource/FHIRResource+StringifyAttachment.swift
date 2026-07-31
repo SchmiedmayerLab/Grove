@@ -38,7 +38,6 @@ extension FHIRResource {
             guard var docRef = resource as? ModelsDSTU2.DocumentReference else {
                 return
             }
-            throw ProcessingError.dstu2AttachmentsUnavailable
             for idx in docRef.content.indices {
                 try service.stringify(attachment: &docRef.content[idx].attachment)
             }
