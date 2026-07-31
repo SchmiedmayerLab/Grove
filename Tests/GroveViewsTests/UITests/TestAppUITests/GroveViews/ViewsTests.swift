@@ -200,6 +200,13 @@ final class ViewsTests: XCTestCase {
         XCTAssert(app.staticTexts["List row completed, true"].waitForExistence(timeout: 4))
         XCTAssert(app.activityIndicators.firstMatch.waitForNonExistence(timeout: 2))
         XCTAssertTrue(listRowButton.isEnabled)
+
+        let statelessButton = app.buttons["Role Only Stateless"]
+        XCTAssert(statelessButton.waitForExistence(timeout: 2))
+        XCTAssertEqual(statelessButton.label, "Done")
+        XCTAssert(app.staticTexts["Stateless completed, false"].waitForExistence(timeout: 2))
+        statelessButton.tap()
+        XCTAssert(app.staticTexts["Stateless completed, true"].waitForExistence(timeout: 2))
     }
 
     @MainActor

@@ -256,6 +256,21 @@ public struct AsyncButton<Label: View>: View {
         self.label = label()
     }
 
+    /// Creates an async button with a system-provided label for the supplied role.
+    /// - Parameters:
+    ///   - role: A button role that determines the system-provided label.
+    ///   - action: An asynchronous button action.
+    @available(iOS 26, macOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+    public init(
+        role: ButtonRole,
+        action: @MainActor @escaping () async -> Void
+    ) where Label == DefaultButtonLabel {
+        self.role = role
+        self._viewState = .constant(.idle)
+        self.action = action
+        self.label = nil
+    }
+
     /// Creates an async throwing button with a system-provided label for the supplied role.
     /// - Parameters:
     ///   - role: A button role that determines the system-provided label.
