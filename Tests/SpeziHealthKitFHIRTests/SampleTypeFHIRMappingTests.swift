@@ -81,7 +81,7 @@ struct SampleTypeFHIRMappingTests {
                     )
                 }
             default:
-                Issue.record("TODO") // TODO
+                Issue.record("Unhandled coding system: '\(nonHKUnitSystem)'")
             }
         }
     }
