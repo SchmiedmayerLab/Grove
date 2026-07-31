@@ -117,7 +117,7 @@ extension QuantityTypesFHIRMapping {
         func addMapping(
             for sampleType: SampleType<HKQuantitySample>,
             extraCodings: [Coding] = [],
-            case categories: [Coding] = [],
+            categories: [Coding] = [],
             unitString: String,
             system: FHIRPrimitive<FHIRURI>?,
             code: FHIRPrimitive<FHIRString>?

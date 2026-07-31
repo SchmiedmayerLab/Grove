@@ -18,7 +18,7 @@ extension Observation {
     
     /// Appends multiple `Identifier`s to the `Observation`
     @inlinable
-    public mutating func append(identifiers: some Sequence<Identifier>) {
+    public mutating func append(identifiers: some Collection<Identifier>) {
         append(identifiers, to: \.identifier)
     }
     
@@ -30,7 +30,7 @@ extension Observation {
     
     /// Appends multiple `CodeableConcept`s to the `Observation`
     @inlinable
-    public mutating func append(categories: some Sequence<CodeableConcept>) {
+    public mutating func append(categories: some Collection<CodeableConcept>) {
         append(categories, to: \.category)
     }
     
@@ -42,7 +42,7 @@ extension Observation {
     
     /// Appends multiple `Coding`s to the `Observation`
     @inlinable
-    public mutating func append(codings: some Sequence<Coding>) {
+    public mutating func append(codings: some Collection<Coding>) {
         append(codings, to: \.code.coding)
     }
     
@@ -54,7 +54,7 @@ extension Observation {
     
     /// Appends multiple `ObservationComponent`s to the `Observation`
     @inlinable
-    public mutating func append(components: some Sequence<ObservationComponent>) {
+    public mutating func append(components: some Collection<ObservationComponent>) {
         append(components, to: \.component)
     }
 }
