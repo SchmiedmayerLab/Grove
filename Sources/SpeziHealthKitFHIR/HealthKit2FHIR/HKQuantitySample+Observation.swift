@@ -50,11 +50,15 @@ extension HKQuantity {
     }
     
     func buildQuantity(mapping: QuantityTypeFHIRMapping) throws -> Quantity {
-        Quantity(
+        var value = self.doubleValue(for: mapping.unit.hkUnit)
+        if mapping.unit.hkUnit == .percent() {
+            value *= 100
+        }
+        return Quantity(
             code: mapping.unit.code,
             system: mapping.unit.system,
             unit: mapping.unit.unit.asFHIRStringPrimitive(),
-            value: try self.doubleValue(for: mapping.unit.hkUnit).asFHIRDecimalPrimitiveSafe()
+            value: try value.asFHIRDecimalPrimitiveSafe()
         )
     }
 }
