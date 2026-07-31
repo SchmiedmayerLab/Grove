@@ -56,7 +56,7 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKObje
                             // the likelihood of a HKSample containing an int8-typed metadata entry that is actually supposed to be a
                             // numeric value is significantly lower than the sample containing a boolean-typed metadata value
                             // originating from ObjC.
-                            fallthrough
+                            fallthrough // swiftlint:disable:this no_fallthrough_only
                         case typeEncoding(Bool.self), typeEncoding(ObjCBool.self):
                             extensionValue = .boolean(value.boolValue.asPrimitive())
                         default:
