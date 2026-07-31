@@ -27,6 +27,7 @@ public typealias QuantityTypesFHIRMapping = [SampleType<HKQuantitySample>: Quant
 /// ### Instance Properties
 /// - ``codings``
 /// - ``unit``
+/// - ``categories``
 ///
 /// ### Supporting Types
 /// - ``Unit``
