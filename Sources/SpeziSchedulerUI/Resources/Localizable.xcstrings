@@ -64,9 +64,6 @@
         }
       }
     },
-    "Error Occurrence: %@" : {
-
-    },
     "Failed to fetch Events" : {
 
     },
@@ -91,9 +88,6 @@
           }
         }
       }
-    },
-    "More information about the task!" : {
-
     },
     "No Events" : {
 

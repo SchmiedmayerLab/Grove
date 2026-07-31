@@ -1,4 +1,10 @@
 {
+  "languages" : [
+    "de",
+    "en",
+    "es",
+    "sv"
+  ],
   "sourceLanguage" : "en",
   "strings" : {
     "ACCOUNT_ERROR_ACCOUNT_ID_CHANGED_DESCRIPTION" : {
@@ -926,9 +932,6 @@
           }
         }
       }
-    },
-    "E-Mail and Password" : {
-
     },
     "Edit" : {
       "comment" : "A button label that indicates that the user can edit the current view.",

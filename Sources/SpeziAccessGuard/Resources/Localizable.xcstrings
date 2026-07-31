@@ -247,9 +247,6 @@
     "Enter Passcode" : {
 
     },
-    "Enter PIN" : {
-
-    },
     "Error: %@" : {
 
     },
@@ -384,18 +381,6 @@
     "Successfully Unlocked" : {
 
     },
-    "Super secret stuff 🤫" : {
-
-    },
-    "too long" : {
-
-    },
-    "too short" : {
-
-    },
-    "Unlock" : {
-
-    },
     "Unlock via Face ID" : {
 
     },
@@ -414,9 +399,6 @@
           }
         }
       }
-    },
-    "WRONG" : {
-
     }
   },
   "version" : "1.0"
