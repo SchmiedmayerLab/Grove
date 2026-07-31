@@ -1258,7 +1258,7 @@ struct HKQuantitySampleTests {
     func walkingAsymmetryPercentage() throws {
         let observation = try createObservationFrom(
             type: HKQuantityType(.walkingAsymmetryPercentage),
-            quantity: HKQuantity(unit: .percent(), doubleValue: 50)
+            quantity: HKQuantity(unit: .percent(), doubleValue: 0.5)
         )
         #expect(observation.code.coding == [
             createCoding(
@@ -1332,7 +1332,7 @@ struct HKQuantitySampleTests {
     func oxygenSaturation() throws {
         let observation = try createObservationFrom(
             type: HKQuantityType(.oxygenSaturation),
-            quantity: HKQuantity(unit: .percent(), doubleValue: 99)
+            quantity: HKQuantity(unit: .percent(), doubleValue: 0.99)
         )
         #expect(observation.code.coding == [
             createCoding(
@@ -1393,7 +1393,7 @@ struct HKQuantitySampleTests {
     func peripheralPerfusionIndex() throws {
         let observation = try createObservationFrom(
             type: HKQuantityType(.peripheralPerfusionIndex),
-            quantity: HKQuantity(unit: .percent(), doubleValue: 5)
+            quantity: HKQuantity(unit: .percent(), doubleValue: 0.05)
         )
         #expect(observation.code.coding == [
             createCoding(
@@ -1664,7 +1664,7 @@ struct HKQuantitySampleTests {
     func bodyFatPercentage() throws {
         let observation = try createObservationFrom(
             type: HKQuantityType(.bodyFatPercentage),
-            quantity: HKQuantity(unit: .percent(), doubleValue: 21)
+            quantity: HKQuantity(unit: .percent(), doubleValue: 0.21)
         )
         #expect(observation.code.coding == [
             createCoding(
@@ -2010,7 +2010,7 @@ struct HKQuantitySampleTests {
     func ppleWalkingSteadiness() throws {
         let observation = try createObservationFrom(
             type: HKQuantityType(.appleWalkingSteadiness),
-            quantity: HKQuantity(unit: .percent(), doubleValue: 50)
+            quantity: HKQuantity(unit: .percent(), doubleValue: 0.5)
         )
         #expect(observation.code.coding == [
             createCoding(
