@@ -40,6 +40,7 @@ struct SampleTypeFHIRMappingTests {
             "mm[Hg]": "mmHg",
             "/min": "count/min",
             "ug": "mcg",
+            "uS": "mcS",
             "l": "L",
             "dB(HL)": "dBHL"
         ]

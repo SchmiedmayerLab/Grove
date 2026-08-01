@@ -1033,7 +1033,7 @@ struct HKQuantitySampleTests {
         ])
         #expect(observation.value == .quantity(
             Quantity(
-                code: "mcS",
+                code: "uS",
                 system: "http://unitsofmeasure.org",
                 unit: "microsiemens",
                 value: 1.asFHIRDecimalPrimitive()
@@ -1591,6 +1591,7 @@ struct HKQuantitySampleTests {
             ),
             Coding(
                 code: "300076005",
+                display: "Basal body temperature",
                 system: .snomedCT
             ),
             createCoding(
