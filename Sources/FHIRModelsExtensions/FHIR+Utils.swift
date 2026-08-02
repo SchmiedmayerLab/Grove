@@ -1,5 +1,5 @@
 //
-// This source file is part of the HealthKitOnFHIR open source project
+// This source file is part of the Stanford Spezi open source project
 //
 // SPDX-FileCopyrightText: 2025 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -41,31 +41,5 @@ extension Decimal {
     @inlinable
     public func asFHIRPrimitive() -> FHIRPrimitive<FHIRDecimal> {
         FHIRPrimitive(FHIRDecimal(self))
-    }
-}
-
-
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension FHIRPrimitive where PrimitiveType == FHIRURI {
-    /// Creates a new `FHIRPrimitive<FHIRURI>`, by appending the specified component.
-    @inlinable
-    public func appending(component: some StringProtocol) -> Self {
-        guard let value else {
-            return self
-        }
-        return Self(FHIRURI(value.url.appending(component: component)))
-    }
-    
-    /// Creates a new `FHIRPrimitive<FHIRURI>`, by appending the specified components.
-    @inlinable
-    public func appending(components: [some StringProtocol]) -> Self {
-        guard let value else {
-            return self
-        }
-        var url = value.url
-        for component in components {
-            url = url.appending(component: component)
-        }
-        return Self(FHIRURI(url))
     }
 }

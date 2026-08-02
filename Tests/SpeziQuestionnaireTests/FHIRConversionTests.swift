@@ -44,20 +44,22 @@ struct FHIRConversionTests {
                 return
             }
         }
-        let fhirResponse = try ModelsR4.QuestionnaireResponse(responses)
-        let expected = try JSONDecoder().decode(
+        var fhirResponse = try ModelsR4.QuestionnaireResponse(responses)
+        var expected = try JSONDecoder().decode(
             ModelsR4.QuestionnaireResponse.self,
             from: Data(
                 contentsOf: try #require(Foundation.Bundle.module.url(forResource: "PHQ9_response_rkof", withExtension: "json"))
             )
         )
-        for response in [fhirResponse, expected] {
+        let fix = { (response: inout ModelsR4.QuestionnaireResponse) in
             // we need to null some fields out bc they will never be equal
             response.authored = nil // response date
             response.id = nil
             response.identifier = nil
             response.questionnaire = nil
         }
+        fix(&fhirResponse)
+        fix(&expected)
         #expect(fhirResponse == expected)
     }
     
@@ -89,14 +91,16 @@ struct FHIRConversionTests {
     func fhirResponsesStructureVsRKoF(filename: String) throws {
         let rkofResultUrl = try #require(Foundation.Bundle.module.url(forResource: "\(filename)_response_rkof", withExtension: "json"))
         let speziResultUrl = try #require(Foundation.Bundle.module.url(forResource: "\(filename)_response_spezi", withExtension: "json"))
-        let rkofResponse = try JSONDecoder().decode(ModelsR4.QuestionnaireResponse.self, from: Data(contentsOf: rkofResultUrl))
-        let speziResponse = try JSONDecoder().decode(ModelsR4.QuestionnaireResponse.self, from: Data(contentsOf: speziResultUrl))
-        for response in [speziResponse, rkofResponse] {
+        var rkofResponse = try JSONDecoder().decode(ModelsR4.QuestionnaireResponse.self, from: Data(contentsOf: rkofResultUrl))
+        var speziResponse = try JSONDecoder().decode(ModelsR4.QuestionnaireResponse.self, from: Data(contentsOf: speziResultUrl))
+        let fix = { (response: inout ModelsR4.QuestionnaireResponse) in
             // we need to null some fields out bc they will never be equal
             response.authored = nil // response date
             response.id = nil
             response.identifier = nil
         }
+        fix(&speziResponse)
+        fix(&rkofResponse)
         #expect(rkofResponse == speziResponse)
     }
     
@@ -119,11 +123,11 @@ struct FHIRConversionTests {
                 ))
             )
             let item1 = QuestionnaireItem(
+                answerOption: [answerOption],
                 linkId: "q1".asFHIRStringPrimitive(),
+                text: "Do you like ice cream?".asFHIRStringPrimitive(),
                 type: .init(.choice)
             )
-            item1.answerOption = [answerOption]
-            item1.text = "Do you like ice cream?".asFHIRStringPrimitive()
             let enableWhen = QuestionnaireItemEnableWhen(
                 answer: .coding(Coding(
                     code: code.asFHIRStringPrimitive(),
@@ -133,19 +137,21 @@ struct FHIRConversionTests {
                 question: "q1".asFHIRStringPrimitive()
             )
             let item2 = QuestionnaireItem(
+                enableWhen: [enableWhen],
                 linkId: "q2".asFHIRStringPrimitive(),
+                text: "Follow-up question (should only appear when Yes is selected)".asFHIRStringPrimitive(),
                 type: .init(.boolean)
             )
-            item2.text = "Follow-up question (should only appear when Yes is selected)".asFHIRStringPrimitive()
-            item2.enableWhen = [enableWhen]
             let group = QuestionnaireItem(
+                item: [item1, item2],
                 linkId: "section1".asFHIRStringPrimitive(),
                 type: .init(.group)
             )
-            group.item = [item1, item2]
-            let questionnaire = ModelsR4.Questionnaire(status: .init(.active))
-            questionnaire.id = "test-questionnaire".asFHIRStringPrimitive()
-            questionnaire.item = [group]
+            let questionnaire = ModelsR4.Questionnaire(
+                id: "test-questionnaire".asFHIRStringPrimitive(),
+                item: [group],
+                status: .init(.active)
+            )
             return questionnaire
         }()
         

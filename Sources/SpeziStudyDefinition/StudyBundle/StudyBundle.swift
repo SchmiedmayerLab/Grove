@@ -9,7 +9,7 @@
 // swiftlint:disable file_types_order
 
 public import Foundation
-public import class ModelsR4.Questionnaire
+public import struct ModelsR4.Questionnaire
 #if canImport(OSLog)
 import OSLog
 #else

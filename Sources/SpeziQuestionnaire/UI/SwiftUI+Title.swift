@@ -33,7 +33,7 @@ extension View {
     func navigationTitle(_ config: ViewTitleConfig?) -> some View {
         if let config {
             let withTitle = self.navigationTitle(config.title)
-            if let subtitle = config.subtitle, #available(iOS 26, *) {
+            if let subtitle = config.subtitle, #available(iOS 26, macOS 26, *) {
                 withTitle.navigationSubtitle(subtitle)
             } else {
                 withTitle

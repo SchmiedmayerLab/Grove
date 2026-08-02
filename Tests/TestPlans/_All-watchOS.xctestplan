@@ -41,15 +41,15 @@
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "HealthKitOnFHIRMacrosTests",
-        "name": "HealthKitOnFHIRMacrosTests"
+        "identifier": "SpeziHealthKitFHIRMacrosTests",
+        "name": "SpeziHealthKitFHIRMacrosTests"
       }
     },
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "HealthKitOnFHIRTests",
-        "name": "HealthKitOnFHIRTests"
+        "identifier": "SpeziHealthKitFHIRTests",
+        "name": "SpeziHealthKitFHIRTests"
       }
     },
     {

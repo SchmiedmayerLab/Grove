@@ -7,11 +7,15 @@
 # Direct product dependencies and the few build-setting exceptions for generated UI-test projects.
 # Platform and device-family declarations are derived from packages.toml.
 # Fixture products are intentional non-imported dependencies needed for runtime test behavior.
+# `traits` enables the listed monorepo package traits on the project's package reference, for
+# TestApps whose products require them (CI additionally enables all default traits via the
+# SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS environment variable; the project-level declaration is what
+# makes the TestApp build in Xcode and in plain xcodebuild invocations).
 
-[HealthKitOnFHIR]
-app_products = ["HealthKitOnFHIR", "Spezi", "SpeziHealthKit"]
+[SpeziHealthKitFHIR]
+app_products = ["SpeziHealthKitFHIR", "Spezi", "SpeziHealthKit"]
 test_products = ["XCTHealthKit", "XCTestExtensions"]
-[HealthKitOnFHIR.app_settings]
+[SpeziHealthKitFHIR.app_settings]
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/Support Files/TestApp.entitlements"
 "INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription" = "Please provide health records access to test"
 "INFOPLIST_KEY_NSHealthShareUsageDescription" = "Please provide read permission to test the module's functionality."
@@ -19,6 +23,7 @@ test_products = ["XCTHealthKit", "XCTestExtensions"]
 
 [ResearchKitOnFHIR]
 app_products = ["FHIRQuestionnaires", "ResearchKitOnFHIR"]
+traits = ["ResearchKit"]
 [ResearchKitOnFHIR.app_settings]
 "INFOPLIST_KEY_NSCameraUsageDescription" = "Uses camera to test image capture"
 
@@ -67,7 +72,7 @@ test_products = ["XCTestExtensions"]
 "INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription" = "Uses Bluetooth for testing."
 
 [SpeziFHIR]
-app_products = ["Spezi", "SpeziFHIR", "SpeziFHIRHealthKit", "SpeziFHIRMockPatients", "SpeziHealthKit", "SpeziViews"]
+app_products = ["Spezi", "SpeziFHIR", "SpeziHealthKitFHIR", "SpeziFHIRMockPatients", "SpeziHealthKit", "SpeziViews"]
 [SpeziFHIR.app_settings]
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 "INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription" = "The Test App uses the health data to test the Spezi FHIR Package."
@@ -144,6 +149,7 @@ test_products = ["XCTestExtensions"]
 [SpeziQuestionnaire]
 app_products = ["FHIRQuestionnaires", "Spezi", "SpeziQuestionnaire", "SpeziQuestionnaireCatalog", "SpeziQuestionnaireFHIR", "SpeziViews"]
 test_products = ["SpeziFoundation", "XCTSpeziQuestionnaire", "XCTestExtensions"]
+traits = ["ResearchKit"]
 [SpeziScheduler]
 app_products = ["Spezi", "SpeziFoundation", "SpeziNotifications", "SpeziScheduler", "SpeziSchedulerUI", "SpeziViews", "XCTSpeziNotificationsUI", "XCTestApp"]
 test_products = ["SpeziFoundation", "XCTestExtensions", "XCTSpeziNotifications"]

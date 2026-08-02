@@ -34,8 +34,8 @@ struct FHIRToResearchKitTests {
         #expect(!task.steps.isEmpty)
         #expect(task.steps.count == questionnaire.flattenedItems.count)
     }
-
-
+    
+    
     @Test("Convert QuestionnaireItem to ORKSteps")
     func testConvertQuestionnaireItemToORKSteps() throws {
         func testQuestionnaire(_ questionnaire: Questionnaire, expectedNumSteps: Int) throws {
@@ -45,31 +45,34 @@ struct FHIRToResearchKitTests {
                 #expect(try #require(item.linkId.value).string == step.identifier)
             }
         }
-        
         try testQuestionnaire(.numberExample, expectedNumSteps: 3)
         try testQuestionnaire(.formExample, expectedNumSteps: 2)
         try testQuestionnaire(.skipLogicExample, expectedNumSteps: 3)
     }
-
+    
+    
     @Test("Image capture step")
     func testImageCaptureStep() throws {
         let questionnaire = Questionnaire.imageCaptureExample
         let steps = questionnaire.toORKSteps()
         #expect(steps.count == 1)
     }
-
+    
+    
     @Test("Get contained value sets")
     func testGetContainedValueSets() throws {
         let valueSets = Questionnaire.containedValueSetExample.getContainedValueSets()
         #expect(valueSets.count == 1)
     }
-
+    
+    
     @Test("Item control extension")
     func testItemControlExtension() throws {
         let testItemControl = Questionnaire.sliderExample.item?.first?.itemControl
         let itemControlValue = try #require(testItemControl)
         #expect(itemControlValue == "slider")
     }
+    
     
     @Test("Coding Regex Pattern")
     func codingRegexPattern() throws {
@@ -82,7 +85,6 @@ struct FHIRToResearchKitTests {
         let expressionWithDisplay = try NSRegularExpression(pattern: patternWithDisplay)
         let rawValueWithDisplay = codingWithDisplay.rawValue
         #expect(!expressionWithDisplay.matches(in: rawValueWithDisplay, range: NSRange(location: 0, length: rawValueWithDisplay.count)).isEmpty)
-
         let codingWithoutDisplay = ValueCoding(
             code: "medication.value-yes",
             system: "http://researchkitonfhir.biodesign.stanford.edu/fhir/Coding/medication-value-exists",
@@ -92,7 +94,8 @@ struct FHIRToResearchKitTests {
         let expressionWithoutDisplay = try NSRegularExpression(pattern: patternWithoutDisplay)
         #expect(!expressionWithoutDisplay.matches(in: rawValueWithDisplay, range: NSRange(location: 0, length: rawValueWithDisplay.count)).isEmpty)
     }
-
+    
+    
     @Test("Regex extension")
     func testRegexExtension() throws {
         let testRegex = Questionnaire.textValidationExample.item?.first?.validationRegularExpression
@@ -100,28 +103,32 @@ struct FHIRToResearchKitTests {
         let regex = try NSRegularExpression(pattern: "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
         #expect(regex == testRegex)
     }
-
+    
+    
     @Test("Slider step value extension")
     func testSliderStepValueExtension() throws {
         let testSliderStepValue = Questionnaire.sliderExample.item?.first?.sliderStepValue
         let sliderStepValue = try #require(testSliderStepValue)
         #expect(sliderStepValue == 1)
     }
-
+    
+    
     @Test("Validation message extension")
     func testValidationMessageExtension() throws {
         let testValidationMessage = Questionnaire.textValidationExample.item?.first?.validationMessage
         let validationMessage = "Please enter a valid email address."
         #expect(validationMessage == testValidationMessage)
     }
-
+    
+    
     @Test("Unit extension")
     func testUnitExtension() throws {
         let unit = Questionnaire.numberExample.item?[2].unit
         let unwrappedUnit = try #require(unit)
         #expect(unwrappedUnit == "g")
     }
-
+    
+    
     @Test("Minimum value extension")
     func testMinValueExtension() throws {
         let minValues = try #require(Questionnaire.numberExample.item).map(\.minValue)
@@ -131,7 +138,8 @@ struct FHIRToResearchKitTests {
             NSNumber(value: 1)
         ])
     }
-
+    
+    
     @Test("Maximum value extension")
     func testMaxValueExtension() throws {
         let minValues = try #require(Questionnaire.numberExample.item).map(\.maxValue)
@@ -142,6 +150,7 @@ struct FHIRToResearchKitTests {
         ])
     }
 
+    
     @Test("Minimum date value extension")
     func testMinDateValueExtension() throws {
         let minDateValue = Questionnaire.dateTimeExample.item?.first?.minDateValue
@@ -150,7 +159,8 @@ struct FHIRToResearchKitTests {
         #expect(unwrappedMinDate.month == 1)
         #expect(unwrappedMinDate.day == 1)
     }
-
+    
+    
     @Test("Maximum date value extension")
     func testMaxDateValueExtension() throws {
         let maxDateValue = Questionnaire.dateTimeExample.item?.first?.maxDateValue
@@ -159,36 +169,41 @@ struct FHIRToResearchKitTests {
         #expect(unwrappedMaxDate.month == 1)
         #expect(unwrappedMaxDate.day == 1)
     }
-
+    
+    
     @Test("Maximum decimal extension")
     func testMaxDecimalExtension() throws {
         let maxDecimals = Questionnaire.numberExample.item?[1].maximumDecimalPlaces
         let unwrappedMaxDecimals = try #require(maxDecimals)
         #expect(unwrappedMaxDecimals == 3)
     }
-
+    
+    
     @Test("Questionnaire with no items")
     func testNoItemsException() throws {
         // Creates a questionnaire and set a URL, but does not add items
-        let questionnaire = Questionnaire(status: FHIRPrimitive(PublicationStatus.draft))
-        if let url = URL(string: "http://biodesign.stanford.edu/fhir/questionnaire/test") {
-            questionnaire.url?.value = FHIRURI(url)
-        }
+        let questionnaire = Questionnaire(
+            status: FHIRPrimitive(PublicationStatus.draft),
+            url: try #require("http://biodesign.stanford.edu/fhir/questionnaire/test".asFHIRURIPrimitive() as FHIRPrimitive<FHIRURI>?)
+        )
         #expect(throws: FHIRToResearchKitConversionError.noItems) {
             try ORKNavigableOrderedTask(questionnaire: questionnaire)
         }
     }
-
+    
+    
     @Test("Questionnaire with no URL")
     func testNoURL() throws {
         // Creates a questionnaire and adds an item but does not set a URL
-        let questionnaire = Questionnaire(status: FHIRPrimitive(PublicationStatus.draft))
-        questionnaire.item = [
-            QuestionnaireItem(
-                linkId: FHIRPrimitive(FHIRString(UUID().uuidString)),
-                type: FHIRPrimitive(QuestionnaireItemType.display)
-            )
-        ]
+        let questionnaire = Questionnaire(
+            item: [
+                QuestionnaireItem(
+                    linkId: FHIRPrimitive(FHIRString(UUID().uuidString)),
+                    type: FHIRPrimitive(QuestionnaireItemType.display)
+                )
+            ],
+            status: FHIRPrimitive(PublicationStatus.draft)
+        )
         let task = try ORKNavigableOrderedTask(questionnaire: questionnaire)
         #expect(
             UUID(uuidString: task.identifier) != nil,

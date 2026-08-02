@@ -6,36 +6,44 @@
 // SPDX-License-Identifier: MIT
 //
 
-import ModelsDSTU2
-import ModelsR4
+#if canImport(UniformTypeIdentifiers)
+
+private import ModelsDSTU2
+private import ModelsR4
 
 
 extension FHIRResource {
+    private enum ProcessingError: Error {
+        case dstu2AttachmentsUnavailable
+    }
+
     /// Best effort function to transform the base64 data representation of a FHIR attachment to a string-based representation of the data type.
     ///
     /// This funcationality is especially useful if the data content is inspected for debug purposes or passing it ot a LLM component.
-    public func stringifyAttachments() throws {
+    public mutating func stringifyAttachments() throws {
         try stringifyAttachments(using: FHIRAttachmentService())
     }
 
-    func stringifyAttachments(using service: FHIRAttachmentService) throws {
+    mutating func stringifyAttachments(using service: FHIRAttachmentService) throws {
         switch versionedResource {
-        case let .r4(r4Resource):
-            guard let documentReference = r4Resource as? ModelsR4.DocumentReference else {
+        case .r4(let resource):
+            guard var docRef = resource as? ModelsR4.DocumentReference else {
                 return
             }
-            
-            for attachment in documentReference.content.compactMap(\.attachment) {
-                try service.stringify(attachment: attachment)
+            for idx in docRef.content.indices {
+                try service.stringify(attachment: &docRef.content[idx].attachment)
             }
-        case let .dstu2(dstu2Resource):
-            guard let documentReference = dstu2Resource as? ModelsDSTU2.DocumentReference else {
+            self = .init(versionedResource: .r4(docRef), displayName: self.displayName)
+        case .dstu2(let resource):
+            guard var docRef = resource as? ModelsDSTU2.DocumentReference else {
                 return
             }
-            
-            for attachment in documentReference.content.compactMap(\.attachment) {
-                try service.stringify(attachment: attachment)
+            for idx in docRef.content.indices {
+                try service.stringify(attachment: &docRef.content[idx].attachment)
             }
+            self = .init(versionedResource: .dstu2(docRef), displayName: self.displayName)
         }
     }
 }
+
+#endif

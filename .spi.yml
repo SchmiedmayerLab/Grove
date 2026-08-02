@@ -6,7 +6,6 @@ builder:
         - FHIRModelsExtensions
         - FHIRPathParser
         - FHIRQuestionnaires
-        - HealthKitOnFHIR
         - ResearchKitOnFHIR
         - SpeziTesting
         - XCTSpezi
@@ -23,7 +22,6 @@ builder:
         - SpeziDevicesUI
         - SpeziOmron
         - SpeziFHIR
-        - SpeziFHIRHealthKit
         - SpeziFHIRMockPatients
         - EDFFormat
         - SpeziFirebaseAccount
@@ -36,6 +34,7 @@ builder:
         - ThreadLocal
         - SpeziHealthKit
         - SpeziHealthKitBulkExport
+        - SpeziHealthKitFHIR
         - SpeziHealthKitUI
         - SpeziLLM
         - SpeziLLMLocal

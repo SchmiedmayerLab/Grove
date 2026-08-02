@@ -84,7 +84,9 @@ private struct NumberTextField<Value: BinaryFloatingPoint>: View {
     
     var body: some View {
         TextField(title, value: $value, formatter: formatter, prompt: Text(verbatim: "0"))
+            #if os(iOS)
             .keyboardType(allowsDecimalEntry ? .decimalPad : .numberPad)
+            #endif
     }
     
     init(_ title: String, value: Binding<Value?>, allowsDecimalEntry: Bool) {

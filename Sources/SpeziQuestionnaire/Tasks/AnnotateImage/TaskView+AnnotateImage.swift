@@ -8,6 +8,7 @@
 
 // swiftlint:disable file_types_order
 
+#if canImport(UIKit)
 import PencilKit
 import SpeziViews
 import SwiftUI
@@ -206,7 +207,7 @@ private struct Sheet: View {
             }
         }
         ToolbarItem(placement: .confirmationAction) {
-            if #available(iOS 26, *) {
+            if #available(iOS 26, macOS 26, *) {
                 Button(role: .confirm) {
                     dismiss()
                 } label: {
@@ -257,3 +258,4 @@ extension Sheet {
         }
     }
 }
+#endif

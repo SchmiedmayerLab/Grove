@@ -170,4 +170,13 @@ struct SampleTypesTests {
             return
         }
     }
+    
+    #if canImport(HealthKit)
+    @Test
+    func allKnown() {
+        #expect(SampleType<HKQuantitySample>.allKnownQuantities.mapIntoSet(\.hkSampleType) == HKQuantityType.allKnownQuantities)
+        #expect(SampleType<HKCorrelation>.allKnownCorrelations.mapIntoSet(\.hkSampleType) == HKCorrelationType.allKnownCorrelations)
+        #expect(SampleType<HKCategorySample>.allKnownCategories.mapIntoSet(\.hkSampleType) == HKCategoryType.allKnownCategories)
+    }
+    #endif
 }

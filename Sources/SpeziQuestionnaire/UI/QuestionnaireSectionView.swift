@@ -45,7 +45,7 @@ struct QuestionnaireSectionView<Header: View>: View {
     
     var body: some View {
         @Bindable var responses = responses
-        ScrollViewReader { scrollViewProxy in
+        ScrollViewReader { scrollViewProxy in // swiftlint:disable:this closure_body_length
             Form {
                 header
                 ForEach(section.tasks) { task in
@@ -56,6 +56,14 @@ struct QuestionnaireSectionView<Header: View>: View {
                         }
                     }
                     .id(task.id)
+                    .environment(\.scrollToNextTask) {
+                        guard let nextTask = section.nextEnabledTask(after: task, using: responses) else {
+                            return
+                        }
+                        withAnimation {
+                            scrollViewProxy.scrollTo(nextTask.id, anchor: .top)
+                        }
+                    }
                 }
                 // disallow mutating responses while an action is being performed
                 .disabled(viewState == .processing)
@@ -84,7 +92,9 @@ struct QuestionnaireSectionView<Header: View>: View {
             }
         }
         .navigationTitle(titleConfig)
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline) // in case the title is long
+        #endif
         // disallow navigating around while an action is being performed
         .navigationBarBackButtonHidden(viewState == .processing)
         .accessibilityIdentifier("SpeziQuestionnaireSection")
@@ -159,7 +169,7 @@ struct QuestionnaireSectionView<Header: View>: View {
     @ToolbarContentBuilder
     private func toolbarContent(using scrollViewProxy: ScrollViewProxy) -> some ToolbarContent {
         let doneButton = Group {
-            if #available(iOS 26, *) {
+            if #available(iOS 26, macOS 26, *) {
                 AsyncButton(role: .confirm, state: $viewState) {
                     await _advance(using: scrollViewProxy)
                 } label: {
@@ -242,6 +252,12 @@ struct QuestionnaireSectionView<Header: View>: View {
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
+extension EnvironmentValues {
+    @Entry var scrollToNextTask: () -> Void = {}
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireSectionView {
     private struct CancelButton: View {
         let context: Context
@@ -294,7 +310,7 @@ extension QuestionnaireSectionView {
         }
         
         @ViewBuilder private var button: some View {
-            if #available(iOS 26, *) {
+            if #available(iOS 26, macOS 26, *) {
                 Button(role: .cancel) {
                     showConfirmation = true
                 }

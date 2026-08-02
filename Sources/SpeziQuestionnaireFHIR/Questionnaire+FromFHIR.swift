@@ -97,7 +97,7 @@ private struct ConversionContext {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ModelsR4.Questionnaire {
-    fileprivate func toSections(
+    fileprivate func toSections( // swiftlint:disable:this function_body_length
         using options: SpeziQuestionnaire.Questionnaire.FHIRConversionOptions
     ) throws(SpeziQuestionnaire.Questionnaire.FHIRConversionError) -> [SpeziQuestionnaire.Questionnaire.Section] {
         guard let items = item, !items.isEmpty else {
@@ -115,12 +115,14 @@ extension ModelsR4.Questionnaire {
                     topLevelItems.append(item)
                 } else {
                     let group = ModelsR4.QuestionnaireItem(
+                        item: [item],
                         linkId: "___\(nextGroupIdx)".asFHIRStringPrimitive(),
                         type: .init(.group)
                     )
-                    nextGroupIdx += 1
                     topLevelItems.append(group)
-                    group.item = [item]
+                    nextGroupIdx += 1
+                    // Note: the group, being a value type, must be muteted in place via its index.
+                    let groupIdx = topLevelItems.count - 1
                     while let item = itemsIterator.next() {
                         // gobble up all following non-group items, until we reach the next group
                         guard let itemType = item.type.value else {
@@ -131,7 +133,7 @@ extension ModelsR4.Questionnaire {
                             continue l1
                         } else {
                             // SAFETY: we just set this to a non-nil value a couple lines earlier
-                            group.item!.append(item) // swiftlint:disable:this force_unwrapping
+                            topLevelItems[groupIdx].item!.append(item) // swiftlint:disable:this force_unwrapping
                         }
                     }
                 }
@@ -212,7 +214,7 @@ extension ModelsR4.QuestionnaireItem {
         case .display, .boolean, .decimal, .integer, .date, .dateTime, .time, .string, .text, .url, .choice, .openChoice, .attachment, .reference, .quantity, .question:
             let task = SpeziQuestionnaire.Questionnaire.Task(
                 id: try self.getLinkId(),
-                title: self.text?.value?.string ?? "",
+                title: itemType == .display ? "" : self.text?.value?.string ?? "",
                 kind: try toTaskKind(using: context),
                 isOptional: !(self.required?.value?.bool ?? true), // if the `required` field is not set, we assume it to be true.
                 enabledCondition: try context.parentItemCondition && .init(self, using: context)

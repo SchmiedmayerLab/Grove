@@ -120,6 +120,17 @@ struct ButtonTestView: View {
             try? await Task.sleep(for: .milliseconds(500))
             presentedText = "Hello World"
         }
+        .toolbar {
+            if #available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, *) {
+                ToolbarItem(placement: .topBarTrailing) {
+                    AsyncButton(role: .confirm, state: $viewState) {
+                        try await Task.sleep(for: .seconds(1))
+                    } label: {
+                        Image(systemName: "checkmark")
+                    }
+                }
+            }
+        }
     }
 }
 

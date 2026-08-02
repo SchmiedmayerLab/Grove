@@ -85,13 +85,8 @@ import SwiftUI
 @available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class HealthMeasurements: ServiceModule, EnvironmentAccessible, DefaultInitializable, @unchecked Sendable {
-#if compiler(<6)
-    public typealias WeightScaleKeyPath<Device> = KeyPath<Device, WeightScaleService>
-    public typealias BloodPressureKeyPath<Device> = KeyPath<Device, BloodPressureService>
-#else
     public typealias WeightScaleKeyPath<Device> = any KeyPath<Device, WeightScaleService> & Sendable
     public typealias BloodPressureKeyPath<Device> = any KeyPath<Device, BloodPressureService> & Sendable
-#endif
 
     private let logger = Logger(subsystem: "ENGAGEHF", category: "HealthMeasurements")
 

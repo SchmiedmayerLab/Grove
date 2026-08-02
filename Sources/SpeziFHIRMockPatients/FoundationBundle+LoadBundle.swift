@@ -7,7 +7,7 @@
 //
 
 public import Foundation
-public import class ModelsR4.Bundle
+public import struct ModelsR4.Bundle
 
 
 extension Foundation.Bundle {

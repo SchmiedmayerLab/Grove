@@ -10,13 +10,9 @@ public import CoreBluetooth
 public import Foundation
 
 
-#if compiler(>=6)
 extension CBError: @retroactive LocalizedError {}
 extension CBATTError: @retroactive LocalizedError {}
-#else
-extension CBError: LocalizedError {}
-extension CBATTError: LocalizedError {}
-#endif
+
 
 extension CBError {
     /// The error description.

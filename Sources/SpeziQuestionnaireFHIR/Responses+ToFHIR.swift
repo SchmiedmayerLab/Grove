@@ -41,7 +41,7 @@ extension SpeziQuestionnaire.QuestionnaireResponses {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ModelsR4.QuestionnaireResponse {
     /// Creates a FHIR R4 `QuestionnaireResponse` from a Spezi `QuestionnaireResponses`.
-    public convenience init(_ other: SpeziQuestionnaire.QuestionnaireResponses) throws {
+    public init(_ other: SpeziQuestionnaire.QuestionnaireResponses) throws {
         self.init(status: .init(.completed))
         self.id = other.id.uuidString.asFHIRStringPrimitive()
         self.identifier = Identifier(value: other.id.uuidString.asFHIRStringPrimitive())
@@ -101,7 +101,7 @@ extension QuestionnaireResponses.Response {
         if !nestedResponses.isEmpty, task.kind.followUpTasks.isEmpty {
             throw FHIRConversionError("Unexpectedly found nested responses in task without nested tasks")
         }
-        let responseItem = QuestionnaireResponseItem(
+        var responseItem = QuestionnaireResponseItem(
             linkId: context.task.id.asFHIRStringPrimitive()
         )
         switch task.kind.variant {
@@ -227,10 +227,12 @@ extension QuestionnaireResponses.Response {
                     guard self.value.choiceValue.selectedOptions.contains(option.id) else {
                         throw FHIRConversionError("Found a nested answer for a choice option that isn't selected ('\(option.id)')")
                     }
-                    guard let answer = (responseItem.answer ?? []).first(where: { $0.value == .coding(option.toFHIRCoding()) }) else {
+                    guard let answerIdx = responseItem.answer?.firstIndex(where: { $0.value == .coding(option.toFHIRCoding()) }) else {
                         throw FHIRConversionError("Unable to find answer for choice option")
                     }
-                    answer.item = try responses.toFHIR(using: .init(allTasks: task.kind.followUpTasks))
+                    // SAFETY: the guard above proved `answer` is non-nil
+                    responseItem.answer![answerIdx].item = try responses.toFHIR(using: .init(allTasks: task.kind.followUpTasks))
+                    // swiftlint:disable:previous force_unwrapping
                 }
             }
         default:
@@ -275,7 +277,7 @@ extension QuestionnaireResponseItem {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponseItemAnswer {
-    convenience init(_ attachment: QuestionnaireResponses.CollectedAttachment) throws {
+    init(_ attachment: QuestionnaireResponses.CollectedAttachment) throws {
         let data = try Data(contentsOf: attachment.url)
         let sha1 = Insecure.SHA1.hash(data: data)
         self.init(value: .attachment(.init(

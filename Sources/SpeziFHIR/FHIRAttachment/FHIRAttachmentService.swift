@@ -6,6 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(UniformTypeIdentifiers)
+
+import Foundation
 import UniformTypeIdentifiers
 
 
@@ -22,22 +25,13 @@ struct FHIRAttachmentService {
     }
 
     private let contentExtractors: [any ContentExtractor]
-    private let base64Decoder: any Base64Decoding
-
-
+    
     /// Creates a new attachment service instance.
-    /// - Parameters:
-    ///   - contentExtractors: Collection of content extractors to use (defaults to text and, where available, PDF).
-    ///   - base64Decoder: The base64 decoder to use.
-    init(
-        contentExtractors: [any ContentExtractor] = FHIRAttachmentService.defaultContentExtractors,
-        base64Decoder: any Base64Decoding = DefaultBase64Decoder()
-    ) {
+    /// - parameter contentExtractors: Collection of content extractors to use (defaults to text and, where available, PDF).
+    init(contentExtractors: [any ContentExtractor] = FHIRAttachmentService.defaultContentExtractors) {
         self.contentExtractors = contentExtractors
-        self.base64Decoder = base64Decoder
     }
-
-
+    
     /// Transforms a FHIR attachment's base64-encoded data into human-readable text.
     ///
     /// This method extracts text content from various attachment formats (PDF, text files, etc.)
@@ -47,35 +41,31 @@ struct FHIRAttachmentService {
     /// - Parameter attachment: The FHIR attachment to transform.
     /// - Throws: `FHIRAttachmentError` if the transformation fails for any reason,
     ///           such as missing MIME type, invalid base64 data, or unsupported content type.
-    func stringify(attachment: some FHIRAttachment) throws {
+    func stringify(attachment: inout some FHIRAttachment) throws { // instead of this maybe have it as an extension on the attachment iself?
         let content = try processAttachment(attachment)
-        attachment.encode(content: content)
+        attachment.setData(from: content)
     }
-
+    
     private func processAttachment(_ attachment: some FHIRAttachment) throws -> String {
         guard let contentType = attachment.mimeType else {
             throw FHIRAttachmentError.missingMimeType
         }
-
         guard let encodedString = attachment.base64String else {
             throw FHIRAttachmentError.missingBase64String
         }
-
-        guard let data = base64Decoder.decode(string: encodedString) else {
+        guard let data = Data(base64Encoded: encodedString) else {
             throw FHIRAttachmentError.invalidBase64Data
         }
-
         guard let extractor = contentExtractor(for: contentType) else {
             throw FHIRAttachmentError.unsupportedContentType(contentType)
         }
-
         let content = try extractor.extractContent(from: data)
         return content
     }
-
+    
     private func contentExtractor(for contentType: UTType) -> (any ContentExtractor)? {
-         contentExtractors.first { extractor in
-             extractor.isCompatible(with: contentType)
-         }
+         contentExtractors.first { $0.isCompatible(with: contentType) }
     }
 }
+
+#endif

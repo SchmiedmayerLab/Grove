@@ -9,7 +9,7 @@
 import os
 import Spezi
 import SpeziFHIR
-import SpeziFHIRHealthKit
+import SpeziHealthKitFHIR
 import SpeziHealthKit
 
 
@@ -58,7 +58,7 @@ actor TestingStandard: Standard, HealthKitConstraint, EnvironmentAccessible {
         if useHealthKitResources {
             for sample in addedSamples {
                 do {
-                    try await fhirStore.add(sample)
+                    try await fhirStore.add(sample, using: healthKit)
                 } catch {
                     logger.error("Cloud not transform HealthKit sample with id: \(sample.id)")
                 }
@@ -107,7 +107,7 @@ actor TestingStandard: Standard, HealthKitConstraint, EnvironmentAccessible {
             for newHealthKitSample in records {
                 sampleTaskGroup.addTask { [self] in
                     do {
-                        try await fhirStore.add(newHealthKitSample, loadHealthKitAttachments: true)
+                        try await fhirStore.add(newHealthKitSample, using: healthKit, loadHealthKitAttachments: true)
                     } catch {
                         logger.error("Could not transform sample \(newHealthKitSample.id) to FHIR resource: \(error)")
                     }

@@ -115,6 +115,10 @@ extension AnchoredFetcher {
             // - if SensorKit returns at least one sample for the time range we're processing (i.e., the batch is not empty)
             // - if we advance forward sufficiently far, so that the fetcher's next time range is within the sensor's quarantine period
             while true {
+                guard !Task.isCancelled else {
+                    state = .done
+                    return nil
+                }
                 switch state {
                 case .process(let timeRange):
                     let results = try await sensor.fetch(from: device, timeRange: timeRange)

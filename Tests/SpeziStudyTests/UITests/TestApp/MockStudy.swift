@@ -9,7 +9,7 @@
 // swiftlint:disable file_types_order closure_body_length
 
 import Foundation
-import class ModelsR4.Questionnaire
+import struct ModelsR4.Questionnaire
 import SpeziFoundation
 import SpeziHealthKit
 import SpeziLocalization

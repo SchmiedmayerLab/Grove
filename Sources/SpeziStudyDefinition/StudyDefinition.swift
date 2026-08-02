@@ -171,7 +171,7 @@ extension StudyBundle {
             )?.title?.value?.string
         case .timedWalkingTest(let component):
             #if canImport(Darwin)
-            String(localized: component.test.displayTitle)
+            String(localized: component.test.displayTitle(in: locale))
             #else
             nil
             #endif

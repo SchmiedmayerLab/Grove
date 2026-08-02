@@ -20,6 +20,20 @@
 set -euxo pipefail
 cd "$(dirname "$0")/.."
 
+# Log the toolchain environment, so CI logs carry the context needed to interpret and reproduce a run.
+# Must stay OS-agnostic: the Linux legs run this script too, and under `set -e` a missing
+# macOS-only tool would abort the run before any test starts.
+echo "==> environment"
+if [ "$(uname -s)" = "Darwin" ]; then
+  sw_vers
+  xcodebuild -version
+else
+  uname -srm
+  # PRETTY_NAME identifies the distro + version on any systemd-era Linux.
+  grep PRETTY_NAME /etc/os-release || true
+fi
+swift --version
+
 # The package's deployment floor is iOS 15 (so iOS-15 apps can depend on it), but the TEST targets
 # cannot compile at iOS 15: swift-testing's @Suite macro rejects an @available attribute, and the test
 # fixtures use newer APIs held as stored properties (which can't be gated). Tests only ever run on the
@@ -46,12 +60,11 @@ export SPEZI_EXCLUDE_DOCC_CATALOGS="${SPEZI_EXCLUDE_DOCC_CATALOGS:-1}"
 DERIVED_DATA_PATH="${RUNNER_TEMP:+$RUNNER_TEMP/spezi}"
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$PWD/.derivedData}"
 
-PACKAGES="FHIRModelsExtensions HealthKitOnFHIR ResearchKitOnFHIR Spezi SpeziAccessGuard SpeziAccount SpeziBluetooth SpeziChat SpeziConsent SpeziContact SpeziDevices SpeziFHIR SpeziFileFormats SpeziFirebase SpeziFoundation SpeziHealthKit SpeziLLM SpeziLicense SpeziLocation SpeziNetworking SpeziNotifications SpeziOnboarding SpeziQuestionnaire SpeziScheduler SpeziSensorKit SpeziSpeech SpeziStorage SpeziStudy SpeziViews ThreadLocal XCTHealthKit RuntimeAssertions XCTestExtensions"
+PACKAGES="FHIRModelsExtensions ResearchKitOnFHIR Spezi SpeziAccessGuard SpeziAccount SpeziBluetooth SpeziChat SpeziConsent SpeziContact SpeziDevices SpeziFHIR SpeziFileFormats SpeziFirebase SpeziFoundation SpeziHealthKit SpeziHealthKitFHIR SpeziLLM SpeziLicense SpeziLocation SpeziNetworking SpeziNotifications SpeziOnboarding SpeziQuestionnaire SpeziScheduler SpeziSensorKit SpeziSpeech SpeziStorage SpeziStudy SpeziViews ThreadLocal XCTHealthKit RuntimeAssertions XCTestExtensions"
 
 # package -> the platforms it was tested on upstream (the union CI matrix)
 platforms_for() { case "$1" in
     FHIRModelsExtensions) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
-    HealthKitOnFHIR) echo "iOS macOS watchOS" ;;
     ResearchKitOnFHIR) echo "iOS" ;;
     Spezi) echo "iOS visionOS macOS tvOS watchOS macCatalyst" ;;
     SpeziAccessGuard) echo "iOS" ;;
@@ -61,18 +74,19 @@ platforms_for() { case "$1" in
     SpeziConsent) echo "iOS macOS visionOS" ;;
     SpeziContact) echo "iOS" ;;
     SpeziDevices) echo "iOS macOS macCatalyst visionOS" ;;
-    SpeziFHIR) echo "iOS" ;;
+    SpeziFHIR) echo "iOS macOS" ;;
     SpeziFileFormats) echo "iOS watchOS visionOS tvOS macOS" ;;
     SpeziFirebase) echo "iOS" ;;
     SpeziFoundation) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
     SpeziHealthKit) echo "iOS watchOS macOS macCatalyst visionOS" ;;
+    SpeziHealthKitFHIR) echo "iOS macOS watchOS" ;;
     SpeziLLM) echo "iOS visionOS macOS" ;;
     SpeziLicense) echo "iOS" ;;
     SpeziLocation) echo "iOS watchOS" ;;
     SpeziNetworking) echo "iOS watchOS visionOS tvOS macOS" ;;
     SpeziNotifications) echo "iOS macOS watchOS visionOS tvOS" ;;
     SpeziOnboarding) echo "iOS macOS visionOS" ;;
-    SpeziQuestionnaire) echo "iOS" ;;
+    SpeziQuestionnaire) echo "iOS macOS" ;;
     SpeziScheduler) echo "iOS macOS visionOS watchOS" ;;
     SpeziSensorKit) echo "iOS" ;;
     SpeziSpeech) echo "iOS visionOS macOS" ;;

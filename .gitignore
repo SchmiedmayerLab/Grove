@@ -42,6 +42,8 @@ docs/
 
 # UITests Project
 !UITests.xcodeproj
+# ...but not the inner workspace Xcode creates inside the xcodeproj upon opening it (user state only; not part of the generated projects).
+project.xcworkspace/
 
 __pycache__/
 

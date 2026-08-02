@@ -95,6 +95,11 @@ extension QuestionnaireResponses.ImageAnnotation: SpeziQuestionnaire.Questionnai
     public func toFHIR(
         for task: SpeziQuestionnaire.Questionnaire.Task
     ) throws -> [QuestionnaireResponseItemAnswer] {
+        #if !canImport(UIKit)
+        // Rendering the annotated image requires UIKit; parsing annotate-image questionnaires
+        // (`QuestionKindDefinitionWithFHIRDecodingSupport` above) still works on all platforms.
+        throw FHIRConversionError("Image annotation FHIR encoding is not supported on this platform.")
+        #else
         let baseImage: UIImage
         switch task.kind.variant {
         case .custom(questionKind: _, let config):
@@ -122,5 +127,6 @@ extension QuestionnaireResponses.ImageAnnotation: SpeziQuestionnaire.Questionnai
         }
         let attachment = try QuestionnaireResponses.CollectedAttachment(url: tmpUrl)
         return try [QuestionnaireResponseItemAnswer(attachment)]
+        #endif
     }
 }

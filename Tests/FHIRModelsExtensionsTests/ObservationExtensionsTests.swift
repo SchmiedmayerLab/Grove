@@ -12,20 +12,20 @@ import ModelsR4
 import Testing
 
 
-@MainActor // to work around https://github.com/apple/FHIRModels/issues/36
+@Suite
 struct ObservationExtensionsTests {
     @Test
     func collectionExtensionsIdentifier() throws {
-        let observation = Observation(code: CodeableConcept(), status: FHIRPrimitive(.final))
+        var observation = Observation(code: CodeableConcept(), status: FHIRPrimitive(.final))
         
         // First test all extensions with no value beeing present (collection is nil)
-        observation.appendIdentifier(Identifier(id: "ID1"))
+        observation.append(identifier: Identifier(id: "ID1"))
         
         // Assertions for the nil/non-present case:
         #expect(observation.identifier?.first == Identifier(id: "ID1"))
         
         // Now Append multiple elements and in a non-nil collection:
-        observation.appendIdentifiers([
+        observation.append(identifiers: [
             Identifier(id: "ID2"),
             Identifier(id: "ID3")
         ])
@@ -40,11 +40,11 @@ struct ObservationExtensionsTests {
     
     @Test
     func collectionExtensionsCoding() throws {
-        let observation = Observation(code: CodeableConcept(), status: FHIRPrimitive(.final))
+        var observation = Observation(code: CodeableConcept(), status: FHIRPrimitive(.final))
         
         // First test all extensions with no value beeing present (collection is nil)
-        observation.appendCoding(
-            Coding(
+        observation.append(
+            coding: Coding(
                 code: "Code1",
                 display: "Display1",
                 system: FHIRPrimitive(FHIRURI(stringLiteral: "https://test1.system"))
@@ -59,7 +59,7 @@ struct ObservationExtensionsTests {
         ))
         
         // Now Append multiple elements and in a non-nil collection:
-        observation.appendCodings([
+        observation.append(codings: [
             Coding(
                 code: "Code2",
                 display: "Display2",
@@ -94,16 +94,16 @@ struct ObservationExtensionsTests {
     
     @Test
     func collectionExtensionsCategories() throws {
-        let observation = Observation(code: CodeableConcept(), status: FHIRPrimitive(.final))
+        var observation = Observation(code: CodeableConcept(), status: FHIRPrimitive(.final))
         
         // First test all extensions with no value beeing present (collection is nil)
-        observation.appendCategory(CodeableConcept(id: "Concept1"))
+        observation.append(category: CodeableConcept(id: "Concept1"))
         
         // Assertions for the nil/non-present case:
         #expect(observation.category?.first == CodeableConcept(id: "Concept1"))
         
         // Now Append multiple elements and in a non-nil collection:
-        observation.appendCategories([
+        observation.append(categories: [
             CodeableConcept(id: "Concept2"),
             CodeableConcept(id: "Concept3")
         ])
@@ -118,11 +118,11 @@ struct ObservationExtensionsTests {
     
     @Test
     func collectionExtensionsComponents() throws {
-        let observation = Observation(code: CodeableConcept(), status: FHIRPrimitive(.final))
+        var observation = Observation(code: CodeableConcept(), status: FHIRPrimitive(.final))
         
         // First test all extensions with no value beeing present (collection is nil)
-        observation.appendComponent(
-            ObservationComponent(
+        observation.append(
+            component: ObservationComponent(
                 code: CodeableConcept(id: "Concept4"),
                 value: .boolean(true.asPrimitive())
             )
@@ -136,7 +136,7 @@ struct ObservationExtensionsTests {
         
         
         // Now Append multiple elements and in a non-nil collection:
-        observation.appendComponents([
+        observation.append(components: [
             ObservationComponent(
                 code: CodeableConcept(id: "Concept5"),
                 value: .string("Test".asFHIRStringPrimitive())
@@ -167,33 +167,33 @@ struct ObservationExtensionsTests {
     
     @Test
     func fhirExtension() throws {
-        let extension1Url = try #require("https://bdh.stanford.edu/fhir/testDef1".asFHIRURIPrimitive())
-        let extension2Url = try #require("https://bdh.stanford.edu/fhir/testDef2".asFHIRURIPrimitive())
+        let extension1Url = FHIRExtensionURL("https://bdh.stanford.edu/fhir/testDef1")
+        let extension2Url = FHIRExtensionURL("https://bdh.stanford.edu/fhir/testDef2")
         let extension1: (Int) -> Extension = { Extension(url: extension1Url, value: .integer($0.asFHIRIntegerPrimitive())) }
         let extension2: (Int) -> Extension = { Extension(url: extension2Url, value: .integer($0.asFHIRIntegerPrimitive())) }
         
-        let observation = Observation(code: CodeableConcept(), status: FHIRPrimitive(.final))
+        var observation = Observation(code: CodeableConcept(), status: FHIRPrimitive(.final))
         #expect(observation.extension == nil)
         
-        observation.appendExtension(extension1(0), replaceAllExistingWithSameUrl: false)
+        observation.append(extension: extension1(0), behaviour: .additive)
         #expect(observation.extension == [extension1(0)])
         
-        observation.appendExtension(extension2(0), replaceAllExistingWithSameUrl: false)
+        observation.append(extension: extension2(0), behaviour: .additive)
         #expect(observation.extension == [extension1(0), extension2(0)])
         
-        observation.appendExtension(extension1(1), replaceAllExistingWithSameUrl: true)
+        observation.append(extension: extension1(1), behaviour: .replace)
         #expect(observation.extension == [extension2(0), extension1(1)])
         
-        observation.appendExtension(extension1(2), replaceAllExistingWithSameUrl: false)
+        observation.append(extension: extension1(2), behaviour: .additive)
         #expect(observation.extension == [extension2(0), extension1(1), extension1(2)])
         
-        observation.appendExtension(extension1(3), replaceAllExistingWithSameUrl: true)
+        observation.append(extension: extension1(3), behaviour: .replace)
         #expect(observation.extension == [extension2(0), extension1(3)])
         
-        observation.appendExtension(extension2(1), replaceAllExistingWithSameUrl: false)
+        observation.append(extension: extension2(1), behaviour: .additive)
         #expect(observation.extension == [extension2(0), extension1(3), extension2(1)])
         
-        observation.appendExtension(extension2(2), replaceAllExistingWithSameUrl: false)
+        observation.append(extension: extension2(2), behaviour: .additive)
         #expect(observation.extension == [extension2(0), extension1(3), extension2(1), extension2(2)])
         
         observation.removeFirstExtension(withUrl: extension1Url)
@@ -213,31 +213,31 @@ struct ObservationExtensionsTests {
         let startDate = try #require(cal.date(from: .init(year: 2025, month: 07, day: 09, hour: 12, minute: 31)))
         let endDate = try #require(cal.date(byAdding: .minute, value: 15, to: startDate))
         
-        let observation = Observation(code: CodeableConcept(), status: FHIRPrimitive(.final))
+        var observation = Observation(code: CodeableConcept(), status: FHIRPrimitive(.final))
         try observation.setEffective(startDate: startDate, endDate: endDate, timeZone: .current)
         #expect(observation.extension == nil)
         
         try observation.encodeAbsoluteTimeRangeIntoExtension()
         let extensions = try #require(observation.extension)
         #expect(extensions.count == 2)
-        #expect(observation.extensions(for: FHIRExtensionUrls.absoluteTimeRangeStart) == [
-            Extension(url: FHIRExtensionUrls.absoluteTimeRangeStart, value: .decimal(startDate.timeIntervalSince1970.asFHIRDecimalPrimitive()))
+        #expect(observation.extensions(for: .absoluteTimeRangeStart) == [
+            Extension(url: .absoluteTimeRangeStart, value: .decimal(startDate.timeIntervalSince1970.asFHIRDecimalPrimitive()))
         ])
-        #expect(observation.extensions(for: FHIRExtensionUrls.absoluteTimeRangeEnd) == [
-            Extension(url: FHIRExtensionUrls.absoluteTimeRangeEnd, value: .decimal(endDate.timeIntervalSince1970.asFHIRDecimalPrimitive()))
+        #expect(observation.extensions(for: .absoluteTimeRangeEnd) == [
+            Extension(url: .absoluteTimeRangeEnd, value: .decimal(endDate.timeIntervalSince1970.asFHIRDecimalPrimitive()))
         ])
     }
     
     
     @Test
     func voidExtensionBuilder() throws {
-        nonisolated(unsafe) let url = try #require("https://bdh.stanford.edu/fhir/defs/timeZone".asFHIRURIPrimitive())
+        let url = FHIRExtensionURL("https://bdh.stanford.edu/fhir/defs/timeZone")
         let timeZone = try #require(TimeZone(identifier: "Europe/Berlin"))
-        let trackTimeZone = FHIRExtensionBuilder { observation in
+        let trackTimeZone = FHIRExtensionBuilder { (observation: inout Observation) in
             let ext = Extension(url: url, value: .string(timeZone.identifier.asFHIRStringPrimitive()))
-            observation.appendExtension(ext, replaceAllExistingWithSameUrl: true)
+            observation.append(extension: ext, behaviour: .replace)
         }
-        let observation = Observation(code: CodeableConcept(), status: .init(.final))
+        var observation = Observation(code: CodeableConcept(), status: .init(.final))
         #expect(observation.extension == nil)
         try observation.apply(trackTimeZone)
         let exts = try #require(observation.extension)

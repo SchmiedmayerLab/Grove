@@ -10,13 +10,19 @@
 
 from __future__ import annotations
 
+import sys
+
+# tomllib needs Python 3.11+; checking the version (rather than try-importing) also lets Pylance
+# mark the rest of the file unreachable instead of flagging the import when an older interpreter is selected.
+if sys.version_info < (3, 11):
+    sys.exit("error: this script requires Python 3.11+ (uses tomllib)")
+
 import argparse
 import difflib
 import hashlib
 import json
 from pathlib import Path
 import re
-import sys
 import tomllib
 
 
@@ -256,6 +262,23 @@ def render_project(package: str, spec: dict[str, object], platforms: list[str], 
     )
     if count != 1:
         raise ValueError("Could not replace PBXProject packageReferences")
+
+    # Traits declared in the spec are enabled on the monorepo package reference.
+    # NEVER include the `default` pseudo-trait here: combining it with a named trait makes
+    # xcodebuild (Xcode 26.5/26.6) crash with an IDESwiftPackageCore sortedInsert exception during
+    # package resolution. Note that Xcode's GUI trait toggle WRITES `(X, default)` — after any GUI
+    # edit, regenerate so the committed form stays `default`-free. An explicit list replaces the
+    # default set, which is fine: these TestApps need exactly the listed traits (CI's
+    # SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS=1 only affects trait-less projects).
+    traits = [str(trait) for trait in spec.get("traits", [])]
+    if "default" in traits:
+        raise ValueError(f"{package}: the `default` pseudo-trait must not be listed (crashes xcodebuild)")
+    if traits:
+        marker = "\t\t\trelativePath = ../../..;\n"
+        if text.count(marker) != 1:
+            raise ValueError(f"{package}: could not locate the local package reference to attach traits")
+        rendered = "".join(f"\t\t\t\t{trait},\n" for trait in traits)
+        text = text.replace(marker, f"{marker}\t\t\ttraits = (\n{rendered}\t\t\t);\n", 1)
 
     remote_section = ""
     if remote_ids:

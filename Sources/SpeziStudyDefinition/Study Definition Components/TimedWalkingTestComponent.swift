@@ -61,34 +61,39 @@ extension StudyDefinition {
 #if canImport(Darwin)
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension TimedWalkingTestConfiguration {
-    private static let spellOutNumberFormatter: NumberFormatter = {
-        let fmt = NumberFormatter()
-        fmt.numberStyle = .spellOut
-        return fmt
-    }()
-    private static let fractionalNumberFormatter: NumberFormatter = {
-        let fmt = NumberFormatter()
-        fmt.numberStyle = .decimal
-        fmt.minimumFractionDigits = 0
-        fmt.maximumFractionDigits = 1
-        return fmt
-    }()
-    
-    /// A textual description of the Timed Walking Test
+    /// A textual description of the Timed Walking Test, localized for the current locale.
     public var displayTitle: LocalizedStringResource {
+        displayTitle(in: .autoupdatingCurrent)
+    }
+
+    /// A textual description of the Timed Walking Test, localized for the specified locale.
+    ///
+    /// The locale is applied to the embedded duration (number formatting and capitalization) as well as
+    /// to the string resource itself; the formatters are per-call since they're locale-dependent.
+    public func displayTitle(in locale: Locale) -> LocalizedStringResource {
         let durationInMin = duration.totalSeconds / 60
         let durationText: String
         if durationInMin.rounded() == durationInMin, durationInMin <= 10 { // whole number of minutes
-            durationText = Self.spellOutNumberFormatter.string(from: NSNumber(value: Int(durationInMin))) ?? "\(Int(durationInMin))"
+            let fmt = NumberFormatter()
+            fmt.numberStyle = .spellOut
+            fmt.locale = locale
+            durationText = fmt.string(from: NSNumber(value: Int(durationInMin))) ?? "\(Int(durationInMin))"
         } else {
-            durationText = Self.fractionalNumberFormatter.string(from: NSNumber(value: durationInMin)) ?? String(format: "%.1f", durationInMin)
+            let fmt = NumberFormatter()
+            fmt.numberStyle = .decimal
+            fmt.minimumFractionDigits = 0
+            fmt.maximumFractionDigits = 1
+            fmt.locale = locale
+            durationText = fmt.string(from: NSNumber(value: durationInMin)) ?? String(format: "%.1f", durationInMin)
         }
-        return switch kind {
+        var title: LocalizedStringResource = switch kind {
         case .walking:
-            LocalizedStringResource("\(durationText.localizedCapitalized)-Minute Walk Test", bundle: .module)
+            LocalizedStringResource("\(durationText.capitalized(with: locale))-Minute Walk Test", bundle: .module)
         case .running:
-            LocalizedStringResource("\(durationText.localizedCapitalized)-Minute Run Test", bundle: .module)
+            LocalizedStringResource("\(durationText.capitalized(with: locale))-Minute Run Test", bundle: .module)
         }
+        title.locale = locale
+        return title
     }
 }
 #endif

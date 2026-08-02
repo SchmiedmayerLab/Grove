@@ -40,6 +40,7 @@ case "$PLATFORM:$KIND" in
 esac
 
 # Make sure a lowered floor, not the current OS wave, is what we compile against.
+export SPEZI_LOWERED_DEPLOYMENT_TARGETS=1
 unset SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS || true
 # Everything lives under the gitignored `.derivedData/` so a build leaves the checkout clean.
 mkdir -p .derivedData
@@ -53,20 +54,68 @@ swift package dump-package > "$DD.dump.json" 2>/dev/null || swift package dump-p
 # on macOS runners — mis-parses a heredoc nested in command substitution.
 ANALYZER=".derivedData/floor-analyze.py"
 cat > "$ANALYZER" <<'PY'
-import json, sys, tomllib
+import sys
+if sys.version_info < (3, 11):
+    sys.exit("error: this script requires Python 3.11+ (uses tomllib)")
+import json, tomllib
 dump = json.load(open(sys.argv[1])); plat = sys.argv[2]
 toml = tomllib.load(open('packages.toml', 'rb'))
+plat_l = plat.lower()
 
 libprods = {p["name"]: p["targets"] for p in dump["products"] if "library" in p["type"]}
 targets = {t["name"]: t for t in dump["targets"]}
 
+def edge(dep):
+    """Returns (kind, name, condition) for a manifest dependency entry."""
+    for kind in ("target", "byName"):
+        if dep.get(kind):
+            e = dep[kind]
+            return (kind, e[0], e[1] if len(e) > 1 else None)
+    if dep.get("product"):
+        e = dep["product"]
+        return ("product", e[0], e[3] if len(e) > 3 else None)
+    return (None, None, None)
+
+def active(cond):
+    # The floor builds with every package trait disabled, so trait-conditioned edges are never
+    # active here; platform-conditioned edges are active only on their listed platforms.
+    if not cond:
+        return True
+    if cond.get("traits"):
+        return False
+    plats = cond.get("platformNames")
+    return not plats or plat_l in plats
+
 def dep_targets(t):
     out = set()
     for dep in t.get("dependencies", []):
-        for key in ("byName", "target"):
-            if dep.get(key) and dep[key][0] in targets:
-                out.add(dep[key][0])
+        kind, name, cond = edge(dep)
+        if kind in ("target", "byName") and name in targets and active(cond):
+            out.add(name)
     return out
+
+# Hard per-platform unsupportedness. CONVENTION: an *external product* dependency edge that carries a
+# platform-only condition (no traits) marks a hard requirement — the target cannot compile where the
+# edge is conditioned away (e.g. the FHIRModels stack, which cannot link for armv7k, is conditioned
+# off watchOS in the lowered configuration). Trait-conditioned edges never count: by repo convention
+# their consumers are source-gated (`#if <Trait>`) and compile to empty without them.
+# Unsupportedness propagates transitively along active in-package edges.
+unsupported = set()
+for name, t in targets.items():
+    for dep in t.get("dependencies", []):
+        kind, _, cond = edge(dep)
+        if kind == "product" and cond and not cond.get("traits"):
+            plats = cond.get("platformNames")
+            if plats and plat_l not in plats:
+                unsupported.add(name)
+                break
+changed = True
+while changed:
+    changed = False
+    for name, t in targets.items():
+        if name not in unsupported and any(d in unsupported for d in dep_targets(t)):
+            unsupported.add(name)
+            changed = True
 
 pkg_plat, tgt_pkg = {}, {}
 for pkg, info in toml.items():
@@ -78,6 +127,8 @@ for pkg, info in toml.items():
 
 def supports(prod):
     mts = libprods[prod]
+    if any(mt in unsupported for mt in mts):
+        return False
     # supported if any owning sub-package covers this platform ...
     if any(plat in pkg_plat.get(tgt_pkg[mt], ()) for mt in mts if tgt_pkg.get(mt)):
         return True
@@ -88,7 +139,7 @@ supported = [p for p in libprods if supports(p)]
 sup_targets = {mt for p in supported for mt in libprods[p]}
 depended = {d for tn in sup_targets if tn in targets for d in dep_targets(targets[tn]) if d in sup_targets}
 toplevel = sorted(p for p in supported if not any(mt in depended for mt in libprods[p]))
-mods = sorted(sup_targets)
+mods = sorted(mt for mt in sup_targets if mt not in unsupported)
 print(" ".join(toplevel) + "\t" + " ".join(mods))
 PY
 PYOUT="$(python3 "$ANALYZER" "$DD.dump.json" "$PLATFORM")"

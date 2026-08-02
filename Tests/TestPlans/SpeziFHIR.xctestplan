@@ -1,42 +1,35 @@
 {
-  "configurations" : [
+  "configurations": [
     {
-      "id" : "00000000-0000-0000-0000-000000000011",
-      "name" : "Configuration 1",
-      "options" : {
-
-      }
+      "id": "00000000-0000-0000-0000-000000000011",
+      "name": "Configuration 1",
+      "options": {}
     }
   ],
-  "defaultOptions" : {
-    "codeCoverage" : {
-      "targets" : [
-      {
-        "containerPath" : "container:",
-        "identifier" : "SpeziFHIR",
-        "name" : "SpeziFHIR"
-      },
-      {
-        "containerPath" : "container:",
-        "identifier" : "SpeziFHIRHealthKit",
-        "name" : "SpeziFHIRHealthKit"
-      },
-      {
-        "containerPath" : "container:",
-        "identifier" : "SpeziFHIRMockPatients",
-        "name" : "SpeziFHIRMockPatients"
-      }
-    ]
+  "defaultOptions": {
+    "codeCoverage": {
+      "targets": [
+        {
+          "containerPath": "container:",
+          "identifier": "SpeziFHIR",
+          "name": "SpeziFHIR"
+        },
+        {
+          "containerPath": "container:",
+          "identifier": "SpeziFHIRMockPatients",
+          "name": "SpeziFHIRMockPatients"
+        }
+      ]
     }
   },
-  "testTargets" : [
-      {
-        "target" : {
-          "containerPath" : "container:",
-          "identifier" : "SpeziFHIRTests",
-          "name" : "SpeziFHIRTests"
-        }
+  "testTargets": [
+    {
+      "target": {
+        "containerPath": "container:",
+        "identifier": "SpeziFHIRTests",
+        "name": "SpeziFHIRTests"
       }
+    }
   ],
-  "version" : 1
+  "version": 1
 }

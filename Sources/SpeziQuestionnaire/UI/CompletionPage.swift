@@ -80,7 +80,7 @@ struct CompletionPage: View {
 extension View {
     @ViewBuilder
     fileprivate func symbolEffectDrawOn() -> some View {
-        if #available(iOS 26, *) {
+        if #available(iOS 26, macOS 26, *) {
             self.symbolEffect(.drawOn)
         } else {
             self

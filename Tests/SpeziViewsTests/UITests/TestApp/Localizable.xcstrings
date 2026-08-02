@@ -109,6 +109,15 @@
     "Examples" : {
 
     },
+    "Fast Action" : {
+
+    },
+    "Fast Completed: %@" : {
+
+    },
+    "Fast Debounced Action" : {
+
+    },
     "Field" : {
 
     },
@@ -286,6 +295,15 @@
 
     },
     "Skip Next" : {
+
+    },
+    "Slow Action" : {
+
+    },
+    "Slow Completed: %@" : {
+
+    },
+    "Slow Debounced Action" : {
 
     },
     "SpeziPersonalInfo" : {

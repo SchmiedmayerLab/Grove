@@ -72,4 +72,3 @@ struct GAS7QuestionnaireView: View {
 
 ### UI
 - ``QuestionnaireSheet``
-- ``QuestionnaireView``
