@@ -673,7 +673,7 @@ extension QuantityTypesFHIRMapping {
             for: .sixMinuteWalkTestDistance,
             extraCodings: [
                 Coding(
-                    code: "55430-3",
+                    code: "64098-7",
                     display: "6 minute walk test Distance",
                     system: .loincSystem
                 )
