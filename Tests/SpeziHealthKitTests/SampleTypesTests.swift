@@ -190,6 +190,13 @@ struct SampleTypesTests {
             )
         }
     }
+    
+    @Test(arguments: [Locale.enUS, .enGB, .esUS, .deDE, .frFR])
+    func diaplayUnitValidity(locale: Locale) {
+        for quantityType in SampleType<HKQuantitySample>.allKnownQuantities {
+            #expect(quantityType.displayUnit(for: locale).isCompatible(with: quantityType.canonicalUnit))
+        }
+    }
 }
 
 

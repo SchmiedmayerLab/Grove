@@ -14,6 +14,10 @@ import SwiftUI
 
 extension Locale {
     static let enUS = Locale(identifier: "en_US")
+    static let enGB = Locale(identifier: "en_GB")
+    static let esUS = Locale(identifier: "es_US")
+    static let deDE = Locale(identifier: "de_DE")
+    static let frFR = Locale(identifier: "fr_FR")
 }
 
 
