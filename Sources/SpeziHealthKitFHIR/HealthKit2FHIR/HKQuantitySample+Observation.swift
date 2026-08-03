@@ -17,7 +17,13 @@ import SpeziHealthKit
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HKQuantitySample: FHIRObservationBuildable {
     func build(_ observation: inout Observation, mapping: SampleTypesFHIRMapping) throws {
-        guard let quantityType = SampleType(self.quantityType) else {
+        let quantityType: SampleType<HKQuantitySample>
+        if let type = SampleType(self.quantityType) {
+            quantityType = type
+        } else if let type = mapping.quantityTypesMapping.keys.first(where: { $0.identifier == self.quantityType.identifier }) {
+            // ^^ fallback for cases where we're some how dealing with user-defined not-known-to-SHK sample types
+            quantityType = type
+        } else {
             throw SpeziHealthKitFHIRError.notSupported
         }
         guard let mapping = mapping.quantityTypesMapping[quantityType] else {
