@@ -21,7 +21,7 @@ The Spezi FHIR Swift Package provides essential building blocks for developing F
 
 ### Add SpeziFHIR as a Dependency
 
-Add the Spezi monorepo package to your app and select the products you need, such as `SpeziFHIR`, `SpeziFHIRHealthKit`, or `SpeziFHIRMockPatients`.
+Add the Spezi monorepo package to your app and select the products you need, such as `SpeziFHIR`, `SpeziHealthKitFHIR`, or `SpeziFHIRMockPatients`.
 
 In Xcode, select **File > Add Package Dependencies...**, enter:
 
@@ -44,7 +44,7 @@ Then add the product dependency to the target that needs it:
     name: "MyApp",
     dependencies: [
         .product(name: "SpeziFHIR", package: "Spezi"),
-        .product(name: "SpeziFHIRHealthKit", package: "Spezi"),
+        .product(name: "SpeziHealthKitFHIR", package: "Spezi"),
         .product(name: "SpeziFHIRMockPatients", package: "Spezi")
     ]
 )
@@ -58,7 +58,7 @@ Then add the product dependency to the target that needs it:
 Spezi FHIR provides a number of targets to help developers integrate FHIR functionality in their Spezi-based applications:
 
 - `SpeziFHIR`: Core FHIR resource management, storage, and utilities for working with FHIR R4 and DSTU2 resources.
-- `SpeziFHIRHealthKit`: Seamless integration between HealthKit data and FHIR resources, enabling conversion of health data to FHIR format.
+- `SpeziHealthKitFHIR`: Seamless integration between HealthKit data and FHIR resources, enabling conversion of health data to FHIR format.
 - `SpeziFHIRMockPatients`: Mock patient data and FHIR bundles for testing and development purposes.
 
 ### SpeziFHIR
@@ -112,10 +112,10 @@ struct ExampleView: View {
 }
 ```
 
-### SpeziFHIRHealthKit
+### SpeziHealthKitFHIR
 
 Seamlessly integrate HealthKit data with FHIR resources including easy ways to add `HKSample`s to the `FHIRStore` while loading attachments from the FHIR resources stored in HealthKit or attached information such as voltage information of symptoms for electrocardiograms.
-For more information, review the [SpeziFHIRHealthKit sources](../SpeziFHIRHealthKit).
+For more information, review the [SpeziHealthKitFHIR sources](../SpeziHealthKitFHIR).
 
 ### SpeziFHIRMockPatients
 

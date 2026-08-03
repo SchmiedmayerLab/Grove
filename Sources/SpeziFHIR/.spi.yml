@@ -12,5 +12,4 @@ builder:
     - platform: ios
       documentation_targets:
       - SpeziFHIR
-      - SpeziFHIRHealthKit
       - SpeziFHIRMockPatients
