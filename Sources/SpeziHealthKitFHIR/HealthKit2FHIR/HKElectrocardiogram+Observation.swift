@@ -62,7 +62,6 @@ extension HKElectrocardiogram: FHIRObservationBuildable {
         let mapping = mapping.ecgTypeMapping
         observation.append(codings: mapping.codings)
         observation.append(categories: mapping.categories.map { CodeableConcept(coding: [$0]) })
-        observation.append(categories: mapping.categories.map { CodeableConcept(coding: [$0]) })
         try appendNumberOfVoltageMeasurementsComponent(to: &observation, mapping: mapping)
         try appendSamplingFrequencyComponent(to: &observation, mapping: mapping)
         appendClassificationComponent(to: &observation, mapping: mapping)

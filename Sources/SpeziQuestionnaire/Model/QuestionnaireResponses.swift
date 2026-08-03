@@ -168,6 +168,8 @@ extension QuestionnaireResponses {
     
     
     func isMissingResponse(for task: Questionnaire.Task) -> Bool {
+        // NOTE: on platforms without UIKit (eg macOS, which isn't officially supported yet), a required annotate-image
+        // task can never satisfy this check; see the non-UIKit branch of `AnnotateImageQuestionKind.makeView(for:using:response:)` for more info.
         !task.isOptional && shouldEnable(task: task) && !hasResponse(for: task)
     }
     

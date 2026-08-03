@@ -179,4 +179,23 @@ struct SampleTypesTests {
         #expect(SampleType<HKCategorySample>.allKnownCategories.mapIntoSet(\.hkSampleType) == HKCategoryType.allKnownCategories)
     }
     #endif
+    
+    
+    @Test
+    func canUnit() {
+        for quantityType in SampleType<HKQuantitySample>.allKnownQuantities {
+            #expect(
+                quantityType.hkSampleType.is(compatibleWith: quantityType.canonicalUnit),
+                "invalid canUnit '\(quantityType.canonicalUnit)' for sample type '\(quantityType)' (hk suggestion: \(quantityType.hkCanonicalUnit))"
+            )
+        }
+    }
+}
+
+
+extension HKQuantityType {
+    var hkCanonicalUnit: HKUnit {
+        // SAFETY: we're in the tests here
+        self.value(forKey: "canonicalUnit") as! HKUnit // swiftlint:disable:this force_unwrapping
+    }
 }

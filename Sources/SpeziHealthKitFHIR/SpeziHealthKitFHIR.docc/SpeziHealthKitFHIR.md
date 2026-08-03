@@ -18,7 +18,8 @@ Adds FHIR integrations and compatibility to HealthKit.
 You use the SpeziHealthKitFHIR module to convert HealthKit samples into FHIR R4 resources.
 
 ```swift
-let
+let sample: HKQuantitySample = // ... a heart rate sample fetched from HealthKit
+let resource = try sample.resource()
 ```
 
 This resource will be of Observation type, and have the following JSON structure:
@@ -128,13 +129,7 @@ This resource will be of Observation type, and have the following JSON structure
 ```
 
 
-Extensions that convert supported HealthKit samples to FHIR resources.
-
-## Overview
-
-The HealthKitOnFHIR framework provides extensions that convert supported HealthKit samples to FHIR resources.
-
-HealthKitOnFHIR supports:
+SpeziHealthKitFHIR supports:
 - Extensions to convert data from Apple HealthKit to HL7® FHIR® R4.
 - Customizable mappings between HealthKit data types and standardized codes (e.g., LOINC)
 
@@ -142,7 +137,7 @@ Please refer to the [HKObject Support Table](<doc:HKSampleSupportTables>) for a 
 
 ## HealthKit Extensions
 
-The HealthKitOnFHIR framework provides extensions that convert supported HealthKit samples to FHIR resources using [FHIRModels](https://github.com/apple/FHIRModels) encapsulated in a [ResourceProxy](https://github.com/apple/FHIRModels/blob/main/HowTo/Instantiation.md#1-use-resourceproxy).
+The SpeziHealthKitFHIR module provides extensions that convert supported HealthKit samples to FHIR resources using [FHIRModels](https://github.com/apple/FHIRModels) encapsulated in a [ResourceProxy](https://github.com/apple/FHIRModels/blob/main/HowTo/Instantiation.md#1-use-resourceproxy).
 
 ```swift
 let sample: HKSample = // ...
@@ -180,7 +175,7 @@ let allergyIntolerance = try allergyRecord.resource().get(if: AllergyIntolerance
 In the following example, we will query the HealthKit store for step count data, convert the resulting samples to FHIR observations, and encode them into JSON.
 
 ```swift
-import HealthKitOnFHIR
+import SpeziHealthKitFHIR
 
 // Initialize an HKHealthStore instance and request permissions with it
 // ...
@@ -254,10 +249,3 @@ The following example generates the following FHIR observation:
 - ``HealthKit/HKSample/resource(withMapping:issuedDate:extensions:)``
 - ``HealthKit/HKSampleType/fhirResourceType``
 - ``HealthKit/HKElectrocardiogram/observation(symptoms:voltageMeasurements:withMapping:issuedDate:extensions:)``
-
-### Supported HealthKit HKSample Types
-- <doc:HKSampleSupportTables>
-- <doc:SupportedHKQuantityTypes>
-- <doc:SupportedHKClinicalTypes>
-- <doc:SupportedHKCategoryTypes>
-- <doc:SupportedHKCorrelationTypes>

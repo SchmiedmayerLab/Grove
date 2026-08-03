@@ -434,7 +434,7 @@ extension QuantityTypeFHIRMapping {
             hkUnit: .init(from: "dBASPL"),
             unit: "dB(SPL)",
             system: .unitsOfMeasureSystem,
-            code: "dB(SPL)"
+            code: "dB[SPL]"
         )
     )
     
@@ -514,7 +514,7 @@ extension QuantityTypeFHIRMapping {
             hkUnit: .decibelAWeightedSoundPressureLevel(),
             unit: "dB(SPL)",
             system: .unitsOfMeasureSystem,
-            code: "dB(SPL)"
+            code: "dB[SPL]"
         )
     )
     
