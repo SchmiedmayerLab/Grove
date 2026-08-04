@@ -6,19 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-#if canImport(HealthKit)
-
 import Foundation
+#if canImport(SwiftUI)
 import SwiftUI
-
-
-extension Locale {
-    static let enUS = Locale(identifier: "en_US")
-    static let enGB = Locale(identifier: "en_GB")
-    static let esUS = Locale(identifier: "es_US")
-    static let deDE = Locale(identifier: "de_DE")
-    static let frFR = Locale(identifier: "fr_FR")
-}
+#endif
 
 
 extension TimeZone {
@@ -36,6 +27,16 @@ extension Calendar {
 }
 
 
+extension Locale {
+    static let enUS = Locale(identifier: "en_US")
+    static let enGB = Locale(identifier: "en_GB")
+    static let esUS = Locale(identifier: "es_US")
+    static let deDE = Locale(identifier: "de_DE")
+    static let frFR = Locale(identifier: "fr_FR")
+}
+
+
+#if canImport(SwiftUI)
 extension View {
     func withLocale(_ locale: Locale, timeZone: TimeZone) -> some View {
         var cal = Calendar.current
@@ -47,5 +48,4 @@ extension View {
             .environment(\.calendar, cal)
     }
 }
-
 #endif
