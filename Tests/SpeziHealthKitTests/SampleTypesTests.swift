@@ -203,6 +203,6 @@ struct SampleTypesTests {
 extension HKQuantityType {
     var hkCanonicalUnit: HKUnit {
         // SAFETY: we're in the tests here
-        self.value(forKey: "canonicalUnit") as! HKUnit // swiftlint:disable:this force_unwrapping
+        self.value(forKey: "canonicalUnit") as! HKUnit // swiftlint:disable:this force_cast
     }
 }

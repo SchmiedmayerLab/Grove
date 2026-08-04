@@ -133,8 +133,6 @@ SpeziHealthKitFHIR supports:
 - Extensions to convert data from Apple HealthKit to HL7® FHIR® R4.
 - Customizable mappings between HealthKit data types and standardized codes (e.g., LOINC)
 
-Please refer to the [HKObject Support Table](<doc:HKSampleSupportTables>) for a complete list of supported types.
-
 ## HealthKit Extensions
 
 The SpeziHealthKitFHIR module provides extensions that convert supported HealthKit samples to FHIR resources using [FHIRModels](https://github.com/apple/FHIRModels) encapsulated in a [ResourceProxy](https://github.com/apple/FHIRModels/blob/main/HowTo/Instantiation.md#1-use-resourceproxy).

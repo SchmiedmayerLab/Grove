@@ -23,7 +23,7 @@ protocol ContentExtractor {
     /// - Parameter data: Binary data to extract content from.
     /// - Returns: Extracted text content.
     /// - Throws: Error if extraction fails.
-    func extractContent(from data: Data) throws -> String
+    func extractContent(from data: Data) throws -> (UTType, Data)
 }
 
 #endif

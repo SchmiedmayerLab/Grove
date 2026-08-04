@@ -19,8 +19,6 @@ SpeziHealthKitFHIR supports:
 - Extensions to convert data from Apple HealthKit to HL7® FHIR® R4.
 - Customizable mappings between HealthKit data types and standardized codes (e.g., LOINC)
 
-Please refer to the [HKObject Support Table](SpeziHealthKitFHIR.docc/HKSampleSupportTables.md) for a complete list of supported types.
-
 > [!NOTE]
 > SpeziHealthKitFHIR will use the time zone specified in [HKMetadataKeyTimeZone](https://developer.apple.com/documentation/healthkit/hkmetadatakeytimezone) when creating FHIR Observations from HealthKit samples. If no time zone is specified, SpeziHealthKitFHIR will use the device's current time zone.
 

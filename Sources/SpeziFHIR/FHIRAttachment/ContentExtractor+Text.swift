@@ -18,11 +18,12 @@ struct TextContentExtractor: ContentExtractor {
         contentType.conforms(to: .text)
     }
     
-    func extractContent(from data: Data) throws -> String {
+    func extractContent(from data: Data) throws -> (UTType, Data) {
+        // TODO is this step really still needed?
         guard let string = String(data: data, encoding: .utf8) else {
             throw FHIRAttachmentError.textDecodingFailed
         }
-        return string
+        return (.text, Data(string.utf8))
     }
 }
 

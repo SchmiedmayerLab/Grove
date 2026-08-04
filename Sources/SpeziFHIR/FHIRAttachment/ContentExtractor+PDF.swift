@@ -27,7 +27,7 @@ struct PDFContentExtractor<PDFProvider: PDFDocumentProviding>: ContentExtractor 
         contentType.conforms(to: .pdf)
     }
     
-    func extractContent(from data: Data) throws -> String {
+    func extractContent(from data: Data) throws -> (UTType, Data) {
         guard let pdf = pdfDocumentProvider.createPDFDocument(from: data) else {
             throw FHIRAttachmentError.pdfParsingFailed
         }
@@ -38,7 +38,7 @@ struct PDFContentExtractor<PDFProvider: PDFDocumentProviding>: ContentExtractor 
             }
             documentContent.append(content)
         }
-        return documentContent.string
+        return (.text, Data(documentContent.string.utf8))
     }
 }
 

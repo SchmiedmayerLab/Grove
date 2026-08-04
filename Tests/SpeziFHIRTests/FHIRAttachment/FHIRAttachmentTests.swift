@@ -96,11 +96,11 @@ struct FHIRAttachmentTests {
         "Attachment returns base64 string",
         arguments: [FHIRModel.dstu2, FHIRModel.r4]
     )
-    func testBase64String(_ model: FHIRModel) {
+    func testBase64String(_ model: FHIRModel) throws {
         let testString = "Test content"
         let attachment = FHIRAttachmentTestHelper.createAttachmentWithData(testString, model: model)
-        let base64String = attachment.base64String
-        #expect(base64String == testString, "\(model.description) attachment should return correct base64 string")
+        let content = String(decoding: try #require(attachment.data()), as: UTF8.self)
+        #expect(content == testString)
     }
     
     
@@ -110,8 +110,7 @@ struct FHIRAttachmentTests {
     )
     func testMissingBase64String(_ model: FHIRModel) {
         let attachment = FHIRAttachmentTestHelper.createAttachment(model: model)
-        let base64String = attachment.base64String
-        #expect(base64String == nil, "\(model.description) attachment should return nil for missing base64 string")
+        #expect(attachment.data() == nil)
     }
     
     
@@ -121,9 +120,9 @@ struct FHIRAttachmentTests {
     )
     func testEncodeContent(_ model: FHIRModel) {
         var attachment = FHIRAttachmentTestHelper.createAttachment(model: model)
-        let testContent = "This is test content"
-        attachment.setData(from: testContent)
-        #expect(attachment.base64String == testContent, "\(model.description) attachment should encode content correctly")
+        let testContent = Data("This is test content".utf8)
+        attachment.setData(testContent, mimeType: .text)
+        #expect(attachment.data() == testContent, "\(model.description) attachment should encode content correctly")
     }
 }
 
