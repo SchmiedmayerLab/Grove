@@ -43,6 +43,9 @@ extension AnchoredFetcher {
         }
         
         func next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Element? {
+            guard !Task.isCancelled else {
+                return nil
+            }
             if !isFetching {
                 isFetching = true
                 let fetchRequest = SRFetchRequest()
@@ -51,7 +54,7 @@ extension AnchoredFetcher {
                 fetchRequest.to = .current()
                 reader.fetch(fetchRequest)
             }
-            return try await delegate.nextBatch()
+            return try await delegate.nextBatch(isolation: actor)
         }
         
         /// Explicit witness for the legacy `next()` requirement.
@@ -177,33 +180,41 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         }
     }
     
-    func nextBatch() async throws -> Element? {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Element?, any Error>) in
-            lock.lock()
-            switch state {
-            case .fetching, .flushing:
-                // NOTE: the state may transition away from `.fetching` or `.flushing` at any point
-                // after we release the lock (SensorKit's callbacks run on their own thread);
-                // the termination paths are responsible for resuming a parked continuation, so this is safe.
-                // this can only fire on consumer misuse (two concurrent `next()` calls on the same
-                // iterator (which should be impossible as the iterator is not Sendable));
-                // it is inside the lock, so it can no longer fire spuriously on the
-                // SensorKit-callback races that the old unguarded preconditions crashed on.
-                precondition(nextBatchContinuation == nil, "\(sensor.displayName)")
-                nextBatchContinuation = continuation
-                lock.unlock()
-                semaphore.signal() // signal that continuation is ready
-            case .failed(let error):
-                // the fetch has failed: end the iteration.
-                state = .terminated
-                lock.unlock()
-                continuation.resume(throwing: error)
-            case .terminated:
-                // the fetch has already completed, or been stopped: end the iteration.
-                lock.unlock()
-                continuation.resume(returning: nil)
-            }
-        }
+    func nextBatch(isolation: isolated (any Actor)?) async throws -> Element? {
+        try await withTaskCancellationHandler(
+            operation: {
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Element?, any Error>) in
+                    lock.lock()
+                    switch state {
+                    case .fetching, .flushing:
+                        // NOTE: the state may transition away from `.fetching` or `.flushing` at any point
+                        // after we release the lock (SensorKit's callbacks run on their own thread);
+                        // the termination paths are responsible for resuming a parked continuation, so this is safe.
+                        // this can only fire on consumer misuse (two concurrent `next()` calls on the same
+                        // iterator (which should be impossible as the iterator is not Sendable));
+                        // it is inside the lock, so it can no longer fire spuriously on the
+                        // SensorKit-callback races that the old unguarded preconditions crashed on.
+                        precondition(nextBatchContinuation == nil, "\(sensor.displayName)")
+                        nextBatchContinuation = continuation
+                        lock.unlock()
+                        semaphore.signal() // signal that continuation is ready
+                    case .failed(let error):
+                        // the fetch has failed: end the iteration.
+                        state = .terminated
+                        lock.unlock()
+                        continuation.resume(throwing: error)
+                    case .terminated:
+                        // the fetch has already completed, or been stopped: end the iteration.
+                        lock.unlock()
+                        continuation.resume(returning: nil)
+                    }
+                }
+            },
+            onCancel: {
+                stop()
+            },
+            isolation: isolation
+        )
     }
     
     func stop() {

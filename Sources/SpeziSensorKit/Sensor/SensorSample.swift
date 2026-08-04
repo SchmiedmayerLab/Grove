@@ -39,7 +39,7 @@ public protocol SensorKitSampleSafeRepresentation: Hashable, Sendable {
 /// ### Other Types
 /// - ``SensorKitSampleSafeRepresentation``
 /// - ``DefaultSensorKitSampleSafeRepresentation``
-public protocol SensorKitSampleProtocol: AnyObject, Hashable {
+public protocol SensorKitSampleProtocol: AnyObject, Hashable, SendableMetatype {
     /// A "safe" `Sendable` representation of the type.
     ///
     /// This is required because most SensorKit types are not Sendable and can only be used on the specific DispatchQueue used internally by SensorKit.
