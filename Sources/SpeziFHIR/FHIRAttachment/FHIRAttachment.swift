@@ -31,9 +31,11 @@ enum FHIRAttachmentError: Error, Equatable {
 
 
 /// Uniform interface for FHIR attachment types.
-protocol FHIRAttachment: Sendable/*, CustomDebugStringConvertible*/ {
+protocol FHIRAttachment: Sendable {
+    // swiftlint:disable identifier_name
     var _contentTypeString: String? { get set }
     var _base64String: String? { get set }
+    // swiftlint:enable identifier_name
 }
 
 
@@ -47,7 +49,7 @@ extension FHIRAttachment {
             }
         }
         set {
-            _contentTypeString = newValue?.preferredMIMEType // TODO what if preferredMIMEType is nil??
+            _contentTypeString = newValue?.preferredMIMEType
         }
     }
 

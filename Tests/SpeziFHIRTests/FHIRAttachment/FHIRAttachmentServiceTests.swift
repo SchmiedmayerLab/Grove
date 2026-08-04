@@ -15,8 +15,8 @@ import UniformTypeIdentifiers
 
 
 private struct MockFHIRAttachment: FHIRAttachment {
-    var _contentTypeString: String?
-    var _base64String: String?
+    var _contentTypeString: String? // swiftlint:disable:this identifier_name
+    var _base64String: String? // swiftlint:disable:this identifier_name
     
     init() {}
     

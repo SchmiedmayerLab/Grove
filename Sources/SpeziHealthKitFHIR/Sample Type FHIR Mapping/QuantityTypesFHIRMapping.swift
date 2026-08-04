@@ -457,8 +457,7 @@ extension QuantityTypesFHIRMapping {
         
         addMapping(for: .electrodermalActivity, unitString: "microsiemens", system: .unitsOfMeasureSystem, code: "uS")
         addMapping(for: .environmentalAudioExposure, unitString: "dB(SPL)", system: .unitsOfMeasureSystem, code: "dB[SPL]")
-        // UCUM does not define a hearing-level unit (there is no `B[HL]`), so we only provide the human-readable unit here.
-        addMapping(for: .environmentalSoundReduction, unitString: "dB(HL)", system: nil, code: nil)
+        addMapping(for: .environmentalSoundReduction, unitString: "dB(SPL)", system: .unitsOfMeasureSystem, code: "dB[SPL]")
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
             addMapping(for: .estimatedWorkoutEffortScore, unitString: "effort", system: nil, code: nil)
         }

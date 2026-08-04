@@ -13,7 +13,7 @@ import UniformTypeIdentifiers
 
 
 extension ModelsDSTU2.Attachment: FHIRAttachment {
-    var _contentTypeString: String? {
+    var _contentTypeString: String? { // swiftlint:disable:this identifier_name
         get {
             contentType?.value?.string
         }
@@ -22,7 +22,7 @@ extension ModelsDSTU2.Attachment: FHIRAttachment {
         }
     }
     
-    var _base64String: String? {
+    var _base64String: String? { // swiftlint:disable:this identifier_name
         get {
             data?.value?.dataString
         }

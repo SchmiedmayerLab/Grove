@@ -49,6 +49,7 @@ struct SampleTypeFHIRMappingTests {
             .init(sampleType: .physicalEffort, ucumUnitString: "kcal/(kg.h)", healthKitCanUnit: HKUnit(from: "kcal/hr·kg")),
             .init(sampleType: .headphoneAudioExposure, ucumUnitString: "dB[SPL]", healthKitCanUnit: HKUnit(from: "dBASPL")),
             .init(sampleType: .environmentalAudioExposure, ucumUnitString: "dB[SPL]", healthKitCanUnit: HKUnit(from: "dBASPL")),
+            .init(sampleType: .environmentalSoundReduction, ucumUnitString: "dB[SPL]", healthKitCanUnit: HKUnit(from: "dBASPL")),
             .init(sampleType: .vo2Max, ucumUnitString: "mL/kg/min", healthKitCanUnit: HKUnit(from: "mL/min·kg"))
         ]
         func checkIsUCUMUnit(_ ucumUnit: String, equivalentTo hkUnit: HKUnit) -> Bool {
