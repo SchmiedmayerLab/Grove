@@ -9,7 +9,9 @@
 #if canImport(UniformTypeIdentifiers)
 
 public import Foundation
+#if canImport(PDFKit)
 private import PDFKit
+#endif
 public import UniformTypeIdentifiers
 
 
@@ -56,6 +58,7 @@ public struct PDFContentExtractor: FHIRAttachmentContentExtractor {
 
 
 extension FHIRAttachmentContentExtractor where Self == PDFContentExtractor {
+    /// A content extractor that transforms PDF documents into plain text.
     public static var pdf: Self {
         Self()
     }

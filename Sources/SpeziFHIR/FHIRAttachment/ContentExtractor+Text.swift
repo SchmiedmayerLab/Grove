@@ -29,6 +29,9 @@ public struct TextContentExtractor: FHIRAttachmentContentExtractor {
 
 
 extension FHIRAttachmentContentExtractor where Self == TextContentExtractor {
+    /// A content extractor for plain text.
+    ///
+    /// - Note: This content extractor will simply return the input text, unchanged.
     public static var text: Self {
         Self()
     }
