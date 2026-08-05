@@ -68,8 +68,15 @@ public class HKSampleType: HKObjectType, @unchecked Sendable {}
 
 
 public class HKQuantityType: HKSampleType, @unchecked Sendable {
+    var _canonicalUnit: HKUnit? {
+        SampleType<HKQuantitySample>(HKQuantityTypeIdentifier(rawValue: identifier))?.canonicalUnit
+    }
     public init(_ identifier: HKQuantityTypeIdentifier) {
         super.init(identifier: identifier.rawValue)
+    }
+    
+    public func `is`(compatibleWith unit: HKUnit) -> Bool {
+        _canonicalUnit?.isCompatible(with: unit) ?? false
     }
 }
 

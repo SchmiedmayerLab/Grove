@@ -202,7 +202,12 @@ struct SampleTypesTests {
 
 extension HKQuantityType {
     var hkCanonicalUnit: HKUnit {
+        #if canImport(Darwin)
         // SAFETY: we're in the tests here
         self.value(forKey: "canonicalUnit") as! HKUnit // swiftlint:disable:this force_cast
+        #else
+        // we're on Linux are are using our custom `HKQuantityType` implementation instead of the HealthKit one.
+        self._canonicalUnit! // swiftlint:disable:this force_unwrapping
+        #endif
     }
 }
