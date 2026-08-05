@@ -18,16 +18,19 @@ public import UniformTypeIdentifiers
 /// Extractor for PDF document content types.
 public struct PDFContentExtractor: FHIRAttachmentContentExtractor {
     private struct NotAvailableError: Error {}
-    
+    #if canImport(PDFKit)
     private let documentProvider: any PDFDocumentProviding
-    
+
     init() {
         self.documentProvider = DefaultPDFDocumentProvider()
     }
-    
+
     init(documentProvider: any PDFDocumentProviding) {
         self.documentProvider = documentProvider
     }
+    #else
+    init() {}
+    #endif
     
     public func isCompatible(with contentType: UTType) -> Bool {
         #if canImport(PDFKit)
@@ -59,6 +62,8 @@ public struct PDFContentExtractor: FHIRAttachmentContentExtractor {
 
 extension FHIRAttachmentContentExtractor where Self == PDFContentExtractor {
     /// A content extractor that transforms PDF documents into plain text.
+    ///
+    /// On platforms where no PDFKit is available, the extractor does nothing.
     public static var pdf: Self {
         Self()
     }
