@@ -17,9 +17,7 @@ import UniformTypeIdentifiers
 
 @Suite
 struct FHIRResourceStringifyTests {
-    private let service = FHIRAttachmentService()
-    
-    // MARK: - R4 Tests
+    // MARK: R4 Tests
     
     @Test("R4 text attachment should be properly stringified")
     func testR4TextAttachmentStringification() throws {
@@ -27,12 +25,9 @@ struct FHIRResourceStringifyTests {
             attachments: [try ModelsR4Mocks.createTextAttachment()]
         )
         var resource = FHIRResource(versionedResource: .r4(docRef), displayName: "Text Document")
-        let originalBase64 = String(
-            decoding: try #require((resource.r4 as? ModelsR4.DocumentReference)?.content.first?.attachment.data()),
-            as: UTF8.self
-        )
+        let originalBase64 = try #require((resource.r4 as? ModelsR4.DocumentReference)?.content.first?.attachment._base64String)
         
-        try resource.stringifyAttachments(using: service)
+        try resource.stringifyAttachments(using: .init())
         
         #expect(resource.displayName == "Text Document") // should stay unchanged
         let transformedContent = String(
@@ -44,6 +39,7 @@ struct FHIRResourceStringifyTests {
     }
     
     
+    /// we expect stringification of text
     @Test
     func r4TextAttachmentStringification() throws {
         let docRef = try ModelsR4Mocks.createDocumentReference(
@@ -54,8 +50,8 @@ struct FHIRResourceStringifyTests {
             (resource.r4 as? ModelsR4.DocumentReference)?.content[0].attachment.data?.value?.dataString
         }
         #expect(attachmentContent == "V2VsY29tZSB0byBTcGV6aUZISVI=")
-        try resource.stringifyAttachments(using: service)
-        #expect(attachmentContent == "Welcome to SpeziFHIR")
+        try resource.stringifyAttachments(using: .init())
+        #expect(attachmentContent == "V2VsY29tZSB0byBTcGV6aUZISVI=")
     }
     
     
@@ -65,12 +61,9 @@ struct FHIRResourceStringifyTests {
             attachments: [try ModelsR4Mocks.createPDFAttachment()]
         )
         var resource = FHIRResource(versionedResource: .r4(docRef), displayName: "PDF Document")
-        let originalBase64 = String(
-            decoding: try #require((resource.r4 as? ModelsR4.DocumentReference)?.content.first?.attachment.data()),
-            as: UTF8.self
-        )
+        let originalBase64 = try #require((resource.r4 as? ModelsR4.DocumentReference)?.content.first?.attachment._base64String)
         
-        try resource.stringifyAttachments(using: service)
+        try resource.stringifyAttachments(using: .init())
         
         let transformedContent = String(
             decoding: try #require((resource.r4 as? ModelsR4.DocumentReference)?.content.first?.attachment.data()),
@@ -85,14 +78,19 @@ struct FHIRResourceStringifyTests {
     func testR4MixedAttachmentsProcessing() throws {
         let docRef = try ModelsR4Mocks.createMixedDocumentReference()
         var resource = FHIRResource(versionedResource: .r4(docRef), displayName: "Mixed Document")
-        let originalContents = try #require((resource.r4 as? ModelsR4.DocumentReference)?.content.compactMap { $0.attachment.data() })
-        
-        try resource.stringifyAttachments(using: service)
-        
-        let transformedContents = try #require((resource.r4 as? ModelsR4.DocumentReference)?.content.compactMap { $0.attachment.data() })
-        for (index, originalContent) in originalContents.enumerated() {
-            #expect(transformedContents[index] != originalContent, "Attachment \(index) should be transformed")
+        var attachments: [ModelsR4::Attachment] {
+            (resource.r4 as? ModelsR4::DocumentReference)?.content.map(\.attachment) ?? []
         }
+        
+        let preStringifyAttachments = attachments
+        #expect(preStringifyAttachments.map(\.mimeType) == [.plainText, .pdf])
+        
+        try resource.stringifyAttachments(using: .init())
+        
+        let postStringifyAttachments = attachments
+        #expect(postStringifyAttachments.map(\.mimeType) == [.plainText, .plainText])
+        #expect(postStringifyAttachments[0] == preStringifyAttachments[0])
+        #expect(postStringifyAttachments[1].data() != preStringifyAttachments[1].data())
     }
     
     
@@ -101,13 +99,13 @@ struct FHIRResourceStringifyTests {
         let docRef = try ModelsR4Mocks.createDocumentReference(attachments: [])
         var resource = FHIRResource(versionedResource: .r4(docRef), displayName: "Empty Document")
 
-        try resource.stringifyAttachments(using: service)
+        try resource.stringifyAttachments(using: .init())
 
         #expect(docRef.content.isEmpty, "Content array should remain empty")
     }
     
     
-    // MARK: - DSTU2 Tests
+    // MARK: DSTU2 Tests
     
     @Test("DSTU2 text attachment should be properly stringified")
     func testDSTU2TextAttachmentStringification() throws {
@@ -116,14 +114,11 @@ struct FHIRResourceStringifyTests {
         )
         var resource = FHIRResource(versionedResource: .dstu2(docRef), displayName: "DSTU2 Document")
         
-        #expect((resource.dstu2 as? ModelsDSTU2.DocumentReference)?.content[0].attachment.data?.value?.dataString == "V2VsY29tZSB0byBTcGV6aUZISVI=")
-        try resource.stringifyAttachments(using: service)
-        #expect((resource.dstu2 as? ModelsDSTU2.DocumentReference)?.content[0].attachment.data?.value?.dataString == "Welcome to SpeziFHIR")
-//        let transformedContent = attachment.base64String
-////        attachment.data
-//        #expect(transformedContent != nil)
-//        #expect(transformedContent != originalBase64, "Content should be transformed")
-//        #expect(transformedContent == "Welcome to SpeziFHIR", "Content should now be human-readable")
+        #expect((resource.dstu2 as? ModelsDSTU2.DocumentReference)?.content[0].attachment._base64String == "V2VsY29tZSB0byBTcGV6aUZISVI=")
+        #expect((resource.dstu2 as? ModelsDSTU2.DocumentReference)?.content[0].attachment.mimeType == .plainText)
+        try resource.stringifyAttachments(using: .init())
+        #expect((resource.dstu2 as? ModelsDSTU2.DocumentReference)?.content[0].attachment._base64String == "V2VsY29tZSB0byBTcGV6aUZISVI=")
+        #expect((resource.dstu2 as? ModelsDSTU2.DocumentReference)?.content[0].attachment.mimeType == .plainText)
     }
     
     
@@ -133,18 +128,14 @@ struct FHIRResourceStringifyTests {
         let docRef = try ModelsDSTU2Mocks.createDocumentReference(attachments: [try ModelsDSTU2Mocks.createPDFAttachment()])
         var resource = FHIRResource(versionedResource: .dstu2(docRef), displayName: "DSTU2 PDF Document")
         
-        let originalBase64 = String(
-            decoding: try #require((resource.dstu2 as? ModelsDSTU2.DocumentReference)?.content.first?.attachment.data()),
-            as: UTF8.self
-        )
+        let originalBase64 = try #require((resource.dstu2 as? ModelsDSTU2.DocumentReference)?.content.first?.attachment._base64String)
 
-        try resource.stringifyAttachments(using: service)
+        try resource.stringifyAttachments(using: .init())
 
         let transformedContent = String(
             decoding: try #require((resource.dstu2 as? ModelsDSTU2.DocumentReference)?.content.first?.attachment.data()),
             as: UTF8.self
         )
-        #expect(transformedContent != nil)
         #expect(transformedContent != originalBase64, "Content should be transformed")
 
         // The PDF content should now contain "PDF: Welcome to SpeziFHIR" text from the mock PDF

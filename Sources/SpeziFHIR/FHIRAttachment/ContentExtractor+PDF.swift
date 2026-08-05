@@ -6,29 +6,38 @@
 // SPDX-License-Identifier: MIT
 //
 
-#if canImport(PDFKit) && canImport(UniformTypeIdentifiers)
+#if canImport(UniformTypeIdentifiers)
 
-import Foundation
-import PDFKit
-import UniformTypeIdentifiers
+public import Foundation
+private import PDFKit
+public import UniformTypeIdentifiers
 
 
 /// Extractor for PDF document content types.
-struct PDFContentExtractor<PDFProvider: PDFDocumentProviding>: ContentExtractor {
-    private let pdfDocumentProvider: PDFProvider
+public struct PDFContentExtractor: FHIRAttachmentContentExtractor {
+    private struct NotAvailableError: Error {}
     
-    /// Creates a new instance of the PDF content extractor.
-    /// - Parameter pdfDocumentProvider: The provider used to create PDFDocument instances.
-    init(pdfDocumentProvider: PDFProvider = DefaultPDFDocumentProvider()) {
-        self.pdfDocumentProvider = pdfDocumentProvider
+    private let documentProvider: any PDFDocumentProviding
+    
+    init() {
+        self.documentProvider = DefaultPDFDocumentProvider()
     }
     
-    func isCompatible(with contentType: UTType) -> Bool {
+    init(documentProvider: any PDFDocumentProviding) {
+        self.documentProvider = documentProvider
+    }
+    
+    public func isCompatible(with contentType: UTType) -> Bool {
+        #if canImport(PDFKit)
         contentType.conforms(to: .pdf)
+        #else
+        false
+        #endif
     }
     
-    func extractContent(from data: Data) throws -> (UTType, Data) {
-        guard let pdf = pdfDocumentProvider.createPDFDocument(from: data) else {
+    public func extractContent(from data: Data) throws -> (UTType, Data) {
+        #if canImport(PDFKit)
+        guard let pdf = documentProvider.createPDFDocument(from: data) else {
             throw FHIRAttachmentError.pdfParsingFailed
         }
         let documentContent = NSMutableAttributedString()
@@ -38,7 +47,17 @@ struct PDFContentExtractor<PDFProvider: PDFDocumentProviding>: ContentExtractor 
             }
             documentContent.append(content)
         }
-        return (.text, Data(documentContent.string.utf8))
+        return (.plainText, Data(documentContent.string.utf8))
+        #else
+        throw NotAvailableError()
+        #endif
+    }
+}
+
+
+extension FHIRAttachmentContentExtractor where Self == PDFContentExtractor {
+    public static var pdf: Self {
+        Self()
     }
 }
 

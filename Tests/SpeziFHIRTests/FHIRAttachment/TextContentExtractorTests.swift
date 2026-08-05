@@ -22,7 +22,7 @@ struct TextContentExtractorTests {
     func testTextExtraction() throws {
         let input = Data("Welcome to SpeziFHIR".utf8)
         let (type, output) = try textExtractor.extractContent(from: input)
-        #expect(type == .text)
+        #expect(type == .plainText)
         #expect(output == input)
     }
 

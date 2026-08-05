@@ -89,8 +89,9 @@ struct PDFContentExtractorTests {
         let mockPage = MockPDFPage(text: expectedText)
         let mockPDFDocument = MockPDFDocument(pages: [mockPage])
 
-        let pdfProvider = MockPDFDocumentProvider(result: .success(mockPDFDocument))
-        let extractor = PDFContentExtractor(pdfDocumentProvider: pdfProvider)
+        let extractor = PDFContentExtractor(
+            documentProvider: MockPDFDocumentProvider(result: .success(mockPDFDocument))
+        )
 
         let (outputType, extracted) = try extractor.extractContent(from: Data())
         #expect(String(decoding: extracted, as: UTF8.self) == expectedText)
@@ -108,12 +109,12 @@ struct PDFContentExtractorTests {
             MockPDFPage(text: page3Text)
         ]
 
-        let mockPDFDocument = MockPDFDocument(pages: mockPages)
-        let mockPDFProvider = MockPDFDocumentProvider(result: .success(mockPDFDocument))
-        let extractor = PDFContentExtractor(pdfDocumentProvider: mockPDFProvider)
+        let extractor = PDFContentExtractor(
+            documentProvider: MockPDFDocumentProvider(result: .success(MockPDFDocument(pages: mockPages)))
+        )
 
         let (outputType, extracted) = try extractor.extractContent(from: Data())
-        #expect(outputType == .text)
+        #expect(outputType == .plainText)
         let extractedText = String(decoding: extracted, as: UTF8.self)
         #expect(extractedText.contains(page1Text))
         #expect(extractedText.contains(page2Text))
@@ -122,9 +123,9 @@ struct PDFContentExtractorTests {
 
     @Test("Successfully extracts text from PDF with missing pages")
     func testPDFWithMissingPages() throws {
-        let mockPDFDocument = MockPartialPagesPDFDocument()
-        let mockPDFProvider = MockPDFDocumentProvider(result: .success(mockPDFDocument))
-        let extractor = PDFContentExtractor(pdfDocumentProvider: mockPDFProvider)
+        let extractor = PDFContentExtractor(
+            documentProvider: MockPDFDocumentProvider(result: .success(MockPartialPagesPDFDocument()))
+        )
 
         let (outputType, extracted) = try extractor.extractContent(from: Data())
         let extractedText = String(decoding: extracted, as: UTF8.self)
@@ -135,8 +136,7 @@ struct PDFContentExtractorTests {
 
     @Test("Throws error when PDF parsing fails")
     func testPDFParsingFailure() throws {
-        let mockPDFProvider = MockPDFDocumentProvider(result: .failure)
-        let extractor = PDFContentExtractor(pdfDocumentProvider: mockPDFProvider)
+        let extractor = PDFContentExtractor(documentProvider: MockPDFDocumentProvider(result: .failure))
         do {
             _ = try extractor.extractContent(from: Data())
         } catch let error as FHIRAttachmentError {

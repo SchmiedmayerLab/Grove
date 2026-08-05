@@ -8,22 +8,29 @@
 
 #if canImport(UniformTypeIdentifiers)
 
-import Foundation
-import UniformTypeIdentifiers
+public import Foundation
+public import UniformTypeIdentifiers
 
 
 /// Extractor for plain text content types.
-struct TextContentExtractor: ContentExtractor {
-    func isCompatible(with contentType: UTType) -> Bool {
+public struct TextContentExtractor: FHIRAttachmentContentExtractor {
+    public func isCompatible(with contentType: UTType) -> Bool {
         contentType.conforms(to: .text)
     }
     
-    func extractContent(from data: Data) throws -> (UTType, Data) {
+    public func extractContent(from data: Data) throws -> (UTType, Data) {
         // TODO is this step really still needed?
         guard let string = String(data: data, encoding: .utf8) else {
             throw FHIRAttachmentError.textDecodingFailed
         }
-        return (.text, Data(string.utf8))
+        return (.plainText, Data(string.utf8))
+    }
+}
+
+
+extension FHIRAttachmentContentExtractor where Self == TextContentExtractor {
+    public static var text: Self {
+        Self()
     }
 }
 

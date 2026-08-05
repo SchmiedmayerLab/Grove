@@ -8,12 +8,12 @@
 
 #if canImport(UniformTypeIdentifiers)
 
-import Foundation
-import UniformTypeIdentifiers
+public import Foundation
+public import UniformTypeIdentifiers
 
 
 /// Protocol for content extraction strategies.
-protocol ContentExtractor {
+public protocol FHIRAttachmentContentExtractor {
     /// Determines if this extractor is compatible with the given content type.
     /// - Parameter contentType: The content type to check.
     /// - Returns: True if this extractor can handle the content type.

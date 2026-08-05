@@ -71,6 +71,11 @@ extension FHIRAttachment {
         self._base64String = data.base64EncodedString()
         self.mimeType = mimeType
     }
+    
+    mutating func unsafelySetPlainTextDataSkippingBase64Encode(_ string: String) {
+        self._base64String = string
+        self.mimeType = .plainText
+    }
 }
 
 #endif
