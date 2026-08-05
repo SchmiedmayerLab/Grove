@@ -19,7 +19,6 @@ public struct TextContentExtractor: FHIRAttachmentContentExtractor {
     }
     
     public func extractContent(from data: Data) throws -> (UTType, Data) {
-        // TODO is this step really still needed?
         guard let string = String(data: data, encoding: .utf8) else {
             throw FHIRAttachmentError.textDecodingFailed
         }

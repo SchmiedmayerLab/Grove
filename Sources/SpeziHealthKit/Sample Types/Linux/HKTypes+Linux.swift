@@ -68,7 +68,7 @@ public class HKSampleType: HKObjectType, @unchecked Sendable {}
 
 
 public class HKQuantityType: HKSampleType, @unchecked Sendable {
-    var _canonicalUnit: HKUnit? {
+    var _canonicalUnit: HKUnit? { // swiftlint:disable:this identifier_name
         SampleType<HKQuantitySample>(HKQuantityTypeIdentifier(rawValue: identifier))?.canonicalUnit
     }
     public init(_ identifier: HKQuantityTypeIdentifier) {
