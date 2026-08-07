@@ -12,14 +12,17 @@ import Testing
 
 
 struct ManagedNavigationStackIdentifierTests {
+    @Test
     @MainActor
     func testOnboardingIdentifierModifier() throws {
-        let stack = ManagedNavigationStack {
+        let path = ManagedNavigationStack.Path()
+        _ = ManagedNavigationStack(path: path) {
             Text("Hello World")
                 .navigationStepIdentifier("Custom Identifier")
         }
         
-        let identifier = try #require(stack.path.firstStepIdentifier)
+        #expect(path.didConfigure)
+        let identifier = try #require(path.firstStepIdentifier)
         #expect(identifier.identifierKind == .identifiable("Custom Identifier"))
     }
 }

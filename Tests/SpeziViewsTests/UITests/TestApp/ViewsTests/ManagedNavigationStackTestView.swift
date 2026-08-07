@@ -43,15 +43,39 @@ private struct Step3: View {
 }
 
 
+private struct Step5: View {
+    @Environment(ManagedNavigationStack.Path.self) private var path
+
+
+    var body: some View {
+        Step {
+            Text("Step 5")
+            Button("Go to Step 7 (A)") {
+                path.navigateToNextStep(matching: .identifier("step7"), includeIntermediateSteps: false)
+            }
+            Button("Go to Step 7 (B)") {
+                path.navigateToNextStep(matching: .identifier("step7"), includeIntermediateSteps: true)
+            }
+            Button("Append Custom View") {
+                path.append {
+                    Step {
+                        Text("Custom Step")
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 struct ManagedNavigationStackTestView: View {
-    @State var skipConditionalView = true
-    @State var path = ManagedNavigationStack.Path()
-    @State var counter = 0
+    @State private var skipConditionalView = true
+    @State private var counter = 0
     
     
     var body: some View {
         // swiftlint:disable:next closure_body_length
-        ManagedNavigationStack(path: path, startAtStep: .viewType(Step<Text>.self)) {
+        ManagedNavigationStack(startAtStep: .viewType(Step<Text>.self)) {
             Text("Step 0")
             Step {
                 Text("Step 1")
@@ -69,22 +93,7 @@ struct ManagedNavigationStackTestView: View {
                     Text("Step 4")
                 }
             }
-            Step {
-                Text("Step 5")
-                Button("Go to Step 7 (A)") {
-                    path.navigateToNextStep(matching: .identifier("step7"), includeIntermediateSteps: false)
-                }
-                Button("Go to Step 7 (B)") {
-                    path.navigateToNextStep(matching: .identifier("step7"), includeIntermediateSteps: true)
-                }
-                Button("Append Custom View") {
-                    path.append {
-                        Step {
-                            Text("Custom Step")
-                        }
-                    }
-                }
-            }
+            Step5()
             Step {
                 Text("Step 6")
             }
