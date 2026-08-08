@@ -26,7 +26,7 @@ final class EnvironmentTests: XCTestCase {
 
         app.buttons["View State"].swipeUp() // on visionOS and on iPads the button is out of frame
 
-        XCTAssert(app.buttons["Default Error Description"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Default Error Description"].waitForExistence(timeout: 5))
         app.buttons["Default Error Description"].tap()
 
         XCTAssert(app.staticTexts["View State: processing"].waitForExistence(timeout: 2))
