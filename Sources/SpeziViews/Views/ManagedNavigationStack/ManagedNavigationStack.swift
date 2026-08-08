@@ -172,8 +172,15 @@ public struct ManagedNavigationStack: View {
         self._internalPath = State(initialValue: internalPath)
         let path = externalPath ?? internalPath
         if !path.didConfigure {
-            path.configure(elements: steps.elements, isComplete: isComplete, startAtStep: startStepSelector)
+            configurePath(path)
         }
+    }
+
+    private func configurePath(_ path: Path) {
+        // Note: we intentionally perform the initial configuration in here, instead of in the init.
+        // The reason for this is that calling path.configure in the init will, for some reason, cause
+        // a neverending loop of view updates when using an external path. Calling it in here does not.
+        path.configure(elements: steps.elements, isComplete: isComplete, startAtStep: startStepSelector)
     }
 }
 
