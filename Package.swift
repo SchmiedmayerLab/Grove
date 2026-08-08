@@ -136,7 +136,7 @@ var dependencies: [Package.Dependency] = [
     // 0.9.1 lower bound: 0.9.0 breaks the DSTU2 models (BackboneElement typealias collapse).
     // <0.9.2 upper bound: 0.9.2 raises FHIRModels' deployment targets to iOS 16/macOS 13 (OSAllocatedUnfairLock),
     // which conflicts with the lowered-deployment-target builds (`isLoweredDeploymentTargetEnabled`).
-    .package(url: "https://github.com/SchmiedmayerLab/FHIRModels.git", revision: "3b2cb723999d6190dbd3246b7f67cb4247bddd95"),
+    .package(url: "https://github.com/SchmiedmayerLab/FHIRModels.git", revision: "c8392ba94a1a71a3651104c0f1f717361e78903b"),
     .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "12.1.0"),
     .package(url: "https://github.com/PhoneNumberKit/PhoneNumberKit.git", from: "5.0.0"),
     .package(url: "https://github.com/stephencelis/SQLite.swift.git", .upToNextMinor(from: "0.16.0")),
