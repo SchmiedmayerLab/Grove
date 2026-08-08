@@ -6,10 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+private import Foundation
 public import SwiftUI
-#if Textual
-import Textual
-#endif
 
 
 /// A reusable SwiftUI `View` to display the contents of a ``ChatEntity`` within a typical chat message bubble. This bubble is properly aligned according to the associated ``ChatEntity/Role``.
@@ -78,11 +76,15 @@ public struct MessageView: View {
                     if isToolInteraction {
                         ToolInteractionView(entity: chat)
                     } else {
-                        #if Textual
-                        StructuredText(markdown: chat.content)
-                            .textual.structuredTextStyle(.gitHub)
-                            .chatMessageStyle(alignment: chat.alignment)
-                        #endif
+                        if chat.complete {
+                            let attributedContent =
+                                (try? AttributedString(markdown: chat.content)) ?? AttributedString(chat.content)
+                            Text(attributedContent)
+                                .chatMessageStyle(alignment: chat.alignment)
+                        } else {
+                            Text(verbatim: chat.content)
+                                .chatMessageStyle(alignment: chat.alignment)
+                        }
                     }
                 }
                 if chat.alignment == .leading {
