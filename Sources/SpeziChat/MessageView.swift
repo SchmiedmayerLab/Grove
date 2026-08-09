@@ -82,6 +82,9 @@ public struct MessageView: View {
                         StructuredText(markdown: chat.content)
                             .textual.structuredTextStyle(.gitHub)
                             .chatMessageStyle(alignment: chat.alignment)
+                        #else
+                        Text(chat.attributedContent)
+                            .chatMessageStyle(alignment: chat.alignment)
                         #endif
                     }
                 }
