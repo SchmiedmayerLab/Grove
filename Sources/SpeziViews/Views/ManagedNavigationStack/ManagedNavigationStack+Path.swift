@@ -65,7 +65,7 @@ extension ManagedNavigationStack {
         ///     ``configure(elements:isComplete:startAtStep:)`` only happens once the stack has appeared,
         ///     i.e. after `body` was first evaluated.
         ///     Were this property `@ObservationIgnored`, that initial configuration wouldn't invalidate
-        //      the body, and the stack would keep rendering its empty initial state.
+        ///     the body, and the stack would keep rendering its empty initial state.
         private var steps: OrderedDictionary<NavigationStepIdentifier, any View> = [:]
         /// Stores all custom navigation steps that are appended to the ``ManagedNavigationStack/Path``
         /// via the ``append(_:)``  instance methods
