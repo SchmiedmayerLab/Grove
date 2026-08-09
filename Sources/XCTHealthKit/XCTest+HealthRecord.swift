@@ -81,6 +81,57 @@ public enum HealthRecordType: CaseIterable {
 }
 
 extension XCTestCase {
+    @MainActor
+    private func connectHealthRecordAccount(in healthApp: XCUIApplication, institutionName: String) -> Bool {
+        let getStartedButtons = healthApp.buttons.matching(
+            identifier: "UIA.Health.SuggestedAction.SetUpClinicalRecords.PrimaryButton"
+        )
+        let addInstitutionButton = healthApp.staticTexts[institutionName]
+
+        // if we're adding multiple accounts, and are going back and forth between the app being tested and the Health app,
+        // only the first time an account is added will the "welcome to clinical records" sheet actually be shown...
+        if getStartedButtons.firstMatch.waitForExistence(timeout: 5),
+           !(healthApp.staticTexts["Suggestions"].waitForExistence(timeout: 2) && addInstitutionButton.waitForExistence(timeout: 2)) {
+            var getStartedButton = getStartedButtons.allElementsBoundByIndex.first(where: \.isHittable)
+            for _ in 0..<2 where getStartedButton == nil {
+                healthApp.swipeUp()
+                getStartedButton = getStartedButtons.allElementsBoundByIndex.first(where: \.isHittable)
+            }
+            guard let getStartedButton else {
+                XCTFail("Health Records Get Started button is not hittable after scrolling")
+                return false
+            }
+            getStartedButton.tap()
+        }
+
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let allowButton = springboard.buttons["Allow Once"]
+        if allowButton.waitForExistence(timeout: 5) {
+            allowButton.tap()
+        }
+
+        guard addInstitutionButton.waitForExistence(timeout: 10) else {
+            XCTFail("Health Records institution did not appear")
+            return false
+        }
+        addInstitutionButton.tap()
+
+        let connectAccountButton = healthApp.staticTexts["Connect Account"]
+        guard connectAccountButton.waitForExistence(timeout: 10) else {
+            XCTFail("Connect Account button did not appear")
+            return false
+        }
+        connectAccountButton.tap()
+
+        let doneButton = healthApp.staticTexts["Done"]
+        guard doneButton.waitForExistence(timeout: 10) else {
+            XCTFail("Health Records completion button did not appear")
+            return false
+        }
+        doneButton.tap()
+        return true
+    }
+
     /// Handles and dismisses the Health Records authorization flow in the Health app during UI tests.
     ///
     /// This method navigates through the Health Records permission sheet, enables all provided
@@ -100,7 +151,7 @@ extension XCTestCase {
     /// - Note:
     ///   Before calling this method, ensure  that the simulator or device region is set to **United States**, **Canada**, or **United Kingdom**, as Health Records are only available in those regions.
     @MainActor
-    public func handleHealthRecordsAuthorization( // swiftlint:disable:this function_body_length
+    public func handleHealthRecordsAuthorization(
         systemUnderTest: XCUIApplication = XCUIApplication(),
         healthApp: XCUIApplication = .healthApp,
         accounts: [HealthAppHealthRecordAccount] = HealthAppHealthRecordAccount.allCases,
@@ -130,31 +181,9 @@ extension XCTestCase {
             systemUnderTest.staticTexts["Add Account"].tap()
             
             handleHealthAppOnboardingIfNecessary(healthApp)
-            
-            let getStartedButton = healthApp.buttons["UIA.Health.SuggestedAction.SetUpClinicalRecords.PrimaryButton"]
-            let addInstitutionButton = healthApp.staticTexts[account.institutionName]
-            
-            // if we're adding multiple accounts, and are going back and forth between the app being tested and the Health app,
-            // only the first time an account is added will the "welcome to clinical records" sheet actually be shown...
-            if getStartedButton.waitForExistence(timeout: 2), getStartedButton.isHittable,
-               !(healthApp.staticTexts["Suggestions"].waitForExistence(timeout: 2) && addInstitutionButton.waitForExistence(timeout: 2)) {
-                getStartedButton.tap()
+            guard connectHealthRecordAccount(in: healthApp, institutionName: account.institutionName) else {
+                return
             }
-            
-            let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-            let allowButton = springboard.buttons["Allow Once"]
-            if allowButton.waitForExistence(timeout: 5) {
-                allowButton.tap()
-            }
-            
-            XCTAssertTrue(addInstitutionButton.waitForExistence(timeout: 2))
-            addInstitutionButton.tap()
-            
-            XCTAssertTrue(healthApp.staticTexts["Connect Account"].waitForExistence(timeout: 2))
-            healthApp.staticTexts["Connect Account"].tap()
-            
-            XCTAssertTrue(healthApp.staticTexts["Done"].waitForExistence(timeout: 2))
-            healthApp.staticTexts["Done"].tap()
         }
         
         for _ in 0..<2 {
