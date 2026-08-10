@@ -1,5 +1,5 @@
 //
-// This source file is part of the SpeziSensorKit open source project
+// This source file is part of the Stanford Spezi open-source project
 //
 // SPDX-FileCopyrightText: 2026 Stanford University
 //

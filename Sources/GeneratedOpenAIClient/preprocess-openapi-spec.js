@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open source project
+// This source file is part of the Stanford Spezi open-source project
 //
 // SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -14,7 +14,7 @@ const openapiPath = process.env.npm_package_config_openapiFile ?? "openapi.yaml"
 
 // Spezi copyright header to prepend to the output file
 const header = `#
-# This source file is part of the Stanford Spezi open source project.
+# This source file is part of the Stanford Spezi open-source project
 # It is based on the official OpenAI OpenAPI spec with modifications by the Spezi project authors: https://github.com/openai/openai-openapi/blob/master/openapi.yaml
 #
 # SPDX-FileCopyrightText: 2024 Stanford University, OpenAI, and the project authors (see CONTRIBUTORS.md)

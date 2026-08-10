@@ -4,7 +4,7 @@ ResearchKitOnFHIR is a framework that allows you to use FHIR questionnaires with
 
 <!--
                   
-This source file is part of the ResearchKitOnFHIR open source project
+This source file is part of the Stanford Spezi open-source project
 
 SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 
