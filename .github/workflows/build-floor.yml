@@ -36,10 +36,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {platform: iOS,     kind: device,    name: iOS 15 (device)}
-          - {platform: iOS,     kind: simulator, name: iOS 15 (simulator)}
-          - {platform: macOS,   kind: native,    name: macOS 12}
-          - {platform: watchOS, kind: device,    name: watchOS 8 (device)}
+          - {platform: iOS, kind: device, name: iOS 15 (device)}
+          - {platform: iOS, kind: simulator, name: iOS 15 (simulator)}
+          - {platform: macOS, kind: native, name: macOS 12}
+          - {platform: watchOS, kind: device, name: watchOS 8 (device)}
           - {platform: watchOS, kind: simulator, name: watchOS 8 (simulator)}
     steps:
       - uses: actions/checkout@v4
