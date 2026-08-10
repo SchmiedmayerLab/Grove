@@ -21,7 +21,7 @@ Configure the account service by supplying it to the
  [`AccountConfiguration`](../../SpeziAccount/SpeziAccount.docc/SpeziAccount.md).
 
 > Note: For more information refer to the
-[Account Configuration](../../SpeziAccount/SpeziAccount.docc/Setup%20Guides/Initial%20Setup.md#Account-Configuration) article.
+[Account Configuration](../../SpeziAccount/SpeziAccount.docc/Setup-Guides/Initial-Setup.md#Account-Configuration) article.
 
 ```swift
 import SpeziAccount

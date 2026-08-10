@@ -24,7 +24,7 @@ inside Firestore in a custom user collection.
 To configure Firestore as your external storage provider, just supply the ``FirestoreAccountStorage`` as an argument to the `AccountConfiguration`.
 
 > Note: For more information refer to the
- [Account Configuration](../../SpeziAccount/SpeziAccount.docc/Setup%20Guides/Initial%20Setup.md#Account-Configuration) article.
+ [Account Configuration](../../SpeziAccount/SpeziAccount.docc/Setup-Guides/Initial-Setup.md#Account-Configuration) article.
 
 The example below illustrates a configuration example, setting up the `FirebaseAccountService` in combination with the `FirestoreAccountStorage` provider.
 

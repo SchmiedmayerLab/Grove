@@ -19,15 +19,5 @@ replacementPatterns:
     replacement: '$1'
   - pattern: '(.*)#gh-light-mode-only'
     replacement: '$1'
-  # The checker resolves file paths without unescaping them and rewrites one match per rule,
-  # so decode the escaped spaces in the DocC file names once per space we use in a path.
-  - pattern: '%20'
-    replacement: ' '
-  - pattern: '%20'
-    replacement: ' '
-  - pattern: '%20'
-    replacement: ' '
-  - pattern: '%20'
-    replacement: ' '
   - pattern: '^(.*\.md)#[A-Z][A-Za-z0-9-]*$'
     replacement: '$1'
