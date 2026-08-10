@@ -21,6 +21,7 @@ extension HKCategorySample: FHIRObservationBuildable {
             throw SpeziHealthKitFHIRError.notSupported
         }
         observation.append(codings: mapping.codings)
+        observation.append(categories: mapping.categories.map { CodeableConcept(coding: [$0]) })
         let assocDataInfo = try categoryType.associatedDataInfo
         if let valueType = assocDataInfo.valueType {
             guard let value = valueType.init(rawValue: self.value) else {

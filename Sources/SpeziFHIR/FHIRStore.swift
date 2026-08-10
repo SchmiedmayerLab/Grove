@@ -146,8 +146,16 @@ extension FHIRStore {
         guard let resourceProxies = bundle.entry?.compactMap(\.resource), !resourceProxies.isEmpty else {
             return
         }
-        insert(contentsOf: resourceProxies.lazy.map {
-            FHIRResource(resource: $0.get(), displayName: $0.displayName)
+        insert(contentsOf: resourceProxies.lazy.compactMap {
+            switch $0 {
+            case .unrecognized:
+                // `ResourceProxy.get()` returns empty empemeral `Basic` resources for .unrecognized ResourceProxies;
+                // we need to filter this out in order to prevent the FHIRStore from getting filled up with unwanted such
+                // empty `Basic` resources.
+                nil
+            default:
+                FHIRResource(resource: $0.get(), displayName: $0.displayName)
+            }
         })
     }
 }

@@ -28,9 +28,9 @@ extension FHIRExtensionURL {
 extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKObject> {
     /// A FHIR Extension Builder that writes encoded metadata of a HealthKit sample into a FHIR `Observation` created from the sample.
     public static var metadata: FHIRExtensionBuilder<HKObject> {
-        .init { (object: HKObject, observation) in // swiftlint:disable:this closure_body_length
+        .init { (object: HKObject, resource) in // swiftlint:disable:this closure_body_length
             guard let metadata = object.metadata, !metadata.isEmpty else {
-                observation.removeAllExtensions(withUrl: .metadata)
+                resource.removeAllExtensions(withUrl: .metadata)
                 return
             }
             var metadataExtension = Extension(url: .metadata)
@@ -130,7 +130,7 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKObje
                     extension: Extension(url: .metadata.appending(component: key), value: extensionValue),
                     behaviour: .replace
                 )
-                observation.append(extension: metadataExtension, behaviour: .replace)
+                resource.append(extension: metadataExtension, behaviour: .replace)
             }
         }
     }
@@ -434,7 +434,7 @@ extension QuantityTypeFHIRMapping {
             hkUnit: .init(from: "dBASPL"),
             unit: "dB(SPL)",
             system: .unitsOfMeasureSystem,
-            code: "dB(SPL)"
+            code: "dB[SPL]"
         )
     )
     
@@ -514,7 +514,7 @@ extension QuantityTypeFHIRMapping {
             hkUnit: .decibelAWeightedSoundPressureLevel(),
             unit: "dB(SPL)",
             system: .unitsOfMeasureSystem,
-            code: "dB(SPL)"
+            code: "dB[SPL]"
         )
     )
     

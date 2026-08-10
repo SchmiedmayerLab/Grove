@@ -28,7 +28,7 @@ extension FHIRExtensionURL {
 extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKDevice> {
     /// A FHIR Extension Builder that writes a  `HKDevice` into a FHIR `Observation`.
     public static var sourceDevice: Self {
-        .init { (device: HKDevice, observation) in
+        .init { (device: HKDevice, resource) in
             var deviceInfo = Extension(url: .sourceDevice)
             let appendDeviceInfoEntry = { (keyPath: KeyPath<HKDevice, String?>) in
                 guard let name = keyPath._kvcKeyPathString else {
@@ -54,7 +54,7 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKDevi
             appendDeviceInfoEntry(\.softwareVersion)
             appendDeviceInfoEntry(\.localIdentifier)
             appendDeviceInfoEntry(\.udiDeviceIdentifier)
-            observation.append(extension: deviceInfo, behaviour: .replace)
+            resource.append(extension: deviceInfo, behaviour: .replace)
         }
     }
 }
@@ -63,11 +63,19 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKDevi
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKSourceRevision> {
     /// A FHIR Extension Builder that writes a `HKSourceRevision` into a FHIR `Observation`.
+    @inlinable
     public static var sourceRevision: Self {
-        .init { (revision: HKSourceRevision, observation) throws in // swiftlint:disable:this closure_body_length
-            var deviceInfo = Extension(url: .sourceRevision)
+        Self.sourceRevision(url: .sourceRevision)
+    }
+    
+    /// A FHIR Extension Builder that writes a `HKSourceRevision` into a FHIR `Observation`.
+    ///
+    /// - parameter url: The `FHIRExtensionUrl` where the `HKSourceRevision` should be written into the `Observation`
+    public static func sourceRevision(url: FHIRExtensionURL) -> Self {
+        .init { (revision: HKSourceRevision, resource) throws in // swiftlint:disable:this closure_body_length
+            var deviceInfo = Extension(url: url)
             let fieldUrl = { (components: String...) in
-                FHIRExtensionURL.sourceRevision.appending(components: components)
+                url.appending(components: components)
             }
             let appendDeviceInfoEntry = { (keyPath: KeyPath<HKSourceRevision, String?>) in
                 guard let name = keyPath._kvcKeyPathString else {
@@ -101,7 +109,7 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKSour
             appendDeviceInfoEntry(\.version)
             appendDeviceInfoEntry(\.productType)
             appendDeviceInfoEntry(\.OSVersion)
-            observation.append(extension: deviceInfo, behaviour: .replace)
+            resource.append(extension: deviceInfo, behaviour: .replace)
         }
     }
 }
@@ -111,18 +119,18 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKSour
 extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKObject> {
     /// A FHIR Extension Builder that writes a HealthKit object's `HKSourceRevision` into a FHIR `Observation` created from the sample.
     public static var sourceRevision: Self {
-        .init { object, observation in
-            try observation.apply(.sourceRevision, input: object.sourceRevision)
+        .init { object, resource in
+            try resource.apply(.sourceRevision, input: object.sourceRevision)
         }
     }
     
     /// A FHIR Extension Builder that writes a HealthKit object's `HKDevice` into a FHIR `Observation` created from the sample.
     public static var sourceDevice: Self {
-        .init { object, observation in
+        .init { object, resource in
             if let device = object.device {
-                try observation.apply(.sourceDevice, input: device)
+                try resource.apply(.sourceDevice, input: device)
             } else {
-                observation.removeAllExtensions(withUrl: .sourceDevice)
+                resource.removeAllExtensions(withUrl: .sourceDevice)
             }
         }
     }

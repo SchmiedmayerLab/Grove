@@ -112,15 +112,7 @@ extension SampleType {
 extension SampleType where Sample == HKQuantitySample {
     /// The recommended localized unit that should be used when displaying values of this sample type to a user.
     @inlinable public var displayUnit: HKUnit {
-        switch variant {
-        case .quantity(canonicalUnit: _, let displayUnits, expectedValuesRange: _):
-            return displayUnits[.current]
-        case .correlation, .category, .other:
-            // SAFETY:
-            // This branch is unreachable; the initializers are defined and structured in a way that all
-            // `SampleType<HKQuantitySample>` objects always must specify a displayUnit.
-            preconditionFailure("Cannot provide '\(#function)' for '\(Self.self)'")
-        }
+        displayUnit(for: .current)
     }
     
     /// The expected range of values we expect to see for this sample type, if applicable.
@@ -147,6 +139,21 @@ extension SampleType where Sample == HKQuantitySample {
             // SAFETY:
             // This branch is unreachable; the initializers are defined and structured in a way that all
             // `SampleType<HKQuantitySample>` objects always must specify a canonicalUnit.
+            preconditionFailure("Cannot provide '\(#function)' for '\(Self.self)'")
+        }
+    }
+    
+    
+    /// The recommended localized unit for a specific locale, that should be used when displaying values of this sample type to a user.
+    @inlinable
+    public func displayUnit(for locale: Locale) -> HKUnit {
+        switch variant {
+        case .quantity(canonicalUnit: _, let displayUnits, expectedValuesRange: _):
+            return displayUnits[locale]
+        case .correlation, .category, .other:
+            // SAFETY:
+            // This branch is unreachable; the initializers are defined and structured in a way that all
+            // `SampleType<HKQuantitySample>` objects always must specify a displayUnit.
             preconditionFailure("Cannot provide '\(#function)' for '\(Self.self)'")
         }
     }

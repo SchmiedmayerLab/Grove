@@ -57,7 +57,7 @@ let defaultEnabledTraits: Set<String> = Context.environment["SPEZI_ENABLE_DEFAUL
 let excludeDocCCatalogs = Context.environment["SPEZI_EXCLUDE_DOCC_CATALOGS"] == "1"
 
 let packagePlatforms: [SupportedPlatform] = if isLoweredDeploymentTargetEnabled {
-    [.iOS(.v15), .macOS(.v12), .watchOS(.v8)]
+    [.iOS(.v15), .macOS(.v12), .watchOS(.v9)]
 } else {
     [.iOS(.v18), .macOS(.v15), .watchOS(.v11)]
 }
@@ -136,7 +136,7 @@ var dependencies: [Package.Dependency] = [
     // 0.9.1 lower bound: 0.9.0 breaks the DSTU2 models (BackboneElement typealias collapse).
     // <0.9.2 upper bound: 0.9.2 raises FHIRModels' deployment targets to iOS 16/macOS 13 (OSAllocatedUnfairLock),
     // which conflicts with the lowered-deployment-target builds (`isLoweredDeploymentTargetEnabled`).
-    .package(url: "https://github.com/apple/FHIRModels.git", "0.9.1"..<"0.9.2"),
+    .package(url: "https://github.com/SchmiedmayerLab/FHIRModels.git", .upToNextMinor(from: "0.9.3")),
     .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "12.1.0"),
     .package(url: "https://github.com/PhoneNumberKit/PhoneNumberKit.git", from: "5.0.0"),
     .package(url: "https://github.com/stephencelis/SQLite.swift.git", .upToNextMinor(from: "0.16.0")),

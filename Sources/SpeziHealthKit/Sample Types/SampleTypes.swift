@@ -1507,8 +1507,8 @@ extension SampleType where Sample == HKQuantitySample {
             default: .quantity(
                 .environmentalSoundReduction,
                 canonicalTitle: "Environmental Sound Reduction",
-                canonicalUnit: .decibelHearingLevel(),
-                displayUnits: LocalizedUnit(metric: .decibelHearingLevel(), us: .decibelHearingLevel())
+                canonicalUnit: .decibelAWeightedSoundPressureLevel(),
+                displayUnits: LocalizedUnit(metric: .decibelAWeightedSoundPressureLevel(), us: .decibelAWeightedSoundPressureLevel())
             )
         )
     }
@@ -1521,8 +1521,8 @@ extension SampleType where Sample == HKQuantitySample {
             default: .quantity(
                 .estimatedWorkoutEffortScore,
                 canonicalTitle: "Estimated Workout Effort",
-                canonicalUnit: .count(),
-                displayUnits: LocalizedUnit(metric: .count(), us: .count())
+                canonicalUnit: .appleEffortScore(),
+                displayUnits: LocalizedUnit(metric: .appleEffortScore(), us: .appleEffortScore())
             )
         )
     }
@@ -1589,8 +1589,8 @@ extension SampleType where Sample == HKQuantitySample {
             default: .quantity(
                 .workoutEffortScore,
                 canonicalTitle: "Workout Effort",
-                canonicalUnit: .count(),
-                displayUnits: LocalizedUnit(metric: .count(), us: .count())
+                canonicalUnit: .appleEffortScore(),
+                displayUnits: LocalizedUnit(metric: .appleEffortScore(), us: .appleEffortScore())
             )
         )
     }

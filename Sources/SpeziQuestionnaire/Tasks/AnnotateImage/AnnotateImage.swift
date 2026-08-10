@@ -97,8 +97,16 @@ public struct AnnotateImageQuestionKind: QuestionKindDefinition {
             response: response.value.annotatedImageValue.withDefault(.init())
         )
         #else
-        // Image annotation is only available on UIKit platforms; the question kind still exists
-        // elsewhere (so questionnaires using it can be parsed), it just cannot be rendered.
+        // NOTE: SpeziQuestionnaire doesn't have official macOS (or, more generally, non-UIKit) support yet.
+        // Image annotation is implemented on top of UIKit and PencilKit; on platforms without UIKit the question kind
+        // still exists (so that questionnaires using it can be parsed), but it can neither be rendered nor answered:
+        // the task ends up displaying only its title/subtitle, with no way for the user to enter a response.
+        //
+        // ISSUE: the task nonetheless takes part in completeness checking (`validate` above returns `.ok`, but
+        // `QuestionnaireResponses.isMissingResponse(for:)` keeps returning true, since no response can ever be produced).
+        // A *required* annotate-image task therefore is an unsatisfiable blocker on these platforms: the section, and with it
+        // the questionnaire, can never be completed. (For the same reason, encoding such a response into FHIR throws;
+        // see `QuestionnaireResponses.ImageAnnotation.toFHIR(for:)` in SpeziQuestionnaireFHIR.)
         EmptyView()
         #endif
     }

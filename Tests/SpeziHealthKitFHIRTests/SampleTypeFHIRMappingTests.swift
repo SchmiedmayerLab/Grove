@@ -42,13 +42,14 @@ struct SampleTypeFHIRMappingTests {
             "ug": "mcg",
             "uS": "mcS",
             "l": "L",
-            "dB(HL)": "dBHL"
+            "[iU]": "IU"
         ]
         let knownDivergences: Set<KnownDivergence> = [
             .init(sampleType: .bodyMassIndex, ucumUnitString: "kg/m2", healthKitCanUnit: .count()),
             .init(sampleType: .physicalEffort, ucumUnitString: "kcal/(kg.h)", healthKitCanUnit: HKUnit(from: "kcal/hr·kg")),
-            .init(sampleType: .headphoneAudioExposure, ucumUnitString: "dB(SPL)", healthKitCanUnit: HKUnit(from: "dBASPL")),
-            .init(sampleType: .environmentalAudioExposure, ucumUnitString: "dB(SPL)", healthKitCanUnit: HKUnit(from: "dBASPL")),
+            .init(sampleType: .headphoneAudioExposure, ucumUnitString: "dB[SPL]", healthKitCanUnit: HKUnit(from: "dBASPL")),
+            .init(sampleType: .environmentalAudioExposure, ucumUnitString: "dB[SPL]", healthKitCanUnit: HKUnit(from: "dBASPL")),
+            .init(sampleType: .environmentalSoundReduction, ucumUnitString: "dB[SPL]", healthKitCanUnit: HKUnit(from: "dBASPL")),
             .init(sampleType: .vo2Max, ucumUnitString: "mL/kg/min", healthKitCanUnit: HKUnit(from: "mL/min·kg"))
         ]
         func checkIsUCUMUnit(_ ucumUnit: String, equivalentTo hkUnit: HKUnit) -> Bool {

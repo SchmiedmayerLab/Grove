@@ -456,8 +456,8 @@ extension QuantityTypesFHIRMapping {
         )
         
         addMapping(for: .electrodermalActivity, unitString: "microsiemens", system: .unitsOfMeasureSystem, code: "uS")
-        addMapping(for: .environmentalAudioExposure, unitString: "dB(SPL)", system: .unitsOfMeasureSystem, code: "dB(SPL)")
-        addMapping(for: .environmentalSoundReduction, unitString: "dB(HL)", system: .unitsOfMeasureSystem, code: "dB(HL)")
+        addMapping(for: .environmentalAudioExposure, unitString: "dB(SPL)", system: .unitsOfMeasureSystem, code: "dB[SPL]")
+        addMapping(for: .environmentalSoundReduction, unitString: "dB(SPL)", system: .unitsOfMeasureSystem, code: "dB[SPL]")
         if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *) {
             addMapping(for: .estimatedWorkoutEffortScore, unitString: "effort", system: nil, code: nil)
         }
@@ -501,7 +501,7 @@ extension QuantityTypesFHIRMapping {
             system: .unitsOfMeasureSystem,
             code: "L"
         )
-        addMapping(for: .headphoneAudioExposure, unitString: "dB(SPL)", system: .unitsOfMeasureSystem, code: "dB(SPL)")
+        addMapping(for: .headphoneAudioExposure, unitString: "dB(SPL)", system: .unitsOfMeasureSystem, code: "dB[SPL]")
         addMapping(
             for: .heartRate,
             extraCodings: [
@@ -552,7 +552,8 @@ extension QuantityTypesFHIRMapping {
             code: "cm"
         )
         addMapping(for: .inhalerUsage, unitString: "count", system: nil, code: nil)
-        addMapping(for: .insulinDelivery, unitString: "IU", system: .unitsOfMeasureSystem, code: "IU")
+        // `[iU]` is UCUM's case-sensitive code for the international unit; "IU" is that unit's print symbol.
+        addMapping(for: .insulinDelivery, unitString: "IU", system: .unitsOfMeasureSystem, code: "[iU]")
         addMapping(
             for: .leanBodyMass,
             extraCodings: [
@@ -673,7 +674,7 @@ extension QuantityTypesFHIRMapping {
             for: .sixMinuteWalkTestDistance,
             extraCodings: [
                 Coding(
-                    code: "55430-3",
+                    code: "64098-7",
                     display: "6 minute walk test Distance",
                     system: .loincSystem
                 )

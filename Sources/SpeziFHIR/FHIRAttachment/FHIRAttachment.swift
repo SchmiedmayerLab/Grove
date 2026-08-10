@@ -16,11 +16,8 @@ enum FHIRAttachmentError: Error, Equatable {
     /// The attachment does not have a valid MIME type.
     case missingMimeType
 
-    /// The attachment does not contain any base64-encoded string.
-    case missingBase64String
-
-    /// The base64 string couldn't be decoded into valid binary data.
-    case invalidBase64Data
+    /// The attachment does not contain any data.
+    case noData
 
     /// The text data couldn't be decoded using UTF-8 encoding.
     case textDecodingFailed
@@ -35,19 +32,50 @@ enum FHIRAttachmentError: Error, Equatable {
 
 /// Uniform interface for FHIR attachment types.
 protocol FHIRAttachment: Sendable {
-    /// Debug description of the attachment.
-    var debugDescription: String { get }
+    // swiftlint:disable identifier_name
+    var _contentTypeString: String? { get set }
+    var _base64String: String? { get set }
+    // swiftlint:enable identifier_name
+}
 
+
+extension FHIRAttachment {
     /// Best effort parsing of the MIME type of the attachment.
-    /// Represents the content type of the attachment data (e.g., text/plain, application/pdf).
-    var mimeType: UTType? { get }
+    /// Represents the content type of the attachment data (e.g., `text/plain`, `application/pdf`, etc).
+    var mimeType: UTType? {
+        get {
+            _contentTypeString.flatMap {
+                UTType(mimeType: $0)
+            }
+        }
+        set {
+            _contentTypeString = newValue?.preferredMIMEType
+        }
+    }
 
     /// Convenience property to get the Base64 string representation of the attachment data.
-    var base64String: String? { get }
+    func data() -> Data? {
+        _base64String.flatMap {
+            Data(base64Encoded: $0)
+        }
+    }
 
-    /// Encodes the provided string content into the FHIR attachment.
-    /// - Parameter string: The string content to encode into the FHIR  attachment.
-    mutating func setData(from string: String)
+    /// Updates the FHIR attachment's contents.
+    ///
+    /// This function completely replaces the attachment's contents with the `data` and `mimeType` inputs.
+    ///
+    /// - Important: This function will unconditionally base64-encode its `data` input before writing it into the attachment
+    ///
+    /// - parameter data: The new contents for the attachments. Will be base64 encoded by this function.
+    mutating func setData(_ data: Data, mimeType: UTType) {
+        self._base64String = data.base64EncodedString()
+        self.mimeType = mimeType
+    }
+    
+    mutating func unsafelySetPlainTextDataSkippingBase64Encode(_ string: String) {
+        self._base64String = string
+        self.mimeType = .plainText
+    }
 }
 
 #endif

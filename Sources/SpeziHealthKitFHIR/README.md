@@ -8,25 +8,23 @@ SPDX-License-Identifier: MIT
 
 -->
 
-# HealthKitOnFHIR
+# SpeziHealthKitFHIR
 
 
-The HealthKitOnFHIR library provides extensions that convert supported HealthKit samples to corresponding FHIR resources using [FHIRModels](https://github.com/apple/FHIRModels) encapsulated in a [ResourceProxy](https://github.com/apple/FHIRModels/blob/main/HowTo/Instantiation.md#1-use-resourceproxy).
+The SpeziHealthKitFHIR library provides extensions that convert supported HealthKit samples to corresponding FHIR resources using [FHIRModels](https://github.com/apple/FHIRModels) encapsulated in a [ResourceProxy](https://github.com/apple/FHIRModels/blob/main/HowTo/Instantiation.md#1-use-resourceproxy).
 
-For more information, please refer to the [API documentation](HealthKitOnFHIR.docc/HealthKitOnFHIR.md).
+For more information, please refer to the [API documentation](SpeziHealthKitFHIR.docc/SpeziHealthKitFHIR.md).
 
-HealthKitOnFHIR supports:
+SpeziHealthKitFHIR supports:
 - Extensions to convert data from Apple HealthKit to HL7® FHIR® R4.
 - Customizable mappings between HealthKit data types and standardized codes (e.g., LOINC)
 
-Please refer to the [HKObject Support Table](HealthKitOnFHIR.docc/HKSampleSupportTables.md) for a complete list of supported types.
-
 > [!NOTE]
-> HealthKitOnFHIR will use the time zone specified in [HKMetadataKeyTimeZone](https://developer.apple.com/documentation/healthkit/hkmetadatakeytimezone) when creating FHIR Observations from HealthKit samples. If no time zone is specified, HealthKitOnFHIR will use the device's current time zone.
+> SpeziHealthKitFHIR will use the time zone specified in [HKMetadataKeyTimeZone](https://developer.apple.com/documentation/healthkit/hkmetadatakeytimezone) when creating FHIR Observations from HealthKit samples. If no time zone is specified, SpeziHealthKitFHIR will use the device's current time zone.
 
 ## Installation
 
-Add the Spezi monorepo package to your app and select the `HealthKitOnFHIR` product.
+Add the Spezi monorepo package to your app and select the `SpeziHealthKitFHIR` product.
 
 In Xcode, select **File > Add Package Dependencies...**, enter:
 
@@ -48,14 +46,14 @@ Then add the product dependency to the target that needs it:
 .target(
     name: "MyApp",
     dependencies: [
-        .product(name: "HealthKitOnFHIR", package: "Spezi")
+        .product(name: "SpeziHealthKitFHIR", package: "Spezi")
     ]
 )
 ```
 
 ## Usage
 
-The HealthKitOnFHIR library provides extensions that convert supported HealthKit samples to corresponding FHIR resources using [FHIRModels](https://github.com/apple/FHIRModels) encapsulated in a [ResourceProxy](https://github.com/apple/FHIRModels/blob/main/HowTo/Instantiation.md#1-use-resourceproxy).
+The SpeziHealthKitFHIR library provides extensions that convert supported HealthKit samples to corresponding FHIR resources using [FHIRModels](https://github.com/apple/FHIRModels) encapsulated in a [ResourceProxy](https://github.com/apple/FHIRModels/blob/main/HowTo/Instantiation.md#1-use-resourceproxy).
 
 ```swift
 let sample: HKSample = // ...
@@ -94,7 +92,7 @@ let allergyIntolerance = try allergyRecord.resource().get(if: AllergyIntolerance
 In the following example, we will query the HealthKit store for heart rate data, convert the resulting samples to FHIR observations, and encode them into JSON.
 
 ```swift
-import HealthKitOnFHIR
+import SpeziHealthKitFHIR
 
 // Initialize an HKHealthStore instance and request permissions with it
 // ...

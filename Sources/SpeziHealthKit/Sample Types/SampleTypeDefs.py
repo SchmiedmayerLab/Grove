@@ -987,14 +987,14 @@ quantity_types: list[SampleType] = [
     quantity_type(
         identifier='environmentalSoundReduction',
         canonical_title='Environmental Sound Reduction',
-        unit='.decibelHearingLevel()',
+        unit='.decibelAWeightedSoundPressureLevel()',
         doc='A quantity sample that records environmental sound reduction.'
     ),
     quantity_type(
         availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
         identifier='estimatedWorkoutEffortScore',
         canonical_title='Estimated Workout Effort',
-        unit='.count()', # TODO not sure about this one
+        unit='.appleEffortScore()',
         doc='A quantity sample that records estimated physical effort during workouts.'
     ),
     quantity_type(
@@ -1029,7 +1029,7 @@ quantity_types: list[SampleType] = [
         availability=Availability(iOS='18.0', macOS='15.0', watchOS='11.0', visionOS='2.0'),
         identifier='workoutEffortScore',
         canonical_title='Workout Effort',
-        unit='.count()', # TODO not sure about this one
+        unit='.appleEffortScore()',
         doc='A quantity sample that records workout effort.'
     )
 ]

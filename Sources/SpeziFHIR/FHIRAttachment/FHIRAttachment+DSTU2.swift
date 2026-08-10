@@ -13,30 +13,24 @@ import UniformTypeIdentifiers
 
 
 extension ModelsDSTU2.Attachment: FHIRAttachment {
-    var debugDescription: String {
-        """
-        Could not transform attachment type: \(title?.primitiveDescription ?? "No title") to a string representation.
-        
-        Attachment: \(id?.primitiveDescription ?? "No ID")
-            Creation Date: \(creation?.primitiveDescription ?? "No Creation")
-            MIME Type: \(mimeType?.preferredMIMEType ?? "No Content Type")
-        """
-    }
-    
-    var mimeType: UTType? {
-        guard let mimeTypeString = contentType?.value?.string,
-              !mimeTypeString.isEmpty else {
-            return nil
+    var _contentTypeString: String? { // swiftlint:disable:this identifier_name
+        get {
+            contentType?.value?.string
         }
-        return UTType(mimeType: mimeTypeString)
+        set {
+            contentType = newValue?.asFHIRStringPrimitive()
+        }
     }
     
-    var base64String: String? {
-        data?.value?.dataString
-    }
-
-    mutating func setData(from string: String) {
-        data = FHIRPrimitive(ModelsDSTU2.Base64Binary(string))
+    var _base64String: String? { // swiftlint:disable:this identifier_name
+        get {
+            data?.value?.dataString
+        }
+        set {
+            data = newValue.map {
+                FHIRPrimitive(ModelsDSTU2::Base64Binary($0))
+            }
+        }
     }
 }
 

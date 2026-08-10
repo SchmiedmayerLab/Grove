@@ -117,7 +117,10 @@ extension FHIRTypeWithExtensions {
 
     /// Appends multiple `Extension`s
     @inlinable
-    public mutating func append(extensions: some Sequence<Extension>, behaviour: AppendExtensionBehaviour = .additive) {
+    public mutating func append(extensions: some Collection<Extension>, behaviour: AppendExtensionBehaviour = .additive) {
+        guard !extensions.isEmpty else {
+            return
+        }
         switch behaviour {
         case .additive:
             break
@@ -127,7 +130,7 @@ extension FHIRTypeWithExtensions {
             }
         }
         var storage = `extension` ?? []
-        storage.reserveCapacity(storage.count + extensions.underestimatedCount)
+        storage.reserveCapacity(storage.count + extensions.count)
         storage.append(contentsOf: extensions)
         `extension` = storage
     }

@@ -233,9 +233,9 @@ struct ObservationExtensionsTests {
     func voidExtensionBuilder() throws {
         let url = FHIRExtensionURL("https://bdh.stanford.edu/fhir/defs/timeZone")
         let timeZone = try #require(TimeZone(identifier: "Europe/Berlin"))
-        let trackTimeZone = FHIRExtensionBuilder { (observation: inout Observation) in
+        let trackTimeZone = FHIRExtensionBuilder { (resource: inout any FHIRTypeWithExtensions) in
             let ext = Extension(url: url, value: .string(timeZone.identifier.asFHIRStringPrimitive()))
-            observation.append(extension: ext, behaviour: .replace)
+            resource.append(extension: ext, behaviour: .replace)
         }
         var observation = Observation(code: CodeableConcept(), status: .init(.final))
         #expect(observation.extension == nil)

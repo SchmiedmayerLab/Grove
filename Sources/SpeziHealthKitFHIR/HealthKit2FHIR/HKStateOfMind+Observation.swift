@@ -18,9 +18,7 @@ extension HKStateOfMind: FHIRObservationBuildable {
     func build(_ observation: inout Observation, mapping: SampleTypesFHIRMapping) throws {
         let mapping = mapping.stateOfMindTypeMapping
         observation.append(codings: mapping.codings)
-        for category in mapping.categories {
-            observation.append(category: CodeableConcept(coding: [category]))
-        }
+        observation.append(categories: mapping.categories.map { CodeableConcept(coding: [$0]) })
         observation.append(component: .init(
             code: CodeableConcept(coding: mapping.kind.codings),
             value: .string(self.kind.stringValue.asFHIRStringPrimitive())

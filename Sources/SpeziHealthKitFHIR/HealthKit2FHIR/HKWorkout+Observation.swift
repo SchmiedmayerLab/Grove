@@ -19,9 +19,7 @@ extension HKWorkout: FHIRObservationBuildable {
     func build(_ observation: inout Observation, mapping: SampleTypesFHIRMapping) throws {
         let mapping = mapping.workoutTypeMapping
         observation.append(codings: mapping.codings)
-        for category in mapping.categories {
-            observation.append(category: CodeableConcept(coding: [category]))
-        }
+        observation.append(categories: mapping.categories.map { CodeableConcept(coding: [$0]) })
         let valueCodeableConcept = CodeableConcept(
             coding: [
                 Coding(

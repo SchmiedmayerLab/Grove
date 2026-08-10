@@ -57,6 +57,7 @@ builder:
         - SpeziQuestionnaire
         - SpeziQuestionnaireCatalog
         - SpeziQuestionnaireFHIR
+        - SpeziQuestionnaireLegacy
         - XCTSpeziQuestionnaire
         - SpeziScheduler
         - SpeziSensorKit
