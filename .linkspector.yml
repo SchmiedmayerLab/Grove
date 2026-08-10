@@ -1,0 +1,33 @@
+#
+# This source file is part of the Stanford Spezi open-source project
+#
+# SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+#
+# SPDX-License-Identifier: MIT
+#
+
+dirs:
+  - .
+useGitIgnore: true
+ignorePatterns:
+  - pattern: '^doc:.*$'
+  - pattern: '^http://localhost.*$'
+  # DocC anchors keep the capitalisation of their heading and never match a GitHub heading slug.
+  - pattern: '^#[A-Z][A-Za-z0-9-]*$'
+replacementPatterns:
+  - pattern: '(.*)#gh-dark-mode-only'
+    replacement: '$1'
+  - pattern: '(.*)#gh-light-mode-only'
+    replacement: '$1'
+  # The checker resolves file paths without unescaping them and rewrites one match per rule,
+  # so decode the escaped spaces in the DocC file names once per space we use in a path.
+  - pattern: '%20'
+    replacement: ' '
+  - pattern: '%20'
+    replacement: ' '
+  - pattern: '%20'
+    replacement: ' '
+  - pattern: '%20'
+    replacement: ' '
+  - pattern: '^(.*\.md)#[A-Z][A-Za-z0-9-]*$'
+    replacement: '$1'
