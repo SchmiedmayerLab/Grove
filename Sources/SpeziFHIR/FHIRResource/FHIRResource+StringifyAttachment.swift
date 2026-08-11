@@ -46,6 +46,8 @@ extension FHIRResource {
     ///     when storing it into the attachment's underlying`Base64Binary`.
     ///     Defaults to `false`, in order to produce FHIR-compliant output. Set to `true` to produce output that technically isn't FHIR-compliant
     ///     (because the spec requires `Base64Binary` to contain base64-encoded data), but is more easily ingestable by LLM pipelines.
+    /// - parameter contentExtractors: The extractors used to turn an attachment's content type into text.
+    ///     Defaults to text and, where PDFKit is available, PDF.
     public mutating func stringifyAttachments(
         skipBase64EncodeIfPossible: Bool = false,
         contentExtractors: [any FHIRAttachmentContentExtractor] = [.text, .pdf]

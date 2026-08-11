@@ -12,7 +12,7 @@ SPDX-License-Identifier: MIT
 
 [![Build and Test](https://github.com/SchmiedmayerLab/Spezi/actions/workflows/tests.yml/badge.svg)](https://github.com/SchmiedmayerLab/Spezi/actions/workflows/tests.yml)
 [![REUSE status](https://api.reuse.software/badge/github.com/SchmiedmayerLab/Spezi)](https://api.reuse.software/info/github.com/SchmiedmayerLab/Spezi)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/SchmiedmayerLab/Spezi/blob/main/LICENSE.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
 
 Open-source framework for the rapid development of modern, interoperable digital health applications.
 
