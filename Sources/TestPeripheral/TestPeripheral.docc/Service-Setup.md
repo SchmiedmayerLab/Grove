@@ -4,7 +4,7 @@ Setting up the Test Peripheral as a launchd service.
 
 <!--
 #
-# This source file is part of the Stanford Spezi open source project
+# This source file is part of the Grove open-source project
 #
 # SPDX-FileCopyrightText: 2024 Stanford University and the project authors (see CONTRIBUTORS.md)
 #
@@ -39,7 +39,7 @@ We assume that you placed the `TestPeripheral` binary in the `/Applications` fol
 
 #### Install Service
 
-To install the launchd service run the following command in the root folder of the SpeziBluetooth project:
+To install the launchd service run the following command in the root folder of the GroveBluetooth project:
 
 ```
 ./bin/service-launchd.sh install
@@ -89,7 +89,7 @@ To completely uninstall the launchd launch agent, run the following command:
 
 ### UI Test Setup
 
-When trying to run SpeziBluetooth UI tests on a macOS runner with the test peripheral running nearby,
+When trying to run GroveBluetooth UI tests on a macOS runner with the test peripheral running nearby,
 there are a few things to consider:
 
 1. You need to setup signing for the TestApp.

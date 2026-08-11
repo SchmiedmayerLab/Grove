@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -12,10 +12,10 @@ const yaml = require("js-yaml");
 // Load OpenAPI file path from config or use default
 const openapiPath = process.env.npm_package_config_openapiFile ?? "openapi.yaml";
 
-// Spezi copyright header to prepend to the output file
+// Grove copyright header to prepend to the output file
 const header = `#
-# This source file is part of the Stanford Spezi open source project.
-# It is based on the official OpenAI OpenAPI spec with modifications by the Spezi project authors: https://github.com/openai/openai-openapi/blob/master/openapi.yaml
+# This source file is part of the Grove open-source project
+# It is based on the official OpenAI OpenAPI spec with modifications by the Grove project authors: https://github.com/openai/openai-openapi/blob/master/openapi.yaml
 #
 # SPDX-FileCopyrightText: 2024 Stanford University, OpenAI, and the project authors (see CONTRIBUTORS.md)
 #
@@ -195,4 +195,4 @@ const finalOutput = header + cleanedYaml;
 // Write the final OpenAPI spec to file
 fs.writeFileSync(openapiPath, finalOutput, "utf8");
 
-console.log("✅ Successfully preprocessed OpenAPI spec and prepended Spezi copyright header.");
+console.log("✅ Successfully preprocessed OpenAPI spec and prepended Grove copyright header.");

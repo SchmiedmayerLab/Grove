@@ -2,7 +2,7 @@
 
 <!--
 
-This source file is part of the Stanford RuntimeAssertions open-source project
+This source file is part of the Grove open-source project
 
 SPDX-FileCopyrightText: 2025 Stanford University and the project authors (see CONTRIBUTORS.md)
 

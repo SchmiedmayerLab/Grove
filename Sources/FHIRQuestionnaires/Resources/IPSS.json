@@ -6,7 +6,7 @@
     "publisher": "Stanford University",
     "meta": {
         "profile": [
-            "http://biodesign.stanford.edu/fhir/StructureDefinition/sdf-Questionnaire"
+            "https://grovealliance.org/fhir/core/StructureDefinition/sdf-Questionnaire"
         ],
         "tag": [
             {
@@ -35,13 +35,13 @@
     ],
     "contact": [
         {
-            "name": "http://biodesign.stanford.edu"
+            "name": "https://grovealliance.org"
         }
     ],
     "subjectType": [
         "Patient"
     ],
-    "url": "http://biodesign.stanford.edu/fhir/questionnaire/ipss",
+    "url": "https://grovealliance.org/fhir/core/Questionnaire/ipss",
     "contained": [
         {
             "resourceType": "ValueSet",
@@ -51,7 +51,7 @@
                     "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-valueset"
                 ]
             },
-            "url": "http://biodesign.stanford.edu/fhir/uv/sdc/ValueSet/VSGAD7",
+            "url": "https://grovealliance.org/fhir/core/ValueSet/VSGAD7",
             "name": "VSIPSS",
             "status": "draft",
             "description": "The answer list for questions addressing the frequency in which patient reports experiencing behaviors that are assessed in the PHQ-9 Questionnaire.",
@@ -59,7 +59,7 @@
             "compose": {
                 "include": [
                     {
-                        "system": "http://biodesign.stanford.edu/fhir/uv/sdc/CodeSystem/CSIPSS",
+                        "system": "https://grovealliance.org/fhir/core/CodeSystem/CSIPSS",
                         "concept": [
                             {
                                 "extension": [

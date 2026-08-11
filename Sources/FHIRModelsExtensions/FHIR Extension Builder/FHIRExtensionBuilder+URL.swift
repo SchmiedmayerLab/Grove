@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -12,27 +12,45 @@ public import ModelsR4
 
 
 /// Helper type for contructing and managing FHIR Extension URLs.
+///
+/// Carries the spelling this project writes plus every spelling it has retired. A canonical URL is an
+/// identifier, not a location: once written into an `Observation` that left the device it has to keep
+/// resolving, so retiring a spelling means pushing it onto ``superseded`` rather than replacing it.
 @available(iOS 18, macOS 15, watchOS 11, *)
-public struct FHIRExtensionURL: Sendable {
+public struct FHIRExtensionURL: Sendable, Hashable {
     /// The underlying `URL`.
     public let url: URL
-    
+
+    /// Spellings previously published for the same concept, most recently retired first. Read, never written.
+    public let superseded: [URL]
+
+    /// Every spelling a resource might carry, canonical first.
+    @inlinable public var allURLs: [URL] {
+        [url] + superseded
+    }
+
     /// Creates a FHIR Extension URL.
     @inlinable
-    public init(_ url: URL) {
+    public init(_ url: URL, superseding superseded: [URL] = []) {
         self.url = url
+        self.superseded = superseded
     }
     
     /// Creates a FHIR Extension URL from a String.
     ///
     /// - Important: The input String **must** be a valud `URL`; the initializer will otherwise crash the program.
     @inlinable
-    public init(_ url: String) {
+    public init(_ url: String, superseding superseded: [String] = []) {
+        self.init(Self.parse(url), superseding: superseded.map(Self.parse))
+    }
+
+    @inlinable
+    static func parse(_ url: String) -> URL {
         #if canImport(Darwin)
-        self.url = try! URL(url, strategy: .url) // swiftlint:disable:this force_try
+        return try! URL(url, strategy: .url) // swiftlint:disable:this force_try
         #else
         // https://github.com/swiftlang/swift-foundation/issues/1919
-        self.url = URL(string: url)! // swiftlint:disable:this force_unwrapping
+        return URL(string: url)! // swiftlint:disable:this force_unwrapping
         #endif
     }
 }
@@ -55,19 +73,25 @@ extension FHIRExtensionURL {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRExtensionURL {
     /// Creates a new `FHIRExtensionURL` by appending a component.
+    ///
+    /// The component is appended to every spelling, so a derived sub-extension resolves under the
+    /// superseded names as well.
     @inlinable
     public func appending(component: some StringProtocol) -> Self {
-        Self(url.appending(component: component))
+        Self(
+            url.appending(component: component),
+            superseding: superseded.map { $0.appending(component: component) }
+        )
     }
     
     /// Creates a new `FHIRExtensionURL>` by appending multiple components.
     @inlinable
     public func appending(components: some Sequence<some StringProtocol>) -> Self {
-        var url = url
-        for component in components {
-            url = url.appending(component: component)
+        let components = Array(components)
+        func extend(_ url: URL) -> URL {
+            components.reduce(url) { $0.appending(component: $1) }
         }
-        return Self(url)
+        return Self(extend(url), superseding: superseded.map(extend))
     }
 }
 

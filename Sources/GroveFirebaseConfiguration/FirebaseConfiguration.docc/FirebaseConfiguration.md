@@ -1,0 +1,30 @@
+# ``GroveFirebaseConfiguration``
+
+<!--
+                  
+This source file is part of the Grove open-source project
+
+SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
+
+SPDX-License-Identifier: MIT
+             
+-->
+
+Configure the Firebase application.
+
+## Overview
+
+The `FirebaseApp.configure()` method will be called upon configuration of the ``ConfigureFirebaseApp`` `Module`.
+
+Use the `@Dependency` property wrapper to define a dependency on this module and ensure that `FirebaseApp.configure()` is called before any
+other Firebase-related modules and to ensure it is called exactly once.
+
+```swift
+import Grove
+import GroveFirebaseConfiguration
+
+public final class MyFirebaseModule: Module {
+    @Dependency(ConfigureFirebaseApp.self)
+    private var configureFirebaseApp
+}
+```

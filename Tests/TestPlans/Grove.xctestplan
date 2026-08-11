@@ -1,0 +1,42 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000003",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "Grove",
+        "name" : "Grove"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveTesting",
+        "name" : "GroveTesting"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "XCTGrove",
+        "name" : "XCTGrove"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveTests",
+          "name" : "GroveTests"
+        }
+      }
+  ],
+  "version" : 1
+}

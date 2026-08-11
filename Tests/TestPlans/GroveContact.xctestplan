@@ -1,0 +1,32 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000009",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveContact",
+        "name" : "GroveContact"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveContactTests",
+          "name" : "GroveContactTests"
+        }
+      }
+  ],
+  "version" : 1
+}

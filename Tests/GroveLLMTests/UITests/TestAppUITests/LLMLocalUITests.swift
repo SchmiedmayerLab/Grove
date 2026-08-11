@@ -1,0 +1,46 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+import XCTest
+import XCTestExtensions
+
+
+final class TestAppLLMLocalUITests: TestAppTestCase {
+    func testGroveLLMLocal() throws {
+        launch(enableMockMode: true, showOnboarding: true, clearAPIKeysFromKeychain: true)
+        
+        XCTAssert(app.buttons["LLMLocal"].waitForExistence(timeout: 2))
+        app.buttons["LLMLocal"].tap()
+        
+        // Onboarding
+        XCTAssert(app.staticTexts["Local LLM Execution"].waitForExistence(timeout: 2))
+        XCTAssert(app.staticTexts["LLMs on an iPhone"].waitForExistence(timeout: 2))
+        XCTAssert(app.staticTexts["Swift Package Manager"].waitForExistence(timeout: 2))
+        XCTAssert(app.staticTexts["The Stanford Grove ecosystem"].waitForExistence(timeout: 2))
+        
+        XCTAssert(app.buttons["Next"].waitForExistence(timeout: 2))
+        app.buttons["Next"].tap()
+        
+        sleep(1)
+        
+        // Chat
+        let inputTextfield = app.textFields["Message Input Textfield"]
+        XCTAssertTrue(inputTextfield.exists)
+        
+        try inputTextfield.enter(value: "New Message!", options: [.disableKeyboardDismiss])
+        
+        XCTAssert(app.buttons["Send Message"].waitForExistence(timeout: 2))
+        app.buttons["Send Message"].tap()
+        
+        XCTAssert(app.staticTexts["New Message!"].waitForExistence(timeout: 5))
+        
+        sleep(3)
+        
+        XCTAssert(app.staticTexts["Mock Message from GroveLLM!"].waitForExistence(timeout: 5))
+    }
+}

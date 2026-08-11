@@ -1,0 +1,17 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2024 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+import GroveFoundation
+
+
+struct ImplicitlyCreatedModulesKey: DefaultProvidingKnowledgeSource {
+    typealias Value = Set<ModuleReference>
+    typealias Anchor = GroveAnchor
+
+    static let defaultValue: Value = []
+}

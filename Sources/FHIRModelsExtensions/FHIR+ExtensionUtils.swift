@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -32,11 +32,37 @@ extension FHIRTypeWithExtensions {
         `extension`.map { $0.filter { $0.url == url } } ?? []
     }
 
-    /// Retrieves all FHIR Extensions for the specified url.
+    /// Retrieves all FHIR Extensions for the specified url, accepting spellings it has superseded.
+    ///
+    /// The canonical spelling wins outright: a resource carrying both was written by a newer version,
+    /// and its superseded copy is a compatibility duplicate rather than a second value.
     @available(iOS 18, macOS 15, watchOS 11, *)
-    @inlinable
     public func extensions(for url: FHIRExtensionURL) -> [Extension] {
-        extensions(for: url.r4)
+        for spelling in url.allURLs {
+            let matches = extensions(for: spelling.asFHIRURIPrimitive())
+            if !matches.isEmpty {
+                return matches
+            }
+        }
+        return []
+    }
+
+    /// Retrieves all FHIR Extensions for a canonical url, accepting spellings it has superseded.
+    ///
+    /// The canonical spelling wins outright: a resource carrying both was written by a newer version
+    /// and its superseded copy is a compatibility duplicate. Matches are never merged across
+    /// spellings, which would double an extension that may legitimately repeat.
+    ///
+    /// Finding a superseded spelling is normal, not a defect — third-party questionnaires will carry
+    /// them indefinitely — so nothing is reported.
+    public func extensions(for url: FHIRCanonicalURL) -> [Extension] {
+        for spelling in url.allSpellings {
+            let matches = `extension`?.filter { $0.url.value?.url.absoluteString == spelling } ?? []
+            if !matches.isEmpty {
+                return matches
+            }
+        }
+        return []
     }
 }
 
@@ -120,13 +146,20 @@ extension FHIRTypeWithExtensions {
         return removedElements
     }
 
-    /// Removes all extension that matches the specified url.
+    /// Removes all extensions that match the specified url, under any spelling it has published.
+    ///
+    /// Every spelling goes, not just the canonical one — leaving a superseded copy behind after a
+    /// rewrite would make the resource carry two conflicting values for one concept.
     ///
     /// - returns: the removed extension elements, if any.
     @available(iOS 18, macOS 15, watchOS 11, *)
-    @inlinable @discardableResult
+    @discardableResult
     public mutating func removeAllExtensions(withUrl url: FHIRExtensionURL) -> [Extension]? {
-        removeAllExtensions(withUrl: url.r4)
+        var removed: [Extension] = []
+        for spelling in url.allURLs {
+            removed += removeAllExtensions(withUrl: spelling.asFHIRURIPrimitive()) ?? []
+        }
+        return removed.isEmpty ? nil : removed
     }
 }
 

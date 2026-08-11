@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford XCTestExtensions open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -23,7 +23,7 @@ public func sleep(for duration: Duration) {
 extension Duration {
     /// The number of seconds in the `Duration`, as a `TimeInterval` value.
     ///
-    /// - Note: Copied from SpeziFoundation, so that we don't need to add that as a dependency.
+    /// - Note: Copied from GroveFoundation, so that we don't need to add that as a dependency.
     fileprivate var timeInterval: Double {
         let components = self.components
         let attosecondsInSeconds = Double(components.attoseconds) / 1_000_000_000_000_000_000.0 // 10^-18

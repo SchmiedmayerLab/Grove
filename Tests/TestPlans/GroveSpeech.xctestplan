@@ -1,0 +1,37 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000026",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveSpeechRecognizer",
+        "name" : "GroveSpeechRecognizer"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveSpeechSynthesizer",
+        "name" : "GroveSpeechSynthesizer"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveSpeechTests",
+          "name" : "GroveSpeechTests"
+        }
+      }
+  ],
+  "version" : 1
+}

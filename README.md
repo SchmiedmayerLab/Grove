@@ -1,6 +1,6 @@
 <!--
 
-This source file is part of the Stanford Spezi open-source project.
+This source file is part of the Grove open-source project.
 
 SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 
@@ -8,7 +8,7 @@ SPDX-License-Identifier: MIT
 
 -->
 
-# Stanford Spezi
+# Stanford Grove
 
 [![CI](https://github.com/SchmiedmayerLab/Spezi/actions/workflows/tests.yml/badge.svg)](.github/workflows/tests.yml)
 
@@ -18,79 +18,79 @@ Open-source framework for the rapid development of modern, interoperable digital
 ## Overview
 
 > [!NOTE]
-> Refer to the [Initial Setup](Sources/Spezi/Spezi.docc/Initial%20Setup.md) instructions to integrate Spezi into your application.
+> Refer to the [Initial Setup](Sources/Grove/Grove.docc/Initial%20Setup.md) instructions to integrate Grove into your application.
 
-Spezi introduces a module-based approach to building digital health applications.
+Grove introduces a module-based approach to building digital health applications.
 
 <table style="width: 80%">
   <tr>
     <td align="center" width="33.33333%">
-      <img src="Sources/SpeziConsent/SpeziConsent.docc/Resources/Consent1.png#gh-light-mode-only" alt="Screenshot displaying the UI of the consent module" width="80%"/>
-      <img src="Sources/SpeziConsent/SpeziConsent.docc/Resources/Consent1~dark.png#gh-dark-mode-only" alt="Screenshot displaying the UI of the consent module" width="80%"/>
+      <img src="Sources/GroveConsent/GroveConsent.docc/Resources/Consent1.png#gh-light-mode-only" alt="Screenshot displaying the UI of the consent module" width="80%"/>
+      <img src="Sources/GroveConsent/GroveConsent.docc/Resources/Consent1~dark.png#gh-dark-mode-only" alt="Screenshot displaying the UI of the consent module" width="80%"/>
     </td>
     <td align="center" width="33.33333%">
-      <img src="Sources/SpeziDevicesUI/SpeziDevicesUI.docc/Resources/PairedDevices.png#gh-light-mode-only" alt="Screenshot displaying Spezi Devices and Bluetooth pairing user interface" width="80%"/>
-      <img src="Sources/SpeziDevicesUI/SpeziDevicesUI.docc/Resources/PairedDevices~dark.png#gh-dark-mode-only" alt="Screenshot displaying Spezi Devices and Bluetooth pairing user interface" width="80%"/>
+      <img src="Sources/GroveDevicesUI/GroveDevicesUI.docc/Resources/PairedDevices.png#gh-light-mode-only" alt="Screenshot displaying Grove Devices and Bluetooth pairing user interface" width="80%"/>
+      <img src="Sources/GroveDevicesUI/GroveDevicesUI.docc/Resources/PairedDevices~dark.png#gh-dark-mode-only" alt="Screenshot displaying Grove Devices and Bluetooth pairing user interface" width="80%"/>
     </td>
     <td align="center" width="33.33333%">
-      <img src="Sources/SpeziQuestionnaire/SpeziQuestionnaire.docc/Resources/Overview.png#gh-light-mode-only" alt="Screenshot displaying the UI of the questionnaire module" width="80%"/>
-      <img src="Sources/SpeziQuestionnaire/SpeziQuestionnaire.docc/Resources/Overview~dark.png#gh-dark-mode-only" alt="Screenshot displaying the UI of the questionnaire module" width="80%"/>
+      <img src="Sources/GroveQuestionnaire/GroveQuestionnaire.docc/Resources/Overview.png#gh-light-mode-only" alt="Screenshot displaying the UI of the questionnaire module" width="80%"/>
+      <img src="Sources/GroveQuestionnaire/GroveQuestionnaire.docc/Resources/Overview~dark.png#gh-dark-mode-only" alt="Screenshot displaying the UI of the questionnaire module" width="80%"/>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <a href="Sources/SpeziOnboarding/README.md">
-        <code>Spezi Onboarding</code>
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Spezi/documentation/groveonboarding">
+        <code>Grove Onboarding</code>
       </a> and
-      <a href="Sources/SpeziConsent/README.md">
-        <code>Spezi Consent</code>
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Spezi/documentation/groveconsent">
+        <code>Grove Consent</code>
       </a>
     </td>
     <td align="center">
-      <a href="Sources/SpeziBluetooth/README.md">
-        <code>Spezi Bluetooth</code>
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Spezi/documentation/grovebluetooth">
+        <code>Grove Bluetooth</code>
       </a> and
-      <a href="Sources/SpeziDevices/README.md">
-        <code>Spezi Devices</code>
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Spezi/documentation/grovedevices">
+        <code>Grove Devices</code>
       </a>
     </td>
     <td align="center">
-      <a href="Sources/SpeziQuestionnaire/README.md">
-        <code>Spezi Questionnaire</code>
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Spezi/documentation/grovequestionnaire">
+        <code>Grove Questionnaire</code>
       </a>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img src="Sources/SpeziAccount/SpeziAccount.docc/Resources/AccountSetup.png#gh-light-mode-only" alt="Screenshot displaying the account setup view with email and password prompt and Sign In with Apple button" width="80%"/>
-      <img src="Sources/SpeziAccount/SpeziAccount.docc/Resources/AccountSetup~dark.png#gh-dark-mode-only" alt="Screenshot displaying the account setup view with email and password prompt and Sign In with Apple button" width="80%"/>
+      <img src="Sources/GroveAccount/GroveAccount.docc/Resources/AccountSetup.png#gh-light-mode-only" alt="Screenshot displaying the account setup view with email and password prompt and Sign In with Apple button" width="80%"/>
+      <img src="Sources/GroveAccount/GroveAccount.docc/Resources/AccountSetup~dark.png#gh-dark-mode-only" alt="Screenshot displaying the account setup view with email and password prompt and Sign In with Apple button" width="80%"/>
     </td>
     <td align="center">
-      <img src="Sources/SpeziValidation/SpeziValidation.docc/Resources/Validation.png#gh-light-mode-only" alt="Three different text fields showing validation errors with Spezi Validation" width="80%"/>
-      <img src="Sources/SpeziValidation/SpeziValidation.docc/Resources/Validation~dark.png#gh-dark-mode-only" alt="Three different text fields showing validation errors with Spezi Validation" width="80%"/>
+      <img src="Sources/GroveValidation/GroveValidation.docc/Resources/Validation.png#gh-light-mode-only" alt="Three different text fields showing validation errors with Grove Validation" width="80%"/>
+      <img src="Sources/GroveValidation/GroveValidation.docc/Resources/Validation~dark.png#gh-dark-mode-only" alt="Three different text fields showing validation errors with Grove Validation" width="80%"/>
     </td>
     <td align="center">
-      <img src="Sources/SpeziLLMLocal/SpeziLLMLocal.docc/Resources/ChatView.png#gh-light-mode-only" alt="Chat view of a locally executed LLM using the Spezi LLM module" width="80%"/>
-      <img src="Sources/SpeziLLMLocal/SpeziLLMLocal.docc/Resources/ChatView~dark.png#gh-dark-mode-only" alt="Chat view of a locally executed LLM using the Spezi LLM module" width="80%"/>
+      <img src="Sources/GroveLLMLocal/GroveLLMLocal.docc/Resources/ChatView.png#gh-light-mode-only" alt="Chat view of a locally executed LLM using the Grove LLM module" width="80%"/>
+      <img src="Sources/GroveLLMLocal/GroveLLMLocal.docc/Resources/ChatView~dark.png#gh-dark-mode-only" alt="Chat view of a locally executed LLM using the Grove LLM module" width="80%"/>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <a href="Sources/SpeziAccount/README.md">
-        <code>Spezi Account</code>
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Spezi/documentation/groveaccount">
+        <code>Grove Account</code>
       </a>
     </td>
     <td align="center">
-      <a href="Sources/SpeziViews/README.md">
-        <code>Spezi Views</code>
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Spezi/documentation/groveviews">
+        <code>Grove Views</code>
       </a>, including
-      <a href="Sources/SpeziValidation/SpeziValidation.docc/SpeziValidation.md">
-        <code>SpeziValidation</code>
+      <a href="Sources/GroveValidation/GroveValidation.docc/GroveValidation.md">
+        <code>GroveValidation</code>
       </a>
     </td>
     <td align="center">
-      <a href="Sources/SpeziLLM/README.md">
-        <code>Spezi LLM</code>
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Spezi/documentation/grovellm">
+        <code>Grove LLM</code>
       </a>
     </td>
   </tr>
@@ -102,13 +102,13 @@ Spezi introduces a module-based approach to building digital health applications
 You can find the modules and reusable Swift packages included in this monorepo in [Package.swift](Package.swift).
 
 > [!NOTE]
-> Spezi relies on an ecosystem of modules. Consider what modules you want to build and contribute to the open-source community. Refer to the [Spezi Guide](Sources/Spezi/Spezi.docc/Spezi%20Guide.md) and [Documentation Guide](Sources/Spezi/Spezi.docc/Documentation%20Guide.md) for requirements for Spezi-based software, and see the [`Module`](Sources/Spezi/Spezi.docc/Module/Module.md) documentation to learn more about building your modules.
+> Grove relies on an ecosystem of modules. Consider what modules you want to build and contribute to the open-source community. Refer to the [Grove Guide](Sources/Grove/Grove.docc/Grove%20Guide.md) and [Documentation Guide](Sources/Grove/Grove.docc/Documentation%20Guide.md) for requirements for Grove-based software, and see the [`Module`](Sources/Grove/Grove.docc/Module/Module.md) documentation to learn more about building your modules.
 
 
-## Add Spezi to Your App
+## Add Grove to Your App
 
-This monorepo version of Spezi is distributed as one Swift Package that contains the core Spezi library and several optional Spezi modules.
-Add only the products your app needs; for example, most apps start with `Spezi` and then add modules such as `SpeziViews`, `SpeziOnboarding`, `SpeziConsent`, `SpeziAccount`, or `SpeziHealthKit`.
+This monorepo version of Grove is distributed as one Swift Package that contains the core Grove library and several optional Grove modules.
+Add only the products your app needs; for example, most apps start with `Grove` and then add modules such as `GroveViews`, `GroveOnboarding`, `GroveConsent`, `GroveAccount`, or `GroveHealthKit`.
 
 ### Xcode
 
@@ -123,15 +123,15 @@ Add only the products your app needs; for example, most apps start with `Spezi` 
 4. Choose a dependency rule:
    - Choose **Up to Next Minor Version**.
    - Enter the latest tagged `0.x` release.
-5. Select the Spezi products your app target needs.
-   At minimum, select `Spezi`.
-   Add additional products only when you use them, such as `SpeziViews`, `SpeziOnboarding`, `SpeziConsent`, `SpeziAccount`, or `SpeziHealthKit`.
+5. Select the Grove products your app target needs.
+   At minimum, select `Grove`.
+   Add additional products only when you use them, such as `GroveViews`, `GroveOnboarding`, `GroveConsent`, `GroveAccount`, or `GroveHealthKit`.
 6. Make sure the products are added to your app target, not only to a test target.
 7. Import the modules in Swift files where you use them:
 
    ```swift
-   import Spezi
-   import SpeziViews
+   import Grove
+   import GroveViews
    ```
 
 ### Swift Package Manager
@@ -148,9 +148,9 @@ Then add the products you use to the target that needs them:
 .target(
     name: "MyApp",
     dependencies: [
-        .product(name: "Spezi", package: "Spezi"),
-        .product(name: "SpeziViews", package: "Spezi"),
-        .product(name: "SpeziOnboarding", package: "Spezi")
+        .product(name: "Grove", package: "Spezi"),
+        .product(name: "GroveViews", package: "Spezi"),
+        .product(name: "GroveOnboarding", package: "Spezi")
     ]
 )
 ```
@@ -159,29 +159,29 @@ Use an Xcode or Swift toolchain that supports Swift Package tools version 6.2.
 If Xcode cannot resolve the package, confirm that the package URL and selected version are correct, then use **File > Packages > Resolve Package Versions**.
 
 
-### The Spezi Building Blocks
+### The Grove Building Blocks
 
 > [!NOTE]
-> The [Spezi Guide](Sources/Spezi/Spezi.docc/Spezi%20Guide.md) and [Documentation Guide](Sources/Spezi/Spezi.docc/Documentation%20Guide.md) outline the requirements for Spezi-based modules, including terminology, guidance, and examples on structuring a Spezi module, Swift package, and repository.
+> The [Grove Guide](Sources/Grove/Grove.docc/Grove%20Guide.md) and [Documentation Guide](Sources/Grove/Grove.docc/Documentation%20Guide.md) outline the requirements for Grove-based modules, including terminology, guidance, and examples on structuring a Grove module, Swift package, and repository.
 
 A ``Standard`` defines the key coordinator that orchestrates data flow in an application by meeting requirements defined by modules.
-You can learn more about the ``Standard`` protocol and when it is advised to create your own standard in the [`Standard`](Sources/Spezi/Spezi.docc/Standard.md) documentation.
+You can learn more about the ``Standard`` protocol and when it is advised to create your own standard in the [`Standard`](Sources/Grove/Grove.docc/Standard.md) documentation.
 
 A ``Module`` defines a software subsystem that provides distinct and reusable functionality.
-Modules can use the constraint mechanism to enforce a set of requirements for the standard used in Spezi-based software.
+Modules can use the constraint mechanism to enforce a set of requirements for the standard used in Grove-based software.
 They can also define dependencies on each other to reuse functionality and can communicate with other modules by offering and collecting information.
-Modules may conform to different protocols to access additional Spezi features, such as lifecycle management and triggering view updates in SwiftUI using Swift’s observable mechanisms.
-You can learn more about modules in the [`Module`](Sources/Spezi/Spezi.docc/Module/Module.md) documentation.
+Modules may conform to different protocols to access additional Grove features, such as lifecycle management and triggering view updates in SwiftUI using Swift’s observable mechanisms.
+You can learn more about modules in the [`Module`](Sources/Grove/Grove.docc/Module/Module.md) documentation.
 
 
-For more information, see the [Spezi documentation catalog](Sources/Spezi/Spezi.docc/Spezi.md).
+For more information, see the [Grove documentation catalog](Sources/Grove/Grove.docc/Grove.md).
 
 
 ## Contributing
 
-Contributions to this project are welcome. Please make sure to read the [contribution guide](Sources/Spezi/Spezi.docc/Contributing%20Guide.md) and the [Contributor Covenant Code of Conduct](https://github.com/SchmiedmayerLab/.github/blob/main/CODE_OF_CONDUCT.md) first.
+Contributions to this project are welcome. Please make sure to read the [contribution guide](Sources/Grove/Grove.docc/Contributing%20Guide.md) and the [Contributor Covenant Code of Conduct](https://github.com/SchmiedmayerLab/.github/blob/main/CODE_OF_CONDUCT.md) first.
 
-The original Spezi and BDHG projects may continue to be maintained in their respective upstream repositories under the [StanfordSpezi](https://github.com/StanfordSpezi) and [StanfordBDHG](https://github.com/StanfordBDHG) GitHub organizations. Please refer to the upstream repositories for their current development status and new releases.
+The original Grove and BDHG projects may continue to be maintained in their respective upstream repositories under the [StanfordSpezi](https://github.com/StanfordSpezi) and [StanfordBDHG](https://github.com/StanfordBDHG) GitHub organizations. Please refer to the upstream repositories for their current development status and new releases.
 
 
 ## License

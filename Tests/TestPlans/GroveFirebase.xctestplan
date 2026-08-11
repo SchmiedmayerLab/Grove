@@ -1,0 +1,52 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000013",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveFirebaseAccount",
+        "name" : "GroveFirebaseAccount"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveFirebaseConfiguration",
+        "name" : "GroveFirebaseConfiguration"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveFirestore",
+        "name" : "GroveFirestore"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveFirebaseStorage",
+        "name" : "GroveFirebaseStorage"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveFirebaseAccountStorage",
+        "name" : "GroveFirebaseAccountStorage"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveFirebaseTests",
+          "name" : "GroveFirebaseTests"
+        }
+      }
+  ],
+  "version" : 1
+}

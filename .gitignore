@@ -1,5 +1,5 @@
 #
-# This source file is part of the Stanford Spezi open-source project
+# This source file is part of the Grove open-source project
 #
 # SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 #
@@ -9,16 +9,16 @@
 # Swift Package Manager
 Package.resolved
 *.xcodeproj
-# Ignore .swiftpm, but keep shared schemes (e.g. the Spezi-Tests test-plan host scheme) tracked.
+# Ignore .swiftpm, but keep shared schemes (e.g. the Grove-Tests test-plan host scheme) tracked.
 .swiftpm/*
 !.swiftpm/xcode
 .swiftpm/xcode/*
 !.swiftpm/xcode/xcshareddata
 .swiftpm/xcode/xcshareddata/*
 !.swiftpm/xcode/xcshareddata/xcschemes
-# Track only the Spezi-Tests host scheme; ignore the per-target schemes Xcode auto-generates.
+# Track only the Grove-Tests host scheme; ignore the per-target schemes Xcode auto-generates.
 .swiftpm/xcode/xcshareddata/xcschemes/*
-!.swiftpm/xcode/xcshareddata/xcschemes/Spezi-Tests.xcscheme
+!.swiftpm/xcode/xcshareddata/xcschemes/Grove-Tests.xcscheme
 .build
 .xcodebuild
 .derivedData*
@@ -49,3 +49,6 @@ __pycache__/
 
 # local working clones for the monorepo migration
 .incoming/
+
+# Shared SwiftPM bare-repo cache used by Scripts/run-package-tests.sh
+.packageCache/

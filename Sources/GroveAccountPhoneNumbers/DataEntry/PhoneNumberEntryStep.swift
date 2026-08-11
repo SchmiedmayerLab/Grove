@@ -1,0 +1,79 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2023 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+import Grove
+import GroveAccount
+import GroveValidation
+import GroveViews
+import SwiftUI
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+struct PhoneNumberEntryStep: View {
+    @State private var viewState = ViewState.idle
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(Account.self) private var account
+    @Environment(PhoneNumberViewModel.self) private var phoneNumberViewModel
+    @Environment(PhoneVerificationProvider.self) private var phoneVerificationProvider
+    let onNext: () -> Void
+
+   
+    var body: some View {
+        VStack {
+            Spacer()
+            PhoneNumberEntryField()
+            Text("Enter your phone number and we'll send you a verification code to add the number to your account.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Spacer()
+            Spacer()
+            AsyncButton(action: {
+                do {
+                    guard let phoneNumber = phoneNumberViewModel.phoneNumber else {
+                        throw AnyLocalizedError(
+                            error: NSError(domain: "org.grovealliance.account.phoneNumbers", code: 1, userInfo: nil),
+                            defaultErrorDescription: "Missing phone number"
+                        )
+                    }
+                    try await phoneVerificationProvider.startVerification(phoneNumber: phoneNumber)
+                    onNext()
+                } catch {
+                    viewState = .error(
+                        AnyLocalizedError(
+                            error: error,
+                            defaultErrorDescription: "Failed to send verification message. Please check your phone number and try again."
+                        )
+                    )
+                }
+            }) {
+                Text("Send Verification Message")
+                    .frame(maxWidth: .infinity, minHeight: 38)
+            }
+            .tint(.accentColor)
+            .buttonStyleGlassProminent()
+            .disabled(phoneNumberViewModel.phoneNumber == nil)
+            .animation(.default, value: phoneNumberViewModel.phoneNumber == nil)
+            .viewStateAlert(state: $viewState)
+        }
+        .padding()
+    }
+}
+
+
+#if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
+#Preview {
+    PhoneNumberEntryStep(onNext: {})
+        .environment(PhoneNumberViewModel())
+        .previewWith {
+            AccountConfiguration(service: InMemoryAccountService(), configuration: .default)
+            PhoneVerificationProvider()
+        }
+}
+#endif

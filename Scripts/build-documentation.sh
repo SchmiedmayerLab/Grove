@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# This source file is part of the Stanford Spezi open-source project
+# This source file is part of the Grove open-source project
 #
 # SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 #
@@ -17,12 +17,12 @@ else
   DOC_OUTPUT_DIR="${DOC_OUTPUT_DIR:-.build/documentation}"
 fi
 
-DOC_SCHEME="${DOC_SCHEME:-Spezi-Package}"
+DOC_SCHEME="${DOC_SCHEME:-Grove-Package}"
 DOC_DESTINATION="${DOC_DESTINATION:-generic/platform=iOS Simulator}"
 DOC_DEPLOYMENT_TARGET="${DOC_DEPLOYMENT_TARGET:-18.0}"
 DOC_LOG_PATH="${DOC_LOG_PATH:-$DOC_OUTPUT_DIR/docbuild.log}"
-COMBINED_ARCHIVE="${COMBINED_ARCHIVE:-$DOC_OUTPUT_DIR/Spezi.doccarchive}"
-STATIC_ARCHIVE="${STATIC_ARCHIVE:-$DOC_OUTPUT_DIR/Spezi-static.doccarchive}"
+COMBINED_ARCHIVE="${COMBINED_ARCHIVE:-$DOC_OUTPUT_DIR/Grove.doccarchive}"
+STATIC_ARCHIVE="${STATIC_ARCHIVE:-$DOC_OUTPUT_DIR/Grove-static.doccarchive}"
 
 documentation_targets() {
   python3 - <<'PY'
@@ -118,8 +118,8 @@ done < <(documentation_targets)
 mkdir -p "$DOC_OUTPUT_DIR"
 rm -rf "$COMBINED_ARCHIVE" "$STATIC_ARCHIVE"
 
-export SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS="${SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS:-1}"
-export SPEZI_EXCLUDE_DOCC_CATALOGS=0
+export GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS="${GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS:-1}"
+export GROVE_EXCLUDE_DOCC_CATALOGS=0
 export LLVM_PROFILE_FILE="${LLVM_PROFILE_FILE:-$DOC_OUTPUT_DIR/default-%p.profraw}"
 
 echo "Building DocC documentation for scheme '$DOC_SCHEME' with all default package traits enabled."
@@ -159,7 +159,7 @@ fi
 xcrun docc merge \
   "${archives[@]}" \
   --output-path "$COMBINED_ARCHIVE" \
-  --synthesized-landing-page-name Spezi \
+  --synthesized-landing-page-name Grove \
   --synthesized-landing-page-kind Package \
   --synthesized-landing-page-topics-style compactGrid
 

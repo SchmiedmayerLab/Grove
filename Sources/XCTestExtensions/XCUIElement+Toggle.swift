@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford XCTestExtensions open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2025 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -41,7 +41,7 @@ extension XCUIElement {
         #if os(visionOS)
         switch element.toggleState {
         case .none:
-            throw NSError(domain: "edu.stanford.XCTestExtensions", code: 0, userInfo: [
+            throw NSError(domain: "org.grovealliance.xctestExtensions", code: 0, userInfo: [
                 NSLocalizedDescriptionKey: "Unable to determine current value: '\(String(describing: value))'"
             ])
         case .some(true):
@@ -58,7 +58,7 @@ extension XCUIElement {
     /// Updates a toggle or switch element to the specified value.
     public func setToggleState(isOn newState: Bool) throws {
         guard let toggleState else {
-            throw NSError(domain: "edu.stanford.XCTestExtensions", code: 0, userInfo: [
+            throw NSError(domain: "org.grovealliance.xctestExtensions", code: 0, userInfo: [
                 NSLocalizedDescriptionKey: "Unable to determine current value: '\(String(describing: value))'"
             ])
         }

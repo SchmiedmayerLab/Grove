@@ -1,0 +1,24 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+public import FirebaseFirestore
+
+
+extension FirestoreSettings {
+    /// Firestore settings that specify emulator support.
+    ///
+    /// The emulator settings define the default settings when using the Firebase emulator suite as described at
+    /// [Connect your app to the Cloud Firestore Emulator](https://firebase.google.com/docs/emulator-suite/connect_firestore).
+    public static var emulator: FirestoreSettings {
+        let settings = FirestoreSettings()
+        settings.host = "localhost:8080"
+        settings.cacheSettings = MemoryCacheSettings()
+        settings.isSSLEnabled = false
+        return settings
+    }
+}

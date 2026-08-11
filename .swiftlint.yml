@@ -388,10 +388,28 @@ only_rules:
   - function_name_whitespace
   # Initializing an optional variable with nil is redundant.
   - implicit_optional_initialization
+  # Locally defined rules, in the `custom_rules:` section below. Without this entry `only_rules` silently
+  # drops them.
+  - custom_rules
   # NOTE: three further union rules are intentionally NOT enabled — applied repo-wide they would flag ~950
   # violations in code from packages that never opted into them: `attributes` (648 violations; 26/35 configs),
   # SpeziLLM's `custom_rules` blank-line rules (234; 1/35), and `legacy_objc_type` (68; 2/35).
   # (operator_whitespace / redundant_optional_initialization were renamed to the two rules above in current SwiftLint.)
+
+custom_rules:
+  legacy_brand_identifier:
+    name: "Legacy Brand Identifier"
+    regex: '"[^"\n]*(edu\.stanford|biodesign\.stanford|bdh\.stanford|spezi\.stanford|cardinalkit|ENGAGEHF)[^"\n]*"'
+    message: "Identifiers naming a pre-Grove authority belong in GroveLegacyIdentifiers, which is where the migrations read them from. Emit org.grovealliance.* instead."
+    severity: error
+    # The vault is where these live by design, and tests build legacy-shaped fixtures on purpose.
+    excluded: ".*/(GroveLegacyIdentifiers|Tests)/.*"
+  legacy_brand_logger_subsystem:
+    name: "Logger Subsystem Convention"
+    regex: 'subsystem:\s*"(?!org\.grovealliance)'
+    message: "Logger subsystems are org.grovealliance[.<module>]; the module goes in the category."
+    severity: error
+    excluded: ".*/Tests/.*"
 
 deployment_target: # Availability checks or attributes shouldn’t be using older versions that are satisfied by the deployment target.
   iOSApplicationExtension_deployment_target: 16.0

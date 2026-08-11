@@ -1,0 +1,24 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2025 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+#if canImport(HealthKit)
+
+import HealthKit
+import ModelsR4
+
+
+/// A HealthKit type that can be used to build up a FHIR `Observation`.
+@available(iOS 18, macOS 15, watchOS 11, *)
+protocol FHIRObservationBuildable: HKSample {
+    /// Populates the observation with the contents of the HealthKit sample.
+    ///
+    /// - throws: if the sample cannot be expressed as a FHIR Observation
+    func build(_ observation: inout Observation, mapping: SampleTypesFHIRMapping) throws
+}
+
+#endif

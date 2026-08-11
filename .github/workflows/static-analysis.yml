@@ -1,5 +1,5 @@
 #
-# This source file is part of the Stanford Spezi open-source project
+# This source file is part of the Grove open-source project
 #
 # SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 #
@@ -30,6 +30,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify generated UI test projects
         run: python3 Scripts/generate-ui-test-projects.py --check
+
+  documentation-targets:
+    name: Documentation Target Consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify .spi.yml documents every library product
+        run: python3 Scripts/check-documentation-targets.py
 
   reuse:
     name: REUSE Compliance Check

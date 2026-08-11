@@ -1,0 +1,437 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    "%@" : {
+
+    },
+    "%lf" : {
+
+    },
+    "%lld" : {
+
+    },
+    "A book by Robert C. Martin" : {
+
+    },
+    "Action executed" : {
+
+    },
+    "Alignment" : {
+
+    },
+    "Append Custom View" : {
+
+    },
+    "AsyncButton Toolbar Behaviour" : {
+
+    },
+    "AsyncButtonInToolbar" : {
+
+    },
+    "Buy" : {
+
+    },
+    "by Robert C. Martin" : {
+
+    },
+    "Canvas Size" : {
+
+    },
+    "CanvasTest" : {
+
+    },
+    "Captured %@" : {
+
+    },
+    "Center" : {
+
+    },
+    "Clean Code" : {
+
+    },
+    "Clear" : {
+
+    },
+    "Closure Condition present" : {
+
+    },
+    "Condition present" : {
+
+    },
+    "Cookies" : {
+
+    },
+    "Credentials" : {
+
+    },
+    "Custom Step" : {
+
+    },
+    "Did Draw Anything" : {
+
+    },
+    "Did tap" : {
+
+    },
+    "Done" : {
+
+    },
+    "E-Mail Address" : {
+
+    },
+    "Email" : {
+
+    },
+    "Enable/Disable Canvas" : {
+
+    },
+    "Enable/Disable Canvas, %@" : {
+
+    },
+    "Enter your details" : {
+
+    },
+    "Entity" : {
+
+    },
+    "Entity Info" : {
+
+    },
+    "Error Description" : {
+
+    },
+    "Example Views to take screenshots for GroveViews" : {
+
+    },
+    "Examples" : {
+
+    },
+    "Fast Action" : {
+
+    },
+    "Fast Completed: %@" : {
+
+    },
+    "Fast Debounced Action" : {
+
+    },
+    "Field" : {
+
+    },
+    "First" : {
+
+    },
+    "First Name" : {
+
+    },
+    "Flip Layout Direction" : {
+
+    },
+    "Go to Step 7 (A)" : {
+
+    },
+    "Go to Step 7 (B)" : {
+
+    },
+    "Has Engines: %@" : {
+
+    },
+    "Hello" : {
+
+    },
+    "Hello Throwing World" : {
+
+    },
+    "Hello World" : {
+
+    },
+    "Increment" : {
+
+    },
+    "Increment Counter" : {
+
+    },
+    "Inline Picker" : {
+
+    },
+    "Input Valid: %@" : {
+
+    },
+    "LABEL_TEXT" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is a label ...\nAn other text. This is longer and we can check if the justified text works as expected. This is a very long text."
+          }
+        }
+      }
+    },
+    "Last" : {
+
+    },
+    "Last Name" : {
+
+    },
+    "Last state: %@" : {
+
+    },
+    "LAZY_TEXT" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An other lazy text ..."
+          }
+        }
+      }
+    },
+    "Leading" : {
+
+    },
+    "Managed View Update" : {
+
+    },
+    "ManagedNavigationStack" : {
+
+    },
+    "Middle" : {
+
+    },
+    "Name" : {
+
+    },
+    "NameFields" : {
+
+    },
+    "Next Step" : {
+
+    },
+    "NSError (Simple 1)" : {
+
+    },
+    "NSError (Simple 2)" : {
+
+    },
+    "NSError (Simple 3)" : {
+
+    },
+    "Operation State: %@" : {
+
+    },
+    "Option Set" : {
+
+    },
+    "Other" : {
+
+    },
+    "Password" : {
+
+    },
+    "Picker" : {
+
+    },
+    "Please enter your email address of your account. A email with an link to reset your password will be sent to the email address." : {
+
+    },
+    "Random Tool" : {
+
+    },
+    "Recommendations" : {
+
+    },
+    "Refresh" : {
+
+    },
+    "Refresh in 2s" : {
+
+    },
+    "Reset" : {
+
+    },
+    "Reset Password" : {
+
+    },
+    "Second" : {
+
+    },
+    "Selection" : {
+
+    },
+    "Share %@ UIImage" : {
+
+    },
+    "Share %@ UIImage via URL" : {
+
+    },
+    "Share 2 PDFs" : {
+
+    },
+    "Share PDF" : {
+
+    },
+    "Share PDF via Data" : {
+
+    },
+    "Share PDF via URL" : {
+
+    },
+    "Share Sheet" : {
+
+    },
+    "Share Text" : {
+
+    },
+    "Show Sheet" : {
+
+    },
+    "Signup" : {
+
+    },
+    "SkeletonLoading" : {
+
+    },
+    "Skip Next" : {
+
+    },
+    "Slow Action" : {
+
+    },
+    "Slow Completed: %@" : {
+
+    },
+    "Slow Debounced Action" : {
+
+    },
+    "GrovePersonalInfo" : {
+
+    },
+    "GroveValidation" : {
+
+    },
+    "GroveViews" : {
+
+    },
+    "State" : {
+
+    },
+    "State Captured" : {
+
+    },
+    "Step 0" : {
+
+    },
+    "Step 1" : {
+
+    },
+    "Step 2" : {
+
+    },
+    "Step 3" : {
+
+    },
+    "Step 4" : {
+
+    },
+    "Step 5" : {
+
+    },
+    "Step 6" : {
+
+    },
+    "Step 7" : {
+
+    },
+    "Step 8" : {
+
+    },
+    "Step 9A (even)" : {
+
+    },
+    "Step 9B (odd)" : {
+
+    },
+    "Swift Error (Localized)" : {
+
+    },
+    "Swift Error (Simple)" : {
+
+    },
+    "Switch Focus" : {
+
+    },
+    "Tap Me ;)" : {
+
+    },
+    "Tap Me!" : {
+
+    },
+    "Targets" : {
+
+    },
+    "Text Alignment" : {
+
+    },
+    "This field must be selected." : {
+
+    },
+    "This is a default error description!" : {
+
+    },
+    "This is a label ...\nAn other text. This is longer and we can check if the justified text works as expected. This is a very long text." : {
+
+    },
+    "This is the Sheet" : {
+
+    },
+    "Tiles" : {
+
+    },
+    "Toggle Closure Condition" : {
+
+    },
+    "Toggle Condition" : {
+
+    },
+    "Toggle Tool Picker" : {
+
+    },
+    "Tool" : {
+
+    },
+    "Trailing" : {
+
+    },
+    "Trigger Error" : {
+
+    },
+    "Username" : {
+
+    },
+    "Validate" : {
+
+    },
+    "Validation" : {
+
+    },
+    "Validation TextField" : {
+
+    },
+    "Value" : {
+
+    },
+    "View State: %@" : {
+
+    },
+    "ViewState" : {
+
+    },
+    "Your username is displayed to other users." : {
+
+    }
+  },
+  "version" : "1.0"
+}

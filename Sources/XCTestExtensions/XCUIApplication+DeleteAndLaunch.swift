@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford XCTestExtensions open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -69,8 +69,14 @@ extension XCUIApplication {
 
         // There might be multiple apps installed with the same name (e.g., we use "TestApp" a lot), so delete all of them
         while homeScreenIcons[appName].firstMatch.waitForExistence(timeout: 10.0) {
-            if !homeScreenIcons[appName].firstMatch.isHittable {
+            // The icon can be several pages in: every package's UI tests install a target called
+            // "TestApp", so a device that has run more than one of them has several to page past.
+            // One swipe only reaches page two. The assertion below is unchanged -- an app that is
+            // genuinely absent or unreachable still fails.
+            var swipes = 0
+            while !homeScreenIcons[appName].firstMatch.isHittable && swipes < 10 {
                 springboard.swipeLeft()
+                swipes += 1
             }
 
             XCTAssert(homeScreenIcons[appName].firstMatch.isHittable)

@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2025 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -11,7 +11,7 @@
 import sys
 import os
 current_dir = os.path.dirname(os.path.abspath(__file__))
-target_dir = os.path.join(current_dir, "../SpeziHealthKit/Sample Types")
+target_dir = os.path.join(current_dir, "../GroveHealthKit/Sample Types")
 sys.path.append(target_dir)
 
 from SampleTypeDefs import *

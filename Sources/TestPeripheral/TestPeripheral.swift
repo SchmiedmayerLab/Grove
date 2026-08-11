@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2024 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -8,10 +8,10 @@
 
 import ByteCoding
 public import CoreBluetooth
-import OSLog
-import SpeziBluetooth
+import GroveBluetooth
 @_spi(TestingSupport)
-import SpeziBluetoothServices
+import GroveBluetoothServices
+import OSLog
 
 
 @main
@@ -38,8 +38,8 @@ final class TestPeripheral: NSObject, CBPeripheralManagerDelegate {
         }
     }
 
-    private let logger = Logger(subsystem: "edu.stanford.spezi.bluetooth", category: "TestPeripheral")
-    private let dispatchQueue = DispatchQueue(label: "edu.stanford.spezi.bluetooth-peripheral", qos: .userInitiated)
+    private let logger = Logger(subsystem: "org.grovealliance.bluetooth", category: "TestPeripheral")
+    private let dispatchQueue = DispatchQueue(label: "org.grovealliance.bluetooth.peripheral", qos: .userInitiated)
 
     private var peripheralManager: CBPeripheralManager! // swiftlint:disable:this implicitly_unwrapped_optional
 
@@ -74,7 +74,7 @@ final class TestPeripheral: NSObject, CBPeripheralManagerDelegate {
         // >As we are using a custom UUID we take a up lot of that<
         // Might be that the local name is moved to the scan response if it is too long.
         peripheralManager.startAdvertising([
-            CBAdvertisementDataLocalNameKey: "Spezi",
+            CBAdvertisementDataLocalNameKey: "Grove",
             CBAdvertisementDataServiceUUIDsKey: [testService.service.uuid]
         ])
     }

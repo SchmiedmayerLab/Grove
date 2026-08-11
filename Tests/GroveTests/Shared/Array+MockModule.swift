@@ -1,0 +1,19 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+import Grove
+import Testing
+
+
+extension Array where Element == any Module {
+    func moduleOfType<M: Module>(_ moduleType: M.Type = M.self, expectedNumber: Int = 1) throws -> M {
+        let typedModules = compactMap { $0 as? M }
+        #expect(typedModules.count == expectedNumber)
+        return try #require(typedModules.first)
+    }
+}

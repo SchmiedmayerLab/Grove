@@ -1,0 +1,31 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2023 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+public import GroveFHIR
+import ModelsR4
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension FHIRStore {
+    /// Loads a mock resource into the `FHIRStore` for testing purposes.
+    @MainActor
+    public func loadTestingResources() async {
+        removeAllResources()
+        
+        let mockObservation = Observation(
+            code: CodeableConcept(coding: [Coding(code: "1234".asFHIRStringPrimitive())]),
+            id: FHIRPrimitive<FHIRString>("1234"),
+            issued: FHIRPrimitive<Instant>(try? Instant(date: .now)),
+            status: FHIRPrimitive(ObservationStatus.final)
+        )
+        insert(FHIRResource(
+            versionedResource: .r4(mockObservation),
+            displayName: "Mock Resource"
+        ))
+    }
+}
