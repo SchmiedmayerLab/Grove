@@ -37,8 +37,6 @@ public enum LifecycleSimulationOptions {
     /// Injects the ``Grove/launchOptions`` property to be accessed via the `@Application` property wrapper.
     case launchWithOptions(_ launchOptions: [Never: Any])
 #endif
-
-    static let launchWithOptions: LifecycleSimulationOptions = .launchWithOptions([:])
 }
 
 

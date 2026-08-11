@@ -59,6 +59,7 @@ public struct BoolDisplayView<Key: AccountKey>: DataDisplayView where Key.Value 
         self.value = value
     }
 
+    // periphery:ignore:parameters keyPath - binds the generic Key at the call site
     /// Create a new display view.
     /// - Parameters:
     ///   - label: The labels used to represent the `Bool` value.

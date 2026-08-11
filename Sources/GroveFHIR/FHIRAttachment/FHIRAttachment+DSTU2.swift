@@ -13,16 +13,6 @@ import UniformTypeIdentifiers
 
 
 extension ModelsDSTU2.Attachment: FHIRAttachment {
-    var debugDescription: String {
-        """
-        Could not transform attachment type: \(title?.primitiveDescription ?? "No title") to a string representation.
-        
-        Attachment: \(id?.primitiveDescription ?? "No ID")
-            Creation Date: \(creation?.primitiveDescription ?? "No Creation")
-            MIME Type: \(mimeType?.preferredMIMEType ?? "No Content Type")
-        """
-    }
-    
     var mimeType: UTType? {
         guard let mimeTypeString = contentType?.value?.string,
               !mimeTypeString.isEmpty else {

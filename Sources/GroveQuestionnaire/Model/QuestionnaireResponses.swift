@@ -86,24 +86,6 @@ public final class QuestionnaireResponses: Identifiable {
         }
     }
     
-    private var root: QuestionnaireResponses {
-        switch _variant {
-        case .root:
-            self
-        case .view(let parent, pathFromParent: _):
-            parent.root
-        }
-    }
-    
-    private var pathFromParent: ResponsesPath {
-        switch _variant {
-        case .root:
-            ResponsesPath()
-        case .view(parent: _, let pathFromParent):
-            pathFromParent
-        }
-    }
-    
     var pathFromRoot: ResponsesPath {
         switch _variant {
         case .root:

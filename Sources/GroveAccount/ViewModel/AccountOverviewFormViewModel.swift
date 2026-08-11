@@ -202,14 +202,6 @@ class AccountOverviewFormViewModel {
         resetModelState()
     }
 
-    @available(macOS, unavailable)
-    @available(watchOS, unavailable)
-    func resetModelState(editMode: Binding<EditMode>?) {
-        resetModelState()
-
-        editMode?.wrappedValue = .inactive
-    }
-
     func resetModelState() {
         addedAccountKeys = CategorizedAccountKeys()
         removedAccountKeys = CategorizedAccountKeys()

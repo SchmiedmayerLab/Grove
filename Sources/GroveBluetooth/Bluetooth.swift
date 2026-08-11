@@ -499,6 +499,7 @@ public final class Bluetooth: Module, EnvironmentAccessible, @unchecked Sendable
         }
     }
 
+    // periphery:ignore:parameters device - type hint for generic inference at the call site
     /// Retrieve nearby devices.
     ///
     /// Use this method to retrieve nearby discovered Bluetooth devices. This method will only

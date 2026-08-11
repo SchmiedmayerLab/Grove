@@ -12,6 +12,7 @@ import SwiftUI
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct MessageStyleModifier: ViewModifier {
     private let chatAlignment: ChatEntity.Alignment
+    // periphery:ignore - read in the visionOS branch of backgroundColor; the scan indexes an iOS destination
     private let backgroundColorUserChat: Color
 
     

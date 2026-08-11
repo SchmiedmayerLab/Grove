@@ -245,7 +245,6 @@ extension XCUIApplication {
 
 
 extension XCUIElement {
-    private static let monthAndYearFormatter = DateFormatter(format: "MMMM yyyy")
     private static let monthNames = [
         "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
     ]
@@ -273,14 +272,6 @@ extension XCUIElement {
     /// returns the **numeric** value of the month, i.e., 1 for january, 2 for february, and so on
     static func monthValue(for name: String) -> Int? {
         monthNames.firstIndex(where: { $0.localizedCompare(name) == .orderedSame })
-    }
-}
-
-
-extension DateFormatter {
-    convenience init(format: String) {
-        self.init()
-        self.dateFormat = format
     }
 }
 

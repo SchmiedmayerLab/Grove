@@ -91,6 +91,7 @@ struct BluetoothDeviceTestingSupportTests {
         #expect(results.received == [id1, id2])
     }
 
+    @Test("DeviceAction Injection")
     func testDeviceActionInjection() async throws {
         let device = MockDevice()
 
@@ -165,6 +166,7 @@ struct BluetoothDeviceTestingSupportTests {
         #expect(service.manufacturerName == value3)
     }
 
+    @Test("Characteristic Closure Injection")
     func testCharacteristicClosureInjection() async throws {
         let device = MockDevice()
         let service = device.deviceInformation

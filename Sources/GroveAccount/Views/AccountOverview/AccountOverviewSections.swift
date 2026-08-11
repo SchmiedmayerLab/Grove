@@ -18,7 +18,6 @@ import SwiftUI
 @available(macOS, unavailable)
 @available(watchOS, unavailable)
 struct AccountOverviewSections<AdditionalSections: View>: View {
-    private let closeBehavior: AccountOverview<AdditionalSections>.CloseBehavior
     private let logoutBehavior: AccountOverview<AdditionalSections>.AccountLogoutBehavior
     private let deletionBehavior: AccountOverview<AdditionalSections>.AccountDeletionBehavior
     private let additionalSections: AdditionalSections
@@ -32,9 +31,7 @@ struct AccountOverviewSections<AdditionalSections: View>: View {
 
     @Environment(\.editMode)
     private var editMode
-    @Environment(\.dismiss)
-    private var dismiss
-    
+
     private var showLogoutButton: Bool {
         switch logoutBehavior {
         case .disabled:
@@ -176,7 +173,6 @@ struct AccountOverviewSections<AdditionalSections: View>: View {
     init(
         model: AccountOverviewFormViewModel,
         details accountDetails: AccountDetails,
-        close closeBehavior: AccountOverview<AdditionalSections>.CloseBehavior,
         logout logoutBehavior: AccountOverview<AdditionalSections>.AccountLogoutBehavior,
         deletion deletionBehavior: AccountOverview<AdditionalSections>.AccountDeletionBehavior,
         destructiveViewState: ViewState,
@@ -184,7 +180,6 @@ struct AccountOverviewSections<AdditionalSections: View>: View {
     ) {
         self.model = model
         self.accountDetails = accountDetails
-        self.closeBehavior = closeBehavior
         self.logoutBehavior = logoutBehavior
         self.deletionBehavior = deletionBehavior
         self.destructiveViewState = destructiveViewState

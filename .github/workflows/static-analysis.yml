@@ -59,6 +59,16 @@ jobs:
         with:
           args: --strict
 
+  periphery:
+    name: Dead Code Analysis
+    runs-on: macOS-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Periphery
+        run: brew install periphery
+      - name: Periphery
+        run: Scripts/run-periphery.sh --strict
+
   documentation:
     name: Documentation
     runs-on: macOS-26

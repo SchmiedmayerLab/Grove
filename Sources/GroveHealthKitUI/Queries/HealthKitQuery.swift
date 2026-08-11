@@ -161,9 +161,6 @@ public final class SamplesQueryResults<Sample: _HKSampleWithSampleType>: @unchec
     @ObservationIgnored
     private var queryTask: Task<Void, Never>?
 
-    @ObservationIgnored
-    private var authorizationObserverTask: Task<Void, Never>?
-
     public private(set) var isCurrentlyPerformingInitialFetch: Bool = false
     public private(set) var queryError: (any Error)?
 

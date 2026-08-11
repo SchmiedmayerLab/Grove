@@ -12,7 +12,7 @@ import GroveLocalStorage
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension SensorKit {
-    // Essentially just a thread-safe dictionary that keeps track of our `LocalStorageKey`s used by the `SampleTypeScopedLocalStorage`.
+    // Essentially just a thread-safe dictionary that keeps track of our `LocalStorageKey`s used by `SensorKit.queryAnchorKeys`.
     // The reason this exists is bc the LocalStorage API is intended to be used with long-lived LocalStorageKey objects, which doesn't easily
     // work with the multi-key scoping approach we're using here.
     // Were we not to use something like this for caching and re-using the keys, we'd need to create temporary `LocalStorageKey`s for
@@ -20,7 +20,9 @@ extension SensorKit {
     // be long-lived objects which are also used for e.g. locking / properly handling concurrent reads or writes.
     final class LocalStorageKeysStore<Key: Hashable, Value>: Sendable {
         private struct DictKey: Hashable {
+            // periphery:ignore - read by the synthesized Hashable of this dictionary key
             let key: Key
+            // periphery:ignore - read by the synthesized Hashable of this dictionary key
             let valueType: String
             
             init(key: Key) {
@@ -50,31 +52,6 @@ extension SensorKit {
                     keys[dictKey] = storageKey
                     return storageKey
                 }
-            }
-        }
-    }
-    
-    
-    /// A read-write "view" into a `LocalStorage`.
-    struct ScopedLocalStorage<Key: Hashable, Value: SendableMetatype>: Sendable {
-        private let localStorage: LocalStorage
-        private let localStorageKeysStore: LocalStorageKeysStore<Key, Value>
-        
-        init(localStorage: LocalStorage, localStorageKeysStore: LocalStorageKeysStore<Key, Value>) {
-            self.localStorage = localStorage
-            self.localStorageKeysStore = localStorageKeysStore
-        }
-        
-        private func storageKey(for key: Key) -> LocalStorageKey<Value> {
-            localStorageKeysStore.storageKey(for: key)
-        }
-        
-        subscript(key: Key) -> Value? {
-            get {
-                try? localStorage.load(storageKey(for: key))
-            }
-            nonmutating set {
-                try? localStorage.store(newValue, for: storageKey(for: key))
             }
         }
     }

@@ -210,7 +210,7 @@ public enum StoreRelocation {
     /// `<store>.backup`, and — when a store is renamed to something that prefixes its old name —
     /// would treat the files being copied as orphans to delete.
     static func storeFiles(named storeName: String, in directory: URL, fileManager: FileManager = .default) throws -> [URL] {
-        let supportDirectory = ".\(storeName)_SUPPORT"
+        let supportDirectory = Self.supportDirectoryName(forStore: storeName)
         let belongs = { (name: String) in
             name == storeName || name == supportDirectory || sidecarSuffixes.contains { name == storeName + $0 }
         }
@@ -277,10 +277,19 @@ public enum StoreRelocation {
         return !destinationIdentity.isEqual(sourceIdentity)
     }
 
+    /// The Core Data external-binary-data directory for a store.
+    ///
+    /// Core Data strips the store's path extension when naming it: `store.sqlite` keeps its blobs in
+    /// `.store_SUPPORT`, not `.store.sqlite_SUPPORT`. Verified against a real store — an extension-
+    /// carrying spelling here silently strands every externally-stored attribute on relocation.
+    static func supportDirectoryName(forStore storeName: String) -> String {
+        ".\((storeName as NSString).deletingPathExtension)_SUPPORT"
+    }
+
     /// Maps a store file's name onto a renamed store, preserving its sidecar suffix.
     private static func renaming(_ fileName: String, from storeName: String, to newStoreName: String) -> String {
-        if fileName == ".\(storeName)_SUPPORT" {
-            return ".\(newStoreName)_SUPPORT"
+        if fileName == supportDirectoryName(forStore: storeName) {
+            return supportDirectoryName(forStore: newStoreName)
         }
         guard fileName.hasPrefix(storeName) else {
             return fileName

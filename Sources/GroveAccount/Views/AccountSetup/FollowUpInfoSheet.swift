@@ -58,8 +58,6 @@ public struct FollowUpInfoSheet: View {
 
     @Environment(\.dismiss)
     private var dismiss
-    @Environment(\.scenePhase)
-    private var scenePhase
 
     @Environment(Account.self)
     private var account
@@ -67,6 +65,7 @@ public struct FollowUpInfoSheet: View {
     @State private var detailsBuilder = AccountDetailsBuilder()
     @ValidationState private var validation
 
+    // periphery:ignore - read through its projected value
     @State private var viewState: ViewState = .idle
     @FocusState private var isFocused: Bool
 

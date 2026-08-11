@@ -109,7 +109,9 @@ import class UIKit.UIScene
 @Observable
 public final class AccessGuards: Module, EnvironmentAccessible {
     private struct ModelKey: Hashable {
+        // periphery:ignore - read by the synthesized Hashable of this key
         private let rawIdentifier: String
+        // periphery:ignore - read by the synthesized Hashable of this key
         private let identifierType: ObjectIdentifier
 
         init<I: _AnyAccessGuardIdentifier>(_ identifier: I) {

@@ -291,6 +291,28 @@ extension StudyManagerTests {
         #expect(try allTasks(in: scheduler).isEmpty)
     }
 
+    /// The bundles sweep deletes anything not matching an enrollment, and enrollment URLs carry the
+    /// new extension — so a bundle whose extension rename failed can never match one. It must be
+    /// skipped, not swept: deleting it destroys the study's content with no retry left.
+    @Test
+    func theBundleSweepSkipsChildrenTheRenameHasNotReached() async throws {
+        let scheduler = Scheduler(persistence: .inMemory)
+        let studyManager = StudyManager(persistence: .inMemory)
+        withDependencyResolution(standard: MigrationTestStandard()) {
+            scheduler
+            studyManager
+        }
+        let strayLegacy = StudyManager.studyBundlesDirectory
+            .appendingPathComponent("\(UUID().uuidString).\(LegacyStorage.studyBundleFileExtension)")
+        try FileManager.default.createDirectory(at: StudyManager.studyBundlesDirectory, withIntermediateDirectories: true)
+        try "unrenamed bundle".write(to: strayLegacy, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: strayLegacy) }
+
+        try studyManager.removeOrphanedStudyBundles()
+
+        #expect(FileManager.default.fileExists(atPath: strayLegacy.path))
+    }
+
     /// Consumers get the new raw values without touching their source, which is the point of routing
     /// everything through `Task.Category` statics rather than string literals.
     @Test

@@ -40,6 +40,7 @@ public struct FixedWidthIntegerDisplayView<Key: AccountKey>: DataDisplayView whe
         self.unit = Text(verbatim: "")
     }
 
+    // periphery:ignore:parameters keyPath - binds the generic Key at the call site
     /// Create a new display view.
     /// - Parameters:
     ///   - keyPath: The `AccountKey` type.

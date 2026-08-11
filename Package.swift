@@ -870,6 +870,7 @@ var targets: [Target] = [
     .target(
         name: "GroveFirebaseAccount",
         dependencies: [
+            .target(name: "GroveLegacyIdentifiers"),
             .target(name: "GroveFirebaseConfiguration"),
             .target(name: "GroveFoundation"),
             .target(name: "Grove"),

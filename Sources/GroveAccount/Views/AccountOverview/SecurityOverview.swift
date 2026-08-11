@@ -19,9 +19,7 @@ struct SecurityOverview: View {
     private let model: AccountOverviewFormViewModel
 
 
-    @Environment(Account.self)
-    private var account
-
+    // periphery:ignore - read through its projected value
     @State private var viewState: ViewState = .idle
     @State private var presentingPasswordChangeSheet = false
 

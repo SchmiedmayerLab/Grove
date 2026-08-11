@@ -95,7 +95,7 @@ public struct ContributionsList: View {
         additionalPackages: [Package] = []
     ) {
         self.init(
-            packages: PackageList.spmPackages,
+            packages: PackageList.spmPackages + additionalPackages,
             projectInfo: .init(name: appName, url: projectUrl, license: projectLicense)
         )
     }

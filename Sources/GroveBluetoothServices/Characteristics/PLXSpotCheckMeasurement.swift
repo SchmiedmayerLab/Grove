@@ -22,6 +22,7 @@ public struct PLXSpotCheckMeasurement: ByteCodable, Hashable, Sendable, Codable 
         static let hasMeasurementStatus = Self(rawValue: 1 << 1)
         static let hasDeviceAndSensorStatus = Self(rawValue: 1 << 2)
         static let hasPulseAmplitudeIndex = Self(rawValue: 1 << 3)
+        // periphery:ignore - wire-format bit defined by the PLXS specification; decoded flags can carry it
         static let deviceClockIsNotSet = Self(rawValue: 1 << 4)
 
         let rawValue: UInt8

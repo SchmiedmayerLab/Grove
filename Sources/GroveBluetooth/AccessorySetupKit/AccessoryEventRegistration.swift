@@ -24,7 +24,7 @@ public struct AccessoryEventRegistration: ~Copyable, Sendable {
         self.setupKit = setupKit
     }
 
-    static func cancel(id: UUID, setupKit: (any AnyObject & Sendable)?, isolation: isolated (any Actor)? = #isolation) {
+    static func cancel(id: UUID, setupKit: (any AnyObject & Sendable)?, isolation _: isolated (any Actor)? = #isolation) {
         #if os(iOS) && !targetEnvironment(macCatalyst)
         guard let setupKit, let typedSetupKit = setupKit as? AccessorySetupKit else {
             return
@@ -35,6 +35,7 @@ public struct AccessoryEventRegistration: ~Copyable, Sendable {
         #endif
     }
 
+    // periphery:ignore:parameters isolation - inherits the caller's actor; compiler-consumed
     /// Cancel the subscription.
     /// - Parameter isolation: Inherits the current actor isolation. If running on the MainActor cancellation is processed instantly.
     public func cancel(isolation: isolated (any Actor)? = #isolation) {

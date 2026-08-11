@@ -62,7 +62,9 @@ public class BluetoothPeripheral { // swiftlint:disable:this type_body_length
     let cbPeripheral: CBPeripheral
     private let configuration: DeviceDescription
 
+    // periphery:ignore - strong reference keeping the delegate alive; CBPeripheral.delegate is weak
     private let delegate: Delegate // swiftlint:disable:this weak_delegate
+    // periphery:ignore - RAII token: the assignment holds the observation alive
     private var stateObserver: KVOStateDidChangeObserver<CBPeripheral, CBPeripheralState>?
 
     /// Observable state container for local state.
@@ -560,10 +562,6 @@ public class BluetoothPeripheral { // swiftlint:disable:this type_body_length
         assert(replaced == nil, "onChangeHandlers are forced to be unique and shouldn't replace previous values.")
 
         return OnChangeRegistration(peripheral: self, locator: locator, handlerId: id)
-    }
-
-    func deregisterOnChange(_ registration: OnChangeRegistration) {
-        deregisterOnChange(locator: registration.locator, handlerId: registration.handlerId)
     }
 
     func deregisterOnChange(locator: CharacteristicLocator, handlerId: UUID) {

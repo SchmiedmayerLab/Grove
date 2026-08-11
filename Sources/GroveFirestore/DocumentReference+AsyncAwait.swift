@@ -27,7 +27,7 @@ private struct FirestoreCompletion: Sendable {
     }
 
     static func perform(
-        isolation: isolated (any Actor)? = #isolation,
+        isolation _: isolated (any Actor)? = #isolation,
         file: StaticString = #filePath,
         line: Int = #line,
         action: (FirestoreCompletion) throws -> Void
@@ -80,7 +80,7 @@ extension DocumentReference {
     ///   - value: An instance of `Encodable` to be encoded to a document.
     ///   - encoder: An encoder instance to use to run the encoding.
     public func setData<T: Encodable>(
-        isolation: isolated (any Actor)? = #isolation,
+        isolation _: isolated (any Actor)? = #isolation,
         from value: T,
         encoder: FirebaseFirestore.Firestore.Encoder = FirebaseFirestore.Firestore.Encoder()
     ) async throws {
@@ -110,7 +110,7 @@ extension DocumentReference {
     ///            document.
     ///   - encoder: An encoder instance to use to run the encoding.
     public func setData<T: Encodable>(
-        isolation: isolated (any Actor)? = #isolation,
+        isolation _: isolated (any Actor)? = #isolation,
         from value: T,
         merge: Bool,
         encoder: FirebaseFirestore.Firestore.Encoder = FirebaseFirestore.Firestore.Encoder()
@@ -145,7 +145,7 @@ extension DocumentReference {
     ///                  document.
     ///   - encoder: An encoder instance to use to run the encoding.
     public func setData<T: Encodable>(
-        isolation: isolated (any Actor)? = #isolation,
+        isolation _: isolated (any Actor)? = #isolation,
         from value: T,
         mergeFields: [Any],
         encoder: FirebaseFirestore.Firestore.Encoder = FirebaseFirestore.Firestore.Encoder()

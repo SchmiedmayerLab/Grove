@@ -383,7 +383,7 @@ public final class Task { // swiftlint:disable:this type_body_length
         notificationThread: NotificationThread?,
         notificationTime: NotificationTime?,
         tags: [String]?, // swiftlint:disable:this discouraged_optional_collection
-        effectiveFrom: Date,
+        effectiveFrom _: Date,
         with contextClosure: ((inout Context) -> Void)?
     ) -> Set<PartialKeyPath<Task>> {
         let context: Context? = contextClosure.map { apply in

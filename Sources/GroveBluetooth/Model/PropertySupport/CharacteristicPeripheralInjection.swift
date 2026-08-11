@@ -110,7 +110,7 @@ class CharacteristicPeripheralInjection<Value: Sendable>: Sendable {
         }
     }
 
-    private func handleInitialCall(id: UUID, initial: Bool, action: (_ oldValue: Value, _ newValue: Value) async -> Void) async {
+    private func handleInitialCall(id: UUID, initial: Bool, action _: (_ oldValue: Value, _ newValue: Value) async -> Void) async {
         if nonInitialChangeHandlers != nil {
             if !initial {
                 nonInitialChangeHandlers?.insert(id)

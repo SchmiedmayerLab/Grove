@@ -179,7 +179,9 @@ extension Event {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension Event: Identifiable {
     public struct ID {
+        // periphery:ignore - read by the synthesized Hashable of this key
         private let taskId: Task.ID
+        // periphery:ignore - read by the synthesized Hashable of this key
         private let occurrenceData: Date
 
         fileprivate init(taskId: Task.ID, occurrenceData: Date) {

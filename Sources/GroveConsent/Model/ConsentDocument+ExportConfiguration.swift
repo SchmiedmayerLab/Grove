@@ -15,33 +15,12 @@ import TPPDF
 extension ConsentDocument {
     /// Define the properties of an exported ``ConsentDocument``.
     public struct ExportConfiguration: Equatable, Sendable {
-        /// Represents common paper sizes with their dimensions.
-        ///
-            /// The dimensions are used to derive the width and height of each paper size in points.
-        ///
-        /// - Note: The dimensions are calculated based on the standard DPI (dots per inch) of 72 for print.
+        /// Represents common paper sizes.
         public enum PaperSize: Equatable, Sendable {
             /// Standard US Letter paper size.
             case usLetter
             /// Standard DIN A4 paper size.
             case dinA4
-            
-            /// Provides the dimensions of the paper in points.
-            ///
-            /// - Returns: A tuple containing the width and height of the paper in points.
-            var dimensions: (width: CGFloat, height: CGFloat) {
-                let pointsPerInch: CGFloat = 72.0
-                switch self {
-                case .usLetter:
-                    let widthInInches: CGFloat = 8.5
-                    let heightInInches: CGFloat = 11.0
-                    return (widthInInches * pointsPerInch, heightInInches * pointsPerInch)
-                case .dinA4:
-                    let widthInInches: CGFloat = 8.3
-                    let heightInInches: CGFloat = 11.7
-                    return (widthInInches * pointsPerInch, heightInInches * pointsPerInch)
-                }
-            }
 
             ///  `TPPDF/PDFPageFormat` which corresponds to GroveOnboarding's `PaperSize`.
             var pdfPageFormat: PDFPageFormat {

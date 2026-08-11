@@ -13,6 +13,7 @@ public import SwiftSyntaxMacros
 
 
 private struct SimpleError: Error {
+    // periphery:ignore - surfaced via String(describing:) in the compiler's macro-expansion diagnostic
     let message: String
 
     init(_ message: String) {

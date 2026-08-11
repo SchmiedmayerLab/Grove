@@ -7,9 +7,12 @@
 //
 
 import Foundation
+import GroveLegacyIdentifiers
 
 
 enum StorageKeys {
-    static let activeAccountService = "active-service.firebase.stanford.edu"
-    static let emailPasswordCredentials = "account.email-pw.firebase.stanford.edu"
+    // From the vault rather than a duplicated literal: this names existing keychain and
+    // LocalStorage entries that resetLegacyStorage deletes, and a duplicate is exactly how the
+    // scheduler's 1.0 key got silently renamed out from under its migration.
+    static let activeAccountService = LegacyKeychain.firebaseActiveAccountService
 }

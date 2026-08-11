@@ -78,7 +78,6 @@ extension QuestionnaireSheetNavigator {
     @MainActor
     public struct TaskProxy {
         private let navigator: QuestionnaireSheetNavigator
-        private let taskId: String
         private let task: XCUIElementQuery
         private var app: XCUIApplication {
             navigator.app
@@ -91,7 +90,6 @@ extension QuestionnaireSheetNavigator {
         
         fileprivate init(navigator: QuestionnaireSheetNavigator, taskId: String) {
             self.navigator = navigator
-            self.taskId = taskId
             self.task = navigator.app.otherElements.matching(identifier: "Task:\(taskId)")
         }
         

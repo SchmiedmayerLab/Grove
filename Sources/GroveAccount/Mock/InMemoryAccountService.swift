@@ -79,6 +79,7 @@ private struct MockSignInWithAppleButton: View {
 }
 
 
+// periphery:ignore - collected via Mirror through the @SecurityRelatedModifier property
 @available(iOS 18, macOS 15, watchOS 11, *)
 private struct MockSecurityAlert: ViewModifier {
     @Environment(InMemoryAccountService.self)
@@ -160,6 +161,7 @@ public final class InMemoryAccountService: AccountService {
     @IdentityProvider(section: .singleSignOn)
     private var signInWithApple = MockSignInWithAppleButton()
 
+    // periphery:ignore - collected via Mirror by Account and injected into security-related views
     @SecurityRelatedModifier private var securityAlert = MockSecurityAlert()
 
     public let configuration: AccountServiceConfiguration
@@ -494,7 +496,6 @@ extension InMemoryAccountService {
         var name: PersonNameComponents?
         var genderIdentity: GenderIdentity?
         var dateOfBirth: Date?
-        var phoneNumbers: [String]? // swiftlint:disable:this discouraged_optional_collection
 
         init(
             accountId: UUID = UUID(),
@@ -502,8 +503,7 @@ extension InMemoryAccountService {
             password: String?,
             name: PersonNameComponents? = nil,
             genderIdentity: GenderIdentity? = nil,
-            dateOfBirth: Date? = nil,
-            phoneNumbers: [String]? = nil // swiftlint:disable:this discouraged_optional_collection
+            dateOfBirth: Date? = nil
         ) {
             self.accountId = accountId
             self.userId = userId
@@ -511,7 +511,6 @@ extension InMemoryAccountService {
             self.name = name
             self.genderIdentity = genderIdentity
             self.dateOfBirth = dateOfBirth
-            self.phoneNumbers = phoneNumbers
         }
     }
 }

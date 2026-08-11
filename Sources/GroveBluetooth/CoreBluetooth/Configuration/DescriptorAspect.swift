@@ -30,21 +30,6 @@ enum DescriptorAspect {
 }
 
 
-#if canImport(AccessorySetupKit) && !os(macOS)
-@available(iOS 18.0, *)
-@available(macCatalyst, unavailable)
-extension DescriptorAspect {
-    static func bluetoothRange(_ range: ASDiscoveryDescriptor.Range) -> DescriptorAspect {
-        .bluetoothRange(range.rawValue)
-    }
-
-    static func supportOptions(_ options: ASAccessory.SupportOptions) -> DescriptorAspect {
-        .supportOptions(options.rawValue)
-    }
-}
-#endif
-
-
 extension DescriptorAspect: Sendable, Hashable {}
 
 

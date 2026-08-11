@@ -17,8 +17,6 @@ public import SwiftUI
 @available(iOS 18, macOS 15, watchOS 11, *)
 private struct DisplayView: SetupDisplayView {
     typealias Value = [PhoneNumber]
-    @Environment(Account.self)
-    private var account
     @State var phoneNumberViewModel = PhoneNumberViewModel()
 
     private var phoneNumbers: Value

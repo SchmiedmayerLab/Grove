@@ -19,7 +19,6 @@ import ModelsR4
 extension HKSample {
     /// An attachment that was loaded from the health store
     struct LoadedAttachment: Sendable {
-        let id: UUID
         let contentType: UTType
         let data: Data
     }
@@ -31,7 +30,6 @@ extension HKSample {
                 taskGroup.addTask {
                     let dataReader = store.dataReader(for: attachment)
                     return LoadedAttachment(
-                        id: attachment.identifier,
                         contentType: attachment.contentType,
                         data: try await dataReader.data
                     )

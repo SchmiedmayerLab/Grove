@@ -17,13 +17,6 @@ extension ViewModifier {
 
 
 extension View {
-    /// Modify the view with an type-erased `ViewModifier`.
-    /// - Parameter modifier: The view modifier.
-    /// - Returns: The modified view.
-    func anyModifier(_ modifier: any ViewModifier) -> some View {
-        modifier.inject(into: self)
-    }
-
     func anyModifiers(_ modifiers: [any ViewModifier]) -> some View {
         var anyView = AnyView(self)
         for modifier in modifiers {

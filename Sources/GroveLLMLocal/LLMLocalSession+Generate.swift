@@ -19,6 +19,7 @@ import os
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMLocalSession {
+    // periphery:ignore - read only from physical-device builds (the scan indexes a simulator destination)
     private var generationParameters: GenerateParameters {
         .init(
             temperature: schema.samplingParameters.temperature,
@@ -113,6 +114,7 @@ extension LLMLocalSession {
 #endif
     }
     
+    // periphery:ignore - called only from physical-device builds (the scan indexes a simulator destination)
     private func prepareModelInput(
         messages: [[String: String]],
         modelContainer: ModelContainer
@@ -127,6 +129,7 @@ extension LLMLocalSession {
         }
     }
     
+    // periphery:ignore - called only from physical-device builds (the scan indexes a simulator destination)
     private func processTokens(
         _ tokens: [Int],
         modelContext: ModelContext,
@@ -160,6 +163,7 @@ extension LLMLocalSession {
         return .more
     }
     
+    // periphery:ignore - called only from physical-device builds (the scan indexes a simulator destination)
     private func processRemainingTokens(
         result: GenerateResult,
         modelContext: ModelContext,
@@ -179,6 +183,7 @@ extension LLMLocalSession {
         }
     }
     
+    // periphery:ignore - called only from physical-device builds (the scan indexes a simulator destination)
     private func handleError(_ message: String, error: LLMLocalError, continuation: AsyncThrowingStream<String, any Error>.Continuation) async {
         Self.logger.error("GroveLLMLocal: \(message)")
         await finishGenerationWithError(error, on: continuation)

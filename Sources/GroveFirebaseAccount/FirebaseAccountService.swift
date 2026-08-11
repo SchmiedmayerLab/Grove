@@ -15,6 +15,7 @@ public import GroveAccount
 import GroveFirebaseConfiguration
 import GroveFoundation
 import GroveKeychainStorage
+import GroveLegacyIdentifiers
 import GroveLocalStorage
 public import GroveValidation
 import OSLog
@@ -148,6 +149,7 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
         standard as? any AccountNotifyConstraint
     }
 
+    // periphery:ignore - dependency ordering: ensures FirebaseApp.configure() runs before this service
     @Dependency(ConfigureFirebaseApp.self)
     private var configureFirebaseApp
     @Dependency(LocalStorage.self)
@@ -181,6 +183,7 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
     @SecurityRelatedModifier public var securityAlert = FirebaseSecurityAlert()
 
     @Model private var firebaseModel = FirebaseAccountModel()
+    // periphery:ignore - collected by the @Modifier wrapper to inject the view modifier
     @Modifier private var firebaseModifier = FirebaseAccountModifier()
 
     @MainActor private var authStateDidChangeListenerHandle: AuthStateDidChangeListenerHandle?
@@ -715,7 +718,7 @@ extension FirebaseAccountService {
     }
 
     @MainActor
-    private func handleStateDidChange(auth: Auth, user: User?) {
+    private func handleStateDidChange(auth _: Auth, user: User?) {
         if initiallyObservedState.canSkipStateChange(for: user) {
             initiallyObservedState = .unknown
             logger.debug("Skipping the initial stateDidChange handler once. User is \(user == nil ? "not " : "")associated.")
@@ -727,7 +730,7 @@ extension FirebaseAccountService {
         }
     }
 
-    private func handleUpdatedDetailsFromExternalStorage(for accountId: String, details: AccountDetails) async {
+    private func handleUpdatedDetailsFromExternalStorage(for _: String, details: AccountDetails) async {
         guard let user = Auth.auth().currentUser else {
             return
         }
@@ -889,14 +892,14 @@ extension FirebaseAccountService {
 
         // we don't care if removal of the legacy item fails
         try? localStorage.delete(LocalStorageKey<Never>(StorageKeys.activeAccountService))
-    }
 
-    // a overload that just returns void
-    private func dispatchFirebaseAuthAction(action: () async throws -> Void) async throws {
-        try await self._dispatchFirebaseAuthAction {
-            try await action()
-            return nil
-        }
+        // Even older releases persisted the user's email and password here for re-authentication.
+        // Nothing reads it any more, which is exactly why it must go: a stale copy of a user's
+        // password has no owner left to rotate or remove it.
+        try? keychainStorage.deleteCredentials(
+            withUsername: nil,
+            for: .internetPassword(forServer: LegacyKeychain.firebaseEmailPasswordCredentials)
+        )
     }
 
     /// Dispatch a firebase auth action.

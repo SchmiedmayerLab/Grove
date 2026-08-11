@@ -190,11 +190,6 @@ extension StudyBundle.BundleValidationIssue {
                 self.init(value: value)
             }
             
-            /// Creates a new `Value` instance.
-            init(_ value: FHIRPrimitive<some Hashable & Sendable>?) {
-                self.init(value?.value)
-            }
-            
             public init(nilLiteral: ()) {
                 self = .none
             }
@@ -217,11 +212,8 @@ extension StudyBundle.BundleValidationIssue {
             private init(value: any Hashable) { // swiftlint:disable:this cyclomatic_complexity
                 switch value {
                 case let value as any FHIRPrimitiveProtocol:
-                    // FHIRModels 0.9 port: FHIRPrimitive is unconditionally Sendable now, which makes the
-                    // `(any Hashable & Sendable)?` catch-all a viable (and, depending on context, preferred)
-                    // overload for FHIRPrimitive arguments — on 0.8 the `FHIRPrimitive<some ...>?` overload
-                    // was the only viable one and unwrapped statically. Unwrap dynamically as well, so the
-                    // normalization no longer depends on which of the two initializers the call site picked.
+                    // FHIRModels 0.9 port: FHIRPrimitive is unconditionally Sendable now and reaches the
+                    // `(any Hashable & Sendable)?` initializer directly, so unwrap it dynamically here.
                     if let inner = value.value {
                         self.init(value: inner as any Hashable)
                     } else {
@@ -754,7 +746,7 @@ private struct QuestionnaireValidator: ~Copyable { // swiftlint:disable:this typ
     private mutating func processChoiceOption(
         _ option: QuestionnaireItemAnswerOption,
         at path: Path,
-        for item: QuestionnaireItem,
+        for _: QuestionnaireItem,
         at fileRef: LocalizedFileReference
     ) {
         switch option.value {
@@ -1125,18 +1117,6 @@ extension QuestionnaireItemAnswerOption.ValueX {
 }
 
 
-extension Extension.ValueX {
-    fileprivate var coding: Coding? {
-        switch self {
-        case .coding(let coding):
-            coding
-        default:
-            nil
-        }
-    }
-}
-
-
 private protocol QuestionnaireItemsContainer {
     var item: [QuestionnaireItem]? { get } // swiftlint:disable:this discouraged_optional_collection
 }
@@ -1151,12 +1131,5 @@ extension Equatable {
         } else {
             false
         }
-    }
-}
-
-
-extension Equatable {
-    func isAnyOf(_ seq: some Sequence<Self>) -> Bool {
-        seq.contains(self)
     }
 }

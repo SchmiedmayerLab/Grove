@@ -14,8 +14,6 @@ public import SwiftUI
 /// View to display an onboarding step for the user to select an OpenAI-like model.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct LLMOpenAILikeModelOnboardingStep<PlatformDefinition: LLMOpenAILikePlatformDefinition>: View {
-    @Environment(\.colorScheme) private var colorScheme
-    
     private let primaryActionTitle: Text
     private let models: [PlatformDefinition.ModelType]
     // why is this a closure instead of passing in a binding?

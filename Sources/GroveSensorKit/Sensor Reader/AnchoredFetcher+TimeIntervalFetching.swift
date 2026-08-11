@@ -108,7 +108,7 @@ extension AnchoredFetcher {
         /// Fetches the next non-empty batch, or returns `nil` if there are none.
         ///
         /// This function advances the state as it moves through the fetches.
-        private mutating func fetchNextBatch(isolation: isolated (any Actor)?) async throws(Failure) -> Element? {
+        private mutating func fetchNextBatch(isolation _: isolated (any Actor)?) async throws(Failure) -> Element? {
             nonisolated(unsafe) let device = device
             // SAFETY:
             // this loop will terminate eventually:

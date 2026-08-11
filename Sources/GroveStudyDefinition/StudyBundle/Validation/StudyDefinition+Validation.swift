@@ -16,7 +16,7 @@ extension StudyDefinition {
         var issues = Set<ValidationIssue>()
     }
     
-    enum ValidationWarning: Hashable, DiagnosticMessageConvertible, CustomStringConvertible, Sendable {
+    enum ValidationWarning: Hashable, CustomStringConvertible, Sendable {
         /// The component does not have any schedules associated with it
         case componentNotScheduled(Component)
         
@@ -34,7 +34,7 @@ extension StudyDefinition {
         }
     }
     
-    enum ValidationIssue: Hashable, DiagnosticMessageConvertible, CustomStringConvertible, Sendable {
+    enum ValidationIssue: Hashable, CustomStringConvertible, Sendable {
         /// The study definition contains multiple components with the same id
         case conflictingComponents(id: UUID, [Component])
         /// The study definition contains multiple schedules with the same id

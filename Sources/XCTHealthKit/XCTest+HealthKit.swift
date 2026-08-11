@@ -11,6 +11,7 @@ public import XCTest
 
 
 struct XCTHealthKitError: Error {
+    // periphery:ignore - surfaces in XCTest failure output via Error reflection
     let message: String
     
     init(_ message: String) {

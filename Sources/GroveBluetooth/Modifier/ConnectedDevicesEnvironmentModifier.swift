@@ -14,8 +14,6 @@ private struct ConnectedDeviceEnvironmentModifier<Device: BluetoothDevice>: View
     @Environment(ConnectedDevicesModel.self)
     var connectedDevices
 
-    @State private var devicesList = ConnectedDevices<Device>()
-
     init() {}
 
 
@@ -36,9 +34,6 @@ private struct ConnectedDeviceEnvironmentModifier<Device: BluetoothDevice>: View
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct ConnectedDevicesEnvironmentModifier: ViewModifier {
     private let configuredDeviceTypes: [any BluetoothDevice.Type]
-
-    @Environment(ConnectedDevicesModel.self)
-    var connectedDevices
 
 
     nonisolated init(configuredDeviceTypes: [any BluetoothDevice.Type]) {

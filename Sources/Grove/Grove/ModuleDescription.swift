@@ -15,7 +15,7 @@ struct ModuleDescription {
         name
     }
 
-    init<M: Module>(from module: M) {
+    init<M: Module>(from _: M) {
         self.name = "\(M.self)"
     }
 }

@@ -13,26 +13,6 @@ public import enum NIOCore.Endianness
 
 // MARK: - ByteBuffer
 
-extension ByteDecodable {
-    /// Decode the type from the `ByteBuffer`.
-    ///
-    /// Initialize a new instance using the byte representation provided by the `ByteBuffer`.
-    /// This call should move the `readerIndex` forwards.
-    ///
-    /// - Note: Returns nil if no valid byte representation could be found.
-    /// - Parameters:
-    ///   - byteBuffer: The ByteBuffer to read from.
-    ///   - endianness: The preferred endianness to use for decoding if applicable.
-    ///     This might not apply to certain data structures that operate on single byte level.
-    @available(*, deprecated, message: "Preferred Endianness was removed. Refer to PrimitiveByteDecodable/init(from:endianness:) if applicable.")
-    @_documentation(visibility: internal)
-    @_disfavoredOverload
-    init?(from byteBuffer: inout ByteBuffer, preferredEndianness endianness: Endianness) {
-        self.init(from: &byteBuffer)
-    }
-}
-
-
 extension PrimitiveByteDecodable {
     /// Decode the type from the `ByteBuffer`.
     ///
@@ -48,25 +28,6 @@ extension PrimitiveByteDecodable {
     @_documentation(visibility: internal)
     init?(from byteBuffer: inout ByteBuffer, preferredEndianness endianness: Endianness) {
         self.init(from: &byteBuffer, endianness: endianness)
-    }
-}
-
-
-extension ByteEncodable {
-    /// Encode into the `ByteBuffer`.
-    ///
-    /// Encode the byte representation of this type into the provided `ByteBuffer`.
-    /// This call should move the `writerIndex` forwards.
-    ///
-    /// - Parameters:
-    ///   - byteBuffer: The ByteBuffer to write into.
-    ///   - endianness: The preferred endianness to use for encoding if applicable.
-    ///     This might not apply to certain data structures that operate on single byte level.
-    @available(*, deprecated, message: "Preferred Endianness was removed. Refer to PrimitiveByteEncodable/encode(to:endianness:) if applicable.")
-    @_documentation(visibility: internal)
-    @_disfavoredOverload
-    func encode(to byteBuffer: inout ByteBuffer, preferredEndianness endianness: Endianness) {
-        self.encode(to: &byteBuffer)
     }
 }
 
@@ -91,6 +52,7 @@ extension PrimitiveByteEncodable {
 // MARK: - Data
 
 extension ByteDecodable {
+    // periphery:ignore:parameters endianness - label kept for source compatibility, value deliberately ignored
     /// Decode the type from `Data`.
     ///
     /// Initialize a new instance using the byte representation provided.
@@ -129,6 +91,7 @@ extension PrimitiveByteDecodable {
 
 
 extension ByteEncodable {
+    // periphery:ignore:parameters endianness - label kept for source compatibility, value deliberately ignored
     /// Encode to data.
     ///
     /// Encode the byte representation of this type.

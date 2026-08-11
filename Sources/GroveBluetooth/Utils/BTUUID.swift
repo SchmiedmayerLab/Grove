@@ -81,10 +81,3 @@ extension BTUUID: CustomStringConvertible, CustomDebugStringConvertible {
         cbuuid.debugDescription
     }
 }
-
-
-extension CBUUID {
-    convenience init(from btuuid: BTUUID) {
-        self.init(data: btuuid.data)
-    }
-}

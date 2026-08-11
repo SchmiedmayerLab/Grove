@@ -24,6 +24,7 @@ public struct NotificationsView: View {
     private var requestNotificationAuthorization
 
     @State private var requestAuthorization = false
+    // periphery:ignore - read through its projected value
     @State private var viewState: ViewState = .idle
 
     public var body: some View {

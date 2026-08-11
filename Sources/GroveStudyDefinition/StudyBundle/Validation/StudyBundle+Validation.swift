@@ -15,7 +15,7 @@ import ModelsR4
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyBundle {
     @_spi(APISupport)
-    public enum BundleValidationIssue: Hashable, DiagnosticMessageConvertible, CustomStringConvertible, Sendable {
+    public enum BundleValidationIssue: Hashable, CustomStringConvertible, Sendable {
         case general(GeneralIssue)
         case article(ArticleIssue)
         case questionnaire(QuestionnaireIssue)

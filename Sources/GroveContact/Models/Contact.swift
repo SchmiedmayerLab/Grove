@@ -62,7 +62,7 @@ public import SwiftUI
 /// }
 /// ```
 public struct Contact {
-    let id = UUID()
+    let id: UUID
     /// The name of the individual. Ideally provide at least a first and given name.
     public let name: PersonNameComponents
     /// The image of the ``Contact``.
@@ -100,6 +100,7 @@ public struct Contact {
         address: CNPostalAddress? = nil,
         contactOptions: [ContactOption] = []
     ) {
+        self.id = id
         self.image = image
         self.name = name
         self.title = title

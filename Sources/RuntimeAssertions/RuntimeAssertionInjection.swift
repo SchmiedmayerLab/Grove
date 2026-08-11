@@ -25,16 +25,6 @@ package struct RuntimeAssertionInjection: Sendable {
     
     package init(
         id: UUID = UUID(),
-        assert: @escaping AssertCall,
-        precondition: @escaping PreconditionCall
-    ) {
-        self.id = id
-        self.assert = assert
-        self.precondition = precondition
-    }
-    
-    package init(
-        id: UUID = UUID(),
         assert: @escaping AssertCall
     ) {
         self.id = id
@@ -53,18 +43,6 @@ package struct RuntimeAssertionInjection: Sendable {
             Swift.assert(condition(), message(), file: file, line: line)
         }
         self.precondition = precondition
-    }
-    
-    package init(
-        id: UUID = UUID()
-    ) {
-        self.id = id
-        self.assert = { @Sendable condition, message, file, line in
-            Swift.assert(condition(), message(), file: file, line: line)
-        }
-        self.precondition = { @Sendable condition, message, file, line in
-            Swift.precondition(condition(), message(), file: file, line: line)
-        }
     }
 
     package func withInjection<T, E: Error>(_ block: () throws(E) -> T) throws(E) -> T {

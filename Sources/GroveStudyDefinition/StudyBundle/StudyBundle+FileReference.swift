@@ -89,10 +89,6 @@ extension StudyBundle {
         var filenameIncludingLocalization: String {
             "\(fileRef.filename)+\(localization.description)"
         }
-        
-        var fullFilenameIncludingLocalization: String {
-            "\(fileRef.filename)+\(localization.description).\(fileRef.fileExtension)"
-        }
     }
 }
 
@@ -103,12 +99,6 @@ extension StudyBundle {
 extension StudyBundle {
     static func folderUrl(for category: FileReference.Category, relativeTo baseUrl: URL) -> URL {
         baseUrl.appending(component: category.rawValue, directoryHint: .isDirectory)
-    }
-    
-    static func fileUrl(for fileRef: FileReference, relativeTo baseUrl: URL) -> URL {
-        folderUrl(for: fileRef.category, relativeTo: baseUrl)
-            .appending(component: fileRef.filename, directoryHint: .notDirectory)
-            .appendingPathExtension(fileRef.fileExtension)
     }
     
     static func fileUrl(for localizedFileRef: LocalizedFileReference, relativeTo baseUrl: URL) -> URL {

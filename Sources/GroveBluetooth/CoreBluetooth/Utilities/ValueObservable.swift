@@ -19,7 +19,6 @@ protocol AnyValueObservation {}
 @available(iOS 18, macOS 15, watchOS 11, *)
 final class ValueObservationRegistrar<Observable: ValueObservable>: Sendable {
     struct ValueObservation<Value>: AnyValueObservation {
-        let keyPath: KeyPath<Observable, Value>
         let handler: (Value) -> Void
     }
 
@@ -40,7 +39,7 @@ final class ValueObservationRegistrar<Observable: ValueObservable>: Sendable {
     @GroveBluetooth
     func onChange<Value>(of keyPath: KeyPath<Observable, Value>, perform closure: @escaping (Value) -> Void) {
         let id = nextId()
-        observations[id] = ValueObservation(keyPath: keyPath, handler: closure)
+        observations[id] = ValueObservation(handler: closure)
         keyPathIndex[keyPath, default: []].insert(id)
     }
 

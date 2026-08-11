@@ -26,20 +26,11 @@ struct CharacteristicAccessorCapture: Sendable {
 struct GATTCharacteristicCapture: Sendable {
     let isNotifying: Bool
     let value: Data?
-    let properties: CBCharacteristicProperties
     let descriptors: CBInstance<[CBDescriptor]>?
     init(from characteristic: CBCharacteristic) {
         self.isNotifying = characteristic.isNotifying
         self.value = characteristic.value
-        self.properties = characteristic.properties
         self.descriptors = characteristic.descriptors.map { CBInstance(instantiatedOnDispatchQueue: $0) }
-    }
-
-    fileprivate init(from characteristic: borrowing GATTCharacteristic) {
-        self.isNotifying = characteristic.isNotifying
-        self.value = characteristic.value
-        self.properties = characteristic.properties
-        self.descriptors = characteristic.descriptors.map { CBInstance(unsafe: $0) }
     }
 }
 

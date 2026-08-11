@@ -58,7 +58,8 @@ enum DevicesStorage {
         _ component: StorageNamespace.Component,
         migratingFrom legacyStoreName: String,
         in namespace: StorageNamespace = .app,
-        legacyRoot: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        legacyRoot: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0],
+        fileManager: FileManager = .default
     ) -> URL? {
         let directory: URL
         do {
@@ -73,20 +74,28 @@ enum DevicesStorage {
                 storeNamed: legacyStoreName,
                 from: legacyRoot,
                 to: directory,
-                renamedTo: storeFilename
+                renamedTo: storeFilename,
+                fileManager: fileManager
             )
             if outcome == .relocated {
                 LegacyIdentifierReport.encountered(legacyStoreName, in: "GroveDevices", .duringMigration)
             }
         } catch {
-            // Returning nil sends the caller to its in-memory fallback. Creating the directory instead
-            // would let the next launch conclude the migration already ran and strand the real store.
-            logger.error("Unable to relocate \(legacyStoreName, privacy: .public): \(error)")
+            // Creating the directory now would let the next launch conclude the migration already
+            // ran and strand the real store. But returning nil sends the caller to an in-memory
+            // fallback, where new pairings and measurements vanish with the process — so if the
+            // legacy store is still on disk, keep using it in place: data accrues where it already
+            // lives, and the relocation retries next launch.
+            logger.error("Unable to relocate \(legacyStoreName, privacy: .public); continuing against the legacy store: \(error)")
+            let legacyStore = legacyRoot.appendingPathComponent(legacyStoreName)
+            if fileManager.fileExists(atPath: legacyStore.path) {
+                return legacyStore
+            }
             return nil
         }
 
         do {
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         } catch {
             logger.error("Unable to create \(directory.path, privacy: .public): \(error)")
             return nil

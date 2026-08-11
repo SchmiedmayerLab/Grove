@@ -103,6 +103,7 @@ public final class StudyManager: Module, EnvironmentAccessible, Sendable {
         modelContainer.mainContext
     }
     
+    // periphery:ignore - RAII token: holding it keeps the outcome subscription alive
     private var outcomesObserverToken: AnyObject?
     
     /// All ``StudyEnrollment``s currently registered with the ``StudyManager``.
@@ -247,8 +248,11 @@ public final class StudyManager: Module, EnvironmentAccessible, Sendable {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension StudyManager {
     struct MigrationError: Error {
+        // periphery:ignore - surfaces in logs via String(describing:) reflection
         let message: String
+        // periphery:ignore - surfaces in logs via String(describing:) reflection
         let file: StaticString
+        // periphery:ignore - surfaces in logs via String(describing:) reflection
         let line: UInt
     }
     
@@ -735,7 +739,12 @@ extension StudyManager {
     public func removeOrphanedStudyBundles() throws {
         let fm = FileManager.default // swiftlint:disable:this identifier_name
         let allStudyEnrollments = self.studyEnrollments
-        let allStudyBundleUrls = (try? fm.contents(of: Self.studyBundlesDirectory)) ?? []
+        // A child still carrying the pre-Grove extension is a bundle whose rename failed, not an
+        // orphan: enrollment URLs are computed with the new extension, so it can never match one.
+        // Deleting it would destroy an enrolled study's content. Leave it for the next launch's
+        // rename retry.
+        let allStudyBundleUrls = ((try? fm.contents(of: Self.studyBundlesDirectory)) ?? [])
+            .filter { $0.pathExtension != LegacyStorage.studyBundleFileExtension }
         let orphanedBundleUrls = allStudyBundleUrls.filter { url in
             !allStudyEnrollments.contains { $0.studyBundleUrl.resolvingSymlinksInPath() == url.resolvingSymlinksInPath() }
         }

@@ -135,8 +135,6 @@ private struct Sheet: View {
     let image: UIImage
     @Binding var response: QuestionnaireResponses.ImageAnnotation
     
-    @State private var isDrawing = false
-    @State private var isShowingToolPicker = false
     @State private var selectedRegion: AnnotateImageConfig.Region?
     @State private var isShowingResetAlert = false
     

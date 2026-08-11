@@ -61,8 +61,8 @@ struct FHIRResourceAttachmentProcessingTests {
             ]
             do {
                 let attachments = [
-                    HKSample.LoadedAttachment(id: UUID(), contentType: .pdf, data: Data("pdf-content-1".utf8)),
-                    HKSample.LoadedAttachment(id: UUID(), contentType: .pdf, data: Data("pdf-content-2".utf8))
+                    HKSample.LoadedAttachment(contentType: .pdf, data: Data("pdf-content-1".utf8)),
+                    HKSample.LoadedAttachment(contentType: .pdf, data: Data("pdf-content-2".utf8))
                 ]
                 var resource: any ModelsR4::Resource = docRef
                 try FHIRResource.process(attachments, into: &resource)
@@ -98,8 +98,8 @@ struct FHIRResourceAttachmentProcessingTests {
             ])
             do {
                 let attachments = [
-                    HKSample.LoadedAttachment(id: UUID(), contentType: .pdf, data: Data("pdf-content-1".utf8)),
-                    HKSample.LoadedAttachment(id: UUID(), contentType: .pdf, data: Data("pdf-content-2".utf8))
+                    HKSample.LoadedAttachment(contentType: .pdf, data: Data("pdf-content-1".utf8)),
+                    HKSample.LoadedAttachment(contentType: .pdf, data: Data("pdf-content-2".utf8))
                 ]
                 var resource: any ModelsDSTU2::Resource = docRef
                 try FHIRResource.process(attachments, into: &resource)
@@ -137,8 +137,8 @@ struct FHIRResourceAttachmentProcessingTests {
             ]
             do {
                 let attachments = [
-                    HKSample.LoadedAttachment(id: UUID(), contentType: .pdf, data: Data("pdf-content-1".utf8)),
-                    HKSample.LoadedAttachment(id: UUID(), contentType: .pdf, data: Data("pdf-content-2".utf8))
+                    HKSample.LoadedAttachment(contentType: .pdf, data: Data("pdf-content-1".utf8)),
+                    HKSample.LoadedAttachment(contentType: .pdf, data: Data("pdf-content-2".utf8))
                 ]
                 var resource: any ModelsR4::Resource = diagReport
                 try FHIRResource.process(attachments, into: &resource)
@@ -168,8 +168,8 @@ struct FHIRResourceAttachmentProcessingTests {
             ]
             do {
                 let attachments = [
-                    HKSample.LoadedAttachment(id: UUID(), contentType: .pdf, data: Data("pdf-content-1".utf8)),
-                    HKSample.LoadedAttachment(id: UUID(), contentType: .pdf, data: Data("pdf-content-2".utf8))
+                    HKSample.LoadedAttachment(contentType: .pdf, data: Data("pdf-content-1".utf8)),
+                    HKSample.LoadedAttachment(contentType: .pdf, data: Data("pdf-content-2".utf8))
                 ]
                 var resource: any ModelsDSTU2::Resource = diagReport
                 try FHIRResource.process(attachments, into: &resource)
@@ -211,7 +211,7 @@ struct FHIRResourceAttachmentProcessingTests {
             ]
             do {
                 let attachments = [
-                    HKSample.LoadedAttachment(id: UUID(), contentType: .pdf, data: Data("pdf-content-2".utf8))
+                    HKSample.LoadedAttachment(contentType: .pdf, data: Data("pdf-content-2".utf8))
                 ]
                 var resource: any ModelsR4::Resource = docRef
                 try FHIRResource.process(attachments, into: &resource)
@@ -235,7 +235,7 @@ struct FHIRResourceAttachmentProcessingTests {
             var docRef = try ModelsDSTU2Mocks.createDocumentReference(attachments: [filledPdfAttachment])
             do {
                 let attachments = [
-                    HKSample.LoadedAttachment(id: UUID(), contentType: .pdf, data: Data("pdf-content-2".utf8))
+                    HKSample.LoadedAttachment(contentType: .pdf, data: Data("pdf-content-2".utf8))
                 ]
                 var resource: any ModelsDSTU2::Resource = docRef
                 try FHIRResource.process(attachments, into: &resource)
@@ -265,7 +265,7 @@ struct FHIRResourceAttachmentProcessingTests {
             diagReport.presentedForm = nil
             do {
                 let attachments = [
-                    HKSample.LoadedAttachment(id: UUID(), contentType: .pdf, data: Data("pdf-content".utf8))
+                    HKSample.LoadedAttachment(contentType: .pdf, data: Data("pdf-content".utf8))
                 ]
                 var resource: any ModelsR4::Resource = diagReport
                 try FHIRResource.process(attachments, into: &resource)
@@ -283,7 +283,7 @@ struct FHIRResourceAttachmentProcessingTests {
             diagReport.presentedForm = nil
             do {
                 let attachments = [
-                    HKSample.LoadedAttachment(id: UUID(), contentType: .pdf, data: Data("pdf-content".utf8))
+                    HKSample.LoadedAttachment(contentType: .pdf, data: Data("pdf-content".utf8))
                 ]
                 var resource: any ModelsDSTU2::Resource = diagReport
                 try FHIRResource.process(attachments, into: &resource)
@@ -315,7 +315,7 @@ struct FHIRResourceAttachmentProcessingTests {
             ]
             do {
                 let attachments = [
-                    HKSample.LoadedAttachment(id: UUID(), contentType: .pdf, data: Data("pdf-content".utf8))
+                    HKSample.LoadedAttachment(contentType: .pdf, data: Data("pdf-content".utf8))
                 ]
                 var resource: any ModelsR4::Resource = diagReport
                 try FHIRResource.process(attachments, into: &resource)
@@ -341,7 +341,7 @@ struct FHIRResourceAttachmentProcessingTests {
             ]
             do {
                 let attachments = [
-                    HKSample.LoadedAttachment(id: UUID(), contentType: .pdf, data: Data("pdf-content".utf8))
+                    HKSample.LoadedAttachment(contentType: .pdf, data: Data("pdf-content".utf8))
                 ]
                 var resource: any ModelsDSTU2::Resource = diagReport
                 try FHIRResource.process(attachments, into: &resource)

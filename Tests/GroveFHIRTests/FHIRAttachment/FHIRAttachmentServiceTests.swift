@@ -15,7 +15,6 @@ import UniformTypeIdentifiers
 
 
 private struct MockFHIRAttachment: FHIRAttachment {
-    var debugDescription: String = "Mock FHIR Attachment"
     var mimeType: UTType?
     var base64String: String?
     var encodedContent: String?

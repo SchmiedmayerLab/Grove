@@ -53,6 +53,7 @@ public import SwiftUI
 @MainActor // need to be made explicit, macOS NSApplicationDelegate has @MainActor individually specified for each method
 open class GroveAppDelegate: NSObject, ApplicationDelegate, Sendable {
     private(set) static weak var appDelegate: GroveAppDelegate?
+    // periphery:ignore - holds the only strong reference; UNUserNotificationCenter keeps its delegate weakly
     static var notificationDelegate: GroveNotificationCenterDelegate? // swiftlint:disable:this weak_delegate
 
     /// Access the Grove instance.

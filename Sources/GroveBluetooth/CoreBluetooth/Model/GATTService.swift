@@ -15,10 +15,6 @@ struct ServiceChangeProtocol {
     let updatedCharacteristics: [GATTCharacteristic]
 }
 
-struct GATTServiceCapture: Sendable {
-    let isPrimary: Bool
-}
-
 
 /// A Bluetooth service of a device.
 ///
@@ -49,11 +45,6 @@ public final class GATTService {
     public var characteristics: [GATTCharacteristic] {
         Array(_characteristics.values)
     }
-
-    @GroveBluetooth var captured: GATTServiceCapture {
-        GATTServiceCapture(isPrimary: isPrimary)
-    }
-
 
     init(service: CBService) {
         self.underlyingService = service

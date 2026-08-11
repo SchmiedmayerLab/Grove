@@ -83,6 +83,7 @@ extension ManagedAsynchronousAccess where Value == Void {
 
 
 extension ManagedAsynchronousAccess where E == any Error {
+    // periphery:ignore:parameters isolation - inherits the caller's actor; compiler-consumed
     /// Perform an managed, asynchronous access.
     ///
     /// Call this method to perform an managed, asynchronous access. This method awaits exclusive access, creates a continuation and
@@ -134,6 +135,7 @@ extension ManagedAsynchronousAccess where E == any Error {
 
 
 extension ManagedAsynchronousAccess where E == Never {
+    // periphery:ignore:parameters isolation - inherits the caller's actor; compiler-consumed
     /// Perform an managed, asynchronous access.
     ///
     /// Call this method to perform an managed, asynchronous access. This method awaits exclusive access, creates a continuation and

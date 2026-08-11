@@ -35,9 +35,6 @@ enum FHIRAttachmentError: Error, Equatable {
 
 /// Uniform interface for FHIR attachment types.
 protocol FHIRAttachment: Sendable {
-    /// Debug description of the attachment.
-    var debugDescription: String { get }
-
     /// Best effort parsing of the MIME type of the attachment.
     /// Represents the content type of the attachment data (e.g., text/plain, application/pdf).
     var mimeType: UTType? { get }

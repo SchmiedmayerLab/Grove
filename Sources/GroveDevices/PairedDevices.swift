@@ -15,6 +15,7 @@ public import GroveBluetooth
 import GroveBluetoothServices
 @_spi(TestingSupport)
 import GroveFoundation
+// periphery:ignore - referenced only from physical-device builds (the scan indexes a simulator destination)
 import GroveLegacyIdentifiers
 import GroveViews
 public import Observation
@@ -140,6 +141,7 @@ public final class PairedDevices: ServiceModule {
 
     @Dependency(Bluetooth.self)
     @ObservationIgnored private var bluetooth: Bluetooth?
+    // periphery:ignore - the @Dependency declaration alone makes the module system configure TipKit
     @Dependency(ConfigureTipKit.self)
     @ObservationIgnored private var tipKit
 

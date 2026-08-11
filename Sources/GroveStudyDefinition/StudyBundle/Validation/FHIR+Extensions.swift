@@ -46,33 +46,6 @@ extension Extension.ValueX {
         }
     }
     
-    var isDate: Bool {
-        switch self {
-        case .date:
-            true
-        default:
-            false
-        }
-    }
-    
-    var isTime: Bool {
-        switch self {
-        case .time:
-            true
-        default:
-            false
-        }
-    }
-    
-    var isDateTime: Bool {
-        switch self {
-        case .dateTime:
-            true
-        default:
-            false
-        }
-    }
-    
     var kindName: String {
         switch self {
         case .address:

@@ -13,6 +13,9 @@ extension SchedulerNotifications {
     nonisolated static let earliestScheduleRefreshDateStorageKey = "Scheduler.earliestScheduleRefreshDate"
     nonisolated static let authorizationDisallowedLastSchedulingStorageKey = "Scheduler.authorizationDisallowedLastScheduling"
     // swiftlint:disable:previous identifier_name
+    /// Set when a notification refresh is queued, cleared when the rebuild completes. A leftover
+    /// value at launch means a refresh was lost to a kill and must run again.
+    nonisolated static let pendingNotificationRefreshStorageKey = "Scheduler.pendingNotificationRefresh"
 
     /// Access the task id from the `userInfo` of a notification.
     ///

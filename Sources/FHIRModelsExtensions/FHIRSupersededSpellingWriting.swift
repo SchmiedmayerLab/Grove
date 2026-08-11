@@ -58,6 +58,12 @@ extension FHIRTypeWithExtensions {
         }
         var additions: [Extension] = []
         for identifier in identifiers where !identifier.superseded.isEmpty {
+            // Only rebuild when a canonical element exists to rebuild FROM. A resource written
+            // before the rename carries the superseded spelling alone; removing it here would
+            // destroy the resource's only copy of that extension.
+            guard elements.contains(where: { $0.urlString == identifier.canonical }) else {
+                continue
+            }
             // Rebuild rather than append, so running twice cannot stack duplicates.
             elements.removeAll { identifier.superseded.contains($0.urlString ?? "") }
             for element in elements where element.urlString == identifier.canonical {

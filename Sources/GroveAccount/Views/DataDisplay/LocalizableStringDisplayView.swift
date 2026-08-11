@@ -29,6 +29,7 @@ public struct LocalizableStringDisplayView<Key: AccountKey>: DataDisplayView
         self.value = value
     }
 
+    // periphery:ignore:parameters keyPath - binds the generic Key at the call site
     /// Create a new display view.
     /// - Parameters:
     ///   - keyPath: The `AccountKey` type.

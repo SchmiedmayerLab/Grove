@@ -7,7 +7,6 @@
 //
 
 import Combine
-import GroveAccount
 import GroveViews
 import SwiftUI
 
@@ -16,7 +15,6 @@ import SwiftUI
 struct OTCEntryView: View {
     @State private var viewState = ViewState.idle
     @FocusState private var isTextFieldFocused: Bool
-    @Environment(Account.self) private var account
     @Environment(PhoneVerificationProvider.self) private var phoneVerificationProvider
     @Environment(PhoneNumberViewModel.self) private var phoneNumberViewModel
     @Environment(\.sizeCategory) var sizeCategory

@@ -23,7 +23,6 @@ actor LLMOpenAIRealtimeConnection {
         case socketNotFoundError
         case openAIError(error: Components.Schemas.RealtimeServerEventError.errorPayload)
         case eventSessionUpdateSerialisationError
-        case functionCallArgsNamelessError
     }
     
     private static let logger = Logger(subsystem: "org.grovealliance", category: "GroveLLMOpenAIRealtime")
@@ -153,12 +152,7 @@ actor LLMOpenAIRealtimeConnection {
                     let llmEvent = LLMRealtimeAudioEvent.audioDelta(deltaPcmData)
                     await eventStream.broadcast(llmEvent)
                 case "response.audio.done":
-                    guard let deltaBase64Str = messageDict["delta"] as? String,
-                          let deltaPcmData = Data(base64Encoded: deltaBase64Str) else {
-                        continue
-                    }
-                    let llmEvent = LLMRealtimeAudioEvent.audioDelta(deltaPcmData)
-                    await eventStream.broadcast(llmEvent)
+                    await eventStream.broadcast(LLMRealtimeAudioEvent.audioDone)
                 case "response.audio_transcript.delta":
                     let transcript = messageDict["delta"] as? String ?? ""
                     await eventStream.broadcast(LLMRealtimeAudioEvent.assistantTranscriptDelta(transcript))

@@ -11,6 +11,7 @@ package import Foundation
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 package protocol AudioCapableLLMSession: LLMSession {
+    // periphery:ignore - witnessed by LLMOpenAIRealtimeSession; exercised only from the UI-test app, outside this index
     /// Returns a continuous stream of raw audio chunks (PCM16 format) produced by the underlying realtime LLM session.
     ///
     /// Each `Data` element in the stream represents a chunk of 16-bit PCM audio (mono, typically 24 kHz) that can be
@@ -21,6 +22,7 @@ package protocol AudioCapableLLMSession: LLMSession {
     /// - Throws: Errors surfaced by the underlying realtime connection.
     func listen() async -> AsyncThrowingStream<Data, any Error>
     
+    // periphery:ignore - witnessed by LLMOpenAIRealtimeSession; exercised only from the UI-test app, outside this index
     /// Appends a chunk of audio (user input) to the session's input buffer.
     ///
     /// This method is used to stream audio samples from the microphone to the active realtime LLM session as the user speaks.
@@ -39,6 +41,7 @@ package protocol AudioCapableLLMSession: LLMSession {
     /// ```
     func appendUserAudio(_ buffer: Data) async throws
     
+    // periphery:ignore - witnessed by LLMOpenAIRealtimeSession; exercised only from the UI-test app, outside this index
     /// Commits the current input audio buffer and triggers a model response.
     ///
     /// This prompts the session to reply based on the audio previously appended via ``appendUserAudio(_:)``.

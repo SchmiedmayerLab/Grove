@@ -92,14 +92,8 @@ struct DateTimeLiteralParser<Input: StringProtocol>: ~Copyable {
     private var current: Character? {
         input[safe: position]
     }
-    private var next: Character? {
-        input[safe: input.index(after: position)]
-    }
     private var isAtEnd: Bool {
         position >= input.endIndex
-    }
-    private var numRemainingTokens: Int {
-        input.distance(from: position, to: input.endIndex)
     }
     
     

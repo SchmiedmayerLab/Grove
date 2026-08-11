@@ -106,7 +106,7 @@ public final class OmronBloodPressureCuff: BluetoothDevice, Identifiable, OmronH
     }
 
     @MainActor
-    private func handleBatteryChange(_ level: UInt8) {
+    private func handleBatteryChange(_: UInt8) {
         pairedDevices?.signalDevicePaired(self)
     }
 

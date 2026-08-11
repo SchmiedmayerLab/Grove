@@ -43,7 +43,9 @@ public struct OnboardingActionsView: View {
     private let primaryButton: ButtonConfig
     private let secondaryButton: ButtonConfig?
     
+    // periphery:ignore - read through its projected value
     @State private var internalPrimaryViewState: ViewState = .idle
+    // periphery:ignore - read through its projected value
     @State private var internalSecondaryViewState: ViewState = .idle
     
     
@@ -196,13 +198,6 @@ extension OnboardingActionsView {
             primaryButton: .init(title: Text(primaryTitle), viewState: primaryViewState, action: primaryAction),
             secondaryButton: .init(title: Text(secondaryTitle), viewState: secondaryViewState, action: secondaryAction)
         )
-    }
-}
-
-
-extension View {
-    func transform(@ViewBuilder _ transform: @MainActor (Self) -> some View) -> some View {
-        transform(self)
     }
 }
 

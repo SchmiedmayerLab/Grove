@@ -9,7 +9,6 @@
 #if canImport(Darwin)
 @usableFromInline
 struct BackgroundMode: RawRepresentable, Codable, Hashable, Sendable {
-    @usableFromInline static let processing = BackgroundMode(rawValue: "processing")
     @usableFromInline static let fetch = BackgroundMode(rawValue: "fetch")
 
     @usableFromInline let rawValue: String

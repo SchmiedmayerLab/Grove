@@ -36,6 +36,7 @@ struct ByteCodableTests {
         #expect(buffer.getData(at: 0, length: buffer.readableBytes) == data)
     }
 
+    @Test("Ambiguous Data")
     func testAmbiguousData() throws {
         // basically just a test if it compiles
 

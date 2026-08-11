@@ -51,6 +51,7 @@ public struct AccountSetupProviderView<Signup: View, PasswordReset: View>: View 
     private var preferredSetupStyle
 
     @State private var presentedStyle: PresentedSetupStyle<UserIdPasswordCredential> = .signup
+    // periphery:ignore - read through its projected value
     @State private var presentingSignup = false
 
     public var body: some View {

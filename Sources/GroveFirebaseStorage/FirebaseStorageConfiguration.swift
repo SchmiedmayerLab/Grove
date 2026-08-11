@@ -32,6 +32,7 @@ import GroveFirebaseConfiguration
 /// - ``init(emulatorSettings:)``
 @available(iOS 18, macOS 15, watchOS 11, *)
 public final class FirebaseStorageConfiguration: Module, DefaultInitializable {
+    // periphery:ignore - @Dependency registers the module dependency; the declaration's side effect is the point
     @Dependency(ConfigureFirebaseApp.self)
     private var configureFirebaseApp
 

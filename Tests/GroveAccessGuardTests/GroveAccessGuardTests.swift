@@ -13,6 +13,14 @@ import Observation
 import SwiftUI
 import Testing
 
+@Test("AccessGuardError surfaces its localized messages through LocalizedError")
+@available(iOS 18, macOS 15, watchOS 11, *)
+func accessGuardErrorSurfacesLocalizedMessages() {
+    let error: any Error = AccessGuardError.storeCodeError
+    #expect((error as? any LocalizedError)?.errorDescription != nil)
+    #expect((error as? any LocalizedError)?.failureReason != nil)
+}
+
 #if os(iOS)
 @Test("AccessGuards observes scene lifecycle notifications")
 @MainActor

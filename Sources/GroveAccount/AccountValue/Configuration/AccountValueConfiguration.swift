@@ -45,20 +45,6 @@ public struct AccountValueConfiguration {
     }
 
 
-    func all(filteredBy filter: [AccountKeyRequirement]? = nil) -> [any AccountKey.Type] {
-        // swiftlint:disable:previous discouraged_optional_collection
-
-        if let filter {
-            return self
-                .filter { configuration in
-                    filter.contains(configuration.requirement)
-                }
-                .map { $0.key }
-        } else {
-            return configuration.values.map { $0.key }
-        }
-    }
-
     func allCategorized(
         filteredBy filter: Set<AccountKeyRequirement>? = nil, // swiftlint:disable:this discouraged_optional_collection
         requiredOptions: AccountKeyOptions = .display

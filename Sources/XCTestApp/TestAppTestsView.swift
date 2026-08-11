@@ -17,6 +17,7 @@ public struct TestAppTestsView<Tests: TestAppTests>: View {
     @Environment(\.dismiss)
     private var dismiss
 
+    // periphery:ignore - read through its projected value
     @State private var path = NavigationPath()
 
     public var body: some View {
@@ -46,6 +47,7 @@ public struct TestAppTestsView<Tests: TestAppTests>: View {
     }
     
 
+    // periphery:ignore:parameters tests - drives generic inference for out-of-index UI-test apps
     /// Create a new tests view.
     /// - Parameters:
     ///   - tests: The ``TestAppTests`` type that should be associated with the ``TestAppTestsView``

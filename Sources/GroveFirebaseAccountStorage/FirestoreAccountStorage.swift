@@ -86,6 +86,7 @@ public actor FirestoreAccountStorage: AccountStorageProvider {
     @Application(\.logger)
     private var logger
 
+    // periphery:ignore - the @Dependency declaration forces the Firestore module to be configured first
     @Dependency(Firestore.self)
     private var firestore
     @Dependency(ExternalAccountStorage.self)

@@ -21,7 +21,6 @@ struct FilePicker: View {
         case photo(PhotosPickerItem)
     }
     
-    @Environment(\.isEnabled) private var isEnabled
     private let enabledTypes: Set<UTType>
     private let allowMultipleSelection: Bool
     private let selectionHandler: @Sendable ([Item]) -> Void

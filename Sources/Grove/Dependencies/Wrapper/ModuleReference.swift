@@ -8,6 +8,7 @@
 
 
 struct ModuleReference: Hashable, Sendable {
+    // periphery:ignore - read by the synthesized Hashable/Equatable conformance
     private let id: ObjectIdentifier
 
     init(_ module: any Module) {

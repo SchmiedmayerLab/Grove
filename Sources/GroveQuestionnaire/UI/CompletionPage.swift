@@ -43,7 +43,6 @@ struct CompletionPage: View {
             Image(systemName: "checkmark.circle.fill")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-//                .symbolEffectDrawOn() // ???
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(.foreground)
                 .accessibilityHidden(true)
@@ -73,17 +72,5 @@ struct CompletionPage: View {
         self.title = title
         self.message = message
         self.action = action
-    }
-}
-
-
-extension View {
-    @ViewBuilder
-    fileprivate func symbolEffectDrawOn() -> some View {
-        if #available(iOS 26, macOS 26, *) {
-            self.symbolEffect(.drawOn)
-        } else {
-            self
-        }
     }
 }

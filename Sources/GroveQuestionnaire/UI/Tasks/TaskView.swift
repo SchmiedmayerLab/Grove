@@ -14,7 +14,6 @@ struct TaskView<Header: View>: View {
     @Environment(QuestionnaireResponses.self) private var allResponses
     @Environment(\.scrollToNextTask) private var scrollToNextTask
     
-    let section: Questionnaire.Section
     let task: Questionnaire.Task
     @Binding var response: QuestionnaireResponses.Response
     @ViewBuilder let header: @MainActor () -> Header

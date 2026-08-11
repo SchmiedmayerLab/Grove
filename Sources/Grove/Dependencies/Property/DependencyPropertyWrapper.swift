@@ -63,6 +63,7 @@ public final class _DependencyPropertyWrapper<Value> { // swiftlint:disable:this
         self.init(DependencyCollection(DependencyContext(for: T.self, type: .optional)))
     }
 
+    // periphery:ignore:parameters dependencyType - documented parameter pinning the module type at the call site
     /// Create an optional dependency with a default value.
     /// - Parameters:
     ///   - dependencyType: The wrapped type of the optional dependency.
@@ -141,6 +142,7 @@ extension _DependencyPropertyWrapper: DependencyDeclaration {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension _DependencyPropertyWrapper: SingleModuleDependency where Value: Module {
+    // periphery:ignore:parameters dependencyType - documented parameter pinning the module type at the call site
     /// Create a required dependency.
     ///
     /// If the dependency conforms to ``DefaultInitializable`` a default value is automatically supplied, if the module is not found to be configured.
@@ -149,6 +151,7 @@ extension _DependencyPropertyWrapper: SingleModuleDependency where Value: Module
         self.init(DependencyContext(for: Value.self, type: .required))
     }
 
+    // periphery:ignore:parameters dependencyType - documented parameter pinning the module type at the call site
     /// Create a required dependency with a default value.
     /// - Parameters:
     ///   - dependencyType: The wrapped type of the dependency.
@@ -160,6 +163,7 @@ extension _DependencyPropertyWrapper: SingleModuleDependency where Value: Module
         self.init(DependencyContext(for: Value.self, type: .required, defaultValue: defaultValue))
     }
 
+    // periphery:ignore:parameters dependencyType - mirrors the documented shape of its sibling initializers
     public convenience init(load dependency: Value, _ dependencyType: Value.Type = Value.self) {
         self.init(DependencyContext(for: Value.self, type: .load, defaultValue: { dependency }))
     }

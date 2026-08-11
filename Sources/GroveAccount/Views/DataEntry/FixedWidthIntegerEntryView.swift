@@ -63,6 +63,7 @@ public struct FixedWidthIntegerEntryView<Key: AccountKey>: DataEntryView where K
         self._value = value
     }
 
+    // periphery:ignore:parameters keyPath - binds the generic Key at the call site
     /// Create a new entry view.
     /// - Parameters:
     ///   - keyPath: The `AccountKey` type.
@@ -76,7 +77,7 @@ public struct FixedWidthIntegerEntryView<Key: AccountKey>: DataEntryView where K
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ValidationRule {
-    static func isDigit<Value: FixedWidthInteger>(for value: Value.Type = Value.self, radix: Int = 10) -> ValidationRule {
+    static func isDigit<Value: FixedWidthInteger>(for _: Value.Type = Value.self, radix: Int = 10) -> ValidationRule {
         ValidationRule(
             rule: { input in
                 input.isEmpty || Value(input, radix: radix) != nil

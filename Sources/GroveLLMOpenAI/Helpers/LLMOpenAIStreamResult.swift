@@ -10,11 +10,9 @@ import GeneratedOpenAIClient
 import OpenAPIRuntime
 
 
-/// Helper to process the returned stream by the LLM output generation call, especially in regards to the function call and a possible stop reason
+/// Helper to process the returned stream by the LLM output generation call, especially in regards to the function call
 package struct LLMOpenAIStreamResult {
     typealias Role = Components.Schemas.ChatCompletionStreamResponseDelta.rolePayload
-    typealias FinishReason = Components.Schemas.CreateChatCompletionStreamResponse.choicesPayloadPayload
-        .finish_reasonPayload
 
 
     package struct FunctionCall {
@@ -33,15 +31,13 @@ package struct LLMOpenAIStreamResult {
     
     var deltaContent: String?
     var role: Role?
-    var finishReason: FinishReason?
     var functionCall: [FunctionCall]
     var currentFunctionCallIndex = -1
-    
-    
-    init(deltaContent: String? = nil, role: Role? = nil, finishReason: FinishReason? = nil, functionCall: [FunctionCall] = []) {
+
+
+    init(deltaContent: String? = nil, role: Role? = nil, functionCall: [FunctionCall] = []) {
         self.deltaContent = deltaContent
         self.role = role
-        self.finishReason = finishReason
         self.functionCall = functionCall
     }
 
@@ -50,10 +46,6 @@ package struct LLMOpenAIStreamResult {
 
         if let role = choice.delta.role {
             self.role = role
-        }
-
-        if let finishReason = choice.finish_reason {
-            self.finishReason = finishReason
         }
 
         guard let functionCallID = choice.delta.tool_calls?.last?.index else {

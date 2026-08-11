@@ -76,9 +76,13 @@ extension _HKUnit {
     // MARK: base unit construction
     
     private struct BaseUnitDescriptor: Hashable {
+        // periphery:ignore - read by the synthesized Hashable of this key
         let dimension: Dimension
+        // periphery:ignore - read by the synthesized Hashable of this key
         let unitString: String
+        // periphery:ignore - read by the synthesized Hashable of this key
         let scaleOffset: Double
+        // periphery:ignore - read by the synthesized Hashable of this key
         let scaleFactor: Double
     }
     
@@ -796,6 +800,7 @@ private struct UnitParser<Input: StringProtocol>: ~Copyable { // swiftlint:disab
     
     struct ParseError: Error {
         let issue: String
+        // periphery:ignore - diagnostic payload recording where parsing failed
         let position: Input.Index
     }
     
@@ -831,11 +836,6 @@ private struct UnitParser<Input: StringProtocol>: ~Copyable { // swiftlint:disab
     private mutating func advance(by count: Int = 1) {
         precondition(count > 0)
         _input.formIndex(&position, offsetBy: count)
-    }
-    
-    private mutating func advance(to newPos: Input.Index) {
-        precondition(newPos > position)
-        position = newPos
     }
     
     private func parseError(at pos: Input.Index? = nil, issue: String) -> ParseError {

@@ -16,9 +16,7 @@ struct FirebaseSignInWithAppleButton: View {
     @Environment(FirebaseAccountService.self)
     private var service
 
-    @Environment(\.colorScheme)
-    private var colorScheme
-
+    // periphery:ignore - read through its projected value
     @State private var viewState: ViewState = .idle
 
     var body: some View {

@@ -504,7 +504,7 @@ extension GroveQuestionnaire.Questionnaire.Condition {
     
     fileprivate init( // swiftlint:disable:this function_body_length cyclomatic_complexity
         _ enableWhen: ModelsR4.QuestionnaireItemEnableWhen,
-        using context: ConversionContext
+        using _: ConversionContext
     ) throws(FHIRConversionError) {
         guard let questionLinkId = enableWhen.question.value?.string else {
             throw .other("EnableWhen is missing question linkId")

@@ -8,6 +8,9 @@
 
 import Foundation
 import GroveKeychainStorage
+#if canImport(UIKit)
+import UIKit
+#endif
 import GroveLegacyIdentifiers
 import OSLog
 
@@ -32,32 +35,65 @@ private let logger = Logger(subsystem: "org.grovealliance.accessGuard", category
 /// **Nothing is deleted until everything is written.** A partial copy followed by a delete would lose
 /// exactly the accounts that failed.
 @available(iOS 18, macOS 15, watchOS 11, *)
+@MainActor
 enum AccessGuardKeychainMigration {
+    /// Whether a run has completed successfully in this process, making later calls free.
+    private static var completed = false
+
+    private static var protectedDataAvailable: Bool {
+        #if canImport(UIKit) && !os(watchOS)
+        UIApplication.shared.isProtectedDataAvailable
+        #else
+        true
+        #endif
+    }
+
     /// Brings every stored passcode onto the current service.
     ///
-    /// - Parameter keychain: The keychain to migrate within.
+    /// Cheap to call repeatedly: after the first successful run it returns immediately, so read
+    /// paths retry a launch-time deferral (locked keychain, prewarming) at the moment a passcode is
+    /// actually needed instead of staying broken for the whole session.
+    ///
+    /// - Parameters:
+    ///   - keychain: The keychain to migrate within.
+    ///   - protectedDataAvailable: Whether keychain items are currently readable. During iOS
+    ///     prewarming a query can *succeed* with an empty result rather than throw, which is
+    ///     indistinguishable from "no passcode" — so an unavailable state defers outright.
     /// - Returns: Whether the module may now read from the current service. `false` means the
     ///     keychain was unavailable and the caller must not treat an empty result as "no passcode".
     @discardableResult
-    static func run(in keychain: KeychainStorage) -> Bool {
+    static func run(in keychain: KeychainStorage, protectedDataAvailable: Bool = Self.protectedDataAvailable) -> Bool {
+        guard !completed else {
+            return true
+        }
+        guard protectedDataAvailable else {
+            logger.warning("Keychain is not readable yet (locked or prewarming); deferring the access guard migration.")
+            return false
+        }
         let legacy = CredentialsTag.legacyAccessGuard
         let current = CredentialsTag.accessGuard
 
         let existing: [Credentials]
+        let alreadyMigrated: Set<String>
         do {
             existing = try keychain.retrieveAllCredentials(withUsername: nil, for: legacy)
+            // The current service is authoritative for any passcode it already holds: a user may
+            // have changed one after a partial earlier run, and copying the legacy value again
+            // would silently revert it.
+            alreadyMigrated = Set(try keychain.retrieveAllCredentials(withUsername: nil, for: current).map(\.username))
         } catch {
             // Cannot distinguish "empty" from "locked", so assume the worst and retry next launch.
-            logger.error("Could not read the legacy access guard service; deferring migration: \(error)")
+            logger.error("Could not read the access guard services; deferring migration: \(error)")
             return false
         }
         guard !existing.isEmpty else {
+            completed = true
             return true
         }
 
         LegacyIdentifierReport.encountered(LegacyKeychain.accessGuardService, in: "GroveAccessGuard", .duringMigration)
 
-        for credentials in existing {
+        for credentials in existing where !alreadyMigrated.contains(credentials.username) {
             do {
                 try keychain.store(Credentials(username: credentials.username, password: credentials.password), for: current)
             } catch {
@@ -76,7 +112,13 @@ enum AccessGuardKeychainMigration {
                 logger.warning("Could not remove a migrated access guard passcode: \(error)")
             }
         }
+        completed = true
         return true
+    }
+
+    /// Clears the process-level completion flag so a test can exercise a fresh run.
+    static func _resetForTesting() { // swiftlint:disable:this identifier_name
+        completed = false
     }
 }
 

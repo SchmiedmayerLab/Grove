@@ -33,7 +33,11 @@ enum StudyStorage {
     static let bundlesDirectoryName = "Bundles"
 
     /// The store's location, after bringing forward any predecessor.
-    static func prepareStore(in namespace: StorageNamespace = .app, legacyRoot: URL = legacyDocumentsRoot) -> URL? {
+    static func prepareStore(
+        in namespace: StorageNamespace = .app,
+        legacyRoot: URL = legacyDocumentsRoot,
+        fileManager: FileManager = .default
+    ) -> URL? {
         guard let directory = resolve(namespace) else {
             return nil
         }
@@ -42,16 +46,25 @@ enum StudyStorage {
                 storeNamed: LegacyStorage.studyStore,
                 from: legacyRoot,
                 to: directory,
-                renamedTo: storeFilename
+                renamedTo: storeFilename,
+                fileManager: fileManager
             )
             if outcome == .relocated {
                 LegacyIdentifierReport.encountered(LegacyStorage.studyStore, in: "GroveStudy", .duringMigration)
             }
         } catch {
-            logger.error("Unable to relocate the study store: \(error)")
+            // Handing out the destination now would let ModelContainer create an EMPTY store there,
+            // and every later launch would then treat that empty store as authoritative while the
+            // real one sits stranded in Documents. Keep using the legacy store in place instead:
+            // enrollments keep accruing where the data already is, and relocation retries next launch.
+            logger.error("Unable to relocate the study store; continuing against the legacy location: \(error)")
+            let legacyStore = legacyRoot.appendingPathComponent(LegacyStorage.studyStore)
+            if fileManager.fileExists(atPath: legacyStore.path) {
+                return legacyStore
+            }
         }
         do {
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         } catch {
             logger.error("Unable to create \(directory.path, privacy: .public): \(error)")
             return nil
@@ -64,13 +77,17 @@ enum StudyStorage {
     /// Enrollment directories are named `<uuid>.<extension>`, so the extension rename has to happen
     /// here too — a bundle left under the old extension is invisible to the lookup that matches it to
     /// an enrollment, and the cleanup pass then deletes it.
-    static func prepareBundlesDirectory(in namespace: StorageNamespace = .app, legacyRoot: URL = legacyDocumentsRoot) -> URL? {
+    static func prepareBundlesDirectory(
+        in namespace: StorageNamespace = .app,
+        legacyRoot: URL = legacyDocumentsRoot,
+        fileManager: FileManager = .default
+    ) -> URL? {
         guard let directory = resolve(namespace)?.appendingPathComponent(bundlesDirectoryName, isDirectory: true) else {
             return nil
         }
         let legacy = legacyRoot.appendingPathComponent(LegacyStorage.studyBundlesDirectory)
         do {
-            let outcome = try StoreRelocation.relocateDirectory(from: legacy, to: directory)
+            let outcome = try StoreRelocation.relocateDirectory(from: legacy, to: directory, fileManager: fileManager)
             if outcome == .relocated {
                 LegacyIdentifierReport.encountered(
                     LegacyStorage.studyBundlesDirectory,
@@ -80,10 +97,15 @@ enum StudyStorage {
                 removeLegacyParentIfEmpty(of: legacy)
             }
         } catch {
+            // Creating the destination after a failed relocation would make the next launch's
+            // relocateDirectory treat it as authoritative and never retry, stranding every legacy
+            // bundle. Report failure; the caller degrades to a throwaway directory for this session
+            // and the migration retries next launch with the legacy bundles untouched.
             logger.error("Unable to relocate the study bundles directory: \(error)")
+            return nil
         }
         do {
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         } catch {
             logger.error("Unable to create \(directory.path, privacy: .public): \(error)")
             return nil

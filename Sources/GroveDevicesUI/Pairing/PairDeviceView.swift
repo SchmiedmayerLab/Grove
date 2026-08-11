@@ -19,11 +19,7 @@ struct PairDeviceView<Collection: RandomAccessCollection>: View where Collection
     private let appName: String
     private let pairClosure: (any PairableDevice) async throws -> Void
 
-    @Environment(\.dismiss)
-    private var dismiss
-
     @Binding private var pairingState: PairingViewState
-    @AccessibilityFocusState private var isHeaderFocused: Bool
 
     @State private var selectedDeviceId: UUID?
     @State private var selectedDevice: (any PairableDevice)?

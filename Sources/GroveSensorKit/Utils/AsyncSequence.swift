@@ -239,7 +239,7 @@ extension Sequence {
     /// Creates an `AsyncSequence` that produces this sequence's elements.
     @available(iOS 18.0, *)
     @inlinable
-    consuming func _makeAsync<Failure: Error>(failureType: Failure.Type = Never.self) -> some AsyncSequence<Element, Failure> {
+    consuming func _makeAsync<Failure: Error>(failureType _: Failure.Type = Never.self) -> some AsyncSequence<Element, Failure> {
         _AsyncSequenceAdapter<Self, Failure>(base: self)
     }
 }

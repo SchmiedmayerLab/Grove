@@ -10,6 +10,7 @@ import GroveLLM
 
 
 extension LLMContext {
+    // periphery:ignore - read only from physical-device builds (the scan indexes a simulator destination)
     /// Formats the current ``LLMContext`` for compatibility with Transformers-based chat models.
     ///
     /// - Returns: An array of dictionaries where each dictionary represents a message in the format:

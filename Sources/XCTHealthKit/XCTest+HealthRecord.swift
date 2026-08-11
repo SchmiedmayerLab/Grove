@@ -191,7 +191,7 @@ extension XCTestCase {
             systemUnderTest.buttons["Next"].tap()
         }
         
-        HealthRecordType.allCases.forEach {
+        healthRecordTypes.forEach {
             if !systemUnderTest.switches[$0.description].waitForExistence(timeout: 2) {
                 systemUnderTest.swipeDown()
                 XCTAssertTrue(systemUnderTest.switches[$0.description].waitForExistence(timeout: 2))

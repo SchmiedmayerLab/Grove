@@ -15,6 +15,7 @@ struct ReauthenticationOperation {
         case cancelled
     }
 
+    // periphery:ignore - read by the synthesized Hashable; 'guard case .success' matching compares it
     let result: Result
     /// The OAuth Credential if re-authentication was made through Single-Sign-On Provider.
     let credential: ASAuthorizationAppleIDCredential?

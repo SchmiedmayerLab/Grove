@@ -98,10 +98,10 @@ extension Scheduler {
         return store
     }
 }
-#endif
 
 
 extension StorageNamespace.Component {
     /// Where the scheduler keeps its store.
     static let scheduler = Self("Scheduler")
 }
+#endif

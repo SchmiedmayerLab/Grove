@@ -37,7 +37,6 @@ struct ConfirmMeasurementButton: View {
     private let confirm: @MainActor () async throws -> Void
     private let discard: () -> Void
 
-    @ScaledMetric private var buttonHeight: CGFloat = 38
     @Binding var viewState: ViewState
 
     var body: some View {

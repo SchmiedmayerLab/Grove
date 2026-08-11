@@ -85,7 +85,7 @@ func userNotificationCenter(
 }
 ```
 
-Reading a notification's scheduled date has the same shape — `Notifications.scheduledDate(fromUserInfo:)` accepts the current key and the pre-Grove one, preferring the current.
+Reading a notification's `userInfo` has the same shape: `SchedulerNotifications.taskId(fromUserInfo:)` and `Notifications.scheduledDate(fromUserInfo:)` each accept the current key and the pre-Grove one, preferring the current.
 
 ### Replace hardcoded `Task.Category` raw values
 
@@ -115,10 +115,14 @@ There is no API to call and no flag to set.
 | HealthKit and SensorKit anchors | keys prefixed `edu.stanford.Spezi.SpeziHealthKit.*` | `HealthKit.queryAnchors`, `SensorKit.queryAnchors`, … |
 | Study task rows | `Task.id` and `Task.Category` carrying `edu.stanford.spezi.SpeziStudy.*` | the same rows, prefix stripped |
 | Study bundles on disk | `<uuid>.spezistudybundle` | `<uuid>.studybundle` |
+| Scheduler and device preferences | `edu.stanford.spezi.*` UserDefaults keys | their unprefixed successors |
 
 Those old reverse-DNS strings are exactly what a pre-0.2.0 app wrote on the device.
 Grove reads each one, moves what it finds, and never writes it again.
 A fresh install finds nothing at any of these locations, so every migration is a no-op and the strings never appear.
+
+If a relocation cannot complete — a full disk, an interrupted copy — the module keeps using the data in its old location for that session and retries on the next launch.
+Nothing falls back to an empty or in-memory store while your users' data exists somewhere else.
 
 > Note: Stores move atomically.
 > Files are staged beside the destination and committed with a single directory rename, and the database is always the last thing to land — so a process killed part-way leaves the original untouched and retries on the next launch.

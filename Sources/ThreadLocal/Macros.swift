@@ -7,6 +7,7 @@
 //
 
 
+// periphery:ignore - macro declarations and applications are invisible to the index
 /// Defines a thread-local static variable.
 ///
 /// Thread-local variables are backed using pthreads thread-specific data.

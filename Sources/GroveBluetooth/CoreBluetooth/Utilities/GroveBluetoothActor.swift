@@ -21,7 +21,7 @@ struct CBInstance<Value>: Sendable {
         object
     }
 
-    init(instantiatedOnDispatchQueue object: Value, file: StaticString = #fileID, line: UInt = #line) {
+    init(instantiatedOnDispatchQueue object: Value, file _: StaticString = #fileID, line _: UInt = #line) {
         dispatchPrecondition(condition: .onQueue(GroveBluetooth.shared.dispatchQueue))
 
         self.object = object
@@ -85,6 +85,7 @@ public actor GroveBluetooth {
 
 @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
 extension GroveBluetooth {
+    // periphery:ignore:parameters file,line - signature-shape parameters unused by the body
     /// Assume isolation to the global `GroveBluetooth` actor.
     /// - Parameters:
     ///   - operation: The operation that should be executed with assumed isolation.

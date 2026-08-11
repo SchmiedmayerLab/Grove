@@ -633,24 +633,6 @@ extension Schedule {
         Array(occurrences(in: range).lazy.prefix(count))
     }
 
-    /// Return the last occurrence of a schedule if its part of the requested range.
-    ///
-    /// This method iterates through the occurrences of the schedule to find if the last occurrence of the schedule is within the bounds of the provided range.
-    /// If it is contained in the range, it returns that last occurrence. Otherwise, it returns `nil` if there aren't any occurrences at all, or if the last occurrence occurs after the upper bound.
-    /// - Parameter range: The range.
-    /// - Returns: Returns the last occurrence if it is contained within the provided `range`.
-    func lastOccurrence(ifIn range: Range<Date>) -> Occurrence? {
-        var iterator = occurrences(in: range.lowerBound..<Date.distantFuture).makeIterator()
-        var lastOccurrence: Occurrence?
-        while let next = iterator.next() {
-            if next.start >= range.upperBound {
-                return lastOccurrence
-            }
-            lastOccurrence = next
-        }
-        return lastOccurrence
-    }
-
     private func recurrencesSequence(in range: Range<Date>? = nil) -> LazyFilterSequence<some Sequence<Date>> {
         let start = start
         // When using `afterOccurrences(_:)` as an `end` condition, recurrence rule counts occurrences only based on the specified range not

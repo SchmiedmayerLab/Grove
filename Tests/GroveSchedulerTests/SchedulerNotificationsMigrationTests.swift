@@ -11,6 +11,7 @@ import GroveLegacyIdentifiers
 @testable import GroveNotifications
 @testable import GroveScheduler
 import Testing
+import UserNotifications
 
 
 /// Notification identifiers cannot be rewritten in place — requests already registered with the
@@ -95,5 +96,67 @@ struct SchedulerNotificationsMigrationTests {
         ])
 
         #expect(resolved == current)
+    }
+
+    /// The authorization flag is the one whose loss is silent and lasting: a user who denied
+    /// notifications before the update and grants them afterwards is only rescheduled because this
+    /// value survives the rename.
+    @Test
+    func migratesBothPreferencesFromTheirLegacyKeys() throws {
+        let defaults = try #require(UserDefaults(suiteName: #function))
+        defer { defaults.removePersistentDomain(forName: #function) }
+        let date = Date(timeIntervalSince1970: 1_800_000_000)
+        defaults.set(date, forKey: LegacyPreferenceKey.schedulerEarliestRefreshDate)
+        defaults.set(true, forKey: LegacyPreferenceKey.schedulerAuthorizationDisallowed)
+
+        SchedulerNotifications.migrateLegacyPreferences(defaults: defaults)
+
+        #expect(defaults.object(forKey: SchedulerNotifications.earliestScheduleRefreshDateStorageKey) as? Date == date)
+        #expect(defaults.bool(forKey: SchedulerNotifications.authorizationDisallowedLastSchedulingStorageKey))
+        #expect(defaults.object(forKey: LegacyPreferenceKey.schedulerEarliestRefreshDate) == nil)
+        #expect(defaults.object(forKey: LegacyPreferenceKey.schedulerAuthorizationDisallowed) == nil)
+    }
+
+    /// A value already written under the new key is newer than the legacy one and must win.
+    @Test
+    func aCurrentPreferenceIsNotOverwrittenByTheLegacyValue() throws {
+        let defaults = try #require(UserDefaults(suiteName: #function))
+        defer { defaults.removePersistentDomain(forName: #function) }
+        defaults.set(false, forKey: SchedulerNotifications.authorizationDisallowedLastSchedulingStorageKey)
+        defaults.set(true, forKey: LegacyPreferenceKey.schedulerAuthorizationDisallowed)
+
+        SchedulerNotifications.migrateLegacyPreferences(defaults: defaults)
+
+        #expect(!defaults.bool(forKey: SchedulerNotifications.authorizationDisallowedLastSchedulingStorageKey))
+        #expect(defaults.object(forKey: LegacyPreferenceKey.schedulerAuthorizationDisallowed) == nil)
+    }
+
+    @Test
+    func readsATaskIdWrittenUnderEitherKey() {
+        #expect(SchedulerNotifications.taskId(
+            fromUserInfo: [SchedulerNotifications.notificationTaskIdKey: "task-a"]
+        ) == "task-a")
+        #expect(SchedulerNotifications.taskId(
+            fromUserInfo: ["\(LegacyNotifications.schedulerPrefix).taskId": "task-b"]
+        ) == "task-b")
+        #expect(SchedulerNotifications.taskId(fromUserInfo: [:]) == nil)
+    }
+
+    @Test
+    func theCurrentTaskIdKeyWins() {
+        let resolved = SchedulerNotifications.taskId(fromUserInfo: [
+            SchedulerNotifications.notificationTaskIdKey: "current",
+            "\(LegacyNotifications.schedulerPrefix).taskId": "legacy"
+        ])
+        #expect(resolved == "current")
+    }
+
+    /// The package-visible getter is what sorts pending requests; it has to see legacy-keyed content.
+    @Test
+    func thePackageScheduledDateGetterAcceptsTheLegacyKey() {
+        let date = Date(timeIntervalSince1970: 1_700_000_000)
+        let content = UNMutableNotificationContent()
+        content.userInfo = [LegacyNotifications.scheduledDateUserInfoKey: date]
+        #expect(content.scheduledDate == date)
     }
 }

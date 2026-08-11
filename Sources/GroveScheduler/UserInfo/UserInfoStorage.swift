@@ -31,10 +31,6 @@ public struct UserInfoStorage<Anchor: RepositoryAnchor>: Codable {
     init() {
         self.userInfo = [:]
     }
-
-    func contains<Source: _UserInfoKey<Anchor>>(_ source: Source.Type) -> Bool {
-        userInfo[source.identifier] != nil
-    }
 }
 
 

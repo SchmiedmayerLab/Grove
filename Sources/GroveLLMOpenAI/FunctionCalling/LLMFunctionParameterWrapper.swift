@@ -8,7 +8,6 @@
 
 import GroveFoundation
 public import OpenAPIRuntime
-import OSLog
 import Synchronization
 
 
@@ -23,9 +22,6 @@ public typealias LLMFunctionParameterItemSchema = OpenAPIRuntime.OpenAPIObjectCo
 /// Refer to the documentation of ``LLMFunction/Parameter`` for information on how to use the `@Parameter` property wrapper.
 @propertyWrapper
 public final class _LLMFunctionParameterWrapper<T: Decodable & Sendable>: LLMFunctionParameterSchemaCollector { // swiftlint:disable:this type_name
-    /// A Swift Logger that logs important information and errors.
-    let logger = Logger(subsystem: "org.grovealliance", category: "GroveLLMOpenAI")
-
     let schema: LLMFunctionParameterItemSchema
 
     nonisolated(unsafe) private var injectedValue: T?

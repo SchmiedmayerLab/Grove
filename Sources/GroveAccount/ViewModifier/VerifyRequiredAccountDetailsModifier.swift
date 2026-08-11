@@ -23,7 +23,9 @@ private struct FollowUpSession: Identifiable {
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct VerifyRequiredAccountDetailsModifier: ViewModifier {
     private struct DetailsState: Equatable {
+        // periphery:ignore - read by the synthesized Equatable that drives change detection
         let signedIn: Bool
+        // periphery:ignore - read by the synthesized Equatable that drives change detection
         let isIncomplete: Bool? // swiftlint:disable:this discouraged_optional_boolean
     }
     private let enabled: Bool

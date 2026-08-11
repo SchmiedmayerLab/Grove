@@ -18,6 +18,7 @@ struct ExistingAccountView<Continue: View>: View {
     @Environment(Account.self)
     private var account
 
+    // periphery:ignore - read through its projected value ($viewState)
     @State private var viewState: ViewState = .idle
 
     var body: some View {

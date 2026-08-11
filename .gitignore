@@ -52,3 +52,4 @@ __pycache__/
 
 # Shared SwiftPM bare-repo cache used by Scripts/run-package-tests.sh
 .packageCache/
+.derivedData-periphery/

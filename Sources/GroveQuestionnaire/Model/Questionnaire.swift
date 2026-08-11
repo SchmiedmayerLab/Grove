@@ -103,18 +103,6 @@ extension Questionnaire {
         sections.lazy.flatMap(\.tasks).first { $0.id == taskId }
     }
     
-    /// Finds the top-level task with the specified id.
-    func find(taskId: Task.ID) -> (section: Section, task: Task)? {
-        for section in sections {
-            for task in section.tasks {
-                if task.id == taskId { // swiftlint:disable:this for_where
-                    return (section, task)
-                }
-            }
-        }
-        return nil
-    }
-    
     /// Obtains the (potentially nested) task at the specified path.
     ///
     /// If the path contains only a single element, this function behaves identical to ``task(withId:)``  and simply returns the top-level task with the specified identifier.

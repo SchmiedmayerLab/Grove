@@ -12,6 +12,7 @@ public import SwiftUI
 @available(iOS 18, macOS 15, watchOS 11, *)
 private struct OperationStateAlert<T: OperationState>: ViewModifier {
     private let operationState: T
+    // periphery:ignore - read through its projected value
     @State private var viewState: ViewState
     
     init(operationState: T) {

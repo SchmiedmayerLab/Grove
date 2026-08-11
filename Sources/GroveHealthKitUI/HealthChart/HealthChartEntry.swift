@@ -118,10 +118,6 @@ public struct HealthChartEntry<Results: HealthKitQueryResults>: Sendable {
             )
         }
     }
-    
-    static func makeEmpty() -> Self {
-        Self(variant: .empty)
-    }
 }
 
 

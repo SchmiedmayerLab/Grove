@@ -53,6 +53,7 @@ public class _StandardPropertyWrapper<Constraint> {
         self.init((any Standard).self)
     }
     
+    // periphery:ignore:parameters constraint - pins the generic constraint type at explicit call sites
     /// Creates an `@StandardActor` with an optional constraint.
     ///
     /// If the standard does not conform to the protocol, the resulting property value is `nil`.

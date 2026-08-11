@@ -16,8 +16,6 @@ import SwiftUI
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct PhoneNumberEntryStep: View {
     @State private var viewState = ViewState.idle
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(Account.self) private var account
     @Environment(PhoneNumberViewModel.self) private var phoneNumberViewModel
     @Environment(PhoneVerificationProvider.self) private var phoneVerificationProvider
     let onNext: () -> Void

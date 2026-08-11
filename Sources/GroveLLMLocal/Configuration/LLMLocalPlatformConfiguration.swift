@@ -12,9 +12,11 @@ import Foundation
 public struct LLMLocalPlatformConfiguration: Sendable {
     /// Represents the memory limit for the MLX GPU.
     public struct MemoryLimit: Sendable {
+        // periphery:ignore - read only from physical-device builds (the scan indexes a simulator destination)
         /// The memory limit in MB.
         let limit: Int
         
+        // periphery:ignore - read only from physical-device builds (the scan indexes a simulator destination)
         /// Calls to malloc will wait on scheduled tasks if the limit is exceeded.  If
         /// there are no more scheduled tasks an error will be raised if `relaxed`
         /// is false or memory will be allocated (including the potential for

@@ -6,6 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(CoreData)
+@preconcurrency import CoreData
+#endif
 import Foundation
 @testable import GroveFoundation
 import Testing
@@ -53,7 +56,7 @@ private final class FailingFileManager: FileManager, @unchecked Sendable {
 @Suite
 struct StoreRelocationTests {
     private static let storeName = "store.sqlite"
-    private static let files = ["store.sqlite", "store.sqlite-wal", "store.sqlite-shm", ".store.sqlite_SUPPORT"]
+    private static let files = ["store.sqlite", "store.sqlite-wal", "store.sqlite-shm", ".store_SUPPORT"]
 
     private func makeStore(in directory: URL, contents: String = "data") throws {
         let fileManager = FileManager.default
@@ -161,7 +164,7 @@ struct StoreRelocationTests {
                 try "x".write(to: source.appendingPathComponent(legacyName + suffix), atomically: true, encoding: .utf8)
             }
             try FileManager.default.createDirectory(
-                at: source.appendingPathComponent(".\(legacyName)_SUPPORT"),
+                at: source.appendingPathComponent(StoreRelocation.supportDirectoryName(forStore: legacyName)),
                 withIntermediateDirectories: true
             )
 
@@ -387,4 +390,68 @@ struct StoreRelocationTests {
             #expect(storeIsComplete(in: destination), "retry after failing at step \(operations) did not converge")
         }
     }
+    #if canImport(CoreData)
+    /// Ties the `_SUPPORT` naming to Core Data itself rather than to this file's own assumption:
+    /// the directory is created by a real store with external binary storage, relocated with a
+    /// rename, and the blob must still be readable afterwards. Core Data strips the store's path
+    /// extension when naming the directory — an assumption-only fixture cannot catch that drifting.
+    @Test
+    func relocatingARealStoreCarriesItsExternalBinaryData() throws {
+        let fileManager = FileManager.default
+        let root = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        defer { try? fileManager.removeItem(at: root) }
+        let source = root.appendingPathComponent("legacy", isDirectory: true)
+        let destination = root.appendingPathComponent("current", isDirectory: true)
+        try fileManager.createDirectory(at: source, withIntermediateDirectories: true)
+
+        let entity = NSEntityDescription()
+        entity.name = "Blob"
+        let payload = NSAttributeDescription()
+        payload.name = "payload"
+        payload.attributeType = .binaryDataAttributeType
+        payload.allowsExternalBinaryDataStorage = true
+        entity.properties = [payload]
+        let model = NSManagedObjectModel()
+        model.entities = [entity]
+
+        // Large enough that Core Data always externalises it into the support directory.
+        let blob = Data((0..<(1024 * 1024)).map { UInt8(truncatingIfNeeded: $0) })
+        let legacyStoreName = "legacy.store.sqlite"
+        let storeURL = source.appendingPathComponent(legacyStoreName)
+
+        let coordinator = NSPersistentStoreCoordinator(managedObjectModel: model)
+        let store = try coordinator.addPersistentStore(type: .sqlite, at: storeURL)
+        let context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
+        context.persistentStoreCoordinator = coordinator
+        try context.performAndWait {
+            let object = NSManagedObject(entity: entity, insertInto: context)
+            object.setValue(blob, forKey: "payload")
+            try context.save()
+        }
+        try coordinator.remove(store)
+        #expect(
+            fileManager.fileExists(atPath: source.appendingPathComponent(".legacy.store_SUPPORT").path),
+            "Core Data changed its support-directory naming; StoreRelocation must follow"
+        )
+
+        let outcome = try StoreRelocation.relocate(
+            storeNamed: legacyStoreName,
+            from: source,
+            to: destination,
+            renamedTo: "store.sqlite"
+        )
+
+        #expect(outcome == .relocated)
+        #expect(fileManager.fileExists(atPath: destination.appendingPathComponent(".store_SUPPORT").path))
+        let reopened = NSPersistentStoreCoordinator(managedObjectModel: model)
+        try reopened.addPersistentStore(type: .sqlite, at: destination.appendingPathComponent("store.sqlite"))
+        let readContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
+        readContext.persistentStoreCoordinator = reopened
+        try readContext.performAndWait {
+            let fetched = try readContext.fetch(NSFetchRequest<NSManagedObject>(entityName: "Blob"))
+            #expect(fetched.count == 1)
+            #expect(fetched.first?.value(forKey: "payload") as? Data == blob)
+        }
+    }
+    #endif
 }

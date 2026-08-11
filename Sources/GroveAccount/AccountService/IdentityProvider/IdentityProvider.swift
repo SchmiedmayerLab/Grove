@@ -16,14 +16,12 @@ protocol AnyIdentityProvider {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 protocol AnyAccountSetupComponent: Sendable {
-    var id: UUID { get }
     var configuration: IdentityProviderConfiguration { get }
     @MainActor var anyView: AnyView { get }
 }
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct AccountSetupComponent<V: View> {
-    let id = UUID()
     let viewClosure: @Sendable @MainActor () -> V
     let configuration: IdentityProviderConfiguration
 

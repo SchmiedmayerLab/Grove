@@ -20,13 +20,7 @@ class AccountDetailsBuilder {
     var defaultValues: AccountDetails
 
     /// Initialize a new empty builder.
-    convenience init() {
-        self.init(from: AccountDetails())
-    }
-
-    /// Initialize a new builder by copying the contents of a ``AccountValues`` instance.
-    /// - Parameter storage: The storage to copy all values from.
-    init(from storage: AccountDetails) {
+    init() {
         self.storage = AccountDetails()
         self.defaultValues = AccountDetails()
     }
@@ -61,17 +55,6 @@ class AccountDetailsBuilder {
         return self
     }
 
-    /// Merge all values from a ``AccountValues`` instance into this builder.
-    /// - Parameters:
-    ///   - values: The values.
-    ///   - merge: Flag controls if the supplied values might overwrite values in the builder
-    /// - Returns: The builder reference for method chaining.
-    @discardableResult
-    func add(contentsOf values: AccountDetails, merge: Bool = false) -> Self {
-        storage.add(contentsOf: values, merge: merge)
-        return self
-    }
-
     /// Remove a value from the builder.
     /// - Parameter key: The ``AccountKey`` metatype.
     /// - Returns: The builder reference for method chaining.
@@ -81,33 +64,7 @@ class AccountDetailsBuilder {
         return self
     }
 
-    /// Remove a value from the builder using a type-erased ``AccountKey`` metatype.
-    /// - Parameter accountKey: The type-erased ``AccountKey``.
-    /// - Returns: The builder reference for method chaining.
-    @discardableResult
-    @_disfavoredOverload
-    func remove(_ key: any AccountKey.Type) -> Self {
-        storage.remove(key)
-        return self
-    }
-
-    /// Remove a set of values from the builder given an array of ``AccountKey`` metatypes.
-    /// - Parameter keys: The collection of metatypes (e.g., an array or ``AccountKeyCollection``).
-    /// - Returns: The builder reference for method chaining.
-    @discardableResult
-    func removeAll<Keys: AcceptingAccountKeyVisitor>(_ keys: Keys) -> Self {
-        storage.removeAll(keys)
-        return self
-    }
-
-    /// Remove a set of values from the builder given an array of ``AccountKey`` metatypes.
-    /// - Parameter keys: The collection of metatypes (e.g., an array or ``AccountKeyCollection``).
-    /// - Returns: The builder reference for method chaining.
-    func removeAll(_ keys: [any AccountKey.Type]) -> Self {
-        storage.removeAll(keys)
-        return self
-    }
-
+    // periphery:ignore - generic counterpart of the existential overload below
     /// Checks if a value for a ``AccountKey`` is present in the builder.
     /// - Parameter key: The ``AccountKey`` metatype to check if a value exists.
     /// - Returns: Returns `true` if present, otherwise `false`.

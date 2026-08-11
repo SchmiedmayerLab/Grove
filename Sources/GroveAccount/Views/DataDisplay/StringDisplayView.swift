@@ -28,6 +28,7 @@ public struct StringDisplayView<Key: AccountKey>: DataDisplayView where Key.Valu
         self.value = value
     }
 
+    // periphery:ignore:parameters keyPath - binds the generic Key at the call site
     /// Create a new display view.
     /// - Parameters:
     ///   - keyPath: The `AccountKey` type.

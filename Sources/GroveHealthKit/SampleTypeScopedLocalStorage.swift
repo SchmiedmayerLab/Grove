@@ -21,7 +21,9 @@ import GroveLocalStorage
 @available(iOS 18, macOS 15, watchOS 11, *)
 private enum LocalStorageKeysHandling {
     private struct DictKey: Hashable {
+        // periphery:ignore - read by the synthesized Hashable of this key
         let valueType: String
+        // periphery:ignore - read by the synthesized Hashable of this key
         let sampleType: String
         
         init(valueType: (some Any).Type, sampleType: SampleType<some Any>) {

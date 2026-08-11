@@ -16,8 +16,6 @@ package enum FunctionCallLLMSessionTypes {
         package let functionID: String
         /// The name of the function that was called.
         package let functionName: String
-        /// The raw arguments string provided in the function call request.
-        package let functionArgument: String
         /// The result of executing the function
         package let response: String
     }

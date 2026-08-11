@@ -49,7 +49,6 @@ struct AccountOverviewForm<AdditionalSections: View>: View {
                 AccountOverviewSections(
                     model: model,
                     details: details,
-                    close: closeBehavior,
                     logout: logoutBehavior,
                     deletion: deletionBehavior,
                     destructiveViewState: destructiveViewState,

@@ -20,7 +20,6 @@ private let allObjectTypes = HKObjectType.allKnownObjectTypes.sorted { $0.identi
 
 
 enum CommandError: Error {
-    case unableToFindLoctable
     case unableToDecodeLoctable(URL)
     case other(String)
 }
@@ -247,17 +246,6 @@ extension Localizations {
             "es_US": "Nutrición"
         ]
     ]
-}
-
-
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension Locale.Language {
-    static let english = Locale.Language(identifier: "en")
-    static let englishUK = Locale.Language(identifier: "en_GB")
-    static let german = Locale.Language(identifier: "de")
-    static let french = Locale.Language(identifier: "fr")
-    static let spanish = Locale.Language(identifier: "es")
-    static let spanishUS = Locale.Language(identifier: "es_US")
 }
 
 

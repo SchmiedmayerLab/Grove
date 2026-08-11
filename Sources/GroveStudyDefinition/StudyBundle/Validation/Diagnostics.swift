@@ -12,11 +12,6 @@ import GroveLocalization
 import ModelsR4
 
 
-protocol DiagnosticMessageConvertible {
-    var diagnostic: DiagnosticMessage { get }
-}
-
-
 struct DiagnosticMessage: ExpressibleByStringLiteral, ExpressibleByStringInterpolation {
     let message: String
     

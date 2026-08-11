@@ -624,10 +624,6 @@ extension HealthKit {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKit.DataAccessRequirements {
-    func overlaps(_ other: Self) -> Bool {
-        !self.read.isDisjoint(with: other.read) || !self.write.isDisjoint(with: other.write)
-    }
-    
     func intersection(_ other: Self) -> Self {
         Self(
             read: read.intersection(other.read),

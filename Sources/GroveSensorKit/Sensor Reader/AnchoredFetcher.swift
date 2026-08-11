@@ -29,8 +29,8 @@ public struct AnchoredFetcher<Sample: SensorKitSampleProtocol>: AsyncSequence {
     
     public init(
         sensor: some AnySensor<Sample>,
-        queryAnchorProvider: @escaping (SensorKit.QueryAnchorKey) -> ManagedQueryAnchor,
-        batchSize: BatchSize? = nil
+        batchSize: BatchSize? = nil,
+        queryAnchorProvider: @escaping (SensorKit.QueryAnchorKey) -> ManagedQueryAnchor
     ) async throws {
         self.sensor = Sensor(sensor)
         self.queryAnchorProvider = queryAnchorProvider

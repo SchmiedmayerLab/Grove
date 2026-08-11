@@ -7,7 +7,6 @@
 //
 
 
-import OSLog
 public import SwiftUI
 
 
@@ -114,8 +113,6 @@ public import SwiftUI
 /// - ``SwiftUICore/EnvironmentValues/isFirstInManagedNavigationStack``
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct ManagedNavigationStack: View {
-    static var logger: Logger { Logger(subsystem: "org.grovealliance.views", category: "ManagedNavigationStack") }
-    
     private let steps: StepsCollection
     private let isComplete: Binding<Bool>?
     private let startStepSelector: Path.StepSelector?

@@ -12,7 +12,6 @@ import GroveFoundation
 import GroveKeychainStorage
 public import GroveLLM
 public import GroveLLMOpenAI
-import os
 
 
 /// LLM execution platform of an ``LLMOpenAIRealtimeSchema``.
@@ -44,9 +43,6 @@ import os
 /// ```
 @available(iOS 18, macOS 15, watchOS 11, *)
 public final class LLMOpenAIRealtimePlatform: LLMPlatform, @unchecked Sendable { // unchecked because of the `Dependency` property wrapper storage
-    /// A `Logger` that logs important information from the ``LLMOpenAIPlatform``.
-    private static let logger = Logger(subsystem: "org.grovealliance", category: "GroveLLMOpenAIRealtime")
-    
     /// Configuration of the platform.
     public let configuration: LLMOpenAIPlatformConfiguration
     /// Queue that processed the LLM inference tasks in a structured concurrency manner.

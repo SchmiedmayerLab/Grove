@@ -161,10 +161,6 @@ private struct SleepSessionsBuilder {
 
 
 extension Range {
-    func contains(_ element: Bound, threshold: Bound.Stride) -> Bool where Bound: Strideable {
-        lowerBound.advanced(by: -threshold) <= element && element < upperBound.advanced(by: threshold)
-    }
-    
     /// Determines whether the range overlaps with the other range, or falls within `threshold` of it.
     func overlaps(_ other: Range<Bound>, threshold: Bound.Stride) -> Bool where Bound: Strideable {
         other.overlaps(lowerBound.advanced(by: -threshold)..<upperBound.advanced(by: threshold))

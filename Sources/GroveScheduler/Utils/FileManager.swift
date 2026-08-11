@@ -23,13 +23,4 @@ extension FileManager {
         self.createFile(atPath: url.absoluteURL.path, contents: contents, attributes: attributes)
     }
 }
-
-
-extension URL {
-    func isDescendant(of other: URL) -> Bool {
-        let ownComponents = self.absoluteURL.resolvingSymlinksInPath().pathComponents
-        let otherComponents = other.absoluteURL.resolvingSymlinksInPath().pathComponents
-        return ownComponents.count > otherComponents.count && ownComponents[0..<otherComponents.count] == otherComponents[...]
-    }
-}
 #endif

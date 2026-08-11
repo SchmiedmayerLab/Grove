@@ -92,6 +92,7 @@ public struct DeviceAction<Action: _BluetoothPeripheralAction>: Sendable {
     }
 
 
+    // periphery:ignore:parameters keyPath - selects Action purely via type inference
     /// Provide a `KeyPath` to the device action you want to access.
     /// - Parameter keyPath: The `KeyPath` to a property of ``DeviceActions``.
     public init(_ keyPath: KeyPath<DeviceActions, Action.Type>) {}

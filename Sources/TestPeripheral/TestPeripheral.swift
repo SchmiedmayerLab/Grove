@@ -39,12 +39,10 @@ final class TestPeripheral: NSObject, CBPeripheralManagerDelegate {
     }
 
     private let logger = Logger(subsystem: "org.grovealliance.bluetooth", category: "TestPeripheral")
-    private let dispatchQueue = DispatchQueue(label: "org.grovealliance.bluetooth.peripheral", qos: .userInitiated)
 
     private var peripheralManager: CBPeripheralManager! // swiftlint:disable:this implicitly_unwrapped_optional
 
     private(set) var testService: TestService?
-    private(set) var state: CBManagerState = .unknown
 
     private let queuedUpdates = QueueUpdates()
 
@@ -79,10 +77,6 @@ final class TestPeripheral: NSObject, CBPeripheralManagerDelegate {
         ])
     }
 
-    func stopAdvertising() {
-        peripheralManager.stopAdvertising()
-    }
-
     @MainActor
     func updateValue<Value: ByteEncodable>(_ value: Value, for characteristic: CBMutableCharacteristic, for centrals: [CBCentral]? = nil) async {
         // swiftlint:disable:previous discouraged_optional_collection
@@ -115,8 +109,6 @@ final class TestPeripheral: NSObject, CBPeripheralManagerDelegate {
         let state = peripheral.state
         print("PeripheralManager state is now \("\(state)")")
         MainActor.assumeIsolated {
-            self.state = state
-
             if case .poweredOn = state {
                 addServices()
             }

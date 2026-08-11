@@ -76,7 +76,7 @@ class DependencyContext<Dependency: Module>: AnyDependencyContext {
         injectedDependency?.element.map { [$0] } ?? []
     }
 
-    init(for dependency: Dependency.Type, type: DependencyType, defaultValue: (() -> Dependency)? = nil) {
+    init(for _: Dependency.Type, type: DependencyType, defaultValue: (() -> Dependency)? = nil) {
         self.type = type
         self.defaultValue = defaultValue
     }

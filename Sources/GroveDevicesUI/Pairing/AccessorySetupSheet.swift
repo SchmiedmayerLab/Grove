@@ -30,8 +30,6 @@ public struct AccessorySetupSheet<Collection: RandomAccessCollection, PairingHin
     private var bluetooth
     @Environment(PairedDevices.self)
     private var pairedDevices
-    @Environment(\.dismiss)
-    private var dismiss
 
     @State private var pairingState: PairingViewState = .discovery
 

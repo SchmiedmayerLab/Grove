@@ -74,6 +74,7 @@ public final class Notifications: Module, DefaultInitializable, EnvironmentAcces
         }
     }
 
+    // periphery:ignore:parameters isolation - inherits the caller's actor; compiler-consumed
     /// Updates the badge count for your app’s icon.
     /// - Parameters:
     ///   - isolation: Inherits the current isolation.
@@ -89,6 +90,7 @@ public final class Notifications: Module, DefaultInitializable, EnvironmentAcces
         try await notificationCenter.setBadgeCount(badgeCount)
     }
 
+    // periphery:ignore:parameters isolation - inherits the caller's actor; compiler-consumed
     /// Schedule a new notification request.
     /// - Parameters:
     ///   - isolation: Inherits the current isolation.
@@ -112,6 +114,7 @@ public final class Notifications: Module, DefaultInitializable, EnvironmentAcces
         }
     }
 
+    // periphery:ignore:parameters isolation - inherits the caller's actor; compiler-consumed
     /// Retrieve the amount of notifications that can be scheduled for the app.
     ///
     /// An application has a total limit of ``pendingNotificationsLimit`` that can be scheduled (pending). This method retrieve the reaming notifications that can be scheduled.
@@ -127,6 +130,7 @@ public final class Notifications: Module, DefaultInitializable, EnvironmentAcces
         return max(0, Self.pendingNotificationsLimit - pendingRequests.count)
     }
 
+    // periphery:ignore:parameters isolation - inherits the caller's actor; compiler-consumed
     /// Fetch all notification requests that are pending delivery.
     /// - Parameter isolation: Inherits the current isolation.
     /// - Returns: The array of pending notifications requests.
@@ -137,6 +141,7 @@ public final class Notifications: Module, DefaultInitializable, EnvironmentAcces
         return await notificationCenter.pendingNotificationRequests()
     }
 
+    // periphery:ignore:parameters isolation - inherits the caller's actor; compiler-consumed
     /// Fetch all delivered notifications that are still shown in the notification center.
     /// - Parameter isolation: Inherits the current isolation.
     /// - Returns: The array of local and remote notifications that have been delivered and are still show in the notification center.
@@ -148,6 +153,7 @@ public final class Notifications: Module, DefaultInitializable, EnvironmentAcces
         return await notificationCenter.deliveredNotifications()
     }
 
+    // periphery:ignore:parameters isolation - inherits the caller's actor; compiler-consumed
     /// Add additional notification categories.
     ///
     /// This method adds additional notification categories. Call this method within your configure method of your Module to ensure that categories are configured
@@ -176,7 +182,7 @@ public final class Notifications: Module, DefaultInitializable, EnvironmentAcces
     
     /// Removes all pending notification requests that satisfy the predicate.
     public func removePendingNotificationRequests(
-        isolation: isolated (any Actor)? = #isolation,
+        isolation _: isolated (any Actor)? = #isolation,
         where predicate: (UNNotificationRequest) -> Bool
     ) async {
         guard let notificationCenter else {
@@ -195,12 +201,10 @@ public final class Notifications: Module, DefaultInitializable, EnvironmentAcces
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension UNNotificationContent {
     @objc package var scheduledDate: Date? {
-        userInfoValue(for: Notifications.notificationContentUserInfoKeyScheduledDate, as: Date.self)
-    }
-    
-    package func userInfoValue<T>(for key: String, as _: T.Type) -> T? {
+        // Through the dual-key resolver: pending requests scheduled before the rename still carry
+        // the pre-Grove key, and this getter is what sorts them.
         #if !os(tvOS)
-        userInfo[key] as? T
+        Notifications.scheduledDate(fromUserInfo: userInfo)
         #else
         nil
         #endif

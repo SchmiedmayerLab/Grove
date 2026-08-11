@@ -71,7 +71,6 @@ extension FunctionCallLLMSession {
                 return FunctionCallLLMSessionTypes.FunctionCallResponse(
                         functionID: functionCallArgs.id ?? "",
                         functionName: functionCallArgs.name ?? "",
-                        functionArgument: functionCallArgs.arguments ?? "",
                         response: errorMessage
                 )
             case .throwError:
@@ -137,7 +136,6 @@ extension FunctionCallLLMSession {
         return FunctionCallLLMSessionTypes.FunctionCallResponse(
             functionID: functionID,
             functionName: functionName,
-            functionArgument: functionCallArgs.arguments ?? "",
             response: (functionCallResponseStr?.isEmpty ?? true)
                 ? defaultResponse
                 : functionCallResponseStr ?? ""

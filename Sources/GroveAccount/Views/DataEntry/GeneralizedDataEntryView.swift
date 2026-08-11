@@ -28,10 +28,6 @@ private protocol GeneralizedStringEntryView {
 ///      modifier is automatically injected.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct GeneralizedDataEntryView<Key: AccountKey>: View {
-    private var dataHookId: String {
-        "DataHook-\(Key.self)"
-    }
-
     @Environment(Account.self)
     private var account
 

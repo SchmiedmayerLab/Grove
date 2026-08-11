@@ -34,6 +34,7 @@ import SwiftUI
 ///     throughout the application. We **highly recommend using the async/await variants of the APIs** instead of the closure-based APIs the SDK provides.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public class Firestore: Module, DefaultInitializable {
+    // periphery:ignore - @Dependency declaration collected via Mirror by the module system
     @Dependency(ConfigureFirebaseApp.self)
     private var configureFirebaseApp
 

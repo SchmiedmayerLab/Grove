@@ -15,6 +15,7 @@ import SwiftUI
 struct SheetPreview<Content: View>: View {
     private let content: Content
 
+    // periphery:ignore - read through its projected value
     @State private var isPresented = true
 
     var body: some View {

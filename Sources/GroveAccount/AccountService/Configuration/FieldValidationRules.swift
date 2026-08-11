@@ -68,6 +68,7 @@ public struct FieldValidationRules<Key: AccountKey>: AccountServiceConfiguration
         self.init(for: key, rules: validationRules)
     }
 
+    // periphery:ignore:parameters keyPath - binds the generic Key at the call site
     /// Initialize a new `FieldValidationRules`.
     /// - Parameters:
     ///   - keyPath: The ``AccountKey`` type supplied as a `KeyPath`.
@@ -76,6 +77,7 @@ public struct FieldValidationRules<Key: AccountKey>: AccountServiceConfiguration
         self.init(for: Key.self, rules: validationRules)
     }
 
+    // periphery:ignore:parameters keyPath - binds the generic Key at the call site
     /// Initialize a new `FieldValidationRules`.
     /// - Parameters:
     ///   - keyPath: The ``AccountKey`` type supplied as a `KeyPath`.
@@ -114,6 +116,7 @@ extension AccountServiceConfiguration {
         storage[FieldValidationRules<Key>.self]?.validationRules
     }
 
+    // periphery:ignore:parameters keyPath - binds the generic Key at the call site
     /// Access the validation rules for String-based ``AccountKey`` configured by an ``AccountService``.
     /// - Parameter keyPath: The ``AccountKey`` type supplied as `KeyPath`.
     /// - Returns: The array of `ValidationRule`s.

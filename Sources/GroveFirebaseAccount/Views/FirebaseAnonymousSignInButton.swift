@@ -18,6 +18,7 @@ struct FirebaseAnonymousSignInButton: View {
     @Environment(\.colorScheme)
     private var colorScheme
 
+    // periphery:ignore - read through its projected value
     @State private var viewState: ViewState = .idle
 
     private var color: Color {

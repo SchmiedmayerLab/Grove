@@ -10,6 +10,7 @@
 
 
 public struct ExpressionError: Error {
+    // periphery:ignore - parse-position payload surfaced when the error is string-interpolated or reflected
     let token: Token?
     let underlyingError: Error
 }

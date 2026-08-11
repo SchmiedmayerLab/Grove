@@ -36,10 +36,13 @@ private let keychainIsAvailable: Bool = {
 
 
 @Suite(.serialized, .enabled(if: keychainIsAvailable))
+@MainActor
 struct AccessGuardKeychainMigrationTests {
     private let keychain = KeychainStorage()
 
     private func reset() {
+        // The migration completes at most once per process; each test needs a fresh run.
+        AccessGuardKeychainMigration._resetForTesting()
         try? keychain.deleteCredentials(withUsername: nil, for: .accessGuard)
         try? keychain.deleteCredentials(withUsername: nil, for: .legacyAccessGuard)
     }
@@ -106,6 +109,53 @@ struct AccessGuardKeychainMigrationTests {
 
         #expect(AccessGuardKeychainMigration.run(in: keychain))
         #expect(usernames(for: .accessGuard).isEmpty)
+    }
+
+    /// During iOS prewarming a keychain query can SUCCEED with an empty result. Trusting it would
+    /// mark the migration complete with the passcodes still on the legacy service — and an empty
+    /// current service reads as "no passcode set".
+    @Test
+    func anUnavailableKeychainDefersInsteadOfRunning() throws {
+        reset()
+        try keychain.store(Credentials(username: "guard-a", password: "1234"), for: .legacyAccessGuard)
+
+        #expect(!AccessGuardKeychainMigration.run(in: keychain, protectedDataAvailable: false))
+
+        // Nothing moved, nothing deleted: the deferral must be free to retry.
+        #expect(usernames(for: .legacyAccessGuard) == ["guard-a"])
+        #expect(usernames(for: .accessGuard).isEmpty)
+        reset()
+    }
+
+    /// A passcode the user changed after a partial earlier run must not be reverted by the retry.
+    @Test
+    func theCurrentServiceWinsOnRetry() throws {
+        reset()
+        try keychain.store(Credentials(username: "guard-a", password: "old"), for: .legacyAccessGuard)
+        try keychain.store(Credentials(username: "guard-a", password: "new"), for: .accessGuard)
+
+        #expect(AccessGuardKeychainMigration.run(in: keychain, protectedDataAvailable: true))
+
+        let kept = try #require(try keychain.retrieveCredentials(withUsername: "guard-a", for: .accessGuard))
+        #expect(kept.password == "new")
+        #expect(usernames(for: .legacyAccessGuard).isEmpty)
+        reset()
+    }
+
+    /// A partial earlier copy resumes: the missing credential comes across, the copied one is left
+    /// exactly as the current service has it, and the legacy service ends empty.
+    @Test
+    func aPartialCopyResumesWithoutClobbering() throws {
+        reset()
+        try keychain.store(Credentials(username: "guard-a", password: "copied"), for: .legacyAccessGuard)
+        try keychain.store(Credentials(username: "guard-b", password: "missing"), for: .legacyAccessGuard)
+        try keychain.store(Credentials(username: "guard-a", password: "copied"), for: .accessGuard)
+
+        #expect(AccessGuardKeychainMigration.run(in: keychain, protectedDataAvailable: true))
+
+        #expect(usernames(for: .accessGuard) == ["guard-a", "guard-b"])
+        #expect(usernames(for: .legacyAccessGuard).isEmpty)
+        reset()
     }
 }
 #endif

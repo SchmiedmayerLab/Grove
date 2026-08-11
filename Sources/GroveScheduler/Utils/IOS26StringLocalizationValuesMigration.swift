@@ -16,6 +16,7 @@ import SwiftData
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct IOS26StringLocalizationValuesMigration: ~Copyable {
     private struct MigrationError: Error {
+        // periphery:ignore - surfaced through the reflection-based description of the thrown error
         let message: String
     }
     

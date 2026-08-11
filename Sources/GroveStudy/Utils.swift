@@ -9,24 +9,6 @@
 public import Foundation
 
 
-extension RangeReplaceableCollection {
-    /// Returns the collection obtained by appending an element to the collection.
-    func appending(_ element: Element) -> Self {
-        var copy = self
-        copy.append(element)
-        return copy
-    }
-    
-    
-    /// Returns the collection obtained by appending a sequence to the collection.
-    func appending(contentsOf other: some Sequence<Element>) -> Self {
-        var copy = self
-        copy.append(contentsOf: other)
-        return copy
-    }
-}
-
-
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension Locale {
     /// Creates a new Locale, with the specified language and region.

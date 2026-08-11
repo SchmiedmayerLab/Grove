@@ -23,12 +23,10 @@ struct PDFRenderer {
     private let config: ConsentDocument.ExportConfiguration
     
     private let pdf: TPPDF.PDFDocument
-    private let bodyTextStyle: PDFTextStyle
-    
+
     init(consentDocument: ConsentDocument, config: ConsentDocument.ExportConfiguration) {
         self.consentDocument = consentDocument
         self.config = config
-        self.bodyTextStyle = PDFTextStyle(name: "", font: config.fontSettings.documentContentFont)
         self.pdf = TPPDF.PDFDocument(format: config.paperSize.pdfPageFormat)
     }
     

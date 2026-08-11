@@ -191,6 +191,7 @@ public final class SchedulerNotifications: Module, DefaultInitializable, Environ
     @AppStorage(SchedulerNotifications.authorizationDisallowedLastSchedulingStorageKey)
     private var authorizationDisallowedLastScheduling = false
 
+    // periphery:ignore - collected via Mirror by the module system to inject the modifier
     @Modifier private var scenePhaseRefresh = NotificationScenePhaseScheduling()
 
     /// Default configuration.
@@ -221,9 +222,33 @@ public final class SchedulerNotifications: Module, DefaultInitializable, Environ
         precondition(schedulingInterval >= .weeks(1), "The scheduling interval must be at least 1 week.")
     }
 
+    /// Carries the two scheduler preferences forward from their pre-Grove UserDefaults keys.
+    ///
+    /// Losing `authorizationDisallowedLastScheduling` is not cosmetic: a user who denied notification
+    /// authorization before the update and grants it afterwards is only rescheduled because this flag
+    /// survives — with it reset, ``checkForInitialScheduling(scheduler:)`` never re-checks and the
+    /// user receives no reminders until a task definition happens to change.
+    nonisolated static func migrateLegacyPreferences(defaults: UserDefaults = .standard) {
+        let renames = [
+            (LegacyPreferenceKey.schedulerEarliestRefreshDate, earliestScheduleRefreshDateStorageKey),
+            (LegacyPreferenceKey.schedulerAuthorizationDisallowed, authorizationDisallowedLastSchedulingStorageKey)
+        ]
+        for (legacy, current) in renames {
+            guard let value = defaults.object(forKey: legacy) else {
+                continue
+            }
+            if defaults.object(forKey: current) == nil {
+                defaults.set(value, forKey: current)
+                LegacyIdentifierReport.encountered(legacy, in: "GroveScheduler", .duringMigration)
+            }
+            defaults.removeObject(forKey: legacy)
+        }
+    }
+
     /// Configures the module.
     @_documentation(visibility: internal)
     public func configure() {
+        Self.migrateLegacyPreferences()
         purgeLegacyEventNotifications()
     }
 
@@ -231,6 +256,11 @@ public final class SchedulerNotifications: Module, DefaultInitializable, Environ
         guard !queuedForNextTick else {
             return
         }
+        // Persisted before the work is queued: a refresh follows data changes (most critically the
+        // study identifier rewrite, whose pending notifications reference the rewritten rows), and a
+        // process killed between the queueing and the rebuild must not lose it. Cleared only when a
+        // rebuild completes; `checkForInitialScheduling` re-runs a leftover on the next launch.
+        UserDefaults.standard.set(true, forKey: Self.pendingNotificationRefreshStorageKey)
         queuedForNextTick = true
         Swift::Task { @MainActor in
             await Swift::Task.yield()
@@ -275,6 +305,15 @@ public final class SchedulerNotifications: Module, DefaultInitializable, Environ
     func checkForInitialScheduling(scheduler: Scheduler) async {
         var scheduleNotificationUpdate = false
 
+        if UserDefaults.standard.bool(forKey: Self.pendingNotificationRefreshStorageKey) {
+            // Consumed immediately rather than on completion: one retry per launch is the designed
+            // guarantee (a kill between the study row rewrite committing and its refresh running),
+            // and consuming here keeps a persistent flag from turning every later launch — or every
+            // test-host construction — into another refresh attempt.
+            UserDefaults.standard.removeObject(forKey: Self.pendingNotificationRefreshStorageKey)
+            scheduleNotificationUpdate = true
+        }
+
         if authorizationDisallowedLastScheduling {
             let status = await notificationSettings().authorizationStatus
             let nowAllowed = switch status {
@@ -315,6 +354,9 @@ public final class SchedulerNotifications: Module, DefaultInitializable, Environ
         let task = Swift::Task { @MainActor in
             await Swift::Task.yield()
             try await scheduleNotifications(for: scheduler)
+            UserDefaults.standard.removeObject(forKey: Self.pendingNotificationRefreshStorageKey)
+            // (Also consumed at launch by `checkForInitialScheduling`; clearing here as well simply
+            // avoids one redundant refresh when the rebuild did complete.)
         }
         #if !(os(macOS) || os(watchOS))
         let identifier = _Application.shared.beginBackgroundTask(withName: "Scheduler Notifications") {
@@ -352,6 +394,10 @@ extension SchedulerNotifications {
         // 2: cancel any pending/upcoming background notification scheduling registrations
         #if !(os(macOS) || os(watchOS))
         BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: PermittedBackgroundTaskIdentifier.resolved.rawValue)
+        // Also the pre-Grove identifier: after the app's Info.plist moves to the new identifier,
+        // `resolved` no longer names a request submitted by an earlier launch. Cancelling an
+        // identifier with no pending request is a no-op, so this is free once the transition is over.
+        BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: PermittedBackgroundTaskIdentifier.legacyNotificationsScheduling.rawValue)
         #endif
         earliestScheduleRefreshDate = nil
 

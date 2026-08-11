@@ -37,6 +37,7 @@ extension AccountDetails {
             self.stringValue = mapping?.identifier(for: key) ?? key.identifier
         }
 
+        // periphery:ignore:parameters keyPath - binds the generic Key at the call site
         /// Create a new CodingKey from the `AccountKey`.
         /// - Parameter keyPath: A KeyPath to the key entry for the `AccountKey`.
         public init<Key: AccountKey>(_ keyPath: KeyPath<AccountKeys, Key.Type>) {

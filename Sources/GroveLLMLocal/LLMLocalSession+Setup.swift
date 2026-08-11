@@ -15,6 +15,7 @@ import MLXLMCommon
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMLocalSession {
+    // periphery:ignore - called only from physical-device builds (the scan indexes a simulator destination)
     private func verifyModelDownload() -> Bool {
         let repo = Hub.Repo(id: self.schema.configuration.name)
         let url = Self.hubApi.localRepoLocation(repo)
@@ -66,7 +67,7 @@ extension LLMLocalSession {
 #endif
     }
     
-    private func _mockSetup(continuation: AsyncThrowingStream<String, any Error>.Continuation?) async -> Bool {
+    private func _mockSetup(continuation _: AsyncThrowingStream<String, any Error>.Continuation?) async -> Bool {
         await MainActor.run {
             self.state = .loading
         }

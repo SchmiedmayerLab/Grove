@@ -129,17 +129,13 @@ public final class Scheduler: Module, EnvironmentAccessible, DefaultInitializabl
     private final class SaveTask {
         private typealias Task = Swift::Task
 
-        private unowned let scheduler: Scheduler
-        private var saveTask: Task<Void, Never>?
         private var scheduleNotifications = false
 
         init(scheduler: Scheduler, context: ModelContext) {
-            self.scheduler = scheduler
-            saveTask = Task { @MainActor in
+            Task { @MainActor in
                 // make sure that we don't get inlined into the current run loop iteration
                 await Task.yield()
                 defer {
-                    self.saveTask = nil
                     scheduler.saveTask = nil
                 }
                 do {
@@ -677,22 +673,6 @@ extension Scheduler {
         )
     }
 
-    func queryTasks(
-        for range: PartialRangeFrom<Date>,
-        predicate: Predicate<Task> = .true,
-        sortBy sortDescriptors: [SortDescriptor<Task>] = [],
-        fetchLimit: Int? = nil,
-        prefetchOutcomes: Bool = false
-    ) throws -> [Task] {
-        try queryTasks(
-            with: Task.inPartialRangeFromPredicate(for: range),
-            combineWith: predicate,
-            sortBy: sortDescriptors,
-            fetchLimit: fetchLimit,
-            prefetchOutcomes: prefetchOutcomes
-        )
-    }
-
     /// Query the list of events.
     ///
     /// This method fetches all tasks that are effective in the specified `range` and fulfill the additional `taskPredicate` (if specified).
@@ -775,7 +755,9 @@ extension Scheduler {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension Scheduler {
     private struct OccurrenceId: Hashable {
+        // periphery:ignore - read by the synthesized Hashable of this key
         let taskId: Task.ID
+        // periphery:ignore - read by the synthesized Hashable of this key
         let startDate: Date
 
         init(task: Task, startDate: Date) {
@@ -829,13 +811,6 @@ extension Scheduler {
             .sorted { lhs, rhs in
                 lhs.occurrence < rhs.occurrence
             }
-    }
-
-    func hasEventOccurrence(in range: Range<Date>, tasks: some Sequence<Task>) -> Bool {
-        tasks
-            .lazy
-            .compactMap { $0.schedule.nextOccurrence(in: range) }
-            .contains { _ in true }
     }
 
     func queryEventsAnchor(for range: Range<Date>, predicate taskPredicate: Predicate<Task> = .true) throws -> Set<PersistentIdentifier> {

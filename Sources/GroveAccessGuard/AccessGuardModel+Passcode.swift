@@ -15,10 +15,6 @@ public import Observation
 @Observable
 @MainActor
 public final class _PasscodeAccessGuardModel: _AnyAccessGuardModel { // swiftlint:disable:this type_name
-    enum UnlockError: Error {
-        case failed(LocalizedStringResource?)
-    }
-    
     private struct PersistedPasscode: Codable {
         /// The passcode
         let code: String
@@ -34,7 +30,11 @@ public final class _PasscodeAccessGuardModel: _AnyAccessGuardModel { // swiftlin
     public private(set) var isLocked: Bool = true
     
     private var persistedCode: PersistedPasscode? {
-        if let credentials = try? keychain.retrieveCredentials(withUsername: config.id.value, for: .accessGuard) {
+        // A launch-time deferral (locked keychain, prewarming) leaves the passcode on the legacy
+        // service; retry here so an empty read cannot be mistaken for "no passcode set". Free once
+        // a run has completed.
+        AccessGuardKeychainMigration.run(in: keychain)
+        return if let credentials = try? keychain.retrieveCredentials(withUsername: config.id.value, for: .accessGuard) {
             try? JSONDecoder().decode(PersistedPasscode.self, from: Data(credentials.password.utf8))
         } else {
             nil

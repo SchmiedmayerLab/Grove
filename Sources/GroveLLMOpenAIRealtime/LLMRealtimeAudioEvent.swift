@@ -13,7 +13,7 @@ package import GroveLLMOpenAI
 @available(iOS 18, macOS 15, watchOS 11, *)
 package enum LLMRealtimeAudioEvent: Sendable {
     case audioDelta(Data)
-    case audioDone(Data)
+    case audioDone
     case userTranscriptDelta(TranscriptDelta)
     case userTranscriptDone(TranscriptDone)
     case assistantTranscriptDelta(String)

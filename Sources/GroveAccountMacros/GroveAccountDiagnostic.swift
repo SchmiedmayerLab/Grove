@@ -20,12 +20,6 @@ struct GroveAccountDiagnostic: DiagnosticMessage {
     let diagnosticID: MessageID
     let severity: DiagnosticSeverity
 
-    init(message: String, diagnosticID: MessageID, severity: DiagnosticSeverity = .error) {
-        self.message = message
-        self.diagnosticID = diagnosticID
-        self.severity = severity
-    }
-
     init(message: String, domain: String, id: ID, severity: SwiftDiagnostics.DiagnosticSeverity = .error) {
         self.message = message
         self.diagnosticID = MessageID(domain: domain, id: id.rawValue)

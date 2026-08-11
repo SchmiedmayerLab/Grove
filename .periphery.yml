@@ -1,0 +1,52 @@
+#
+# This source file is part of the Grove open-source project
+#
+# SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+#
+# SPDX-License-Identifier: MIT
+#
+
+# Periphery dead-code analysis (Scripts/run-periphery.sh drives it; static-analysis.yml runs it in CI).
+#
+# The scan reads an index store produced by an xcodebuild build for an iOS simulator destination:
+# the iOS-only modules (AccessGuard, DevicesUI, ...) do not compile on a macOS host, and `swift build`
+# therefore cannot index the full graph. Nothing here builds — see the script.
+
+# This package is a library: its public surface IS the product, consumed outside this repo.
+# Without this, every public declaration reports as unused.
+retain_public: true
+
+# @objc members are reachable from the runtime (KVC in the FHIR extension builders relies on this).
+retain_objc_accessible: true
+
+# SwiftUI previews and property wrappers with runtime-only reads.
+retain_swift_ui_previews: true
+
+# Codable properties define persisted formats (legacy task stores, session descriptors, keychain
+# payloads) — the encoder/decoder reads them even when no source line does.
+retain_codable_properties: true
+
+# Protocol requirement parameters belong to the API shape even when an implementation ignores them.
+retain_unused_protocol_func_params: true
+
+# RAII tokens: the assignment holds the subscription; deallocation is the deregistration.
+retain_assign_only_property_types:
+  - KVOStateDidChangeObserver
+  - OnChangeRegistration
+  - OutcomeSubscription
+
+skip_build: true
+
+# In index-store mode Periphery reports every indexed file; `targets` does not filter. Reporting
+# is scoped by path instead: build-plugin output (the generated OpenAI client, macro expansions)
+# and checked-in generated parsers are not actionable findings.
+report_exclude:
+  - "**/.derivedData-periphery/**"
+  # Test targets are indexed — that is what makes the reachability of `Sources` truthful — but the
+  # analysis guards the shipped surface, not unused fixtures and mock factories.
+  - "**/Tests/**"
+  - "**/Sources/FHIRPathParser/Generated/**"
+  - "**/Sources/GeneratedOpenAIClient/**"
+  # `retain_public` does not extend to macro declarations, and Periphery 3.8 ignores
+  # `periphery:ignore` on them, so the public macro overloads cannot be retained any other way.
+  - "**/Sources/GroveAccount/AccountValue/AccountKeyMacros.swift"

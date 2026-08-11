@@ -168,6 +168,19 @@ struct FHIRSupersededSpellingWritingTests {
         #expect(subject.extension == nil)
     }
 
+    /// A resource written before the rename carries the superseded spelling and nothing else. The
+    /// pass must leave it alone: removing it would destroy the resource's only copy.
+    @Test
+    func aLegacyOnlyExtensionIsNeverDeleted() throws {
+        var subject = observation([ext(Self.legacy, value: "the only copy")])
+
+        subject.writeSupersededSpellings(of: [Self.identifier], policy: .canonicalAndSuperseded)
+
+        let survivor = try #require(subject.extension?.first { $0.urlString == Self.legacy })
+        #expect(survivor.value?.stringValue?.value?.string == "the only copy")
+        #expect(urls(subject) == [Self.legacy])
+    }
+
     @Test
     func theShippedDefaultIsCanonicalOnly() {
         #expect(FHIRWritePolicy.default == .canonicalOnly)

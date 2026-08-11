@@ -25,7 +25,6 @@ public struct FloatingPointEntryView<Key: AccountKey>: DataEntryView where Key.V
 
     @Binding private var value: Key.Value
 
-    @State private var decimal: Decimal = .zero
     @State private var text: String = ""
 
     private var formatStyleValue: Decimal.FormatStyle {
@@ -96,6 +95,7 @@ public struct FloatingPointEntryView<Key: AccountKey>: DataEntryView where Key.V
         self.formatStyle = nil
     }
 
+    // periphery:ignore:parameters keyPath - binds the generic Key at the call site
     /// Create a new entry view.
     /// - Parameters:
     ///   - keyPath: The `AccountKey` type.

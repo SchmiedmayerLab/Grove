@@ -13,10 +13,6 @@ private import ModelsR4
 
 
 extension FHIRResource {
-    private enum ProcessingError: Error {
-        case dstu2AttachmentsUnavailable
-    }
-
     /// Best effort function to transform the base64 data representation of a FHIR attachment to a string-based representation of the data type.
     ///
     /// This funcationality is especially useful if the data content is inspected for debug purposes or passing it ot a LLM component.

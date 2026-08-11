@@ -129,6 +129,7 @@ struct DateOfBirthPicker: View {
 @available(tvOS, unavailable)
 struct DateOfBirthPicker_Previews: PreviewProvider {
     struct Preview: View {
+        // periphery:ignore - read through its projected value
         @State private var date = Date.now
         private let required: Bool
         

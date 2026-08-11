@@ -99,6 +99,7 @@ public final class HealthMeasurements: ServiceModule, EnvironmentAccessible, Def
     /// To clear pending measurements call ``discardMeasurement(_:)``.
     @MainActor public private(set) var pendingMeasurements: [HealthKitMeasurement] = []
 
+    // periphery:ignore - the @Dependency declaration alone inserts Bluetooth into the module dependency graph
     @Dependency(Bluetooth.self)
     @ObservationIgnored private var bluetooth: Bluetooth?
 

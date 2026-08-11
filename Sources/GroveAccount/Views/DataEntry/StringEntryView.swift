@@ -28,6 +28,7 @@ public struct StringEntryView<Key: AccountKey>: DataEntryView where Key.Value ==
         _value = value
     }
 
+    // periphery:ignore:parameters keyPath - binds the generic Key at the call site
     /// Create a new entry view.
     /// - Parameters:
     ///   - keyPath: The `AccountKey` type.

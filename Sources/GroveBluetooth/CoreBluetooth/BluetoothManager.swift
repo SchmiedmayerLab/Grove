@@ -102,6 +102,7 @@ public class BluetoothManager: Observable, Sendable, Identifiable { // swiftlint
         return delegate
     }()
 
+    // periphery:ignore - RAII token: the assignment holds the observation alive
     private var isScanningObserver: KVOStateDidChangeObserver<CBCentralManager, Bool>?
 
     private let storage = BluetoothManagerStorage()

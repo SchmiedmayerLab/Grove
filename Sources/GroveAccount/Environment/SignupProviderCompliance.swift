@@ -58,6 +58,7 @@ public struct SignupProviderCompliance {
         case only(_ keys: [any AccountKey.Type])
     }
 
+    // periphery:ignore - read by the synthesized Equatable so repeated reports compare unequal
     fileprivate let creationDate: Date = .now
 
     let visualizedAccountKeys: VisualizedAccountKeys

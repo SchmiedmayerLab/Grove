@@ -25,6 +25,7 @@ struct SingleEditView<Key: AccountKey>: View {
 
     @ValidationState private var validation
 
+    // periphery:ignore - read through its projected value
     @State private var viewState: ViewState = .idle
     @FocusState private var isFocused: Bool
 
@@ -70,7 +71,7 @@ struct SingleEditView<Key: AccountKey>: View {
         self.accountDetails = accountDetails
     }
 
-    init(for keyPath: KeyPath<AccountKeys, Key.Type>, model: AccountOverviewFormViewModel, details accountDetails: AccountDetails) {
+    init(for _: KeyPath<AccountKeys, Key.Type>, model: AccountOverviewFormViewModel, details accountDetails: AccountDetails) {
         self.init(model: model, details: accountDetails)
     }
 

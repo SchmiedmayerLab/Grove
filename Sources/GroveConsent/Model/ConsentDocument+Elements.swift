@@ -13,8 +13,6 @@ import struct PencilKit.PKDrawing
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentDocument {
-    typealias Frontmatter = [String: String]
-    
     enum Section: Hashable, Sendable {
         case markdown(String)
         case toggle(ToggleConfig)
@@ -45,26 +43,6 @@ extension ConsentDocument {
         let id: String
         let title: String
     }
-    
-    struct InteractiveSectionTextContent: Hashable {
-        enum Block: Hashable {
-            case regular(String)
-            case footnote(String)
-        }
-        var blocks: [Block] = []
-        
-        var unstyledText: String {
-            blocks
-                .map {
-                    switch $0 {
-                    case .regular(let text), .footnote(let text):
-                        text
-                    }
-                }
-                .joined(separator: "\n")
-        }
-    }
-    
     
     protocol InteractiveSectionProtocol: Hashable {
         associatedtype Value

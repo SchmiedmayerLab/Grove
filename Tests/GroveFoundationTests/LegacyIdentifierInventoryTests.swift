@@ -23,6 +23,7 @@ struct LegacyIdentifierInventoryTests {
         FrozenKeyTags.localStorageKeyPrefix,
         LegacyKeychain.accessGuardService,
         LegacyKeychain.firebaseActiveAccountService,
+        LegacyKeychain.firebaseEmailPasswordCredentials,
         LegacyNotifications.schedulerPrefix,
         LegacyNotifications.schedulerBackgroundTask,
         LegacyNotifications.scheduledDateUserInfoKey,
@@ -52,7 +53,7 @@ struct LegacyIdentifierInventoryTests {
     /// deduplicating collection is exactly the accident this pins against.
     @Test
     func theVaultHoldsTheIdentifiersItShipped() {
-        #expect(Self.transitional.count == 26)
+        #expect(Self.transitional.count == 27)
     }
 
     @Test

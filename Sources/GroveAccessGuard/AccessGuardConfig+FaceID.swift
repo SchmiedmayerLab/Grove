@@ -10,7 +10,6 @@
 
 private import Foundation
 public import GroveFoundation
-private import LocalAuthentication
 public import SwiftUI
 
 
@@ -64,8 +63,7 @@ public struct BiometricAccessGuard: _AccessGuardConfig {
 @available(iOS 18, macOS 15, watchOS 11, *)
 private struct BiometricUnlockView: View {
     var model: _BiometricAccessGuardModel
-    private let context = LAContext()
-    
+
     @State private var state: Result<Bool, any Error>?
     
     var body: some View {

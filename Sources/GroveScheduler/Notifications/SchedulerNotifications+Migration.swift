@@ -9,10 +9,6 @@
 #if canImport(Darwin)
 import Foundation
 import GroveLegacyIdentifiers
-import OSLog
-
-
-private let logger = Logger(subsystem: "org.grovealliance.scheduler", category: "Notifications")
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -52,6 +48,22 @@ extension SchedulerNotifications {
             .duringMigration
         )
         return true
+    }
+
+    /// Reads the scheduler task id from a notification's `userInfo`, accepting the key used before
+    /// the rename.
+    ///
+    /// Notifications scheduled before the update remain pending with the old key and keep being
+    /// delivered after it, so both spellings have to resolve for as long as one of those can fire.
+    /// Use this rather than subscripting `userInfo` with ``notificationTaskIdKey`` directly.
+    ///
+    /// - Parameter userInfo: The notification content's `userInfo` dictionary.
+    /// - Returns: The task id, or `nil` if the notification was not scheduled by the scheduler.
+    nonisolated public static func taskId(fromUserInfo userInfo: [AnyHashable: Any]) -> String? {
+        if let id = userInfo[notificationTaskIdKey] as? String {
+            return id
+        }
+        return userInfo["\(LegacyNotifications.schedulerPrefix).taskId"] as? String
     }
 }
 #endif

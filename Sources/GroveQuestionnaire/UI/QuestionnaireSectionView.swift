@@ -49,7 +49,7 @@ struct QuestionnaireSectionView<Header: View>: View {
             Form {
                 header
                 ForEach(section.tasks) { task in
-                    TaskView(section: section, task: task, response: $responses.responses[task.id]) {
+                    TaskView(task: task, response: $responses.responses[task.id]) {
                         if indicateMissingResponses && responses.isMissingResponse(for: task) {
                             Text("Missing Response", bundle: .module)
                                 .foregroundStyle(.red)

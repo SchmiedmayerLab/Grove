@@ -61,6 +61,7 @@ public struct DependencyCollection {
         repeat append(each entry)
     }
 
+    // periphery:ignore:parameters type - documented type-pinning parameter of a deprecated public initializer
     /// Create a collection from a single entry closure.
     ///
     /// - Note: You can create your own result builders that build a `DependencyCollection` using the ``DependencyCollectionBuilder``.
@@ -76,6 +77,7 @@ public struct DependencyCollection {
         self.init(singleEntry())
     }
 
+    // periphery:ignore:parameters type - documented type-pinning parameter of a deprecated public initializer
     /// Create a collection from a single entry closure.
     ///
     /// - Note: You can create your own result builders that build a `DependencyCollection` using the ``DependencyCollectionBuilder``.
@@ -167,11 +169,11 @@ extension DependencyCollection: DependencyDeclaration {
         return dependency
     }
 
-    func singleDependencyRetrieval<M>(for module: M.Type = M.self) -> M {
+    func singleDependencyRetrieval<M>(for _: M.Type = M.self) -> M {
         singleDependencyContext().retrieve(dependency: M.self)
     }
 
-    func singleOptionalDependencyRetrieval<M>(for module: M.Type = M.self) -> M? {
+    func singleOptionalDependencyRetrieval<M>(for _: M.Type = M.self) -> M? {
         singleDependencyContext().retrieveOptional(dependency: M.self)
     }
 

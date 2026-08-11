@@ -19,14 +19,8 @@ package final class LLMInferenceQueue<Element>: Sendable {
 
     /// Errors that can occur during task queue operation.
     package enum QueueError: Error, Sendable {
-        /// The queue has not been started
-        case notStarted
-
         /// The queue submission failed
         case submissionFailed
-
-        /// The queue was cancelled
-        case cancelled
 
         /// The queue is already running
         case alreadyRunning
@@ -143,7 +137,6 @@ package final class LLMInferenceQueue<Element>: Sendable {
     ///   
     /// - Returns: The `AsyncStream` yielding the generated inference tokens.
     /// - Throws:
-    ///   - `QueueError.notStarted` if the queue has not been started.
     ///   - `QueueError.submissionFailed` if the queue is full or has been terminated.
     ///
     /// After enqueuing, the queue processor will pick up this work and start yielding tokens to the respective `AsyncThrowingStream.

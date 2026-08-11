@@ -116,7 +116,7 @@ struct LoginSetupView<PasswordReset: View>: View {
                     }
                 }
                     .validate(input: password, rules: .nonEmpty)
-                    .focused($focusedField, equals: .userId)
+                    .focused($focusedField, equals: .password)
                     .textContentType(.password)
 
                 if passwordReset is EmptyView {

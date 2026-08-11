@@ -52,8 +52,6 @@ public struct MeasurementsRecordedSheet: View {
     private var measurements
     @Environment(\.dismiss)
     private var dismiss
-    @Environment(\.dynamicTypeSize)
-    private var dynamicTypeSize
 
     @State private var selectedMeasurement: HealthKitMeasurement?
 

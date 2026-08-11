@@ -20,29 +20,10 @@ struct ThreadLocalDiagnostic: DiagnosticMessage {
     let diagnosticID: MessageID
     let severity: DiagnosticSeverity
 
-    init(message: String, diagnosticID: MessageID, severity: DiagnosticSeverity = .error) {
-        self.message = message
-        self.diagnosticID = diagnosticID
-        self.severity = severity
-    }
-
     init(message: String, domain: String, id: ID, severity: SwiftDiagnostics.DiagnosticSeverity = .error) {
         self.message = message
         self.diagnosticID = MessageID(domain: domain, id: id.rawValue)
         self.severity = severity
-    }
-}
-
-
-extension Diagnostic {
-    init<S: SyntaxProtocol>(
-        syntax: S,
-        message: String,
-        domain: String = "ThreadLocal", // swiftlint:disable:this function_default_parameter_at_end
-        id: ThreadLocalDiagnostic.ID,
-        severity: SwiftDiagnostics.DiagnosticSeverity = .error
-    ) {
-        self.init(node: Syntax(syntax), message: ThreadLocalDiagnostic(message: message, domain: domain, id: id, severity: severity))
     }
 }
 

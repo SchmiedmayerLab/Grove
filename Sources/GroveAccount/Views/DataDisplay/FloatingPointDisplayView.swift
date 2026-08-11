@@ -53,6 +53,7 @@ public struct FloatingPointDisplayView<Key: AccountKey>: DataDisplayView where K
         self.init(value, format: nil)
     }
 
+    // periphery:ignore:parameters keyPath - binds the generic Key at the call site
     /// Create a new display view.
     /// - Parameters:
     ///   - keyPath: The `AccountKey` type.

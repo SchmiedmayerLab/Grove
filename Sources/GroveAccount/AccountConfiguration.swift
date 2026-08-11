@@ -32,9 +32,7 @@ public final class AccountConfiguration {
     @Dependency private var accountService: [any Module]
     @Dependency private var storageProvider: [any Module]
 
-    @StandardActor private var standard: any Standard
-
-
+    // periphery:ignore - collected via Mirror by the module system to inject the modifier
     @Modifier private var verifyRequiredConfiguration = VerifyRequiredAccountDetailsModifier()
 
     /// Configure the `GroveAccount` framework.

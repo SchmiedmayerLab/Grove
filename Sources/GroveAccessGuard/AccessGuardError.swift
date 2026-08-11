@@ -11,18 +11,15 @@ import Foundation
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 enum AccessGuardError: LocalizedError {
-    case wrongPasscode
     case storeCodeError
     case biometricsNotAvailable
     
-    var errorDescription: String {
+    var errorDescription: String? {
         String(localized: "ACCESS_GUARD_ERROR_TITLE", bundle: .module)
     }
     
-    var failureReason: String {
+    var failureReason: String? {
         switch self {
-        case .wrongPasscode:
-            return String(localized: "ACCESS_GUARD_ERROR_WRONG_PASSCODE_REASON", bundle: .module)
         case .storeCodeError:
             return String(localized: "ACCESS_GUARD_ERROR_STORE_CODE_ERROR_REASON", bundle: .module)
         case .biometricsNotAvailable:

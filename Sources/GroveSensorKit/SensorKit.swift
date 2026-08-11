@@ -122,7 +122,7 @@ extension SensorKit {
         _ sensor: Sensor<Sample>,
         batchSize: BatchSize? = nil
     ) async throws -> some AsyncSequence<(SensorKit.BatchInfo, [Sample.SafeRepresentation]), any Error> {
-        try await AnchoredFetcher(sensor: sensor) { queryAnchorKey in
+        try await AnchoredFetcher(sensor: sensor, batchSize: batchSize) { queryAnchorKey in
             let storageKey = self.queryAnchorKeys.storageKey(for: queryAnchorKey)
             return ManagedQueryAnchor(storageKey: storageKey, in: self.localStorage)
         }

@@ -51,6 +51,7 @@ public struct LLMContextEntity: Codable, Equatable, Hashable, Identifiable, Send
         case tool(id: String, name: String)
         
         
+        // periphery:ignore - read by GroveLLMLocal, which compiles only with the MLX package trait enabled
         package var rawValue: String {
             switch self {
             case .user: "user"

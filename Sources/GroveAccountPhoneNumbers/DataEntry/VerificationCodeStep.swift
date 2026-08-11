@@ -16,9 +16,7 @@ import SwiftUI
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct VerificationCodeStep: View {
     @State private var viewState = ViewState.idle
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(PhoneNumberViewModel.self) private var phoneNumberViewModel
-    @Environment(Account.self) private var account
     @Environment(PhoneVerificationProvider.self) private var phoneVerificationProvider
     
     let codeLength: Int

@@ -26,6 +26,7 @@ struct PasswordChangeSheet: View {
 
     @ValidationState private var validation
 
+    // periphery:ignore - read through its projected value
     @State private var viewState: ViewState = .idle
     @FocusState private var isFocused: Bool
 
