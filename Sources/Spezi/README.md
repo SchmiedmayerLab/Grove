@@ -1,6 +1,6 @@
 <!--
 
-This source file is part of the Stanford Spezi open-source project.
+This source file is part of the Stanford Spezi open-source project
 
 SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 
@@ -17,7 +17,7 @@ Open-source framework for the rapid development of modern, interoperable digital
 ## Overview
 
 > [!NOTE]
-> Refer to the [Initial Setup](Spezi.docc/Initial%20Setup.md) instructions to integrate Spezi into your application.
+> Refer to the [Initial Setup](Spezi.docc/Initial-Setup.md) instructions to integrate Spezi into your application.
 
 Spezi introduces a module-based approach to building digital health applications.
 
@@ -101,7 +101,7 @@ Spezi introduces a module-based approach to building digital health applications
 You can find the modules and reusable Swift packages included in this monorepo in [Package.swift](../../Package.swift).
 
 > [!NOTE]
-> Spezi relies on an ecosystem of modules. Consider what modules you want to build and contribute to the open-source community. Refer to the [Spezi Guide](Spezi.docc/Spezi%20Guide.md) and [Documentation Guide](Spezi.docc/Documentation%20Guide.md) for requirements for Spezi-based software, and see the [`Module`](Spezi.docc/Module/Module.md) documentation to learn more about building your modules.
+> Spezi relies on an ecosystem of modules. Consider what modules you want to build and contribute to the open-source community. Refer to the [Spezi Guide](Spezi.docc/Spezi-Guide.md) and [Documentation Guide](Spezi.docc/Documentation-Guide.md) for requirements for Spezi-based software, and see the [`Module`](Spezi.docc/Module/Module.md) documentation to learn more about building your modules.
 
 
 ## Add Spezi to Your App
@@ -161,7 +161,7 @@ If Xcode cannot resolve the package, confirm that the package URL and selected v
 ### The Spezi Building Blocks
 
 > [!NOTE]
-> The [Spezi Guide](Spezi.docc/Spezi%20Guide.md) and [Documentation Guide](Spezi.docc/Documentation%20Guide.md) outline the requirements for Spezi-based modules, including terminology, guidance, and examples on structuring a Spezi module, Swift package, and repository.
+> The [Spezi Guide](Spezi.docc/Spezi-Guide.md) and [Documentation Guide](Spezi.docc/Documentation-Guide.md) outline the requirements for Spezi-based modules, including terminology, guidance, and examples on structuring a Spezi module, Swift package, and repository.
 
 A ``Standard`` defines the key coordinator that orchestrates data flow in an application by meeting requirements defined by modules.
 You can learn more about the ``Standard`` protocol and when it is advised to create your own standard in the [`Standard`](Spezi.docc/Standard.md) documentation.
@@ -178,7 +178,7 @@ For more information, see the [Spezi documentation catalog](Spezi.docc/Spezi.md)
 
 ## Contributing
 
-Contributions to this project are welcome. Please make sure to read the [contribution guide](Spezi.docc/Contributing%20Guide.md) and the [Contributor Covenant Code of Conduct](https://github.com/SchmiedmayerLab/.github/blob/main/CODE_OF_CONDUCT.md) first.
+Contributions to this project are welcome. Please make sure to read the [contribution guide](Spezi.docc/Contributing-Guide.md) and the [Contributor Covenant Code of Conduct](https://github.com/SchmiedmayerLab/.github/blob/main/CODE_OF_CONDUCT.md) first.
 
 The original Spezi and BDHG projects may continue to be maintained in their respective upstream repositories under the [StanfordSpezi](https://github.com/StanfordSpezi) and [StanfordBDHG](https://github.com/StanfordBDHG) GitHub organizations. Please refer to the upstream repositories for their current development status and new releases.
 

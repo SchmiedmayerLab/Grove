@@ -1,0 +1,25 @@
+#
+# This source file is part of the Stanford Spezi open-source project
+#
+# SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+#
+# SPDX-License-Identifier: MIT
+#
+
+dirs:
+  - .
+useGitIgnore: true
+ignorePatterns:
+  - pattern: '^doc:.*$'
+  - pattern: '^http://localhost.*$'
+  # DocC anchors keep the capitalisation of their heading and never match a GitHub heading slug.
+  - pattern: '^#[A-Z][A-Za-z0-9-]*$'
+  # Spezi is not registered with reuse.software, so its info page 404s.
+  - pattern: '^https://api\.reuse\.software/info/github\.com/SchmiedmayerLab/Spezi$'
+replacementPatterns:
+  - pattern: '(.*)#gh-dark-mode-only'
+    replacement: '$1'
+  - pattern: '(.*)#gh-light-mode-only'
+    replacement: '$1'
+  - pattern: '^(.*\.md)#[A-Z][A-Za-z0-9-]*$'
+    replacement: '$1'

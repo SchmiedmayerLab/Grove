@@ -79,8 +79,8 @@ module to collect health measurements from nearby Bluetooth devices like connect
 blood pressure cuffs.
 
 To support `HealthMeasurements`, you need to adopt the ``HealthDevice`` protocol for your device.
-One your device is loaded, register its measurement service with the `HealthMeasurements` module
-by calling a suitable variant of [`configureReceivingMeasurements(for:on:)`](SpeziDevices.md#register-devices).
+One your device is loaded, register its measurement service with the ``HealthMeasurements`` module
+by calling a suitable variant of `configureReceivingMeasurements(for:on:)`.
 
 ```swift
 import SpeziDevices

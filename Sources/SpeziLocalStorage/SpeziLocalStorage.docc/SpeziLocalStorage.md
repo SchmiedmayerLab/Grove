@@ -19,7 +19,7 @@ You need to add the Spezi Storage Swift package to
 [your app in Xcode](https://developer.apple.com/documentation/xcode/adding-package-dependencies-to-your-app#) or
 [Swift package](https://developer.apple.com/documentation/xcode/creating-a-standalone-swift-package-with-xcode#Add-a-dependency-on-another-Swift-package).
 
-> Important: If your application is not yet configured to use Spezi, follow the [Spezi setup article](../../Spezi/Spezi.docc/Initial%20Setup.md) to set up the core Spezi infrastructure.
+> Important: If your application is not yet configured to use Spezi, follow the [Spezi setup article](../../Spezi/Spezi.docc/Initial-Setup.md) to set up the core Spezi infrastructure.
 
 You can configure the `LocalStorage` module in the [`SpeziAppDelegate`](../../Spezi/Spezi.docc/Spezi.md).
 
@@ -43,7 +43,7 @@ class ExampleDelegate: SpeziAppDelegate {
 
 You can interact with the `LocalStorage` module from within SwiftUI views, either using the ``LocalStorageEntry`` property wrapper or by accessing the module directly (see below).
 
-Alternatively, it is common to use the `LocalStorage` module in other modules as a dependency: [Spezi Module dependencies](../../Spezi/Spezi.docc/Module/Module%20Dependency.md).
+Alternatively, it is common to use the `LocalStorage` module in other modules as a dependency: [Spezi Module dependencies](../../Spezi/Spezi.docc/Module/Module-Dependency.md).
 
 
 ## Use the LocalStorage Module

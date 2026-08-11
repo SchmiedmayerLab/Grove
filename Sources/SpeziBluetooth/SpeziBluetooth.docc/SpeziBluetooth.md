@@ -2,7 +2,7 @@
 
 <!--
 #
-# This source file is part of the Stanford Spezi open source project
+# This source file is part of the Stanford Spezi open-source project
 #
 # SPDX-FileCopyrightText: 2024 Stanford University and the project authors (see CONTRIBUTORS.md)
 #
@@ -35,7 +35,7 @@ You need to add the Spezi Bluetooth Swift package to
 [your app in Xcode](https://developer.apple.com/documentation/xcode/adding-package-dependencies-to-your-app#) or
 [Swift package](https://developer.apple.com/documentation/xcode/creating-a-standalone-swift-package-with-xcode#Add-a-dependency-on-another-Swift-package).
 
-> Important: If your application is not yet configured to use Spezi, follow the [Spezi setup article](../../Spezi/Spezi.docc/Initial%20Setup.md) to set up the core Spezi infrastructure.
+> Important: If your application is not yet configured to use Spezi, follow the [Spezi setup article](../../Spezi/Spezi.docc/Initial-Setup.md) to set up the core Spezi infrastructure.
 
 
 ### Register the Module
@@ -216,7 +216,7 @@ A Spezi [`Module`](../../Spezi/Spezi.docc/Module/Module.md) is a great way of st
 different subsystems and provides extensive capabilities to model relationship and dependence between modules.
 Every ``BluetoothDevice`` is a `Module`.
 Therefore, you can easily access your SpeziBluetooth device from within any Spezi `Module` using the standard
-[Module Dependency](../../Spezi/Spezi.docc/Module/Module%20Dependency.md) infrastructure. At the same time,
+[Module Dependency](../../Spezi/Spezi.docc/Module/Module-Dependency.md) infrastructure. At the same time,
 every `BluetoothDevice` can benefit from the same capabilities as every other Spezi `Module`.
 
 Below is a short code example demonstrating how a `BluetoothDevice` uses the `@Dependency` property to interact with a Spezi Module that is

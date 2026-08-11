@@ -1,6 +1,6 @@
 <!--
 
-This source file is part of the SpeziLocation open source project
+This source file is part of the Stanford Spezi open-source project
 
 SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 
@@ -46,7 +46,7 @@ Then add the product dependency to the target that needs it:
 ```
 
 > [!IMPORTANT]
-> If your application is not yet configured to use Spezi, follow the [Spezi setup article](../Spezi/Spezi.docc/Initial%20Setup.md) to set up the core Spezi infrastructure.
+> If your application is not yet configured to use Spezi, follow the [Spezi setup article](../Spezi/Spezi.docc/Initial-Setup.md) to set up the core Spezi infrastructure.
 
 ### 2. Configure the SpeziLocation module in the `SpeziAppDelegate`.
 

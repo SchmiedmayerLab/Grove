@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi project
+// This source file is part of the Stanford Spezi open-source project
 //
 // SPDX-FileCopyrightText: 2023 Stanford University
 //

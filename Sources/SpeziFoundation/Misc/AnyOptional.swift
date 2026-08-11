@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project.
+// This source file is part of the Stanford Spezi open-source project
 // It is based on the code from the Apodini (https://github.com/Apodini/Apodini) project.
 //
 // SPDX-FileCopyrightText: 2023 Stanford University and the project authors (see CONTRIBUTORS.md) and the Apodini project authors

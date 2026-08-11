@@ -2,7 +2,7 @@
 
 <!--
 
-This source file is part of the Stanford Spezi open source project
+This source file is part of the Stanford Spezi open-source project
 
 SPDX-FileCopyrightText: 2025 Stanford University and the project authors (see CONTRIBUTORS.md)
 
@@ -23,7 +23,7 @@ You need to add the SpeziStudy Swift package to
  [your SPM package](https://developer.apple.com/documentation/xcode/creating-a-standalone-swift-package-with-xcode#Add-a-dependency-on-another-Swift-package).
 
 > Important: If your application is not yet configured to use Spezi, follow the
- [Spezi setup article](../../Spezi/Spezi.docc/Initial%20Setup.md) and set up the core Spezi infrastructure.
+ [Spezi setup article](../../Spezi/Spezi.docc/Initial-Setup.md) and set up the core Spezi infrastructure.
 
 ### Architecture
 
