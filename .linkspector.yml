@@ -14,6 +14,8 @@ ignorePatterns:
   - pattern: '^http://localhost.*$'
   # DocC anchors keep the capitalisation of their heading and never match a GitHub heading slug.
   - pattern: '^#[A-Z][A-Za-z0-9-]*$'
+  # Spezi is not registered with reuse.software, so its info page 404s.
+  - pattern: '^https://api\.reuse\.software/info/github\.com/SchmiedmayerLab/Spezi$'
 replacementPatterns:
   - pattern: '(.*)#gh-dark-mode-only'
     replacement: '$1'
