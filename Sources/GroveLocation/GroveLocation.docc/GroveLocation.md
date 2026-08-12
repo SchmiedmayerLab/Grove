@@ -14,7 +14,7 @@ A Grove module for accessing location data.
 
 ## Overview
 
-The Grove Location Module allows you to access location data from within your [Stanford Grove](https://github.com/StanfordSpezi) app via Apple's [CoreLocation](https://developer.apple.com/documentation/corelocation) service using a simple asynchronous API.
+The Grove Location Module allows you to access location data from within your [Stanford Grove](https://github.com/SchmiedmayerLab/Grove) app via Apple's [CoreLocation](https://developer.apple.com/documentation/corelocation) service using a simple asynchronous API.
 
 ## Setup
 
@@ -24,7 +24,7 @@ You need to add the GroveLocation Swift package to
 [your app in Xcode](https://developer.apple.com/documentation/xcode/adding-package-dependencies-to-your-app#) or
 [Swift package](https://developer.apple.com/documentation/xcode/creating-a-standalone-swift-package-with-xcode#Add-a-dependency-on-another-Swift-package).
 
-> If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial%20Setup.md) to set up the core Grove infrastructure.
+> If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial-Setup.md) to set up the core Grove infrastructure.
 
 ### 2. Configure the GroveLocation module in the GroveAppDelegate.
 

@@ -16,7 +16,7 @@ public import Observation
 /// The Grove `SpeechSynthesizer` encapsulates the functionality of Apple's `AVFoundation` framework, more specifically, the `AVSpeechSynthesizer`.
 /// It provides methods to start and stop voice synthesizing and publishes the state of the process.
 ///
-/// > Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../Grove/Grove.docc/Initial%20Setup.md) to set up the core Grove infrastructure.
+/// > Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../Grove/Grove.docc/Initial-Setup.md) to set up the core Grove infrastructure.
 ///
 /// The module needs to be registered in a Grove-based application using the [`configuration`](../Grove/Grove.docc/Grove.md)
 /// in a [`GroveAppDelegate`](../Grove/Grove.docc/Grove.md):

@@ -20,13 +20,13 @@ struct AnyLocalizedErrorTests {
     private class NSErrorSubclass: NSError, @unchecked Sendable {}
     
     
-    private let domain = "edu.stanford.SpeziViews"
+    private let domain = "org.grovealliance.GroveViews"
     
     @Test
     func fromNSErrorBasic() {
         let input = NSError(domain: domain, code: 0)
         let error = AnyLocalizedError(error: input)
-        #expect(error.errorDescription == "The operation couldn’t be completed. (edu.stanford.SpeziViews error 0.)")
+        #expect(error.errorDescription == "The operation couldn’t be completed. (org.grovealliance.GroveViews error 0.)")
         #expect(error.failureReason == nil)
         #expect(error.helpAnchor == nil)
         #expect(error.recoverySuggestion == nil)

@@ -675,7 +675,6 @@ extension BluetoothManager {
             didDiscover peripheral: CBPeripheral,
             advertisementData: [String: Any],
             // We have to use NSNumber to conform to the `CBCentralManagerDelegate` delegate methods.
-            // swiftlint:disable:next legacy_objc_type
             rssi: NSNumber
         ) {
             guard let manager else {

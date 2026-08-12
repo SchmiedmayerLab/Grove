@@ -101,6 +101,6 @@ private final class TestLifecycleAccessGuardModel: _AnyAccessGuardModel {
 
 @available(iOS 17, *)
 extension AccessGuardIdentifier where AccessGuard == TestLifecycleAccessGuard {
-    fileprivate static let notificationLifecycleTest = Self(value: "edu.stanford.spezi.accessGuard.lifecycleTest")
+    fileprivate static let notificationLifecycleTest = Self(value: "org.grovealliance.groveAccessGuard.lifecycleTest")
 }
 #endif

@@ -15,7 +15,7 @@ import Testing
 struct StorageNamespaceTests {
     @Test
     func customNamespaceResolvesUnderApplicationSupport() throws {
-        let namespace = StorageNamespace.custom("edu.stanford.SpeziFoundation.unitTests.\(UUID().uuidString)")
+        let namespace = StorageNamespace.custom("org.grovealliance.GroveFoundation.unitTests.\(UUID().uuidString)")
         let container = try namespace.containerURL()
 
         let applicationSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -26,7 +26,7 @@ struct StorageNamespaceTests {
     /// non-atomic path, because a destination that already exists cannot be committed by a rename.
     @Test
     func resolvingCreatesNothing() throws {
-        let namespace = StorageNamespace.custom("edu.stanford.SpeziFoundation.unitTests.\(UUID().uuidString)")
+        let namespace = StorageNamespace.custom("org.grovealliance.GroveFoundation.unitTests.\(UUID().uuidString)")
 
         let container = try namespace.containerURL()
         let directory = try namespace.directory(.scheduler)
@@ -37,7 +37,7 @@ struct StorageNamespaceTests {
 
     @Test
     func directoryIsResolvedUnderTheContainer() throws {
-        let namespace = StorageNamespace.custom("edu.stanford.SpeziFoundation.unitTests.\(UUID().uuidString)")
+        let namespace = StorageNamespace.custom("org.grovealliance.GroveFoundation.unitTests.\(UUID().uuidString)")
         let container = try namespace.containerURL()
 
         let directory = try namespace.directory(.scheduler)
@@ -50,7 +50,7 @@ struct StorageNamespaceTests {
     /// to build every intermediate directory.
     @Test
     func createDirectoryBuildsTheWholeChain() throws {
-        let namespace = StorageNamespace.custom("edu.stanford.SpeziFoundation.unitTests.\(UUID().uuidString)")
+        let namespace = StorageNamespace.custom("org.grovealliance.GroveFoundation.unitTests.\(UUID().uuidString)")
         let container = try namespace.containerURL()
         defer { try? FileManager.default.removeItem(at: container) }
 
@@ -62,7 +62,7 @@ struct StorageNamespaceTests {
 
     @Test
     func resolvingIsIdempotent() throws {
-        let namespace = StorageNamespace.custom("edu.stanford.SpeziFoundation.unitTests.\(UUID().uuidString)")
+        let namespace = StorageNamespace.custom("org.grovealliance.GroveFoundation.unitTests.\(UUID().uuidString)")
 
         let first = try namespace.directory(.scheduler)
         let second = try namespace.directory(.scheduler)

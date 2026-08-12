@@ -41,7 +41,7 @@ You use the ``AccountDetails`` collection within your views to visualize account
 An ``AccountService`` provides an abstraction layer for managing different types of account management services
 (e.g., email address and password-based service combined with an identity provider like Sign in with Apple).
 
-> Note: The [GroveFirebase](../../GroveFirebase/README.md)
+> Note: The [GroveFirebase](../../GroveFirebase/GroveFirebase.docc/GroveFirebase.md)
 framework provides the [`FirebaseAccountService`](../../GroveFirebaseAccount/GroveFirebaseAccount.docc/GroveFirebaseAccount.md)
 you can use to configure an Account Service base on the Google Firebase service.
 
@@ -51,7 +51,7 @@ You need to add the Grove Account Swift package to
 [your app in Xcode](https://developer.apple.com/documentation/xcode/adding-package-dependencies-to-your-app#) or
 [Swift package](https://developer.apple.com/documentation/xcode/creating-a-standalone-swift-package-with-xcode#Add-a-dependency-on-another-Swift-package).
 
-> Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial%20Setup.md) to set up the core Grove infrastructure.
+> Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial-Setup.md) to set up the core Grove infrastructure.
 
 The <doc:Initial-Setup> article provides a quick-start guide to set up `GroveAccount` in your App.
 

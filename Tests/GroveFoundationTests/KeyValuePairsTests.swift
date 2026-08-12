@@ -16,7 +16,7 @@ private func expectEqual<Key: Hashable, Value: Equatable>(
     _ rhs: KeyValuePairs<Key, Value>,
     sourceLocation: SourceLocation = #_sourceLocation
 ) throws {
-    let duplicateEntriesError = NSError(domain: "edu.stanford.spezi", code: 0, userInfo: [
+    let duplicateEntriesError = NSError(domain: "org.grovealliance", code: 0, userInfo: [
         NSLocalizedDescriptionKey: "Duplicate keys!"
     ])
     let lhs = try Dictionary(lhs.lazy.map { ($0, $1) }, uniquingKeysWith: { _, _ in throw duplicateEntriesError })

@@ -360,7 +360,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "This App uses Bluetooth to connect to nearby devices.";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezibluetooth.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovebluetooth.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -395,7 +395,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "This App uses Bluetooth to connect to nearby devices.";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezibluetooth.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovebluetooth.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -429,7 +429,7 @@
 		6564909C3002CEA900F1D55F /* Debug configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezibluetooth.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovebluetooth.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -451,7 +451,7 @@
 		6564909D3002CEA900F1D55F /* Release configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezibluetooth.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovebluetooth.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;

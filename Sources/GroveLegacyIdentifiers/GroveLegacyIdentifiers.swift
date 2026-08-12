@@ -16,7 +16,7 @@
 /// There are two lifetimes, kept in separate directories:
 ///
 /// - `Transitional/` — read once, migrated, then never again. Deleted along with the migrations that
-///   consume them, no earlier than one minor release after 0.2.0.
+///   consume them, no earlier than one minor release after 0.3.0.
 /// - `Published/` — written into FHIR resources that left the device. Read forever, never deleted.
 ///
 /// Nothing here is marked deprecated. This target is not a package product, so the only code that can

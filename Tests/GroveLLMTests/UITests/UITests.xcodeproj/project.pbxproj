@@ -385,7 +385,7 @@
 			buildSettings = {
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "The Test Application uses the micophone to test the dication functionality.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Speech recognition necessary for transcribing voice input.";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezillm.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovellm.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -422,7 +422,7 @@
 			buildSettings = {
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "The Test Application uses the micophone to test the dication functionality.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Speech recognition necessary for transcribing voice input.";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezillm.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovellm.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -457,7 +457,7 @@
 		6564909C3002CEA900F1D55F /* Debug configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezillm.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovellm.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -480,7 +480,7 @@
 		6564909D3002CEA900F1D55F /* Release configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezillm.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovellm.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;

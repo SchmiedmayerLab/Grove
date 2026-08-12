@@ -354,7 +354,7 @@
 				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "Please provide health records access to test";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Please provide read permission to test the module's functionality.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Please provide update permission to test the module's functionality.";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezihealthkitfhir.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovehealthkitfhir.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -392,7 +392,7 @@
 				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "Please provide health records access to test";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Please provide read permission to test the module's functionality.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Please provide update permission to test the module's functionality.";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezihealthkitfhir.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovehealthkitfhir.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -426,7 +426,7 @@
 		6564909C3002CEA900F1D55F /* Debug configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezihealthkitfhir.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovehealthkitfhir.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -448,7 +448,7 @@
 		6564909D3002CEA900F1D55F /* Release configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezihealthkitfhir.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovehealthkitfhir.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;

@@ -52,7 +52,7 @@ The following example works the same way on Apple platforms and on Linux:
 import GroveFoundation
 
 let logger = Logger(
-    subsystem: "edu.stanford.spezi",
+    subsystem: "org.grovealliance",
     category: "GroveFoundation"
 )
 

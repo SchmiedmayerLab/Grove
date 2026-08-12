@@ -75,7 +75,7 @@ struct RenderedConsentDocumentView: View {
                 AsyncButton("Show PDF", state: $viewState) {
                     let tmpUrl = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString, conformingTo: .pdf)
                     guard let data = exportResult.pdf.dataRepresentation() else {
-                        throw NSError(domain: "edu.stanford.SpeziConsent", code: 0, userInfo: [
+                        throw NSError(domain: "org.grovealliance.GroveConsent", code: 0, userInfo: [
                             NSLocalizedDescriptionKey: "Unable to obtain PDF data"
                         ])
                     }

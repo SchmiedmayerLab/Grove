@@ -14,7 +14,7 @@ struct EmptyServicesWarning: View {
     private var documentationUrl: URL {
         // we may move to a #URL macro once Swift 5.9 is shipping
         guard let docsUrl = URL(
-            string: "https://github.com/SchmiedmayerLab/Spezi/blob/main/Sources/GroveAccount/GroveAccount.docc/Setup%20Guides/Initial%20Setup.md"
+            string: "https://github.com/SchmiedmayerLab/Grove/blob/main/Sources/GroveAccount/GroveAccount.docc/Setup-Guides/Initial-Setup.md"
         ) else {
             fatalError("Failed to construct GroveAccount Documentation URL. Please review URL syntax!")
         }

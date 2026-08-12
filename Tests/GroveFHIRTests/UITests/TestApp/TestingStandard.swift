@@ -37,8 +37,8 @@ actor TestingStandard: Standard, HealthKitConstraint, EnvironmentAccessible {
     }
     
     private func initialSetup() async {
-        // Waiting until the HealthKit module loads all authorization requirements.
-        // Issue tracked in https://github.com/StanfordSpezi/SpeziHealthKit/issues/57.
+        // Waiting until the HealthKit module loads all authorization requirements: the module reports
+        // `.completed` asynchronously and offers no way to await it, so this polls with a short ceiling.
         let loadingStartDate = Date.now
         while healthKit.configurationState != .completed && abs(loadingStartDate.distance(to: .now)) < 0.5 {
             logger.debug("Loading HealthKit Module ...")

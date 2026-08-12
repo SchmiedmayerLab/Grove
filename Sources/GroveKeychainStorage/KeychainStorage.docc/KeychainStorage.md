@@ -28,7 +28,7 @@ You need to add the Grove Storage Swift package to
 [your app in Xcode](https://developer.apple.com/documentation/xcode/adding-package-dependencies-to-your-app#) or
 [Swift package](https://developer.apple.com/documentation/xcode/creating-a-standalone-swift-package-with-xcode#Add-a-dependency-on-another-Swift-package).
 
-> Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial%20Setup.md) to set up the core Grove infrastructure.
+> Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial-Setup.md) to set up the core Grove infrastructure.
 
 > Important: If you use the ``KeychainStorage`` on the macOS platform, ensure to add the [`Keychain Access Groups` entitlement](https://developer.apple.com/documentation/bundleresources/entitlements/keychain-access-groups) to the enclosing Xcode project via *PROJECT_NAME > Signing&Capabilities > + Capability*. The array of keychain groups can be left empty, only the base entitlement is required.
 
@@ -61,7 +61,7 @@ struct ExampleStorageView: View {
 }
 ```
 
-Alternatively, it is common to use the `KeychainStorage` module in other modules as a dependency: [Grove Module dependencies](../../Grove/Grove.docc/Module/Module%20Dependency.md).
+Alternatively, it is common to use the `KeychainStorage` module in other modules as a dependency: [Grove Module dependencies](../../Grove/Grove.docc/Module/Module-Dependency.md).
 
 
 ## Using the KeychainStorage Module

@@ -40,7 +40,7 @@ What you have to change is your own source: the module names you import, and fou
 ```
 
 Update the product names in your `Package.swift` to match.
-There are no source-compatibility typealiases — 0.2.0 is a deliberate clean break.
+There are no source-compatibility typealiases — 0.3.0 is a deliberate clean break.
 If you are configuring Grove for the first time, start from <doc:Initial-Setup> instead.
 
 ### Update `BGTaskSchedulerPermittedIdentifiers`
@@ -117,7 +117,7 @@ There is no API to call and no flag to set.
 | Study bundles on disk | `<uuid>.spezistudybundle` | `<uuid>.studybundle` |
 | Scheduler and device preferences | `edu.stanford.spezi.*` UserDefaults keys | their unprefixed successors |
 
-Those old reverse-DNS strings are exactly what a pre-0.2.0 app wrote on the device.
+Those old reverse-DNS strings are exactly what a pre-0.3.0 app wrote on the device.
 Grove reads each one, moves what it finds, and never writes it again.
 A fresh install finds nothing at any of these locations, so every migration is a no-op and the strings never appear.
 
@@ -151,8 +151,9 @@ If an analysis pipeline is keyed on the old URLs, opt into dual-write while you 
 FHIRWritePolicy.default = .canonicalAndSuperseded
 ```
 
-Every resource then carries a compatibility copy under each superseded spelling.
+Every `Observation` Grove builds from a HealthKit sample then carries a compatibility copy under each superseded spelling.
 Copies are deep, so nested extensions such as `sourceRevision/source/bundleIdentifier` are reproduced in full, and the pass is idempotent.
+Resources you assemble yourself — and the clinical records Grove only tags — opt in by calling `writeSupersededSpellings(of:)` once the extensions are in place.
 
 > Note: Dual-written extensions are duplicates, not new information.
 > Anything reading through Grove already resolves both spellings and should leave this at its default of `.canonicalOnly`.

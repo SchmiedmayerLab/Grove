@@ -18,7 +18,7 @@ public import Speech
 /// The Grove `SpeechRecognizer` encapsulates the functionality of Apple's `Speech` framework, more specifically, the `SFSpeechRecognizer`.
 /// It provides methods to start and stop voice recognition and publishes the state of recognition and its availability.
 ///
-/// > Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../Grove/Grove.docc/Initial%20Setup.md) to set up the core Grove infrastructure.
+/// > Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../Grove/Grove.docc/Initial-Setup.md) to set up the core Grove infrastructure.
 ///
 /// The module needs to be registered in a Grove-based application using the [`configuration`](../Grove/Grove.docc/Grove.md)
 /// in a [`GroveAppDelegate`](../Grove/Grove.docc/Grove.md):

@@ -7,8 +7,6 @@
 //
 
 
-// swiftlint:disable attributes
-
 public import CoreFoundation
 public import Foundation
 public import Security
@@ -475,5 +473,3 @@ extension Equatable {
         return self == other
     }
 }
-
-// swiftlint:enable attributes

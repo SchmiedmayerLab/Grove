@@ -174,7 +174,7 @@ import OSLog
 /// different subsystems and provides extensive capabilities to model relationship and dependence between modules.
 /// Every ``BluetoothDevice`` is a `Module`.
 /// Therefore, you can easily access your GroveBluetooth device from within any Grove `Module` using the standard
-/// [Module Dependency](../Grove/Grove.docc/Module/Module%20Dependency.md) infrastructure. At the same time,
+/// [Module Dependency](../Grove/Grove.docc/Module/Module-Dependency.md) infrastructure. At the same time,
 /// every `BluetoothDevice` can benefit from the same capabilities as every other Grove `Module`.
 ///
 /// Below is a short code example demonstrating how a `BluetoothDevice` uses the `@Dependency` property to interact with a Grove Module that is

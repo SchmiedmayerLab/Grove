@@ -559,8 +559,8 @@ final class AccountSetupTests: XCTestCase { // swiftlint:disable:this type_body_
     }
     
     
-    // Ensure AccountSetup properly handles the `incomplete` flag
-    // https://github.com/StanfordSpezi/SpeziAccount/pull/79
+    // Ensure AccountSetup properly handles the `incomplete` flag: signing in with an account whose
+    // external storage still owes required details must land on the follow-up sheet, not the main view.
     @MainActor
     func testLoginWithAdditionalStorage() throws {
         let app = XCUIApplication()

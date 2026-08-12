@@ -13,7 +13,7 @@ import XCTGroveNotifications
 
 /// Scheduler notification identifiers are derived from the host app's bundle identifier, so they are
 /// no longer a fixed vendor string. Kept in one place: the TestApp's bundle id decides the value.
-private let schedulerNotificationPrefix = "edu.stanford.spezi.spezischeduler.testapp.scheduler.notification"
+private let schedulerNotificationPrefix = "org.grovealliance.grovescheduler.testapp.scheduler.notification"
 
 
 

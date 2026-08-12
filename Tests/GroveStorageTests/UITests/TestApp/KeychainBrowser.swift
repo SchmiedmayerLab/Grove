@@ -41,8 +41,8 @@ struct KeychainBrowser: View { // swiftlint:disable:this file_types_order
         }
         Section {
             Button("Add Key Entry") {
-                let tag1 = CryptographicKeyTag("edu.stanford.spezi.testKey1", storage: .secureEnclave, label: "Test Key 1")
-                let tag2 = CryptographicKeyTag("edu.stanford.spezi.testKey2", storage: .keychain, label: "Test Key 2")
+                let tag1 = CryptographicKeyTag("org.grovealliance.grovetestKey1", storage: .secureEnclave, label: "Test Key 1")
+                let tag2 = CryptographicKeyTag("org.grovealliance.grovetestKey2", storage: .keychain, label: "Test Key 2")
                 _ = try? keychain.createKey(for: tag1)
                 _ = try? keychain.createKey(for: tag2)
                 updateKeys()

@@ -12,7 +12,7 @@ import OSLog
 
 
 class PCMPlayer {
-    private static let logger = Logger(subsystem: "edu.stanford.spezi", category: "GroveLLMUITests")
+    private static let logger = Logger(subsystem: "org.grovealliance", category: "GroveLLMUITests")
 
     private let audioEngine = AVAudioEngine()
     private let playerNode = AVAudioPlayerNode()

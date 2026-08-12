@@ -19,7 +19,7 @@ public struct OnboardingTitleView: View {
     private let title: Text
     private let subtitle: Text?
     
-    @_documentation(visibility: internal) // swiftlint:disable:next attributes
+    @_documentation(visibility: internal)
     public var body: some View {
         VStack(alignment: ProcessInfo.isIOS26 ? .leading : .center) {
             title

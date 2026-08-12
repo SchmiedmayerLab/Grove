@@ -15,7 +15,7 @@ import Testing
 
 @Suite(.serialized)
 final class LocalPreferenceTests {
-    let suiteName = "edu.stanford.SpeziFoundation.unitTests"
+    let suiteName = "org.grovealliance.GroveFoundation.unitTests"
     let suite: UserDefaults
     let store: LocalPreferencesStore
     
@@ -31,14 +31,14 @@ final class LocalPreferenceTests {
     
     @Test
     func simpleTypes() throws {
-        #expect(LocalPreferenceKeys.string.key.value == "edu_stanford_SpeziFoundation_unitTests:string")
-        #expect(LocalPreferenceKeys.stringOpt.key.value == "edu_stanford_SpeziFoundation_unitTests:stringOpt")
+        #expect(LocalPreferenceKeys.string.key.value == "org_grovealliance_GroveFoundation_unitTests:string")
+        #expect(LocalPreferenceKeys.stringOpt.key.value == "org_grovealliance_GroveFoundation_unitTests:stringOpt")
         #expect(store[.string] == "")
         #expect(store[.stringOpt] == nil)
-        #expect(suite.string(forKey: "edu_stanford_SpeziFoundation_unitTests:string") == nil)
+        #expect(suite.string(forKey: "org_grovealliance_GroveFoundation_unitTests:string") == nil)
         store[.string] = "abc"
         #expect(store[.string] == "abc")
-        #expect(try #require(suite.string(forKey: "edu_stanford_SpeziFoundation_unitTests:string")) == "abc")
+        #expect(try #require(suite.string(forKey: "org_grovealliance_GroveFoundation_unitTests:string")) == "abc")
     }
     
     
@@ -403,7 +403,7 @@ final class LocalPreferenceTests {
     private func withTemporarySuiteForMigration(
         _ test: (_ store: LocalPreferencesStore) throws -> Void
     ) throws {
-        let suiteName = "edu.stanford.SpeziFoundation.unitTests.migrationTesting.\(UUID().uuidString)"
+        let suiteName = "org.grovealliance.GroveFoundation.unitTests.migrationTesting.\(UUID().uuidString)"
         defer {
             UserDefaults.standard.removePersistentDomain(forName: suiteName)
         }
@@ -507,8 +507,8 @@ final class LocalPreferenceTests {
 
 
 extension LocalPreferenceKeys.Namespace {
-    fileprivate static let groveFoundationUnitTests: Self = .custom("edu.stanford.SpeziFoundation.unitTests")
-    fileprivate static let groveFoundationUnitTestsAlt: Self = .custom("edu.stanford.SpeziFoundation.unitTests.alt")
+    fileprivate static let groveFoundationUnitTests: Self = .custom("org.grovealliance.GroveFoundation.unitTests")
+    fileprivate static let groveFoundationUnitTestsAlt: Self = .custom("org.grovealliance.GroveFoundation.unitTests.alt")
 }
 
 extension LocalPreferenceKeys {

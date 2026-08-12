@@ -113,8 +113,7 @@ targets = ["GroveHealthKit", "Codegen", "LocalizationsProcessor", "GroveHealthKi
 tests = ["GroveHealthKitTests"]
 uiTests = ["iOS"]
 
-# Formerly the standalone HealthKitOnFHIR package; merged into GroveHealthKit by its PR #86 (see
-# Package.swift). Kept as its own scheduling entry rather than folded into [GroveHealthKit], so its
+# Formerly a standalone HealthKit-to-FHIR package, merged into this monorepo (see Package.swift). Kept as its own scheduling entry rather than folded into [GroveHealthKit], so its
 # UITests project keeps a home and CI stays granular -- the test matrix is directory-based.
 [GroveHealthKitFHIR]
 platforms = ["iOS", "macOS", "watchOS"]

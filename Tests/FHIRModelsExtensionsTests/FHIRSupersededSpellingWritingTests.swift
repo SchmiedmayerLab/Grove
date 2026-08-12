@@ -15,7 +15,10 @@ import Testing
 
 /// Dual-write exists so an analysis pipeline keyed on the pre-Grove URLs keeps working across the
 /// update. A copy that is subtly wrong is worse than none, so these check the copies are exact.
-@Suite
+///
+/// Serialized because `FHIRWritePolicy.default` is process-wide: a test that opts in would otherwise
+/// race the ones asserting the shipped default.
+@Suite(.serialized)
 struct FHIRSupersededSpellingWritingTests {
     private static let canonical = "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice"
     private static let legacy = "https://bdh.stanford.edu/fhir/defs/sourceDevice"
@@ -184,5 +187,51 @@ struct FHIRSupersededSpellingWritingTests {
     @Test
     func theShippedDefaultIsCanonicalOnly() {
         #expect(FHIRWritePolicy.default == .canonicalOnly)
+    }
+
+    /// The point of routing every writer through `append` is that a dual-write reaches extensions no
+    /// call site named. If this breaks, opting in silently stops covering whatever was added last.
+    @Test
+    func appendingDualWritesWithoutTheCallerNamingTheIdentifier() throws {
+        let previous = FHIRWritePolicy.default
+        defer { FHIRWritePolicy.default = previous }
+        FHIRWritePolicy.default = .canonicalAndSuperseded
+
+        var subject = observation([])
+        subject.append(extension: ext(Self.canonical, value: "payload"))
+
+        #expect(Set(urls(subject)) == [Self.canonical, Self.legacy])
+        let copy = try #require(subject.extension?.first { $0.urlString == Self.legacy })
+        #expect(copy.value?.stringValue?.value?.string == "payload")
+    }
+
+    @Test
+    func appendingUnderTheDefaultPolicyAddsNoCopies() {
+        var subject = observation([])
+        subject.append(extension: ext(Self.canonical, value: "payload"))
+        #expect(urls(subject) == [Self.canonical])
+    }
+
+    /// An identifier this project writes has to be reachable from the registry, otherwise the `append`
+    /// hook cannot mirror it and a dual-write silently skips that extension.
+    @Test
+    func theIdentifiersThisModuleWritesAreRegistered() throws {
+        // Touching the declaration runs its initializer, which is what registers it.
+        for url in [FHIRExtensionURL.absoluteTimeRangeStart, .absoluteTimeRangeEnd] {
+            let spelling = url.url.absoluteString
+            let registered = try #require(
+                FHIRSupersessionRegistry.identifier(forCanonical: spelling),
+                "\(spelling) retires a spelling but never reached the registry"
+            )
+            #expect(registered.superseded == url.superseded.map(\.absoluteString))
+        }
+    }
+
+    @Test
+    func theRegistryOnlyHoldsIdentifiersThatRetiredSomething() {
+        #expect(!FHIRSupersessionRegistry.all.isEmpty)
+        for identifier in FHIRSupersessionRegistry.all {
+            #expect(!identifier.superseded.isEmpty, "\(identifier.canonical) registered without a retired spelling")
+        }
     }
 }

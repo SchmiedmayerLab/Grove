@@ -28,15 +28,15 @@ struct AnyLocalizableErrorTestView: View {
                     ))
                 }
                 Button("NSError (Simple 1)") {
-                    `throw`(NSError(domain: "edu.stanford.SpeziViews", code: 123))
+                    `throw`(NSError(domain: "org.grovealliance.GroveViews", code: 123))
                 }
                 Button("NSError (Simple 2)") {
-                    `throw`(NSError(domain: "edu.stanford.SpeziViews", code: 123, userInfo: [
+                    `throw`(NSError(domain: "org.grovealliance.GroveViews", code: 123, userInfo: [
                         NSLocalizedDescriptionKey: "NSError Localized Description Text"
                     ]))
                 }
                 Button("NSError (Simple 3)") {
-                    `throw`(NSError(domain: "edu.stanford.SpeziViews", code: 123, userInfo: [
+                    `throw`(NSError(domain: "org.grovealliance.GroveViews", code: 123, userInfo: [
                         NSLocalizedDescriptionKey: "NSError Localized Description Text",
                         NSLocalizedFailureReasonErrorKey: "NSError Localized Failure Reason Text",
                         NSHelpAnchorErrorKey: "NSError Localized Help Anchor Text",

@@ -21,7 +21,7 @@ Configure the account service by supplying it to the
  [`AccountConfiguration`](../../GroveAccount/GroveAccount.docc/GroveAccount.md).
 
 > Note: For more information refer to the
-[Account Configuration](../../GroveAccount/GroveAccount.docc/Setup%20Guides/Initial%20Setup.md#Account-Configuration) article.
+[Account Configuration](../../GroveAccount/GroveAccount.docc/Setup-Guides/Initial-Setup.md#Account-Configuration) article.
 
 ```swift
 import GroveAccount

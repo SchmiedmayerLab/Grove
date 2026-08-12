@@ -22,7 +22,7 @@ struct DevicesStorageTests {
         let legacyRoot = root.appendingPathComponent("Documents")
         try? fileManager.createDirectory(at: legacyRoot, withIntermediateDirectories: true)
         defer { try? fileManager.removeItem(at: root) }
-        try body(.custom("edu.stanford.SpeziDevices.unitTests.\(UUID().uuidString)"), legacyRoot, root)
+        try body(.custom("org.grovealliance.GroveDevices.unitTests.\(UUID().uuidString)"), legacyRoot, root)
     }
 
     private func writeStore(named name: String, in directory: URL, contents: String) throws {
@@ -113,7 +113,7 @@ struct DevicesStorageTests {
     // MARK: Preferences
 
     private func withDefaults(_ body: (UserDefaults) throws -> Void) throws {
-        let suite = "edu.stanford.SpeziDevices.unitTests.\(UUID().uuidString)"
+        let suite = "org.grovealliance.GroveDevices.unitTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         try body(defaults)

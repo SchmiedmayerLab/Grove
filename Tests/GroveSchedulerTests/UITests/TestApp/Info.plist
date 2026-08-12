@@ -4,7 +4,7 @@
 <dict>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>edu.stanford.spezi.spezischeduler.testapp.scheduler.refresh</string>
+		<string>org.grovealliance.grovescheduler.testapp.scheduler.refresh</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>

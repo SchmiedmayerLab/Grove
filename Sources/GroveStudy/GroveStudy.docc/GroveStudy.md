@@ -23,7 +23,7 @@ You need to add the GroveStudy Swift package to
  [your SPM package](https://developer.apple.com/documentation/xcode/creating-a-standalone-swift-package-with-xcode#Add-a-dependency-on-another-Swift-package).
 
 > Important: If your application is not yet configured to use Grove, follow the
- [Grove setup article](../../Grove/Grove.docc/Initial%20Setup.md) and set up the core Grove infrastructure.
+ [Grove setup article](../../Grove/Grove.docc/Initial-Setup.md) and set up the core Grove infrastructure.
 
 ### Architecture
 

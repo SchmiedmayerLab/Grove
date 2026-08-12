@@ -22,11 +22,11 @@ CMD=$1
 script_dir=$(dirname "$0")
 
 APPLICATION_PATH="/Applications/TestPeripheral"
-SERVICE_LABEL="edu.stanford.spezi.bluetooth.testperipheral"
+SERVICE_LABEL="edu.stanford.grove.bluetooth.testperipheral"
 LAUNCH_PATH="${HOME}/Library/LaunchAgents"
 PLIST_PATH="${LAUNCH_PATH}/${SERVICE_LABEL}.plist"
-TEMPLATE_PATH=${script_dir}/edu.stanford.spezi.bluetooth.testperipheral.plist.template
-TEMP_PATH=${script_dir}/edu.stanford.spezi.bluetooth.testperipheral.plist.temp
+TEMPLATE_PATH=${script_dir}/edu.stanford.grove.bluetooth.testperipheral.plist.template
+TEMP_PATH=${script_dir}/edu.stanford.grove.bluetooth.testperipheral.plist.temp
 
 function failed()
 {

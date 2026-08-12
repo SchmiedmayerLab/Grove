@@ -382,7 +382,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "TestApp/TestApp.entitlements";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezifirebase.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovefirebase.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -417,7 +417,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "TestApp/TestApp.entitlements";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezifirebase.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovefirebase.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -452,7 +452,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				INFOPLIST_FILE = "TestAppUITests/Info.plist";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezifirebase.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovefirebase.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -475,7 +475,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				INFOPLIST_FILE = "TestAppUITests/Info.plist";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezifirebase.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovefirebase.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;

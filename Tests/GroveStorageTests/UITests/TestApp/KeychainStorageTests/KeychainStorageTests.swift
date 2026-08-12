@@ -341,7 +341,7 @@ final class KeychainStorageTests: TestAppTestCase { // swiftlint:disable:this ty
     
     
     func testKeys0() throws {
-        let tag = CryptographicKeyTag("edu.stanford.spezi.testKey", storage: .keychain, label: "TestKey Label")
+        let tag = CryptographicKeyTag("org.grovealliance.grovetestKey", storage: .keychain, label: "TestKey Label")
         
         try XCTAssertEqual(try keychainStorage.retrieveAllKeys(.private), [])
         try XCTAssertEqual(try keychainStorage.retrieveAllKeys(.public), [])
@@ -447,7 +447,7 @@ final class KeychainStorageTests: TestAppTestCase { // swiftlint:disable:this ty
         #endif
         
         for (idx, storageOption) in storageOptionsToTest.enumerated() {
-            let tag = CryptographicKeyTag("edu.stanford.spezi.testKey_\(idx)", storage: storageOption)
+            let tag = CryptographicKeyTag("org.grovealliance.grovetestKey_\(idx)", storage: storageOption)
             let key = try keychainStorage.createKey(for: tag)
             do {
                 try XCTAssertEqual(key, try keychainStorage.retrievePrivateKey(for: tag))

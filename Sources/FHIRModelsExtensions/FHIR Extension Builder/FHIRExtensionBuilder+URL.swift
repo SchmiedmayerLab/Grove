@@ -29,11 +29,16 @@ public struct FHIRExtensionURL: Sendable, Hashable {
         [url] + superseded
     }
 
+    /// The same identifier in the string-backed form ``FHIRTypeWithExtensions/writeSupersededSpellings(of:policy:)`` takes.
+    @inlinable public var canonicalURL: FHIRCanonicalURL {
+        FHIRCanonicalURL(url.absoluteString, superseding: superseded.map(\.absoluteString))
+    }
+
     /// Creates a FHIR Extension URL.
-    @inlinable
     public init(_ url: URL, superseding superseded: [URL] = []) {
         self.url = url
         self.superseded = superseded
+        FHIRSupersessionRegistry.register(canonicalURL)
     }
     
     /// Creates a FHIR Extension URL from a String.
@@ -98,7 +103,7 @@ extension FHIRExtensionURL {
 
 // MARK: FHIR Helpers
 
-// swiftlint:disable missing_docs discouraged_optional_collection function_default_parameter_at_end
+// swiftlint:disable missing_docs discouraged_optional_collection
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ModelsR4.Extension {

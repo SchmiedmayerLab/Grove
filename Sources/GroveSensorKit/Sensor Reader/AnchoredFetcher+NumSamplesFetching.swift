@@ -43,6 +43,14 @@ extension AnchoredFetcher {
         }
         
         func next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Element? {
+            guard !Task.isCancelled else {
+                // NOTE: we must stop the delegate here, rather than simply returning: if the cancellation
+                // happened while the consumer was between `next()` calls, no cancellation handler was
+                // installed, so nothing else will release a `processCurrentSamples()` that is parked in
+                // `semaphore.wait()`, and the underlying fetch would keep running. `stop()` is idempotent.
+                delegate.stop()
+                return nil
+            }
             if !isFetching {
                 isFetching = true
                 let fetchRequest = SRFetchRequest()
@@ -51,7 +59,7 @@ extension AnchoredFetcher {
                 fetchRequest.to = .current()
                 reader.fetch(fetchRequest)
             }
-            return try await delegate.nextBatch()
+            return try await delegate.nextBatch(isolation: actor)
         }
         
         /// Explicit witness for the legacy `next()` requirement.
@@ -131,11 +139,14 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
     
     /// Protects all mutable state in the object.
     ///
-    /// Recursive because `processCurrentSamples`' empty branch calls `stop()` while holding it.
-    /// The semaphore wait always happens **outside** the lock (see `processCurrentSamples`), as do the
-    /// continuation resumes in `nextBatch`, `stop`, and `failedWithError`.
-    /// `processCurrentSamples` resumes while holding the lock, which is safe because `resume` only enqueues
-    /// the consumer's task (it never runs it inline), and the lock is recursive.
+    /// Recursive because `takeNextBatchResumption`'s empty branch calls `stop()` while holding it.
+    /// The semaphore wait always happens **outside** the lock (see `processCurrentSamples`), and so does
+    /// **every** continuation resume (`nextBatch`, `stop`, `failedWithError`, and `processCurrentSamples`
+    /// via `takeNextBatchResumption`).
+    /// Resuming under the lock is not merely undesirable but an actual deadlock: a cross-thread `resume`
+    /// acquires the consumer task's status-record lock, and `swift_task_cancel` acquires that same lock
+    /// before running our cancellation handler, which then wants this lock (ABBA). Note that recursion
+    /// does not help here, since the two acquisitions are on different threads.
     ///
     /// Context: the state held by instances of this class is accessed from both the Swift Concurrency consumer thread
     /// (`nextBatch()`, `stop()` via `SampleCountBasedFetcher.deinit`) and SensorKit's callback thread
@@ -177,33 +188,41 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         }
     }
     
-    func nextBatch() async throws -> Element? {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Element?, any Error>) in
-            lock.lock()
-            switch state {
-            case .fetching, .flushing:
-                // NOTE: the state may transition away from `.fetching` or `.flushing` at any point
-                // after we release the lock (SensorKit's callbacks run on their own thread);
-                // the termination paths are responsible for resuming a parked continuation, so this is safe.
-                // this can only fire on consumer misuse (two concurrent `next()` calls on the same
-                // iterator (which should be impossible as the iterator is not Sendable));
-                // it is inside the lock, so it can no longer fire spuriously on the
-                // SensorKit-callback races that the old unguarded preconditions crashed on.
-                precondition(nextBatchContinuation == nil, "\(sensor.displayName)")
-                nextBatchContinuation = continuation
-                lock.unlock()
-                semaphore.signal() // signal that continuation is ready
-            case .failed(let error):
-                // the fetch has failed: end the iteration.
-                state = .terminated
-                lock.unlock()
-                continuation.resume(throwing: error)
-            case .terminated:
-                // the fetch has already completed, or been stopped: end the iteration.
-                lock.unlock()
-                continuation.resume(returning: nil)
-            }
-        }
+    func nextBatch(isolation: isolated (any Actor)?) async throws -> Element? {
+        try await withTaskCancellationHandler(
+            operation: {
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Element?, any Error>) in
+                    lock.lock()
+                    switch state {
+                    case .fetching, .flushing:
+                        // NOTE: the state may transition away from `.fetching` or `.flushing` at any point
+                        // after we release the lock (SensorKit's callbacks run on their own thread);
+                        // the termination paths are responsible for resuming a parked continuation, so this is safe.
+                        // this can only fire on consumer misuse (two concurrent `next()` calls on the same
+                        // iterator (which should be impossible as the iterator is not Sendable));
+                        // it is inside the lock, so it can no longer fire spuriously on the
+                        // SensorKit-callback races that the old unguarded preconditions crashed on.
+                        precondition(nextBatchContinuation == nil, "\(sensor.displayName)")
+                        nextBatchContinuation = continuation
+                        lock.unlock()
+                        semaphore.signal() // signal that continuation is ready
+                    case .failed(let error):
+                        // the fetch has failed: end the iteration.
+                        state = .terminated
+                        lock.unlock()
+                        continuation.resume(throwing: error)
+                    case .terminated:
+                        // the fetch has already completed, or been stopped: end the iteration.
+                        lock.unlock()
+                        continuation.resume(returning: nil)
+                    }
+                }
+            },
+            onCancel: {
+                stop()
+            },
+            isolation: isolation
+        )
     }
     
     func stop() {
@@ -236,6 +255,22 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         // with `stop()`: it acquires the lock and then signals the semaphore, but if we held
         // the lock here it could never acquire it to signal us.
         semaphore.wait() // wait for continuation to be ready
+        // IMPORTANT: the resume must also happen OUTSIDE the lock; see `takeNextBatchResumption()`.
+        if let (continuation, value) = takeNextBatchResumption() {
+            continuation.resume(returning: value)
+        }
+    }
+
+    /// Performs the locked half of ``processCurrentSamples()``: advances the state machine, takes ownership
+    /// of the parked continuation, and computes the value that continuation should be resumed with.
+    ///
+    /// - Important: the caller must resume the returned continuation only *after* this function has returned,
+    ///     i.e. once `lock` has been released again. Resuming a continuation whose task is parked on another
+    ///     thread requires that task's status-record lock, and `swift_task_cancel` acquires that very lock
+    ///     *before* invoking our cancellation handler, which in turn wants `lock`. Resuming while holding
+    ///     `lock` therefore deadlocks (ABBA) against a concurrent cancellation of the consuming task.
+    /// - returns: the parked continuation and the value to resume it with, or `nil` if no consumer is parked.
+    private func takeNextBatchResumption() -> (CheckedContinuation<Element?, any Error>, Element?)? {
         lock.lock()
         defer {
             lock.unlock()
@@ -248,11 +283,12 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
             break
         }
         guard let nextBatchContinuation else {
-            return
+            return nil
         }
+        self.nextBatchContinuation = nil
+        let value: Element?
         if let first = samples.first {
             // samples is not empty
-            self.nextBatchContinuation = nil
             // NOTE: most of the time, SensorKit queries return their samples in ascending chronological order,
             // which, were it guaranteed behaviour, would allow us to simply do `first.timeRange.lowerBound..<last.timeRange.lowerBound`.
             // but, it is not guaranteed, and sometimes the samples are not ordered, and as a result we need to do this ugly O(n) here...
@@ -269,14 +305,12 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
                 }
                 return start..<end
             }()
-            nextBatchContinuation.resume(returning: (
-                SensorKit.BatchInfo(timeRange: timeRange, device: deviceInfo),
-                samples
-            ))
+            value = (SensorKit.BatchInfo(timeRange: timeRange, device: deviceInfo), samples)
         } else {
             // samples is empty
-            self.nextBatchContinuation = nil
-            nextBatchContinuation.resume(returning: nil)
+            value = nil
+            // NOTE: safe to call while holding the (recursive) lock: we have already taken the continuation
+            // above, so `stop()`'s own resume is a no-op and cannot resume anything under the lock.
             stop()
         }
         if let lastSeenTimestamp {
@@ -287,6 +321,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
             }
         }
         samples.removeAll(keepingCapacity: true)
+        return (nextBatchContinuation, value)
     }
     
     func sensorReader(_ reader: SRSensorReader, fetching fetchRequest: SRFetchRequest, didFetchResult result: SRFetchResult<AnyObject>) -> Bool {

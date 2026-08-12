@@ -13,8 +13,8 @@
 #
 # Why this exists: FHIRModels 0.9.0 turned `Element`/`DomainResource` from classes into protocols.
 # You cannot retroactively conform a protocol to another protocol, so the pre-0.9.0 approach
-# (`extension ModelsR4.Element: FHIRTypeWithExtensions {}`) no longer compiles. Upstream SpeziFHIR #47
-# solved this by adding `_FHIRTypeWithExtensions` *inside* a FHIRModels fork -- but a released package
+# (`extension ModelsR4.Element: FHIRTypeWithExtensions {}`) no longer compiles. The approach upstream
+# took was to add `_FHIRTypeWithExtensions` *inside* a FHIRModels fork -- but a released package
 # cannot depend on a fork branch (SwiftPM rejects a stable-version package depending on a
 # branch/revision requirement). So we recreate the protocol locally and generate a conformance for
 # every concrete type instead. Conforming a foreign type to a protocol we own needs no `@retroactive`.
@@ -143,7 +143,10 @@ extension FHIRTypeWithExtensions {
 
     /// Appends multiple `Extension`s
     @inlinable
-    public mutating func append(extensions: some Sequence<Extension>, behaviour: AppendExtensionBehaviour = .additive) {
+    public mutating func append(extensions: some Collection<Extension>, behaviour: AppendExtensionBehaviour = .additive) {
+        guard !extensions.isEmpty else {
+            return
+        }
         switch behaviour {
         case .additive:
             break
@@ -153,7 +156,7 @@ extension FHIRTypeWithExtensions {
             }
         }
         var storage = `extension` ?? []
-        storage.reserveCapacity(storage.count + extensions.underestimatedCount)
+        storage.reserveCapacity(storage.count + extensions.count)
         storage.append(contentsOf: extensions)
         `extension` = storage
     }

@@ -103,7 +103,7 @@ extension Grove {
     /// ### Action
     /// - ``RegisterRemoteNotificationsAction``
     @_disfavoredOverload
-    @available(*, deprecated, message: "Please migrate to the new GroveNotifications package: https://github.com/StanfordSpezi/SpeziNotifications")
+    @available(*, deprecated, message: "Please migrate to the GroveNotifications module.")
     public var registerRemoteNotifications: RegisterRemoteNotificationsAction {
         RegisterRemoteNotificationsAction(self)
     }

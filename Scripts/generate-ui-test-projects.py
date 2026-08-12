@@ -330,7 +330,7 @@ def render_project(package: str, spec: dict[str, object], platforms: list[str], 
 
     app_settings = {str(key): str(value) for key, value in spec.get("app_settings", {}).items()}
     test_settings = {str(key): str(value) for key, value in spec.get("test_settings", {}).items()}
-    bundle_identifier = f"edu.stanford.spezi.{package.lower()}"
+    bundle_identifier = f"org.grovealliance.{package.lower()}"
     app_settings.setdefault("PRODUCT_BUNDLE_IDENTIFIER", f"{bundle_identifier}.testapp")
     test_settings.setdefault("PRODUCT_BUNDLE_IDENTIFIER", f"{bundle_identifier}.testapp.uitests")
     for target, settings in (("TestApp", app_settings), ("TestAppUITests", test_settings)):

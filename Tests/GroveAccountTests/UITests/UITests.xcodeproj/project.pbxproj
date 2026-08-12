@@ -362,7 +362,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "TestApp/TestApp.entitlements";
 				INFOPLIST_KEY_CFBundleAllowMixedLocalizations = "YES";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.speziaccount.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.groveaccount.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -399,7 +399,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "TestApp/TestApp.entitlements";
 				INFOPLIST_KEY_CFBundleAllowMixedLocalizations = "YES";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.speziaccount.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.groveaccount.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -434,7 +434,7 @@
 		6564909C3002CEA900F1D55F /* Debug configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.speziaccount.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.groveaccount.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -457,7 +457,7 @@
 		6564909D3002CEA900F1D55F /* Release configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.speziaccount.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.groveaccount.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;

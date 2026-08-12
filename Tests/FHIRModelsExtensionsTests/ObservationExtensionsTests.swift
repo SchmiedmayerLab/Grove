@@ -167,8 +167,8 @@ struct ObservationExtensionsTests {
     
     @Test
     func fhirExtension() throws {
-        let extension1Url = FHIRExtensionURL("https://bdh.stanford.edu/fhir/testDef1")
-        let extension2Url = FHIRExtensionURL("https://bdh.stanford.edu/fhir/testDef2")
+        let extension1Url = FHIRExtensionURL("https://grovealliance.org/fhir/core/StructureDefinition/testDef1")
+        let extension2Url = FHIRExtensionURL("https://grovealliance.org/fhir/core/StructureDefinition/testDef2")
         let extension1: (Int) -> Extension = { Extension(url: extension1Url, value: .integer($0.asFHIRIntegerPrimitive())) }
         let extension2: (Int) -> Extension = { Extension(url: extension2Url, value: .integer($0.asFHIRIntegerPrimitive())) }
         
@@ -231,11 +231,11 @@ struct ObservationExtensionsTests {
     
     @Test
     func voidExtensionBuilder() throws {
-        let url = FHIRExtensionURL("https://bdh.stanford.edu/fhir/defs/timeZone")
+        let url = FHIRExtensionURL("https://grovealliance.org/fhir/core/StructureDefinition/timeZone")
         let timeZone = try #require(TimeZone(identifier: "Europe/Berlin"))
-        let trackTimeZone = FHIRExtensionBuilder { (observation: inout Observation) in
+        let trackTimeZone = FHIRExtensionBuilder { (resource: inout any FHIRTypeWithExtensions) in
             let ext = Extension(url: url, value: .string(timeZone.identifier.asFHIRStringPrimitive()))
-            observation.append(extension: ext, behaviour: .replace)
+            resource.append(extension: ext, behaviour: .replace)
         }
         var observation = Observation(code: CodeableConcept(), status: .init(.final))
         #expect(observation.extension == nil)

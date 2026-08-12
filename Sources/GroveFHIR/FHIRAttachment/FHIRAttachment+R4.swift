@@ -13,20 +13,24 @@ import UniformTypeIdentifiers
 
 
 extension ModelsR4.Attachment: FHIRAttachment {
-    var mimeType: UTType? {
-        guard let mimeTypeString = contentType?.value?.string,
-              !mimeTypeString.isEmpty else {
-            return nil
+    var _contentTypeString: String? { // swiftlint:disable:this identifier_name
+        get {
+            contentType?.value?.string
         }
-        return UTType(mimeType: mimeTypeString)
+        set {
+            contentType = newValue?.asFHIRStringPrimitive()
+        }
     }
     
-    var base64String: String? {
-        data?.value?.dataString
-    }
-    
-    mutating func setData(from string: String) {
-        data = FHIRPrimitive(ModelsR4.Base64Binary(string))
+    var _base64String: String? { // swiftlint:disable:this identifier_name
+        get {
+            self.data?.value?.dataString
+        }
+        set {
+            self.data = newValue.map {
+                FHIRPrimitive(ModelsR4::Base64Binary($0))
+            }
+        }
     }
 }
 

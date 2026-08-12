@@ -69,7 +69,7 @@ struct FHIRConversionCustomTasksTests {
             {
               "title": "Test",
               "resourceType": "Questionnaire",
-              "id": "edu.stanford.Spezi.Questionnaire.test",
+              "id": "org.grovealliance.Grove.Questionnaire.test",
               "language": "en-US",
               "status": "draft",
               "meta": {
@@ -194,7 +194,7 @@ struct FHIRConversionCustomTasksTests {
             {
               "title": "Test",
               "resourceType": "Questionnaire",
-              "id": "edu.stanford.Spezi.Questionnaire.test",
+              "id": "org.grovealliance.Grove.Questionnaire.test",
               "language": "en-US",
               "status": "draft",
               "meta": {

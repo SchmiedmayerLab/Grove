@@ -370,7 +370,7 @@
 				INFOPLIST_KEY_CFBundleAllowMixedLocalizations = "YES";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "The TestApp accesses your HealthKit data to run the tests.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "The TestApp writes test samples to your HealthKit database to have testing data. There is a mechanism for deleting this (and only this!!!) data.";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezihealthkit.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovehealthkit.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -408,7 +408,7 @@
 				INFOPLIST_KEY_CFBundleAllowMixedLocalizations = "YES";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "The TestApp accesses your HealthKit data to run the tests.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "The TestApp writes test samples to your HealthKit database to have testing data. There is a mechanism for deleting this (and only this!!!) data.";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezihealthkit.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovehealthkit.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -442,7 +442,7 @@
 		6564909C3002CEA900F1D55F /* Debug configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezihealthkit.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovehealthkit.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -464,7 +464,7 @@
 		6564909D3002CEA900F1D55F /* Release configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezihealthkit.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovehealthkit.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;

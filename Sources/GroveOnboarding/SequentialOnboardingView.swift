@@ -82,7 +82,7 @@ public struct SequentialOnboardingView<Header: View>: View {
 
     @State private var currentStepIndex: Int = 0
     
-    @_documentation(visibility: internal) // swiftlint:disable:next attributes
+    @_documentation(visibility: internal)
     public var body: some View {
         ScrollViewReader { proxy in
             OnboardingView {

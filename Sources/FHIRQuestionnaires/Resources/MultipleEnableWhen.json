@@ -3,7 +3,7 @@
   "language": "en-US",
   "title": "Multiple EnableWhen Expressions",
   "status": "draft",
-  "publisher": "CardinalKit",
+  "publisher": "Stanford University",
   "meta": {
     "profile": [
       "https://grovealliance.org/fhir/core/StructureDefinition/sdf-Questionnaire"

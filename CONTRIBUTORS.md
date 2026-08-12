@@ -1,6 +1,6 @@
 <!--
 
-This source file is part of the Stanford Spezi open-source project.
+This source file is part of the Grove open-source project
 
 SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 
@@ -8,14 +8,13 @@ SPDX-License-Identifier: MIT
 
 -->
 
-# Contributors
+# Stanford Grove Contributors
 
-* [Lukas Kollmer](https://github.com/lukaskollmer)
 * [Paul Schmiedmayer](https://github.com/PSchmiedmayer)
-
+* [Lukas Kollmer](https://github.com/lukaskollmer)
 
 ## Attributions
 
-This repository is based on the [`StanfordSpezi/Spezi` repository](https://github.com/StanfordSpezi/Spezi) and incorporates content from several [`StanfordSpezi` repositories](https://github.com/StanfordSpezi) and [`StanfordBDHG` repositories](https://github.com/StanfordBDHG), all of which were published under the MIT License.
+This repository is based on [`StanfordSpezi/Spezi`](https://github.com/StanfordSpezi/Spezi) and incorporates content from the [`StanfordSpezi`](https://github.com/StanfordSpezi) and [`StanfordBDHG`](https://github.com/StanfordBDHG) organizations, published under the MIT License (Copyright (c) 2022 Stanford University and the project authors). They are developed independently; please refer to the [Stanford Spezi contributors list](https://github.com/StanfordSpezi/Spezi/blob/main/CONTRIBUTORS.md) for past and current contributors across the Spezi projects.
 
-Please refer to the individual repositories for detailed and updated contributor lists, including the [`StanfordSpezi/Spezi` contributors file](https://github.com/StanfordSpezi/Spezi/blob/main/CONTRIBUTORS.md).
+The original Spezi and BDHG projects may continue to be maintained in their respective upstream repositories under the [StanfordSpezi](https://github.com/StanfordSpezi) and [StanfordBDHG](https://github.com/StanfordBDHG) GitHub organizations. Please refer to the upstream repositories for their current development status and new releases.

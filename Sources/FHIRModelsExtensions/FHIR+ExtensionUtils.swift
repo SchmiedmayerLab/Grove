@@ -83,14 +83,15 @@ extension FHIRTypeWithExtensions {
     ///
     /// - parameter extension: The extension to add
     /// - parameter behaviour: How the extension should be added, with respect to already-existing extensions with the same url.
-    @inlinable
     public mutating func append(extension: Extension, behaviour: AppendExtensionBehaviour = .additive) {
         append(extensions: CollectionOfOne(`extension`), behaviour: behaviour)
     }
 
     /// Appends multiple `Extension`s
-    @inlinable
-    public mutating func append(extensions: some Sequence<Extension>, behaviour: AppendExtensionBehaviour = .additive) {
+    public mutating func append(extensions: some Collection<Extension>, behaviour: AppendExtensionBehaviour = .additive) {
+        guard !extensions.isEmpty else {
+            return
+        }
         switch behaviour {
         case .additive:
             break
@@ -100,9 +101,20 @@ extension FHIRTypeWithExtensions {
             }
         }
         var storage = `extension` ?? []
-        storage.reserveCapacity(storage.count + extensions.underestimatedCount)
+        storage.reserveCapacity(storage.count + extensions.count)
         storage.append(contentsOf: extensions)
         `extension` = storage
+        // Under .canonicalOnly this is a guard check; the appended urls are what a dual-write has to
+        // mirror, so doing it here covers every writer instead of every writer remembering to.
+        let retired = extensions.compactMap { element -> FHIRCanonicalURL? in
+            guard let spelling = element.url.value?.url.absoluteString else {
+                return nil
+            }
+            return FHIRSupersessionRegistry.identifier(forCanonical: spelling)
+        }
+        if !retired.isEmpty {
+            writeSupersededSpellings(of: retired)
+        }
     }
 }
 

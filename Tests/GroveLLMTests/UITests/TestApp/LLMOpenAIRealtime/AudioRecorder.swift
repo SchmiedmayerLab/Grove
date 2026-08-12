@@ -15,7 +15,7 @@ import SwiftUI
 // Such as performance on init, change of audio device etc...
 // Reference used for AudioRecorder: https://developer.apple.com/documentation/avfaudio/audio_engine/audio_units/using_voice_processing
 final class AudioRecorder {
-    private static let logger = Logger(subsystem: "edu.stanford.spezi", category: "GroveLLMUITests")
+    private static let logger = Logger(subsystem: "org.grovealliance", category: "GroveLLMUITests")
 
     private let audioEngine = AVAudioEngine()
 

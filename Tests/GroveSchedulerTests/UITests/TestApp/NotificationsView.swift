@@ -17,7 +17,7 @@ import XCTGroveNotificationsUI
 
 
 struct NotificationsView: View {
-    private let logger = Logger(subsystem: "edu.stanford.spezi.TestApp", category: "NotificationsView")
+    private let logger = Logger(subsystem: "org.grovealliance.TestApp", category: "NotificationsView")
 
     @Environment(\.notificationSettings)
     private var notificationSettings

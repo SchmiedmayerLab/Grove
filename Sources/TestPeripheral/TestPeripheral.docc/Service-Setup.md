@@ -75,7 +75,7 @@ The first column is the PID of the application (or `-` if not running) and the s
 
 ```
 Started:
-9314    0       edu.stanford.spezi.bluetooth.testperipheral´
+9314    0       edu.stanford.grove.bluetooth.testperipheral´
 ```
 
 #### Uninstall Service

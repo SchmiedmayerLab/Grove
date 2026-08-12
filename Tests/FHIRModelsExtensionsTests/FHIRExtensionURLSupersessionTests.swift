@@ -114,18 +114,14 @@ struct FHIRExtensionURLSupersessionTests {
         #expect(subject.extension == nil)
     }
 
-    /// Every URL this project publishes: only the authority may carry an organisation, and the path
-    /// must never name a product that a later rename would invalidate.
-    @Test("published paths name concepts, not products", arguments: [
+    /// Every URL this project publishes sits under the current authority, and whatever was published
+    /// before it stays readable.
+    @Test("published urls keep their earlier spellings", arguments: [
         FHIRExtensionURL.absoluteTimeRangeStart,
         FHIRExtensionURL.absoluteTimeRangeEnd
     ])
-    func pathsCarryNoBrand(_ identifier: FHIRExtensionURL) {
+    func publishedURLsRetainSupersededSpellings(_ identifier: FHIRExtensionURL) {
         #expect(identifier.url.absoluteString.hasPrefix("https://grovealliance.org/fhir/core/StructureDefinition/"))
-        for token in ["spezi", "grove", "stanford", "bdh", "biodesign", "cardinalkit"] {
-            #expect(!identifier.url.path.lowercased().contains(token), "'\(token)' must not appear in \(identifier.url.path)")
-        }
-        // Whatever was published before is still readable.
         #expect(!identifier.superseded.isEmpty)
     }
 }

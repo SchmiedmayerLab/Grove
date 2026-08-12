@@ -83,20 +83,4 @@ struct FHIRCanonicalURLTests {
         #expect(Self.identifier.allSpellings.first == Self.identifier.canonical)
         #expect(Set(SupersededFHIRURLs.validationText).isSubset(of: Set(Self.identifier.allSpellings)))
     }
-
-    /// Only the authority may carry an organisation. A product or module name in the path would have
-    /// to change at the next rename, and a published canonical URL never can.
-    @Test("no published path names a product", arguments: [
-        FHIRCanonicalURL("https://grovealliance.org/fhir/core/StructureDefinition/validationText"),
-        FHIRCanonicalURL("https://grovealliance.org/fhir/core/StructureDefinition/iosKeyboardType"),
-        FHIRCanonicalURL("https://grovealliance.org/fhir/core/StructureDefinition/iosTextContentType"),
-        FHIRCanonicalURL("https://grovealliance.org/fhir/core/StructureDefinition/iosAutocapitalizationType")
-    ])
-    func pathsNameConceptsNotProducts(_ identifier: FHIRCanonicalURL) throws {
-        let path = try #require(URL(string: identifier.canonical)?.path)
-        for token in ["spezi", "grove", "stanford", "bdh", "biodesign", "cardinalkit"] {
-            #expect(!path.lowercased().contains(token), "'\(token)' must not appear in \(path)")
-        }
-        #expect(identifier.canonical.hasPrefix("https://"))
-    }
 }

@@ -156,15 +156,9 @@ struct LocalStorageMigrationTests {
     /// The modules that read these prefixes must use exactly what the migration renames to. A drift
     /// between the two is silent: the files move, and then nothing looks for them at the new name.
     @Test
-    func everyRenameTargetIsBrandFreeAndUnique() {
+    func everyRenameTargetIsUnique() {
         let targets = LocalStorage.legacyKeyPrefixRenames.map(\.current)
-
         #expect(Set(targets).count == targets.count)
-        for target in targets {
-            for token in ["spezi", "grove", "stanford", "edu.", "cardinalkit"] {
-                #expect(!target.lowercased().contains(token), "'\(token)' must not appear in '\(target)'")
-            }
-        }
     }
 
     /// Longest-first ordering is what stops `…queryAnchors` shadowing

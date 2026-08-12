@@ -19,7 +19,7 @@ class TestAppUITests: XCTestCase {
     
     
     @MainActor
-    func testHealthKitOnFHIR() throws {
+    func testGroveHealthKitFHIR() throws {
         let app = XCUIApplication()
         app.launch()
         

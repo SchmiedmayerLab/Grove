@@ -38,7 +38,7 @@ class LLMOpenAIInferenceTests {
     }
     
     
-    static let logger = Logger(subsystem: "edu.stanford.spezi", category: "GroveLLMInferenceTests")
+    static let logger = Logger(subsystem: "org.grovealliance", category: "GroveLLMInferenceTests")
     
     private var llmOpenAIPlatform: LLMOpenAIPlatform?
     private var task: Task<Void, Never>?

@@ -41,7 +41,7 @@ struct SleepSessionTestsView: View {
                 try await test2()
             }
             #else
-            result = .failure(NSError(domain: "edu.stanford.SpeziHealthKit", code: 123, userInfo: [
+            result = .failure(NSError(domain: "org.grovealliance.GroveHealthKit", code: 123, userInfo: [
                 NSLocalizedDescriptionKey: """
                     Ignoring Sleep Session Tests bc not running in Simulator.
                     The tests will delete **all** Sleep Data stored in the Health app, and therefore should only be run in the simulator.

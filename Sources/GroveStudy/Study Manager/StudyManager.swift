@@ -75,11 +75,9 @@ public final class StudyManager: Module, EnvironmentAccessible, Sendable {
     static let studyComponentTaskIdPrefix = "studyComponentTask."
     
     
-    // swiftlint:disable attributes
     @Dependency(HealthKit.self) var healthKit
     @Dependency(Scheduler.self) var scheduler
     @Application(\.logger) var logger
-    // swiftlint:enable attributes
     
     /// The `Locale` the study manager should use when loading localized elements from a Study Bundle.
     ///

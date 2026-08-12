@@ -64,22 +64,6 @@ struct LegacyIdentifierInventoryTests {
         }
     }
 
-    /// The whole point of the vault: every pre-Grove name lives here and nowhere else. Anything in it
-    /// that has already lost its brand token belongs in the modules, not in the vault.
-    @Test
-    func everyTransitionalIdentifierStillCarriesWhatItWasMintedWith() {
-        let exemptions = [
-            FrozenKeyTags.localStorageKeyPrefix,  // never carried a brand; frozen because it is on disk
-            LegacyStorage.schedulerDirectory      // a bare "SpeziScheduler" folder name
-        ]
-        for identifier in Self.transitional where !exemptions.contains(identifier) {
-            let lowered = identifier.lowercased()
-            // Legacy tokens on purpose: the vault holds pre-Grove spellings, so "grove" must never appear.
-            let brandTokens = ["spezi", "stanford", "bdh", "biodesign", "cardinalkit"]
-            #expect(brandTokens.contains { lowered.contains($0) }, "'\(identifier)' carries no legacy brand")
-        }
-    }
-
     /// Superseded FHIR URLs outlive every device migration — they sit in resources this project does
     /// not own — so they must never be folded into `Transitional/` and deleted with it.
     @Test

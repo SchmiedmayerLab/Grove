@@ -18,7 +18,7 @@ import ModelsR4
 extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKSample> {
     /// A FHIR Extension Builder that writes the absolute time range (i.e., start and end date) of a HealthKit sample into a FHIR `Observation` created from the sample.
     public static var includeAbsoluteTimeRange: FHIRExtensionBuilder<HKSample> {
-        .init { (sample: HKSample, observation) in
+        .init { (sample: HKSample, resource) in
             let timeRangeExtensions = [
                 Extension(
                     url: .absoluteTimeRangeStart,
@@ -29,7 +29,7 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKSamp
                     value: .decimal(sample.endDate.timeIntervalSince1970.asFHIRDecimalPrimitive())
                 )
             ]
-            observation.append(extensions: timeRangeExtensions, behaviour: .replace)
+            resource.append(extensions: timeRangeExtensions, behaviour: .replace)
         }
     }
 }

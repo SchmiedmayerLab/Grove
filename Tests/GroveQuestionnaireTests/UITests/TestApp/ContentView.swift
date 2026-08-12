@@ -202,7 +202,7 @@ struct ContentView: View {
     
     private func importQuestionnaire(from url: URL) throws -> WrappedQuestionnaire {
         guard url.startAccessingSecurityScopedResource() else {
-            throw NSError(domain: "edu.stanford.SpeziQuestionaire", code: 123)
+            throw NSError(domain: "org.grovealliance.GroveQuestionnaire", code: 123)
         }
         defer {
             url.stopAccessingSecurityScopedResource()

@@ -35,7 +35,7 @@ You need to add the GroveAccessGuard Swift package to
 [your app in Xcode](https://developer.apple.com/documentation/xcode/adding-package-dependencies-to-your-app) or
 [Swift package](https://developer.apple.com/documentation/xcode/creating-a-standalone-swift-package-with-xcode#Add-a-dependency-on-another-Swift-package).
 
-- Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial%20Setup.md) to set up the core Grove infrastructure.
+- Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial-Setup.md) to set up the core Grove infrastructure.
 
 ## Usage
 
@@ -158,7 +158,7 @@ class ExampleDelegate: GroveAppDelegate {
 }
 
 extension AccessGuardIdentifier where AccessGuard == CodeAccessGuard {
-    static let exampleAccessGuard: Self = .passcode("edu.stanford.spezi.exampleAccessGuard")
+    static let exampleAccessGuard: Self = .passcode("org.grovealliance.exampleAccessGuard")
 }
 ```
 

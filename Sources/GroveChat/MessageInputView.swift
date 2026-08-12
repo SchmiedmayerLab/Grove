@@ -17,7 +17,7 @@ public import SwiftUI
 /// A reusable SwiftUI `View` to handle text-based or speech-based user input.
 /// The provided message is attached to the passed ``Chat`` via a SwiftUI `Binding`.
 ///
-/// The input can be either typed out via the iOS keyboard or, if enabled (which is the case by default), provided as voice input and transcribed into written text via the [`GroveSpeech`](https://github.com/StanfordSpezi/SpeziSpeech) module.
+/// The input can be either typed out via the iOS keyboard or, if enabled (which is the case by default), provided as voice input and transcribed into written text via the [`GroveSpeech`](../GroveSpeech/GroveSpeech.docc/GroveSpeech.md) module.
 ///
 /// One can get the size of the typed message, which can vary dependent on the message length, via the ``MessageInputViewHeightKey`` SwiftUI PreferenceKey`.
 ///

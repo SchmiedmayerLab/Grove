@@ -51,9 +51,9 @@ struct FirestoreAccount: Decodable, Equatable {
 
 
 enum FirebaseClient {
-    private static let projectId = "spezifirebaseuitests"
+    private static let projectId = "grovefirebaseuitests"
 
-    // curl -H "Authorization: Bearer owner" -X DELETE http://localhost:9099/emulator/v1/projects/spezifirebaseuitests/accounts
+    // curl -H "Authorization: Bearer owner" -X DELETE http://localhost:9099/emulator/v1/projects/grovefirebaseuitests/accounts
     static func deleteAllAccounts() async throws {
         let emulatorDocumentsURL = try XCTUnwrap(
             URL(string: "http://localhost:9099/emulator/v1/projects/\(projectId)/accounts")
@@ -78,7 +78,7 @@ enum FirebaseClient {
         }
     }
 
-    // curl -H "Authorization: Bearer owner" -H "Content-Type: application/json" -X POST -d '{}' http://localhost:9099/identitytoolkit.googleapis.com/v1/projects/spezifirebaseuitests/accounts:query
+    // curl -H "Authorization: Bearer owner" -H "Content-Type: application/json" -X POST -d '{}' http://localhost:9099/identitytoolkit.googleapis.com/v1/projects/grovefirebaseuitests/accounts:query
     static func getAllAccounts() async throws -> [FirestoreAccount] {
         let emulatorAccountsURL = try XCTUnwrap(
             URL(string: "http://localhost:9099/identitytoolkit.googleapis.com/v1/projects/\(projectId)/accounts:query")
@@ -111,7 +111,7 @@ enum FirebaseClient {
         return try JSONDecoder().decode(ResponseWrapper.self, from: data).userInfo
     }
 
-    // curl -H 'Content-Type: application/json' -d '{"email":"[user@example.com]","password":"[PASSWORD]","returnSecureToken":true}' 'http://localhost:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=spezifirebaseuitests'
+    // curl -H 'Content-Type: application/json' -d '{"email":"[user@example.com]","password":"[PASSWORD]","returnSecureToken":true}' 'http://localhost:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=grovefirebaseuitests'
     static func createAccount(email: String, password: String, displayName: String) async throws {
         let emulatorAccountsURL = try XCTUnwrap(
             URL(string: "http://localhost:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=\(projectId)")

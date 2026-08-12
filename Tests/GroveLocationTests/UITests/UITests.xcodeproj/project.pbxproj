@@ -346,7 +346,7 @@
 			buildSettings = {
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Used for testing location module.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Used for testing location module.";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezilocation.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovelocation.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -382,7 +382,7 @@
 			buildSettings = {
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Used for testing location module.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Used for testing location module.";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezilocation.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovelocation.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -416,7 +416,7 @@
 		6564909C3002CEA900F1D55F /* Debug configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezilocation.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovelocation.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -438,7 +438,7 @@
 		6564909D3002CEA900F1D55F /* Release configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezilocation.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovelocation.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;

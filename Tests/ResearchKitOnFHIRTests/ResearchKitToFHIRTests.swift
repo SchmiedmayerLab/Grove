@@ -192,7 +192,7 @@ struct ResearchKitToFHIRTests {
 
     @Test("Single choice response")
     func testSingleChoiceResponse() {
-        let testValue = ValueCoding(code: "testCode", system: "http://biodesign.stanford.edu/test-system", display: "Test Code")
+        let testValue = ValueCoding(code: "testCode", system: "http://grovealliance.org/test-system", display: "Test Code")
 
         let choiceResult = ORKChoiceQuestionResult(identifier: "choiceResult")
         choiceResult.choiceAnswers = [testValue.rawValue as any NSSecureCoding & NSCopying & NSObjectProtocol]
@@ -225,8 +225,8 @@ struct ResearchKitToFHIRTests {
     @Test("Multiple choice response")
     func testMultipleChoiceResponse() {
         let testValues = [
-            ValueCoding(code: "testCode1", system: "http://biodesign.stanford.edu/test-system", display: "Test Code 1"),
-            ValueCoding(code: "testCode2", system: "http://biodesign.stanford.edu/test-system", display: "Test Code 2")
+            ValueCoding(code: "testCode1", system: "http://grovealliance.org/test-system", display: "Test Code 1"),
+            ValueCoding(code: "testCode2", system: "http://grovealliance.org/test-system", display: "Test Code 2")
         ]
 
         let choiceResult = ORKChoiceQuestionResult(identifier: "choiceResult")

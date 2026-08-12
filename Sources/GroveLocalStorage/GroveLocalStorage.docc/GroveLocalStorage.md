@@ -19,7 +19,7 @@ You need to add the Grove Storage Swift package to
 [your app in Xcode](https://developer.apple.com/documentation/xcode/adding-package-dependencies-to-your-app#) or
 [Swift package](https://developer.apple.com/documentation/xcode/creating-a-standalone-swift-package-with-xcode#Add-a-dependency-on-another-Swift-package).
 
-> Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial%20Setup.md) to set up the core Grove infrastructure.
+> Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial-Setup.md) to set up the core Grove infrastructure.
 
 You can configure the `LocalStorage` module in the [`GroveAppDelegate`](../../Grove/Grove.docc/Grove.md).
 
@@ -43,7 +43,7 @@ class ExampleDelegate: GroveAppDelegate {
 
 You can interact with the `LocalStorage` module from within SwiftUI views, either using the ``LocalStorageEntry`` property wrapper or by accessing the module directly (see below).
 
-Alternatively, it is common to use the `LocalStorage` module in other modules as a dependency: [Grove Module dependencies](../../Grove/Grove.docc/Module/Module%20Dependency.md).
+Alternatively, it is common to use the `LocalStorage` module in other modules as a dependency: [Grove Module dependencies](../../Grove/Grove.docc/Module/Module-Dependency.md).
 
 
 ## Use the LocalStorage Module
@@ -65,11 +65,11 @@ struct Note: Codable, Equatable {
 
 extension LocalStorageKeys {
     // By default, storage keys are encoded using JSON and stored encrypted.
-    static let note = LocalStorageKey<Note>("edu.stanford.spezi.note")
+    static let note = LocalStorageKey<Note>("org.grovealliance.note")
 
     // You can customize these aspects:
     static let plistNote = LocalStorageKey<Note>(
-        "edu.stanford.spezi.note2",
+        "org.grovealliance.note2",
         setting: .encryptedUsingSecureEnclave(),
         encoder: PropertyListEncoder(),
         decoder: PropertyListDecoder()

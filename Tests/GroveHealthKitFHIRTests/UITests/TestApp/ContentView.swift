@@ -32,7 +32,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .navigationBarTitle("HealthKitOnFHIR Tests")
+            .navigationBarTitle("GroveHealthKitFHIR Tests")
         }
         .environment(healthKitManager)
     }

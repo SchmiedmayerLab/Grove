@@ -42,11 +42,11 @@ You need to add the Grove Chat Swift package to
 [your app in Xcode](https://developer.apple.com/documentation/xcode/adding-package-dependencies-to-your-app#) or
 [Swift package](https://developer.apple.com/documentation/xcode/creating-a-standalone-swift-package-with-xcode#Add-a-dependency-on-another-Swift-package).
 
-> Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial%20Setup.md) to setup the core Grove infrastructure.
+> Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial-Setup.md) to setup the core Grove infrastructure.
 
 ### 2. Configure target properties
 
-As ``GroveChat`` is utilizing the [GroveSpeech](../../GroveSpeech/README.md) module under the hood for speech interaction capabilities, one needs to ensure that your application has the necessary permissions for microphone access and speech recognition. Follow the steps below to configure the target properties within your Xcode project:
+As ``GroveChat`` is utilizing the [GroveSpeech](../../GroveSpeech/GroveSpeech.docc/GroveSpeech.md) module under the hood for speech interaction capabilities, one needs to ensure that your application has the necessary permissions for microphone access and speech recognition. Follow the steps below to configure the target properties within your Xcode project:
 
 - Open your project settings in Xcode by selecting *PROJECT_NAME > TARGET_NAME > Info* tab.
 - You will need to add two entries to the `Custom iOS Target Properties` (so the `Info.plist` file) to provide descriptions for why your app requires these permissions:
@@ -81,7 +81,7 @@ struct ChatTestView: View {
 }
 ```
 
-- Tip: The ``ChatView`` provides speech-to-text (recognition) as well as text-to-speech (synthesize) accessibility capabilities out-of-the-box via the [`GroveSpeech`](../../GroveSpeech/README.md) module, facilitating seamless interaction with the content of the ``ChatView``.
+- Tip: The ``ChatView`` provides speech-to-text (recognition) as well as text-to-speech (synthesize) accessibility capabilities out-of-the-box via the [`GroveSpeech`](../../GroveSpeech/GroveSpeech.docc/GroveSpeech.md) module, facilitating seamless interaction with the content of the ``ChatView``.
 
 ### Messages View
 

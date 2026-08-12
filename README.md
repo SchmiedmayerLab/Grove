@@ -10,7 +10,9 @@ SPDX-License-Identifier: MIT
 
 # Stanford Grove
 
-[![CI](https://github.com/SchmiedmayerLab/Spezi/actions/workflows/tests.yml/badge.svg)](.github/workflows/tests.yml)
+[![Build and Test](https://github.com/SchmiedmayerLab/Grove/actions/workflows/tests.yml/badge.svg)](https://github.com/SchmiedmayerLab/Grove/actions/workflows/tests.yml)
+[![REUSE status](https://api.reuse.software/badge/github.com/SchmiedmayerLab/Grove)](https://api.reuse.software/info/github.com/SchmiedmayerLab/Grove)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
 
 Open-source framework for the rapid development of modern, interoperable digital health applications.
 
@@ -18,7 +20,7 @@ Open-source framework for the rapid development of modern, interoperable digital
 ## Overview
 
 > [!NOTE]
-> Refer to the [Initial Setup](Sources/Grove/Grove.docc/Initial%20Setup.md) instructions to integrate Grove into your application.
+> Refer to the [Initial Setup](Sources/Grove/Grove.docc/Initial-Setup.md) instructions to integrate Grove into your application.
 
 Grove introduces a module-based approach to building digital health applications.
 
@@ -39,23 +41,23 @@ Grove introduces a module-based approach to building digital health applications
   </tr>
   <tr>
     <td align="center">
-      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Spezi/documentation/groveonboarding">
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/groveonboarding">
         <code>Grove Onboarding</code>
       </a> and
-      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Spezi/documentation/groveconsent">
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/groveconsent">
         <code>Grove Consent</code>
       </a>
     </td>
     <td align="center">
-      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Spezi/documentation/grovebluetooth">
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/grovebluetooth">
         <code>Grove Bluetooth</code>
       </a> and
-      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Spezi/documentation/grovedevices">
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/grovedevices">
         <code>Grove Devices</code>
       </a>
     </td>
     <td align="center">
-      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Spezi/documentation/grovequestionnaire">
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/grovequestionnaire">
         <code>Grove Questionnaire</code>
       </a>
     </td>
@@ -76,12 +78,12 @@ Grove introduces a module-based approach to building digital health applications
   </tr>
   <tr>
     <td align="center">
-      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Spezi/documentation/groveaccount">
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/groveaccount">
         <code>Grove Account</code>
       </a>
     </td>
     <td align="center">
-      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Spezi/documentation/groveviews">
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/groveviews">
         <code>Grove Views</code>
       </a>, including
       <a href="Sources/GroveValidation/GroveValidation.docc/GroveValidation.md">
@@ -89,7 +91,7 @@ Grove introduces a module-based approach to building digital health applications
       </a>
     </td>
     <td align="center">
-      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Spezi/documentation/grovellm">
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/grovellm">
         <code>Grove LLM</code>
       </a>
     </td>
@@ -102,7 +104,7 @@ Grove introduces a module-based approach to building digital health applications
 You can find the modules and reusable Swift packages included in this monorepo in [Package.swift](Package.swift).
 
 > [!NOTE]
-> Grove relies on an ecosystem of modules. Consider what modules you want to build and contribute to the open-source community. Refer to the [Grove Guide](Sources/Grove/Grove.docc/Grove%20Guide.md) and [Documentation Guide](Sources/Grove/Grove.docc/Documentation%20Guide.md) for requirements for Grove-based software, and see the [`Module`](Sources/Grove/Grove.docc/Module/Module.md) documentation to learn more about building your modules.
+> Grove relies on an ecosystem of modules. Consider what modules you want to build and contribute to the open-source community. Refer to the [Grove Guide](Sources/Grove/Grove.docc/Grove-Guide.md) and [Documentation Guide](Sources/Grove/Grove.docc/Documentation-Guide.md) for requirements for Grove-based software, and see the [`Module`](Sources/Grove/Grove.docc/Module/Module.md) documentation to learn more about building your modules.
 
 
 ## Add Grove to Your App
@@ -117,7 +119,7 @@ Add only the products your app needs; for example, most apps start with `Grove` 
 3. Enter the package URL:
 
    ```text
-   https://github.com/SchmiedmayerLab/Spezi.git
+   https://github.com/SchmiedmayerLab/Grove.git
    ```
 
 4. Choose a dependency rule:
@@ -139,7 +141,7 @@ Add only the products your app needs; for example, most apps start with `Grove` 
 If your app or library already has a `Package.swift`, add this package to the `dependencies` section:
 
 ```swift
-.package(url: "https://github.com/SchmiedmayerLab/Spezi.git", .upToNextMinor(from: "0.1.0"))
+.package(url: "https://github.com/SchmiedmayerLab/Grove.git", .upToNextMinor(from: "0.3.0"))
 ```
 
 Then add the products you use to the target that needs them:
@@ -148,9 +150,9 @@ Then add the products you use to the target that needs them:
 .target(
     name: "MyApp",
     dependencies: [
-        .product(name: "Grove", package: "Spezi"),
-        .product(name: "GroveViews", package: "Spezi"),
-        .product(name: "GroveOnboarding", package: "Spezi")
+        .product(name: "Grove", package: "Grove"),
+        .product(name: "GroveViews", package: "Grove"),
+        .product(name: "GroveOnboarding", package: "Grove")
     ]
 )
 ```
@@ -162,7 +164,7 @@ If Xcode cannot resolve the package, confirm that the package URL and selected v
 ### The Grove Building Blocks
 
 > [!NOTE]
-> The [Grove Guide](Sources/Grove/Grove.docc/Grove%20Guide.md) and [Documentation Guide](Sources/Grove/Grove.docc/Documentation%20Guide.md) outline the requirements for Grove-based modules, including terminology, guidance, and examples on structuring a Grove module, Swift package, and repository.
+> The [Grove Guide](Sources/Grove/Grove.docc/Grove-Guide.md) and [Documentation Guide](Sources/Grove/Grove.docc/Documentation-Guide.md) outline the requirements for Grove-based modules, including terminology, guidance, and examples on structuring a Grove module, Swift package, and repository.
 
 A ``Standard`` defines the key coordinator that orchestrates data flow in an application by meeting requirements defined by modules.
 You can learn more about the ``Standard`` protocol and when it is advised to create your own standard in the [`Standard`](Sources/Grove/Grove.docc/Standard.md) documentation.
@@ -176,26 +178,21 @@ You can learn more about modules in the [`Module`](Sources/Grove/Grove.docc/Modu
 
 For more information, see the [Grove documentation catalog](Sources/Grove/Grove.docc/Grove.md).
 
-
 ## Contributing
 
-Contributions to this project are welcome. Please make sure to read the [contribution guide](Sources/Grove/Grove.docc/Contributing%20Guide.md) and the [Contributor Covenant Code of Conduct](https://github.com/SchmiedmayerLab/.github/blob/main/CODE_OF_CONDUCT.md) first.
-
-The original Grove and BDHG projects may continue to be maintained in their respective upstream repositories under the [StanfordSpezi](https://github.com/StanfordSpezi) and [StanfordBDHG](https://github.com/StanfordBDHG) GitHub organizations. Please refer to the upstream repositories for their current development status and new releases.
-
+Contributions to this project are welcome. Please make sure to read the [contribution guide](Sources/Grove/Grove.docc/Contributing-Guide.md), the [contribution guidelines](https://github.com/SchmiedmayerLab/.github/blob/main/CONTRIBUTING.md) and the [contributor covenant code of conduct](https://github.com/SchmiedmayerLab/.github/blob/main/CODE_OF_CONDUCT.md) first. You can find a list of contributors in the [CONTRIBUTORS.md](CONTRIBUTORS.md) file.
 
 ## License
 
-This project is licensed under the MIT License. See [Licenses](LICENSES) for more information.
+This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md) for more information.
 
-This repository is based on the [`StanfordSpezi/Spezi` repository](https://github.com/StanfordSpezi/Spezi) and incorporates content from several [`StanfordSpezi` repositories](https://github.com/StanfordSpezi) and [`StanfordBDHG` repositories](https://github.com/StanfordBDHG), all of which were published under the MIT License.
+## Citation
 
-Please refer to the individual repositories for detailed and updated contributor lists, including the [`StanfordSpezi/Spezi` contributors file](https://github.com/StanfordSpezi/Spezi/blob/main/CONTRIBUTORS.md).
-
+If you use this software, please cite it using the metadata in [CITATION.cff](CITATION.cff), which GitHub surfaces through the [*Cite this repository*](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-citation-files) button.
 
 ## Our Research
 
 For more information, visit the [Schmiedmayer Lab GitHub organization](https://github.com/SchmiedmayerLab).
 
-![Stanford and Stanford Medicine logos](https://raw.githubusercontent.com/SchmiedmayerLab/.github/main/assets/stanford-footer-light.png#gh-light-mode-only)
-![Stanford and Stanford Medicine logos](https://raw.githubusercontent.com/SchmiedmayerLab/.github/main/assets/stanford-footer-dark.png#gh-dark-mode-only)
+![Schmiedmayer Lab](https://raw.githubusercontent.com/SchmiedmayerLab/.github/main/assets/footer-light.png#gh-light-mode-only)
+![Schmiedmayer Lab](https://raw.githubusercontent.com/SchmiedmayerLab/.github/main/assets/footer-dark.png#gh-dark-mode-only)

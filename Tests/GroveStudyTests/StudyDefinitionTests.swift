@@ -76,7 +76,7 @@ extension Questionnaire {
         guard let url = Bundle.module.url(forResource: name, withExtension: "json"),
               let data = try? Data(contentsOf: url) else {
             throw NSError(
-                domain: "edu.stanford.spezi",
+                domain: "org.grovealliance",
                 code: 0,
                 userInfo: [NSLocalizedDescriptionKey: "Failed to load data"]
             )

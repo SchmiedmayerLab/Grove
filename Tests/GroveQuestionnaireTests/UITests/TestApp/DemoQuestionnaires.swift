@@ -13,7 +13,7 @@ import GroveQuestionnaire
 extension Questionnaire {
     static let followUpTasksQuestionnaire = Self(
         metadata: .init(
-            id: "edu.stanford.SpeziQuestionnaire.test1FollowUp",
+            id: "org.grovealliance.GroveQuestionnaire.test1FollowUp",
             url: URL(string: "http://spezi.stanford.edu/samples/SampleQuestionnaireFollowUpTasks")!, // swiftlint:disable:this force_unwrapping
             title: "Follow-Up Tasks",
             explainer: ""
@@ -67,7 +67,7 @@ extension Questionnaire {
     
     static let testQuestionnaire = Self(
         metadata: .init(
-            id: "edu.stanford.SpeziQuestionnaire.test0",
+            id: "org.grovealliance.GroveQuestionnaire.test0",
             url: URL(string: "http://spezi.stanford.edu/samples/SampleQuestionnaire")!, // swiftlint:disable:this force_unwrapping
             title: "Test Questionnaire",
             explainer: "This is the test questionnaire, whose purpose is testing the questionnaire infrastructure."

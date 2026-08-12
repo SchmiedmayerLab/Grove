@@ -36,7 +36,7 @@ public import SwiftUI
 ///
 /// ### Accessibility
 ///
-/// The ``ChatView`` provides speech-to-text (recognition) as well as text-to-speech (synthesize) capabilities out of the box via the [`GroveSpeech`](https://github.com/StanfordSpezi/SpeziSpeech) module, facilitating seamless interaction with the content of the ``ChatView``.
+/// The ``ChatView`` provides speech-to-text (recognition) as well as text-to-speech (synthesize) capabilities out of the box via the [`GroveSpeech`](../GroveSpeech/GroveSpeech.docc/GroveSpeech.md) module, facilitating seamless interaction with the content of the ``ChatView``.
 /// 
 /// Speech-to-text capabilities can be activated via the `speechToText` `Bool` parameter in ``init(_:disableInput:speechToText:exportFormat:messagePlaceholder:messagePendingAnimation:hideMessages:)``. By default, this capability is activated and therefore a small microphone button is shown next to the text input field.
 ///

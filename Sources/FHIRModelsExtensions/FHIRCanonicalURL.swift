@@ -59,6 +59,7 @@ public struct FHIRCanonicalURL: Hashable, Sendable {
     public init(_ canonical: String, superseding superseded: [String] = []) {
         self.canonical = canonical
         self.superseded = superseded
+        FHIRSupersessionRegistry.register(self)
     }
 }
 

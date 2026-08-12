@@ -35,7 +35,7 @@ You need to add the Grove Bluetooth Swift package to
 [your app in Xcode](https://developer.apple.com/documentation/xcode/adding-package-dependencies-to-your-app#) or
 [Swift package](https://developer.apple.com/documentation/xcode/creating-a-standalone-swift-package-with-xcode#Add-a-dependency-on-another-Swift-package).
 
-> Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial%20Setup.md) to set up the core Grove infrastructure.
+> Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial-Setup.md) to set up the core Grove infrastructure.
 
 
 ### Register the Module
@@ -216,7 +216,7 @@ A Grove [`Module`](../../Grove/Grove.docc/Module/Module.md) is a great way of st
 different subsystems and provides extensive capabilities to model relationship and dependence between modules.
 Every ``BluetoothDevice`` is a `Module`.
 Therefore, you can easily access your GroveBluetooth device from within any Grove `Module` using the standard
-[Module Dependency](../../Grove/Grove.docc/Module/Module%20Dependency.md) infrastructure. At the same time,
+[Module Dependency](../../Grove/Grove.docc/Module/Module-Dependency.md) infrastructure. At the same time,
 every `BluetoothDevice` can benefit from the same capabilities as every other Grove `Module`.
 
 Below is a short code example demonstrating how a `BluetoothDevice` uses the `@Dependency` property to interact with a Grove Module that is

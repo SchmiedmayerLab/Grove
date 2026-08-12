@@ -20,7 +20,7 @@ import SwiftUI
 /// The `HKSample` metadata key we add to all samples created as testing data of historical samples.
 ///
 /// This exists to make it easier for someone to delete these samples from their iPhone, should they accidentally run this on a real device.
-nonisolated let HKSampleMetadataKeyIsGroveTestingData = "edu.stanford.spezi.healthkit.isTestingData"
+nonisolated let HKSampleMetadataKeyIsGroveTestingData = "org.grovealliance.grovehealthkit.isTestingData"
 
 extension NSPredicate {
     nonisolated static var isGroveTestingSample: NSPredicate {
@@ -34,11 +34,9 @@ extension NSPredicate {
 
 
 struct BulkExportView: View {
-    // swiftlint:disable attributes
     @Environment(HealthKit.self) private var healthKit
     @Environment(BulkHealthExporter.self) private var bulkExporter
     @Environment(\.calendar) private var cal
-    // swiftlint:enable attributes
     
     // NOTE: we are intentionally using these specific sample types here, since they don't overlap with the `CollectSamples` definitions.
     // Adding eg a ton of heart rate samples would slow down the app a lot, since they'd trigger the observer mechanism.

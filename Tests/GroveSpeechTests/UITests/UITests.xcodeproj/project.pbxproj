@@ -346,7 +346,7 @@
 			buildSettings = {
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app needs access to your microphone for voice input.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "This app needs access to Speech recognition in order to translate voice input.";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezispeech.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovespeech.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -383,7 +383,7 @@
 			buildSettings = {
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app needs access to your microphone for voice input.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "This app needs access to Speech recognition in order to translate voice input.";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezispeech.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovespeech.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -418,7 +418,7 @@
 		6564909C3002CEA900F1D55F /* Debug configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezispeech.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovespeech.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -441,7 +441,7 @@
 		6564909D3002CEA900F1D55F /* Release configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.spezispeech.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovespeech.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;

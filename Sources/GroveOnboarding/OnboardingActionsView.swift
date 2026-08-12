@@ -49,7 +49,7 @@ public struct OnboardingActionsView: View {
     @State private var internalSecondaryViewState: ViewState = .idle
     
     
-    @_documentation(visibility: internal) // swiftlint:disable:next attributes
+    @_documentation(visibility: internal)
     public var body: some View {
         let primaryViewStateBinding = primaryButton.viewState ?? $internalPrimaryViewState
         let secondaryViewStateBinding = secondaryButton?.viewState ?? $internalSecondaryViewState

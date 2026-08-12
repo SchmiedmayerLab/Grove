@@ -357,7 +357,7 @@
 				CODE_SIGN_ENTITLEMENTS = "TestApp/TestApp.entitlements";
 				INFOPLIST_FILE = "TestApp/Info.plist";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "The Test App needs access to the HealthKit records to enable unit tests.";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.xctestextensions.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.xctestextensions.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -395,7 +395,7 @@
 				CODE_SIGN_ENTITLEMENTS = "TestApp/TestApp.entitlements";
 				INFOPLIST_FILE = "TestApp/Info.plist";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "The Test App needs access to the HealthKit records to enable unit tests.";
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.xctestextensions.testapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.xctestextensions.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -430,7 +430,7 @@
 		6564909C3002CEA900F1D55F /* Debug configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.xctestextensions.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.xctestextensions.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -453,7 +453,7 @@
 		6564909D3002CEA900F1D55F /* Release configuration for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_BUNDLE_IDENTIFIER = "edu.stanford.spezi.xctestextensions.testapp.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.xctestextensions.testapp.uitests";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;

@@ -48,7 +48,7 @@ struct AcknowledgeDisclaimerQuestionKind: QuestionKindDefinition {
 extension Questionnaire {
     private static func makeMetadata(title: String, caller: String = #function) -> Questionnaire.Metadata {
         Questionnaire.Metadata(
-            id: "edu.stanford.SpeziQuestionnaire.demo.\(caller)",
+            id: "org.grovealliance.GroveQuestionnaire.demo.\(caller)",
             url: nil,
             title: title,
             explainer: ""
@@ -430,7 +430,7 @@ extension Questionnaire {
     }
     
 //    static let veryWideImage = Self(
-//        metadata: .init(id: "edu.stanford.SpeziQuestionnaire.veryWideImage", url: nil, title: "Annotate Very Wide Image", explainer: ""),
+//        metadata: .init(id: "org.grovealliance.GroveQuestionnaire.veryWideImage", url: nil, title: "Annotate Very Wide Image", explainer: ""),
 //        sections: [
 //            .init(id: "s0", tasks: [
 //                .init(id: "t0", title: "Annotate Image", kind: .annotateImage(.init(

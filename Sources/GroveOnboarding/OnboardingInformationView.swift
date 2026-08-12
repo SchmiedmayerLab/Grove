@@ -34,7 +34,7 @@ public import SwiftUI
 public struct OnboardingInformationView: View {
     private let areas: [Area]
     
-    @_documentation(visibility: internal) // swiftlint:disable:next attributes
+    @_documentation(visibility: internal)
     public var body: some View {
         VStack(alignment: .leading, spacing: 30) {
             ForEach(0..<areas.count, id: \.self) { index in

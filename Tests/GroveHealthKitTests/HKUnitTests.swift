@@ -1010,7 +1010,7 @@ extension HKUnitTests {
         #expect(try HKUnitB.parse("Cal") == .largeCalorie())
         
         #if canImport(HealthKit)
-        try withKnownIssue("FB22552256") { () throws in
+        withKnownIssue("FB22552256") { () throws in
             #expect(try HKUnitA.largeCalorie() == HKUnitA.parse("kcal"))
         }
         #endif
@@ -1072,7 +1072,7 @@ extension HKUnit {
         HKQuantity(unit: self, doubleValue: value).doubleValue(for: newUnit)
     }
     
-    fileprivate func isCompatible(with other: HKUnit) -> Bool {
+    func isCompatible(with other: HKUnit) -> Bool {
         let ret0 = isCompatible0(with: other)
         let ret1 = isCompatible1(with: other)
         #expect(ret0 == ret1)

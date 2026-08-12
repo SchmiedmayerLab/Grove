@@ -20,16 +20,15 @@ struct TextContentExtractorTests {
 
     @Test("Successfully extracts content from text data")
     func testTextExtraction() throws {
-        let textData = Data("Welcome to GroveFHIR".utf8)
-        let content = try textExtractor.extractContent(from: textData)
-
-        #expect(content == "Welcome to GroveFHIR")
+        let input = Data("Welcome to GroveFHIR".utf8)
+        let (type, output) = try textExtractor.extractContent(from: input)
+        #expect(type == .plainText)
+        #expect(output == input)
     }
 
     @Test("Throws error when text decoding fails")
     func testTextDecodingFailure() throws {
         let invalidData = Data([0xFF, 0xFE, 0xFD])
-
         do {
             _ = try textExtractor.extractContent(from: invalidData)
         } catch let error as FHIRAttachmentError {
@@ -44,13 +43,11 @@ struct TextContentExtractorTests {
         } else {
             Issue.record("Failed to create UTType for text/plain")
         }
-
         if let textHtmlUTType = UTType(mimeType: "text/html") {
             #expect(textExtractor.isCompatible(with: textHtmlUTType))
         } else {
             Issue.record("Failed to create UTType for text/html")
         }
-
         if let applicationPdfUTType = UTType(mimeType: "application/pdf") {
             #expect(!textExtractor.isCompatible(with: applicationPdfUTType))
         } else {

@@ -17,7 +17,7 @@ struct UITestsApp: App {
             NavigationStack {
                 ContributionsList(
                     projectLicense: .mit,
-                    projectUrl: URL(string: "https://github.com/StanfordSpezi/SpeziLicense")
+                    projectUrl: URL(string: "https://github.com/SchmiedmayerLab/Grove")
                 )
             }
         }

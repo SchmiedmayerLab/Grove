@@ -21,7 +21,7 @@ extension Grove {
     /// Unregisters for all remote notifications received through Apple Push Notification service.
     ///
     /// Refer to the documentation of ``Grove/unregisterRemoteNotifications``.
-    @available(*, deprecated, message: "Please migrate to the new GroveNotifications package: https://github.com/StanfordSpezi/SpeziNotifications")
+    @available(*, deprecated, message: "Please migrate to the GroveNotifications module.")
     public struct UnregisterRemoteNotificationsAction: Sendable {
         fileprivate init() {}
 
@@ -56,7 +56,7 @@ extension Grove {
     /// ### Action
     /// - ``UnregisterRemoteNotificationsAction``
     @_disfavoredOverload
-    @available(*, deprecated, message: "Please migrate to the new GroveNotifications package: https://github.com/StanfordSpezi/SpeziNotifications")
+    @available(*, deprecated, message: "Please migrate to the GroveNotifications module.")
     public var unregisterRemoteNotifications: UnregisterRemoteNotificationsAction {
         UnregisterRemoteNotificationsAction()
     }

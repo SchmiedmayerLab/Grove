@@ -129,7 +129,7 @@ extension Package {
         version: "1.0",
         branch: nil,
         revision: "0",
-        location: "https://github.com/StanfordSpezi/MockPackage.git",
+        location: "https://github.com/SchmiedmayerLab/MockPackage.git",
         license: "MIT License"
     )
     

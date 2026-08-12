@@ -2166,7 +2166,7 @@ struct HKQuantitySampleTests {
         ])
         #expect(observation.value == .quantity(
             Quantity(
-                code: "dB(SPL)",
+                code: "dB[SPL]",
                 system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
                 unit: "dB(SPL)",
                 value: 100.asFHIRDecimalPrimitive()
@@ -2189,7 +2189,7 @@ struct HKQuantitySampleTests {
         ])
         #expect(observation.value == .quantity(
             Quantity(
-                code: "dB(SPL)",
+                code: "dB[SPL]",
                 system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
                 unit: "dB(SPL)",
                 value: 100.asFHIRDecimalPrimitive()

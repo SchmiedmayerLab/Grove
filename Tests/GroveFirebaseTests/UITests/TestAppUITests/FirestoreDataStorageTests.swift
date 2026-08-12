@@ -27,7 +27,7 @@ final class FirestoreDataStorageTests: XCTestCase {
         
         init(id: String, content: String) {
             self.init(
-                name: "projects/spezifirebaseuitests/databases/(default)/documents/Test/\(id)",
+                name: "projects/grovefirebaseuitests/databases/(default)/documents/Test/\(id)",
                 fields: [
                     "id": [
                         "stringValue": id
@@ -208,7 +208,7 @@ final class FirestoreDataStorageTests: XCTestCase {
 extension FirestoreDataStorageTests {
     private static func deleteAllDocuments() async throws {
         let emulatorDocumentsURL = try XCTUnwrap(
-            URL(string: "http://localhost:8080/emulator/v1/projects/spezifirebaseuitests/databases/(default)/documents")
+            URL(string: "http://localhost:8080/emulator/v1/projects/grovefirebaseuitests/databases/(default)/documents")
         )
         var request = URLRequest(url: emulatorDocumentsURL)
         request.httpMethod = "DELETE"
@@ -231,7 +231,7 @@ extension FirestoreDataStorageTests {
 
     private static func getAllDocuments() async throws -> [FirestoreElement] {
         let documentsURL = try XCTUnwrap(
-            URL(string: "http://localhost:8080/v1/projects/spezifirebaseuitests/databases/(default)/documents/")
+            URL(string: "http://localhost:8080/v1/projects/grovefirebaseuitests/databases/(default)/documents/")
         )
         let (data, response) = try await URLSession.shared.data(from: documentsURL)
 

@@ -51,7 +51,7 @@ public struct QuestionnaireSheet: View {
     
     @State private var responses: QuestionnaireResponses
     
-    @_documentation(visibility: internal) // swiftlint:disable:next attributes
+    @_documentation(visibility: internal)
     public var body: some View {
         ManagedNavigationStack {
             if let section = questionnaire.sections.first {

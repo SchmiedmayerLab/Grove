@@ -54,7 +54,7 @@ struct TestExternalResponsesObject: View {
 extension Questionnaire {
     fileprivate static let testQuestionnaireExtResponses = Self(
         metadata: .init(
-            id: "edu.stanford.SpeziQuestionnaire.testQExtResponses",
+            id: "org.grovealliance.GroveQuestionnaire.testQExtResponses",
             url: nil,
             title: "External Responses Test",
             explainer: ""

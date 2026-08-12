@@ -1,5 +1,5 @@
 #
-# This source file is part of the Stanford Spezi open-source project
+# This source file is part of the Grove open-source project
 #
 # SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 #
@@ -393,17 +393,10 @@ only_rules:
   - custom_rules
   # NOTE: three further union rules are intentionally NOT enabled — applied repo-wide they would flag ~950
   # violations in code from packages that never opted into them: `attributes` (648 violations; 26/35 configs),
-  # SpeziLLM's `custom_rules` blank-line rules (234; 1/35), and `legacy_objc_type` (68; 2/35).
+  # one config's `custom_rules` blank-line rules (234; 1/35), and `legacy_objc_type` (68; 2/35).
   # (operator_whitespace / redundant_optional_initialization were renamed to the two rules above in current SwiftLint.)
 
 custom_rules:
-  legacy_brand_identifier:
-    name: "Legacy Brand Identifier"
-    regex: '"[^"\n]*(edu\.stanford|biodesign\.stanford|bdh\.stanford|spezi\.stanford|cardinalkit|ENGAGEHF)[^"\n]*"'
-    message: "Identifiers naming a pre-Grove authority belong in GroveLegacyIdentifiers, which is where the migrations read them from. Emit org.grovealliance.* instead."
-    severity: error
-    # The vault is where these live by design, and tests build legacy-shaped fixtures on purpose.
-    excluded: ".*/(GroveLegacyIdentifiers|Tests)/.*"
   legacy_brand_logger_subsystem:
     name: "Logger Subsystem Convention"
     regex: 'subsystem:\s*"(?!org\.grovealliance)'

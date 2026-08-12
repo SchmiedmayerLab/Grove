@@ -41,7 +41,7 @@ extension ViewsTests {
             "Localized Swift Recovery Suggestion"
         ])
         imp("NSError (Simple 1)", expectedTitle: "Error", expectedMessages: [
-            "The operation couldn’t be completed. (edu.stanford.SpeziViews error 123.)"
+            "The operation couldn’t be completed. (org.grovealliance.GroveViews error 123.)"
         ])
         imp("NSError (Simple 2)", expectedTitle: "Error", expectedMessages: [
             "NSError Localized Description Text"

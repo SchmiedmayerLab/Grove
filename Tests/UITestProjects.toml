@@ -15,10 +15,7 @@
 [GroveHealthKitFHIR]
 app_products = ["GroveHealthKitFHIR", "Grove", "GroveHealthKit"]
 test_products = ["XCTHealthKit", "XCTestExtensions"]
-[GroveHealthKitFHIR.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezihealthkitfhir.testapp.uitests"
 [GroveHealthKitFHIR.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezihealthkitfhir.testapp"
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/Support Files/TestApp.entitlements"
 "INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription" = "Please provide health records access to test"
 "INFOPLIST_KEY_NSHealthShareUsageDescription" = "Please provide read permission to test the module's functionality."
@@ -27,28 +24,19 @@ test_products = ["XCTHealthKit", "XCTestExtensions"]
 [ResearchKitOnFHIR]
 app_products = ["FHIRQuestionnaires", "ResearchKitOnFHIR"]
 traits = ["ResearchKit"]
-[ResearchKitOnFHIR.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.researchkitonfhir.testapp.uitests"
 [ResearchKitOnFHIR.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.researchkitonfhir.testapp"
 "INFOPLIST_KEY_NSCameraUsageDescription" = "Uses camera to test image capture"
 
 [GroveAccessGuard]
 app_products = ["Grove", "GroveAccessGuard", "GroveFoundation", "GroveViews"]
-[GroveAccessGuard.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.speziaccessguard.testapp.uitests"
 [GroveAccessGuard.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.speziaccessguard.testapp"
 "INFOPLIST_KEY_CFBundleAllowMixedLocalizations" = "YES"
 "INFOPLIST_KEY_NSFaceIDUsageDescription" = "Used to test biometric-based authentication."
 
 [GroveAccount]
 app_products = ["ArgumentParser", "Grove", "GroveAccount", "GroveAccountPhoneNumbers", "GroveValidation", "GroveViews"]
 test_products = ["XCTestExtensions", "XCTGroveAccount"]
-[GroveAccount.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.speziaccount.testapp.uitests"
 [GroveAccount.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.speziaccount.testapp"
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 "INFOPLIST_KEY_CFBundleAllowMixedLocalizations" = "YES"
 [[GroveAccount.remote_packages]]
@@ -60,19 +48,13 @@ products = ["ArgumentParser"]
 [GroveBluetooth]
 app_products = ["ByteCoding", "Grove", "GroveBluetooth", "GroveBluetoothServices", "GroveViews"]
 test_products = ["GroveBluetooth", "GroveBluetoothServices", "XCTestExtensions"]
-[GroveBluetooth.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezibluetooth.testapp.uitests"
 [GroveBluetooth.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezibluetooth.testapp"
 "INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription" = "This App uses Bluetooth to connect to nearby devices."
 
 [GroveChat]
 app_products = ["GroveChat"]
 test_products = ["XCTestExtensions"]
-[GroveChat.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezichat.testapp.uitests"
 [GroveChat.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezichat.testapp"
 "INFOPLIST_KEY_NSMicrophoneUsageDescription" = "Microphone used to record voice for text input."
 "INFOPLIST_KEY_NSSpeechRecognitionUsageDescription" = "Speech recognition necessary for transcribing voice input."
 
@@ -80,32 +62,18 @@ test_products = ["XCTestExtensions"]
 app_products = ["Grove", "GroveConsent", "GroveFoundation", "GroveOnboarding", "GroveViews"]
 test_products = ["GroveFoundation", "XCTestExtensions"]
 
-[GroveConsent.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.speziconsent.testapp"
-[GroveConsent.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.speziconsent.testapp.uitests"
 [GroveContact]
 app_products = ["GroveContact"]
 
-[GroveContact.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezicontact.testapp"
-[GroveContact.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezicontact.testapp.uitests"
 [GroveDevices]
 app_products = ["ByteCoding", "Grove", "GroveBluetooth", "GroveBluetoothServices", "GroveDevices", "GroveDevicesUI", "GroveOmron", "GroveViews"]
 test_products = ["XCTestExtensions"]
-[GroveDevices.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezidevices.testapp.uitests"
 [GroveDevices.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezidevices.testapp"
 "INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription" = "Uses Bluetooth for testing."
 
 [GroveFHIR]
 app_products = ["Grove", "GroveFHIR", "GroveHealthKitFHIR", "GroveFHIRMockPatients", "GroveHealthKit", "GroveViews"]
-[GroveFHIR.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezifhir.testapp.uitests"
 [GroveFHIR.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezifhir.testapp"
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 "INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription" = "The Test App uses the health data to test the Grove FHIR Package."
 "INFOPLIST_KEY_NSHealthShareUsageDescription" = "The TestApp accesses your HealthKit data to run the tests."
@@ -115,27 +83,18 @@ app_products = ["Grove", "GroveFHIR", "GroveHealthKitFHIR", "GroveFHIRMockPatien
 app_products = ["Grove", "GroveAccount", "GroveFirebaseAccount", "GroveFirebaseAccountStorage", "GroveFirestore", "GroveFirebaseStorage", "GrovePersonalInfo", "GroveValidation", "GroveViews"]
 test_products = ["XCTestExtensions", "XCTGroveAccount"]
 [GroveFirebase.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezifirebase.testapp"
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 [GroveFirebase.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezifirebase.testapp.uitests"
 "INFOPLIST_FILE" = "TestAppUITests/Info.plist"
 
 [GroveFoundation]
 app_products = ["GroveFoundation"]
 test_products = ["XCTestExtensions"]
 
-[GroveFoundation.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezifoundation.testapp"
-[GroveFoundation.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezifoundation.testapp.uitests"
 [GroveHealthKit]
 app_products = ["Algorithms", "Grove", "GroveFoundation", "GroveHealthKit", "GroveHealthKitBulkExport", "GroveHealthKitUI", "GroveViews"]
 test_products = ["XCTestExtensions", "GroveHealthKit", "XCTHealthKit"]
-[GroveHealthKit.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezihealthkit.testapp.uitests"
 [GroveHealthKit.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezihealthkit.testapp"
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 "INFOPLIST_KEY_CFBundleAllowMixedLocalizations" = "YES"
 "INFOPLIST_KEY_NSHealthShareUsageDescription" = "The TestApp accesses your HealthKit data to run the tests."
@@ -149,10 +108,7 @@ products = ["Algorithms"]
 [GroveLLM]
 app_products = ["Grove", "GroveAccount", "GroveChat", "GroveFirebaseAccount", "GroveFirebaseAccountStorage", "GroveKeychainStorage", "GroveLLM", "GroveLLMAnthropic", "GroveLLMGemini", "GroveLLMLocal", "GroveLLMLocalDownload", "GroveLLMOpenAI", "GroveLLMOpenAIRealtime", "GroveOnboarding", "GroveViews"]
 test_products = ["XCTestExtensions"]
-[GroveLLM.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezillm.testapp.uitests"
 [GroveLLM.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezillm.testapp"
 "INFOPLIST_KEY_NSMicrophoneUsageDescription" = "The Test Application uses the micophone to test the dication functionality."
 "INFOPLIST_KEY_NSSpeechRecognitionUsageDescription" = "Speech recognition necessary for transcribing voice input."
 
@@ -171,95 +127,58 @@ kind = "exactVersion"
 version = "1.5.8-beta.1"
 products = ["libzstd"]
 
-[GroveLicense.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezilicense.testapp"
-[GroveLicense.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezilicense.testapp.uitests"
 [GroveLocation]
 app_products = ["Grove", "GroveLocation"]
 test_products = ["XCTestExtensions"]
-[GroveLocation.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezilocation.testapp.uitests"
 [GroveLocation.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezilocation.testapp"
 "INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription" = "Used for testing location module."
 "INFOPLIST_KEY_NSLocationWhenInUseUsageDescription" = "Used for testing location module."
 
 [GroveNotifications]
 app_products = ["Grove", "GroveNotifications", "GroveViews", "XCTGroveNotificationsUI"]
 test_products = ["XCTGroveNotifications", "XCTestExtensions"]
-[GroveNotifications.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezinotifications.testapp.uitests"
 [GroveNotifications.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezinotifications.testapp"
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 
 [GroveOnboarding]
 app_products = ["Grove", "GroveFoundation", "GroveOnboarding", "GroveViews"]
 test_products = ["XCTestExtensions"]
 
-[GroveOnboarding.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezionboarding.testapp"
-[GroveOnboarding.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezionboarding.testapp.uitests"
 [GroveQuestionnaire]
 app_products = ["FHIRQuestionnaires", "Grove", "GroveQuestionnaire", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveViews"]
 test_products = ["GroveFoundation", "XCTGroveQuestionnaire", "XCTestExtensions"]
 traits = ["ResearchKit"]
-[GroveQuestionnaire.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.speziquestionnaire.testapp"
-[GroveQuestionnaire.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.speziquestionnaire.testapp.uitests"
 [GroveScheduler]
 app_products = ["Grove", "GroveFoundation", "GroveNotifications", "GroveScheduler", "GroveSchedulerUI", "GroveViews", "XCTGroveNotificationsUI", "XCTestApp"]
 test_products = ["GroveFoundation", "XCTestExtensions", "XCTGroveNotifications"]
-[GroveScheduler.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezischeduler.testapp.uitests"
 [GroveScheduler.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezischeduler.testapp"
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 "INFOPLIST_FILE" = "TestApp/Info.plist"
 
 [GroveSensorKit]
 app_products = ["GroveSensorKit"]
 
-[GroveSensorKit.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezisensorkit.testapp"
-[GroveSensorKit.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezisensorkit.testapp.uitests"
 [GroveSpeech]
 app_products = ["Grove", "GroveSpeechRecognizer", "GroveSpeechSynthesizer"]
-[GroveSpeech.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezispeech.testapp.uitests"
 [GroveSpeech.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezispeech.testapp"
 "INFOPLIST_KEY_NSMicrophoneUsageDescription" = "This app needs access to your microphone for voice input."
 "INFOPLIST_KEY_NSSpeechRecognitionUsageDescription" = "This app needs access to Speech recognition in order to translate voice input."
 
 [GroveStorage]
 app_products = ["Grove", "GroveKeychainStorage", "GroveLocalStorage", "XCTestApp"]
-[GroveStorage.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezistorage.testapp.uitests"
 [GroveStorage.app_settings]
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.storage.testapp"
 
 [GroveStudy]
 app_products = ["Grove", "GroveFoundation", "GroveHealthKit", "GroveLocalization", "GroveScheduler", "GroveSchedulerUI", "GroveStudy", "GroveStudyDefinition", "GroveViews"]
 test_products = ["XCTHealthKit", "XCTestExtensions"]
-[GroveStudy.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezistudy.testapp.uitests"
 [GroveStudy.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezistudy.testapp"
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 "INFOPLIST_KEY_NSHealthShareUsageDescription" = "The app can perform automated collection of Health data, if the user consents"
 [Grove]
 app_products = ["XCTestApp", "Grove"]
 test_products = ["XCTestExtensions"]
-[Grove.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezi.testapp.uitests"
 [Grove.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.spezi.testapp"
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 
 [GroveViews]
@@ -271,16 +190,9 @@ kind = "upToNextMajorVersion"
 minimum_version = "1.2.1"
 products = ["Algorithms"]
 
-[GroveViews.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.speziviews.testapp"
-[GroveViews.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.speziviews.testapp.uitests"
 [XCTHealthKit]
 test_products = ["XCTHealthKit", "XCTestExtensions"]
-[XCTHealthKit.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.xcthealthkit.testapp.uitests"
 [XCTHealthKit.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.xcthealthkit.testapp"
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 "INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription" = "The Test App needs access to the HealthKit records to enable unit tests."
 "INFOPLIST_KEY_NSHealthShareUsageDescription" = "The Test App needs access to the HealthKit records to enable unit tests."
@@ -288,10 +200,7 @@ test_products = ["XCTHealthKit", "XCTestExtensions"]
 [XCTestExtensions]
 app_products = ["XCTestApp"]
 test_products = ["XCTestExtensions"]
-[XCTestExtensions.test_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.xctestextensions.testapp.uitests"
 [XCTestExtensions.app_settings]
-"PRODUCT_BUNDLE_IDENTIFIER" = "edu.stanford.spezi.xctestextensions.testapp"
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 "INFOPLIST_FILE" = "TestApp/Info.plist"
 "INFOPLIST_KEY_NSHealthShareUsageDescription" = "The Test App needs access to the HealthKit records to enable unit tests."

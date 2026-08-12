@@ -78,7 +78,7 @@ struct FHIRToResearchKitTests {
     func codingRegexPattern() throws {
         let codingWithDisplay = ValueCoding(
             code: "medication.value-yes",
-            system: "http://researchkitonfhir.biodesign.stanford.edu/fhir/Coding/medication-value-exists",
+            system: "http://researchkitonfhir.grovealliance.org/fhir/Coding/medication-value-exists",
             display: "Yes"
         )
         let patternWithDisplay = codingWithDisplay.patternForMatchingORKChoiceQuestionResult
@@ -87,7 +87,7 @@ struct FHIRToResearchKitTests {
         #expect(!expressionWithDisplay.matches(in: rawValueWithDisplay, range: NSRange(location: 0, length: rawValueWithDisplay.count)).isEmpty)
         let codingWithoutDisplay = ValueCoding(
             code: "medication.value-yes",
-            system: "http://researchkitonfhir.biodesign.stanford.edu/fhir/Coding/medication-value-exists",
+            system: "http://researchkitonfhir.grovealliance.org/fhir/Coding/medication-value-exists",
             display: nil
         )
         let patternWithoutDisplay = codingWithoutDisplay.patternForMatchingORKChoiceQuestionResult
@@ -184,7 +184,7 @@ struct FHIRToResearchKitTests {
         // Creates a questionnaire and set a URL, but does not add items
         let questionnaire = Questionnaire(
             status: FHIRPrimitive(PublicationStatus.draft),
-            url: try #require("http://biodesign.stanford.edu/fhir/questionnaire/test".asFHIRURIPrimitive() as FHIRPrimitive<FHIRURI>?)
+            url: try #require("http://grovealliance.org/fhir/questionnaire/test".asFHIRURIPrimitive() as FHIRPrimitive<FHIRURI>?)
         )
         #expect(throws: FHIRToResearchKitConversionError.noItems) {
             try ORKNavigableOrderedTask(questionnaire: questionnaire)

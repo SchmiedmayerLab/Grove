@@ -18,7 +18,8 @@ Adds FHIR integrations and compatibility to HealthKit.
 You use the GroveHealthKitFHIR module to convert HealthKit samples into FHIR R4 resources.
 
 ```swift
-let
+let sample: HKQuantitySample = // ... a heart rate sample fetched from HealthKit
+let resource = try sample.resource()
 ```
 
 This resource will be of Observation type, and have the following JSON structure:
@@ -28,27 +29,27 @@ This resource will be of Observation type, and have the following JSON structure
   "status" : "final",
   "extension" : [
     {
-      "url" : "https://bdh.stanford.edu/fhir/defs/sourceDevice",
+      "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice",
       "extension" : [
         {
           "valueString" : "Apple Watch",
-          "url" : "https://bdh.stanford.edu/fhir/defs/sourceDevice/name"
+          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice/name"
         },
         {
           "valueString" : "Apple Inc.",
-          "url" : "https://bdh.stanford.edu/fhir/defs/sourceDevice/manufacturer"
+          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice/manufacturer"
         },
         {
           "valueString" : "Watch",
-          "url" : "https://bdh.stanford.edu/fhir/defs/sourceDevice/model"
+          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice/model"
         },
         {
           "valueString" : "Watch7,12",
-          "url" : "https://bdh.stanford.edu/fhir/defs/sourceDevice/hardwareVersion"
+          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice/hardwareVersion"
         },
         {
           "valueString" : "26.2.1",
-          "url" : "https://bdh.stanford.edu/fhir/defs/sourceDevice/softwareVersion"
+          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice/softwareVersion"
         }
       ]
     },
@@ -57,43 +58,39 @@ This resource will be of Observation type, and have the following JSON structure
         {
           "extension" : [
             {
-              "url" : "https://bdh.stanford.edu/fhir/defs/sourceRevision/source/name",
+              "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/source/name",
               "valueString" : "Lukas' Apple Watch"
             },
             {
-              "url" : "https://bdh.stanford.edu/fhir/defs/sourceRevision/source/bundleIdentifier",
+              "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/source/bundleIdentifier",
               "valueString" : "com.apple.health.B83FE7C9-B62D-44D9-92A8-5CB2AE037A06"
             }
           ],
-          "url" : "https://bdh.stanford.edu/fhir/defs/sourceRevision/source"
+          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/source"
         },
         {
           "valueString" : "26",
-          "url" : "https://bdh.stanford.edu/fhir/defs/sourceRevision/version"
+          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/version"
         },
         {
           "valueString" : "Watch7,12",
-          "url" : "https://bdh.stanford.edu/fhir/defs/sourceRevision/productType"
+          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/productType"
         },
         {
           "valueString" : "26.2.1",
-          "url" : "https://bdh.stanford.edu/fhir/defs/sourceRevision/OSVersion"
+          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/OSVersion"
         }
       ],
-      "url" : "https://bdh.stanford.edu/fhir/defs/sourceRevision"
+      "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision"
     },
     {
-      "url" : "https://bdh.stanford.edu/fhir/defs/metadata",
+      "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata",
       "extension" : [
         {
           "valueDecimal" : 1,
-          "url" : "https://bdh.stanford.edu/fhir/defs/metadata/HKMetadataKeyHeartRateMotionContext"
+          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata/HKMetadataKeyHeartRateMotionContext"
         }
       ]
-    },
-    {
-      "valueString" : "Europe/Berlin",
-      "url" : "https://bdh.stanford.edu/fhir/defs/sampleUploadTimeZone"
     }
   ],
   "valueQuantity" : {
@@ -128,21 +125,13 @@ This resource will be of Observation type, and have the following JSON structure
 ```
 
 
-Extensions that convert supported HealthKit samples to FHIR resources.
-
-## Overview
-
-The HealthKitOnFHIR framework provides extensions that convert supported HealthKit samples to FHIR resources.
-
-HealthKitOnFHIR supports:
+GroveHealthKitFHIR supports:
 - Extensions to convert data from Apple HealthKit to HL7® FHIR® R4.
 - Customizable mappings between HealthKit data types and standardized codes (e.g., LOINC)
 
-Please refer to the [HKObject Support Table](<doc:HKSampleSupportTables>) for a complete list of supported types.
-
 ## HealthKit Extensions
 
-The HealthKitOnFHIR framework provides extensions that convert supported HealthKit samples to FHIR resources using [FHIRModels](https://github.com/apple/FHIRModels) encapsulated in a [ResourceProxy](https://github.com/apple/FHIRModels/blob/main/HowTo/Instantiation.md#1-use-resourceproxy).
+The GroveHealthKitFHIR module provides extensions that convert supported HealthKit samples to FHIR resources using [FHIRModels](https://github.com/apple/FHIRModels) encapsulated in a [ResourceProxy](https://github.com/apple/FHIRModels/blob/main/HowTo/Instantiation.md#1-use-resourceproxy).
 
 ```swift
 let sample: HKSample = // ...
@@ -180,7 +169,7 @@ let allergyIntolerance = try allergyRecord.resource().get(if: AllergyIntolerance
 In the following example, we will query the HealthKit store for step count data, convert the resulting samples to FHIR observations, and encode them into JSON.
 
 ```swift
-import HealthKitOnFHIR
+import GroveHealthKitFHIR
 
 // Initialize an HKHealthStore instance and request permissions with it
 // ...
@@ -254,10 +243,3 @@ The following example generates the following FHIR observation:
 - ``HealthKit/HKSample/resource(withMapping:issuedDate:extensions:)``
 - ``HealthKit/HKSampleType/fhirResourceType``
 - ``HealthKit/HKElectrocardiogram/observation(symptoms:voltageMeasurements:withMapping:issuedDate:extensions:)``
-
-### Supported HealthKit HKSample Types
-- <doc:HKSampleSupportTables>
-- <doc:SupportedHKQuantityTypes>
-- <doc:SupportedHKClinicalTypes>
-- <doc:SupportedHKCategoryTypes>
-- <doc:SupportedHKCorrelationTypes>

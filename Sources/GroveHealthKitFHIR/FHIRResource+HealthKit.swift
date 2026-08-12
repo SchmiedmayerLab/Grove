@@ -61,17 +61,18 @@ extension FHIRResource {
                 return fhirResource
             case .r4:
                 var resource = try decoder.decode(ModelsR4.ResourceProxy.self, from: fhirResource.data).get()
-                if var domainResource = resource as? any ModelsR4.DomainResource {
-                    if domainResource.extension == nil {
-                        domainResource.extension = []
-                    }
-                    domainResource.extension!.append( // swiftlint:disable:this force_unwrapping
-                        ModelsR4.Extension(
+                if var domainResource = resource as? any FHIRTypeWithExtensions {
+                    // Routed through `append` rather than the raw array so the tag participates in
+                    // the superseded-spelling dual-write like every other extension the project emits.
+                    domainResource.append(
+                        extension: ModelsR4.Extension(
                             url: .hkSampleId,
                             value: .id(record.uuid.uuidString.asFHIRStringPrimitive())
                         )
                     )
-                    resource = domainResource
+                    if let updated = domainResource as? any ModelsR4.Resource {
+                        resource = updated
+                    }
                 }
                 var fhirResource = FHIRResource(
                     versionedResource: .r4(resource),

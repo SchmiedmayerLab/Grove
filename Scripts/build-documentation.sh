@@ -10,8 +10,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 if [ -n "${RUNNER_TEMP:-}" ]; then
-  DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$RUNNER_TEMP/spezi-docs-derivedData}"
-  DOC_OUTPUT_DIR="${DOC_OUTPUT_DIR:-$RUNNER_TEMP/spezi-documentation}"
+  DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$RUNNER_TEMP/grove-docs-derivedData}"
+  DOC_OUTPUT_DIR="${DOC_OUTPUT_DIR:-$RUNNER_TEMP/grove-documentation}"
 else
   DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-.derivedData-docs}"
   DOC_OUTPUT_DIR="${DOC_OUTPUT_DIR:-.build/documentation}"
@@ -89,7 +89,7 @@ for line in log_path.read_text(encoding="utf-8", errors="replace").splitlines():
     if any(marker in line for marker in ignored_markers):
         continue
     is_documentation_warning = (
-        "/Sources/" in line and "/.docc/" in line
+        "/Sources/" in line and ".docc/" in line
     ) or any(
         marker in line
         for marker in (
@@ -166,7 +166,7 @@ xcrun docc merge \
 xcrun docc process-archive transform-for-static-hosting \
   "$COMBINED_ARCHIVE" \
   --output-path "$STATIC_ARCHIVE" \
-  --hosting-base-path "${DOC_HOSTING_BASE_PATH:-/Spezi}"
+  --hosting-base-path "${DOC_HOSTING_BASE_PATH:-/Grove}"
 
 echo "Built combined DocC archive at $COMBINED_ARCHIVE"
 echo "Built static-hosting DocC archive at $STATIC_ARCHIVE"

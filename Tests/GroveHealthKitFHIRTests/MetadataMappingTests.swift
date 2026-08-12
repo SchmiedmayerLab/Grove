@@ -20,7 +20,7 @@ struct MetadataMappingTests {
     @Test
     func metadataHandling() throws {
         func imp<T>(_: T.Type, _ value: T, sourceLocation: SourceLocation = #_sourceLocation) throws -> ModelsR4.Extension.ValueX {
-            let metadataKey = "edu.stanford.SpeziHealthKitFHIRTests.TestMetadataEntry"
+            let metadataKey = "org.grovealliance.GroveHealthKitFHIRTests.TestMetadataEntry"
             let sample = HKQuantitySample(
                 type: HKQuantityType(.stepCount),
                 quantity: HKQuantity(unit: .count(), doubleValue: 17),

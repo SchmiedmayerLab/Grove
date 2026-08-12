@@ -31,11 +31,11 @@ class TestAppDelegate: GroveAppDelegate {
 
 
 extension AccessGuardIdentifier where AccessGuard == CodeAccessGuard {
-    static let test: Self = .passcode("edu.stanford.spezi.accessguardtests.1.test")
-    static let testFixed: Self = .passcode("edu.stanford.spezi.accessguardtests.1.testFixed")
-    static let testConsumable: Self = .passcode("edu.stanford.spezi.accessguardtests.1.testConsumable")
+    static let test: Self = .passcode("org.grovealliance.groveaccessguardtests.1.test")
+    static let testFixed: Self = .passcode("org.grovealliance.groveaccessguardtests.1.testFixed")
+    static let testConsumable: Self = .passcode("org.grovealliance.groveaccessguardtests.1.testConsumable")
 }
 
 extension AccessGuardIdentifier where AccessGuard == BiometricAccessGuard {
-    static let testBiometrics: Self = .biometric("edu.stanford.spezi.accessguardtests.1.testBiometrics")
+    static let testBiometrics: Self = .biometric("org.grovealliance.groveaccessguardtests.1.testBiometrics")
 }

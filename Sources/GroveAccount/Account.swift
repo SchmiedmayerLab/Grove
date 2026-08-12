@@ -61,7 +61,7 @@ public import SwiftUI
 @Observable
 public final class Account {
     @ObservationIgnored @Application(\.logger)
-    var logger // swiftlint:disable:this attributes
+    var logger
 
     @Dependency @ObservationIgnored private var notifications = AccountNotifications()
 
