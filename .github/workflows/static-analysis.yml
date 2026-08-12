@@ -31,14 +31,7 @@ jobs:
       - name: Verify generated UI test projects
         run: python3 Scripts/generate-ui-test-projects.py --check
 
-  reuse:
-    name: REUSE Compliance Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: REUSE Compliance Check
-        uses: fsfe/reuse-action@v5
-
+  # REUSE runs as part of the Repository Standards workflow.
   swiftlint:
     name: SwiftLint
     runs-on: ubuntu-latest

@@ -84,7 +84,7 @@ public typealias StudyDefinitionElement = Hashable & Codable & Sendable
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct StudyDefinition: Identifiable, Hashable, Sendable, Encodable, DecodableWithConfiguration {
     /// The ``StudyDefinition`` type's current schema version.
-    public static let schemaVersion = Version(0, 13, 0)
+    public static let schemaVersion = Version(0, 14, 0)
     
     /// The revision of the study.
     ///
@@ -122,12 +122,8 @@ extension StudyDefinition {
             switch component {
             case .healthDataCollection(let component):
                 component
-            case .informational, .questionnaire, .timedWalkingTest:
+            case .informational, .questionnaire, .timedWalkingTest, .customActiveTask:
                 nil
-            #if canImport(Darwin)
-            case .customActiveTask:
-                nil
-            #endif
             }
         }
     }
@@ -175,10 +171,8 @@ extension StudyBundle {
             #else
             nil
             #endif
-        #if canImport(Darwin)
         case .customActiveTask(let component):
-            String(localized: component.activeTask.title)
-        #endif
+            component.activeTask.title[LocalizationKey(locale: locale) ?? .enUS, using: localeMatchingBehaviour]
         case .healthDataCollection:
             nil
         }
@@ -189,7 +183,8 @@ extension StudyBundle {
     /// This function's behaviour depends on `component`'s type:
     /// - for informational components, the markdown file's `lede` metadata entry is fetched, if it exists;
     /// - for questionnaire components, the questionnaire's [`purpose`](https://hl7.org/fhir/R4/questionnaire-definitions.html#Questionnaire.purpose) is returned;
-    /// - for timed walking test and health data collection components, nothing is returned.
+    /// - for timed walking test and health data collection components, nothing is returned;
+    /// - for custom active task components, the task's localized subtitle is returned, if present.
     public func displaySubtitle(
         for component: StudyDefinition.Component,
         in locale: Locale,
@@ -204,10 +199,8 @@ extension StudyBundle {
             nil
         case .healthDataCollection:
             nil
-        #if canImport(Darwin)
         case .customActiveTask(let component):
-            component.activeTask.subtitle.map { String(localized: $0) }
-        #endif
+            component.activeTask.subtitle?[LocalizationKey(locale: locale) ?? .enUS, using: localeMatchingBehaviour]
         }
     }
     
