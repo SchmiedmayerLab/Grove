@@ -84,7 +84,7 @@ public typealias StudyDefinitionElement = Hashable & Codable & Sendable
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct StudyDefinition: Identifiable, Hashable, Sendable, Encodable, DecodableWithConfiguration {
     /// The ``StudyDefinition`` type's current schema version.
-    public static let schemaVersion = Version(0, 13, 0)
+    public static let schemaVersion = Version(0, 14, 0)
     
     /// The revision of the study.
     ///
@@ -122,12 +122,8 @@ extension StudyDefinition {
             switch component {
             case .healthDataCollection(let component):
                 component
-            case .informational, .questionnaire, .timedWalkingTest:
+            case .informational, .questionnaire, .timedWalkingTest, .customActiveTask:
                 nil
-            #if canImport(Darwin)
-            case .customActiveTask:
-                nil
-            #endif
             }
         }
     }
@@ -175,10 +171,8 @@ extension StudyBundle {
             #else
             nil
             #endif
-        #if canImport(Darwin)
         case .customActiveTask(let component):
-            String(localized: component.activeTask.title)
-        #endif
+            component.activeTask.title[LocalizationKey(locale: locale) ?? .enUS, using: localeMatchingBehaviour]
         case .healthDataCollection:
             nil
         }
@@ -204,10 +198,8 @@ extension StudyBundle {
             nil
         case .healthDataCollection:
             nil
-        #if canImport(Darwin)
         case .customActiveTask(let component):
-            component.activeTask.subtitle.map { String(localized: $0) }
-        #endif
+            component.activeTask.subtitle?[LocalizationKey(locale: locale) ?? .enUS, using: localeMatchingBehaviour]
         }
     }
     
