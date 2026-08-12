@@ -217,16 +217,16 @@ extension Tar {
             return Data(count: remainder == 0 ? 0 : size - remainder)
         }
 
-        /// The NUL/space-trimmed ASCII string stored in `field`.
+        /// The NUL-terminated ASCII string stored in `field`. Spaces are preserved: they are legal
+        /// in a name field, and the numeric fields strip their own padding in ``octal(_:)``.
         func string(_ field: Header.Field) -> String {
             let region = bytes[field.offset..<field.offset + field.length]
-            let trimmed = region.prefix { $0 != 0 && $0 != UInt8(ascii: " ") }
-            return String(decoding: trimmed, as: UTF8.self)
+            return String(decoding: region.prefix { $0 != 0 }, as: UTF8.self)
         }
 
         /// The octal number stored in `field`, or `nil` when it is not a non-negative octal number.
         func octal(_ field: Header.Field) -> Int? {
-            let text = string(field)
+            let text = string(field).trimmingCharacters(in: .whitespaces)
             guard !text.isEmpty, let value = Int(text, radix: 8), value >= 0 else {
                 return nil
             }

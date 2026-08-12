@@ -55,16 +55,19 @@ extension StudyBundle {
     /// The archive entries of the directory tree at `root`, sorted for a deterministic archive.
     private static func entries(ofDirectoryAt root: URL) throws -> [Tar.Entry] {
         let fileManager = FileManager.default
+        // The enumerator canonicalizes symlinks in the URLs it yields (e.g. /var -> /private/var),
+        // which the root's own path does not; resolving both the same way keeps the prefix aligned.
         let rootPath = root.resolvingSymlinksInPath().path(percentEncoded: false)
         var entries: [Tar.Entry] = []
         let enumerator = fileManager.enumerator(at: root, includingPropertiesForKeys: nil)
         for case let url as URL in enumerator ?? .init() {
-            let urlPath = url.resolvingSymlinksInPath().path(percentEncoded: false)
-            let relativePath = urlPath.trimmingPrefix(rootPath).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            let relativePath = url.resolvingSymlinksInPath().path(percentEncoded: false)
+                .trimmingPrefix(rootPath)
+                .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
             if fileManager.isDirectory(at: url) {
-                entries.append(.directory(String(relativePath)))
+                entries.append(.directory(relativePath))
             } else {
-                entries.append(.file(String(relativePath), contents: try Data(contentsOf: url)))
+                entries.append(.file(relativePath, contents: try Data(contentsOf: url)))
             }
         }
         return entries.sorted { $0.path < $1.path }
@@ -74,7 +77,10 @@ extension StudyBundle {
     private static func write(_ entries: [Tar.Entry], to root: URL) throws {
         let fileManager = FileManager.default
         try fileManager.createDirectory(at: root, withIntermediateDirectories: true)
-        let rootPath = canonicalPath(of: root.resolvingSymlinksInPath())
+        // Resolve the root once and derive every target from it, so a symlink in the root's own
+        // path cannot skew the containment check.
+        let root = root.resolvingSymlinksInPath()
+        let rootPath = canonicalPath(of: root)
         for entry in entries {
             let target = root.appending(path: entry.path).standardized
             let targetPath = canonicalPath(of: target)

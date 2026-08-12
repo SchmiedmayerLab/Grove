@@ -16,6 +16,7 @@ struct TarTests {
     private let sampleEntries: [Tar.Entry] = [
         .directory("article"),
         .file("article/welcome.md", contents: Data("# Welcome".utf8)),
+        .file("article/what is next.md", contents: Data("# Next".utf8)), // spaces are legal in a path
         .file("definition.json", contents: Data(#"{"schemaVersion":"0.14.0"}"#.utf8)),
         .file("empty", contents: Data())
     ]
