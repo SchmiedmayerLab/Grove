@@ -57,7 +57,7 @@ extension Module {
     /// The `@Collect` modifier can be used a establish a data flow between ``Module``s without requiring a dependency relationship.
     /// `@Collect` declares the receiving end.
     ///
-    /// - Important: The property is only accessible once your ``Module/configure()-5pa83`` method is called.
+    /// - Important: The property is only accessible once your ``Module/configure()`` method is called.
     ///
     /// ### Retrieving Data
     /// ``Module/Collect`` retrieves data provided through the ``Module/Provide`` property wrapper.

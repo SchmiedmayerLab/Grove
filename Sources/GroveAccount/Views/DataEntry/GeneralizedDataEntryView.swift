@@ -24,7 +24,7 @@ private protocol GeneralizedStringEntryView {
 /// For every ``DataEntryView`` the following things are automatically taken care of:
 /// - Declare and manage the state of the value and post any changes back up to the parent view.
 /// - If the value is of type `String` and the ``AccountService`` has a ``FieldValidationRules`` configuration for the given
-///     ``AccountKey``, a [validate(input:rules:)](../../../GroveValidation/GroveValidation.docc/GroveValidation.md)-5dac4)
+///     ``AccountKey``, a [validate(input:rules:)](../../../GroveValidation/GroveValidation.docc/GroveValidation.md)-(_,ValidationRule...))
 ///      modifier is automatically injected.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct GeneralizedDataEntryView<Key: AccountKey>: View {

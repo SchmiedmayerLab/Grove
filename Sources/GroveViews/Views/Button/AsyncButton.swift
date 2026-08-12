@@ -22,7 +22,7 @@ private enum AsyncButtonGroupResult {
 /// The `AsyncButton` closely works together with the ``ViewState`` to control processing and error states.
 ///
 /// Below is a short code example on how to use `ViewState` in conjunction with the `AsyncButton` to spin of a
-/// async throwing action. It relies on the ``SwiftUICore/View/viewStateAlert(state:)-4wzs4`` modifier to present any
+/// async throwing action. It relies on the ``SwiftUICore/View/viewStateAlert(state:)-(Binding<ViewState>)`` modifier to present any
 /// potential `LocalizedErrors` to the user.
 ///
 /// ```swift

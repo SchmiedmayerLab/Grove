@@ -59,7 +59,7 @@ extension View {
     ///
     /// - Important: This modifier is only recommended for Previews. As it doesn't configure a ``GroveAppDelegate`` lifecycle handling
     ///     functionality, using ``LifecycleHandler``,  of modules is not fully supported. You may use the `simulateLifecycle`
-    ///     parameter to simulate a call to ``LifecycleHandler/willFinishLaunchingWithOptions(_:launchOptions:)-8jatp``.
+    ///     parameter to simulate a call to ``LifecycleHandler/willFinishLaunchingWithOptions(_:launchOptions:)``.
     ///
     /// - Parameters:
     ///   - standard: The global  ``Standard`` used throughout the app to manage global data flow.
@@ -101,7 +101,7 @@ extension View {
     ///
     /// - Important: This modifier is only recommended for Previews. As it doesn't configure a ``GroveAppDelegate`` lifecycle handling
     ///     functionality, using ``LifecycleHandler``,  of modules is not fully supported. You may use the `simulateLifecycle`
-    ///     parameter to simulate a call to ``LifecycleHandler/willFinishLaunchingWithOptions(_:launchOptions:)-8jatp``.
+    ///     parameter to simulate a call to ``LifecycleHandler/willFinishLaunchingWithOptions(_:launchOptions:)``.
     ///
     /// - Parameters:
     ///   - simulateLifecycle: Options to simulate behavior for ``LifecycleHandler``s. Disabled by default.

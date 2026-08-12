@@ -12,8 +12,8 @@ extension Module {
     ///
     /// A ``Module`` can define the injection of a ``Standard`` using the @``Module/StandardActor`` property wrapper.
     ///
-    /// - Note: You can access `@StandardActor` once your ``Module/configure()-5pa83`` method is called (e.g., it must not be used in the `init`)
-    ///     and can continue to access the Standard actor in methods like ``LifecycleHandler/willFinishLaunchingWithOptions(_:launchOptions:)-8jatp``.
+    /// - Note: You can access `@StandardActor` once your ``Module/configure()`` method is called (e.g., it must not be used in the `init`)
+    ///     and can continue to access the Standard actor in methods like ``LifecycleHandler/willFinishLaunchingWithOptions(_:launchOptions:)``.
     ///
     /// ```swift
     /// class ExampleModule: Module {

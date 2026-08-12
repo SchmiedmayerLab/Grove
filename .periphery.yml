@@ -35,6 +35,12 @@ retain_assign_only_property_types:
   - OnChangeRegistration
   - OutcomeSubscription
 
+# Whether a `periphery:ignore` is strictly needed depends on the toolchain: some Xcode versions
+# record a property's projected-value use (`$viewState`) in the index and some do not, so the same
+# comment is required locally and redundant on a runner. Reporting the redundancy would make the
+# scan fail on one machine and pass on the other for identical source.
+superfluous_ignore_comments: false
+
 skip_build: true
 
 # In index-store mode Periphery reports every indexed file; `targets` does not filter. Reporting

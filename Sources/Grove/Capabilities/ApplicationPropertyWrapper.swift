@@ -64,7 +64,7 @@ extension Module {
     /// The `@Application` property wrapper can be used inside your `Module` to
     /// access a property or action of your application.
     ///
-    /// - Note: You can access the contents of `@Application` once your ``Module/configure()-5pa83`` method is called
+    /// - Note: You can access the contents of `@Application` once your ``Module/configure()`` method is called
     ///     (e.g., it must not be used in the `init`).
     ///
     /// Below is a short code example:

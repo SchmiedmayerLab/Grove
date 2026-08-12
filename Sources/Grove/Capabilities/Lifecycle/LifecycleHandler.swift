@@ -15,7 +15,7 @@ public import SwiftUI
 /// Conform to the `LifecycleHandler` protocol to get updates about the application lifecycle similar to the `UIApplicationDelegate` on an app basis.
 ///
 /// You can, e.g., implement the following functions to get informed about the application launching and being terminated:
-/// - ``LifecycleHandler/willFinishLaunchingWithOptions(_:launchOptions:)-8jatp``
+/// - ``LifecycleHandler/willFinishLaunchingWithOptions(_:launchOptions:)``
 /// - ``LifecycleHandler/applicationWillTerminate(_:)-35fxv``
 ///
 /// All methods supported by the module capability are listed blow.

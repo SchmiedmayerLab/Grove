@@ -18,7 +18,7 @@ import GroveFoundation
 /// This utility type is useful for APIs which operate on heterogeneous collections of ``SampleType``s,
 /// and in contexts where generics aren't easily available, e.g. when using ``SampleType``s as `Codable` properties.
 ///
-/// You can turn a ``SampleTypeProxy`` back into a proper fully-typed ``SampleType`` by means of the ``underlyingSampleType`` property and ``SampleType/init(_:)-6kzr1``:
+/// You can turn a ``SampleTypeProxy`` back into a proper fully-typed ``SampleType`` by means of the ``underlyingSampleType`` property and ``SampleType/init(_:)-(AnySampleType<Sample>)``:
 ///
 /// ```swift
 /// func doSomething(_ sampleType: SampleTypeProxy) -> Result {
@@ -55,7 +55,7 @@ public enum SampleTypeProxy: Identifiable, Sendable {
     
     /// The type-erased underlying ``AnySampleType``.
     ///
-    /// You can use this property to obtain a proper fully-typed ``SampleType`` from a ``SampleTypeProxy``, via ``SampleType/init(_:)-6kzr1``:
+    /// You can use this property to obtain a proper fully-typed ``SampleType`` from a ``SampleTypeProxy``, via ``SampleType/init(_:)-(AnySampleType<Sample>)``:
     /// ```swift
     /// func doSomething(_ sampleType: SampleTypeProxy) -> Result {
     ///     func imp<Sample>(_ sampleType: some AnySampleType<Sample>) -> Result {

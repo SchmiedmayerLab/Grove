@@ -82,7 +82,7 @@ extension Module {
     /// The `@Provide` modifier can be used a establish a data flow between ``Module``s without requiring a dependency relationship.
     ///
     /// - Important: All `@Provide` properties must be initialized within the initializer and cannot be modified within the
-    ///     ``Module/configure()-5pa83`` method.
+    ///     ``Module/configure()`` method.
     ///
     /// ### Providing Data
     /// Data provided through `@Provide` can be retrieved through the ``Module/Collect`` property wrapper.

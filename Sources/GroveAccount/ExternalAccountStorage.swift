@@ -22,7 +22,7 @@ public import Grove
 /// - ``updatedDetails``
 /// - ``requestExternalStorage(of:for:)``
 /// - ``updateExternalStorage(with:for:)``
-/// - ``retrieveExternalStorage(for:_:)-5ngpm``
+/// - ``retrieveExternalStorage(for:_:)-(_,[AccountKey.])``
 /// - ``retrieveExternalStorage(for:_:)-1x0ps``
 ///
 /// ### Communicate changes as a Storage Provider

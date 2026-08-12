@@ -82,7 +82,7 @@ extension Module {
     /// The `@Model` property wrapper can be used inside your `Module` to place an
     /// observable model type into the global SwiftUI view environment.
     ///
-    /// - Note: The contents of the `@Model` property wrapper are collected after the ``Module/configure()-5pa83`` call returns.
+    /// - Note: The contents of the `@Model` property wrapper are collected after the ``Module/configure()`` call returns.
     ///     After collection, the model instance passed to `@Model` cannot be changed again.
     ///
     /// Below is a short code example:

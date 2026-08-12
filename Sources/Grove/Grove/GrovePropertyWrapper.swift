@@ -16,7 +16,7 @@ enum GrovePropertyError: Error {
 protocol GrovePropertyWrapper {
     /// Inject the global Grove instance.
     ///
-    /// This call happens right before ``Module/configure()-5pa83`` is called.
+    /// This call happens right before ``Module/configure()`` is called.
     /// An empty default implementation is provided.
     /// - Parameter grove: The global ``Grove/Grove`` instance.
     @MainActor

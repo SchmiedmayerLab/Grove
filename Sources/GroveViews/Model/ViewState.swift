@@ -14,7 +14,7 @@ public import Foundation
 /// A `ViewState` provides a built-in mechanism for tracking the state of a Grove UI component.
 /// A view can be in one of three states: `idle`, `processing`, or `error`.
 ///
-/// The ``SwiftUICore/View/viewStateAlert(state:)-4wzs4`` view modifier can be used to automatically notify users with an
+/// The ``SwiftUICore/View/viewStateAlert(state:)-(Binding<ViewState>)`` view modifier can be used to automatically notify users with an
 /// [`Alert`](https://developer.apple.com/documentation/swiftui/view/alert(_:ispresented:actions:)-3npin) when the
 /// `ViewState` transitions into an error state.
 ///

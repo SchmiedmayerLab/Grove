@@ -13,7 +13,7 @@ extension Module {
     ///
     /// You can use the `@Dependency` property wrapper inside your ``Module`` to define dependencies to other `Module`s.
     ///
-    /// - Note: You can access the contents of `@Dependency` once your ``Module/configure()-5pa83`` method is called. You cannot
+    /// - Note: You can access the contents of `@Dependency` once your ``Module/configure()`` method is called. You cannot
     ///     access it within your `init`.
     ///
     /// ### Required Dependencies

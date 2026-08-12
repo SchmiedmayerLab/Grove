@@ -88,13 +88,14 @@ for line in log_path.read_text(encoding="utf-8", errors="replace").splitlines():
         continue
     if any(marker in line for marker in ignored_markers):
         continue
-    is_documentation_warning = (
-        "/Sources/" in line and ".docc/" in line
-    ) or any(
+    # Symbol links live in Swift doc comments as well as in catalogs, so a warning anywhere under
+    # Sources counts — keying only on `.docc/` silently dropped every warning raised in a .swift file.
+    is_documentation_warning = "/Sources/" in line or any(
         marker in line
         for marker in (
             " doesn't exist at ",
             " is ambiguous at ",
+            " isn't a disambiguation for ",
             "Parameter '" ,
             " not found in ",
         )
