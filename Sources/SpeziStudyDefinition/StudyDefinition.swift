@@ -183,7 +183,8 @@ extension StudyBundle {
     /// This function's behaviour depends on `component`'s type:
     /// - for informational components, the markdown file's `lede` metadata entry is fetched, if it exists;
     /// - for questionnaire components, the questionnaire's [`purpose`](https://hl7.org/fhir/R4/questionnaire-definitions.html#Questionnaire.purpose) is returned;
-    /// - for timed walking test and health data collection components, nothing is returned.
+    /// - for timed walking test and health data collection components, nothing is returned;
+    /// - for custom active task components, the task's localized subtitle is returned, if present.
     public func displaySubtitle(
         for component: StudyDefinition.Component,
         in locale: Locale,

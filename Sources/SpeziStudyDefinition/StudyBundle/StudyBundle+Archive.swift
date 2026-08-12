@@ -64,18 +64,24 @@ enum StudyBundleTar {
             let header = data[offset..<offset + blockSize]
             offset += blockSize
             guard header.contains(where: { $0 != 0 }) else {
-                break // the end-of-archive marker
+                // The end-of-archive marker is two consecutive zero blocks.
+                guard offset + blockSize <= data.endIndex,
+                      !data[offset..<offset + blockSize].contains(where: { $0 != 0 }) else {
+                    throw TarError.malformedArchive
+                }
+                return
             }
             let name = string(in: header, at: 0, length: nameFieldLength)
             guard let size = octal(in: header, at: 124, length: 12), size >= 0 else {
                 throw TarError.malformedArchive
             }
             let typeflag = header[header.startIndex + 156]
-            guard offset + size <= data.endIndex else {
+            let paddedSize = size + padding(after: size).count
+            guard offset + paddedSize <= data.endIndex else {
                 throw TarError.malformedArchive
             }
             let contents = data[offset..<offset + size]
-            offset += size + padding(after: size).count
+            offset += paddedSize
             let target = root.appending(path: name).standardizedFileURL
             let targetPath = target.path(percentEncoded: false)
             guard targetPath == rootPath || targetPath.hasPrefix(rootPath + "/") else {
@@ -91,6 +97,7 @@ enum StudyBundleTar {
                 continue // entry kinds this implementation never writes (links, pax metadata, ...)
             }
         }
+        throw TarError.malformedArchive // the blocks ran out before the end-of-archive marker
     }
 
     private static func header(path: String, size: Int) -> Data {
@@ -133,9 +140,16 @@ extension StudyBundle {
     /// The file extension of a compressed study bundle archive.
     public static let archiveFileExtension = "\(fileExtension).tar.zst"
 
-    /// Extracts the zstd-compressed tar archive at `archiveUrl` into `bundleUrl` and opens the bundle.
+    /// Extracts the zstd-compressed tar archive at `archiveUrl` into `bundleUrl`, replacing any
+    /// previous contents, and opens the bundle.
     public static func unarchive(_ archiveUrl: URL, to bundleUrl: URL) throws -> StudyBundle {
-        let tar = try Zstd.decompress(Data(contentsOf: archiveUrl))
+        // Far beyond any real study bundle, but a bound on what a hostile archive can allocate.
+        let maximumDecompressedSize = 1 << 30
+        let tar = try Zstd.decompress(Data(contentsOf: archiveUrl), maximumDecompressedSize: maximumDecompressedSize)
+        let fileManager = FileManager.default
+        if fileManager.itemExists(at: bundleUrl) {
+            try fileManager.removeItem(at: bundleUrl)
+        }
         try StudyBundleTar.extract(tar, to: bundleUrl)
         return try StudyBundle(bundleUrl: bundleUrl)
     }
