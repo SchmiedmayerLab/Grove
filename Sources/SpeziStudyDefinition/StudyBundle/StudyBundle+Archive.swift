@@ -147,10 +147,18 @@ extension StudyBundle {
         let maximumDecompressedSize = 1 << 30
         let tar = try Zstd.decompress(Data(contentsOf: archiveUrl), maximumDecompressedSize: maximumDecompressedSize)
         let fileManager = FileManager.default
+        // Extract into a staging sibling first, so a malformed archive cannot destroy a
+        // previously extracted bundle.
+        let stagingUrl = bundleUrl.deletingLastPathComponent()
+            .appending(path: "\(bundleUrl.lastPathComponent).staging-\(UUID().uuidString)")
+        defer {
+            try? fileManager.removeItem(at: stagingUrl)
+        }
+        try StudyBundleTar.extract(tar, to: stagingUrl)
         if fileManager.itemExists(at: bundleUrl) {
             try fileManager.removeItem(at: bundleUrl)
         }
-        try StudyBundleTar.extract(tar, to: bundleUrl)
+        try fileManager.moveItem(at: stagingUrl, to: bundleUrl)
         return try StudyBundle(bundleUrl: bundleUrl)
     }
 
