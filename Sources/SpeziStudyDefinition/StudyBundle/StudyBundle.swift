@@ -66,6 +66,8 @@ public struct StudyBundle: Identifiable, Sendable {
     public enum StudyBundleError: Error {
         /// The URL passed to an operation does not point to a study bundle package.
         case notValidStudyBundleUrl
+        /// An archive entry's path would escape the bundle directory during extraction.
+        case entryEscapesBundle(String)
     }
     
     /// The file extension used by Study Bundles.
