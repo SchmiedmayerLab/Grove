@@ -58,7 +58,10 @@ enum StudyBundleTar {
     static func extract(_ data: Data, to root: URL) throws {
         let fileManager = FileManager.default
         try fileManager.createDirectory(at: root, withIntermediateDirectories: true)
-        let rootPath = root.standardizedFileURL.path(percentEncoded: false)
+        // Resolve the root once and derive every target from it, so the containment check cannot
+        // be skewed by symlinks resolving differently for existing and not-yet-existing paths.
+        let root = root.resolvingSymlinksInPath()
+        let rootPath = root.path(percentEncoded: false)
         var offset = data.startIndex
         while offset + blockSize <= data.endIndex {
             let header = data[offset..<offset + blockSize]
@@ -82,7 +85,7 @@ enum StudyBundleTar {
             }
             let contents = data[offset..<offset + size]
             offset += paddedSize
-            let target = root.appending(path: name).standardizedFileURL
+            let target = root.appending(path: name).standardized
             let targetPath = target.path(percentEncoded: false)
             guard targetPath == rootPath || targetPath.hasPrefix(rootPath + "/") else {
                 throw TarError.unsafeEntryPath(name)
