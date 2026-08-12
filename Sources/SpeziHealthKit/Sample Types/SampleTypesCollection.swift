@@ -31,8 +31,17 @@ import HealthKit
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct SampleTypesCollection: Hashable, Sendable, Codable {
     public typealias Storage = Set<SampleTypeProxy>
-    
+
+    private enum CodingKeys: String, CodingKey {
+        case storage
+    }
+
     private var storage: Storage
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        storage = try container.decode(Storage.self, forKey: .storage)
+    }
     
     /// Creates a new, empty `SampleTypesCollection`.
     public init() {
@@ -100,6 +109,18 @@ extension SampleTypesCollection {
     /// (eg:, in the case of blood pressure, systolic and diastolic blood pressure).
     public var effectiveSampleTypesForAuthentication: [any AnySampleType] {
         storage.flatMap { $0.underlyingSampleType.effectiveSampleTypesForAuthentication }
+    }
+}
+
+
+// MARK: Encoding
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension SampleTypesCollection {
+    /// Encodes the collection, in a stable order independent of the underlying set's ordering.
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(storage.sorted { $0.id < $1.id }, forKey: .storage)
     }
 }
 
