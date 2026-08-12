@@ -60,8 +60,9 @@ enum StudyBundleTar {
         try fileManager.createDirectory(at: root, withIntermediateDirectories: true)
         // Resolve the root once and derive every target from it, so the containment check cannot
         // be skewed by symlinks resolving differently for existing and not-yet-existing paths.
+        // Resolving an existing directory keeps a trailing slash, so normalize it away.
         let root = root.resolvingSymlinksInPath()
-        let rootPath = root.path(percentEncoded: false)
+        let rootPath = "/" + root.pathComponents.filter { $0 != "/" }.joined(separator: "/")
         var offset = data.startIndex
         while offset + blockSize <= data.endIndex {
             let header = data[offset..<offset + blockSize]
@@ -86,7 +87,7 @@ enum StudyBundleTar {
             let contents = data[offset..<offset + size]
             offset += paddedSize
             let target = root.appending(path: name).standardized
-            let targetPath = target.path(percentEncoded: false)
+            let targetPath = "/" + target.pathComponents.filter { $0 != "/" }.joined(separator: "/")
             guard targetPath == rootPath || targetPath.hasPrefix(rootPath + "/") else {
                 throw TarError.unsafeEntryPath(name)
             }
