@@ -82,7 +82,10 @@ extension StudyBundle {
         }
         try fileManager.createDirectory(at: bundleUrl, withIntermediateDirectories: true)
         do {
-            let data = try JSONEncoder().encode(definition)
+            // Sorted keys keep the encoding stable across runs and platforms.
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .sortedKeys
+            let data = try encoder.encode(definition)
             let definitionUrl = bundleUrl.appendingPathComponent("definition.json")
             try data.write(to: definitionUrl)
         }

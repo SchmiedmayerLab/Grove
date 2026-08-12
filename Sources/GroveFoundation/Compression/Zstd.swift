@@ -19,6 +19,7 @@ import ThreadLocal
 /// - ``compress(_:)``
 /// - ``compress(_:options:)``
 /// - ``decompress(_:)``
+/// - ``decompress(_:maximumDecompressedSize:)``
 ///
 /// ### Supporting Types
 /// - ``CompressionOptions``
@@ -31,6 +32,8 @@ public enum Zstd: CompressionAlgorithm {
         /// The input sequence didn't have an underlying contiguous storage
         case invalidInput
         case notEnoughMemory
+        /// The frame declares a decompressed size beyond the permitted maximum.
+        case exceedsMaximumDecompressedSize
         case other(ZSTD_ErrorCode)
     }
     
@@ -135,6 +138,17 @@ public enum Zstd: CompressionAlgorithm {
     
     
     public static func decompress(_ bytes: borrowing some Collection<UInt8>) throws(DecompressionError) -> Data {
+        try decompress(bytes, maximumDecompressedSize: .max)
+    }
+
+    /// Decompresses the input, rejecting frames that declare a decompressed size beyond `maximumDecompressedSize`.
+    ///
+    /// Use this overload for untrusted input: the decompressed size is taken from the frame header,
+    /// and an unbounded value would otherwise dictate the output allocation.
+    public static func decompress(
+        _ bytes: borrowing some Collection<UInt8>,
+        maximumDecompressedSize: Int
+    ) throws(DecompressionError) -> Data {
         let inputLen = bytes.count
         let result: Result<Data, DecompressionError>? = bytes.withContiguousStorageIfAvailable { inputBuffer in
             guard let inputBufferPtr = inputBuffer.baseAddress else {
@@ -149,7 +163,9 @@ public enum Zstd: CompressionAlgorithm {
                 // could try to use streaming decompression for this at some point in the future
                 return .failure(.invalidInput)
             case let contentSize:
-                let contentSize = Int(contentSize)
+                guard let contentSize = Int(exactly: contentSize), contentSize <= maximumDecompressedSize else {
+                    return .failure(.exceedsMaximumDecompressedSize)
+                }
                 let outputBuffer: UnsafeMutablePointer<UInt8> = .allocate(capacity: contentSize)
                 let result = ZSTD_decompressDCtx(Self.dCtx, outputBuffer, contentSize, inputBufferPtr, inputBuffer.count)
                 if ZSTD_isError(result) == 0 {
