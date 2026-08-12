@@ -25,7 +25,7 @@ For example, the sample type representing heart rate samples (``SampleType/heart
 ### Accessing information about a SampleType
 - ``SampleType/hkSampleType``
 - ``SampleType/displayTitle``
-- ``SampleType/displayUnit-1rnhb``
+- ``SampleType/displayUnit``
 - ``SampleType/expectedValuesRange``
 - ``SampleType/localizedTitle(in:)``
 
@@ -60,13 +60,13 @@ For example, the sample type representing heart rate samples (``SampleType/heart
 - ``SampleType/clinical(_:displayTitle:canonicalTitle:)``
 
 ### Comparing Sample Types
-- ``SampleType/==(_:_:)-8xhr4``
-- ``SampleType/==(_:_:)-4gmmo``
+- ``SampleType/==(_:_:)-(_,SampleType<Any>)``
+- ``SampleType/==(_:_:)-(_,SampleType<Any>)``
 
 
 ### AnySampleType
 
 The ``AnySampleType`` protocol allows ``SampleType``s to be used in a type-erased manner.
 
-- ``SampleType/init(_:)-6kzr1``
+- ``SampleType/init(_:)-(AnySampleType<Sample>)``
 

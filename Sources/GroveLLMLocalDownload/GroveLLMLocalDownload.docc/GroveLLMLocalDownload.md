@@ -36,7 +36,7 @@ The ``LLMLocalDownloadView`` provides an out-of-the-box onboarding view for down
 It can be combined with the [GroveViews](../../GroveViews/GroveViews.docc/GroveViews.md) [`ManagedNavigationStack`](../../GroveViews/GroveViews.docc/GroveViews.md) to create an easy onboarding flow within the application.
 The ``LLMLocalDownloadView`` automatically checks if the model already exists on disk, and if not, offers the start of the download via a button click. The download process itself includes the presentation of a percentage progress view in order to give the user a better feeling for the download progress.
 
-The ``LLMLocalDownloadView/init(model:downloadDescription:action:)-4a14v`` initializer accepts a download description displayed in the view, the remote download `URL` of the LLM, the local storage `URL` of the downloaded model, as well as an action closure to move onto the next (onboarding) step.
+The ``LLMLocalDownloadView/init(model:downloadDescription:action:)-(_,LocalizedStringResource,_)`` initializer accepts a download description displayed in the view, the remote download `URL` of the LLM, the local storage `URL` of the downloaded model, as well as an action closure to move onto the next (onboarding) step.
 
 The heavy lifting of downloading and storing the model is done by the ``LLMLocalDownloadManager`` which exposes the current downloading state view the ``LLMLocalDownloadManager/state`` property of type ``LLMLocalDownloadManager/DownloadState``.
 

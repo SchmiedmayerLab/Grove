@@ -42,12 +42,12 @@ GroveViews provides easy-to-use and easily-reusable UI components that makes the
 ### Manage and communicate View State
 
 - ``ViewState``
-- ``SwiftUICore/View/viewStateAlert(state:)-4wzs4``
-- ``SwiftUICore/View/viewStateAlert(state:)-27a86``
+- ``SwiftUICore/View/viewStateAlert(state:)-(Binding<ViewState>)``
+- ``SwiftUICore/View/viewStateAlert(state:)-(Binding<ViewState>)``
 - ``OperationState``
 - ``SwiftUICore/View/map(state:to:)``
-- ``SwiftUICore/View/processingOverlay(isProcessing:overlay:)-5xplv``
-- ``SwiftUICore/View/processingOverlay(isProcessing:overlay:)-3df8d``
+- ``SwiftUICore/View/processingOverlay(isProcessing:overlay:)-(Bool,_)``
+- ``SwiftUICore/View/processingOverlay(isProcessing:overlay:)-(Bool,_)``
 
 ### Layout
 Default layouts and utilities to automatically adapt your view layouts to dynamic type sizes, device orientation, and device size classes.

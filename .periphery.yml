@@ -41,6 +41,12 @@ skip_build: true
 # is scoped by path instead: build-plugin output (the generated OpenAI client, macro expansions)
 # and checked-in generated parsers are not actionable findings.
 report_exclude:
+  # Build output, wherever the derived data happens to live — locally that is
+  # .derivedData-periphery, on a runner it is $RUNNER_TEMP/grove-periphery. Match what the paths
+  # ARE rather than where they sit, so the scan reports the same set in both places.
+  - "**/Build/Intermediates.noindex/**"
+  - "**/BuildToolPluginIntermediates/**"
+  - "**/SourcePackages/**"
   - "**/.derivedData-periphery/**"
   # Test targets are indexed — that is what makes the reachability of `Sources` truthful — but the
   # analysis guards the shipped surface, not unused fixtures and mock factories.

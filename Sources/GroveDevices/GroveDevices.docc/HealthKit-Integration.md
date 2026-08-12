@@ -21,7 +21,7 @@ GroveDevices helps developers converting measurements received from Bluetooth de
 As soon as you conform your [GroveBluetooth `BluetoothDevice`](../../GroveBluetooth/GroveBluetooth.docc/GroveBluetooth.md)
 to the ``HealthDevice`` protocol and implement the [`DeviceInformationService`](../../GroveBluetoothServices/BluetoothServices.docc/BluetoothServices.md),
 you can access the [`HKDevice`](https://developer.apple.com/documentation/healthkit/hkdevice)
-description using the ``HealthDevice/hkDevice-32s1d`` property
+description using the ``HealthDevice/hkDevice`` property
 
 ### Converting Measurements
 
@@ -41,7 +41,7 @@ representation.
 
 ### Device
 
-- ``HealthDevice/hkDevice-32s1d``
+- ``HealthDevice/hkDevice``
 
 ### Blood Pressure Measurement
 

@@ -20,13 +20,13 @@ The library is based on a rule-based approach using ``ValidationRule``s.
 
 @Column {
     @Image(source: "Validation", alt: "Three different kinds of text fields showing validation errors in red text.") {
-        Perform and visualize input validation with ease using ``SwiftUI/View/validate(input:rules:)-9vks0`` and ``VerifiableTextField``.
+        Perform and visualize input validation with ease using ``SwiftUI/View/validate(input:rules:)-(_,ValidationRule...)`` and ``VerifiableTextField``.
     }
 }
 
 ### Performing Validation
 
-The only thing you have to do, is to set up the ``SwiftUICore/View/validate(input:rules:)-5dac4`` modifier for your
+The only thing you have to do, is to set up the ``SwiftUICore/View/validate(input:rules:)-(_,ValidationRule...)`` modifier for your
 text input.
 Supply your input and validation rules.
 
@@ -79,8 +79,8 @@ var body: some View {
 ### Performing Validation
 
 - ``ValidationRule``
-- ``SwiftUICore/View/validate(input:rules:)-5dac4``
-- ``SwiftUICore/View/validate(input:rules:)-9vks0``
+- ``SwiftUICore/View/validate(input:rules:)-(_,ValidationRule...)``
+- ``SwiftUICore/View/validate(input:rules:)-(_,ValidationRule...)``
 - ``SwiftUICore/View/validate(_:message:)``
 
 ### Managing Validation

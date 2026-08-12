@@ -15,7 +15,7 @@ SPDX-License-Identifier: MIT
 A ``Module``'s initializer can be used to configure its behavior as a subsystem in Grove-based software.
 A `Module` is placed into the ``Configuration`` section of your App to enable and configure it.
 
-The ``Module/configure()-5pa83`` method is called on the initialization of the Grove instance to perform a lightweight configuration of the module.
+The ``Module/configure()`` method is called on the initialization of the Grove instance to perform a lightweight configuration of the module.
 It is advised that longer setup tasks are done in an asynchronous task and started during the call of the configure method.
 
 > Tip: Conform to the ``ServiceModule`` protocol and implement the ``ServiceModule/run()`` method to participate in the structure concurrency
@@ -55,15 +55,15 @@ class ExampleModule: Module {
 }
 ```
 
-> Tip: You can access `@StandardActor` once your ``Module/configure()-5pa83`` method is called (e.g., it must not be used in the `init`)
-    and can continue to access the Standard actor in methods like ``LifecycleHandler/willFinishLaunchingWithOptions(_:launchOptions:)-8jatp``.
+> Tip: You can access `@StandardActor` once your ``Module/configure()`` method is called (e.g., it must not be used in the `init`)
+    and can continue to access the Standard actor in methods like ``LifecycleHandler/willFinishLaunchingWithOptions(_:launchOptions:)``.
 
 
 ## Topics
 
 ### Configuration
 
-- ``configure()-5pa83``
+- ``configure()``
 
 ### Structured Concurrency
 

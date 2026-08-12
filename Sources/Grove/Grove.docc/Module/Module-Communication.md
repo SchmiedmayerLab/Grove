@@ -18,11 +18,11 @@ SPDX-License-Identifier: MIT
 
 Upon configuration, the value of each ``Module/Collect`` property will be collected. Therefore,
 all properties must have been property initialized after the initializer of the ``Module`` has been called.
-Before the invocation of ``Module/configure()-5pa83``, the data of all ``Module/Provide`` properties will be made available.
+Before the invocation of ``Module/configure()``, the data of all ``Module/Provide`` properties will be made available.
 Refer to the documentation of the property wrappers for a more detailed overview of the available capabilities.
 
 > Important: Values must be written to `@Provide` within the initializer and cannot be changed afterwards. `@Collect` properties
-    may only be accessed once the ``Module/configure()-5pa83`` method is getting called. Failure to comply will result in a runtime crash. 
+    may only be accessed once the ``Module/configure()`` method is getting called. Failure to comply will result in a runtime crash. 
 
 Below is a simple example of passing data between ``Module``s.
 

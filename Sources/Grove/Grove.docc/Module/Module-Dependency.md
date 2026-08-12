@@ -16,7 +16,7 @@ SPDX-License-Identifier: MIT
 
 ``Module``s can define dependencies using the @`Dependency` property wrapper.
 
-This establishes a strict order in which the ``Module/configure()-5pa83`` methods of each ``Module`` are called,
+This establishes a strict order in which the ``Module/configure()`` methods of each ``Module`` are called,
 to ensure functionality of a dependency is available at configuration.
 
 > Note: Declaring a cyclic dependency will result in a runtime error. 

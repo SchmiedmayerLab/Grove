@@ -29,7 +29,7 @@ It is mandatory to provide a localizable ``AccountKey/name`` and the `Value` typ
 > Note: Refer to <doc:Value-Conformances> to learn more of the mandatory conformances for the `Value` type.
 
 Optionally, you might want to customize the ``AccountKey/category`` in which the account details are shown (see ``AccountKeyCategory``).
-An ``AccountKey/initialValue-6h1oo`` might be required, depending on the `Value` type if `GroveAccount` cannot derive a sensible default
+An ``AccountKey/initialValue`` might be required, depending on the `Value` type if `GroveAccount` cannot derive a sensible default
 (e.g., GroveAccount automatically provides an ``InitialValue/empty(_:)`` String for String-based account keys).
 
 Below is a short code example that adds support to store a string-based biography that a user might show on their profile.
