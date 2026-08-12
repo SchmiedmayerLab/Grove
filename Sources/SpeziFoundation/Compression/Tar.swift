@@ -178,7 +178,13 @@ extension Tar {
         static let size = 512
         static let endMarkerBlockCount = 2
 
-        private var bytes: [UInt8]
+        // Once the deployment floor reaches iOS 26 / macOS 26 this can become a fixed-size
+        // `InlineArray<size, UInt8>`, making the size structural and letting the `didSet` check go.
+        private var bytes: [UInt8] {
+            didSet {
+                assert(bytes.count == Self.size, "A tar block must always be \(Self.size) bytes")
+            }
+        }
 
         var isZero: Bool {
             bytes.allSatisfy { $0 == 0 }
@@ -265,7 +271,7 @@ extension Tar {
 
 extension Tar {
     /// Walks a `Data` buffer one 512-byte block at a time, tracking the read position.
-    fileprivate struct BlockReader {
+    fileprivate struct BlockReader: IteratorProtocol {
         private let data: Data
         private var offset: Int
 
