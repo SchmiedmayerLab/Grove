@@ -61,9 +61,8 @@ extension StudyBundle {
         var entries: [Tar.Entry] = []
         let enumerator = fileManager.enumerator(at: root, includingPropertiesForKeys: nil)
         for case let url as URL in enumerator ?? .init() {
-            let relativePath = url.resolvingSymlinksInPath().path(percentEncoded: false)
-                .trimmingPrefix(rootPath)
-                .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            let entryPath = url.resolvingSymlinksInPath().path(percentEncoded: false)
+            let relativePath = entryPath.trimmingPrefix(rootPath).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
             if fileManager.isDirectory(at: url) {
                 entries.append(.directory(relativePath))
             } else {
