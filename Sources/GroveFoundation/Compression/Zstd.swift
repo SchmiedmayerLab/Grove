@@ -121,6 +121,7 @@ public enum Zstd: CompressionAlgorithm {
             if ZSTD_isError(result) == 0 {
                 return .success(Data(bytesNoCopy: outputBuffer, count: result, deallocator: .free))
             } else {
+                outputBuffer.deallocate()
                 switch ZSTD_getErrorCode(result) {
                 case ZSTD_error_memory_allocation:
                     return .failure(.notEnoughMemory)
@@ -171,6 +172,7 @@ public enum Zstd: CompressionAlgorithm {
                 if ZSTD_isError(result) == 0 {
                     return .success(Data(bytesNoCopy: outputBuffer, count: contentSize, deallocator: .free))
                 } else {
+                    outputBuffer.deallocate()
                     switch ZSTD_getErrorCode(result) {
                     case ZSTD_error_memory_allocation:
                         return .failure(.notEnoughMemory)
