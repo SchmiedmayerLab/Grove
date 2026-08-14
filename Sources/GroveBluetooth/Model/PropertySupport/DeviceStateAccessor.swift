@@ -14,8 +14,8 @@
 /// ## Topics
 ///
 /// ### Get notified about changes
-/// - ``onChange(initial:perform:)-819sg``
-/// - ``onChange(initial:perform:)-76kjp``
+/// - ``onChange(initial:perform:)-(_,(Value)->Void)``
+/// - ``onChange(initial:perform:)-(_,(Value,Value)->Void)``
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct DeviceStateAccessor<Value: Sendable> {
     private let storage: DeviceState<Value>.Storage

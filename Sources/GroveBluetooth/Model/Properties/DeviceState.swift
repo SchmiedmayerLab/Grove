@@ -78,8 +78,8 @@ import Observation
 /// - ``BluetoothPeripheral/advertisementData``
 ///
 /// ### Get notified about changes
-/// - ``DeviceStateAccessor/onChange(initial:perform:)-819sg``
-/// - ``DeviceStateAccessor/onChange(initial:perform:)-76kjp``
+/// - ``DeviceStateAccessor/onChange(initial:perform:)-(_,(Value)->Void)``
+/// - ``DeviceStateAccessor/onChange(initial:perform:)-(_,(Value,Value)->Void)``
 ///
 /// ### Property wrapper access
 /// - ``wrappedValue``

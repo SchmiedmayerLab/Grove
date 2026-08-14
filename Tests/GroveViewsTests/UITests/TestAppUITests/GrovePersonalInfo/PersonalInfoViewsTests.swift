@@ -20,11 +20,11 @@ final class PersonalInfoViewsTests: XCTestCase {
     @MainActor
     func testNameFields() throws {
         let app = XCUIApplication()
-        app.launch()
+        XCTAssertTrue(app.launchAndWait())
 
         app.open(target: "GrovePersonalInfo")
 
-        XCTAssert(app.buttons["Name Fields"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Name Fields"].wait(for: \.isHittable, toEqual: true, timeout: 5))
         app.buttons["Name Fields"].tap()
 
         XCTAssert(app.staticTexts["First Name"].waitForExistence(timeout: 2))
@@ -40,11 +40,11 @@ final class PersonalInfoViewsTests: XCTestCase {
     @MainActor
     func testUserProfile() throws {
         let app = XCUIApplication()
-        app.launch()
+        XCTAssertTrue(app.launchAndWait())
 
         app.open(target: "GrovePersonalInfo")
 
-        XCTAssert(app.buttons["User Profile"].waitForExistence(timeout: 10))
+        XCTAssert(app.buttons["User Profile"].wait(for: \.isHittable, toEqual: true, timeout: 10))
         app.buttons["User Profile"].tap()
 
         XCTAssertTrue(app.staticTexts["PS"].waitForExistence(timeout: 5))

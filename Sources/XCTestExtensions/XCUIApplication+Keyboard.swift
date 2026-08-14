@@ -31,6 +31,11 @@ extension XCUIApplication {
         // we cannot dismiss a keyboard in macOS
         #if !os(macOS)
         _dismissKeyboard(allowRecursion: true)
+        #if !os(visionOS)
+        // The keyboard animates out; a tap on whatever it covered lands on the keyboard until it is gone.
+        // On visionOS the keyboard app always reports as existing, so there is nothing to wait for.
+        _ = keyboards.firstMatch.waitForNonExistence(timeout: 2)
+        #endif
         #endif
     }
     

@@ -43,10 +43,10 @@ public protocol AcceptingAccountKeyVisitor {
 /// details.acceptAll(&visitor)
 /// ```
 ///
-/// - Note: A visitor can implement the optional ``final()-66gfx`` method to return a result through the ``AcceptingAccountKeyVisitor/acceptAll(_:)-1ytax`` method.
+/// - Note: A visitor can implement the optional ``final()`` method to return a result through the ``AcceptingAccountKeyVisitor/acceptAll(_:)-3rjnb`` method.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public protocol AccountKeyVisitor {
-    /// A optional final result type returned by ``final()-66gfx``.
+    /// A optional final result type returned by ``final()``.
     associatedtype Final = Void
 
     /// Visit a single ``AccountKey`` metatype.
@@ -55,7 +55,7 @@ public protocol AccountKeyVisitor {
 
     /// Visit a single ``RequiredAccountKey`` metatype.
     ///
-    /// - Note: If the implementation is not provided, the call is automatically forwarded to ``visit(_:)-3qt1c``.
+    /// - Note: If the implementation is not provided, the call is automatically forwarded to ``visit(_:)-33mxi``.
     /// - Parameter key: The ``RequiredAccountKey`` metatype.
     mutating func visit<Key: RequiredAccountKey>(_ key: Key.Type)
 
@@ -63,8 +63,8 @@ public protocol AccountKeyVisitor {
     ///
     /// This method can be used to deliver a final result of the visitor. This method has a `Void` default implementation.
     ///
-    /// - Note: This method is only called if the visitor is used using ``AcceptingAccountKeyVisitor/acceptAll(_:)-1ytax``.
-    ///     If you directly call ``AccountKey/accept(_:)-8wakg`` this will not be called and has no effect.
+    /// - Note: This method is only called if the visitor is used using ``AcceptingAccountKeyVisitor/acceptAll(_:)-3rjnb``.
+    ///     If you directly call ``AccountKey/accept(_:)-8ywcg`` this will not be called and has no effect.
     /// - Returns: The final result.
     mutating func final() -> Final
 }
@@ -72,7 +72,7 @@ public protocol AccountKeyVisitor {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountKeyVisitor {
-    /// Default implementation forwarding to ``visit(_:)-3qt1c``.
+    /// Default implementation forwarding to ``visit(_:)-33mxi``.
     public mutating func visit<Key: RequiredAccountKey>(_ key: Key.Type) {
         key.defaultAccept(&self)
     }

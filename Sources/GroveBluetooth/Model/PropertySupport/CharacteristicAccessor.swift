@@ -38,8 +38,8 @@ public import CoreBluetooth
 /// - ``setAutoRead(_:)``
 ///
 /// ### Get notified about changes
-/// - ``onChange(initial:perform:)-4ecct``
-/// - ``onChange(initial:perform:)-6ahtp``
+/// - ``onChange(initial:perform:)-(_,(Value)->Void)``
+/// - ``onChange(initial:perform:)-(_,(Value,Value)->Void)``
 /// - ``subscription``
 ///
 /// ### Control Point Characteristics

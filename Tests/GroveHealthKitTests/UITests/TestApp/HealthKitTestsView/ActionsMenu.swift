@@ -16,7 +16,9 @@ struct ActionsMenu: View {
     @Environment(HealthKit.self) private var healthKit
     
     @Binding var viewState: ViewState
-    
+
+    @State private var completedActions = 0
+
     private let testData: [TestDataDefinition] = [
         .init(sampleType: .heartRate, samples: [
             .init(date: .now, value: 87, unit: .count() / .minute())
@@ -37,28 +39,28 @@ struct ActionsMenu: View {
     
     var body: some View {
         Menu {
-            AsyncButton("Delete Test Data from HealthKit", role: .destructive, state: $viewState) {
+            actionButton("Delete Test Data from HealthKit", role: .destructive) {
                 try await deleteTestData()
             }
             Divider()
             ForEach(testData, id: \.self) { entry in
-                AsyncButton("Add Sample: \(entry.sampleType.displayTitle)", state: $viewState) {
+                actionButton("Add Sample: \(entry.sampleType.displayTitle)") {
                     try await addTestData([entry])
                 }
             }
             Divider()
             Menu("Request Access") {
-                AsyncButton("Only Blood Pressure", state: $viewState) {
+                actionButton("Only Blood Pressure") {
                     try await healthKit.askForAuthorization(
                         for: HealthKit.DataAccessRequirements(readAndWrite: [SampleType.bloodPressure])
                     )
                 }
-                AsyncButton("Blood Pressure + Steps", state: $viewState) {
+                actionButton("Blood Pressure + Steps") {
                     try await healthKit.askForAuthorization(
                         for: HealthKit.DataAccessRequirements(readAndWrite: [SampleType.bloodPressure, SampleType.stepCount] as [any AnySampleType])
                     )
                 }
-                AsyncButton("Only Steps", state: $viewState) {
+                actionButton("Only Steps") {
                     try await healthKit.askForAuthorization(
                         for: HealthKit.DataAccessRequirements(readAndWrite: [SampleType.stepCount])
                     )
@@ -67,11 +69,24 @@ struct ActionsMenu: View {
         } label: {
             Image(systemName: "ellipsis.circle")
                 .accessibilityLabel("actions")
+                // the UI tests wait on this to observe that the action they selected actually ran
+                .accessibilityValue(String(completedActions))
         }
         .accessibilityIdentifier("actions")
     }
-    
-    
+
+    private func actionButton(
+        _ title: String,
+        role: ButtonRole? = nil,
+        action: @MainActor @escaping () async throws -> Void
+    ) -> some View {
+        AsyncButton(title, role: role, state: $viewState) {
+            try await action()
+            completedActions += 1
+        }
+    }
+
+
     // MARK: Test Data Handling
     
     private func addTestData(_ definitions: [TestDataDefinition]) async throws {
@@ -105,7 +120,7 @@ struct ActionsMenu: View {
                 sortDescriptors: []
             )
             do {
-                let samples = (try? await descriptor.result(for: healthKit.healthStore)) ?? []
+                let samples = try await descriptor.result(for: healthKit.healthStore)
                 if !samples.isEmpty {
                     try await healthKit.healthStore.delete(samples)
                 }

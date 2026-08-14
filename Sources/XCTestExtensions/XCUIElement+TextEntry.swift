@@ -291,13 +291,12 @@ extension XCUIElement {
         let app = try self.app
         if options.contains(._tapFromRight) {
             // Select the text field, see https://stackoverflow.com/questions/38523125/place-cursor-at-the-end-of-uitextview-under-uitest
-            let keyboard = app.keyboards.firstMatch
             var offset = 0.99
             repeat {
                 coordinate(withNormalizedOffset: CGVector(dx: offset, dy: 0.5)).tap()
                 offset -= 0.05
-            } while offset >= 0 && !keyboard.waitForExistence(timeout: 2.0)
-            XCTAssert(keyboard.waitForExistence(timeout: 5.0), "Keyboard does not exist.")
+            } while offset >= 0 && !waitForKeyboardFocus(in: app, timeout: 2.0)
+            XCTAssert(waitForKeyboardFocus(in: app, timeout: 5.0), "Text field did not gain keyboard focus.")
             #if !os(watchOS)
             // move the cursor all the way to the right
             typeKey(XCUIKeyboardKey.rightArrow, modifierFlags: .command)
@@ -307,24 +306,23 @@ extension XCUIElement {
             #if os(visionOS)
             XCTAssert(app.visionOSKeyboard.wait(for: .runningForeground, timeout: 2.0))
             #elseif !os(macOS) && !targetEnvironment(macCatalyst)
-            XCTAssert(waitForKeyboardOrFocus(in: app))
+            XCTAssert(waitForKeyboardFocus(in: app), "Text field did not gain keyboard focus.")
             #endif
         }
         // With latest simulator releases it seems like the "swift to type" tutorial isn't popping up anymore.
         // For more information see https://developer.apple.com/forums/thread/650826.
     }
 
-    #if !os(macOS) && !targetEnvironment(macCatalyst)
-    private func waitForKeyboardOrFocus(in app: XCUIApplication, timeout: TimeInterval = 10.0) -> Bool {
-        if app.keyboards.firstMatch.waitForExistence(timeout: timeout) {
-            return true
-        }
-
+    /// The software keyboard never appears while the simulator has a hardware keyboard connected, so focus is the
+    /// condition `typeText` actually needs; `keyboards` is only a fallback for elements that don't report focus.
+    private func waitForKeyboardFocus(in app: XCUIApplication, timeout: TimeInterval = 10.0) -> Bool {
         let focusExpectation = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "hasKeyboardFocus == YES"),
             object: self
         )
-        return XCTWaiter.wait(for: [focusExpectation], timeout: 1.0) == .completed
+        if XCTWaiter.wait(for: [focusExpectation], timeout: timeout) == .completed {
+            return true
+        }
+        return app.keyboards.firstMatch.exists
     }
-    #endif
 }

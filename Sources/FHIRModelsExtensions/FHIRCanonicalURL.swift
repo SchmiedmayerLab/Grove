@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-public import Foundation
+import Foundation
 
 
 /// A FHIR canonical URL, together with every spelling it has previously been published under.
@@ -56,9 +56,9 @@ public struct FHIRCanonicalURL: Hashable, Sendable {
     /// - Parameters:
     ///   - canonical: The spelling to write.
     ///   - superseding: Spellings previously published for the same concept, newest first.
-    public init(_ canonical: String, superseding superseded: [String] = []) {
+    public init(_ canonical: String, superseding: [String] = []) {
         self.canonical = canonical
-        self.superseded = superseded
+        self.superseded = superseding
         FHIRSupersessionRegistry.register(self)
     }
 }

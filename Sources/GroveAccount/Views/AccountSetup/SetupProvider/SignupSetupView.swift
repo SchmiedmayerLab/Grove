@@ -39,8 +39,8 @@ struct SignupSetupView<Credential: Sendable>: View {
 
     /// Create a new signup setup view.
     /// - Parameters:
-    ///   - stale: The binding to the presented setup style.
-    ///   - login: A closure that is called once a user tries to login with their credentials.
+    ///   - style: The binding to the presented setup style.
+    ///   - loginClosure: A closure that is called once a user tries to login with their credentials.
     ///   - presentingSignup: Binding if the signup sheet should be presented.
     init(
         style: Binding<PresentedSetupStyle<Credential>>,

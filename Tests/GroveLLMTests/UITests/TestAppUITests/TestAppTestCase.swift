@@ -7,6 +7,7 @@
 //
 
 import XCTest
+import XCTestExtensions
 
 
 @MainActor
@@ -22,7 +23,8 @@ class TestAppTestCase: XCTestCase, Sendable {
     func launch(
         enableMockMode: Bool,
         showOnboarding: Bool,
-        clearAPIKeysFromKeychain: Bool
+        clearAPIKeysFromKeychain: Bool,
+        waitingFor element: XCUIElement? = nil
     ) {
         app.launchArguments = []
         if enableMockMode {
@@ -34,7 +36,6 @@ class TestAppTestCase: XCTestCase, Sendable {
         if clearAPIKeysFromKeychain {
             app.launchArguments.append("--resetSecureStorage")
         }
-        app.launch()
-        XCTAssert(app.wait(for: .runningForeground, timeout: 5))
+        XCTAssert(app.launchAndWait(for: element), "The app did not become ready after launch.")
     }
 }

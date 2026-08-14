@@ -98,7 +98,7 @@ import SwiftUI
 /// - ``pairedDevices``
 ///
 /// ### Forget Paired Device
-/// - ``forgetDevice(id:)-1zdk2``
+/// - ``forgetDevice(id:)``
 ///
 /// ### Manage Paired Devices
 /// - ``isPaired(_:)``

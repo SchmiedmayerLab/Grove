@@ -7,16 +7,18 @@
 //
 
 import XCTest
+import XCTestExtensions
 
 
 final class KeychainStorageTests: XCTestCase {
     @MainActor
     func testKeychainStorage() throws {
         let app = XCUIApplication()
-        app.launch()
-        
-        app.buttons["Keychain Storage"].tap()
-        
+        let keychainStorage = app.buttons["Keychain Storage"]
+        XCTAssert(app.launchAndWait(for: keychainStorage), "The app did not come up.")
+
+        keychainStorage.tap()
+
         XCTAssertTrue(app.staticTexts["Passed"].waitForExistence(timeout: 2))
     }
 }

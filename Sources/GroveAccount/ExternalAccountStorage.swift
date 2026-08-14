@@ -22,8 +22,8 @@ public import Grove
 /// - ``updatedDetails``
 /// - ``requestExternalStorage(of:for:)``
 /// - ``updateExternalStorage(with:for:)``
-/// - ``retrieveExternalStorage(for:_:)-(_,[AccountKey.])``
-/// - ``retrieveExternalStorage(for:_:)-1x0ps``
+/// - ``retrieveExternalStorage(for:_:)-(_,[AccountKey.Type])``
+/// - ``retrieveExternalStorage(for:_:)-(_,Keys)``
 ///
 /// ### Communicate changes as a Storage Provider
 /// - ``notifyAboutUpdatedDetails(for:_:)``

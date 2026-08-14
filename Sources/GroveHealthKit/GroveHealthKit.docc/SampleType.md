@@ -60,7 +60,7 @@ For example, the sample type representing heart rate samples (``SampleType/heart
 - ``SampleType/clinical(_:displayTitle:canonicalTitle:)``
 
 ### Comparing Sample Types
-- ``SampleType/==(_:_:)-(_,SampleType<Any>)``
+- ``SampleType/==(_:_:)-(_,Self)``
 - ``SampleType/==(_:_:)-(_,SampleType<Any>)``
 
 

@@ -23,24 +23,24 @@ final class ValidationTests: XCTestCase {
     @MainActor
     func testDefaultRules() {
         let app = XCUIApplication()
-        app.launch()
+        XCTAssertTrue(app.launchAndWait())
 
         app.open(target: "GroveValidation")
 
-        XCTAssert(app.buttons["ValidationRules"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["ValidationRules"].wait(for: \.isHittable, toEqual: true, timeout: 5))
         app.buttons["ValidationRules"].tap()
     }
 
     @MainActor
     func testValidationWithFocus() throws {
         let app = XCUIApplication()
-        app.launch()
+        XCTAssertTrue(app.launchAndWait())
         app.open(target: "GroveValidation")
 
         let passwordMessage = "Your password must be at least 8 characters long."
         let emptyMessage = "This field cannot be empty."
 
-        XCTAssert(app.buttons["Validation"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Validation"].wait(for: \.isHittable, toEqual: true, timeout: 5))
         app.buttons["Validation"].tap()
 
         XCTAssertTrue(app.staticTexts["Has Engines: Yes"].waitForExistence(timeout: 2.0))
@@ -48,7 +48,7 @@ final class ValidationTests: XCTestCase {
         XCTAssertFalse(app.staticTexts[passwordMessage].exists)
         XCTAssertFalse(app.staticTexts[emptyMessage].exists)
 
-        XCTAssertTrue(app.buttons["Validate"].exists)
+        XCTAssertTrue(app.buttons["Validate"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Validate"].tap()
         XCTAssertTrue(app.staticTexts["Last state: invalid"].waitForExistence(timeout: 5.0))
         XCTAssertTrue(app.staticTexts[passwordMessage].exists)
@@ -73,6 +73,7 @@ final class ValidationTests: XCTestCase {
         try XCTUnwrap(app.switches.allElementsBoundByIndex.last).tap() // toggles automatic focus switch off
         #endif
 
+        XCTAssertTrue(app.buttons["Validate"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Validate"].tap()
 
         app.typeText("!")
@@ -85,6 +86,7 @@ final class ValidationTests: XCTestCase {
         try XCTUnwrap(app.switches.allElementsBoundByIndex.last).tap() // toggles automatic focus switch on
         #endif
 
+        XCTAssertTrue(app.buttons["Validate"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Validate"].tap()
 
         app.typeText("Word")
@@ -93,7 +95,7 @@ final class ValidationTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Input Valid: Yes"].waitForExistence(timeout: 2.0))
         XCTAssertTrue(app.staticTexts["Last state: invalid"].exists)
 
-        XCTAssertTrue(app.buttons["Validate"].exists)
+        XCTAssertTrue(app.buttons["Validate"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Validate"].tap()
         XCTAssertTrue(app.staticTexts["Last state: valid"].waitForExistence(timeout: 1.0))
 
@@ -104,23 +106,23 @@ final class ValidationTests: XCTestCase {
     @MainActor
     func testValidationPredicate() throws {
         let app = XCUIApplication()
-        app.launch()
+        XCTAssertTrue(app.launchAndWait())
 
         app.open(target: "GroveValidation")
 
-        XCTAssert(app.buttons["Validation Picker"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Validation Picker"].wait(for: \.isHittable, toEqual: true, timeout: 5))
         app.buttons["Validation Picker"].tap()
 
-        XCTAssertTrue(app.buttons["Cookies, Nothing selected"].waitForExistence(timeout: 2.0))
+        XCTAssertTrue(app.buttons["Cookies, Nothing selected"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Cookies, Nothing selected"].tap()
 
-        XCTAssertTrue(app.buttons["Accept"].waitForExistence(timeout: 2.0))
+        XCTAssertTrue(app.buttons["Accept"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Accept"].tap()
 
-        XCTAssertTrue(app.buttons["Cookies, Accept"].waitForExistence(timeout: 2.0))
+        XCTAssertTrue(app.buttons["Cookies, Accept"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Cookies, Accept"].tap()
 
-        XCTAssertTrue(app.buttons["Nothing selected"].waitForExistence(timeout: 2.0))
+        XCTAssertTrue(app.buttons["Nothing selected"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Nothing selected"].tap()
 
         XCTAssertTrue(app.buttons["Cookies, Nothing selected"].waitForExistence(timeout: 2.0))

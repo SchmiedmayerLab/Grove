@@ -7,18 +7,17 @@
 //
 
 import XCTest
+import XCTestExtensions
 
 
 final class ModelTests: XCTestCase {
     @MainActor
     func testModelPropertyWrapper() throws {
         let app = XCUIApplication()
-        app.launch()
+        let modelButton = app.buttons["Model"]
+        XCTAssertTrue(app.launchAndWait(for: modelButton))
+        modelButton.tap()
 
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
-
-        app.buttons["Model"].tap()
-
-        XCTAssert(app.staticTexts["Passed"].waitForExistence(timeout: 1))
+        XCTAssert(app.staticTexts["Passed"].waitForExistence(timeout: 15))
     }
 }

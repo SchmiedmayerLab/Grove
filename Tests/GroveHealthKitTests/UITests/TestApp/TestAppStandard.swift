@@ -18,13 +18,20 @@ actor TestAppStandard: Standard, HealthKitConstraint {
     @Dependency(BulkHealthExporter.self) private var bulkExporter
     
     nonisolated func configure() {
-        let cliArgs = CommandLine.arguments
-        if cliArgs.contains("--resetEverything") {
-            Task {
+        guard CommandLine.arguments.contains("--resetEverything") else {
+            return
+        }
+        Task {
+            do {
                 FakeHealthStore.reset()
-                try FileManager.default.removeItem(at: .documentsDirectory)
+                if FileManager.default.fileExists(atPath: URL.documentsDirectory.path) {
+                    try FileManager.default.removeItem(at: .documentsDirectory)
+                }
                 try FileManager.default.createDirectory(at: .documentsDirectory, withIntermediateDirectories: true)
                 try await bulkExporter.deleteSessionRestorationInfo(for: .testApp)
+            } catch {
+                // a partial reset makes the following test fail somewhere else entirely, so make it fail here instead
+                preconditionFailure("--resetEverything failed: \(error)")
             }
         }
     }

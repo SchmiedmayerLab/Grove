@@ -16,7 +16,7 @@ public import SwiftUI
 ///
 /// You can, e.g., implement the following functions to get informed about the application launching and being terminated:
 /// - ``LifecycleHandler/willFinishLaunchingWithOptions(_:launchOptions:)``
-/// - ``LifecycleHandler/applicationWillTerminate(_:)-35fxv``
+/// - ``LifecycleHandler/applicationWillTerminate(_:)``
 ///
 /// All methods supported by the module capability are listed blow.
 @available(

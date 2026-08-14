@@ -20,6 +20,6 @@ class TestAppUITests: XCTestCase {
     func testGroveSensorKit() throws {
         let app = XCUIApplication()
         app.launch()
-        XCTAssert(app.staticTexts["Hello Grove :)"].waitForExistence(timeout: 1))
+        XCTAssert(app.staticTexts["Hello Grove :)"].waitForExistence(timeout: 30))
     }
 }

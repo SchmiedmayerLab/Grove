@@ -20,7 +20,7 @@ final class CollectSamplesTests: GroveHealthKitTests {
         let app = XCUIApplication(launchArguments: ["--collectedSamplesOnly"])
         try launchAndHandleInitialStuff(app, resetEverything: true, deleteAllHealthData: true)
         
-        app.buttons["Collect Samples"].tap()
+        app.tapWhenTappable("Collect Samples")
         
         // At the beginning, we expect nothing to be collected
         assertCollectedSamplesSinceLaunch(in: app, [:])
@@ -75,7 +75,7 @@ final class CollectSamplesTests: GroveHealthKitTests {
             .stepCount: 1
         ])
         
-        app.buttons["Register more CollectSamples instances"].tap()
+        app.tapWhenTappable("Register more CollectSamples instances")
         sleep(for: .seconds(1)) // give it some time to handle this.
     }
 }

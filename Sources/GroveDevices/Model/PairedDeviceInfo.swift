@@ -23,7 +23,7 @@ public final class PairedDeviceInfo {
     public var id: UUID
     /// The device type.
     ///
-    /// Stores the associated ``PairableDevice/deviceTypeIdentifier-9wsed`` device type used to locate the device implementation.
+    /// Stores the associated ``PairableDevice/deviceTypeIdentifier`` device type used to locate the device implementation.
     public var deviceType: String
     /// The last known peripheral name.
     public var peripheralName: String?

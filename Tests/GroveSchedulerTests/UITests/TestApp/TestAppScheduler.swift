@@ -61,7 +61,9 @@ final class TestAppScheduler: Module {
             }
 
             let now = Date.now
-            let time = notificationTestTime(for: now, adding: .seconds(40))
+            // UI tests that need a wider window pass `-notificationLeadTime <seconds>` as a launch argument.
+            let leadTime = UserDefaults.standard.object(forKey: "notificationLeadTime") as? Double ?? 40
+            let time = notificationTestTime(for: now, adding: .seconds(leadTime))
 
             try scheduler.createOrUpdateTask(
                 id: TaskIdentifier.testMeasurement,

@@ -69,17 +69,15 @@ extension XCTestCase {
         XCTAssert(healthApp.wait(for: .runningForeground, timeout: 10))
         handleHealthAppOnboardingIfNecessary()
         
-        healthApp.tabBars.buttons["Summary"].tap() // make sure we're on the first tab
+        healthApp.tabBars.buttons["Summary"].tapWhenHittable() // make sure we're on the first tab
         let profileButton = healthApp.buttons["Profile"]
         XCTAssert(profileButton.waitForExistence(timeout: 10))
         profileButton.tryToTapReallySoftlyMaybeThisWillMakeItWork()
-        sleep(1) // wait a second to make sure the sheet has fully appeared
-        healthApp.cells["Health Details"].tap()
-        sleep(1) // wait a second to make sure the "Health Details" view has been presented.
-        healthApp.navigationBars["Health Details"].buttons["Edit"].tap()
-        
+        healthApp.cells["Health Details"].tapWhenHittable()
+        healthApp.navigationBars["Health Details"].buttons["Edit"].tapWhenHittable()
+
         if let dateOfBirth = characteristics.dateOfBirth {
-            healthApp.cells["Date of Birth"].tap()
+            healthApp.cells["Date of Birth"].tapWhenHittable()
             let picker = healthApp.pickers.firstMatch
             XCTAssert(picker.waitForExistence(timeout: 2))
             // This is far from perfect (we're looking at the locale of the test runner, rather than the simulator/device,
@@ -117,7 +115,7 @@ extension XCTestCase {
         }
         
         if let biologicalSex = characteristics.biologicalSex {
-            healthApp.cells["Sex"].tap()
+            healthApp.cells["Sex"].tapWhenHittable()
             let picker = healthApp.pickers.firstMatch.pickerWheels.firstMatch
             switch biologicalSex {
             case .notSet:
@@ -135,7 +133,7 @@ extension XCTestCase {
         }
         
         if let bloodType = characteristics.bloodType {
-            healthApp.cells["Blood Type"].tap()
+            healthApp.cells["Blood Type"].tapWhenHittable()
             let picker = healthApp.pickers.firstMatch.pickerWheels.firstMatch
             switch bloodType {
             case .notSet:
@@ -163,7 +161,7 @@ extension XCTestCase {
         }
         
         if let skinType = characteristics.skinType {
-            healthApp.cells["Fitzpatrick Skin Type"].tap()
+            healthApp.cells["Fitzpatrick Skin Type"].tapWhenHittable()
             let picker = healthApp.pickers.firstMatch.pickerWheels.firstMatch
             switch skinType {
             case .notSet:
@@ -187,7 +185,7 @@ extension XCTestCase {
         }
         
         if let wheelchairUse = characteristics.wheelchairUse {
-            healthApp.cells["Wheelchair"].tap()
+            healthApp.cells["Wheelchair"].tapWhenHittable()
             let picker = healthApp.pickers.firstMatch.pickerWheels.firstMatch
             switch wheelchairUse {
             case .notSet:
@@ -202,13 +200,13 @@ extension XCTestCase {
             healthApp.cells["Wheelchair"].tap()
         }
         
-        healthApp.navigationBars["Health Details"].buttons["Done"].tap()
-        healthApp.navigationBars["Health Details"].buttons["Profile"].tap()
+        healthApp.navigationBars["Health Details"].buttons["Done"].tapWhenHittable()
+        healthApp.navigationBars["Health Details"].buttons["Profile"].tapWhenHittable()
         let doneButton = healthApp.navigationBars.firstMatch.buttons["Done"]
         let closeButton = healthApp.navigationBars.firstMatch.buttons["close"]
-        if doneButton.exists {
+        if doneButton.wait(for: \.isHittable, toEqual: true, timeout: 5) {
             doneButton.tap()
-        } else if closeButton.exists {
+        } else if closeButton.wait(for: \.isHittable, toEqual: true, timeout: 5) {
             closeButton.tap()
         } else {
             XCTFail("Unable to find done/close button")

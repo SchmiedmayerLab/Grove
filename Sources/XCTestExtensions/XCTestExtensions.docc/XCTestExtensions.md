@@ -53,6 +53,7 @@ The `enter(value:)` and `delete(count:)` methods provide the `checkIfTextWasEnte
 - ``XCTAssertThrowsErrorAsync(_:_:file:line:_:)``
 
 ### App Interaction
+- ``XCUIAutomation/XCUIApplication/launchAndWait(for:timeout:)``
 - ``XCUIAutomation/XCUIApplication/deleteAndLaunch(withSpringboardAppName:)``
 - ``XCUIAutomation/XCUIApplication/delete(app:)``
 - ``XCUIAutomation/XCUIApplication/dismissKeyboard()``

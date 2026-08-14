@@ -66,7 +66,8 @@ extension XCUIApplication {
         #endif
 
         if let type {
-            XCTAssert(staticTexts["Type, \(type)"].exists)
+            // The swipe above has to settle before the row below the fold can be found.
+            XCTAssert(staticTexts["Type, \(type)"].waitForExistence(timeout: 2.0))
         }
 
         if let nextTrigger {

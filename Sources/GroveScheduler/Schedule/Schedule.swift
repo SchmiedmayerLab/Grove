@@ -49,9 +49,9 @@ public import Foundation
 /// - ``once(at:duration:)``
 ///
 /// ### Retrieving Occurrences
-/// - ``occurrences(in:)-1r4pv``
+/// - ``occurrences(in:)->Sequence<Occurrence>``
 /// - ``occurrences(inDay:)``
-/// - ``occurrences(in:)-3a9p3``
+/// - ``occurrences(in:)->[Occurrence]``
 /// - ``occurrence(forStartDate:)``
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct Schedule: Sendable {

@@ -10,6 +10,7 @@ import Foundation
 import HealthKit
 import GroveHealthKit
 import XCTest
+import XCTestExtensions
 import XCTHealthKit
 
 
@@ -38,7 +39,7 @@ final class HealthKitQueryTests: GroveHealthKitTests {
             addSample(.stepCount, in: app)
         }
         
-        XCTAssert(app.buttons["Samples Query"].wait(for: \.isHittable, toEqual: true, timeout: 2))
+        XCTAssert(app.buttons["Statistics Query"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         app.buttons["Statistics Query"].tap()
         
         let now = Calendar.current.dateComponents([.year, .month, .day], from: .now)
@@ -65,19 +66,19 @@ final class HealthKitQueryTests: GroveHealthKitTests {
         
         XCTAssert(app.buttons["Trigger Statistics Queries"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         app.buttons["Trigger Statistics Queries"].tap()
-        sleep(for: .seconds(1))
-        
+
         let now = Calendar.current.dateComponents([.year, .month, .day], from: .now)
         let fmt = { String(format: "%02d", $0) }
         let todayPred = NSPredicate(
             format: "label MATCHES %@",
             "Steps on \(fmt(try XCTUnwrap(now.year)))-\(fmt(try XCTUnwrap(now.month)))-\(fmt(try XCTUnwrap(now.day))).*"
         )
-        XCTAssert(app.staticTexts.element(matching: todayPred).waitForExistence(timeout: 2))
-        
+        // the rows below only get rendered once the queries the tap kicked off have delivered
+        XCTAssert(app.staticTexts.element(matching: todayPred).waitForExistence(timeout: 10))
+
         func assertHRRow(_ identifier: String) {
             let value = app.staticTexts["hr-value-\(identifier)"]
-            XCTAssert(value.waitForExistence(timeout: 2))
+            XCTAssert(value.waitForExistence(timeout: 10))
             XCTAssertEqual(value.label, "87 count/min")
         }
         
@@ -111,7 +112,7 @@ final class HealthKitQueryTests: GroveHealthKitTests {
         ))
         
         app.activate()
-        XCTAssert(app.buttons["Characteristics Query"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Characteristics Query"].wait(for: \.isHittable, toEqual: true, timeout: 10))
         app.buttons["Characteristics Query"].tap()
         
         app.assertTableRow("Move Mode", "1")
@@ -130,20 +131,20 @@ final class HealthKitQueryTests: GroveHealthKitTests {
         let app = XCUIApplication(launchArguments: ["--collectedSamplesOnly"])
         try launchAndHandleInitialStuff(app, resetEverything: true, deleteAllHealthData: true)
         
-        sleep(for: .seconds(0.5)) // we need to wait a little so that the permissions sheet is properly dismissed
+        XCTAssert(app.buttons["Scored Assessments"].wait(for: \.isHittable, toEqual: true, timeout: 10))
         app.buttons["Scored Assessments"].tap()
-        
+
         XCTAssert(app.staticTexts["No GAD-7 Assessments"].waitForExistence(timeout: 2))
         XCTAssert(app.staticTexts["No PHQ-9 Assessments"].waitForExistence(timeout: 2))
-        
+
         func addScore(_ name: String) {
+            // the menu button only becomes hittable again once the previous menu has been dismissed
             let menuButton = app.navigationBars.images["plus"]
-            XCTAssert(menuButton.waitForExistence(timeout: 1))
+            XCTAssert(menuButton.wait(for: \.isHittable, toEqual: true, timeout: 10))
             menuButton.tap()
             let addSampleButton = app.buttons["Add Sample: \(name)"]
-            XCTAssert(addSampleButton.waitForExistence(timeout: 2))
+            XCTAssert(addSampleButton.wait(for: \.isHittable, toEqual: true, timeout: 10))
             addSampleButton.tap()
-            sleep(for: .seconds(0.5)) // i sleep
         }
         
         addScore("GAD-7")
@@ -165,15 +166,21 @@ final class HealthKitQueryTests: GroveHealthKitTests {
         let app = XCUIApplication(launchArguments: ["--collectedSamplesOnly"])
         try launchAndHandleInitialStuff(app, resetEverything: true, deleteAllHealthData: true)
         
-        sleep(for: .seconds(0.5)) // we need to wait a little so that the permissions sheet is properly dismissed
+        XCTAssert(app.buttons["Sleep Sessions"].wait(for: \.isHittable, toEqual: true, timeout: 10))
         app.buttons["Sleep Sessions"].tap()
-        
-        sleep(for: .seconds(2)) // give it a bit to fetch and process the data
-        
-        if app.staticTexts["No Sleep Data"].waitForExistence(timeout: 1) {
-            app.navigationBars.buttons["Add Samples"].tap()
+
+        // branch on the observed outcome of the fetch rather than on the assumption that it has finished by now
+        let fetched = app.staticTexts.matching(
+            NSPredicate(format: "label == %@ OR label BEGINSWITH %@", "No Sleep Data", "Tracked Time")
+        ).firstMatch
+        XCTAssert(fetched.waitForExistence(timeout: 30))
+
+        if app.staticTexts["No Sleep Data"].exists {
+            let addSamples = app.navigationBars.buttons["Add Samples"]
+            XCTAssert(addSamples.wait(for: \.isHittable, toEqual: true, timeout: 10))
+            addSamples.tap()
         }
-        XCTAssert(app.staticTexts["Tracked Time"].waitForExistence(timeout: 10))
+        XCTAssert(app.staticTexts["Tracked Time"].waitForExistence(timeout: 30))
         
         XCTAssert(app.staticTexts["Tracked Time, 7:35:30"].waitForExistence(timeout: 1))
         XCTAssert(app.staticTexts["Time Awake, 0:19:00"].waitForExistence(timeout: 1))
@@ -189,7 +196,7 @@ final class HealthKitQueryTests: GroveHealthKitTests {
     func testSleepSession2() throws {
         let app = XCUIApplication(launchArguments: ["--collectedSamplesOnly"])
         try launchAndHandleInitialStuff(app, resetEverything: true, deleteAllHealthData: true)
-        sleep(for: .seconds(0.5)) // we need to wait a little so that the permissions sheet is properly dismissed
+        XCTAssert(app.buttons["Sleep Tests"].wait(for: \.isHittable, toEqual: true, timeout: 10))
         app.buttons["Sleep Tests"].tap()
         XCTAssert(app.staticTexts["Success"].waitForExistence(timeout: 5))
     }
@@ -207,17 +214,19 @@ final class HealthKitQueryTests: GroveHealthKitTests {
 //        app.delete(app: "TestApp")
         try launchAndHandleInitialStuff(app, resetEverything: true, askForAuthorization: false, deleteAllHealthData: false)
         
-        XCTAssert(app.buttons["Deferred Authorization"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Deferred Authorization"].wait(for: \.isHittable, toEqual: true, timeout: 10))
         app.buttons["Deferred Authorization"].tap()
-        
+
         app.assertTableRow("Blood Type", "n/a")
         app.assertTableRow("#cyclingSamples", "0")
         app.assertTableRow("#km cycled", "0")
-        
+
+        XCTAssert(app.buttons["Request Blood Type"].wait(for: \.isHittable, toEqual: true, timeout: 10))
         app.buttons["Request Blood Type"].tap()
         app.handleHealthKitAuthorization()
         app.assertTableRow("Blood Type", "O+")
-        
+
+        XCTAssert(app.buttons["Request Cycling Distance"].wait(for: \.isHittable, toEqual: true, timeout: 10))
         app.buttons["Request Cycling Distance"].tap()
         app.handleHealthKitAuthorization()
         app.assertTableRow("#cyclingSamples", "1")
@@ -225,17 +234,22 @@ final class HealthKitQueryTests: GroveHealthKitTests {
     }
     
     
-    // named like this bc XCTest runs its tests in alphabetical order and we need this to be the last one
-    // (it'll manually add samples via the Health app, which we can't easily remove, and we don't want these
-    // to mess up the other tests, which operate under the assumption that there exist no such samples).
+    // The samples this adds via the Health app belong to another source and therefore survive every
+    // `deleteAllHealthData`; the counts below are asserted relative to what the store already holds.
     @MainActor
-    func testXXXXXSourceFiltering() throws {
+    func testSourceFiltering() throws {
         let app = XCUIApplication(launchArguments: ["--collectedSamplesOnly"])
         try launchAndHandleInitialStuff(app, resetEverything: true, deleteAllHealthData: true)
+
+        XCTAssert(app.buttons["Source Filtering"].wait(for: \.isHittable, toEqual: true, timeout: 10))
+        app.buttons["Source Filtering"].tap()
+        let baselineAll = app.sourceFilteringCount("All")
+        let baselineHealthApp = app.sourceFilteringCount("Health.app")
+        app.tapBackButton("HealthKit")
         app.terminate()
-        
+
         let healthApp = XCUIApplication.healthApp
-        healthApp.launch()
+        XCTAssert(healthApp.launchAndWait(), "The Health app didn't come up")
         if healthApp.staticTexts["Health Details"].waitForExistence(timeout: 2) {
             for label in ["close", "Close"] {
                 let button = healthApp.navigationBars.buttons[label]
@@ -251,23 +265,51 @@ final class HealthKitQueryTests: GroveHealthKitTests {
         ])
         
         try launchAndHandleInitialStuff(app, resetEverything: true, deleteAllHealthData: false)
-        sleep(for: .seconds(0.5)) // we need to wait a little so that the permissions sheet is properly dismissed
-        
+
+        XCTAssert(app.buttons["Source Filtering"].wait(for: \.isHittable, toEqual: true, timeout: 10))
         app.buttons["Source Filtering"].tap()
-        sleep(for: .seconds(2))
-        XCTAssert(app.staticTexts["Sample Counts Add Up, true"].waitForExistence(timeout: 1))
-        XCTAssert(app.staticTexts["# All Samples, 1"].waitForExistence(timeout: 1))
-        XCTAssert(app.staticTexts["# Our Samples"].waitForNonExistence(timeout: 1))
-        XCTAssert(app.staticTexts["# Health.app Samples, 1"].waitForExistence(timeout: 1))
-        
-        app.navigationBars.buttons["HealthKit"].tap()
+        XCTAssert(app.staticTexts["# All Samples, \(baselineAll + 1)"].waitForExistence(timeout: 30))
+        XCTAssert(app.staticTexts["# Health.app Samples, \(baselineHealthApp + 1)"].waitForExistence(timeout: 30))
+        // only meaningful once the counts above have arrived: all three queries start out empty, and 0 == 0 + 0
+        XCTAssert(app.staticTexts["Sample Counts Add Up, true"].exists)
+        XCTAssertEqual(app.sourceFilteringCount("Our", timeout: 1), 0)
+
+        app.tapBackButton("HealthKit")
         addSample(.stepCount, in: app)
-        
+
+        XCTAssert(app.buttons["Source Filtering"].wait(for: \.isHittable, toEqual: true, timeout: 10))
         app.buttons["Source Filtering"].tap()
-        sleep(for: .seconds(2))
-        XCTAssert(app.staticTexts["Sample Counts Add Up, true"].waitForExistence(timeout: 1))
-        XCTAssert(app.staticTexts["# All Samples, 2"].waitForExistence(timeout: 1))
-        XCTAssert(app.staticTexts["# Our Samples, 1"].waitForExistence(timeout: 1))
-        XCTAssert(app.staticTexts["# Health.app Samples, 1"].waitForExistence(timeout: 1))
+        XCTAssert(app.staticTexts["# All Samples, \(baselineAll + 2)"].waitForExistence(timeout: 30))
+        XCTAssert(app.staticTexts["# Our Samples, 1"].waitForExistence(timeout: 30))
+        XCTAssert(app.staticTexts["# Health.app Samples, \(baselineHealthApp + 1)"].waitForExistence(timeout: 30))
+        XCTAssert(app.staticTexts["Sample Counts Add Up, true"].exists)
+    }
+}
+
+
+extension XCUIApplication {
+    /// Taps the navigation bar's back button, once the push animation has settled.
+    @MainActor
+    func tapBackButton(_ title: String, file: StaticString = #filePath, line: UInt = #line) {
+        let button = navigationBars.buttons[title]
+        XCTAssert(
+            button.wait(for: \.isHittable, toEqual: true, timeout: 10),
+            "Back button '\(title)' never became hittable",
+            file: file,
+            line: line
+        )
+        button.tap()
+    }
+
+    /// The sample count shown in the given section of the Source Filtering screen.
+    ///
+    /// `SourceFilteredQueryView` omits a section entirely when its query is empty, so a missing row reads as `0`.
+    func sourceFilteringCount(_ title: String, timeout: TimeInterval = 5) -> Int {
+        let row = staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "# \(title) Samples, ")).firstMatch
+        guard row.waitForExistence(timeout: timeout),
+              let count = row.label.split(separator: ", ").last.flatMap({ Int($0.filter(\.isNumber)) }) else {
+            return 0
+        }
+        return count
     }
 }

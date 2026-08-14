@@ -54,8 +54,7 @@ extension NewHealthSampleInput.EnterSampleValueHandler {
             } else {
                 textField = dataEntryTable.cells["UIA.Health.AddData.ValueCell"].textFields.firstMatch
             }
-            XCTAssert(textField.waitForExistence(timeout: 2))
-            textField.tap()
+            textField.tapWhenHittable(timeout: 2)
             let stringValue: String
             if abs(value.rounded(.toNearestOrEven) - value) < 0.00001 {
                 // it's essentially an int
@@ -93,8 +92,7 @@ extension NewHealthSampleInput {
     /// Creates a new Electrocardiogram sample input, with the specified values
     public static func electrocardiogram() -> Self {
         .init(sampleType: .electrocardiograms, date: nil, enterSampleValueHandler: .custom { _, app in
-            XCTAssert(app.tables.staticTexts["High Heart Rate"].firstMatch.waitForExistence(timeout: 2))
-            app.tables.staticTexts["High Heart Rate"].firstMatch.tap()
+            app.tables.staticTexts["High Heart Rate"].firstMatch.tapWhenHittable(timeout: 2)
         })
     }
     
@@ -129,8 +127,8 @@ extension NewHealthSampleInput {
               addDataButton.exists else {
             throw XCTSkip("Not at the right page")
         }
-        addDataButton.tap()
-        
+        addDataButton.tapWhenHittable()
+
         if let date {
             XCTAssert(healthApp.staticTexts["Date"].waitForExistence(timeout: 1))
             try healthApp.enterDateComponentsInHealthAppNewSampleSheet(date, in: healthApp)
@@ -140,9 +138,9 @@ extension NewHealthSampleInput {
         
         // Save the sample to the database.
         if XCTestCase.isIOS26OrGreater {
-            healthApp.navigationBars.firstMatch.buttons["UIA.Health.AddData.Add"].tap()
+            healthApp.navigationBars.firstMatch.buttons["UIA.Health.AddData.Add"].tapWhenHittable()
         } else {
-            healthApp.navigationBars.firstMatch.buttons["Add"].tap()
+            healthApp.navigationBars.firstMatch.buttons["Add"].tapWhenHittable()
         }
     }
 }
@@ -163,8 +161,10 @@ extension XCUIApplication {
         }
         
         // present the date picker
-        self.buttons["Date Picker"].coordinate(withNormalizedOffset: .init(dx: 0.9, dy: 0.5)).tap()
-        
+        let datePicker = self.buttons["Date Picker"]
+        XCTAssert(datePicker.wait(for: \.isHittable, toEqual: true, timeout: 2))
+        datePicker.coordinate(withNormalizedOffset: .init(dx: 0.9, dy: 0.5)).tap()
+
         let monthAndYearButton = app.buttons.matching(NSPredicate(format: "label LIKE[cd] %@", "month")).firstMatch
         if !monthAndYearButton.waitForExistence(timeout: 2) {
             XCTFail("Unable to find month button")
@@ -185,21 +185,21 @@ extension XCUIApplication {
             let monthWheel = app.pickerWheels[String(currentMonthAndYearSelection.month.name)]
             XCTAssertTrue(monthWheel.waitForExistence(timeout: 1))
             monthWheel.adjust(toPickerWheelValue: String(XCUIElement.monthName(for: month)))
-            app.buttons["DatePicker.Hide"].tap()
+            app.buttons["DatePicker.Hide"].tapWhenHittable(timeout: 2)
         } else {
             if let year = components.year, year != currentMonthAndYearSelection.year {
                 monthAndYearButton.tap()
                 let yearWheel = app.pickerWheels[String(currentMonthAndYearSelection.year)]
                 XCTAssertTrue(yearWheel.waitForExistence(timeout: 1))
                 yearWheel.adjust(toPickerWheelValue: String(year))
-                app.buttons["DatePicker.Hide"].tap()
+                app.buttons["DatePicker.Hide"].tapWhenHittable(timeout: 2)
             }
             if let month = components.month {
                 monthAndYearButton.tap()
                 let monthWheel = app.pickerWheels[String(currentMonthAndYearSelection.month.name)]
                 XCTAssertTrue(monthWheel.waitForExistence(timeout: 1))
                 monthWheel.adjust(toPickerWheelValue: Self.monthName(for: month))
-                app.buttons["DatePicker.Hide"].tap()
+                app.buttons["DatePicker.Hide"].tapWhenHittable(timeout: 2)
             }
         }
         if let day = components.day {
@@ -207,9 +207,9 @@ extension XCUIApplication {
             if !button.waitForExistence(timeout: 1) {
                 XCTFail("Unable to find button to select day.")
             }
-            button.tap()
+            button.tapWhenHittable(timeout: 1)
         }
-        self.buttons["dismiss popup"].tap() // dismiss the date picker
+        self.buttons["dismiss popup"].tapWhenHittable(timeout: 2) // dismiss the date picker
     }
     
     
@@ -220,8 +220,10 @@ extension XCUIApplication {
         }
         
         // present the time picker
-        self.buttons["Time Picker"].coordinate(withNormalizedOffset: .init(dx: 0.9, dy: 0.5)).tap()
-        
+        let timePicker = self.buttons["Time Picker"]
+        XCTAssert(timePicker.wait(for: \.isHittable, toEqual: true, timeout: 2))
+        timePicker.coordinate(withNormalizedOffset: .init(dx: 0.9, dy: 0.5)).tap()
+
         XCTAssert(app.pickerWheels.firstMatch.waitForExistence(timeout: 1))
         let pickerWheels = app.pickers.firstMatch.pickerWheels.allElementsBoundByIndex
         if let hour = components.hour {
@@ -239,7 +241,7 @@ extension XCUIApplication {
         if let minute = components.minute {
             pickerWheels[1].adjust(toPickerWheelValue: String(format: "%02lld", minute))
         }
-        self.buttons["dismiss popup"].tap() // dismiss the time picker
+        self.buttons["dismiss popup"].tapWhenHittable(timeout: 2) // dismiss the time picker
     }
 }
 

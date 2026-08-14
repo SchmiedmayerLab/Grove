@@ -19,9 +19,17 @@ struct ContentView: View {
     private let allIdentifiers: [any _AnyAccessGuardIdentifier] = [
         AccessGuardIdentifier.test,
         AccessGuardIdentifier.testFixed,
+        AccessGuardIdentifier.testBiometrics,
+        AccessGuardIdentifier.testConsumable
+    ]
+    /// Guards backed by a custom validation closure store no code and throw when reset.
+    private let resettableIdentifiers: [any _AnyAccessGuardIdentifier] = [
+        AccessGuardIdentifier.test,
         AccessGuardIdentifier.testBiometrics
     ]
-    
+
+    @State private var resetFailure: String?
+
     var body: some View {
         NavigationStack {
             Form {
@@ -78,9 +86,18 @@ struct ContentView: View {
             }
         }
         Button("Reset Access Guards") {
-            for identifier in allIdentifiers {
-                try? accessGuards.resetAccessCode(for: identifier)
+            do {
+                for identifier in resettableIdentifiers {
+                    try accessGuards.resetAccessCode(for: identifier)
+                }
+                resetFailure = nil
+            } catch {
+                resetFailure = String(describing: error)
             }
+        }
+        if let resetFailure {
+            Text(resetFailure)
+                .accessibilityIdentifier("Reset Failure")
         }
     }
 }

@@ -80,7 +80,7 @@ var body: some View {
 
 - ``ValidationRule``
 - ``SwiftUICore/View/validate(input:rules:)-(_,ValidationRule...)``
-- ``SwiftUICore/View/validate(input:rules:)-(_,ValidationRule...)``
+- ``SwiftUICore/View/validate(input:rules:)-(_,[ValidationRule])``
 - ``SwiftUICore/View/validate(_:message:)``
 
 ### Managing Validation

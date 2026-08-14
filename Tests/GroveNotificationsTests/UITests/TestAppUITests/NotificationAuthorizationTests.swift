@@ -23,14 +23,16 @@ final class NotificationAuthorizationTests: XCTestCase {
         app.deleteAndLaunch(withSpringboardAppName: "TestApp")
 
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
-        XCTAssert(app.navigationBars.staticTexts["Notifications"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.navigationBars.staticTexts["Notifications"].waitForExistence(timeout: 15))
 
-        XCTAssert(app.staticTexts["Authorization, notDetermined"].exists)
-        XCTAssert(app.buttons["Request Authorization"].exists)
+        // The navigation title renders on the first pass, the status label only once the view's task has
+        // read the authorization status, so the label needs a wait of its own.
+        XCTAssert(app.staticTexts["Authorization, notDetermined"].waitForExistence(timeout: 15))
+        XCTAssert(app.buttons["Request Authorization"].wait(for: \.isHittable, toEqual: true, timeout: 5))
         app.buttons["Request Authorization"].tap()
 
-        app.confirmNotificationAuthorization()
-        XCTAssert(app.staticTexts["Authorization, authorized"].waitForExistence(timeout: 0.5))
+        app.confirmNotificationAuthorization(requireAlertToAppear: true)
+        XCTAssert(app.staticTexts["Authorization, authorized"].waitForExistence(timeout: 15))
     }
 
     @MainActor
@@ -39,15 +41,15 @@ final class NotificationAuthorizationTests: XCTestCase {
         app.deleteAndLaunch(withSpringboardAppName: "TestApp")
 
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
-        XCTAssert(app.navigationBars.staticTexts["Notifications"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.navigationBars.staticTexts["Notifications"].waitForExistence(timeout: 15))
 
-        XCTAssert(app.staticTexts["Authorization, notDetermined"].exists)
-        XCTAssert(app.buttons["Request Authorization"].exists)
+        XCTAssert(app.staticTexts["Authorization, notDetermined"].waitForExistence(timeout: 15))
+        XCTAssert(app.buttons["Request Authorization"].wait(for: \.isHittable, toEqual: true, timeout: 5))
         app.buttons["Request Authorization"].tap()
 
-        app.confirmNotificationAuthorization(action: .doNotAllow)
+        app.confirmNotificationAuthorization(action: .doNotAllow, requireAlertToAppear: true)
 
-        XCTAssert(app.staticTexts["Authorization, denied"].waitForExistence(timeout: 0.5))
+        XCTAssert(app.staticTexts["Authorization, denied"].waitForExistence(timeout: 15))
     }
     
     
@@ -59,21 +61,22 @@ final class NotificationAuthorizationTests: XCTestCase {
         app.deleteAndLaunch(withSpringboardAppName: "TestApp")
         
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
-        XCTAssert(app.navigationBars.staticTexts["Notifications"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.navigationBars.staticTexts["Notifications"].waitForExistence(timeout: 15))
         
-        XCTAssert(app.staticTexts["Authorization, notDetermined"].exists)
-        XCTAssert(app.buttons["Request Authorization"].exists)
+        XCTAssert(app.staticTexts["Authorization, notDetermined"].waitForExistence(timeout: 15))
+        XCTAssert(app.buttons["Request Authorization"].wait(for: \.isHittable, toEqual: true, timeout: 5))
         app.buttons["Request Authorization"].tap()
-        
+
         app.confirmNotificationAuthorization()
-        XCTAssert(app.staticTexts["Authorization, authorized"].waitForExistence(timeout: 0.5))
+        XCTAssert(app.staticTexts["Authorization, authorized"].waitForExistence(timeout: 15))
         
         // simply run it again and implicitly check that it doesn't fail the test.
         app.confirmNotificationAuthorization()
         
         // check that requiring the alert to show up, when it won't, is a failure
         XCTExpectFailure {
-            app.confirmNotificationAuthorization(requireAlertToAppear: true)
+            // an explicit short timeout keeps the negative path fast
+            app.confirmNotificationAuthorization(timeout: 5, requireAlertToAppear: true)
         }
     }
 }

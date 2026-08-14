@@ -109,8 +109,8 @@ private struct UserUpdate {
 ///
 /// ### Signup
 /// - ``signUpAnonymously()``
-/// - ``signUp(with:)-6qeht``
-/// - ``signUp(with:)-1jtx6``
+/// - ``signUp(with:)-(AccountDetails)``
+/// - ``signUp(with:)-(OAuthCredential)``
 ///
 /// ### Login
 /// - ``login(userId:password:)``

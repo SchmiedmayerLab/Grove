@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import GroveFoundation
 import XCTest
+import XCTestExtensions
 
 /*
  IDEAS:
@@ -28,23 +28,17 @@ class TestAppUITests: XCTestCase, @unchecked Sendable {
     
     @MainActor
     func launchAppAndStartTestQuestionnaire(named questionnaireTitle: String) {
-        app.launch()
-        XCTAssert(app.wait(for: .runningForeground, timeout: 2))
-        app.navigationBars.buttons["Tests"].tap()
-        app.buttons[questionnaireTitle].tap()
-        XCTAssert(app.navigationBars[questionnaireTitle].waitForExistence(timeout: 2))
+        launchAppAndGoToOtherTest(named: questionnaireTitle)
+        XCTAssert(app.navigationBars[questionnaireTitle].waitForExistence(timeout: 10))
     }
-    
+
     @MainActor
     func launchAppAndGoToOtherTest(named testName: String) {
-        app.launch()
-        XCTAssert(app.wait(for: .runningForeground, timeout: 2))
-        app.navigationBars.buttons["Tests"].tap()
-        app.buttons[testName].tap()
+        let testsButton = app.navigationBars.buttons["Tests"]
+        XCTAssert(app.launchAndWait(for: testsButton))
+        testsButton.tap()
+        let testButton = app.buttons[testName]
+        XCTAssert(testButton.wait(for: \.isHittable, toEqual: true, timeout: 10))
+        testButton.tap()
     }
-}
-
-
-func sleep(for duration: Duration) {
-    usleep(UInt32(duration.timeInterval * 1000000))
 }

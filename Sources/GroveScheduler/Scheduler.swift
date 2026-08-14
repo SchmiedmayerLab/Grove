@@ -67,15 +67,15 @@ import SwiftUI
 /// - ``createOrUpdateTask(id:title:instructions:category:schedule:completionPolicy:scheduleNotifications:notificationThread:notificationTime:tags:effectiveFrom:shadowedOutcomesHandling:with:)``
 ///
 /// ### Query Tasks
-/// - ``queryTasks(for:predicate:sortBy:fetchLimit:prefetchOutcomes:)-8z86i``
-/// - ``queryTasks(for:predicate:sortBy:fetchLimit:prefetchOutcomes:)-5cuwe``
+/// - ``queryTasks(for:predicate:sortBy:fetchLimit:prefetchOutcomes:)-(Range<Date>,_,_,_,_)``
+/// - ``queryTasks(for:predicate:sortBy:fetchLimit:prefetchOutcomes:)-(ClosedRange<Date>,_,_,_,_)``
 ///
 /// ### Query Events
 /// - ``queryEvents(for:predicate:)``
 ///
 /// ### Permanently delete a Task version
-/// - ``deleteTasks(_:)-9jjbl``
-/// - ``deleteTasks(_:)-8h2bj``
+/// - ``deleteTasks(_:)-(Collection<Task>)``
+/// - ``deleteTasks(_:)-(Task...)``
 ///
 /// ### Permanently delete all Task versions
 /// - ``deleteAllVersions(of:)``

@@ -17,8 +17,8 @@ import GroveViews
 /// ## Topics
 ///
 /// ### Criteria
-/// - ``service(_:serviceData:)-8g3u6``
-/// - ``service(_:serviceData:)-7fadh``
+/// - ``service(_:serviceData:)-(BTUUID,_)``
+/// - ``service(_:serviceData:)-(Service.Type,_)``
 /// - ``nameSubstring(_:)``
 /// - ``manufacturer(_:manufacturerData:)``
 ///

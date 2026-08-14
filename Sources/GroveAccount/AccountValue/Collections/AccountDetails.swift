@@ -132,23 +132,23 @@ private struct CopyKeyVisitor: AccountKeyVisitor {
 /// ### Adding Details
 ///
 /// - ``add(contentsOf:merge:)``
-/// - ``add(contentsOf:filterFor:merge:)-358td``
-/// - ``add(contentsOf:filterFor:merge:)-7dmho``
-/// - ``set(_:value:)-24wpe``
-/// - ``set(_:value:)-8yml1``
+/// - ``add(contentsOf:filterFor:merge:)-(_,[AccountKey.Type],_)``
+/// - ``add(contentsOf:filterFor:merge:)-(_,Keys,_)``
+/// - ``set(_:value:)-(Key.Type,_)``
+/// - ``set(_:value:)-(Source.Type,_)``
 ///
 /// ### Removing Details
 ///
-/// - ``remove(_:)-3ujob``
-/// - ``remove(_:)-6loc9``
-/// - ``removeAll(_:)-8jq76``
-/// - ``removeAll(_:)-6rvt0``
+/// - ``remove(_:)-(Key.Type)``
+/// - ``remove(_:)-(AccountKey.Type)``
+/// - ``removeAll(_:)-([AccountKey.Type])``
+/// - ``removeAll(_:)-(Keys)``
 ///
 /// ### Finding Details
 ///
 /// - ``keys``
-/// - ``contains(_:)-7z7r6``
-/// - ``contains(_:)-4nvuo``
+/// - ``contains(_:)-(Key.Type)``
+/// - ``contains(_:)-(AccountKey.Type)``
 ///
 /// ### Validation
 ///
@@ -157,12 +157,12 @@ private struct CopyKeyVisitor: AccountKeyVisitor {
 /// ### Visitors
 /// - ``AccountValueVisitor``
 /// - ``AcceptingAccountValueVisitor``
-/// - ``AcceptingAccountValueVisitor/acceptAll(_:)-9hgw5``
-/// - ``AcceptingAccountValueVisitor/acceptAll(_:)-4epen``
+/// - ``AcceptingAccountValueVisitor/acceptAll(_:)-2l0zj``
+/// - ``AcceptingAccountValueVisitor/acceptAll(_:)-721j7``
 /// - ``AccountKeyVisitor``
 /// - ``AcceptingAccountKeyVisitor``
-/// - ``AcceptingAccountKeyVisitor/acceptAll(_:)-1ytax``
-/// - ``AcceptingAccountKeyVisitor/acceptAll(_:)-9b08r``
+/// - ``AcceptingAccountKeyVisitor/acceptAll(_:)-6lxjt``
+/// - ``AcceptingAccountKeyVisitor/acceptAll(_:)-77rkn``
 ///
 /// ### Keys
 ///

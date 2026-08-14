@@ -14,46 +14,36 @@ extension ViewsTests {
     @MainActor
     func testShareSheet() {
         let app = XCUIApplication()
-        app.launch()
+        XCTAssertTrue(app.launchAndWait())
 
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
-        app.open(target: "GroveViews")
-        
+        app.open(target: "GroveViews", waitingFor: app.buttons["Geometry Reader"])
+
         app.collectionViews.firstMatch.swipeUp() // out of the window on visionOS and iPadOS
 
-        XCTAssert(app.buttons["Share Sheet"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.buttons["Share Sheet"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Share Sheet"].tap()
-        
-        app.buttons["Share Text"].tap()
-        app.assertShareSheetHeader(.init(title: "Hello Grove!", filetype: nil))
-        app.buttons["header.closeButton"].tap()
-        XCTAssert(app.otherElements["ShareSheet.RemoteContainerView"].waitForNonExistence(timeout: 5))
-        
-        app.buttons["Share TIFF UIImage via URL"].tap()
-        app.assertShareSheetHeader(.init(title: "jellybeans_USC-SIPI", filetype: "TIFF Image"))
-        app.buttons["header.closeButton"].tap()
-        XCTAssert(app.otherElements["ShareSheet.RemoteContainerView"].waitForNonExistence(timeout: 5))
-        
-        app.buttons["Share PNG UIImage via URL"].tap()
-        app.assertShareSheetHeader(.init(title: "PM5544", filetype: "PNG Image"))
-        app.buttons["header.closeButton"].tap()
-        XCTAssert(app.otherElements["ShareSheet.RemoteContainerView"].waitForNonExistence(timeout: 5))
-        
+
+        /// Triggers one of the share buttons, checks the presented share sheet's header, and closes it again.
+        func share(_ buttonTitle: String, expecting expected: XCUIApplication.ExpectedShareSheetHeader, line: UInt = #line) {
+            let button = app.buttons[buttonTitle]
+            XCTAssert(button.wait(for: \.isHittable, toEqual: true, timeout: 5), line: line)
+            button.tap()
+            app.assertShareSheetHeader(expected, line: line)
+            let closeButton = app.buttons["header.closeButton"]
+            XCTAssert(closeButton.wait(for: \.isHittable, toEqual: true, timeout: 5), line: line)
+            closeButton.tap()
+            XCTAssert(app.otherElements["ShareSheet.RemoteContainerView"].waitForNonExistence(timeout: 5), line: line)
+        }
+
+        share("Share Text", expecting: .init(title: "Hello Grove!", filetype: nil))
+        share("Share TIFF UIImage via URL", expecting: .init(title: "jellybeans_USC-SIPI", filetype: "TIFF Image"))
+        share("Share PNG UIImage via URL", expecting: .init(title: "PM5544", filetype: "PNG Image"))
+
         app.collectionViews.firstMatch.swipeUp() // out of the window on visionOS and iPadOS
-        
-        app.buttons["Share PDF"].tap()
-        app.assertShareSheetHeader(.init(title: "grove my beloved", filetype: "PDF Document"))
-        app.buttons["header.closeButton"].tap()
-        XCTAssert(app.otherElements["ShareSheet.RemoteContainerView"].waitForNonExistence(timeout: 5))
-        
-        app.buttons["Share PDF via URL"].tap()
-        app.assertShareSheetHeader(.init(title: "grove my beloved", filetype: "PDF Document"))
-        app.buttons["header.closeButton"].tap()
-        XCTAssert(app.otherElements["ShareSheet.RemoteContainerView"].waitForNonExistence(timeout: 5))
-        
-        app.buttons["Share 2 PDFs"].tap()
-        app.assertShareSheetHeader(.init(title: "2 Documents"))
-        app.buttons["header.closeButton"].tap()
+
+        share("Share PDF", expecting: .init(title: "grove my beloved", filetype: "PDF Document"))
+        share("Share PDF via URL", expecting: .init(title: "grove my beloved", filetype: "PDF Document"))
+        share("Share 2 PDFs", expecting: .init(title: "2 Documents"))
     }
 }
 

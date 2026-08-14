@@ -119,9 +119,13 @@ esac; }
 # Pretty-print xcodebuild output via xcbeautify; emit GitHub annotations when running in CI.
 beautify() { if [ -n "${GITHUB_ACTIONS:-}" ]; then xcbeautify --renderer github-actions; else xcbeautify; fi; }
 
-prune_test_apps() { # <platform>
+# HealthKit and keychain state lives in the device container, not the app's, so uninstalling the test
+# apps leaves it behind and every leg inherits what the previous ones wrote. Erase the device instead.
+# Set GROVE_SKIP_SIM_RESET to keep a leg running against the current simulator state.
+reset_simulator() { # <platform>
   local name os udid
   case "$1" in iOS|iPadOS) ;; *) return 0 ;; esac
+  [ -z "${GROVE_SKIP_SIM_RESET:-}" ] || return 0
   name="$(dest "$1" | sed -n 's/.*name=\([^,]*\).*/\1/p')"
   os="$(dest "$1" | sed -n 's/.*OS=\([0-9.]*\).*/\1/p')"
   udid="$(xcrun simctl list devices available -j | python3 -c '
@@ -135,12 +139,11 @@ for rt, devs in json.load(sys.stdin)["devices"].items():
             print(d["udid"]); sys.exit(0)
 ' "$name" "$os")"
   [ -n "$udid" ] || return 0
-  # `grep` exits 1 when there is nothing to prune, which under `set -euo pipefail` would abort the
-  # whole leg -- a clean simulator is the normal case, not a failure.
-  local bundles
-  bundles="$(xcrun simctl listapps "$udid" 2>/dev/null | grep -oE '[a-zA-Z0-9.]+\.testapp(\.uitests\.xctrunner)?' | sort -u || true)"
-  [ -n "$bundles" ] || return 0
-  echo "$bundles" | while read -r bundle; do xcrun simctl uninstall "$udid" "$bundle" 2>/dev/null || true; done
+  xcrun simctl shutdown "$udid" 2>/dev/null || true
+  if ! xcrun simctl erase "$udid"; then
+    echo "::warning::could not erase $udid; leg runs against inherited simulator state"
+  fi
+  xcrun simctl bootstatus "$udid" -b
   return 0
 }
 
@@ -152,7 +155,7 @@ run() { # <package> <platform> [mode: "ui"]
     local result="${1}-${2}-UITests.xcresult"
     local uidir="Tests/${1}Tests/UITests"
     rm -rf "$result"   # self-hosted runners reuse the workspace — avoid a stale bundle path
-    prune_test_apps "$2"
+    reset_simulator "$2"
     echo "==> $1 UI tests on $2"
     if [ -f "$uidir/firebase.json" ]; then
       # This package's UITests need the Firebase emulator (e.g. GroveFirebase). Run the test inside
@@ -195,6 +198,7 @@ run() { # <package> <platform> [mode: "ui"]
     done
     return
   fi
+  reset_simulator "$2"
   echo "==> $1 on $2"
   # Xcode 26 SIGABRTs (exit 134, DVTInvalidation "message sent to invalidated object") when a single
   # `xcodebuild test` launches a SECOND .xctest bundle: in-checkout writes during the run (DerivedData,

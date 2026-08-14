@@ -112,7 +112,8 @@ struct BulkExportView: View {
         try await bulkExporter.session(
             withId: .testApp,
             for: sampleTypes,
-            startDate: .oldestSample,
+            startDate: .absolute(timeRange.lowerBound),
+            endDate: timeRange.upperBound,
             // we intentionally give it a little delay, so that we can test the pause() functionality as part of the UI test.
             using: SamplesCounter(delay: .seconds(1))
         )
@@ -176,7 +177,8 @@ struct BulkExportView: View {
     private func fetchNumTestingSamples() async {
         func imp<Sample>(_ sampleType: some AnySampleType<Sample>) async -> Int {
             let sampleType = SampleType(sampleType)
-            let samples = (try? await healthKit.query(sampleType, timeRange: .init(timeRange))) ?? []
+            // the exporter's batches aren't clipped to `timeRange`, so a windowed count here would come up short
+            let samples = (try? await healthKit.query(sampleType, timeRange: .ever)) ?? []
             defer {
                 _ = consume samples
             }

@@ -44,8 +44,8 @@ import GroveFoundation
 /// by supplying the `notify` initializer argument.
 ///
 /// - Tip: If you want to react to every change of the characteristic value, you can use
-///     ``CharacteristicAccessor/onChange(initial:perform:)-4ecct`` or
-///     ``CharacteristicAccessor/onChange(initial:perform:)-6ahtp``  to set up your action.
+///     ``CharacteristicAccessor/onChange(initial:perform:)-(_,(Value)->Void)`` or
+///     ``CharacteristicAccessor/onChange(initial:perform:)-(_,(Value,Value)->Void)``  to set up your action.
 ///
 /// The below code example uses the [Bluetooth Heart Rate Service](https://www.bluetooth.com/specifications/specs/heart-rate-service-1-0)
 /// to demonstrate the automatic notifications feature for the Heart Rate Measurement characteristic.
@@ -129,8 +129,8 @@ import GroveFoundation
 ///
 /// ### Declaring a Characteristic
 /// - ``init(wrappedValue:id:autoRead:)``
-/// - ``init(wrappedValue:id:notify:autoRead:)-9medy``
-/// - ``init(wrappedValue:id:notify:autoRead:)-9f2nr``
+/// - ``init(wrappedValue:id:notify:autoRead:)-9u8g6``
+/// - ``init(wrappedValue:id:notify:autoRead:)-8wwig``
 ///
 /// ### Inspecting a Characteristic
 /// - ``CharacteristicAccessor/isPresent``
@@ -148,8 +148,8 @@ import GroveFoundation
 /// - ``CharacteristicAccessor/enableNotifications(_:)``
 ///
 /// ### Get notified about changes
-/// - ``CharacteristicAccessor/onChange(initial:perform:)-4ecct``
-/// - ``CharacteristicAccessor/onChange(initial:perform:)-6ahtp``
+/// - ``CharacteristicAccessor/onChange(initial:perform:)-(_,(Value)->Void)``
+/// - ``CharacteristicAccessor/onChange(initial:perform:)-(_,(Value,Value)->Void)``
 ///
 /// ### Control Point Characteristics
 /// - ``ControlPointCharacteristic``

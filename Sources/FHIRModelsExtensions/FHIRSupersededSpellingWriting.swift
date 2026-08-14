@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-public import Foundation
-public import ModelsR4
+import Foundation
+import ModelsR4
 
 
 /// Whether resources also carry the spellings this project has retired.

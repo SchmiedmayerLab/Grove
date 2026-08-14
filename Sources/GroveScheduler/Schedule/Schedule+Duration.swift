@@ -19,10 +19,10 @@ extension Schedule {
     /// - ``allDay``
     /// - ``tillEndOfDay``
     /// - ``seconds(_:)``
-    /// - ``minutes(_:)-5tlmc``
-    /// - ``minutes(_:)-ym89``
-    /// - ``hours(_:)-8ihgw``
-    /// - ``hours(_:)-5557k``
+    /// - ``minutes(_:)-(BinaryInteger)``
+    /// - ``minutes(_:)-(Double)``
+    /// - ``hours(_:)-(BinaryInteger)``
+    /// - ``hours(_:)-(Double)``
     ///
     /// ### Properties
     /// - ``isAllDay``

@@ -17,7 +17,7 @@ final class FirebaseAccountStorageTests: XCTestCase {
 
     override func setUp() async throws {
         try await FirebaseClient.deleteAllAccounts()
-        try await Task.sleep(for: .seconds(0.5))
+        try await FirebaseClient.waitForAccounts([])
     }
 
 
@@ -25,11 +25,8 @@ final class FirebaseAccountStorageTests: XCTestCase {
     func testAdditionalAccountStorage() async throws {
         let app = XCUIApplication()
         app.launchArguments = ["--account-storage"]
-        app.launch()
+        XCTAssert(app.launchAndWait(for: app.buttons["FirebaseAccount"]), "The app did not come up.")
 
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
-
-        XCTAssert(app.buttons["FirebaseAccount"].waitForExistence(timeout: 2.0))
         app.buttons["FirebaseAccount"].tap()
 
         try app.signup(
@@ -41,32 +38,34 @@ final class FirebaseAccountStorageTests: XCTestCase {
         )
 
 
-        XCTAssertTrue(app.buttons["Account Overview"].waitForExistence(timeout: 2.0))
+        XCTAssertTrue(app.buttons["Account Overview"].wait(for: \.isHittable, toEqual: true, timeout: 5.0))
         app.buttons["Account Overview"].tap()
         XCTAssertTrue(app.staticTexts["Biography, Hello Stanford"].waitForExistence(timeout: 2.0))
 
 
         // TEST ACCOUNT EDIT
-        XCTAssertTrue(app.navigationBars.buttons["Edit"].exists)
+        XCTAssertTrue(app.navigationBars.buttons["Edit"].wait(for: \.isHittable, toEqual: true, timeout: 5.0))
         app.navigationBars.buttons["Edit"].tap()
 
         try app.textFields["Biography"].enter(value: "2")
 
-        XCTAssertTrue(app.navigationBars.buttons["Done"].exists)
+        XCTAssertTrue(app.navigationBars.buttons["Done"].wait(for: \.isHittable, toEqual: true, timeout: 5.0))
         app.navigationBars.buttons["Done"].tap()
 
         XCTAssertTrue(app.staticTexts["Biography, Hello Stanford2"].waitForExistence(timeout: 2.0))
 
         // TEST ACCOUNT DELETION
-        XCTAssertTrue(app.navigationBars.buttons["Edit"].exists)
+        XCTAssertTrue(app.navigationBars.buttons["Edit"].wait(for: \.isHittable, toEqual: true, timeout: 5.0))
         app.navigationBars.buttons["Edit"].tap()
 
-        XCTAssertTrue(app.buttons["Delete Account"].waitForExistence(timeout: 4.0))
+        XCTAssertTrue(app.buttons["Delete Account"].wait(for: \.isHittable, toEqual: true, timeout: 4.0))
         app.buttons["Delete Account"].tap()
 
         let alert = "Are you sure you want to delete your account?"
-        XCTAssertTrue(XCUIApplication().alerts[alert].waitForExistence(timeout: 6.0))
-        XCUIApplication().alerts[alert].scrollViews.otherElements.buttons["Delete"].tap()
+        XCTAssertTrue(app.alerts[alert].waitForExistence(timeout: 6.0))
+        let delete = app.alerts[alert].scrollViews.otherElements.buttons["Delete"]
+        XCTAssertTrue(delete.wait(for: \.isHittable, toEqual: true, timeout: 5.0))
+        delete.tap()
 
         XCTAssertTrue(app.alerts["Authentication Required"].waitForExistence(timeout: 2.0))
         XCTAssertTrue(app.alerts["Authentication Required"].secureTextFields["Password"].waitForExistence(timeout: 0.5))
@@ -74,8 +73,6 @@ final class FirebaseAccountStorageTests: XCTestCase {
         XCTAssertTrue(app.alerts["Authentication Required"].buttons["Login"].waitForExistence(timeout: 0.5))
         app.alerts["Authentication Required"].buttons["Login"].tap()
 
-        sleep(2)
-        let accountsNew = try await FirebaseClient.getAllAccounts()
-        XCTAssertTrue(accountsNew.isEmpty)
+        try await FirebaseClient.waitForAccounts([])
     }
 }

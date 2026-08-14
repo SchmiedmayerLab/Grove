@@ -14,18 +14,19 @@ extension ViewsTests {
     @MainActor
     func testDismissButton() {
         let app = XCUIApplication()
-        app.launch()
-        
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
-        app.open(target: "GroveViews")
-        
+        XCTAssertTrue(app.launchAndWait())
+
+        app.open(target: "GroveViews", waitingFor: app.buttons["Geometry Reader"])
+
         app.collectionViews.firstMatch.swipeUp() // out of the window on visionOS and iPadOS
-        
-        XCTAssert(app.buttons["Dismiss Button"].waitForExistence(timeout: 2.0))
+
+        XCTAssert(app.buttons["Dismiss Button"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Dismiss Button"].tap()
-        
+
+        XCTAssert(app.buttons["Show Sheet"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Show Sheet"].tap()
         XCTAssert(app.staticTexts["This is the Sheet"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Close"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Close"].tap()
         XCTAssert(app.staticTexts["This is the Sheet"].waitForNonExistence(timeout: 2))
     }

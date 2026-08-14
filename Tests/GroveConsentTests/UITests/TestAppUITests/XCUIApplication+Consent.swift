@@ -82,40 +82,37 @@ extension XCUIApplication {
         
         func assertExpectedCompletion(_ isComplete: Bool, line: UInt = #line) {
             for button in [continueButton, shareButton] {
-                XCTAssertEqual(button.isEnabled, isComplete, line: line)
+                XCTAssert(button.wait(for: \.isEnabled, toEqual: isComplete, timeout: 5), line: line)
             }
         }
-        
+
         assertExpectedCompletion(false)
-        
+
         func flipToggle(beforeValue: Bool, afterValue: Bool, line: UInt = #line) throws {
             let element = switches["ConsentForm:data-sharing"].firstMatch
-            XCTAssert(element.exists, line: line)
-            XCTAssertEqual(try XCTUnwrap(XCTUnwrap(element.value) as? String), beforeValue ? "1" : "0", line: line)
+            XCTAssert(element.waitForExistence(timeout: 5), line: line)
+            XCTAssert(element.wait(for: \.toggleState, toEqual: beforeValue, timeout: 5), line: line)
             try element.toggleSwitch()
-            sleep(for: .seconds(0.25))
-            XCTAssertEqual(try XCTUnwrap(XCTUnwrap(element.value) as? String), afterValue ? "1" : "0", line: line)
+            XCTAssert(element.wait(for: \.toggleState, toEqual: afterValue, timeout: 5), line: line)
         }
-        
+
         assertExpectedCompletion(false)
         try flipToggle(beforeValue: false, afterValue: true)
         assertExpectedCompletion(false)
-        
+
         #if !os(visionOS)
         swipeUp()
         #endif
-        sleep(for: .seconds(1))
-        
+
         func select(in elementId: String, option: String?, expectedCurrentSelection: String?, line: UInt = #line) throws {
             let noSelectionTitle = "(No selection)"
             let button = buttons["ConsentForm:\(elementId)"]
-            XCTAssert(button.exists)
-            XCTAssert(button.staticTexts[expectedCurrentSelection ?? noSelectionTitle].waitForExistence(timeout: 1), line: line)
+            XCTAssert(button.waitForExistence(timeout: 5), line: line)
+            XCTAssert(button.staticTexts[expectedCurrentSelection ?? noSelectionTitle].waitForExistence(timeout: 3), line: line)
             button.tap()
             buttons[option ?? noSelectionTitle].tap()
-            sleep(for: .seconds(0.25))
-            XCTAssert(button.staticTexts[expectedCurrentSelection ?? noSelectionTitle].waitForNonExistence(timeout: 1), line: line)
-            XCTAssert(button.staticTexts[option ?? noSelectionTitle].waitForExistence(timeout: 1), line: line)
+            XCTAssert(button.staticTexts[expectedCurrentSelection ?? noSelectionTitle].waitForNonExistence(timeout: 3), line: line)
+            XCTAssert(button.staticTexts[option ?? noSelectionTitle].waitForExistence(timeout: 3), line: line)
         }
         
         assertExpectedCompletion(false)
@@ -132,10 +129,10 @@ extension XCUIApplication {
             }
             assertExpectedCompletion(false)
             let signatureCanvas = scrollViews["ConsentForm:sig"]
+            XCTAssert(signatureCanvas.waitForExistence(timeout: 5))
             signatureCanvas.swipeRight()
         }
-        sleep(for: .seconds(1))
-        
+
         assertExpectedCompletion(true)
         try select(in: "select1", option: nil, expectedCurrentSelection: "Mountains")
         assertExpectedCompletion(false)
@@ -147,8 +144,7 @@ extension XCUIApplication {
         #if !os(visionOS)
         swipeDown()
         #endif
-        sleep(for: .seconds(1))
-        
+
         assertExpectedCompletion(true)
         try flipToggle(beforeValue: true, afterValue: false)
         assertExpectedCompletion(false)

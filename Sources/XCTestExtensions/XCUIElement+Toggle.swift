@@ -36,7 +36,7 @@ extension XCUIElement {
         let element = self.descendants(matching: .switch).element
         #endif
         
-        XCTAssert(element.exists)
+        XCTAssert(element.wait(for: \.isHittable, toEqual: true, timeout: 2))
         
         #if os(visionOS)
         switch element.toggleState {

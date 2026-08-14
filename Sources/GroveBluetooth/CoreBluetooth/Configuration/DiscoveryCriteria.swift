@@ -17,31 +17,31 @@ public import GroveFoundation
 /// ## Topics
 ///
 /// ### Discovery by Service Type
-/// - ``advertisedService(_:serviceData:)-446yf``
+/// - ``advertisedService(_:serviceData:)-(Service.Type,_)``
 /// - ``advertisedServices(_:_:)``
 ///
 /// ### Discovery by Service UUID
 ///
-/// - ``advertisedService(_:serviceData:)-7ye2y``
-/// - ``advertisedServices(_:)-2ymt0``
-/// - ``advertisedServices(_:)-1s760``
+/// - ``advertisedService(_:serviceData:)-(BTUUID,_)``
+/// - ``advertisedServices(_:)-(BTUUID...)``
+/// - ``advertisedServices(_:)-([BTUUID])``
 ///
 /// ### Discovery an Accessory by Service Type
-/// - ``accessory(advertising:serviceData:nameSubstring:)-2uola``
-/// - ``accessory(advertising:serviceData:manufacturer:manufacturerData:nameSubstring:)-4xehl``
-/// - ``accessory(advertising:serviceData:nameSubstring:range:supportOptions:)-z6kr``
-/// - ``accessory(advertising:serviceData:manufacturer:manufacturerData:nameSubstring:range:supportOptions:)-5yvyv``
+/// - ``accessory(advertising:serviceData:nameSubstring:)-(Service.Type,_,_)``
+/// - ``accessory(advertising:serviceData:manufacturer:manufacturerData:nameSubstring:)-(Service.Type,_,_,_,_)``
+/// - ``accessory(advertising:serviceData:nameSubstring:range:supportOptions:)-(Service.Type,_,_,_,_)``
+/// - ``accessory(advertising:serviceData:manufacturer:manufacturerData:nameSubstring:range:supportOptions:)-(Service.Type,_,_,_,_,_,_)``
 ///
 /// ### Discovery an Accessory by Service UUID
 ///
-/// - ``accessory(advertising:serviceData:nameSubstring:)-5rzd3``
-/// - ``accessory(advertising:serviceData:manufacturer:manufacturerData:nameSubstring:)-7zwso``
-/// - ``accessory(advertising:serviceData:nameSubstring:range:supportOptions:)-61h91``
-/// - ``accessory(advertising:serviceData:manufacturer:manufacturerData:nameSubstring:range:supportOptions:)-5gotr``
+/// - ``accessory(advertising:serviceData:nameSubstring:)-(BTUUID,_,_)``
+/// - ``accessory(advertising:serviceData:manufacturer:manufacturerData:nameSubstring:)-(BTUUID,_,_,_,_)``
+/// - ``accessory(advertising:serviceData:nameSubstring:range:supportOptions:)-(BTUUID,_,_,_,_)``
+/// - ``accessory(advertising:serviceData:manufacturer:manufacturerData:nameSubstring:range:supportOptions:)-(BTUUID,_,_,_,_,_,_)``
 ///
 /// ### Discovery an Accessory that advertise multiple Services
-/// - ``accessory(manufacturer:manufacturerData:nameSubstring:advertising:)-5xdh2``
-/// - ``accessory(manufacturer:manufacturerData:nameSubstring:advertising:)-1j9zn``
+/// - ``accessory(manufacturer:manufacturerData:nameSubstring:advertising:)-(_,_,_,BTUUID...)``
+/// - ``accessory(manufacturer:manufacturerData:nameSubstring:advertising:)-(_,_,_,[BTUUID])``
 /// - ``accessory(manufacturer:manufacturerData:nameSubstring:advertising:_:)``
 public struct DiscoveryCriteria {
     let aspects: [DescriptorAspect]

@@ -10,230 +10,248 @@ import XCTest
 
 
 class TestAppUITests: XCTestCase {
+    /// Matches the `CodeAccessGuard(.test, ..., timeout:)` configured in `TestAppDelegate`.
+    private let guardTimeout: UInt32 = 10
+
     override func setUpWithError() throws {
         try super.setUpWithError()
         continueAfterFailure = false
     }
-    
-    
-    func testFixedCode() throws {
+
+    /// Access guard codes live in the keychain, which survives app uninstalls, so every test has to start from a known state.
+    @MainActor
+    private func launchAndReset() -> XCUIApplication {
         let app = XCUIApplication()
         app.launch()
-        
+        XCTAssert(app.buttons["Reset Access Guards"].wait(for: \.isHittable, toEqual: true, timeout: 15))
+        app.buttons["Reset Access Guards"].tap()
+        // A reset that threw would leave a stored code behind and make everything after it depend on the previous test.
+        XCTAssertFalse(app.staticTexts["Reset Failure"].waitForExistence(timeout: 1))
+        return app
+    }
+
+
+    @MainActor
+    func testFixedCode() throws {
+        let app = launchAndReset()
+
+        XCTAssert(app.buttons["Access Guarded Fixed"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Access Guarded Fixed"].tap()
+
+        XCTAssert(app.secureTextFields["Passcode Field"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.secureTextFields["Passcode Field"].tap()
         app.secureTextFields["Passcode Field"].typeText("1234")
-        
-        XCTAssert(app.staticTexts["Secured with fixed code ..."].waitForExistence(timeout: 2.0))
-        XCTAssert(app.staticTexts["Secured with fixed code ..."].isHittable)
+
+        XCTAssert(app.staticTexts["Secured with fixed code ..."].wait(for: \.isHittable, toEqual: true, timeout: 15))
     }
-    
-    
+
+
+    @MainActor
     func testAccessCode() throws { // swiftlint:disable:this function_body_length
-        let app = XCUIApplication()
-        app.launch()
-        
-        app.buttons["Reset Access Guards"].tap()
-        
+        let app = launchAndReset()
+
+        XCTAssert(app.buttons["Access Guarded"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Access Guarded"].tap()
-        
-        XCTAssert(app.staticTexts["Secured ..."].waitForExistence(timeout: 2.0))
-        XCTAssert(app.staticTexts["Secured ..."].isHittable)
-        
+
+        XCTAssert(app.staticTexts["Secured ..."].wait(for: \.isHittable, toEqual: true, timeout: 15))
+
+        XCTAssert(app.buttons["Back"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Back"].tap()
-        
-        
-        XCTAssert(app.buttons["Set Code"].waitForExistence(timeout: 2.0))
+
+
+        XCTAssert(app.buttons["Set Code"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Set Code"].tap()
-        
+
         // Set first passcode
         XCTAssert(app.staticTexts["Set Code"].waitForExistence(timeout: 2.0))
-        XCTAssert(app.secureTextFields["Passcode Field"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.secureTextFields["Passcode Field"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.secureTextFields["Passcode Field"].tap()
         app.secureTextFields["Passcode Field"].typeText("1111")
-        
+
         // Go back once
         XCTAssert(app.staticTexts["Repeat Code"].waitForExistence(timeout: 2.0))
-        XCTAssert(app.buttons["Reset"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.buttons["Reset"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Reset"].tap()
-        
+
         // Enter new first passcode
         XCTAssert(app.staticTexts["Set Code"].waitForExistence(timeout: 2.0))
-        XCTAssert(app.secureTextFields["Passcode Field"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.secureTextFields["Passcode Field"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.secureTextFields["Passcode Field"].tap()
         app.secureTextFields["Passcode Field"].typeText("1112")
-        
+
         // Enter a wrong repeat passcode
         XCTAssert(app.staticTexts["Repeat Code"].waitForExistence(timeout: 2.0))
-        XCTAssert(app.secureTextFields["Passcode Field"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.secureTextFields["Passcode Field"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.secureTextFields["Passcode Field"].tap()
         app.secureTextFields["Passcode Field"].typeText("1113")
-        
+
         // Enter correct repeat passcode
         XCTAssert(app.staticTexts["Passcodes not equal"].waitForExistence(timeout: 2.0))
-        XCTAssert(app.secureTextFields["Passcode Field"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.secureTextFields["Passcode Field"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.secureTextFields["Passcode Field"].tap()
         app.secureTextFields["Passcode Field"].typeText("1112")
-        
+
         // Success
         XCTAssert(app.images["Passcode set was successful"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.buttons["Back"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Back"].tap()
-        
+
         // View should be unlocked as we just set the passcode ...
-        XCTAssert(app.buttons["Access Guarded"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.buttons["Access Guarded"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Access Guarded"].tap()
-        XCTAssert(app.staticTexts["Secured ..."].waitForExistence(timeout: 2.0))
-        XCTAssert(app.staticTexts["Secured ..."].isHittable)
-        
+        XCTAssert(app.staticTexts["Secured ..."].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
+
         // Try the new passcode
         app.terminate()
         app.launch()
-        XCTAssert(app.buttons["Access Guarded"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.buttons["Access Guarded"].wait(for: \.isHittable, toEqual: true, timeout: 15))
         app.buttons["Access Guarded"].tap()
-        
-        XCTAssert(app.secureTextFields["Passcode Field"].waitForExistence(timeout: 2.0))
+
+        XCTAssert(app.secureTextFields["Passcode Field"].wait(for: \.isHittable, toEqual: true, timeout: 15))
         app.secureTextFields["Passcode Field"].tap()
         app.secureTextFields["Passcode Field"].typeText("1112")
-        
-        XCTAssert(app.staticTexts["Secured ..."].waitForExistence(timeout: 2.0))
-        XCTAssert(app.staticTexts["Secured ..."].isHittable)
-        
-        // Go to the home screen and see if the view is still visable in less than 10 seconds.
+
+        XCTAssert(app.staticTexts["Secured ..."].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
+
+        // Go to the home screen and see if the view is still visible in less than the guard timeout.
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         springboard.activate()
-        XCTAssert(springboard.wait(for: .runningForeground, timeout: 2))
+        XCTAssert(springboard.wait(for: .runningForeground, timeout: 10))
         app.activate()
-        
-        XCTAssert(app.staticTexts["Secured ..."].waitForExistence(timeout: 2.0))
-        XCTAssert(app.staticTexts["Secured ..."].isHittable)
-        
-        // Try with a time longer than the timeout:
+        XCTAssert(app.wait(for: .runningForeground, timeout: 15))
+
+        XCTAssert(app.staticTexts["Secured ..."].wait(for: \.isHittable, toEqual: true, timeout: 15))
+
+        // Try with a time longer than the timeout. The guard measures the interval between the app's own scene
+        // background/foreground notifications, which start later than `springboard` reaching the foreground.
         springboard.activate()
-        XCTAssert(springboard.wait(for: .runningForeground, timeout: 2))
-        
-        sleep(11)
-        
+        XCTAssert(springboard.wait(for: .runningForeground, timeout: 10))
+
+        sleep(guardTimeout + 6)
+
         app.activate()
-        XCTAssert(app.secureTextFields["Passcode Field"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.wait(for: .runningForeground, timeout: 15))
+        XCTAssert(app.secureTextFields["Passcode Field"].wait(for: \.isHittable, toEqual: true, timeout: 15))
         app.secureTextFields["Passcode Field"].tap()
         app.secureTextFields["Passcode Field"].typeText("1112")
-        
-        XCTAssert(app.staticTexts["Secured ..."].waitForExistence(timeout: 2.0))
-        XCTAssert(app.staticTexts["Secured ..."].isHittable)
-        
+
+        XCTAssert(app.staticTexts["Secured ..."].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
+
         // Go Back to the main view:
+        XCTAssert(app.buttons["Back"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Back"].tap()
-        
+
         // Check that the passcode is removed if it is no longer set.
+        XCTAssert(app.buttons["Reset Access Guards"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Reset Access Guards"].tap()
-        
+        XCTAssertFalse(app.staticTexts["Reset Failure"].waitForExistence(timeout: 1))
+
+        XCTAssert(app.buttons["Access Guarded"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Access Guarded"].tap()
-        
-        XCTAssert(app.staticTexts["Secured ..."].waitForExistence(timeout: 2.0))
-        XCTAssert(app.staticTexts["Secured ..."].isHittable)
+
+        XCTAssert(app.staticTexts["Secured ..."].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
     }
-    
-    
+
+
+    @MainActor
     func testAccessCodeWithBiometrics() throws {
         // We cannot directly test FaceID or TouchID in a UI test
         // so we will test that the access code works
         // as a fallback to the biometrics
-        let app = XCUIApplication()
-        app.launch()
-        
-        // Reset all passcodes
-        app.buttons["Reset Access Guards"].tap()
-        
+        let app = launchAndReset()
+
         // Test biometrics guard without a passcode
+        XCTAssert(app.buttons["Access Guarded Biometrics"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         app.buttons["Access Guarded Biometrics"].tap()
-        
-        XCTAssert(app.staticTexts["Secured with biometrics ..."].waitForExistence(timeout: 2))
-        XCTAssert(app.staticTexts["Secured with biometrics ..."].isHittable)
-        
+
+        XCTAssert(app.staticTexts["Secured with biometrics ..."].wait(for: \.isHittable, toEqual: true, timeout: 2))
+
+        XCTAssert(app.buttons["Back"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         app.buttons["Back"].tap()
-        
+
         // Set the passcode
-        XCTAssert(app.buttons["Set Biometric Backup Code"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Set Biometric Backup Code"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         app.buttons["Set Biometric Backup Code"].tap()
-        
+
         XCTAssert(app.staticTexts["Set Code"].waitForExistence(timeout: 2))
-        XCTAssert(app.secureTextFields["Passcode Field"].waitForExistence(timeout: 2))
+        XCTAssert(app.secureTextFields["Passcode Field"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         app.secureTextFields["Passcode Field"].tap()
         app.secureTextFields["Passcode Field"].typeText("123456")
-        
+
         XCTAssert(app.staticTexts["Repeat Code"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.secureTextFields["Passcode Field"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.secureTextFields["Passcode Field"].typeText("123456")
-        
+
         XCTAssert(app.images["Passcode set was successful"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.buttons["Back"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Back"].tap()
-        
+
         // Try the passcode
         app.terminate()
         app.launch()
-        XCTAssert(app.buttons["Access Guarded Biometrics"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.buttons["Access Guarded Biometrics"].wait(for: \.isHittable, toEqual: true, timeout: 15))
         app.buttons["Access Guarded Biometrics"].tap()
-        
-        XCTAssert(app.secureTextFields["Passcode Field"].waitForExistence(timeout: 2.0))
+
+        XCTAssert(app.secureTextFields["Passcode Field"].wait(for: \.isHittable, toEqual: true, timeout: 15))
         app.secureTextFields["Passcode Field"].tap()
         app.secureTextFields["Passcode Field"].typeText("123456")
-        
-        XCTAssert(app.staticTexts["Secured with biometrics ..."].waitForExistence(timeout: 2.0))
-        XCTAssert(app.staticTexts["Secured with biometrics ..."].isHittable)
+
+        XCTAssert(app.staticTexts["Secured with biometrics ..."].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
     }
-    
-    
+
+
+    @MainActor
     func testAccessGuardButton() throws {
-        let app = XCUIApplication()
-        app.launch()
-        
+        let app = launchAndReset()
+
         // Test locked state and unlock flow
-        XCTAssert(app.buttons["Access Guard Button"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.buttons["Access Guard Button"].wait(for: \.isHittable, toEqual: true, timeout: 15))
         app.buttons["Access Guard Button"].tap()
-        
-        XCTAssert(app.buttons["Unlock me"].waitForExistence(timeout: 2.0))
+
+        XCTAssert(app.buttons["Unlock me"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Unlock me"].tap()
-        
+
         // Verify the unlock sheet appears with passcode field
-        XCTAssert(app.secureTextFields["Passcode Field"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.secureTextFields["Passcode Field"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.secureTextFields["Passcode Field"].tap()
         app.secureTextFields["Passcode Field"].typeText("1234")
-        
+
         // Verify unlocked content is displayed after successful unlock
-        XCTAssert(app.staticTexts["Success"].waitForExistence(timeout: 2.0))
-        XCTAssert(app.staticTexts["Success"].isHittable)
-        
-        XCTAssert(app.buttons["Back"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.staticTexts["Success"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
+
+        XCTAssert(app.buttons["Back"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Back"].tap()
-        
-        XCTAssert(app.buttons["Lock Access Guards"].waitForExistence(timeout: 2.0))
+
+        XCTAssert(app.buttons["Lock Access Guards"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Lock Access Guards"].tap()
-        
-        XCTAssert(app.buttons["Access Guard Button"].waitForExistence(timeout: 2.0))
+
+        XCTAssert(app.buttons["Access Guard Button"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Access Guard Button"].tap()
-        
-        XCTAssert(app.buttons["Unlock me"].waitForExistence(timeout: 2.0))
+
+        XCTAssert(app.buttons["Unlock me"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Unlock me"].tap()
-        
-        XCTAssert(app.buttons["Cancel"].waitForExistence(timeout: 2.0))
+
+        XCTAssert(app.buttons["Cancel"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Cancel"].tap()
-        
+
         // Verify we're back at the main screen with the locked button
-        XCTAssert(app.buttons["Unlock me"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.buttons["Unlock me"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
     }
-    
-    
+
+
+    @MainActor
     func testCustomCodeBehaviour() {
         enum ExpectedUnlockBehaviour {
             case success
             case usedCode
             case unknownCode
         }
-        
-        let app = XCUIApplication()
-        app.launch()
-        
+
+        let app = launchAndReset()
+
+        XCTAssert(app.buttons["Consumable Codes"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         app.buttons["Consumable Codes"].tap()
-        
+
         func expect(available: [Int], consumed: [Int]) {
             let availableValue = available.isEmpty ? "[]" : available.map(\.description).joined(separator: ", ")
             let consumedValue = consumed.isEmpty ? "[]" : consumed.map(\.description).joined(separator: ", ")
@@ -246,10 +264,13 @@ class TestAppUITests: XCTestCase {
                 "Failed to find 'Consumed' row for numbers \(consumed)"
             )
         }
-        
+
+        @MainActor
         func unlock(withCode code: Int, expect expectedBehaviour: ExpectedUnlockBehaviour) {
+            XCTAssert(app.buttons["Open Secret View"].wait(for: \.isHittable, toEqual: true, timeout: 2))
             app.buttons["Open Secret View"].tap()
             XCTAssert(app.staticTexts["Enter Passcode"].waitForExistence(timeout: 2))
+            XCTAssert(app.secureTextFields["Passcode Field"].wait(for: \.isHittable, toEqual: true, timeout: 2))
             app.secureTextFields["Passcode Field"].tap()
             app.secureTextFields["Passcode Field"].typeText(String(code))
             switch expectedBehaviour {
@@ -260,26 +281,27 @@ class TestAppUITests: XCTestCase {
             case .unknownCode:
                 XCTAssert(app.staticTexts["1 Failed Attempt"].waitForExistence(timeout: 2))
             }
+            XCTAssert(app.navigationBars.buttons["Close"].wait(for: \.isHittable, toEqual: true, timeout: 2))
             app.navigationBars.buttons["Close"].tap()
         }
-        
+
         expect(available: [1111, 2222, 3333, 4444], consumed: [])
-        
+
         unlock(withCode: 1111, expect: .success)
         expect(available: [2222, 3333, 4444], consumed: [1111])
-        
+
         unlock(withCode: 3333, expect: .success)
         expect(available: [2222, 4444], consumed: [1111, 3333])
-        
+
         unlock(withCode: 1111, expect: .usedCode)
         expect(available: [2222, 4444], consumed: [1111, 3333])
-        
+
         unlock(withCode: 4444, expect: .success)
         expect(available: [2222], consumed: [1111, 3333, 4444])
-        
+
         unlock(withCode: 2211, expect: .unknownCode)
         expect(available: [2222], consumed: [1111, 3333, 4444])
-        
+
         unlock(withCode: 2222, expect: .success)
         expect(available: [], consumed: [1111, 2222, 3333, 4444])
     }

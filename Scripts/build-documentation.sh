@@ -84,18 +84,28 @@ ignored_markers = (
 
 warnings = []
 for line in log_path.read_text(encoding="utf-8", errors="replace").splitlines():
+    stripped = line.strip()
+    # DocC reports catalog-level problems with no source location at all. The Swift compiler always
+    # prefixes `file:line:col:`, so a bare `warning:` here can only have come from docc, and the
+    # path-based filtering below would drop it silently.
+    if stripped.startswith("warning: "):
+        if stripped not in warnings:
+            warnings.append(stripped)
+        continue
     if ": warning:" not in line or repo_prefix not in line:
         continue
     if any(marker in line for marker in ignored_markers):
         continue
-    # Symbol links live in Swift doc comments as well as in catalogs, so a warning anywhere under
-    # Sources counts — keying only on `.docc/` silently dropped every warning raised in a .swift file.
-    is_documentation_warning = "/Sources/" in line or any(
+    # Symbol links live in Swift doc comments as well as in catalogs, so match on the message rather
+    # than the path: keying on `.docc/` dropped every warning raised in a .swift file, and keying on
+    # `/Sources/` swept in ordinary compiler warnings that this gate is not about.
+    is_documentation_warning = ("/Sources/" in line and ".docc/" in line) or any(
         marker in line
         for marker in (
             " doesn't exist at ",
             " is ambiguous at ",
             " isn't a disambiguation for ",
+            "used to document parameter",
             "Parameter '" ,
             " not found in ",
         )

@@ -45,7 +45,7 @@ import SwiftUI
 /// - ``query(_:timeRange:source:limit:sortedBy:predicate:)``
 /// - ``query(_:timeRange:anchor:source:limit:predicate:)``
 /// - ``oldestSampleDate(for:)``
-/// - ``continuousQuery(_:timeRange:anchor:limit:predicate:)-66r9v``
+/// - ``continuousQuery(_:timeRange:anchor:limit:predicate:)->AsyncMapSequence<HKAnchoredObjectQueryDescriptor<Sample>.Results,HealthKit.ContinuousQueryElement<Sample>>``
 /// - ``ContinuousQueryElement``
 ///
 /// ### Handling Authorization
@@ -53,15 +53,15 @@ import SwiftUI
 /// - ``isFullyAuthorized``
 /// - ``askForAuthorization()``
 /// - ``askForAuthorization(for:)``
-/// - ``isAuthorized(toWrite:)-4a3vx``
-/// - ``isAuthorized(toWrite:)-1v3ch``
+/// - ``isAuthorized(toWrite:)-(SampleType<Any>)``
+/// - ``isAuthorized(toWrite:)-(HKObjectType)``
 /// - ``didAskForAuthorization(for:)``
-/// - ``didAskForAuthorization(toRead:)-7jia9``
-/// - ``didAskForAuthorization(toRead:)-5343t``
-/// - ``didAskForAuthorization(toRead:)-179xf``
-/// - ``didAskForAuthorization(toRead:)-14mhe``
-/// - ``didAskForAuthorization(toWrite:)-1q0oz``
-/// - ``didAskForAuthorization(toWrite:)-3rlz6``
+/// - ``didAskForAuthorization(toRead:)-(SampleType<Any>)``
+/// - ``didAskForAuthorization(toRead:)-([AnySampleType])``
+/// - ``didAskForAuthorization(toRead:)-(HKObjectType)``
+/// - ``didAskForAuthorization(toRead:)-(Set<HKObjectType>)``
+/// - ``didAskForAuthorization(toWrite:)-(SampleType<Any>)``
+/// - ``didAskForAuthorization(toWrite:)-(HKObjectType)``
 /// - ``waitForConfigurationDone()``
 ///
 /// ## See Also
@@ -359,7 +359,7 @@ extension HealthKit {
     
     /// Returns whether the user was already asked for authorization to  the specified sample type.
     /// - Note: A `true` return value does **not** imply that the user actually granted access; it just means that the user was asked.
-    ///     Use ``HealthKit-swift.class/isAuthorized(toWrite:)-4a3vx`` to check the current authorization status.
+    ///     Use ``HealthKit-swift.class/isAuthorized(toWrite:)-(SampleType<Any>)`` to check the current authorization status.
     public func didAskForAuthorization(toWrite sampleType: SampleType<some Any>) -> Bool {
         sampleType.effectiveSampleTypesForAuthentication.allSatisfy {
             didAskForAuthorization(toWrite: $0.hkSampleType)
@@ -369,7 +369,7 @@ extension HealthKit {
     /// Returns whether the user was already asked for authorization to the specified object type.
     ///
     /// - Note: A `true` return value does **not** imply that the user actually granted access; it just means that the user was asked.
-    ///     Use ``HealthKit-swift.class/isAuthorized(toWrite:)-1v3ch`` to check the current authorization status.
+    ///     Use ``HealthKit-swift.class/isAuthorized(toWrite:)-(HKObjectType)`` to check the current authorization status.
     public func didAskForAuthorization(toWrite objectType: HKObjectType) -> Bool {
         switch healthStore.authorizationStatus(for: objectType) {
         case .notDetermined:
@@ -397,7 +397,7 @@ extension HealthKit {
     
     /// Returns whether the application is currently authorized to write data of the specified object type into the health store..
     /// - Note: A `false` return value does **not** imply that the user actually denied access; it could also mean that the user hasn't yet been asked.
-    ///     Use ``HealthKit-swift.class/didAskForAuthorization(toWrite:)-1q0oz`` to determine that.
+    ///     Use ``HealthKit-swift.class/didAskForAuthorization(toWrite:)-(SampleType<Any>)`` to determine that.
     public func isAuthorized(toWrite sampleType: SampleType<some Any>) -> Bool {
         sampleType.effectiveSampleTypesForAuthentication.allSatisfy {
             isAuthorized(toWrite: $0.hkSampleType)
@@ -406,7 +406,7 @@ extension HealthKit {
     
     /// Returns whether the application is currently authorized to write data of the specified object type into the health store..
     /// - Note: A `false` return value does **not** imply that the user actually denied access; it could also mean that the user hasn't yet been asked.
-    ///     Use ``HealthKit-swift.class/didAskForAuthorization(toWrite:)-3rlz6`` to determine that.
+    ///     Use ``HealthKit-swift.class/didAskForAuthorization(toWrite:)-(HKObjectType)`` to determine that.
     public func isAuthorized(toWrite objectType: HKObjectType) -> Bool {
         switch healthStore.authorizationStatus(for: objectType) {
         case .sharingAuthorized:

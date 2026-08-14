@@ -83,7 +83,8 @@ extension HealthAppSampleType {
         let elementStaticText = healthApp.staticTexts.element(matching: elementStaticTextPredicate).firstMatch
         // depending on the device type and the sample type, we might need to scroll down all the way.
         for _ in 0..<5 {
-            if elementStaticText.waitForExistence(timeout: 10), elementStaticText.isHittable {
+            // The second wait lets a swipe settle, so we don't scroll past an element that is still animating in.
+            if elementStaticText.waitForExistence(timeout: 10), elementStaticText.wait(for: \.isHittable, toEqual: true, timeout: 1) {
                 elementStaticText.tap()
                 return
             } else {

@@ -12,35 +12,33 @@ import XCTestExtensions
 
 final class TestAppLLMLocalUITests: TestAppTestCase {
     func testGroveLLMLocal() throws {
-        launch(enableMockMode: true, showOnboarding: true, clearAPIKeysFromKeychain: true)
-        
-        XCTAssert(app.buttons["LLMLocal"].waitForExistence(timeout: 2))
-        app.buttons["LLMLocal"].tap()
-        
+        let localButton = app.buttons["LLMLocal"]
+        launch(enableMockMode: true, showOnboarding: true, clearAPIKeysFromKeychain: true, waitingFor: localButton)
+        localButton.tap()
+
         // Onboarding
-        XCTAssert(app.staticTexts["Local LLM Execution"].waitForExistence(timeout: 2))
-        XCTAssert(app.staticTexts["LLMs on an iPhone"].waitForExistence(timeout: 2))
-        XCTAssert(app.staticTexts["Swift Package Manager"].waitForExistence(timeout: 2))
-        XCTAssert(app.staticTexts["The Stanford Grove ecosystem"].waitForExistence(timeout: 2))
-        
-        XCTAssert(app.buttons["Next"].waitForExistence(timeout: 2))
-        app.buttons["Next"].tap()
-        
-        sleep(1)
-        
-        // Chat
+        XCTAssert(app.staticTexts["Local LLM Execution"].waitForExistence(timeout: 5))
+        XCTAssert(app.staticTexts["LLMs on an iPhone"].exists)
+        XCTAssert(app.staticTexts["Swift Package Manager"].exists)
+        XCTAssert(app.staticTexts["The Stanford Grove ecosystem"].exists)
+
+        let nextButton = app.buttons["Next"]
+        XCTAssert(nextButton.wait(for: \.isHittable, toEqual: true, timeout: 5))
+        nextButton.tap()
+
+        // Chat, reachable once the onboarding sheet has dismissed
         let inputTextfield = app.textFields["Message Input Textfield"]
-        XCTAssertTrue(inputTextfield.exists)
-        
+        XCTAssert(inputTextfield.wait(for: \.isHittable, toEqual: true, timeout: 10))
+
         try inputTextfield.enter(value: "New Message!", options: [.disableKeyboardDismiss])
-        
-        XCTAssert(app.buttons["Send Message"].waitForExistence(timeout: 2))
-        app.buttons["Send Message"].tap()
-        
+
+        let sendButton = app.buttons["Send Message"]
+        XCTAssert(sendButton.wait(for: \.isHittable, toEqual: true, timeout: 5))
+        sendButton.tap()
+
         XCTAssert(app.staticTexts["New Message!"].waitForExistence(timeout: 5))
-        
-        sleep(3)
-        
-        XCTAssert(app.staticTexts["Mock Message from GroveLLM!"].waitForExistence(timeout: 5))
+
+        // The mock session idles for a second and then streams its four tokens half a second apart.
+        XCTAssert(app.staticTexts["Mock Message from GroveLLM!"].waitForExistence(timeout: 15))
     }
 }

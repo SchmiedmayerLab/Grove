@@ -56,10 +56,10 @@ public class LocalStorageKeys {
 ///
 /// ## Topics
 /// ### Creating Storage Keys
-/// - ``init(_:setting:)-21oqu``
-/// - ``init(_:setting:encoder:decoder:)-4yhmm``
-/// - ``init(_:setting:)-1sf9p``
-/// - ``init(_:setting:)-9t3s8``
+/// - ``init(_:setting:)-3n47u``
+/// - ``init(_:setting:encoder:decoder:)-8l0p7``
+/// - ``init(_:setting:)-1wu96``
+/// - ``init(_:setting:)-5882p``
 /// - ``init(key:setting:encode:decode:)``
 ///
 /// ### Other

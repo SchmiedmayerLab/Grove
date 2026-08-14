@@ -37,8 +37,8 @@ public typealias AccountServiceConfigurationStorage = SendableValueRepository<Ac
 /// Below is a list of builtin configuration options.
 ///
 /// - ``userIdConfiguration``
-/// - ``fieldValidationRules(for:)-28x74``
-/// - ``fieldValidationRules(for:)-w2n2``
+/// - ``fieldValidationRules(for:)-(Key.Type)``
+/// - ``fieldValidationRules(for:)-(KeyPath<AccountKeys,Key.Type>)``
 ///
 /// ### Result Builder
 /// - ``AccountServiceConfigurationKey``

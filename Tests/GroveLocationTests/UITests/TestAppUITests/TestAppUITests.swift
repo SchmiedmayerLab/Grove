@@ -33,12 +33,13 @@ class TestAppUITests: XCTestCase {
         XCTAssert(app.buttons["Request When In Use Permission"].waitForExistence(timeout: 3))
         app.buttons["Request When In Use Permission"].tap()
         
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        
-        if springboard.buttons["Allow While Using App"].waitForExistence(timeout: 10) {
-            springboard.buttons["Allow While Using App"].tap()
-        }
-        
+        let springboard = XCUIApplication(bundleIdentifier: XCUIApplication.homeScreenBundle)
+
+        let allowButton = springboard.buttons["Allow While Using App"]
+        XCTAssert(allowButton.waitForExistence(timeout: 30), "Location permission alert did not appear")
+        allowButton.tap()
+        XCTAssert(allowButton.waitForNonExistence(timeout: 10), "Location permission alert did not dismiss")
+
         XCTAssert(app.staticTexts["Authorization Status: Authorized when in use"].waitForExistence(timeout: 10))
     }
 }

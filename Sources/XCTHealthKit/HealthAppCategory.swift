@@ -42,28 +42,32 @@ public enum HealthAppCategory: String, Hashable, Sendable {
         let categoryTitle = self.rawValue
         
         // Dismiss any sheets that may still be open
-        if healthApp.navigationBars.buttons["Cancel"].exists {
-            healthApp.navigationBars.buttons["Cancel"].tap()
+        let cancelButton = healthApp.navigationBars.buttons["Cancel"]
+        if cancelButton.exists {
+            cancelButton.tapWhenHittable(timeout: 2)
         }
-        
+
         try healthApp.goToBrowseTab()
-        
+
         // Find category:
         let categoryStaticTextPredicate = NSPredicate(format: "label CONTAINS[cd] %@", categoryTitle)
         let categoryStaticText = healthApp.staticTexts.element(matching: categoryStaticTextPredicate).firstMatch
-        
-        if categoryStaticText.waitForExistence(timeout: 30), !categoryStaticText.isHittable {
+
+        XCTAssert(categoryStaticText.waitForExistence(timeout: 30))
+        // The category can be below the fold, in which case it exists without ever becoming hittable on its own.
+        if !categoryStaticText.wait(for: \.isHittable, toEqual: true, timeout: 2) {
             healthApp.swipeUp()
-            
-            if !categoryStaticText.isHittable {
+
+            if !categoryStaticText.wait(for: \.isHittable, toEqual: true, timeout: 2) {
                 healthApp.swipeUp()
             }
         }
-        
-        categoryStaticText.tap()
-        
+
+        categoryStaticText.tapWhenHittable(timeout: 5)
+
         // Retry ...
-        if !healthApp.navigationBars.staticTexts[categoryTitle].waitForExistence(timeout: 20) {
+        if !healthApp.navigationBars.staticTexts[categoryTitle].waitForExistence(timeout: 20),
+           categoryStaticText.wait(for: \.isHittable, toEqual: true, timeout: 2) {
             categoryStaticText.tap()
         }
         

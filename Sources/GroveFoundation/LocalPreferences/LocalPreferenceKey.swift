@@ -45,11 +45,11 @@ public class LocalPreferenceKeys: @unchecked Sendable {}
 /// ## Topics
 ///
 /// ### Creating Keys
-/// - ``init(_:default:)-9hruy``
-/// - ``init(_:default:)-980t1``
+/// - ``init(_:default:)-8iwzv``
+/// - ``init(_:default:)-7uomz``
 /// - ``init(_:encoder:decoder:default:)``
-/// - ``init(_:)-6bb04``
-/// - ``init(_:)-3s1w9``
+/// - ``init(_:)-8jyck``
+/// - ``init(_:)-9qejv``
 /// - ``init(_:encoder:decoder:)``
 ///
 /// ### Instance Properties

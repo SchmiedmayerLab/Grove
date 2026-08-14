@@ -35,7 +35,7 @@ import OSLog
 ///
 /// ### Managing Connection
 /// - ``connect()``
-/// - ``disconnect()-1nrzk``
+/// - ``disconnect()``
 ///
 /// ### Reading a value
 /// - ``read(characteristic:)``

@@ -51,25 +51,18 @@ final class FirestoreDataStorageTests: XCTestCase {
         continueAfterFailure = false
 
         try await Self.deleteAllDocuments()
-        try await Task.sleep(for: .seconds(0.5))
+        try await Self.waitForDocuments([])
     }
-    
-    
+
+
     @MainActor
     func testFirestoreAdditions() async throws {
         let app = XCUIApplication()
-        app.launch()
-        app.buttons["FirestoreDataStorage"].tap()
-        
-        var documents = try await Self.getAllDocuments()
-        XCTAssert(documents.isEmpty)
-        
+        try await openFirestoreDataStorage(in: app)
+
         try add(id: "Identifier1", content: "1")
-        
-        try await Task.sleep(for: .seconds(0.5))
-        documents = try await Self.getAllDocuments()
-        XCTAssertEqual(
-            documents.sorted(by: { $0.name < $1.name }),
+
+        try await Self.waitForDocuments(
             [
                 FirestoreElement(
                     id: "Identifier1",
@@ -78,22 +71,15 @@ final class FirestoreDataStorageTests: XCTestCase {
             ]
         )
     }
-    
+
     @MainActor
     func testFirestoreMerge() async throws {
         let app = XCUIApplication()
-        app.launch()
-        app.buttons["FirestoreDataStorage"].tap()
-        
-        var documents = try await Self.getAllDocuments()
-        XCTAssert(documents.isEmpty)
-        
+        try await openFirestoreDataStorage(in: app)
+
         try merge(id: "Identifier1", content: "1")
-        
-        try await Task.sleep(for: .seconds(0.5))
-        documents = try await Self.getAllDocuments()
-        XCTAssertEqual(
-            documents.sorted(by: { $0.name < $1.name }),
+
+        try await Self.waitForDocuments(
             [
                 FirestoreElement(
                     id: "Identifier1",
@@ -102,22 +88,15 @@ final class FirestoreDataStorageTests: XCTestCase {
             ]
         )
     }
-    
+
     @MainActor
     func testFirestoreUpdate() async throws {
         let app = XCUIApplication()
-        app.launch()
-        app.buttons["FirestoreDataStorage"].tap()
-        
-        var documents = try await Self.getAllDocuments()
-        XCTAssert(documents.isEmpty)
-        
+        try await openFirestoreDataStorage(in: app)
+
         try add(id: "Identifier1", content: "1")
-        
-        try await Task.sleep(for: .seconds(0.5))
-        documents = try await Self.getAllDocuments()
-        XCTAssertEqual(
-            documents.sorted(by: { $0.name < $1.name }),
+
+        try await Self.waitForDocuments(
             [
                 FirestoreElement(
                     id: "Identifier1",
@@ -125,13 +104,10 @@ final class FirestoreDataStorageTests: XCTestCase {
                 )
             ]
         )
-        
+
         try add(id: "Identifier1", content: "2")
-        
-        try await Task.sleep(for: .seconds(0.5))
-        documents = try await Self.getAllDocuments()
-        XCTAssertEqual(
-            documents.sorted(by: { $0.name < $1.name }),
+
+        try await Self.waitForDocuments(
             [
                 FirestoreElement(
                     id: "Identifier1",
@@ -140,23 +116,16 @@ final class FirestoreDataStorageTests: XCTestCase {
             ]
         )
     }
-    
-    
+
+
     @MainActor
     func testFirestoreDelete() async throws {
         let app = XCUIApplication()
-        app.launch()
-        app.buttons["FirestoreDataStorage"].tap()
-        
-        var documents = try await Self.getAllDocuments()
-        XCTAssert(documents.isEmpty)
-        
+        try await openFirestoreDataStorage(in: app)
+
         try add(id: "Identifier1", content: "1")
-        
-        try await Task.sleep(for: .seconds(0.5))
-        documents = try await Self.getAllDocuments()
-        XCTAssertEqual(
-            documents.sorted(by: { $0.name < $1.name }),
+
+        try await Self.waitForDocuments(
             [
                 FirestoreElement(
                     id: "Identifier1",
@@ -164,43 +133,60 @@ final class FirestoreDataStorageTests: XCTestCase {
                 )
             ]
         )
-        
+
         try remove(id: "Identifier1", content: "1")
-        
-        documents = try await Self.getAllDocuments()
+
+        try await Self.waitForDocuments([])
+    }
+
+
+    @MainActor
+    private func openFirestoreDataStorage(in app: XCUIApplication) async throws {
+        XCTAssert(app.launchAndWait(for: app.buttons["FirestoreDataStorage"]), "The app did not come up.")
+        app.buttons["FirestoreDataStorage"].tap()
+
+        let documents = try await Self.getAllDocuments()
         XCTAssert(documents.isEmpty)
     }
-    
 
     @MainActor
     private func add(id: String, content: String) throws {
         try enterFirestoreElement(id: id, content: content)
-        XCUIApplication().buttons["Upload Element"].tap()
+        tapAction("Upload Element")
     }
 
     @MainActor
     private func merge(id: String, content: String) throws {
         try enterFirestoreElement(id: id, content: content)
-        XCUIApplication().buttons["Merge Element"].tap()
+        tapAction("Merge Element")
     }
 
     @MainActor
     private func remove(id: String, content: String) throws {
         try enterFirestoreElement(id: id, content: content)
-        XCUIApplication().buttons["Delete Element"].tap()
+        tapAction("Delete Element")
+    }
+
+    @MainActor
+    private func tapAction(_ title: String) {
+        let button = XCUIApplication().buttons[title]
+        // The action buttons stay disabled while a write is in flight, and taps that land in between are dropped silently.
+        XCTAssert(button.waitUntilTappable(), "The \"\(title)\" button never became tappable.")
+        button.tap()
     }
 
     @MainActor
     private func enterFirestoreElement(id: String, content: String) throws {
         let app = XCUIApplication()
-        
-        let identifierTextFieldIdentifier = "Enter the element's identifier."
-        try app.textFields[identifierTextFieldIdentifier].delete(count: 42, options: .disableKeyboardDismiss)
-        try app.textFields[identifierTextFieldIdentifier].enter(value: id, options: .skipTextFieldSelection)
 
-        let contentFieldIdentifier = "Enter the element's optional content."
-        try app.textFields[contentFieldIdentifier].delete(count: 100, options: .disableKeyboardDismiss)
-        try app.textFields[contentFieldIdentifier].enter(value: content, options: .skipTextFieldSelection)
+        let identifierTextField = app.textFields["Enter the element's identifier."]
+        XCTAssert(identifierTextField.wait(for: \.isHittable, toEqual: true, timeout: 10.0), "The Firestore test view did not appear.")
+        try identifierTextField.delete(count: 42, options: .disableKeyboardDismiss)
+        try identifierTextField.enter(value: id, options: .skipTextFieldSelection)
+
+        let contentTextField = app.textFields["Enter the element's optional content."]
+        try contentTextField.delete(count: 100, options: .disableKeyboardDismiss)
+        try contentTextField.enter(value: content, options: .skipTextFieldSelection)
     }
 }
 
@@ -257,5 +243,33 @@ extension FirestoreDataStorageTests {
         } catch {
             return []
         }
+    }
+
+    /// Polls the emulator until it holds `expected` and asserts the result, so the tests observe the write instead of sleeping for it.
+    private static func waitForDocuments(
+        _ expected: [FirestoreElement],
+        timeout: Duration = .seconds(10),
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) async throws {
+        let deadline = ContinuousClock.now + timeout
+        var documents = try await getAllDocuments().sorted { $0.name < $1.name }
+
+        while documents != expected, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(100))
+            documents = try await getAllDocuments().sorted { $0.name < $1.name }
+        }
+
+        XCTAssertEqual(documents, expected, file: file, line: line)
+    }
+}
+
+
+extension XCUIElement {
+    /// Waits until the element exists, is enabled, and is hittable.
+    fileprivate func waitUntilTappable(timeout: TimeInterval = 10) -> Bool {
+        let predicate = NSPredicate(format: "exists == true AND isEnabled == true AND isHittable == true")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: self)
+        return XCTWaiter.wait(for: [expectation], timeout: timeout) == .completed
     }
 }

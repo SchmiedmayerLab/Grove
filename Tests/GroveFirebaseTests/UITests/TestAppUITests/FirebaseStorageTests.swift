@@ -26,25 +26,22 @@ final class FirebaseStorageTests: XCTestCase {
         continueAfterFailure = false
 
         try await Self.deleteAllFiles()
-        try await Task.sleep(for: .seconds(0.5))
+        try await Self.waitForFileCount(0)
     }
-    
+
     @MainActor
     func testFirebaseStorageFileUpload() async throws {
         let app = XCUIApplication()
-        app.launch()
-        XCTAssert(app.buttons["FirebaseStorage"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.launchAndWait(for: app.buttons["FirebaseStorage"]), "The app did not come up.")
         app.buttons["FirebaseStorage"].tap()
-        
-        var documents = try await Self.getAllFiles()
+
+        let documents = try await Self.getAllFiles()
         XCTAssert(documents.isEmpty)
-        
-        XCTAssert(app.buttons["Upload"].waitForExistence(timeout: 2.0))
+
+        XCTAssert(app.buttons["Upload"].wait(for: \.isHittable, toEqual: true, timeout: 10.0))
         app.buttons["Upload"].tap()
-        
-        try await Task.sleep(for: .seconds(2.0))
-        documents = try await Self.getAllFiles()
-        XCTAssertEqual(documents.count, 1)
+
+        try await Self.waitForFileCount(1)
     }
 }
 
@@ -78,6 +75,24 @@ extension FirebaseStorageTests {
         } catch {
             return []
         }
+    }
+
+    /// Polls the emulator until it holds `expected` files and asserts the result, so the test observes the upload instead of sleeping for it.
+    private static func waitForFileCount(
+        _ expected: Int,
+        timeout: Duration = .seconds(10),
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) async throws {
+        let deadline = ContinuousClock.now + timeout
+        var count = try await getAllFiles().count
+
+        while count != expected, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(100))
+            count = try await getAllFiles().count
+        }
+
+        XCTAssertEqual(count, expected, file: file, line: line)
     }
 
     private static func deleteAllFiles() async throws {

@@ -26,20 +26,27 @@ class GroveHealthKitTests: XCTestCase {
         askForAuthorization: Bool = true,
         deleteAllHealthData: Bool
     ) throws {
+        // The same `XCUIApplication` is relaunched across a test, so a stale flag would reset state the test still needs.
+        app.launchArguments.removeAll { $0 == "--resetEverything" }
         if resetEverything {
             app.resetAuthorizationStatus(for: .health)
             app.launchArguments.append("--resetEverything")
         }
-        app.launch()
-        XCTAssert(app.wait(for: .runningForeground, timeout: 10))
+        XCTAssert(app.launchAndWait(), "TestApp didn't come up")
         if !app.launchArguments.contains("--collectedSamplesOnly") {
-            if app.alerts["“TestApp” Would Like to Send You Notifications"].waitForExistence(timeout: 5) {
-                app.alerts["“TestApp” Would Like to Send You Notifications"].buttons["Allow"].tap()
+            let alert = app.alerts["“TestApp” Would Like to Send You Notifications"]
+            if alert.waitForExistence(timeout: 5) {
+                let allow = alert.buttons["Allow"]
+                XCTAssert(allow.wait(for: \.isHittable, toEqual: true, timeout: 10))
+                allow.tap()
             }
         }
-        XCTAssert(app.buttons["Ask for authorization"].waitForExistence(timeout: 10))
-        if askForAuthorization, app.buttons["Ask for authorization"].isEnabled {
-            app.buttons["Ask for authorization"].tap()
+        // the button is disabled once everything is authorized, so this only gates on the first screen being up
+        let askForAuthorizationButton = app.buttons["Ask for authorization"]
+        XCTAssert(askForAuthorizationButton.waitForExistence(timeout: 30))
+        if askForAuthorization, askForAuthorizationButton.isEnabled {
+            XCTAssert(askForAuthorizationButton.wait(for: \.isHittable, toEqual: true, timeout: 10))
+            askForAuthorizationButton.tap()
             app.handleHealthKitAuthorization()
         }
         if deleteAllHealthData {
@@ -55,7 +62,7 @@ class GroveHealthKitTests: XCTestCase {
     
     @MainActor
     func triggerDataCollection(in app: XCUIApplication) {
-        XCTAssertTrue(app.buttons["Trigger data source collection"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Trigger data source collection"].wait(for: \.isHittable, toEqual: true, timeout: 10))
         app.buttons["Trigger data source collection"].tap()
         XCTAssertTrue(app.buttons["Triggering data source collection"].waitForNonExistence(timeout: 10))
         XCTAssertTrue(app.buttons["Trigger data source collection"].waitForExistence(timeout: 10))
@@ -141,14 +148,40 @@ extension XCUIApplication {
     @MainActor
     func performMoreMenuAction(_ pathFst: String, _ pathRest: String...) {
         let menuButton = self.navigationBars.buttons["actions"]
-        XCTAssert(menuButton.waitForExistence(timeout: 10))
+        XCTAssert(menuButton.wait(for: \.isHittable, toEqual: true, timeout: 10))
+        guard let completedActions = menuButton.completedActions else {
+            XCTFail("The actions menu doesn't report the number of actions it has completed")
+            return
+        }
         menuButton.tap()
         for title in [pathFst] + pathRest {
             let button = self.buttons[title]
-            XCTAssert(button.waitForExistence(timeout: 10))
+            XCTAssert(button.wait(for: \.isHittable, toEqual: true, timeout: 10))
             button.tap()
-            sleep(for: .seconds(0.5)) // i sleep
         }
+        XCTAssert(
+            menuButton.waitForCompletedActions(above: completedActions, timeout: 30),
+            "Menu action '\(pathFst)' never completed"
+        )
+    }
+}
+
+
+extension XCUIElement {
+    /// The number of actions the `ActionsMenu` this element represents has run to completion.
+    var completedActions: Int? {
+        (self.value as? String).flatMap(Int.init)
+    }
+
+    /// Waits until the `ActionsMenu` this element represents reports more than `count` completed actions.
+    ///
+    /// Selecting a menu entry only kicks off its action; everything it writes to HealthKit lands afterwards.
+    func waitForCompletedActions(above count: Int, timeout: TimeInterval) -> Bool {
+        let predicate = NSPredicate { element, _ in
+            ((element as? XCUIElement)?.completedActions ?? 0) > count
+        }
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: self)
+        return XCTWaiter.wait(for: [expectation], timeout: timeout) == .completed
     }
 }
 

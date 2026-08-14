@@ -6,7 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
-import GroveFoundation
 import XCTest
 import XCTestExtensions
 import XCTGroveNotifications
@@ -14,7 +13,6 @@ import XCTGroveNotifications
 /// Scheduler notification identifiers are derived from the host app's bundle identifier, so they are
 /// no longer a fixed vendor string. Kept in one place: the TestApp's bundle id decides the value.
 private let schedulerNotificationPrefix = "org.grovealliance.grovescheduler.testapp.scheduler.notification"
-
 
 
 class TestAppUITests: XCTestCase {
@@ -29,11 +27,6 @@ class TestAppUITests: XCTestCase {
         }
     }
     
-    func sleep(for duration: Duration) {
-        usleep(UInt32(duration.timeInterval * 1000000))
-    }
-    
-    
     override func setUp() {
         continueAfterFailure = false
     }
@@ -42,15 +35,17 @@ class TestAppUITests: XCTestCase {
     @MainActor
     func testBasicEventInteraction() {
         let app = XCUIApplication()
-        app.launch()
+        // The Scheduler stores outcomes on disk, so a surviving container would leave the questionnaire
+        // already completed and the "Complete Questionnaire" button gone.
+        app.deleteAndLaunch(withSpringboardAppName: "TestApp")
 
         XCTAssert(app.wait(for: .runningForeground, timeout: 2.0))
 
-        XCTAssert(app.staticTexts["Schedule"].waitForExistence(timeout: 2.0))
+        XCTAssert(app.staticTexts["Schedule"].waitForExistence(timeout: 10.0))
         XCTAssert(app.staticTexts["Today"].exists)
-        
+
         app.swipeUp()
-        
+
         XCTAssert(app.staticTexts["Social Support Questionnaire"].waitForExistence(timeout: 2.0))
         XCTAssert(app.staticTexts["Questionnaire"].exists)
         if uses12HourClock {
@@ -59,20 +54,23 @@ class TestAppUITests: XCTestCase {
             XCTAssert(app.staticTexts["16:00"].exists)
         }
 
-        XCTAssert(app.buttons["More Information"].exists)
-        app.buttons.matching(identifier: "More Information").element(boundBy: 1).tap()
+        let moreInformation = app.buttons.matching(identifier: "More Information").element(boundBy: 1)
+        XCTAssert(moreInformation.wait(for: \.isHittable, toEqual: true, timeout: 2.0))
+        moreInformation.tap()
 
         XCTAssertTrue(app.navigationBars.staticTexts["More Information"].waitForExistence(timeout: 4.0))
         XCTAssertTrue(app.staticTexts["Instructions"].exists)
         XCTAssertTrue(app.staticTexts["About"].exists)
 
-        XCTAssertTrue(app.navigationBars.buttons["Close"].exists)
-        app.navigationBars.buttons["Close"].tap()
+        let close = app.navigationBars.buttons["Close"]
+        XCTAssertTrue(close.wait(for: \.isHittable, toEqual: true, timeout: 2.0))
+        close.tap()
 
         XCTAssertTrue(app.staticTexts["Schedule"].waitForExistence(timeout: 2.0))
 
-        XCTAssert(app.buttons["Complete Questionnaire"].exists)
-        app.buttons["Complete Questionnaire"].tap()
+        let completeQuestionnaire = app.buttons["Complete Questionnaire"]
+        XCTAssert(completeQuestionnaire.wait(for: \.isHittable, toEqual: true, timeout: 2.0))
+        completeQuestionnaire.tap()
 
         XCTAssertTrue(app.staticTexts["Completed"].waitForExistence(timeout: 2.0))
     }
@@ -80,41 +78,69 @@ class TestAppUITests: XCTestCase {
     
     @MainActor
     func testNotificationScheduling() throws { // swiftlint:disable:this function_body_length
+        let leadTime: TimeInterval = 60
         let app = XCUIApplication()
-        app.deleteAndLaunch(withSpringboardAppName: "TestApp")
-        
-        func goToTab(_ name: String, line: UInt = #line) {
-            let tab = app.tabBars.buttons[name]
-            XCTAssert(tab.waitForExistence(timeout: 2.0), line: line)
-            tab.tap()
+        app.launchArguments += ["-notificationLeadTime", "\(Int(leadTime))"]
+        app.delete(app: "TestApp")
+        let launchDate = Date.now
+        XCTAssert(app.launchAndWait())
+
+        func checkButtonExists(_ name: String, timeout: TimeInterval = 2, line: UInt = #line) {
+            XCTAssert(app.buttons[name].waitForExistence(timeout: timeout), line: line)
         }
 
-        XCTAssert(app.wait(for: .runningForeground, timeout: 2.0))
-        
-        func checkButtonExists(_ name: String, line: UInt = #line) {
-            XCTAssert(app.buttons[name].waitForExistence(timeout: 2), line: line)
-        }
-        
-        checkButtonExists("Complete Measurement")
+        checkButtonExists("Complete Measurement", timeout: 10)
         checkButtonExists("Complete Questionnaire")
-        checkButtonExists("Complete Enter Lab Results")
-        app.buttons["Complete Enter Lab Results"].tap()
-        
-        goToTab("Notifications")
+        let completeLabResults = app.buttons["Complete Enter Lab Results"]
+        XCTAssert(completeLabResults.wait(for: \.isHittable, toEqual: true, timeout: 2.0))
+        completeLabResults.tap()
+
+        app.goToTab(.notifications)
 
         XCTAssert(app.staticTexts["Pending Notifications"].waitForExistence(timeout: 2.0))
 
-        XCTAssert(app.navigationBars.buttons["Request Notification Authorization"].waitForExistence(timeout: 2.0))
-        XCTAssert(app.staticTexts["Weight Measurement"].exists, "It seems that provisional notification authorization didn't work.")
+        let requestAuthorization = app.navigationBars.buttons["Request Notification Authorization"]
+        XCTAssert(requestAuthorization.wait(for: \.isHittable, toEqual: true, timeout: 2.0))
+        XCTAssert(
+            app.staticTexts["Weight Measurement"].waitForExistence(timeout: 5.0),
+            "It seems that provisional notification authorization didn't work."
+        )
 
-        app.navigationBars.buttons["Request Notification Authorization"].tap()
+        requestAuthorization.tap()
 
-        app.confirmNotificationAuthorization()
-        
-        sleep(for: .seconds(0.5))
-        XCTAssertGreaterThan(app.staticTexts.matching(identifier: "Medication").count, 3) // ensure events are scheduled
+        app.confirmNotificationAuthorization(requireAlertToAppear: true)
 
-        app.staticTexts["Weight Measurement"].tap()
+        // The pending notifications list reads the requests once, when it appears; the scheduler registers
+        // them one by one after the authorization is granted, so re-read until they are all in.
+        let medications = app.staticTexts.matching(identifier: "Medication")
+        let refresh = app.navigationBars.buttons["Refresh"]
+        let schedulingDeadline = Date.now.addingTimeInterval(30)
+        while !medications.element(boundBy: 3).waitForExistence(timeout: 1), Date.now < schedulingDeadline {
+            XCTAssert(refresh.wait(for: \.isHittable, toEqual: true, timeout: 2))
+            refresh.tap()
+        }
+        XCTAssert(medications.element(boundBy: 3).exists, "events were never scheduled")
+
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let notification = springboard.otherElements["Notification"].descendants(matching: .any)["NotificationShortLookView"]
+        // The banner auto-dismisses after a few seconds, so the wait has to still be running when it fires.
+        let remaining = max(leadTime - Date.now.timeIntervalSince(launchDate), 0)
+        XCTAssert(
+            notification.waitForExistence(timeout: remaining + 20),
+            """
+            Weight Measurement banner did not arrive within \(remaining + 20)s \
+            (lead time \(leadTime)s, \(Date.now.timeIntervalSince(launchDate))s elapsed since launch)
+            """
+        )
+        XCTAssert(notification.staticTexts["Weight Measurement"].exists)
+        XCTAssert(notification.staticTexts["Take a weight measurement every day."].exists)
+        XCTAssert(notification.wait(for: \.isHittable, toEqual: true, timeout: 5.0))
+        notification.tap()
+
+        // Tapping the banner brings the app back to the foreground, which is as slow as a launch.
+        let weightMeasurement = app.staticTexts["Weight Measurement"]
+        XCTAssert(weightMeasurement.wait(for: \.isHittable, toEqual: true, timeout: 10.0))
+        weightMeasurement.tap()
 
         XCTAssert(app.navigationBars.staticTexts["Weight Measurement"].waitForExistence(timeout: 2.0))
         app.assertNotificationDetails(
@@ -130,18 +156,13 @@ class TestAppUITests: XCTestCase {
             nextTriggerExistenceTimeout: 60
         )
 
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        let notification = springboard.otherElements["Notification"].descendants(matching: .any)["NotificationShortLookView"]
-        XCTAssert(notification.waitForExistence(timeout: 30))
-        XCTAssert(notification.staticTexts["Weight Measurement"].exists)
-        XCTAssert(notification.staticTexts["Take a weight measurement every day."].exists)
-        notification.tap()
+        let backToPendingNotifications = app.navigationBars.buttons["Pending Notifications"]
+        XCTAssert(backToPendingNotifications.wait(for: \.isHittable, toEqual: true, timeout: 2.0))
+        backToPendingNotifications.tap()
 
-        XCTAssert(app.navigationBars.buttons["Pending Notifications"].waitForExistence(timeout: 2.0))
-        app.navigationBars.buttons["Pending Notifications"].tap()
-
-        XCTAssert(app.staticTexts["Medication"].firstMatch.waitForExistence(timeout: 2.0))
-        app.staticTexts["Medication"].firstMatch.tap()
+        let medication = app.staticTexts["Medication"].firstMatch
+        XCTAssert(medication.wait(for: \.isHittable, toEqual: true, timeout: 2.0))
+        medication.tap()
 
         XCTAssert(app.navigationBars.staticTexts["Medication"].waitForExistence(timeout: 2.0))
         app.assertNotificationDetails(
@@ -164,21 +185,21 @@ class TestAppUITests: XCTestCase {
         app.deleteAndLaunch(withSpringboardAppName: "TestApp")
 
         XCTAssert(app.wait(for: .runningForeground, timeout: 2.0))
-        
-        func checkButtonExists(_ name: String, line: UInt = #line) {
-            XCTAssert(app.buttons[name].waitForExistence(timeout: 2), line: line)
-        }
-        
-        XCTAssert(app.buttons["Complete Enter Lab Results"].waitForExistence(timeout: 2))
-        
+
+        XCTAssert(app.buttons["Complete Enter Lab Results"].waitForExistence(timeout: 10))
+
         app.goToTab(.notifications)
 
         XCTAssert(app.staticTexts["Pending Notifications"].waitForExistence(timeout: 2.0))
 
         XCTAssert(app.navigationBars.buttons["Request Notification Authorization"].waitForExistence(timeout: 2.0))
-        XCTAssert(app.staticTexts["Enter Lab Results"].exists, "It seems that provisional notification authorization didn't work.")
+        let labResultsNotification = app.staticTexts["Enter Lab Results"]
+        XCTAssert(
+            labResultsNotification.wait(for: \.isHittable, toEqual: true, timeout: 5.0),
+            "It seems that provisional notification authorization didn't work."
+        )
 
-        app.staticTexts["Enter Lab Results"].tap()
+        labResultsNotification.tap()
 
         XCTAssert(app.navigationBars.staticTexts["Enter Lab Results"].waitForExistence(timeout: 2.0))
         app.assertNotificationDetails(
@@ -196,16 +217,28 @@ class TestAppUITests: XCTestCase {
         
         // Complete the task for today
         app.goToTab(.schedule)
-        app.buttons["Complete Enter Lab Results"].tap()
-        sleep(for: .seconds(1))
+        let complete = app.buttons["Complete Enter Lab Results"]
+        XCTAssert(complete.wait(for: \.isHittable, toEqual: true, timeout: 5))
+        complete.tap()
+        XCTAssert(complete.waitForNonExistence(timeout: 5))
         app.goToTab(.notifications)
-        
-        app.staticTexts["Enter Lab Results"].firstMatch.tap()
+
+        // The tile flips on the outcome save; rewriting the notification is a separate pass, so re-read the
+        // list until the event-level request is the one we open.
+        let refresh = app.navigationBars.buttons["Refresh"]
+        if refresh.wait(for: \.isHittable, toEqual: true, timeout: 2) {
+            refresh.tap()
+        }
+        let eventNotification = app.staticTexts["Enter Lab Results"].firstMatch
+        XCTAssert(eventNotification.wait(for: \.isHittable, toEqual: true, timeout: 5))
+        eventNotification.tap()
 
         XCTAssert(app.navigationBars.staticTexts["Enter Lab Results"].waitForExistence(timeout: 2.0))
-        app.staticTexts.matching(
-            NSPredicate(format: #"identifier MATCHES '.*edu\.stanford\.grove\.scheduler\.notification\.event\.enter-lab-results\..*'"#)
+        let eventIdentifier = NSPredicate(
+            format: "label BEGINSWITH %@",
+            "Identifier, \(schedulerNotificationPrefix).event.enter-lab-results."
         )
+        XCTAssert(app.staticTexts.matching(eventIdentifier).firstMatch.waitForExistence(timeout: 2))
         app.assertNotificationDetails(
             // we can't specify the identifier here, since this is now an event-level-scheduled notification, which includes the event's timestamp.
             // we instead assert the identifier above
@@ -231,10 +264,10 @@ class TestAppUITests: XCTestCase {
         XCTAssert(app.wait(for: .runningForeground, timeout: 2.0))
         
         let menuButton = app.buttons["Extra Tests"]
-        XCTAssert(menuButton.waitForExistence(timeout: 2))
+        XCTAssert(menuButton.waitForExistence(timeout: 10))
         menuButton.tryToTapReallySoftlyMaybeThisWillMakeItWork()
         let testCaseButton = app.buttons["Shadowed Outcomes"]
-        XCTAssert(testCaseButton.waitForExistence(timeout: 2))
+        XCTAssert(testCaseButton.wait(for: \.isHittable, toEqual: true, timeout: 2))
         testCaseButton.tap()
         
         XCTAssertTrue(app.staticTexts["Passed"].waitForExistence(timeout: 2))
@@ -249,14 +282,15 @@ class TestAppUITests: XCTestCase {
         XCTAssert(app.wait(for: .runningForeground, timeout: 2.0))
         
         let menuButton = app.buttons["Extra Tests"]
-        XCTAssert(menuButton.waitForExistence(timeout: 2))
+        XCTAssert(menuButton.waitForExistence(timeout: 10))
         menuButton.tryToTapReallySoftlyMaybeThisWillMakeItWork()
         let testCaseButton = app.buttons["Observe New Outcomes"]
-        XCTAssert(testCaseButton.waitForExistence(timeout: 2))
+        XCTAssert(testCaseButton.wait(for: \.isHittable, toEqual: true, timeout: 2))
         testCaseButton.tap()
-        
+
         XCTAssert(app.staticTexts["did trigger, false"].waitForExistence(timeout: 2))
         let completeButton = app.otherElements["ObserveNewOutcomesView"].buttons["Complete"].firstMatch
+        XCTAssert(completeButton.wait(for: \.isHittable, toEqual: true, timeout: 2))
         completeButton.tap()
         XCTAssert(app.staticTexts["did trigger, false"].waitForNonExistence(timeout: 2))
         XCTAssert(app.staticTexts["did trigger, true"].waitForExistence(timeout: 2))
@@ -277,15 +311,22 @@ class TestAppUITests: XCTestCase {
         app.deleteAndLaunch(withSpringboardAppName: "TestApp")
         XCTAssert(app.wait(for: .runningForeground, timeout: 2.0))
         
-        XCTAssert(app.collectionViews.staticTexts["Today"].waitForExistence(timeout: 1))
+        XCTAssert(app.collectionViews.staticTexts["Today"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.collectionViews.staticTexts["Timed Walking Test"].exists)
-        
+
         // Part 1: verify the Schedule tab
-        app.navigationBars.buttons["More"].tap()
-        app.buttons["Date"].tap()
-        app.buttons["Tomorrow"].tap()
-        XCTAssert(app.collectionViews.staticTexts["Tomorrow"].waitForExistence(timeout: 1))
-        XCTAssert(app.collectionViews.staticTexts["Timed Walking Test"].waitForExistence(timeout: 1))
+        let more = app.navigationBars.buttons["More"]
+        XCTAssert(more.wait(for: \.isHittable, toEqual: true, timeout: 2))
+        more.tap()
+        let dateMenu = app.buttons["Date"]
+        XCTAssert(dateMenu.wait(for: \.isHittable, toEqual: true, timeout: 2))
+        dateMenu.tap()
+        let tomorrow = app.buttons["Tomorrow"]
+        XCTAssert(tomorrow.wait(for: \.isHittable, toEqual: true, timeout: 2))
+        tomorrow.tap()
+        // Picking another day re-queries the schedule, so the new rows only arrive after a round trip.
+        XCTAssert(app.collectionViews.staticTexts["Tomorrow"].waitForExistence(timeout: 5))
+        XCTAssert(app.collectionViews.staticTexts["Timed Walking Test"].waitForExistence(timeout: 5))
         XCTAssert(app.collectionViews.staticTexts.matching(
             NSPredicate(format: "label MATCHES 'Timed Walking Test, Active Task, In .*, \(uses12HourClock ? "12:00 AM" : "00:00")'")
         ).element.exists)
@@ -293,8 +334,10 @@ class TestAppUITests: XCTestCase {
         // Part 2: verify the actual notification scheduling
         app.goToTab(.notifications)
         XCTAssert(app.staticTexts["Pending Notifications"].waitForExistence(timeout: 1))
-        app.staticTexts["Timed Walking Test"].firstMatch.tap()
-        XCTAssert(app.navigationBars.staticTexts["Timed Walking Test"].waitForExistence(timeout: 1))
+        let timedWalkingTest = app.staticTexts["Timed Walking Test"].firstMatch
+        XCTAssert(timedWalkingTest.wait(for: \.isHittable, toEqual: true, timeout: 5))
+        timedWalkingTest.tap()
+        XCTAssert(app.navigationBars.staticTexts["Timed Walking Test"].waitForExistence(timeout: 2.0))
         app.assertNotificationDetails(
             identifier: "\(schedulerNotificationPrefix).task.timed-walking-test",
             title: "Timed Walking Test",
@@ -321,7 +364,7 @@ extension XCUIApplication {
     
     func goToTab(_ tab: Tab, line: UInt = #line) {
         let tab = self.tabBars.buttons[tab.rawValue]
-        XCTAssert(tab.waitForExistence(timeout: 2.0), line: line)
+        XCTAssert(tab.wait(for: \.isHittable, toEqual: true, timeout: 2.0), line: line)
         tab.tap()
         tab.tap()
     }

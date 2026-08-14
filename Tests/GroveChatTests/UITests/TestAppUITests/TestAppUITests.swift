@@ -18,18 +18,18 @@ class TestAppUITests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["--testMode"]
-        app.launch()
+        XCTAssert(app.launchAndWait(for: app.textFields["Message Input Textfield"]), "The chat did not come up after launch.")
     }
-    
-    
+
+
     func testChat() throws {
         let app = XCUIApplication()
-        
+
         XCTAssert(app.staticTexts["GroveChat"].waitForExistence(timeout: 1))
         XCTAssert(app.staticTexts["Assistant Message!"].waitForExistence(timeout: 1))
-        
+
         try app.textFields["Message Input Textfield"].enter(value: "User Message!", options: [.disableKeyboardDismiss])
-        XCTAssert(app.buttons["Send Message"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Send Message"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         app.buttons["Send Message"].tap()
         XCTAssert(app.staticTexts["User Message!"].waitForExistence(timeout: 2))
         XCTAssert(app.otherElements["Typing Indicator"].waitForExistence(timeout: 2))
@@ -38,7 +38,7 @@ class TestAppUITests: XCTestCase {
     }
     
     
-    func testChatExport() throws {  // swiftlint:disable:this function_body_length
+    func testChatExport() throws {  // swiftlint:disable:this function_body_length cyclomatic_complexity
         // Skip chat export test on visionOS and macOS
         #if os(visionOS)
         throw XCTSkip("VisionOS is unstable and are skipped at the moment")
@@ -50,48 +50,64 @@ class TestAppUITests: XCTestCase {
         let filesApp = XCUIApplication(bundleIdentifier: "com.apple.DocumentsApp")
         let maxRetries = 10
         
+        let locationPredicate = NSPredicate(format: "label BEGINSWITH[c] %@", "On My")
+
+        // Saving to Files is very flakey on the runners and needs multiple attempts to succeed, so every
+        // step in here recovers via `continue` instead of failing the test outright.
         for _ in 0...maxRetries {
             app.launchArguments = ["--testMode"]
-            app.launch()
+            guard app.launchAndWait(for: app.textFields["Message Input Textfield"], timeout: 15) else {
+                continue
+            }
 
-            XCTAssert(app.staticTexts["GroveChat"].waitForExistence(timeout: 1))
-            
             // Entering dummy chat value
-            XCTAssert(app.staticTexts["GroveChat"].waitForExistence(timeout: 1))
             try app.textFields["Message Input Textfield"].enter(value: "User Message!", options: [.disableKeyboardDismiss])
-            XCTAssert(app.buttons["Send Message"].waitForExistence(timeout: 5))
+            guard app.buttons["Send Message"].wait(for: \.isHittable, toEqual: true, timeout: 5) else {
+                continue
+            }
             app.buttons["Send Message"].tap()
-            
-            sleep(1)
-            XCTAssert(app.staticTexts["Assistant Message Response!"].waitForExistence(timeout: 5))
-            
+            guard app.staticTexts["Assistant Message Response!"].waitForExistence(timeout: 10) else {
+                continue
+            }
+
             // Export chat via share sheet button
-            XCTAssert(app.buttons["Export the Chat"].waitForExistence(timeout: 2))
+            guard app.buttons["Export the Chat"].wait(for: \.isHittable, toEqual: true, timeout: 5) else {
+                continue
+            }
             app.buttons["Export the Chat"].tap()
-            
+
             // Store exported chat in Files
             #if os(visionOS)
             // On visionOS the "Save to files" button has no label
-            XCTAssert(app.cells["XCElementSnapshotPrivilegedValuePlaceholder"].waitForExistence(timeout: 10))
-            app.cells["XCElementSnapshotPrivilegedValuePlaceholder"].tap()
+            let saveToFiles = app.cells["XCElementSnapshotPrivilegedValuePlaceholder"]
             #else
-            XCTAssert(app.staticTexts["Save to Files"].waitForExistence(timeout: 10))
-            sleep(1) // we need to wait a little, since the check above will already resolve while the button is still being
-            // animated into position. if we tap too early it'll sometimes miss.
-            app.staticTexts["Save to Files"].tap()
+            let saveToFiles = app.staticTexts["Save to Files"]
             #endif
+            // the share sheet resolves the element before it has finished animating into position;
+            // tapping on the moving frame misses.
+            guard saveToFiles.waitForExistence(timeout: 15),
+                  saveToFiles.wait(for: \.isHittable, toEqual: true, timeout: 5) else {
+                continue
+            }
+            saveToFiles.tap()
 
-            sleep(3)
+            // the document picker shows "Save" from its first render, before any location is chosen
+            let save = app.buttons["Save"]
+            guard save.waitForExistence(timeout: 15) else {
+                continue
+            }
 
             // Select "On My iPhone / iPad" directory, if necessary
-            let predicate = NSPredicate(format: "label BEGINSWITH[c] %@", "On My")
-            let matchingStaticTexts = app.staticTexts.matching(predicate)
-            matchingStaticTexts.allElementsBoundByIndex.first?.tap()
+            let location = app.staticTexts.matching(locationPredicate).firstMatch
+            if location.wait(for: \.isHittable, toEqual: true, timeout: 2) {
+                location.tap()
+            }
 
-            XCTAssert(app.buttons["Save"].waitForExistence(timeout: 5))
-            app.buttons["Save"].tap()
-            sleep(10)    // Wait until file is saved
-            
+            guard save.wait(for: \.isHittable, toEqual: true, timeout: 5) else {
+                continue
+            }
+            save.tap()
+
             if app.staticTexts["Replace Existing Items?"].waitForExistence(timeout: 5) {
                 #if os(visionOS)
                 XCTFail("""
@@ -99,20 +115,25 @@ class TestAppUITests: XCTestCase {
                 Please ensure that all already existing chat export files are deleted when executing the UI test.
                 """)
                 #endif
-                XCTAssert(app.buttons["Replace"].waitForExistence(timeout: 2))
+                guard app.buttons["Replace"].wait(for: \.isHittable, toEqual: true, timeout: 5) else {
+                    continue
+                }
                 app.buttons["Replace"].tap()
-                sleep(3)    // Wait until file is saved
             }
-            
-            // Wait until share sheet closed and back on the chat screen
-            XCTAssert(app.staticTexts["GroveChat"].waitForExistence(timeout: 10))
-            
+
+            // the share sheet dismissing and the app coming back is the observable end of the save
+            guard app.staticTexts["GroveChat"].waitForExistence(timeout: 30) else {
+                continue
+            }
+
             // Launch the Files app
-            filesApp.launch()
-            
+            guard filesApp.launchAndWait(timeout: 15) else {
+                continue
+            }
+
             // Handle already open files
             let done = filesApp.buttons["Done"].firstMatch
-            if done.waitForExistence(timeout: 2) {
+            if done.wait(for: \.isHittable, toEqual: true, timeout: 2) {
                 done.tap()
             }
 
@@ -120,27 +141,28 @@ class TestAppUITests: XCTestCase {
             // layout (tab bar plus sidebar). `waitForExistence` tolerates an ambiguous query but
             // `tap()` requires exactly one match, so resolve it before tapping.
             let browse = filesApp.buttons["Browse"].firstMatch
-            if browse.waitForExistence(timeout: 5) {
+            if browse.wait(for: \.isHittable, toEqual: true, timeout: 5) {
                 browse.tap()
             }
-            let filesLocation = filesApp.staticTexts.matching(predicate).firstMatch
-            if filesLocation.waitForExistence(timeout: 5) {
+            let filesLocation = filesApp.staticTexts.matching(locationPredicate).firstMatch
+            if filesLocation.wait(for: \.isHittable, toEqual: true, timeout: 5) {
                 filesLocation.tap()
             }
-            
+
             // Check if file exists - If not, try the export procedure again
-            // Saving to files is very flakey on the runners, needs multiple attempts to succeed
             if filesApp.staticTexts["Exported Chat"].waitForExistence(timeout: 5) {
                 break
             }
         }
         
         // Open File
+        let exportedChat = filesApp.collectionViews["File View"].cells["Exported Chat, pdf"]
         XCTAssert(filesApp.staticTexts["Exported Chat"].waitForExistence(timeout: 5))
-        XCTAssert(filesApp.collectionViews["File View"].cells["Exported Chat, pdf"].waitForExistence(timeout: 2))
-        
-        XCTAssert(filesApp.collectionViews["File View"].cells["Exported Chat, pdf"].images.firstMatch.waitForExistence(timeout: 2))
-        filesApp.collectionViews["File View"].cells["Exported Chat, pdf"].tap()
+        XCTAssert(exportedChat.waitForExistence(timeout: 2))
+
+        XCTAssert(exportedChat.images.firstMatch.waitForExistence(timeout: 2))
+        XCTAssert(exportedChat.wait(for: \.isHittable, toEqual: true, timeout: 2))
+        exportedChat.tap()
         
         // Check if PDF contains certain chat message
         let predicate = NSPredicate(format: "label CONTAINS[c] %@", "User Message!")
@@ -157,8 +179,9 @@ class TestAppUITests: XCTestCase {
         } else {
             XCTAssert(filesApp.otherElements.containing(predicate).firstMatch.waitForExistence(timeout: 10))
             // Close File in Files App
-            XCTAssert(filesApp.buttons["Done"].waitForExistence(timeout: 2))
-            filesApp.buttons["Done"].firstMatch.tap()
+            let closeFile = filesApp.buttons["Done"].firstMatch
+            XCTAssert(closeFile.wait(for: \.isHittable, toEqual: true, timeout: 2))
+            closeFile.tap()
         }
         #endif
     }
@@ -166,16 +189,18 @@ class TestAppUITests: XCTestCase {
     func testChatSpeechOutput() throws {
         let app = XCUIApplication()
         
+        #if os(macOS)
+        let speakerButton = app.buttons["Speaker strikethrough"].firstMatch   // on macOS, need to match for first speaker that is found
+        #else
+        let speakerButton = app.buttons["Speaker strikethrough"]
+        #endif
+
         XCTAssert(app.staticTexts["GroveChat"].waitForExistence(timeout: 1))
-        XCTAssert(app.buttons["Speaker strikethrough"].waitForExistence(timeout: 2))
+        XCTAssert(speakerButton.wait(for: \.isHittable, toEqual: true, timeout: 2))
         XCTAssert(!app.buttons["Speaker"].waitForExistence(timeout: 2))
 
-        #if os(macOS)
-        app.buttons["Speaker strikethrough"].firstMatch.tap()   // on macOS, need to match for first speaker that is found
-        #else
-        app.buttons["Speaker strikethrough"].tap()
-        #endif
-        
+        speakerButton.tap()
+
         XCTAssert(!app.buttons["Speaker strikethrough"].waitForExistence(timeout: 2))
         XCTAssert(app.buttons["Speaker"].waitForExistence(timeout: 2))
     }
@@ -187,13 +212,12 @@ class TestAppUITests: XCTestCase {
         XCTAssert(app.staticTexts["Assistant Message!"].waitForExistence(timeout: 1))
         
         try app.textFields["Message Input Textfield"].enter(value: "Call some function", options: [.disableKeyboardDismiss])
-        XCTAssert(app.buttons["Send Message"].waitForExistence(timeout: 5))
+        XCTAssert(app.buttons["Send Message"].wait(for: \.isHittable, toEqual: true, timeout: 5))
         app.buttons["Send Message"].tap()
-        
-        sleep(5)
-        
-        XCTAssert(app.staticTexts["call_test_func({ test: true })"].waitForExistence(timeout: 2))
-        XCTAssert(app.staticTexts["{ some: response }"].waitForExistence(timeout: 2))
-        XCTAssert(app.staticTexts["Assistant Message Response!"].waitForExistence(timeout: 2))
+
+        // the test app replies three seconds after sending, then appends the response and the answer a second apart
+        XCTAssert(app.staticTexts["call_test_func({ test: true })"].waitForExistence(timeout: 10))
+        XCTAssert(app.staticTexts["{ some: response }"].waitForExistence(timeout: 5))
+        XCTAssert(app.staticTexts["Assistant Message Response!"].waitForExistence(timeout: 5))
     }
 }

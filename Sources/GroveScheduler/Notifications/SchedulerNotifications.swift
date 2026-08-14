@@ -120,8 +120,8 @@ public import UserNotifications
 /// - ``automaticallyRequestProvisionalAuthorization``
 ///
 /// ### Notification Identifiers
-/// - ``notificationId(for:)-33tri``
-/// - ``notificationId(for:)-8cchs``
+/// - ``notificationId(for:)-(Task)``
+/// - ``notificationId(for:)-(Event)``
 /// - ``notificationCategory(for:)``
 /// - ``notificationThreadIdentifier(for:)``
 /// - ``notificationTaskIdKey``

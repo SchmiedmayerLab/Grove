@@ -39,10 +39,10 @@ public protocol AcceptingAccountValueVisitor {
 /// details.acceptAll(&visitor)
 /// ```
 ///
-/// - Note: A visitor can implement the optional ``final()-cr4o`` method to return a result through the ``AcceptingAccountValueVisitor/acceptAll(_:)-9hgw5`` method.
+/// - Note: A visitor can implement the optional ``final()`` method to return a result through the ``AcceptingAccountValueVisitor/acceptAll(_:)-721j7`` method.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public protocol AccountValueVisitor {
-    /// A optional final result type returned by ``final()-7apm4``.
+    /// A optional final result type returned by ``final()``.
     associatedtype Final = Void
 
     /// Visit a single ``AccountKey`` and it's value.
@@ -53,7 +53,7 @@ public protocol AccountValueVisitor {
 
     /// Visit a single ``RequiredAccountKey`` and it's value.
     ///
-    /// - Note: If the implementation is not provided, the call is automatically forwarded to ``visit(_:_:)-35w7i``.
+    /// - Note: If the implementation is not provided, the call is automatically forwarded to ``visit(_:_:)-4m951``.
     /// - Parameters:
     ///   - key: The ``RequiredAccountKey`` metatype.
     ///   - value: The stored value
@@ -63,8 +63,8 @@ public protocol AccountValueVisitor {
     ///
     /// This method can be used to deliver a final result of the visitor. This method has a `Void` default implementation.
     ///
-    /// - Note: This method is only called if the visitor is used using ``AcceptingAccountValueVisitor/acceptAll(_:)-9hgw5``.
-    ///     If you directly call ``AccountKey/accept(_:_:)-8fw0g`` this will not be called and has no effect.
+    /// - Note: This method is only called if the visitor is used using ``AcceptingAccountValueVisitor/acceptAll(_:)-721j7``.
+    ///     If you directly call ``AccountKey/accept(_:_:)-8rgv8`` this will not be called and has no effect.
     /// - Returns: The final result.
     mutating func final() -> Final
 }
@@ -72,7 +72,7 @@ public protocol AccountValueVisitor {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension AccountValueVisitor {
-    /// Default implementation forwarding to ``visit(_:_:)-35w7i``.
+    /// Default implementation forwarding to ``visit(_:_:)-4m951``.
     public mutating func visit<Key: RequiredAccountKey>(_ key: Key.Type, _ value: Key.Value) {
         key.defaultAccept(&self, value)
     }

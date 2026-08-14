@@ -111,6 +111,24 @@ enum FirebaseClient {
         return try JSONDecoder().decode(ResponseWrapper.self, from: data).userInfo
     }
 
+    /// Polls the emulator until it holds `expected` and asserts the result, so tests observe the change instead of sleeping for it.
+    static func waitForAccounts(
+        _ expected: [FirestoreAccount],
+        timeout: Duration = .seconds(10),
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) async throws {
+        let deadline = ContinuousClock.now + timeout
+        var accounts = try await getAllAccounts().sorted { $0.email < $1.email }
+
+        while accounts != expected, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(100))
+            accounts = try await getAllAccounts().sorted { $0.email < $1.email }
+        }
+
+        XCTAssertEqual(accounts, expected, file: file, line: line)
+    }
+
     // curl -H 'Content-Type: application/json' -d '{"email":"[user@example.com]","password":"[PASSWORD]","returnSecureToken":true}' 'http://localhost:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=grovefirebaseuitests'
     static func createAccount(email: String, password: String, displayName: String) async throws {
         let emulatorAccountsURL = try XCTUnwrap(

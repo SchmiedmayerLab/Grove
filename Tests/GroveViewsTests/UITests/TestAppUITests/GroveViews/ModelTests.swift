@@ -20,12 +20,11 @@ final class ModelTests: XCTestCase {
     @MainActor
     func testViewState() throws {
         let app = XCUIApplication()
-        app.launch()
+        XCTAssertTrue(app.launchAndWait())
 
         app.open(target: "GroveViews")
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
 
-        XCTAssert(app.buttons["View State"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["View State"].wait(for: \.isHittable, toEqual: true, timeout: 5))
         app.buttons["View State"].tap()
 
         XCTAssert(app.staticTexts["View State: processing"].waitForExistence(timeout: 2))
@@ -40,20 +39,20 @@ final class ModelTests: XCTestCase {
 
         XCTAssert(alerts.staticTexts["Error Description"].exists)
         XCTAssert(alerts.staticTexts["Failure Reason\n\nHelp Anchor\n\nRecovery Suggestion"].exists)
+        XCTAssert(alerts.buttons["OK"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         alerts.buttons["OK"].tap()
 
         XCTAssert(app.staticTexts["View State: idle"].waitForExistence(timeout: 2))
     }
-    
+
     @MainActor
     func testOperationState() throws {
         let app = XCUIApplication()
-        app.launch()
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
+        XCTAssertTrue(app.launchAndWait())
 
         app.open(target: "GroveViews")
 
-        XCTAssert(app.buttons["Operation State"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Operation State"].wait(for: \.isHittable, toEqual: true, timeout: 5))
         app.buttons["Operation State"].tap()
 
         XCTAssert(app.staticTexts["Operation State: someOperationStep"].waitForExistence(timeout: 2))
@@ -68,6 +67,7 @@ final class ModelTests: XCTestCase {
 
         XCTAssert(alerts.staticTexts["Error Description"].exists)
         XCTAssert(alerts.staticTexts["Failure Reason\n\nHelp Anchor\n\nRecovery Suggestion"].exists)
+        XCTAssert(alerts.buttons["OK"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         alerts.buttons["OK"].tap()
 
         let textField = app.staticTexts["operationState"]
@@ -83,15 +83,14 @@ final class ModelTests: XCTestCase {
     @MainActor
     func testViewStateMapper() throws {
         let app = XCUIApplication()
-        app.launch()
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
+        XCTAssertTrue(app.launchAndWait())
 
         app.open(target: "GroveViews")
 
-        XCTAssert(app.buttons["View State Mapper"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["View State Mapper"].wait(for: \.isHittable, toEqual: true, timeout: 5))
         app.buttons["View State Mapper"].tap()
 
-        XCTAssert(app.staticTexts["View State: processing"].waitForExistence(timeout: 1.0))
+        XCTAssert(app.staticTexts["View State: processing"].waitForExistence(timeout: 2.0))
         XCTAssert(app.staticTexts["Operation State: someOperationStep"].exists)
 
 
@@ -104,6 +103,7 @@ final class ModelTests: XCTestCase {
 
         XCTAssert(alerts.staticTexts["Error Description"].exists)
         XCTAssert(alerts.staticTexts["Failure Reason\n\nHelp Anchor\n\nRecovery Suggestion"].exists)
+        XCTAssert(alerts.buttons["OK"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         alerts.buttons["OK"].tap()
 
         XCTAssert(app.staticTexts["View State: idle"].waitForExistence(timeout: 2))
@@ -122,50 +122,49 @@ final class ModelTests: XCTestCase {
     @MainActor
     func testConditionalModifier() throws {
         let app = XCUIApplication()
-        app.launch()
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
+        XCTAssertTrue(app.launchAndWait())
 
         app.open(target: "GroveViews")
 
-        XCTAssert(app.buttons["Conditional Modifier"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Conditional Modifier"].wait(for: \.isHittable, toEqual: true, timeout: 5))
         app.buttons["Conditional Modifier"].tap()
 
-        XCTAssert(app.staticTexts["Condition present"].waitForExistence(timeout: 1))
-        XCTAssert(app.staticTexts["Closure Condition present"].waitForExistence(timeout: 1))
-        
-        // Check regular condition
-        XCTAssert(app.buttons["Toggle Condition"].waitForExistence(timeout: 1))
-        app.buttons["Toggle Condition"].tap()
-        
-        XCTAssert(!app.staticTexts["Condition present"].waitForExistence(timeout: 2))
-        
-        XCTAssert(app.buttons["Toggle Condition"].waitForExistence(timeout: 1))
-        app.buttons["Toggle Condition"].tap()
-        
         XCTAssert(app.staticTexts["Condition present"].waitForExistence(timeout: 2))
-        
+        XCTAssert(app.staticTexts["Closure Condition present"].waitForExistence(timeout: 1))
+
+        // Check regular condition
+        XCTAssert(app.buttons["Toggle Condition"].wait(for: \.isHittable, toEqual: true, timeout: 2))
+        app.buttons["Toggle Condition"].tap()
+
+        XCTAssert(!app.staticTexts["Condition present"].waitForExistence(timeout: 2))
+
+        XCTAssert(app.buttons["Toggle Condition"].wait(for: \.isHittable, toEqual: true, timeout: 2))
+        app.buttons["Toggle Condition"].tap()
+
+        XCTAssert(app.staticTexts["Condition present"].waitForExistence(timeout: 2))
+
         // Check closure condition
-        XCTAssert(app.buttons["Toggle Closure Condition"].waitForExistence(timeout: 1))
+        XCTAssert(app.buttons["Toggle Closure Condition"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         app.buttons["Toggle Closure Condition"].tap()
-        
+
         XCTAssert(!app.staticTexts["Closure Condition present"].waitForExistence(timeout: 2))
-        
-        XCTAssert(app.buttons["Toggle Closure Condition"].waitForExistence(timeout: 1))
+
+        XCTAssert(app.buttons["Toggle Closure Condition"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         app.buttons["Toggle Closure Condition"].tap()
-        
+
+
         XCTAssert(app.staticTexts["Closure Condition present"].waitForExistence(timeout: 2))
     }
 
     @MainActor
     func testDefaultErrorDescription() throws {
         let app = XCUIApplication()
-        app.launch()
-        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
+        XCTAssertTrue(app.launchAndWait())
 
-        app.open(target: "GroveViews")
+        app.open(target: "GroveViews", waitingFor: app.buttons["Geometry Reader"])
         app.collectionViews.firstMatch.swipeUp() // out of the window on visionOS and iPadOS
 
-        XCTAssert(app.buttons["Default Error Only"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Default Error Only"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         app.buttons["Default Error Only"].tap()
 
         XCTAssert(app.staticTexts["View State: processing"].waitForExistence(timeout: 2))
@@ -179,6 +178,7 @@ final class ModelTests: XCTestCase {
 
         XCTAssert(alerts.staticTexts["Error"].exists)
         XCTAssert(alerts.staticTexts["Some error occurred!"].exists)
+        XCTAssert(alerts.buttons["OK"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         alerts.buttons["OK"].tap()
 
         XCTAssert(app.staticTexts["View State: idle"].waitForExistence(timeout: 2))

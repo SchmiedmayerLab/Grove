@@ -22,7 +22,7 @@ extension XCUIApplication {
     /// Confirm the notification authorization dialog.
     ///
     /// - parameter action: The action to respond with in the alert.
-    /// - parameter timeout: How long to wait for the alert to appear.
+    /// - parameter timeout: How long to wait for the alert to appear. Defaults to 30 seconds if the alert is required to appear, 5 seconds otherwise.
     /// - parameter requireAlertToAppear: Whether the alert not appearing within `timeout` should be considered as a test failure.
     ///     Setting this option to `false` will result in the function simply returning and tests continuing without issue,
     ///     if the alert does not appear, e.g. because it already was responded to in the past.
@@ -34,16 +34,21 @@ extension XCUIApplication {
     @discardableResult
     public func confirmNotificationAuthorization(
         action: NotificationAuthorizationAction = .allow,
-        timeout: TimeInterval = 5,
+        timeout: TimeInterval? = nil,
         requireAlertToAppear: Bool = false
     ) -> Bool {
+        // A caller that requires the alert can afford to wait for a loaded runner; one that tolerates
+        // its absence must not stall the test for the full window.
+        let timeout = timeout ?? (requireAlertToAppear ? 30 : 5)
         let predicate = NSPredicate(format: "label CONTAINS 'Would Like to Send You Notifications'")
         #if os(iOS)
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         let alert = springboard.alerts.element(matching: predicate)
         if alert.waitForExistence(timeout: timeout) {
-            XCTAssert(alert.buttons[action.rawValue].exists)
-            alert.buttons[action.rawValue].tap()
+            let button = alert.buttons[action.rawValue]
+            XCTAssert(button.wait(for: \.isHittable, toEqual: true, timeout: 5))
+            button.tap()
+            XCTAssert(alert.waitForNonExistence(timeout: 10))
             return true
         } else if requireAlertToAppear {
             // the alert is required to appear within `timeout`, but didn't
@@ -52,9 +57,12 @@ extension XCUIApplication {
         return false
         #elseif os(visionOS)
         let notifications = XCUIApplication(bundleIdentifier: "com.apple.RealityNotifications")
-        if notifications.scrollViews.staticTexts.element(matching: predicate).waitForExistence(timeout: timeout) {
-            XCTAssert(notifications.buttons[action.rawValue].exists)
-            notifications.buttons[action.rawValue].tap()
+        let alert = notifications.scrollViews.staticTexts.element(matching: predicate)
+        if alert.waitForExistence(timeout: timeout) {
+            let button = notifications.buttons[action.rawValue]
+            XCTAssert(button.wait(for: \.isHittable, toEqual: true, timeout: 5))
+            button.tap()
+            XCTAssert(alert.waitForNonExistence(timeout: 10))
             return true
         } else if requireAlertToAppear {
             // the alert is required to appear within `timeout`, but didn't

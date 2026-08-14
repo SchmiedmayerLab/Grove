@@ -6,14 +6,16 @@
 // SPDX-License-Identifier: MIT
 //
 
+import Foundation
 import XCTest
+import XCTestExtensions
 
 
 final class GroveFHIRTests: XCTestCase {
     func testMockPatientResources() throws {
         let app = XCUIApplication()
-        app.launch()
-        
+        XCTAssert(app.launchAndWait(for: app.buttons["Select Mock Patient"]))
+
         XCTAssert(app.staticTexts["Allergy Intolerances, 0"].waitForExistence(timeout: 2))
         XCTAssert(app.staticTexts["Conditions, 0"].waitForExistence(timeout: 2))
         XCTAssert(app.staticTexts["Diagnostics, 0"].waitForExistence(timeout: 2))
@@ -25,14 +27,8 @@ final class GroveFHIRTests: XCTestCase {
         XCTAssert(app.staticTexts["Procedures, 0"].waitForExistence(timeout: 2))
         XCTAssert(app.staticTexts["Other Resources, 0"].waitForExistence(timeout: 2))
 
-        XCTAssert(app.buttons["Select Mock Patient"].waitForExistence(timeout: 2))
-        app.buttons["Select Mock Patient"].tap()
+        app.selectMockPatient("Jamison785 Denesik803")
 
-        XCTAssert(app.buttons["Jamison785 Denesik803"].waitForExistence(timeout: 20))
-        app.buttons["Jamison785 Denesik803"].tap()
-        
-        app.navigationBars["Select Mock Patient"].buttons["Close Mock Patient Selection"].tap()
-        
         XCTAssert(app.staticTexts["Allergy Intolerances, 0"].waitForExistence(timeout: 2))
         XCTAssert(app.staticTexts["Conditions, 70"].waitForExistence(timeout: 2))
         XCTAssert(app.staticTexts["Diagnostics, 205"].waitForExistence(timeout: 2))
@@ -44,14 +40,8 @@ final class GroveFHIRTests: XCTestCase {
         XCTAssert(app.staticTexts["Procedures, 106"].waitForExistence(timeout: 2))
         XCTAssert(app.staticTexts["Other Resources, 220"].waitForExistence(timeout: 2))
 
-        XCTAssert(app.buttons["Select Mock Patient"].waitForExistence(timeout: 2))
-        app.buttons["Select Mock Patient"].tap()
+        app.selectMockPatient("Maye976 Dickinson688")
 
-        XCTAssert(app.buttons["Maye976 Dickinson688"].waitForExistence(timeout: 20))
-        app.buttons["Maye976 Dickinson688"].tap()
-        
-        app.navigationBars["Select Mock Patient"].buttons["Close Mock Patient Selection"].tap()
-        
         XCTAssert(app.staticTexts["Allergy Intolerances, 0"].waitForExistence(timeout: 2))
         XCTAssert(app.staticTexts["Conditions, 37"].waitForExistence(timeout: 2))
         XCTAssert(app.staticTexts["Diagnostics, 113"].waitForExistence(timeout: 2))
@@ -63,58 +53,69 @@ final class GroveFHIRTests: XCTestCase {
         XCTAssert(app.staticTexts["Procedures, 225"].waitForExistence(timeout: 2))
         XCTAssert(app.staticTexts["Other Resources, 236"].waitForExistence(timeout: 2))
     }
-    
-    
+
+
+    @MainActor
     func testAddingAndRemovingResources() throws {
         let app = XCUIApplication()
-        app.launch()
+        XCTAssert(app.launchAndWait(for: app.buttons["Add FHIR Resource"]))
 
         // Add 5 resources
         for resourceCount in 0..<5 {
             XCTAssert(app.staticTexts["Other Resources, \(resourceCount)"].waitForExistence(timeout: 2))
-            XCTAssert(app.buttons["Add FHIR Resource"].waitForExistence(timeout: 2))
+            XCTAssert(app.buttons["Add FHIR Resource"].wait(for: \.isHittable, toEqual: true, timeout: 2))
             app.buttons["Add FHIR Resource"].tap()
         }
 
         // Remove added resources
-        XCTAssert(app.buttons["Remove FHIR Resource"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Remove FHIR Resource"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         app.buttons["Remove FHIR Resource"].tap()
 
         XCTAssert(app.staticTexts["Other Resources, 0"].waitForExistence(timeout: 2))
 
         // Try removing a second time
-        XCTAssert(app.buttons["Remove FHIR Resource"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Remove FHIR Resource"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         app.buttons["Remove FHIR Resource"].tap()
 
         XCTAssert(app.staticTexts["Other Resources, 0"].waitForExistence(timeout: 2))
 
-        // Select mock patient
-        XCTAssert(app.buttons["Select Mock Patient"].waitForExistence(timeout: 2))
-        app.buttons["Select Mock Patient"].tap()
-
-        XCTAssert(app.buttons["Jamison785 Denesik803"].waitForExistence(timeout: 20))
-        app.buttons["Jamison785 Denesik803"].tap()
-
-        app.navigationBars["Select Mock Patient"].buttons["Close Mock Patient Selection"].tap()
+        app.selectMockPatient("Jamison785 Denesik803")
 
         XCTAssert(app.staticTexts["Other Resources, 220"].waitForExistence(timeout: 2))
 
         // Add resource to mock patient
-        XCTAssert(app.buttons["Add FHIR Resource"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Add FHIR Resource"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         app.buttons["Add FHIR Resource"].tap()
 
         XCTAssert(app.staticTexts["Other Resources, 221"].waitForExistence(timeout: 2))
 
         // Remove resource from mock patient
-        XCTAssert(app.buttons["Remove FHIR Resource"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Remove FHIR Resource"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         app.buttons["Remove FHIR Resource"].tap()
 
         XCTAssert(app.staticTexts["Other Resources, 220"].waitForExistence(timeout: 2))
 
         // Try removing a second time
-        XCTAssert(app.buttons["Remove FHIR Resource"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Remove FHIR Resource"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         app.buttons["Remove FHIR Resource"].tap()
 
         XCTAssert(app.staticTexts["Other Resources, 220"].waitForExistence(timeout: 2))
+    }
+}
+
+
+extension XCUIApplication {
+    fileprivate func selectMockPatient(_ name: String, timeout: TimeInterval = 20) {
+        XCTAssert(buttons["Select Mock Patient"].wait(for: \.isHittable, toEqual: true, timeout: 2))
+        buttons["Select Mock Patient"].tap()
+
+        // The sheet decodes every mock bundle before it lists the patients, which takes a while.
+        XCTAssert(buttons[name].wait(for: \.isHittable, toEqual: true, timeout: timeout))
+        buttons[name].tap()
+
+        let close = navigationBars["Select Mock Patient"].buttons["Close Mock Patient Selection"]
+        XCTAssert(close.wait(for: \.isHittable, toEqual: true, timeout: timeout))
+        close.tap()
+        XCTAssert(navigationBars["Select Mock Patient"].waitForNonExistence(timeout: 5))
     }
 }

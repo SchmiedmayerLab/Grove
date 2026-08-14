@@ -15,13 +15,18 @@ extension ViewsTests {
     @MainActor
     func testAnyLocalizedError() {
         let app = XCUIApplication()
-        app.launch()
-        app.open(target: "GroveViews")
+        XCTAssertTrue(app.launchAndWait())
+        app.open(target: "GroveViews", waitingFor: app.buttons["Geometry Reader"])
         app.collectionViews.firstMatch.swipeUp() // out of the window on visionOS and iPadOS
-        app.staticTexts["AnyLocalizableError"].tap()
-        
+
+        let anyLocalizableError = app.staticTexts["AnyLocalizableError"]
+        XCTAssert(anyLocalizableError.wait(for: \.isHittable, toEqual: true, timeout: 2))
+        anyLocalizableError.tap()
+
         func imp(_ buttonTitle: String, expectedTitle: String?, expectedMessages: [String]) {
-            app.buttons[buttonTitle].tap()
+            let button = app.buttons[buttonTitle]
+            XCTAssert(button.wait(for: \.isHittable, toEqual: true, timeout: 2))
+            button.tap()
             if let expectedTitle {
                 XCTAssert(app.alerts.staticTexts[expectedTitle].waitForExistence(timeout: 2))
             }
@@ -29,7 +34,9 @@ extension ViewsTests {
                 let message = expectedMessages.joined(separator: "\n\n")
                 XCTAssert(app.alerts.staticTexts[message].waitForExistence(timeout: 2))
             }
-            app.alerts.buttons["OK"].tap()
+            let okButton = app.alerts.buttons["OK"]
+            XCTAssert(okButton.wait(for: \.isHittable, toEqual: true, timeout: 2))
+            okButton.tap()
         }
         
         imp("Swift Error (Simple)", expectedTitle: "Error", expectedMessages: [

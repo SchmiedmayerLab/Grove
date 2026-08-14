@@ -13,7 +13,6 @@ import SwiftUI
 
 struct ConsumableCodesView: View {
     @Environment(ConsumableCodesModule.self) private var consumableCodes
-//    @Environment(AccessGuards.self) private var accessGuards
     @AccessGuard(.testConsumable) private var accessGuard
     
     @State private var isShowingSheet = false

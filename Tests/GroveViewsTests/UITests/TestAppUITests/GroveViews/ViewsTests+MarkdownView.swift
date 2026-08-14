@@ -15,13 +15,14 @@ extension ViewsTests {
     @MainActor
     func testSimpleMarkdownView() throws {
         let app = XCUIApplication()
-        app.launch()
+        XCTAssertTrue(app.launchAndWait())
 
         app.open(target: "GroveViews")
 
-        XCTAssert(app.buttons["Markdown View (Simple)"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Markdown View (Simple)"].wait(for: \.isHittable, toEqual: true, timeout: 5))
         app.buttons["Markdown View (Simple)"].tap()
-        
+
+
         XCTAssert(app.staticTexts["This is a markdown example."].waitForExistence(timeout: 2))
         XCTAssert(app.staticTexts["This is a markdown example taking 2 seconds to load."].waitForExistence(timeout: 5))
     }
@@ -30,12 +31,13 @@ extension ViewsTests {
     @MainActor
     func testAdvancedMarkdownView() throws {
         let app = XCUIApplication()
-        app.launch()
+        XCTAssertTrue(app.launchAndWait())
         app.open(target: "GroveViews")
 
-        XCTAssert(app.buttons["Markdown View (Advanced)"].waitForExistence(timeout: 2))
+        XCTAssert(app.buttons["Markdown View (Advanced)"].wait(for: \.isHittable, toEqual: true, timeout: 5))
         app.buttons["Markdown View (Advanced)"].tap()
-        
+
+
         XCTAssert(app.navigationBars.staticTexts["Welcome to the Grove Ecosystem"].waitForExistence(timeout: 2))
         XCTAssert(app.navigationBars.staticTexts["Jun 22, 2025 at 5:41 AM"].waitForExistence(timeout: 2))
         
@@ -67,7 +69,7 @@ extension ViewsTests {
         app.scrollViews.firstMatch.swipeUp()
         // we can check for Bean2 bc that's a non-inline image;
         // Bean1 is inline and as a result gets subsumed into the AttributedString, and is not represented in the accessibility tree.
-        XCTAssert(app.images["Bean2"].exists)
+        XCTAssert(app.images["Bean2"].waitForExistence(timeout: 2))
     }
 }
 

@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import Foundation
 public import XCTest
 
 
@@ -45,7 +46,7 @@ extension XCUIApplication {
     @available(watchOS, unavailable)
     public func deleteAndLaunch(withSpringboardAppName appName: String) {
         self.delete(app: appName)
-        self.launch()
+        XCTAssert(self.launchAndWait(), "The app did not come up after being reinstalled.")
     }
     
     /// Delete the application from the home screen.
@@ -71,19 +72,21 @@ extension XCUIApplication {
         while homeScreenIcons[appName].firstMatch.waitForExistence(timeout: 10.0) {
             // The icon can be several pages in: every package's UI tests install a target called
             // "TestApp", so a device that has run more than one of them has several to page past.
-            // One swipe only reaches page two. The assertion below is unchanged -- an app that is
-            // genuinely absent or unreachable still fails.
+            // One swipe only reaches page two. An app that is genuinely absent or unreachable still fails.
+            let icon = homeScreenIcons[appName].firstMatch
             var swipes = 0
-            while !homeScreenIcons[appName].firstMatch.isHittable && swipes < 10 {
+            while !icon.isHittable && swipes < 10 {
                 springboard.swipeLeft()
                 swipes += 1
+                // Let the page transition settle, so we don't page past the icon while it animates in.
+                _ = icon.wait(for: \.isHittable, toEqual: true, timeout: 1.0)
             }
 
-            XCTAssert(homeScreenIcons[appName].firstMatch.isHittable)
+            XCTAssert(icon.wait(for: \.isHittable, toEqual: true, timeout: 5.0))
             #if os(visionOS)
-            homeScreenIcons[appName].firstMatch.press(forDuration: 1)
+            icon.press(forDuration: 1)
             #else
-            homeScreenIcons[appName].firstMatch.press(forDuration: 1.5)
+            icon.press(forDuration: 1.5)
             #endif
             
             if XCUIApplication.visionOS2 {
@@ -97,8 +100,8 @@ extension XCUIApplication {
                         // The long press did not work, let's launch the springboard again and then try long pressing the app icon again.
                         springboard.activate()
                         XCTAssert(springboard.wait(for: .runningForeground, timeout: 2.0))
-                        XCTAssert(homeScreenIcons[appName].firstMatch.isHittable)
-                        homeScreenIcons[appName].firstMatch.press(forDuration: 1.75)
+                        XCTAssert(icon.wait(for: \.isHittable, toEqual: true, timeout: 5.0))
+                        icon.press(forDuration: 1.75)
                     }
                     if springboard.collectionViews.buttons["Options"].exists {
                         // We long-pressed the app icon, and the "Remove App" button isn't showing up, but an "Options" button is.
@@ -108,6 +111,10 @@ extension XCUIApplication {
                         springboard.collectionViews.buttons["Options"].tap()
                         XCTAssert(springboard.buttons["Remove App"].waitForExistence(timeout: 5))
                     }
+                }
+                guard springboard.buttons["Remove App"].waitForExistence(timeout: 2) else {
+                    XCTFail("The context menu for \(appName) never appeared.")
+                    return
                 }
                 springboard.buttons["Remove App"].tap()
             }
@@ -126,17 +133,20 @@ extension XCUIApplication {
             springboard.alerts["Delete “\(appName)”?"].buttons["Delete"].tap()
             #endif
 
-            // If the app had health data stored, deleting the app will show an alert, which we need to dismiss.
-            // We also use this check to provide a 5 second timeout for the app to be deleted.
-            let alertTitle = "There is data from “\(appName)” saved in Health"
-            if springboard.alerts[alertTitle].waitForExistence(timeout: 5.0) {
-                springboard.alerts[alertTitle].buttons["OK"].tap()
-            }
-            
-            // Exit the while loop early without a `homeScreenIcons[appName].firstMatch.waitForExistence(timeout: 10.0)` call.
-            // If the app takes longer to be deleted, this will give it some more time.
-            // Only leads to a delay if we have to delete multiple apps with the same name; otherwise, it exits as soon as the app is removed or even immediately.
-            if homeScreenIcons[appName].waitForNonExistence(timeout: 10.0) {
+            // Deleting an app that stored health data puts up a blocking alert, and the icon only disappears
+            // once it is dismissed. Watching for both at once means a delete without the alert costs nothing,
+            // while a slow alert still gets the full budget.
+            let healthAlert = springboard.alerts["There is data from “\(appName)” saved in Health"]
+            let deadline = Date.now.addingTimeInterval(15.0)
+            var removed = false
+            repeat {
+                if healthAlert.exists {
+                    healthAlert.buttons["OK"].tap()
+                }
+                removed = !icon.exists
+            } while !removed && Date.now < deadline
+
+            if removed {
                 break
             }
         }

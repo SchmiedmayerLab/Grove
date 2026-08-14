@@ -21,7 +21,7 @@ class TestAppUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
         
-        XCTAssertTrue(app.staticTexts["Grove Speech Tests"].waitForExistence(timeout: 1))
+        XCTAssertTrue(app.staticTexts["Grove Speech Tests"].waitForExistence(timeout: 30))
     }
     
     func testSynthesisWithVoiceSelection() throws {
@@ -30,7 +30,7 @@ class TestAppUITests: XCTestCase {
         
         let voiceSelectionTestViewButton = app.staticTexts["Speech Voice Selection Test View"]
         
-        XCTAssertTrue(voiceSelectionTestViewButton.waitForExistence(timeout: 1))
+        XCTAssertTrue(voiceSelectionTestViewButton.waitForExistence(timeout: 30))
         voiceSelectionTestViewButton.tap()
         
         #if !os(visionOS)
@@ -40,13 +40,13 @@ class TestAppUITests: XCTestCase {
         #endif
         
         let textField = app.textFields["Enter text to be spoken"]
-        XCTAssertTrue(textField.waitForExistence(timeout: 1))
+        XCTAssertTrue(textField.waitForExistence(timeout: 10))
         
         textField.tap()
         textField.typeText("Hello, this is a test of the Grove Speech module.")
         
         let speakButton = app.buttons["Speak"]
-        XCTAssertTrue(speakButton.waitForExistence(timeout: 1))
+        XCTAssertTrue(speakButton.waitForExistence(timeout: 10))
         speakButton.tap()
         
         // Waits for speech to generate

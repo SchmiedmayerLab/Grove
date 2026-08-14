@@ -106,9 +106,10 @@ extension BasicUsageTest {
 
 
 private struct InteropCounterTest: View {
+    private let key: LocalPreferenceKey<Int>
     @LocalPreference<Int> var counterA: Int
     @AppStorage<Int> var counterB: Int
-    
+
     var body: some View {
         Form {
             Section {
@@ -144,9 +145,14 @@ private struct InteropCounterTest: View {
                 }
             }
         }
+        .task {
+            // we need to reset this before every run, in case the simulator still contains the previous run's state.
+            UserDefaults.standard.removeObject(forKey: key.key.value)
+        }
     }
-    
+
     init(key: LocalPreferenceKey<Int>) {
+        self.key = key
         _counterA = .init(key)
         _counterB = .init(wrappedValue: 0, key.key.value)
     }

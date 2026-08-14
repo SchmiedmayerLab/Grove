@@ -51,7 +51,7 @@ import Foundation
 ///
 /// ### Subscripts
 /// - ``subscript(_:using:fallback:)``
-/// - ``subscript(_:)
+/// - ``subscript(_:)->Value?``
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct LocalizationsDictionary<Value> {
     private var storage: [LocalizationKey: Value]

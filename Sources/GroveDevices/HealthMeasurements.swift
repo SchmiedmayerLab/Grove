@@ -76,8 +76,8 @@ import SwiftUI
 /// - ``init()``
 ///
 /// ### Register Devices
-/// - ``configureReceivingMeasurements(for:on:)-5e7b7``
-/// - ``configureReceivingMeasurements(for:on:)-2iu4v``
+/// - ``configureReceivingMeasurements(for:on:)-(_,BloodPressureKeyPath<Device>)``
+/// - ``configureReceivingMeasurements(for:on:)-(_,WeightScaleKeyPath<Device>)``
 ///
 /// ### Processing Measurements
 /// - ``shouldPresentMeasurements``
