@@ -9,7 +9,6 @@
 // swiftlint:disable file_types_order type_name identifier_name type_contents_order file_length missing_docs
 
 public import Foundation
-private import GroveFoundation
 
 #if !canImport(HealthKit)
 public typealias HKUnit = _HKUnit
@@ -86,7 +85,7 @@ extension _HKUnit {
         let scaleFactor: Double
     }
     
-    private static let baseUnitsCacheLock = RWLock()
+    private static let baseUnitsCacheLock = NSLock()
     nonisolated(unsafe) private static var _baseUnitsCache: [BaseUnitDescriptor: _HKUnit] = [:]
     
     fileprivate static func baseUnit(
@@ -103,10 +102,7 @@ extension _HKUnit {
                 scaleOffset: scaleOffset,
                 scaleFactor: scaleFactor
             )
-            if let unit = baseUnitsCacheLock.withReadLock({ _baseUnitsCache[descriptor] }) {
-                return unit
-            }
-            return baseUnitsCacheLock.withWriteLock {
+            return baseUnitsCacheLock.withLock {
                 if let unit = _baseUnitsCache[descriptor] {
                     return unit
                 } else {

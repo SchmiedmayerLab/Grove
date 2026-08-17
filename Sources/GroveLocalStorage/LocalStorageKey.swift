@@ -69,7 +69,7 @@ public final class LocalStorageKey<Value>: LocalStorageKeys, @unchecked Sendable
     let setting: LocalStorageSetting
     private let encodeImp: @Sendable (Value, Any?) throws -> Data
     private let decodeImp: @Sendable (Data, Any?) throws -> Value?
-    private let lock = RWLock()
+    private let lock = NSLock()
     private let subject = PassthroughSubject<Value?, Never>()
     
     var publisher: some Publisher<Value?, Never> { subject }
@@ -99,12 +99,8 @@ public final class LocalStorageKey<Value>: LocalStorageKeys, @unchecked Sendable
         self.decodeImp = { data, _ in try decode(data) }
     }
     
-    func withReadLock<Result>(_ block: () throws -> Result) rethrows -> Result {
-        try lock.withReadLock(block)
-    }
-    
-    func withWriteLock<Result>(_ block: () throws -> Result) rethrows -> Result {
-        try lock.withWriteLock(block)
+    func withLock<Result>(_ block: () throws -> Result) rethrows -> Result {
+        try lock.withLock(block)
     }
     
     func informSubscribersAboutNewValue(_ newValue: Value?) {

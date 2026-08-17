@@ -16,6 +16,7 @@ public import GroveLLM
 import OpenAPIRuntime
 import OpenAPIURLSession
 package import os
+import Synchronization
 
 /// Represents an ``LLMOpenAILikeSchema`` in execution.
 ///
@@ -83,12 +84,13 @@ public final class LLMOpenAILikeSession<
     package let schema: LLMOpenAILikeSchema<PlatformDefinition>
     let keychainStorage: KeychainStorage
  
-    private let clientLock = RWLock()
+    // `LLMOpenAIChatClientProtocol` is not `Sendable`, so the lock cannot own the client.
+    private let clientLock = Mutex<Void>(())
     /// Counter for tracking nested tool calls
     package let toolCallCounter = ManagedAtomic<Int>(0)
     package let toolCallCompletionState = LLMState.generating
     /// The wrapped client instance communicating with the OpenAI API
-    @ObservationIgnored nonisolated(unsafe) var wrappedClient: (any LLMOpenAIChatClientProtocol)?
+    @ObservationIgnored nonisolated(unsafe) private var wrappedClient: (any LLMOpenAIChatClientProtocol)?
     /// Holds the currently generating continuations so that we can cancel them if required.
     let continuationHolder = LLMInferenceQueueContinuationHolder()
 
@@ -97,7 +99,7 @@ public final class LLMOpenAILikeSession<
 
     var openAiClient: any LLMOpenAIChatClientProtocol {
         get {
-            let client = self.clientLock.withReadLock { self.wrappedClient }
+            let client = self.clientLock.withLock { _ in self.wrappedClient }
 
             guard let client else {
                 fatalError("""
@@ -109,9 +111,7 @@ public final class LLMOpenAILikeSession<
         }
 
         set {
-            self.clientLock.withWriteLock {
-                self.wrappedClient = newValue
-            }
+            self.clientLock.withLock { _ in self.wrappedClient = newValue }
         }
     }
     
@@ -162,7 +162,7 @@ public final class LLMOpenAILikeSession<
                 }
 
                 // Setup the model, if not already done
-                if self.wrappedClient == nil {
+                if self.clientLock.withLock({ _ in self.wrappedClient == nil }) {
                     guard await self.setup(with: continuationObserver) else {
                         return
                     }

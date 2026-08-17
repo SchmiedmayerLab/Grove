@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import GroveFoundation
 import GroveLocalStorage
+import Synchronization
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -35,7 +35,8 @@ extension SensorKit {
         
         private let makeStorageKey: @Sendable (Key) -> LocalStorageKey<Value>
         
-        private let lock = RWLock()
+        // `Key` is not `Sendable`, so the lock cannot own the dictionary.
+        private let lock = Mutex<Void>(())
         nonisolated(unsafe) private var keys: [DictKey: LocalStorageKey<Value>] = [:]
         
         init(makeStorageKey: @escaping @Sendable (Key) -> LocalStorageKey<Value>) {
@@ -43,7 +44,7 @@ extension SensorKit {
         }
         
         func storageKey(for key: Key) -> LocalStorageKey<Value> {
-            lock.withWriteLock {
+            lock.withLock { _ in
                 let dictKey = DictKey(key: key)
                 if let storageKey = keys[dictKey] {
                     return storageKey

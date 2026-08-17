@@ -12,6 +12,7 @@
 
 import Foundation
 public import SwiftUI
+import Synchronization
 
 
 /// A type-safe alternative to SwiftUI's `AppStorage`.
@@ -131,7 +132,7 @@ private final class UserDefaultsKeyObserver<T: SendableMetatype>: NSObject, Send
         let observation: ObservationInfo
     }
 
-    private let lock = RWLock()
+    private let lock = Mutex<Void>(())
     @ObservationIgnored nonisolated(unsafe) private var state: State?
     // Work around https://github.com/swiftlang/swift/issues/81962 by keeping the backing storage out of macro expansion
     // while explicitly preserving observation tracking.
@@ -167,7 +168,7 @@ private final class UserDefaultsKeyObserver<T: SendableMetatype>: NSObject, Send
                 guard let self else {
                     return
                 }
-                self.lock.withWriteLock {
+                self.lock.withLock { _ in
                     self.handleNCUpdate()
                 }
             }
@@ -177,7 +178,7 @@ private final class UserDefaultsKeyObserver<T: SendableMetatype>: NSObject, Send
 
     // swiftlint:disable:next block_based_kvo discouraged_optional_collection
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
-        lock.withWriteLock {
+        lock.withLock { _ in
             guard let state, state.observation.isKvo, state.config.key.key.value == keyPath,
                   state.config.store.defaults == (object as? UserDefaults) else {
                 super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)

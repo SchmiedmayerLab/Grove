@@ -15,6 +15,7 @@ import GroveFoundation
 import GroveHealthKit
 import GroveLocalStorage
 import HealthKit
+import Synchronization
 
 
 /// A long-running backgrund exporting task that fetches and processes HealthKit data.
@@ -316,8 +317,7 @@ private final class SessionDescriptorPersisting: Sendable {
     
     private let localStorage: LocalStorage
     private let storageKey: LocalStorageKey<ExportSessionDescriptor>
-    private let persistTaskLock = RWLock()
-    nonisolated(unsafe) private var persistTask: Task<Void, any Error>?
+    private let persistTask = Mutex<Task<Void, any Error>?>(nil)
     
     init(localStorage: LocalStorage, storageKey: LocalStorageKey<ExportSessionDescriptor>) {
         self.localStorage = localStorage
@@ -332,7 +332,7 @@ private final class SessionDescriptorPersisting: Sendable {
     
     @concurrent
     private func persistDescriptor(_ descriptor: ExportSessionDescriptor) async {
-        persistTaskLock.withWriteLock {
+        persistTask.withLock { persistTask in
             persistTask?.cancel()
             persistTask = Task { @PersistSessionStateActor in
                 guard !Task.isCancelled else {

@@ -6,31 +6,39 @@
 // SPDX-License-Identifier: MIT
 //
 
+import Dispatch
 import GroveFoundation
 import XCTest
 
 
+@available(*, deprecated, message: "Covers the deprecated `RWLock`; remove alongside it.")
 final class RWLockTests: XCTestCase {
+    // Both readers must be inside the lock at the same time, which only holds if `withReadLock(_:)`
+    // takes a *read* lock. An exclusive acquisition deadlocks the two threads against each other.
     func testConcurrentReads() {
         let lock = RWLock()
-        let expectation1 = self.expectation(description: "First read")
-        let expectation2 = self.expectation(description: "Second read")
+        let firstReaderEntered = DispatchSemaphore(value: 0)
+        let secondReaderEntered = DispatchSemaphore(value: 0)
+        let readersFinished = self.expectation(description: "Both readers finished")
+        readersFinished.expectedFulfillmentCount = 2
 
-        Task.detached {
+        Thread.detachNewThread {
             lock.withReadLock {
-                usleep(100_000) // Simulate read delay (200ms)
-                expectation1.fulfill()
+                firstReaderEntered.signal()
+                XCTAssertEqual(secondReaderEntered.wait(timeout: .now() + 5), .success)
             }
+            readersFinished.fulfill()
         }
 
-        Task.detached {
+        Thread.detachNewThread {
+            XCTAssertEqual(firstReaderEntered.wait(timeout: .now() + 5), .success)
             lock.withReadLock {
-                usleep(100_000) // Simulate read delay (200ms)
-                expectation2.fulfill()
+                secondReaderEntered.signal()
             }
+            readersFinished.fulfill()
         }
 
-        wait(for: [expectation1, expectation2], timeout: 1.0)
+        wait(for: [readersFinished], timeout: 10)
     }
 
     func testWriteBlocksOtherWrites() {

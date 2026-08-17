@@ -9,8 +9,8 @@
 // swiftlint:disable file_types_order
 
 private import Foundation
-private import GroveFoundation
 import GroveLocalStorage
+import Synchronization
 
 
 /// Used to keep track of previously-fetched SensorKit samples to avoid duplicates when querying data.
@@ -86,23 +86,18 @@ extension ManagedQueryAnchor {
     /// Intended primarily for testing purposes, but also useful for performing one-off batched fetches.
     public static func ephemeral(startDate: Date? = nil) -> Self {
         final class EphemeralStorage: Sendable {
-            nonisolated(unsafe) var anchor: QueryAnchor
-            let lock = RWLock()
+            let anchor: Mutex<QueryAnchor>
             init(anchor: QueryAnchor) {
-                self.anchor = anchor
+                self.anchor = Mutex(anchor)
             }
         }
         let storage = EphemeralStorage(
             anchor: startDate.map { QueryAnchor(timestamp: $0) } ?? QueryAnchor()
         )
         return Self {
-            storage.lock.withReadLock {
-                storage.anchor
-            }
+            storage.anchor.withLock { $0 }
         } set: { newAnchor in
-            storage.lock.withWriteLock {
-                storage.anchor = newAnchor
-            }
+            storage.anchor.withLock { $0 = newAnchor }
         }
     }
 }

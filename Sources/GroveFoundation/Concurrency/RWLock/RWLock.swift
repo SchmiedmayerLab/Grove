@@ -14,10 +14,15 @@ public import Glibc
 
 /// Read-Write Lock using `pthread_rwlock`.
 ///
-/// Looking at [Benchmarking Swift Locking APIs](https://www.vadimbulavin.com/benchmarking-locking-apis) using `pthread_rwlock`
-/// is favorable over using dispatch queues.
-///
 /// - Note: Refer to ``RecursiveRWLock`` if you need a recursive read-write lock.
+@available(
+    *,
+     deprecated,
+     message: """
+         `pthread_rwlock` is slower than the alternatives in nearly every access pattern, and it cannot own the state it guards. \
+         Use `Synchronization.Mutex`, `OSAllocatedUnfairLock`, or `NSLock` instead, depending on your availability requirements.
+         """
+)
 public final class RWLock: _PThreadReadWriteLockProtocol, @unchecked Sendable {
     public let _rwLock: UnsafeMutablePointer<pthread_rwlock_t> // swiftlint:disable:this identifier_name
     
@@ -29,7 +34,7 @@ public final class RWLock: _PThreadReadWriteLockProtocol, @unchecked Sendable {
     @inlinable
     @inline(__always)
     public func withReadLock<Result, E>(_ body: () throws(E) -> Result) throws(E) -> Result {
-        _pthreadWriteLock()
+        _pthreadReadLock()
         defer {
             _pthreadUnlock()
         }

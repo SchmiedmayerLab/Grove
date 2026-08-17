@@ -10,6 +10,7 @@ public import Foundation
 public import Grove
 import GroveChat
 import GroveFoundation
+import Synchronization
 
 /// Manages the execution of LLMs in the Grove ecosystem.
 ///
@@ -87,16 +88,15 @@ public final class LLMRunner: Module, EnvironmentAccessible, DefaultInitializabl
 
     /// Holds all configured ``LLMPlatform``s of the ``LLMRunner`` as expressed by all stated ``LLMPlatform``'s in the ``LLMRunner/init(_:)``.
     @Dependency @ObservationIgnored private var llmPlatformModules: [any Module]
-    private let lock = RWLock()
     /// Maps the ``LLMSchema`` (identified by the `ObjectIdentifier`) towards the respective ``LLMPlatform``.
-    private var llmPlatforms: [ObjectIdentifier: any LLMPlatform] = [:]     // still protect this property as `LLMRunner` is @unchecked `Sendable`.
+    private let llmPlatforms = Mutex<[ObjectIdentifier: any LLMPlatform]>([:])
 
     /// The ``State`` of the runner, derived from the individual ``LLMPlatform``'s.
     @MainActor public var state: State {
         var state: State = .idle
 
-        self.lock.withReadLock {
-            for platform in self.llmPlatforms.values where platform.state == .processing {
+        self.llmPlatforms.withLock { llmPlatforms in
+            for platform in llmPlatforms.values where platform.state == .processing {
                 state = .processing
             }
         }
@@ -122,9 +122,9 @@ public final class LLMRunner: Module, EnvironmentAccessible, DefaultInitializabl
     
     
     public func configure() {
-        self.lock.withWriteLock {
+        self.llmPlatforms.withLock { llmPlatforms in
             // Sadly we are only able to access the dependencies in here after they have been activated
-            self.llmPlatforms = self._llmPlatformModules.wrappedValue.compactMap { platform in
+            llmPlatforms = self._llmPlatformModules.wrappedValue.compactMap { platform in
                 platform as? (any LLMPlatform)
             }
             .reduce(into: [:]) { partialResult, platform in
@@ -142,8 +142,8 @@ public final class LLMRunner: Module, EnvironmentAccessible, DefaultInitializabl
     ///
     /// - Returns: The ready to use ``LLMSession``.
     public func callAsFunction<L: LLMSchema>(with llmSchema: L) -> L.Platform.Session {
-        let platform = self.lock.withReadLock {
-            self.llmPlatforms[ObjectIdentifier(L.self)]
+        let platform = self.llmPlatforms.withLock { llmPlatforms in
+            llmPlatforms[ObjectIdentifier(L.self)]
         }
 
         // Searches for the respective `LLMPlatform` associated with the `LLMSchema`.

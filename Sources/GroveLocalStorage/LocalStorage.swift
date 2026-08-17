@@ -98,7 +98,7 @@ public final class LocalStorage: Module, DefaultInitializable, EnvironmentAccess
     ///
     /// - Note: This operation will overwrite any previously-stored values for this key.
     public func store<Value>(_ value: Value?, for key: LocalStorageKey<Value>) throws {
-        try key.withWriteLock {
+        try key.withLock {
             if let value {
                 try storeImp(value, for: key, context: Void?.none)
             } else {
@@ -119,7 +119,7 @@ public final class LocalStorage: Module, DefaultInitializable, EnvironmentAccess
         for key: LocalStorageKey<Value>,
         configuration: Value.EncodingConfiguration
     ) throws where Value: EncodableWithConfiguration {
-        try key.withWriteLock {
+        try key.withLock {
             if let value {
                 try storeImp(value, for: key, context: configuration)
             } else {
@@ -184,7 +184,7 @@ public final class LocalStorage: Module, DefaultInitializable, EnvironmentAccess
     /// - parameter key: The ``LocalStorageKey`` associated with the to-be-retrieved value.
     /// - returns: The most recent stored value associated with the key; `nil` if no such value exists.
     public func load<Value>(_ key: LocalStorageKey<Value>) throws -> Value? {
-        try key.withReadLock {
+        try key.withLock {
             try readImp(key, context: Void?.none)
         }
     }
@@ -198,7 +198,7 @@ public final class LocalStorage: Module, DefaultInitializable, EnvironmentAccess
         _ key: LocalStorageKey<Value>,
         configuration: Value.DecodingConfiguration
     ) throws -> Value? where Value: DecodableWithConfiguration {
-        try key.withReadLock {
+        try key.withLock {
             try readImp(key, context: configuration)
         }
     }
@@ -206,7 +206,7 @@ public final class LocalStorage: Module, DefaultInitializable, EnvironmentAccess
     
     /// Determines whether the `LocalStorage` contains a value for the specified key.
     public func hasEntry(for key: LocalStorageKey<some Any>) -> Bool {
-        key.withReadLock {
+        key.withLock {
             fileManager.fileExists(atPath: fileURL(for: key).path)
         }
     }
@@ -253,7 +253,7 @@ public final class LocalStorage: Module, DefaultInitializable, EnvironmentAccess
     /// - Parameters:
     ///   - key: The ``LocalStorageKey`` identifying the entry which should be deleted.
     public func delete(_ key: LocalStorageKey<some Any>) throws {
-        try key.withWriteLock {
+        try key.withLock {
             try deleteImp(key)
         }
     }
@@ -309,7 +309,7 @@ public final class LocalStorage: Module, DefaultInitializable, EnvironmentAccess
     ///
     /// - throws: if `transform` throws,
     public func modify<Value>(_ key: LocalStorageKey<Value>, _ transform: (_ value: inout Value?) throws -> Void) throws {
-        try key.withWriteLock {
+        try key.withLock {
             var value = try readImp(key, context: Void?.none)
             try transform(&value)
             if let value {
@@ -339,7 +339,7 @@ public final class LocalStorage: Module, DefaultInitializable, EnvironmentAccess
         encodingConfiguration: Value.EncodingConfiguration,
         _ transform: (_ value: inout Value?) throws -> Void
     ) throws {
-        try key.withWriteLock {
+        try key.withLock {
             var value = try readImp(key, context: decodingConfiguration)
             try transform(&value)
             if let value {

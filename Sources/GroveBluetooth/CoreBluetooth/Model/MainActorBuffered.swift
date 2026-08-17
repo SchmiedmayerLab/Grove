@@ -7,9 +7,10 @@
 //
 
 import Foundation
-import GroveFoundation
+import Synchronization
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 final class MainActorBuffered<Value: Sendable>: Sendable {
     nonisolated(unsafe) private var unsafeValue: Value
     @MainActor private(set) var mainActorValue: Value?
@@ -23,14 +24,8 @@ final class MainActorBuffered<Value: Sendable>: Sendable {
         loadIfMainActor() ?? unsafeValue
     }
 
-    func load(using lock: NSLock) -> Value {
-        loadIfMainActor() ?? lock.withLock {
-            unsafeValue
-        }
-    }
-
-    func load(using lock: RWLock) -> Value {
-        loadIfMainActor() ?? lock.withReadLock {
+    func load(using lock: borrowing Mutex<Void>) -> Value {
+        loadIfMainActor() ?? lock.withLock { _ in
             unsafeValue
         }
     }
@@ -63,15 +58,8 @@ final class MainActorBuffered<Value: Sendable>: Sendable {
         }
     }
 
-    func store(_ newValue: Value, using lock: NSLock, mutation: sending @MainActor @escaping (@MainActor () -> Void) -> Void) {
-        lock.withLock {
-            unsafeValue = newValue
-        }
-        _store(newValue, mutation: mutation)
-    }
-
-    func store(_ newValue: Value, using lock: RWLock, mutation: sending @MainActor @escaping (@MainActor () -> Void) -> Void) {
-        lock.withWriteLock {
+    func store(_ newValue: Value, using lock: borrowing Mutex<Void>, mutation: sending @MainActor @escaping (@MainActor () -> Void) -> Void) {
+        lock.withLock { _ in
             unsafeValue = newValue
         }
         _store(newValue, mutation: mutation)
@@ -79,9 +67,10 @@ final class MainActorBuffered<Value: Sendable>: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension MainActorBuffered where Value: Equatable {
-    func storeAndCompare(_ newValue: Value, using lock: RWLock, mutation: sending @MainActor @escaping (@MainActor () -> Void) -> Void) -> Bool {
-        let didChange = lock.withWriteLock {
+    func storeAndCompare(_ newValue: Value, using lock: borrowing Mutex<Void>, mutation: sending @MainActor @escaping (@MainActor () -> Void) -> Void) -> Bool {
+        let didChange = lock.withLock { _ in
             let didChange = unsafeValue != newValue
             unsafeValue = newValue
             return didChange

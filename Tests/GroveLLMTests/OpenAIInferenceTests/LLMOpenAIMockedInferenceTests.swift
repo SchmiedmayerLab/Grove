@@ -35,7 +35,7 @@ class LLMOpenAIMockedInferenceTests: LLMOpenAIInferenceTests {
         
         let llmSession = try initTestLLMSession(schema)
         llmSession.context = context
-        llmSession.wrappedClient = mockClient
+        llmSession.openAiClient = mockClient
         
         var oneShot = ""
         for try await stringPiece in try await llmSession.generate() {
@@ -60,7 +60,7 @@ class LLMOpenAIMockedInferenceTests: LLMOpenAIInferenceTests {
         
         let llmSession = try initTestLLMSession(schema)
         llmSession.context = context
-        llmSession.wrappedClient = mockClient
+        llmSession.openAiClient = mockClient
         
         var chatCompletionCalls = 0
         mockClient.createChatCompletionHandler = { input in

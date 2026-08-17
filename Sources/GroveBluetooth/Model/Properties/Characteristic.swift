@@ -11,6 +11,7 @@ public import ByteCoding
 import CoreBluetooth
 import Foundation
 import GroveFoundation
+import Synchronization
 
 
 /// Declare a characteristic within a Bluetooth service.
@@ -231,11 +232,11 @@ public struct Characteristic<Value: Sendable>: Sendable {
         private let _value: MainActorBuffered<Value?>
         @ObservationIgnored nonisolated(unsafe) private var _capture: CharacteristicCaptureRetrieval?
         // protects both properties above
-        private let lock = RWLock()
+        private let lock = Mutex<Void>(())
 
         @GroveBluetooth @ObservationIgnored  var characteristic: GATTCharacteristic? {
             didSet {
-                lock.withWriteLock {
+                lock.withLock { _ in
                     _capture = characteristic.map { CharacteristicCaptureRetrieval($0) }
                 }
             }
@@ -247,7 +248,7 @@ public struct Characteristic<Value: Sendable>: Sendable {
         }
 
         var capture: CharacteristicAccessorCapture? {
-            let characteristic = lock.withReadLock {
+            let characteristic = lock.withLock { _ in
                 _capture
             }
             return characteristic?.capture

@@ -42,19 +42,19 @@ package final class LLMInferenceQueue<Element>: Sendable {
         case shutdown
     }
 
-    private let stateLock = RWLock()
-    /// The current state of the task queue, protected against concurrent access by the `RWLock` above.
+    private let stateLock = NSLock()
+    /// The current state of the task queue, protected against concurrent access by the lock above.
     nonisolated(unsafe) private var state: State = .initialized(buffer: [])
     /// Maximum number of concurrent tasks
     private let semaphore: AsyncSemaphore
     /// Priority of the dispatched LLM inference tasks in the queue.
     private let taskPriority: TaskPriority?
 
-    private let platformStateLock = RWLock()
+    private let platformStateLock = NSLock()
     nonisolated(unsafe) private var _platformState: LLMPlatformState = .idle    // swiftlint_disable_this identifier_name
-    /// The `LLMPlatformState` state indicating if inference jobs are currently processed, protected against concurrent access by the `RWLock` above.
+    /// The `LLMPlatformState` state indicating if inference jobs are currently processed, protected against concurrent access by the lock above.
     package var platformState: LLMPlatformState {
-        self.platformStateLock.withReadLock {
+        self.platformStateLock.withLock {
             self._platformState
         }
     }
@@ -78,7 +78,7 @@ package final class LLMInferenceQueue<Element>: Sendable {
     /// running or has already been closed then a `LLMInferenceQueue/QueueError` is thrown.
     @available(iOS 18, macOS 15, watchOS 11, *)
     package func runQueue() async throws {
-        let stream = try self.stateLock.withWriteLock {
+        let stream = try self.stateLock.withLock {
             switch self.state {
             case .processing:
                 throw QueueError.alreadyRunning
@@ -107,7 +107,7 @@ package final class LLMInferenceQueue<Element>: Sendable {
                 try await self.semaphore.waitCheckingCancellation()
                 
                 group.addTask(priority: self.taskPriority) {
-                    self.platformStateLock.withWriteLock {
+                    self.platformStateLock.withLock {
                         if self._platformState != .processing {
                             self._platformState = .processing
                         }
@@ -116,7 +116,7 @@ package final class LLMInferenceQueue<Element>: Sendable {
                     await job(continuation)
 
                     if !self.semaphore.signal() {       // indicates if other tasks are waiting
-                        self.platformStateLock.withWriteLock {
+                        self.platformStateLock.withLock {
                             self._platformState = .idle
                         }
                     }
@@ -146,7 +146,7 @@ package final class LLMInferenceQueue<Element>: Sendable {
         let task: InferenceQueueElement = (work, continuation)
 
         // Either append to buffer in idle state or obtain continuation in processing state
-        let queueContinuation: AsyncStream<InferenceQueueElement>.Continuation? = try self.stateLock.withWriteLock {
+        let queueContinuation: AsyncStream<InferenceQueueElement>.Continuation? = try self.stateLock.withLock {
             switch self.state {
             case .processing(_, let continuation):
                 return continuation
@@ -182,7 +182,7 @@ package final class LLMInferenceQueue<Element>: Sendable {
     ///
     /// - Note: Calling `shutdown()` when the queue isn’t yet running or has already been shut down has no effect.
     package func shutdown() {
-        self.stateLock.withWriteLock {
+        self.stateLock.withLock {
             switch self.state {
             case .processing(_, let continuation):
                 self.state = .shutdown

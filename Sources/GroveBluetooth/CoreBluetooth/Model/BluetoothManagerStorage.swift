@@ -10,6 +10,7 @@ import Atomics
 import Foundation
 import GroveFoundation
 import OrderedCollections
+import Synchronization
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -19,7 +20,7 @@ final class BluetoothManagerStorage: ValueObservable, Sendable {
     private let _state = ManagedAtomicMainActorBuffered<BluetoothState>(.unknown)
 
     private let _discoveredPeripherals: MainActorBuffered<OrderedDictionary<UUID, BluetoothPeripheral>> = .init([:])
-    private let rwLock = RWLock()
+    private let lock = Mutex<Void>(())
 
     @GroveBluetooth var retrievedPeripherals: OrderedDictionary<UUID, WeakReference<BluetoothPeripheral>> = [:] {
         didSet {
@@ -49,7 +50,7 @@ final class BluetoothManagerStorage: ValueObservable, Sendable {
 
     @inlinable var readOnlyDiscoveredPeripherals: OrderedDictionary<UUID, BluetoothPeripheral> {
         access(keyPath: \._discoveredPeripherals)
-        return _discoveredPeripherals.load(using: rwLock)
+        return _discoveredPeripherals.load(using: lock)
     }
 
     @GroveBluetooth var state: BluetoothState {
@@ -94,7 +95,7 @@ final class BluetoothManagerStorage: ValueObservable, Sendable {
             readOnlyDiscoveredPeripherals
         }
         set {
-            _discoveredPeripherals.store(newValue, using: rwLock) { @Sendable mutation in
+            _discoveredPeripherals.store(newValue, using: lock) { @Sendable mutation in
                 self.withMutation(keyPath: \._discoveredPeripherals, mutation)
             }
 

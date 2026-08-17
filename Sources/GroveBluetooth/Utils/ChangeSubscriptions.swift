@@ -18,12 +18,12 @@ final class ChangeSubscriptions<Value: Sendable>: Sendable {
     }
 
     nonisolated(unsafe) private var continuations: OrderedDictionary<UUID, AsyncStream<Value>.Continuation> = [:]
-    private let lock = RWLock()
+    private let lock = NSLock()
 
     nonisolated init() {}
 
     func notifySubscribers(with value: Value, ignoring: Set<UUID> = []) {
-        lock.withReadLock {
+        lock.withLock {
             for (id, continuation) in continuations where !ignoring.contains(id) {
                 continuation.yield(value)
             }
@@ -31,7 +31,7 @@ final class ChangeSubscriptions<Value: Sendable>: Sendable {
     }
 
     func notifySubscriber(id: UUID, with value: Value) {
-        lock.withReadLock {
+        lock.withLock {
             _ = continuations[id]?.yield(value)
         }
     }
@@ -39,7 +39,7 @@ final class ChangeSubscriptions<Value: Sendable>: Sendable {
     nonisolated private func _newSubscription() -> Registration {
         let id = UUID()
         let stream = AsyncStream { continuation in
-            lock.withWriteLock {
+            lock.withLock {
                 self.continuations[id] = continuation
             }
 
@@ -48,7 +48,7 @@ final class ChangeSubscriptions<Value: Sendable>: Sendable {
                     return
                 }
 
-                self.lock.withWriteLock {
+                self.lock.withLock {
                     _ = self.continuations.removeValue(forKey: id)
                 }
             }
@@ -88,7 +88,7 @@ final class ChangeSubscriptions<Value: Sendable>: Sendable {
     }
 
     deinit {
-        lock.withWriteLock {
+        lock.withLock {
             for continuation in continuations.values {
                 continuation.finish()
             }

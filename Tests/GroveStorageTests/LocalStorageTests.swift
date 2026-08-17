@@ -180,6 +180,33 @@ final class LocalStorageTests: XCTestCase {
     }
     
     
+    // A lost update here means the key's lock stopped serializing read-modify-write cycles.
+    @MainActor
+    func testConcurrentModificationsDoNotLoseUpdates() async throws {
+        let localStorage = LocalStorage()
+        withDependencyResolution {
+            localStorage
+        }
+        
+        let key = LocalStorageKey<Int>("concurrentCounter", setting: .unencrypted())
+        let increments = 50
+        try localStorage.store(0, for: key)
+        
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for _ in 0..<increments {
+                group.addTask {
+                    try localStorage.modify(key) { value in
+                        value = (value ?? 0) + 1
+                    }
+                }
+            }
+            try await group.waitForAll()
+        }
+        
+        XCTAssertEqual(try localStorage.load(key), increments)
+    }
+    
+    
     @MainActor
     func testStoreData() throws {
         let localStorage = LocalStorage()

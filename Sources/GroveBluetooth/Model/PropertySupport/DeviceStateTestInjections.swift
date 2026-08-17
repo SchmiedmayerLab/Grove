@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import Synchronization
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -14,16 +15,16 @@ import Foundation
 final class DeviceStateTestInjections<Value: Sendable>: Sendable {
     @ObservationIgnored nonisolated(unsafe) private var _subscriptions: ChangeSubscriptions<Value>?
     private let _injectedValue: MainActorBuffered<Value?> = .init(nil)
-    private let lock = NSLock() // protects both properties above
+    private let lock = Mutex<Void>(()) // protects both properties above
 
     var subscriptions: ChangeSubscriptions<Value>? {
         get {
-            lock.withLock {
+            lock.withLock { _ in
                 _subscriptions
             }
         }
         set {
-            lock.withLock {
+            lock.withLock { _ in
                 _subscriptions = newValue
             }
         }

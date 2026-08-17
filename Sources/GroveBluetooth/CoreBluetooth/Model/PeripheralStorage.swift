@@ -9,6 +9,7 @@
 import Atomics
 import Foundation
 import GroveFoundation
+import Synchronization
 
 
 /// A dedicated, observable storage container for a ``BluetoothPeripheral``.
@@ -28,7 +29,7 @@ final class PeripheralStorage: ValueObservable, Sendable {
     private let _advertisementData: MainActorBuffered<AdvertisementData>
     // Its fine to have a single lock. Readers will be isolated anyways to the GroveBluetooth global actor.
     // The only side-effect is, that readers will wait for any write to complete, which is fine as peripheralName is rarely updated.
-    private let lock = RWLock()
+    private let lock = Mutex<Void>(())
 
     @GroveBluetooth var lastActivity: Date {
         didSet {
@@ -48,7 +49,7 @@ final class PeripheralStorage: ValueObservable, Sendable {
         access(keyPath: \._peripheralName)
         access(keyPath: \._advertisementData)
 
-        return lock.withReadLock {
+        return lock.withLock { _ in
             _peripheralName.loadUnsafe() ?? _advertisementData.loadUnsafe().localName
         }
     }

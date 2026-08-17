@@ -6,9 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import GroveFoundation
+import Foundation
 public import OpenAPIRuntime
-import Synchronization
 
 
 // NOTE: OpenAPIRuntime.OpenAPIObjectContainer is the underlying type for Components.Schemas.FunctionParameters.additionalProperties
@@ -25,10 +24,10 @@ public final class _LLMFunctionParameterWrapper<T: Decodable & Sendable>: LLMFun
     let schema: LLMFunctionParameterItemSchema
 
     nonisolated(unsafe) private var injectedValue: T?
-    private let lock = RWLock()
+    private let lock = NSLock()
 
     public var wrappedValue: T {
-        self.lock.withReadLock {
+        self.lock.withLock {
             // If the unwrapped injectedValue is not nil, return the non-nil value
             if let injectedValue {
                 return injectedValue
@@ -67,7 +66,7 @@ public final class _LLMFunctionParameterWrapper<T: Decodable & Sendable>: LLMFun
 
 
     func inject(_ value: T) where T: Decodable {
-        self.lock.withWriteLock {
+        self.lock.withLock {
             self.injectedValue = value
         }
     }

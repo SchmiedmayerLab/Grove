@@ -9,6 +9,7 @@
 public import CoreBluetooth
 public import Foundation
 import GroveFoundation
+import Synchronization
 
 
 struct CharacteristicAccessorCapture: Sendable {
@@ -71,11 +72,11 @@ public final class GATTCharacteristic {
         underlyingCharacteristic.properties
     }
 
-    private let captureLock = RWLock()
+    private let captureLock = Mutex<Void>(())
 
     var captured: CharacteristicAccessorCapture {
         access(keyPath: \.captured)
-        return captureLock.withReadLock {
+        return captureLock.withLock { _ in
             CharacteristicAccessorCapture(isNotifying: _isNotifying, properties: properties)
         }
     }
@@ -96,21 +97,21 @@ public final class GATTCharacteristic {
         if capture.isNotifying != isNotifying {
             shouldNotifyCapture = true
             withMutation(keyPath: \.isNotifying) {
-                captureLock.withWriteLock {
+                captureLock.withLock { _ in
                     _isNotifying = capture.isNotifying
                 }
             }
         }
         if capture.value != value {
             withMutation(keyPath: \.value) {
-                captureLock.withWriteLock {
+                captureLock.withLock { _ in
                     _value = capture.value
                 }
             }
         }
         if capture.descriptors?.cbObject != descriptors {
             withMutation(keyPath: \.descriptors) {
-                captureLock.withWriteLock {
+                captureLock.withLock { _ in
                     _descriptors = capture.descriptors?.cbObject
                 }
             }

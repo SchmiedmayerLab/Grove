@@ -102,14 +102,14 @@ public final class Grove: Sendable { // swiftlint:disable:this type_body_length
     private let serviceGroup = ServiceModuleGroup(logger: Grove.logger)
 
     /// Guards `_storage`; held only for the duration of a single `storage` access
-    private let storageLock = RWLock()
+    private let storageLock = NSLock()
 
     /// A shared repository to store any `KnowledgeSource`s restricted to the ``GroveAnchor``.
     ///
     /// Every `Module` automatically conforms to `KnowledgeSource` and is stored within this storage object.
     ///
-    /// - Note: All accesses are guarded by `storageLock`: reads return a snapshot taken under the read lock;
-    ///     mutations run in place under the write lock via the `_modify` accessor.
+    /// - Note: All accesses are guarded by `storageLock`: reads return a snapshot,
+    ///     mutations run in place via the `_modify` accessor.
     #if canImport(Observation)
     // we can't put just the `@ObservationIgnored` macro into the compiler directive
     // (the issue being that the @Observation macro above won't properly pick it up),
@@ -124,16 +124,16 @@ public final class Grove: Sendable { // swiftlint:disable:this type_body_length
             #if canImport(Observation)
             access(keyPath: \.storage)
             #endif
-            return storageLock.withReadLock { _storage }
+            return storageLock.withLock { _storage }
         }
         _modify {
-            // `yield` cannot appear inside a closure, so withMutation and withWriteLock are unrolled by hand here.
+            // `yield` cannot appear inside a closure, so withMutation and withLock are unrolled by hand here.
             #if canImport(Observation)
             _$observationRegistrar.willSet(self, keyPath: \.storage)
             #endif
-            storageLock._pthreadWriteLock()
+            storageLock.lock()
             defer {
-                storageLock._pthreadUnlock()
+                storageLock.unlock()
                 #if canImport(Observation)
                 _$observationRegistrar.didSet(self, keyPath: \.storage)
                 #endif
