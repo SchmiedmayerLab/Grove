@@ -7,8 +7,8 @@
 //
 
 #if canImport(FoundationEssentials)
-package import FoundationEssentials
 import class Foundation.NSLock
+package import FoundationEssentials
 #else
 package import Foundation
 #endif

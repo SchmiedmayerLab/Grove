@@ -146,11 +146,11 @@ test_products = ["XCTestExtensions"]
 
 [GroveQuestionnaire]
 app_products = ["FHIRQuestionnaires", "Grove", "GroveQuestionnaire", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveViews"]
-test_products = ["GroveFoundation", "XCTGroveQuestionnaire", "XCTestExtensions"]
+test_products = ["XCTGroveQuestionnaire", "XCTestExtensions"]
 traits = ["ResearchKit"]
 [GroveScheduler]
 app_products = ["Grove", "GroveFoundation", "GroveNotifications", "GroveScheduler", "GroveSchedulerUI", "GroveViews", "XCTGroveNotificationsUI", "XCTestApp"]
-test_products = ["GroveFoundation", "XCTestExtensions", "XCTGroveNotifications"]
+test_products = ["XCTestExtensions", "XCTGroveNotifications"]
 [GroveScheduler.app_settings]
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 "INFOPLIST_FILE" = "TestApp/Info.plist"

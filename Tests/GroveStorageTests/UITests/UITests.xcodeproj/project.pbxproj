@@ -11,7 +11,6 @@
 		DE398E8F06DFFEC193EEEE19 /* GroveKeychainStorage in Frameworks */ = {isa = PBXBuildFile; productRef = EE48FF817D6EB805F9DE33C0 /* GroveKeychainStorage */; };
 		09610FDA4A87BA9120132DD2 /* GroveLocalStorage in Frameworks */ = {isa = PBXBuildFile; productRef = A6E50EC26BDB83D986463D59 /* GroveLocalStorage */; };
 		6DC71DC9DFBC72843B3D689D /* XCTestApp in Frameworks */ = {isa = PBXBuildFile; productRef = AE6C70CD3763B2C53FB25D49 /* XCTestApp */; };
-		99AF313F7A3786EE997653A5 /* XCTestExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = 075CBD45969872C8CC46BC8C /* XCTestExtensions */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -55,7 +54,6 @@
 		656490933002CEA900F1D55F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
-				99AF313F7A3786EE997653A5 /* XCTestExtensions in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -132,7 +130,6 @@
 			);
 			name = TestAppUITests;
 			packageProductDependencies = (
-				075CBD45969872C8CC46BC8C /* XCTestExtensions */,
 			);
 			productName = TestAppUITests;
 			productReference = 656490963002CEA900F1D55F /* TestAppUITests.xctest */;
@@ -521,11 +518,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 654293E43002D0F400AF6915 /* package */;
 			productName = XCTestApp;
-		};
-		075CBD45969872C8CC46BC8C /* XCTestExtensions */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* package */;
-			productName = XCTestExtensions;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

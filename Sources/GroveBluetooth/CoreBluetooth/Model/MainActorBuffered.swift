@@ -69,7 +69,11 @@ final class MainActorBuffered<Value: Sendable>: Sendable {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension MainActorBuffered where Value: Equatable {
-    func storeAndCompare(_ newValue: Value, using lock: borrowing Mutex<Void>, mutation: sending @MainActor @escaping (@MainActor () -> Void) -> Void) -> Bool {
+    func storeAndCompare(
+        _ newValue: Value,
+        using lock: borrowing Mutex<Void>,
+        mutation: sending @MainActor @escaping (@MainActor () -> Void) -> Void
+    ) -> Bool {
         let didChange = lock.withLock { _ in
             let didChange = unsafeValue != newValue
             unsafeValue = newValue

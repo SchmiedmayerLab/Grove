@@ -132,7 +132,7 @@ private struct CopyKeyVisitor: AccountKeyVisitor {
 /// ### Adding Details
 ///
 /// - ``add(contentsOf:merge:)``
-/// - ``add(contentsOf:filterFor:merge:)-(_,[AccountKey.Type],_)``
+/// - ``add(contentsOf:filterFor:merge:)-8gjr0``
 /// - ``add(contentsOf:filterFor:merge:)-(_,Keys,_)``
 /// - ``set(_:value:)-(Key.Type,_)``
 /// - ``set(_:value:)-(Source.Type,_)``
@@ -141,7 +141,7 @@ private struct CopyKeyVisitor: AccountKeyVisitor {
 ///
 /// - ``remove(_:)-(Key.Type)``
 /// - ``remove(_:)-(AccountKey.Type)``
-/// - ``removeAll(_:)-([AccountKey.Type])``
+/// - ``removeAll(_:)-8q4hm``
 /// - ``removeAll(_:)-(Keys)``
 ///
 /// ### Finding Details

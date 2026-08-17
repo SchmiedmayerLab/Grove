@@ -139,7 +139,7 @@ final class HealthKitQueryTests: GroveHealthKitTests {
 
         func addScore(_ name: String) {
             // the menu button only becomes hittable again once the previous menu has been dismissed
-            let menuButton = app.navigationBars.images["plus"]
+            let menuButton = app.navigationBars.buttons["Add"]
             XCTAssert(menuButton.wait(for: \.isHittable, toEqual: true, timeout: 10))
             menuButton.tap()
             let addSampleButton = app.buttons["Add Sample: \(name)"]
