@@ -27,7 +27,7 @@ package protocol FunctionCallLLMSession: LLMSession {
     ///   - functionCallArgs: The raw function call request provided by the LLM, including function name, ID, and arguments.
     ///   - failureHandling: Strategy for handling errors if the function call fails (e.g. stop inference, or append error to context).
     ///
-    /// - Returns: A `FunctionCallResponse` containing the function call ID, name, arguments, and optional response.
+    /// - Returns: A `FunctionCallResponse` containing the function call ID, name, and optional response.
     ///
     /// - Throws: An `LLMError` if the function name, arguments, or execution fails.
     func callFunction(

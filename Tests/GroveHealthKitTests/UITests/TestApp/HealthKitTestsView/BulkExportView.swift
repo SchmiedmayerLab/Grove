@@ -58,6 +58,7 @@ struct BulkExportView: View {
     @State private var viewState: ViewState = .idle
     @State private var numTestingSamples = 0
     @State private var numExportedSamples = 0
+    @State private var batchResultsTask: Task<Void, Never>?
     
     var body: some View {
         Form {
@@ -145,6 +146,9 @@ struct BulkExportView: View {
             case .running:
                 AsyncButton("Pause", state: $viewState) {
                     await session.pause()
+                    // `pause()` stops the session, while a separate task still drains the batches that
+                    // already completed. Keep the button busy until the UI's counter has caught up.
+                    await batchResultsTask?.value
                 }
             case .terminated:
                 EmptyView()
@@ -192,7 +196,7 @@ struct BulkExportView: View {
     }
     
     private func handleExportSessionBatchResults(_ batchResults: AsyncStream<Int>, for session: any BulkExportSession) {
-        Task {
+        batchResultsTask = Task {
             for await count in batchResults {
                 numExportedSamples += count
             }

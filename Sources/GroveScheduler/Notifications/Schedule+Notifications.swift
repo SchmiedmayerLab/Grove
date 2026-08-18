@@ -65,9 +65,8 @@ extension Schedule {
     }
     
     
-    static func notificationMatchingHint( // swiftlint:disable:this function_parameter_count
+    static func notificationMatchingHint(
         forMatchingInterval interval: Int,
-        calendar _: Calendar,
         month: Int? = nil,
         day: Int? = nil,
         hour: Int?,

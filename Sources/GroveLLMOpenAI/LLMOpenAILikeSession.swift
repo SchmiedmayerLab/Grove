@@ -84,13 +84,10 @@ public final class LLMOpenAILikeSession<
     package let schema: LLMOpenAILikeSchema<PlatformDefinition>
     let keychainStorage: KeychainStorage
  
-    // `LLMOpenAIChatClientProtocol` is not `Sendable`, so the lock cannot own the client.
-    private let clientLock = Mutex<Void>(())
+    private let client = Mutex<(any LLMOpenAIChatClientProtocol)?>(nil)
     /// Counter for tracking nested tool calls
     package let toolCallCounter = ManagedAtomic<Int>(0)
     package let toolCallCompletionState = LLMState.generating
-    /// The wrapped client instance communicating with the OpenAI API
-    @ObservationIgnored nonisolated(unsafe) private var wrappedClient: (any LLMOpenAIChatClientProtocol)?
     /// Holds the currently generating continuations so that we can cancel them if required.
     let continuationHolder = LLMInferenceQueueContinuationHolder()
 
@@ -99,7 +96,7 @@ public final class LLMOpenAILikeSession<
 
     var openAiClient: any LLMOpenAIChatClientProtocol {
         get {
-            let client = self.clientLock.withLock { _ in self.wrappedClient }
+            let client = self.client.withLock { $0 }
 
             guard let client else {
                 fatalError("""
@@ -111,7 +108,7 @@ public final class LLMOpenAILikeSession<
         }
 
         set {
-            self.clientLock.withLock { _ in self.wrappedClient = newValue }
+            client.withLock { $0 = newValue }
         }
     }
     
@@ -162,7 +159,7 @@ public final class LLMOpenAILikeSession<
                 }
 
                 // Setup the model, if not already done
-                if self.clientLock.withLock({ _ in self.wrappedClient == nil }) {
+                if self.client.withLock({ $0 == nil }) {
                     guard await self.setup(with: continuationObserver) else {
                         return
                     }

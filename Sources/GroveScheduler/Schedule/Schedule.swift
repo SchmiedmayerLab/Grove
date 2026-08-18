@@ -327,7 +327,6 @@ extension Schedule {
         }
         let notificationIntervalHint = Schedule.notificationMatchingHint(
             forMatchingInterval: interval,
-            calendar: calendar,
             hour: nil,
             minute: minute,
             second: second,
@@ -374,7 +373,6 @@ extension Schedule {
         }
         let notificationIntervalHint = Schedule.notificationMatchingHint(
             forMatchingInterval: interval,
-            calendar: calendar,
             hour: hour,
             minute: minute,
             second: second,
@@ -424,7 +422,6 @@ extension Schedule {
         let weekdayNum = weekday.map { $0.ordinal } ?? calendar.component(.weekday, from: startTime)
         let notificationIntervalHint = Schedule.notificationMatchingHint(
             forMatchingInterval: interval,
-            calendar: calendar,
             hour: hour,
             minute: minute,
             second: second,
@@ -482,7 +479,6 @@ extension Schedule {
         }
         let notificationInterval = Schedule.notificationMatchingHint(
             forMatchingInterval: interval,
-            calendar: calendar,
             month: nil,
             day: day,
             hour: hour,
@@ -536,7 +532,6 @@ extension Schedule {
         }
         let notificationInterval = Schedule.notificationMatchingHint(
             forMatchingInterval: interval,
-            calendar: calendar,
             month: month,
             day: day,
             hour: hour,

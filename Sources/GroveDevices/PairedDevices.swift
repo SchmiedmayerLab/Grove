@@ -132,7 +132,7 @@ public final class PairedDevices: ServiceModule {
 
     @AppStorage(DevicesStorage.everPairedOnceKey)
     @MainActor @ObservationIgnored private var everPairedDevice = false
-    @AppStorage(DevicesStorage.accessorySetupKitMigrationKey)
+    @AppStorage(DevicesStorage.accessorySetupKitMigrationCompletedKey)
     @MainActor @ObservationIgnored private var asKitMigrationState: AccessorySetupKitMigrationState = .notDetermined
 
 

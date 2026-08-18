@@ -22,7 +22,7 @@ final class PairedDevice: Sendable {
         case finished
     }
 
-    nonisolated private static let logger = Logger(subsystem: "org.grovealliance.devices", category: "PairedDevice")
+    private static let logger = Logger(subsystem: "org.grovealliance.devices", category: "PairedDevice")
 
     nonisolated let id: UUID
     @MainActor let info: PairedDeviceInfo

@@ -27,10 +27,10 @@ final class DiscoveryStaleTimer {
         workItem.cancel()
     }
 
-    func schedule(for timeout: TimeInterval, in _: DispatchSerialQueue) {
+    func schedule(for timeout: TimeInterval, in queue: DispatchSerialQueue) {
         // `DispatchTime` only allows for integer time
         let milliSeconds = Int(timeout * 1000)
-        workItem.schedule(for: .now() + .milliseconds(milliSeconds))
+        workItem.schedule(for: .now() + .milliseconds(milliSeconds), in: queue)
     }
 
     deinit {

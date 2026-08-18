@@ -17,7 +17,8 @@ import SwiftUI
 
 extension LLMOpenAIMockedInferenceTests {
     /// A mock implementation of the OpenAI API `Client`
-    final class MockChatClient: LLMOpenAIChatClientProtocol {
+    /// Configured synchronously before it is injected into a session and shared with inference tasks.
+    final class MockChatClient: @unchecked Sendable, LLMOpenAIChatClientProtocol {
         var retrieveModelHandler: ((GeneratedOpenAIClient.Operations.retrieveModel.Input) async throws ->
                                    GeneratedOpenAIClient.Operations.retrieveModel.Output)?
         

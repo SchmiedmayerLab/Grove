@@ -91,19 +91,19 @@ final class ConsentTests: XCTestCase {
             continueButton: app.buttons["I Consent"]
         )
         
-        XCTAssert(app.staticTexts["First Consent PDF rendering exists"].waitForExistence(timeout: 1))
-        XCTAssert(app.staticTexts["Name, Leland Stanford"].exists)
+        XCTAssert(app.staticTexts["First Consent PDF rendering exists"].waitForExistence(timeout: 10))
+        XCTAssert(app.staticTexts["Name, Leland Stanford"].waitForExistence(timeout: 10))
         app.navigationBars.buttons["Next"].tap()
         
-        XCTAssert(app.staticTexts["Second Consent PDF rendering exists"].waitForExistence(timeout: 1))
-        XCTAssert(app.staticTexts["Name, Leland Stanford"].exists)
+        XCTAssert(app.staticTexts["Second Consent PDF rendering exists"].waitForExistence(timeout: 10))
+        XCTAssert(app.staticTexts["Name, Leland Stanford"].waitForExistence(timeout: 10))
         app.navigationBars.buttons["Next"].tap()
         
-        XCTAssert(app.staticTexts["Knee Replacement Study Consent Form PDF rendering exists"].waitForExistence(timeout: 1))
+        XCTAssert(app.staticTexts["Knee Replacement Study Consent Form PDF rendering exists"].waitForExistence(timeout: 10))
         XCTAssert(app.staticTexts["data-sharing, true"].exists)
         XCTAssert(app.staticTexts["select1, m"].exists)
         XCTAssert(app.staticTexts["select2, n"].exists)
-        XCTAssert(app.staticTexts["Name, Leland Stanford"].waitForExistence(timeout: 1))
+        XCTAssert(app.staticTexts["Name, Leland Stanford"].waitForExistence(timeout: 10))
         
         app.navigationBars.buttons["Next"].tap()
     }

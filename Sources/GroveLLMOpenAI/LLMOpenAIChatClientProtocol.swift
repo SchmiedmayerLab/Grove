@@ -9,7 +9,7 @@
 import GeneratedOpenAIClient
 
 
-internal protocol LLMOpenAIChatClientProtocol {
+internal protocol LLMOpenAIChatClientProtocol: Sendable {
     func createChatCompletion(_ input: Operations.createChatCompletion.Input) async throws -> Operations.createChatCompletion.Output
     
     func retrieveModel(_ input: Operations.retrieveModel.Input) async throws -> Operations.retrieveModel.Output

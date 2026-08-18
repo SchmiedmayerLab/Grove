@@ -523,7 +523,7 @@ private struct QuestionnaireValidator: ~Copyable { // swiftlint:disable:this typ
                 }
                 for (optionIdx, option) in options.enumerated() {
                     let path = path.answerOption[optionIdx]
-                    processChoiceOption(option, at: path, for: item, at: fileRef)
+                    processChoiceOption(option, at: path, at: fileRef)
                 }
             default:
                 break
@@ -746,7 +746,6 @@ private struct QuestionnaireValidator: ~Copyable { // swiftlint:disable:this typ
     private mutating func processChoiceOption(
         _ option: QuestionnaireItemAnswerOption,
         at path: Path,
-        for _: QuestionnaireItem,
         at fileRef: LocalizedFileReference
     ) {
         switch option.value {

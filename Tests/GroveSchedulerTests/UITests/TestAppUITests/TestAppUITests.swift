@@ -15,7 +15,7 @@ import XCTGroveNotifications
 private let schedulerNotificationPrefix = "org.grovealliance.grovescheduler.testapp.scheduler.notification"
 
 
-class TestAppUITests: XCTestCase {
+class TestAppUITests: XCTestCase { // swiftlint:disable:this type_body_length
     private var uses12HourClock: Bool {
         switch Locale.current.hourCycle {
         case .zeroToEleven, .oneToTwelve:
@@ -91,9 +91,7 @@ class TestAppUITests: XCTestCase {
 
         checkButtonExists("Complete Measurement", timeout: 10)
         checkButtonExists("Complete Questionnaire")
-        let completeLabResults = app.buttons["Complete Enter Lab Results"]
-        XCTAssert(completeLabResults.wait(for: \.isHittable, toEqual: true, timeout: 2.0))
-        completeLabResults.tap()
+        XCTAssert(app.scrollToAndTapButton("Complete Enter Lab Results"))
 
         app.goToTab(.notifications)
 
@@ -180,7 +178,7 @@ class TestAppUITests: XCTestCase {
     
     
     @MainActor
-    func testNotificationSchedulingDontNotifyForAlreadyCompletedEvents() throws {
+    func testNotificationSchedulingDontNotifyForAlreadyCompletedEvents() throws { // swiftlint:disable:this function_body_length
         let app = XCUIApplication()
         app.deleteAndLaunch(withSpringboardAppName: "TestApp")
 
@@ -218,8 +216,7 @@ class TestAppUITests: XCTestCase {
         // Complete the task for today
         app.goToTab(.schedule)
         let complete = app.buttons["Complete Enter Lab Results"]
-        XCTAssert(complete.wait(for: \.isHittable, toEqual: true, timeout: 5))
-        complete.tap()
+        XCTAssert(app.scrollToAndTapButton("Complete Enter Lab Results"))
         XCTAssert(complete.waitForNonExistence(timeout: 5))
         app.goToTab(.notifications)
 
@@ -367,6 +364,25 @@ extension XCUIApplication {
         XCTAssert(tab.wait(for: \.isHittable, toEqual: true, timeout: 2.0), line: line)
         tab.tap()
         tab.tap()
+    }
+
+    @MainActor
+    func scrollToAndTapButton(
+        _ label: String,
+        maximumSwipes: Int = 4,
+        timeout: TimeInterval = 5
+    ) -> Bool {
+        let button = buttons[label]
+        var swipes = 0
+        while !button.isHittable && swipes < maximumSwipes {
+            swipeUp()
+            swipes += 1
+        }
+        guard button.wait(for: \.isHittable, toEqual: true, timeout: timeout) else {
+            return false
+        }
+        button.tap()
+        return true
     }
 }
 

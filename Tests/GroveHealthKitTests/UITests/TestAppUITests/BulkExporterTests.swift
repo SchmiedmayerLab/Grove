@@ -58,7 +58,8 @@ final class BulkExporterTests: GroveHealthKitTests {
         app.tapWhenTappable("Start Bulk Export")
         pauseExport(in: app)
         XCTAssert(app.buttons["Start"].waitUntilTappable(), "export session never settled into .paused")
-        let numExportedSamplesFirstSession = try waitForStableExportedSamples(in: app)
+        // The Pause action does not become tappable again until the test app has drained all completed batch results.
+        let numExportedSamplesFirstSession = try XCTUnwrap(app.numExportedSamples)
         app.terminate()
 
         try launchAndHandleInitialStuff(app, resetEverything: false, deleteAllHealthData: false)
@@ -132,22 +133,6 @@ extension BulkExporterTests {
         return 0
     }
 
-    /// Reads `# Exported Samples` once it stops moving.
-    ///
-    /// The batch results are drained by a `Task` of their own, so the counter keeps catching up for a while
-    /// after the session has reported itself as paused.
-    @MainActor
-    private func waitForStableExportedSamples(in app: XCUIApplication, timeout: Duration = .seconds(30)) throws -> Int {
-        let deadline = ContinuousClock.now + timeout
-        var previous: Int?
-        var current = try XCTUnwrap(app.numExportedSamples)
-        while current != previous, ContinuousClock.now < deadline {
-            previous = current
-            sleep(for: .seconds(0.5))
-            current = try XCTUnwrap(app.numExportedSamples)
-        }
-        return current
-    }
 }
 
 
@@ -197,17 +182,5 @@ extension XCUIApplication {
             line: line
         )
         button.tap()
-    }
-}
-
-
-extension XCUIElement {
-    /// Waits until the element exists, is enabled, and is hittable.
-    ///
-    /// An `AsyncButton` renders before it can accept input, and taps that land in between are dropped silently.
-    func waitUntilTappable(timeout: TimeInterval = 60) -> Bool {
-        let predicate = NSPredicate(format: "exists == true AND isEnabled == true AND isHittable == true")
-        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: self)
-        return XCTWaiter.wait(for: [expectation], timeout: timeout) == .completed
     }
 }

@@ -8,6 +8,7 @@
 
 import Foundation
 public import OpenAPIRuntime
+import Synchronization
 
 
 // NOTE: OpenAPIRuntime.OpenAPIObjectContainer is the underlying type for Components.Schemas.FunctionParameters.additionalProperties
@@ -23,11 +24,10 @@ public typealias LLMFunctionParameterItemSchema = OpenAPIRuntime.OpenAPIObjectCo
 public final class _LLMFunctionParameterWrapper<T: Decodable & Sendable>: LLMFunctionParameterSchemaCollector { // swiftlint:disable:this type_name
     let schema: LLMFunctionParameterItemSchema
 
-    nonisolated(unsafe) private var injectedValue: T?
-    private let lock = NSLock()
+    private let injectedValue = Mutex<T?>(nil)
 
     public var wrappedValue: T {
-        self.lock.withLock {
+        injectedValue.withLock { injectedValue in
             // If the unwrapped injectedValue is not nil, return the non-nil value
             if let injectedValue {
                 return injectedValue
@@ -66,8 +66,8 @@ public final class _LLMFunctionParameterWrapper<T: Decodable & Sendable>: LLMFun
 
 
     func inject(_ value: T) where T: Decodable {
-        self.lock.withLock {
-            self.injectedValue = value
+        injectedValue.withLock { injectedValue in
+            injectedValue = value
         }
     }
 }

@@ -239,8 +239,13 @@ extension MedFloatProtocol {
         }
     }
 
+    /// Replaces the value with its normalized version.
+    public mutating func normalize() {
+        self = normalized()
+    }
+
     /// Returns a MedFloat with the same value as the receiver, but with the exponent and mantissa normalized.
-    func normalized() -> Self {
+    public func normalized() -> Self {
         // The initializer will perform normalization.
         Self(exponent: exponent, mantissa: mantissa)
     }

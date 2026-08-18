@@ -32,6 +32,7 @@ public enum FHIRSupersessionRegistry {
     }
 
     /// The registered identifier for a canonical spelling, if it retired any.
+    @usableFromInline
     static func identifier(forCanonical canonical: String) -> FHIRCanonicalURL? {
         lock.withLock { storage[canonical] }
     }

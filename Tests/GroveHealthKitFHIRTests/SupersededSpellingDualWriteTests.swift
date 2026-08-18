@@ -37,6 +37,15 @@ struct SupersededSpellingDualWriteTests {
         Set((observation.extension ?? []).compactMap { $0.url.value?.url.absoluteString })
     }
 
+    private func spellings(in element: Extension) -> [String] {
+        let ownSpelling: [String] = if let spelling = element.url.value?.url.absoluteString {
+            [spelling]
+        } else {
+            []
+        }
+        return ownSpelling + (element.extension ?? []).flatMap { spellings(in: $0) }
+    }
+
     private func withPolicy(_ policy: FHIRWritePolicy, _ body: () throws -> Void) rethrows {
         let previous = FHIRWritePolicy.default
         FHIRWritePolicy.default = policy
@@ -81,7 +90,17 @@ struct SupersededSpellingDualWriteTests {
             let copy = try #require(
                 (observation.extension ?? []).first { $0.url.value?.url.absoluteString == retiredSpelling.absoluteString }
             )
-            #expect(copy.extension?.count == canonical.extension?.count)
+
+            let canonicalSpelling = FHIRExtensionURL.sourceRevision.url.absoluteString
+            let canonicalTreeSpellings = spellings(in: canonical)
+            let expectedRetiredTreeSpellings = canonicalTreeSpellings.map { spelling in
+                retiredSpelling.absoluteString + String(spelling.dropFirst(canonicalSpelling.count))
+            }
+            let retiredTreeSpellings = spellings(in: copy)
+
+            #expect(canonicalTreeSpellings.allSatisfy { $0.hasPrefix(canonicalSpelling) })
+            #expect(retiredTreeSpellings == expectedRetiredTreeSpellings)
+            #expect(Set(retiredTreeSpellings).count == retiredTreeSpellings.count)
             #expect(copy.value == canonical.value)
         }
     }

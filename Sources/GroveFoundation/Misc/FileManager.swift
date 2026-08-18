@@ -28,6 +28,16 @@ extension FileManager {
         return fileExists(atPath: url.path, isDirectory: &flag)
     }
 
+    /// Creates a file at the specified file URL.
+    @discardableResult
+    public func createFile(
+        at url: URL,
+        contents: Data?,
+        attributes: [FileAttributeKey: Any]? = nil // swiftlint:disable:this discouraged_optional_collection
+    ) -> Bool {
+        createFile(atPath: url.path, contents: contents, attributes: attributes)
+    }
+
     
     /// Determines whether a directory exists at the specified file url.
     public func isDirectory(at url: URL) -> Bool {

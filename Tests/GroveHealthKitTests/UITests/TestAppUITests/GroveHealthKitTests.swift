@@ -156,7 +156,7 @@ extension XCUIApplication {
         menuButton.tap()
         for title in [pathFst] + pathRest {
             let button = self.buttons[title]
-            XCTAssert(button.wait(for: \.isHittable, toEqual: true, timeout: 10))
+            XCTAssert(button.waitUntilTappable(timeout: 30), "Menu action '\(title)' never became tappable")
             button.tap()
         }
         XCTAssert(
@@ -168,6 +168,15 @@ extension XCUIApplication {
 
 
 extension XCUIElement {
+    /// Waits until the element exists, is enabled, and is hittable.
+    ///
+    /// SwiftUI controls can enter the accessibility tree before their presentation finishes and they accept input.
+    func waitUntilTappable(timeout: TimeInterval = 60) -> Bool {
+        let predicate = NSPredicate(format: "exists == true AND isEnabled == true AND isHittable == true")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: self)
+        return XCTWaiter.wait(for: [expectation], timeout: timeout) == .completed
+    }
+
     /// The number of actions the `ActionsMenu` this element represents has run to completion.
     var completedActions: Int? {
         (self.value as? String).flatMap(Int.init)

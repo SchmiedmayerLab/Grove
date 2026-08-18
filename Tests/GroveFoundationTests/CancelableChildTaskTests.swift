@@ -14,20 +14,16 @@ import Testing
 struct CancelableChildTaskTests {
     @Test(.timeLimit(.minutes(1)))
     func normalCompletion() async {
+        let (completed, completedContinuation) = AsyncStream<Void>.makeStream()
         await withDiscardingTaskGroup { group in
             await confirmation { confirmation in
                 let handle = group.addCancelableTask {
-                    do {
-                        try await Task.sleep(for: .milliseconds(250), tolerance: .nanoseconds(0))
-                    } catch {
-                        Issue.record(error, "Task.sleep unexpectedly failed")
-                    }
                     confirmation()
+                    completedContinuation.yield()
+                    completedContinuation.finish()
                 }
-                do {
-                    try await Task.sleep(for: .milliseconds(2000), tolerance: .nanoseconds(0))
-                } catch {
-                    Issue.record(error, "Task.sleep unexpectedly failed")
+                for await _ in completed {
+                    break
                 }
                 handle.cancel()
             }
@@ -36,19 +32,31 @@ struct CancelableChildTaskTests {
     
     @Test(.timeLimit(.minutes(1)))
     func cancelation() async {
+        let (started, startedContinuation) = AsyncStream<Void>.makeStream()
+        let (cancelled, cancelledContinuation) = AsyncStream<Void>.makeStream()
         await withDiscardingTaskGroup { group in
             await confirmation { confirmation in
                 let handle = group.addCancelableTask {
+                    startedContinuation.yield()
+                    startedContinuation.finish()
                     do {
-                        try await Task.sleep(for: .milliseconds(350), tolerance: .nanoseconds(0))
+                        try await Task.sleep(for: .seconds(60), tolerance: .nanoseconds(0))
                         Issue.record("Task was not cancelled!")
-                    } catch {
+                    } catch is CancellationError {
                         confirmation()
+                    } catch {
+                        Issue.record(error, "Cancelable task failed with an unexpected error")
                     }
+                    cancelledContinuation.yield()
+                    cancelledContinuation.finish()
                 }
-                try? await Task.sleep(for: .milliseconds(50), tolerance: .nanoseconds(0))
+                for await _ in started {
+                    break
+                }
                 handle.cancel()
-                try? await Task.sleep(for: .milliseconds(1000), tolerance: .nanoseconds(0))
+                for await _ in cancelled {
+                    break
+                }
             }
         }
     }

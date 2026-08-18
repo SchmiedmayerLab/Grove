@@ -201,6 +201,15 @@ public final class ConsentDocument: Sendable {
             self.name = name ?? .init()
             self.signature = .init()
         }
+
+        /// Resets the signature to an empty state.
+        public mutating func clearSignature() {
+            #if !os(macOS)
+            signature.strokes.removeAll(keepingCapacity: true)
+            #else
+            signature.removeAll(keepingCapacity: true)
+            #endif
+        }
     }
     
     /// Stores the user responses provided by a user for a ``ConsentDocument``.

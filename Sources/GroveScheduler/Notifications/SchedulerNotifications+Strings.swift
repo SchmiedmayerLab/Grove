@@ -25,20 +25,16 @@ extension SchedulerNotifications {
     /// ```swift
     /// let content = content.userInfo[SchedulerNotifications.notificationTaskIdKey]
     /// ```
-    nonisolated public static var notificationTaskIdKey: String { "\(baseNotificationId).taskId" }
+    nonisolated public static let notificationTaskIdKey = "\(baseNotificationId).taskId"
 
     /// The reverse dns notation use as a prefix for all notifications scheduled by GroveScheduler.
-    nonisolated static var baseNotificationId: String {
-        // Computed, not a stored static: a `static let` would capture the bundle identifier at first
-        // access, which is not ordered against anything.
-        "\(Bundle.main.bundleIdentifier ?? "app").scheduler.notification"
-    }
+    nonisolated static let baseNotificationId = "\(Bundle.main.bundleIdentifier ?? "app").scheduler.notification"
 
     /// The reverse dns notation use as a prefix for all task-level scheduled notifications (calendar trigger).
-    nonisolated static var baseTaskNotificationId: String { "\(baseNotificationId).task" }
+    nonisolated static let baseTaskNotificationId = "\(baseNotificationId).task"
 
     /// The reverse dns notation use as a prefix for all event-level scheduled notifications (interval trigger).
-    nonisolated static var baseEventNotificationId: String { "\(baseNotificationId).event" }
+    nonisolated static let baseEventNotificationId = "\(baseNotificationId).event"
 
     /// Retrieve the category identifier for a notification for a task, derived from its task category.
     ///

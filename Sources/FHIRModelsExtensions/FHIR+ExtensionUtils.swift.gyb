@@ -159,6 +159,22 @@ extension FHIRTypeWithExtensions {
         storage.reserveCapacity(storage.count + extensions.count)
         storage.append(contentsOf: extensions)
         `extension` = storage
+        // An Extension is itself a FHIRTypeWithExtensions. Its children must remain canonical here;
+        // the top-level resource mirrors the complete tree exactly once after it is appended.
+        guard !(self is Extension) else {
+            return
+        }
+        // Under .canonicalOnly this is a guard check; the appended urls are what a dual-write has to
+        // mirror, so doing it here covers every writer instead of every writer remembering to.
+        let retired = extensions.compactMap { element -> FHIRCanonicalURL? in
+            guard let spelling = element.urlString else {
+                return nil
+            }
+            return FHIRSupersessionRegistry.identifier(forCanonical: spelling)
+        }
+        if !retired.isEmpty {
+            writeSupersededSpellings(of: retired)
+        }
     }
 }
 

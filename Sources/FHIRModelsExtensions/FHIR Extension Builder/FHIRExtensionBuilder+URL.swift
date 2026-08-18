@@ -91,8 +91,7 @@ extension FHIRExtensionURL {
     
     /// Creates a new `FHIRExtensionURL>` by appending multiple components.
     @inlinable
-    public func appending(components: some Sequence<some StringProtocol>) -> Self {
-        let components = Array(components)
+    public func appending(components: some Collection<some StringProtocol>) -> Self {
         func extend(_ url: URL) -> URL {
             components.reduce(url) { $0.appending(component: $1) }
         }

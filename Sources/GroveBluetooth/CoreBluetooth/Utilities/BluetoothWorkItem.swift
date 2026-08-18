@@ -21,8 +21,9 @@ final class BluetoothWorkItem {
         }
     }
 
-    func schedule(for deadline: DispatchTime) {
-        GroveBluetooth.shared.dispatchQueue.asyncAfter(deadline: deadline, execute: workItem)
+    func schedule(for deadline: DispatchTime, in queue: DispatchSerialQueue? = nil) {
+        let queue = queue ?? GroveBluetooth.shared.dispatchQueue
+        queue.asyncAfter(deadline: deadline, execute: workItem)
     }
 
     func cancel() {

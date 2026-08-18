@@ -128,7 +128,7 @@ struct DevicesStorageTests {
             DevicesStorage.migratePreferences(in: defaults)
 
             #expect(defaults.bool(forKey: DevicesStorage.everPairedOnceKey))
-            #expect(defaults.string(forKey: DevicesStorage.accessorySetupKitMigrationKey) == "complete")
+            #expect(defaults.string(forKey: DevicesStorage.accessorySetupKitMigrationCompletedKey) == "complete")
             #expect(defaults.object(forKey: LegacyPreferenceKey.devicesEverPairedOnce) == nil)
             #expect(defaults.object(forKey: LegacyPreferenceKey.devicesAccessorySetupKitMigration) == nil)
         }
@@ -139,12 +139,12 @@ struct DevicesStorageTests {
     @Test
     func doesNotOverwriteAnAlreadyMigratedValue() throws {
         try withDefaults { defaults in
-            defaults.set("complete", forKey: DevicesStorage.accessorySetupKitMigrationKey)
+            defaults.set("complete", forKey: DevicesStorage.accessorySetupKitMigrationCompletedKey)
             defaults.set("notDetermined", forKey: LegacyPreferenceKey.devicesAccessorySetupKitMigration)
 
             DevicesStorage.migratePreferences(in: defaults)
 
-            #expect(defaults.string(forKey: DevicesStorage.accessorySetupKitMigrationKey) == "complete")
+            #expect(defaults.string(forKey: DevicesStorage.accessorySetupKitMigrationCompletedKey) == "complete")
         }
     }
 

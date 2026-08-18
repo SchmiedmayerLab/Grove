@@ -55,7 +55,7 @@ extension XCUIApplication {
     /// - Parameter appName: The springboard name of the application.
     @available(macOS, unavailable)
     @available(watchOS, unavailable)
-    public func delete(app appName: String) { // swiftlint:disable:this function_body_length
+    public func delete(app appName: String) { // swiftlint:disable:this function_body_length cyclomatic_complexity
         self.terminate()
 
         let springboard = XCUIApplication(bundleIdentifier: Self.homeScreenBundle)
@@ -68,21 +68,45 @@ extension XCUIApplication {
         
         let homeScreenIcons = springboard.otherElements["Home screen icons"].icons
 
+        func visibleIcon(named name: String) -> XCUIElement? {
+            homeScreenIcons.matching(identifier: name).allElementsBoundByIndex.first { icon in
+                let frame = icon.frame
+                let center = CGPoint(x: frame.midX, y: frame.midY)
+                return icon.isHittable && !frame.isEmpty && !frame.isNull && springboard.frame.contains(center)
+            }
+        }
+
+        func waitForVisibleIcon(named name: String, timeout: TimeInterval = 1) -> XCUIElement? {
+            var icon = visibleIcon(named: name)
+            guard icon == nil else {
+                return icon
+            }
+            let predicate = NSPredicate { _, _ in
+                icon = visibleIcon(named: name)
+                return icon != nil
+            }
+            let expectation = XCTNSPredicateExpectation(predicate: predicate, object: springboard)
+            _ = XCTWaiter.wait(for: [expectation], timeout: timeout)
+            return icon
+        }
+
         // There might be multiple apps installed with the same name (e.g., we use "TestApp" a lot), so delete all of them
         while homeScreenIcons[appName].firstMatch.waitForExistence(timeout: 10.0) {
             // The icon can be several pages in: every package's UI tests install a target called
             // "TestApp", so a device that has run more than one of them has several to page past.
             // One swipe only reaches page two. An app that is genuinely absent or unreachable still fails.
-            let icon = homeScreenIcons[appName].firstMatch
             var swipes = 0
-            while !icon.isHittable && swipes < 10 {
+            var icon = waitForVisibleIcon(named: appName)
+            while icon == nil && swipes < 10 {
                 springboard.swipeLeft()
                 swipes += 1
-                // Let the page transition settle, so we don't page past the icon while it animates in.
-                _ = icon.wait(for: \.isHittable, toEqual: true, timeout: 1.0)
+                icon = waitForVisibleIcon(named: appName)
             }
 
-            XCTAssert(icon.wait(for: \.isHittable, toEqual: true, timeout: 5.0))
+            guard let icon else {
+                XCTFail("Unable to find a visible \(appName) icon after \(swipes) home-screen swipes.")
+                return
+            }
             #if os(visionOS)
             icon.press(forDuration: 1)
             #else

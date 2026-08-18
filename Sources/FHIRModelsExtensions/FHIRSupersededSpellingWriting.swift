@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import ModelsR4
+public import ModelsR4
 
 
 /// Whether resources also carry the spellings this project has retired.
@@ -83,6 +83,7 @@ extension FHIRTypeWithExtensions {
 
 extension ModelsR4.Extension {
     /// The extension's url as a plain string, if it has one.
+    @usableFromInline
     var urlString: String? {
         url.value?.url.absoluteString
     }

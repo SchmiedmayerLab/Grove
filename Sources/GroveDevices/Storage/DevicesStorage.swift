@@ -23,7 +23,7 @@ enum DevicesStorage {
     /// Whether any device has ever been paired.
     static let everPairedOnceKey = "Devices.everPairedOnce"
     /// Whether the one-shot AccessorySetupKit migration has run.
-    static let accessorySetupKitMigrationKey = "Devices.accessorySetupKitMigration"
+    static let accessorySetupKitMigrationCompletedKey = "Devices.accessorySetupKitMigration"
 
     /// Brings the module's `UserDefaults` entries forward onto their un-branded keys.
     ///
@@ -33,7 +33,7 @@ enum DevicesStorage {
     static func migratePreferences(in defaults: UserDefaults = .standard) {
         let pairs = [
             (LegacyPreferenceKey.devicesEverPairedOnce, everPairedOnceKey),
-            (LegacyPreferenceKey.devicesAccessorySetupKitMigration, accessorySetupKitMigrationKey)
+            (LegacyPreferenceKey.devicesAccessorySetupKitMigration, accessorySetupKitMigrationCompletedKey)
         ]
         for (legacy, current) in pairs {
             guard defaults.object(forKey: current) == nil,

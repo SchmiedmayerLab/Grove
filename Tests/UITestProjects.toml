@@ -73,6 +73,7 @@ test_products = ["XCTestExtensions"]
 
 [GroveFHIR]
 app_products = ["Grove", "GroveFHIR", "GroveHealthKitFHIR", "GroveFHIRMockPatients", "GroveHealthKit", "GroveViews"]
+test_products = ["XCTestExtensions"]
 [GroveFHIR.app_settings]
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 "INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription" = "The Test App uses the health data to test the Grove FHIR Package."
@@ -166,6 +167,7 @@ app_products = ["Grove", "GroveSpeechRecognizer", "GroveSpeechSynthesizer"]
 
 [GroveStorage]
 app_products = ["Grove", "GroveKeychainStorage", "GroveLocalStorage", "XCTestApp"]
+test_products = ["XCTestExtensions"]
 [GroveStorage.app_settings]
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 
