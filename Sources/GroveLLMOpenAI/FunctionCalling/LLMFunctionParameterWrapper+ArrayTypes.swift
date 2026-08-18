@@ -10,6 +10,7 @@ public import GroveFoundation
 
 // swiftlint:disable discouraged_optional_boolean discouraged_optional_collection
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _LLMFunctionParameterWrapper where T: AnyArray, T.Element: BinaryInteger {
     /// Declares an `Int`-based ``LLMFunction/Parameter`` `array`.
     ///
@@ -53,6 +54,7 @@ extension _LLMFunctionParameterWrapper where T: AnyArray, T.Element: BinaryInteg
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _LLMFunctionParameterWrapper where T: AnyArray, T.Element: BinaryFloatingPoint {
     /// Declares an `Float` or `Double` (`BinaryFloatingPoint`) -based ``LLMFunction/Parameter`` `array`.
     ///
@@ -93,6 +95,7 @@ extension _LLMFunctionParameterWrapper where T: AnyArray, T.Element: BinaryFloat
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _LLMFunctionParameterWrapper where T: AnyArray, T.Element == Bool {
     /// Declares an `Bool`-based ``LLMFunction/Parameter`` `array`.
     ///
@@ -127,6 +130,7 @@ extension _LLMFunctionParameterWrapper where T: AnyArray, T.Element == Bool {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _LLMFunctionParameterWrapper where T: AnyArray, T.Element: StringProtocol {
     /// Declares an `String`-based ``LLMFunction/Parameter`` `array`.
     ///

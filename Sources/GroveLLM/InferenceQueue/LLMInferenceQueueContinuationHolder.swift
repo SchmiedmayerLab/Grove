@@ -14,6 +14,7 @@ package import Foundation
 import Synchronization
 
 /// Holds the continuations of the inference tasks of a certain ``LLMPlatform`` with the ability to finish/cancel them.
+@available(iOS 18, macOS 15, watchOS 11, *)
 package final class LLMInferenceQueueContinuationHolder: Sendable {
     private let continuations = Mutex<[UUID: AsyncThrowingStream<String, any Error>.Continuation]>([:])
 

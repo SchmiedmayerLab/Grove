@@ -11,6 +11,7 @@ import GeneratedOpenAIClient
 import OpenAPIRuntime
 
 /// Represents the model-specific parameters of OpenAIs LLMs.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LLMOpenAIModelParameters: Sendable {
     /// The response format of the LLM.
     public enum ResponseFormat {

@@ -62,6 +62,7 @@ private struct ChatViewSpeechModifier: ViewModifier {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     /// Provides text-to-speech capabilities to the ``ChatView``.
     ///

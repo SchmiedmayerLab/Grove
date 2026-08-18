@@ -45,6 +45,7 @@ import Foundation
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol LLMFunctionParameter: Decodable {
     static var schema: LLMFunctionParameterPropertySchema { get }
 }

@@ -9,10 +9,12 @@
 import GeneratedOpenAIClient
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 internal protocol LLMOpenAIChatClientProtocol: Sendable {
     func createChatCompletion(_ input: Operations.createChatCompletion.Input) async throws -> Operations.createChatCompletion.Output
     
     func retrieveModel(_ input: Operations.retrieveModel.Input) async throws -> Operations.retrieveModel.Output
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Client: LLMOpenAIChatClientProtocol {}

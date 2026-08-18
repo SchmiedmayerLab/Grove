@@ -50,6 +50,7 @@ public import OpenAPIRuntime
 ///     }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol LLMFunctionParameterArrayElement: Decodable {
     static var itemSchema: LLMFunctionParameterItemSchema { get }
 }

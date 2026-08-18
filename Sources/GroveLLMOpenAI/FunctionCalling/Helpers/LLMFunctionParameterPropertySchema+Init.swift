@@ -10,6 +10,7 @@ public import OpenAPIRuntime
 
 
 /// Convenience extension to initialize a simple object-type function calling schema definition.
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMFunctionParameterPropertySchema {
     /// Initialize a simple, object-type ``LLMFunctionParameterPropertySchema``.
     /// - Parameter type: The type of the ``LLMFunctionParameterPropertySchema``.

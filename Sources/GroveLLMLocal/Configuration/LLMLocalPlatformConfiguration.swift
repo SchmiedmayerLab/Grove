@@ -9,6 +9,7 @@
 import Foundation
 
 /// Represents the configuration of the Grove ``LLMLocalPlatform``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LLMLocalPlatformConfiguration: Sendable {
     /// Represents the memory limit for the MLX GPU.
     public struct MemoryLimit: Sendable {

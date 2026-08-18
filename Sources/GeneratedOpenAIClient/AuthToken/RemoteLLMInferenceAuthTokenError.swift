@@ -10,6 +10,7 @@ import GroveLLM
 
 
 /// Errors that originate from the handling of ``RemoteLLMInferenceAuthToken``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 package enum RemoteLLMInferenceAuthTokenError: LLMError {
     /// The auth method indicated that a token should be in the keychain, however there is none
     case noTokenInKeychain

@@ -8,6 +8,7 @@
 
 // swiftlint:disable discouraged_optional_collection
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _LLMFunctionParameterWrapper where T: BinaryInteger {
     /// Declares an ``LLMFunction/Parameter`` of the type `Int` defining a integer parameter of the ``LLMFunction``.
     ///
@@ -39,6 +40,7 @@ extension _LLMFunctionParameterWrapper where T: BinaryInteger {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _LLMFunctionParameterWrapper where T: BinaryFloatingPoint {
     /// Declares an ``LLMFunction/Parameter`` of the type `Float` or `Double` (`BinaryFloatingPoint`) defining a
     /// floating-point parameter of the ``LLMFunction``.
@@ -68,6 +70,7 @@ extension _LLMFunctionParameterWrapper where T: BinaryFloatingPoint {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _LLMFunctionParameterWrapper where T == Bool {
     /// Declares an ``LLMFunction/Parameter`` of the type `Bool` defining a binary parameter of the ``LLMFunction``.
     ///
@@ -91,6 +94,7 @@ extension _LLMFunctionParameterWrapper where T == Bool {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _LLMFunctionParameterWrapper where T: StringProtocol {
     /// Declares an ``LLMFunction/Parameter`` of the type `String` defining a text-based parameter of the
     /// ``LLMFunction``.

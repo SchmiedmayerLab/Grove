@@ -16,10 +16,12 @@ import OSLog
 ///
 /// Conformance of ``LLMFunction/Parameter`` to `LLMFunctionParameterSchemaCollector` can be found in the declaration of
 /// the ``LLMFunction/Parameter``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 protocol LLMFunctionParameterSchemaCollector: Sendable {
     var schema: LLMFunctionParameterItemSchema { get }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMFunction {
     package typealias LLMFunctionParameterSchema = Components.Schemas.FunctionParameters
     var schemaValueCollectors: [String: any LLMFunctionParameterSchemaCollector] {

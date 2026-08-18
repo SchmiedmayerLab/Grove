@@ -9,6 +9,7 @@
 
 // swiftlint:disable identifier_name
 /// Represents the available LLM models.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum LLMLocalModel: Sendable {
     /// Llama 3.1, 8 Billion Parameters, Instruct Mode, 4-bit Version
     case llama3_1_8B_4bit

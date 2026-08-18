@@ -14,12 +14,15 @@ import Synchronization
 // NOTE: OpenAPIRuntime.OpenAPIObjectContainer is the underlying type for Components.Schemas.FunctionParameters.additionalProperties
 
 /// Alias of the OpenAI `JSONSchema/Property` type, describing properties within an object schema.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMFunctionParameterPropertySchema = OpenAPIRuntime.OpenAPIObjectContainer
 /// Alias of the OpenAI `JSONSchema/Item` type, describing array items within an array schema.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMFunctionParameterItemSchema = OpenAPIRuntime.OpenAPIObjectContainer
 
 
 /// Refer to the documentation of ``LLMFunction/Parameter`` for information on how to use the `@Parameter` property wrapper.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @propertyWrapper
 public final class _LLMFunctionParameterWrapper<T: Decodable & Sendable>: LLMFunctionParameterSchemaCollector { // swiftlint:disable:this type_name
     let schema: LLMFunctionParameterItemSchema
@@ -73,6 +76,7 @@ public final class _LLMFunctionParameterWrapper<T: Decodable & Sendable>: LLMFun
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMFunction {
     /// Defines parameters within an ``LLMFunction``.
     ///

@@ -10,6 +10,7 @@ import Foundation
 
 
 /// In case of a `DecodingError` of the called function parameters to the ``LLMFunction/Parameter``s, indicates where in the `DecodingError` occurred.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct LLMFunctionParameterCodingKey: CodingKey {
     let stringValue: String
     var intValue: Int?

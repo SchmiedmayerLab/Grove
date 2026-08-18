@@ -10,6 +10,7 @@ public import SwiftUI
 
 
 /// A SwiftUI `PreferenceKey` that is used by the ``MessageInputView`` to propagate the height of the view up the view hierarchy.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct MessageInputViewHeightKey: PreferenceKey {
     /// Default height of 0.
     public static let defaultValue: CGFloat = 0
@@ -23,6 +24,7 @@ public struct MessageInputViewHeightKey: PreferenceKey {
 
 
 /// View modifier to write the height of a `View` to the ``MessageInputViewHeightKey`` SwiftUI `PreferenceKey`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     func messageInputViewHeight(_ value: CGFloat) -> some View {
         self.preference(key: MessageInputViewHeightKey.self, value: value)

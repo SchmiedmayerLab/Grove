@@ -10,6 +10,7 @@ public import typealias Foundation.TimeInterval
 
 
 /// Defines delay between retries.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum DelayPolicy: Hashable, Sendable {
     /// No delay; retry immediately.
     case none

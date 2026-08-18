@@ -11,6 +11,7 @@ import OpenAPIRuntime
 
 
 /// Helper to process the returned stream by the LLM output generation call, especially in regards to the function call
+@available(iOS 18, macOS 15, watchOS 11, *)
 package struct LLMOpenAIStreamResult {
     typealias Role = Components.Schemas.ChatCompletionStreamResponseDelta.rolePayload
 

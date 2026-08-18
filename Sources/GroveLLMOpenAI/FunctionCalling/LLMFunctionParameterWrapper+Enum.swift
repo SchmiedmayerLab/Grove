@@ -10,6 +10,7 @@ public import GroveFoundation
 
 // swiftlint:disable discouraged_optional_boolean
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _LLMFunctionParameterWrapper where T: LLMFunctionParameterEnum, T.RawValue: StringProtocol {
     /// Declares an `enum`-based ``LLMFunction/Parameter`` defining all options of a text-based parameter of the
     /// ``LLMFunction``.
@@ -34,6 +35,7 @@ extension _LLMFunctionParameterWrapper where T: LLMFunctionParameterEnum, T.RawV
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped: LLMFunctionParameterEnum,
     T.Wrapped.RawValue: StringProtocol {
     /// Declares an optional `enum`-based ``LLMFunction/Parameter`` defining all options of a text-based parameter of
@@ -59,6 +61,7 @@ extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped: LLMFunct
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _LLMFunctionParameterWrapper where T: AnyArray, T.Element: LLMFunctionParameterEnum,
     T.Element.RawValue: StringProtocol {
     /// Declares an `enum`-based ``LLMFunction/Parameter`` `array`. An individual `array` element defines all options of
@@ -96,6 +99,7 @@ extension _LLMFunctionParameterWrapper where T: AnyArray, T.Element: LLMFunction
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _LLMFunctionParameterWrapper where T: AnyOptional,
     T.Wrapped: AnyArray,
     T.Wrapped.Element: LLMFunctionParameterEnum,

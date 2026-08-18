@@ -11,6 +11,7 @@ import GroveLLM
 import OpenAPIRuntime
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMContextEntity.Role {
     typealias Role = Components.Schemas.ChatCompletionRole
 

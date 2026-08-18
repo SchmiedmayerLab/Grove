@@ -14,6 +14,7 @@ public import GroveKeychainStorage
 
 
 /// The OpenAI platform's definition.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct OpenAIPlatformDefinition: LLMOpenAILikePlatformDefinition {
     public struct ModelType: LLMOpenAILikePlatformModelType {
         /// The identifier of the underlying model.
@@ -45,10 +46,12 @@ public struct OpenAIPlatformDefinition: LLMOpenAILikePlatformDefinition {
 // MARK: Type Specializations
 
 /// Represents the configuration of the Grove ``LLMOpenAIPlatform``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMOpenAIPlatformConfiguration = LLMOpenAILikePlatformConfiguration<OpenAIPlatformDefinition>
 
 
 /// Represents the parameters of an OpenAI LLM model.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMOpenAIParameters = LLMOpenAILikeParameters<OpenAIPlatformDefinition>
 
 
@@ -165,6 +168,7 @@ public typealias LLMOpenAIAPITokenOnboardingStep = LLMOpenAILikeAPITokenOnboardi
 public typealias LLMOpenAIModelOnboardingStep = LLMOpenAILikeModelOnboardingStep<OpenAIPlatformDefinition>
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CredentialsTag {
     /// The canonical credentials tag for the OpenAI API key
     public static let openAIKey = Self.for(OpenAIPlatformDefinition.self)
@@ -174,6 +178,7 @@ extension CredentialsTag {
 // MARK: Models
 
 // swiftlint:disable identifier_name missing_docs
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OpenAIPlatformDefinition.ModelType {
     public static let `default`: Self = .gpt4o
     

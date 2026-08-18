@@ -7,6 +7,7 @@
 //
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _LLMFunctionParameterWrapper {
     /// Represents the `format` property of the JSON schema used of OpenAI Function calling.
     public enum Format: String {

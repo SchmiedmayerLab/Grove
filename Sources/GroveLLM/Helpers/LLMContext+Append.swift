@@ -9,6 +9,7 @@
 public import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMContext {
     /// Append an ``LLMContextEntity/Role-swift.enum/assistant(toolCalls:)`` output (without `toolCalls`) to the ``LLMContext``.
     ///

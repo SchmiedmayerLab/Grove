@@ -9,6 +9,7 @@
 import SwiftUI
 
 /// The view that is represented when a tool call or tool reponse based on the ``ChatEntity/Role``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct ToolInteractionView: View {
     let entity: ChatEntity
     @State private var isExpanded = false

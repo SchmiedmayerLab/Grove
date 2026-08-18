@@ -9,6 +9,7 @@
 public import GroveChat
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMContext {
     /// Maps the ``LLMContext`` to a `GroveChat/Chat`.
     @MainActor public var chat: Chat {
@@ -73,6 +74,7 @@ extension LLMContext {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ChatEntity.HiddenMessageType {
     /// Assistant tool call hidden message type of the `ChatEntity`.
     static let assistantToolCall = ChatEntity.HiddenMessageType(name: "assistantToolCall")

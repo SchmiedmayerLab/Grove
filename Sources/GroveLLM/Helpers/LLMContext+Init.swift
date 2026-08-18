@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMContext {
     /// Creates a new `Chat` array with an arbitrary number of system messages.
     ///

@@ -10,6 +10,7 @@ import Foundation
 
 
 /// Represents the sampling parameters of the LLM.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LLMLocalSamplingParameters: Sendable {
     /// Top-p Sampling: Smallest possible set of words whose cumulative probability exceeds the probability p (1.0 = disabled).
     let topP: Float

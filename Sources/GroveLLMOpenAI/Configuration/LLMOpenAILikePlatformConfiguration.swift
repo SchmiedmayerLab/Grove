@@ -13,6 +13,7 @@ public import OpenAPIRuntime
 
 
 /// Represents the configuration of an OpenAI-like `LLMPlatform`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LLMOpenAILikePlatformConfiguration<PlatformDefinition: LLMOpenAILikePlatformDefinition> {
     /// The platform's model type.
     public typealias ModelType = PlatformDefinition.ModelType
@@ -65,6 +66,7 @@ public struct LLMOpenAILikePlatformConfiguration<PlatformDefinition: LLMOpenAILi
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CredentialsTag {
     /// Constructs the canonical tag for storing the specified platform's API keys in the keychain.
     public static func `for`(_ platformDef: (some LLMOpenAILikePlatformDefinition).Type) -> Self {

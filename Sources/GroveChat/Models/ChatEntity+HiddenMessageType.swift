@@ -7,6 +7,7 @@
 //
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ChatEntity {
     /// The type of the ``Role-swift.enum/hidden(type:)`` message.
     ///

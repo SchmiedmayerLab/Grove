@@ -10,6 +10,7 @@ import Foundation
 
 
 /// A result builder used to aggregate multiple ``LLMFunction``s within the ``LLMOpenAISchema``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @resultBuilder
 public enum LLMFunctionBuilder {
     /// If declared, provides contextual type information for statement expressions to translate them into partial results.

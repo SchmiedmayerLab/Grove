@@ -9,6 +9,7 @@
 package import GroveLLM
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 package enum FunctionCallLLMSessionTypes {
     /// The response returned after successfully executing a function call.
     package struct FunctionCallResponse {

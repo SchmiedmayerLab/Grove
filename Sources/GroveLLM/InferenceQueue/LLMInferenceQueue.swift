@@ -12,6 +12,7 @@ import Synchronization
 
 
 /// Queue for scheduling and executing asynchronous LLM inference tasks.
+@available(iOS 18, macOS 15, watchOS 11, *)
 package final class LLMInferenceQueue<Element>: Sendable {
     package typealias InferenceTask = @Sendable (InferenceResultStream.Continuation) async -> Void
     package typealias InferenceResultStream = AsyncThrowingStream<Element, any Error>

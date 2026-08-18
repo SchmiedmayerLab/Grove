@@ -8,6 +8,7 @@
 
 
 /// Conditions under which a request should be retried.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum RetryableSignal: Hashable, Sendable {
     /// Retry when response status matches this code.
     case statusCode(Int)

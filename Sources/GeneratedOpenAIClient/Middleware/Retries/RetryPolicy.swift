@@ -8,6 +8,7 @@
 
 
 /// Determines how many times to retry.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum RetryPolicy: Hashable, Sendable {
     /// Never retry.
     case never

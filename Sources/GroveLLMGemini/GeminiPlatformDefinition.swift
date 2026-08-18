@@ -14,6 +14,7 @@ public import GroveLLMOpenAI
 
 
 /// Defines the Gemini LLM platform.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct GeminiPlatformDefinition: LLMOpenAILikePlatformDefinition {
     public struct ModelType: LLMOpenAILikePlatformModelType {
         public let rawValue: String
@@ -34,10 +35,12 @@ public struct GeminiPlatformDefinition: LLMOpenAILikePlatformDefinition {
 // MARK: Type Specializations
 
 /// Represents the configuration of the Grove ``LLMGeminiPlatform``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMGeminiPlatformConfiguration = LLMOpenAILikePlatformConfiguration<GeminiPlatformDefinition>
 
 
 /// Represents the parameters of a Gemini LLM model.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMGeminiParameters = LLMOpenAILikeParameters<GeminiPlatformDefinition>
 
 
@@ -140,6 +143,7 @@ public typealias LLMGeminiAPITokenOnboardingStep = LLMOpenAILikeAPITokenOnboardi
 public typealias LLMGeminiModelOnboardingStep = LLMOpenAILikeModelOnboardingStep<GeminiPlatformDefinition>
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CredentialsTag {
     /// The canonical credentials tag for the Gemini API key
     public static let geminiKey = Self.for(GeminiPlatformDefinition.self)
@@ -149,6 +153,7 @@ extension CredentialsTag {
 // MARK: Models
 
 // swiftlint:disable identifier_name
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension GeminiPlatformDefinition.ModelType {
     /// The default model to be used with Gemini.
     public static let `default`: Self = .gemini2_5_pro

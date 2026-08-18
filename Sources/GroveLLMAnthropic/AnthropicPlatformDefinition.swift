@@ -14,6 +14,7 @@ public import GroveLLMOpenAI
 
 
 /// Defines the Anthropic LLM platform.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct AnthropicPlatformDefinition: LLMOpenAILikePlatformDefinition {
     public struct ModelType: LLMOpenAILikePlatformModelType {
         public let rawValue: String
@@ -34,10 +35,12 @@ public struct AnthropicPlatformDefinition: LLMOpenAILikePlatformDefinition {
 // MARK: Type Specializations
 
 /// Represents the configuration of the Grove ``LLMAnthropicPlatform``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMAnthropicPlatformConfiguration = LLMOpenAILikePlatformConfiguration<AnthropicPlatformDefinition>
 
 
 /// Represents the parameters of an Anthropic LLM model.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMAnthropicParameters = LLMOpenAILikeParameters<AnthropicPlatformDefinition>
 
 
@@ -140,6 +143,7 @@ public typealias LLMAnthropicAPITokenOnboardingStep = LLMOpenAILikeAPITokenOnboa
 public typealias LLMAnthropicModelOnboardingStep = LLMOpenAILikeModelOnboardingStep<AnthropicPlatformDefinition>
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CredentialsTag {
     /// The canonical credentials tag for the Anthropic API key
     public static let anthropicKey = Self.for(AnthropicPlatformDefinition.self)
@@ -149,6 +153,7 @@ extension CredentialsTag {
 // MARK: Models
 
 // swiftlint:disable identifier_name
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AnthropicPlatformDefinition.ModelType {
     /// The default model to be used with Anthropic.
     public static let `default`: Self = .opus4_6

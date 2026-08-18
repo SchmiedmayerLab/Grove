@@ -59,4 +59,5 @@ public enum LLMDefaultError: LLMError {
 ///     public var failureReason: String? { "Some example failure reason" }
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol LLMError: LocalizedError, Equatable {}      // `LocalizedError` conforms to `Sendable`

@@ -19,6 +19,7 @@ public import AppKit
 /// A ``LLMContextEntity`` can be thought of as a single message entity within a ``LLMContext``
 /// It consists of a ``LLMContextEntity/Role``, a unique identifier, a timestamp in the form of a `Date` as well as an `String`-based ``LLMContextEntity/content`` property which can contain Markdown-formatted text.
 /// Furthermore, the ``LLMContextEntity/complete`` flag indicates if the current state of the ``LLMContextEntity`` is final and the content will not be updated anymore.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct LLMContextEntity: Codable, Equatable, Hashable, Identifiable, Sendable {
     /// Represents a tool call by the LLM, including its parameters
     public struct ToolCall: Codable, Equatable, Hashable, Sendable {
@@ -111,6 +112,7 @@ public struct LLMContextEntity: Codable, Equatable, Hashable, Identifiable, Send
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMContextEntity {
     #if canImport(UIKit)
     /// - Important: This type is not stable and will be removed in an upcoming release.
@@ -164,6 +166,7 @@ extension LLMContextEntity {
 
 
 #if canImport(AppKit)
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension NSImage {
     fileprivate func pngData() -> Data? {
         tiffRepresentation

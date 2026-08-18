@@ -10,6 +10,7 @@ public import GroveFoundation
 
 // swiftlint:disable discouraged_optional_boolean
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _LLMFunctionParameterWrapper where T: AnyArray, T.Element: LLMFunctionParameterArrayElement {
     /// Declares an ``LLMFunctionParameterArrayElement``-based (custom type) ``LLMFunction/Parameter`` `array`.
     ///
@@ -49,6 +50,7 @@ extension _LLMFunctionParameterWrapper where T: AnyArray, T.Element: LLMFunction
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _LLMFunctionParameterWrapper where T: AnyOptional, T.Wrapped: AnyArray,
                                              T.Wrapped.Element: LLMFunctionParameterArrayElement {
     /// Declares an optional ``LLMFunctionParameterArrayElement``-based (custom type) ``LLMFunction/Parameter`` `array`.

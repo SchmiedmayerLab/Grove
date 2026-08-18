@@ -10,6 +10,7 @@ public import SwiftUI
 
 
 /// The underlying `ViewModifier` of `View/speechToolbarButton(enabled:muted:)`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct ChatViewSpeechButtonModifier: ViewModifier {
     @Binding var muted: Bool
     
@@ -37,6 +38,7 @@ private struct ChatViewSpeechButtonModifier: ViewModifier {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     /// Adds a toolbar `Button` to mute or unmute text-to-speech capabilities.
     ///

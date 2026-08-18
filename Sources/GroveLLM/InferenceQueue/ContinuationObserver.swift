@@ -11,6 +11,7 @@ public import Atomics
 /// A wrapper for a `AsyncThrowingStream/Continuation` that indicates if the continuation, and by extension the stream, is cancelled.
 ///
 /// - Important: An orderly shutdown / termination of the `AsyncThrowingStream/Continuation` is not treated as a cancellation.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @usableFromInline
 package struct ContinuationObserver<T: Sendable, E: Error>: Sendable {
     @usableFromInline let _cancelled = ManagedAtomic<Bool>(false)       // swiftlint:disable:this identifier_name

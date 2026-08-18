@@ -10,6 +10,7 @@ package import Foundation
 
 
 /// Defines the `LLMFunctionParameterValueCollector/retrieve(_:)` requirement so that the ``LLMFunction/Parameter``s retrieve the function calling parameter values.
+@available(iOS 18, macOS 15, watchOS 11, *)
 protocol LLMFunctionParameterValueCollector {
     /// Indicates if the ``LLMFunction/Parameter`` that retrieves the parameter value is optional.
     var isOptional: Bool { get }
@@ -21,6 +22,7 @@ protocol LLMFunctionParameterValueCollector {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension _LLMFunctionParameterWrapper: LLMFunctionParameterValueCollector {
     var isOptional: Bool {
         // Only `Optional` conforms to `ExpressibleByNilLiteral`: https://developer.apple.com/documentation/swift/expressiblebynilliteral
@@ -33,6 +35,7 @@ extension _LLMFunctionParameterWrapper: LLMFunctionParameterValueCollector {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMFunction {
     /// All ``LLMFunction/Parameter``s conforming to `LLMFunctionParameterValueCollector`, mapped by their name.
     var parameterValueCollectors: [String: any LLMFunctionParameterValueCollector] {

@@ -10,6 +10,7 @@ import Foundation
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ChatEntity {
     /// Indicates if a ``ChatEntity`` is displayed in a leading or trailing position within a SwiftUI `View`.
     enum Alignment {

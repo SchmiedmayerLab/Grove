@@ -69,6 +69,7 @@ struct MessageStyleModifier: ViewModifier {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     /// Attach this modifier to `Text`-based content in SwiftUI to format it as a typical chat bubble within a chat view.
     /// The modifier handles text alignment, paddings, colourings, background, as well as the typical chat bubble visualization.

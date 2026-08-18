@@ -14,6 +14,7 @@ package import OpenAPIRuntime
 
 
 /// Middleware for injecting an Bearer API token into outgoing requests based on the ``RemoteLLMInferenceAuthToken``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 package struct BearerAuthMiddleware: ClientMiddleware {
     private let authToken: RemoteLLMInferenceAuthToken
     private let keychainStorage: KeychainStorage?

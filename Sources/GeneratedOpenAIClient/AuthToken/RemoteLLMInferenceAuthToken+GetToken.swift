@@ -9,6 +9,7 @@
 package import GroveKeychainStorage
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RemoteLLMInferenceAuthToken {
     package func getToken(keychainStorage: KeychainStorage?) async throws -> String? {
         switch self {

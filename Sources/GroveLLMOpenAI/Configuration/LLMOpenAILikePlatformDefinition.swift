@@ -13,6 +13,7 @@ import GeneratedOpenAIClient
 import OpenAPIRuntime
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol LLMOpenAILikePlatformDefinition: Sendable {
     /// Defines the models available on this platform
     associatedtype ModelType: LLMOpenAILikePlatformModelType
@@ -36,11 +37,13 @@ public protocol LLMOpenAILikePlatformDefinition: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMOpenAILikePlatformDefinition {
     public static var platformDeveloperConsoleUrl: URL? { nil } // swiftlint:disable:this missing_docs
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol LLMOpenAILikePlatformModelType: Hashable, RawRepresentable<String>, Codable, Identifiable, ExpressibleByStringLiteral, Sendable {
     /// The default model, that should be used as a fallback.
     static var `default`: Self { get }
@@ -55,6 +58,7 @@ public protocol LLMOpenAILikePlatformModelType: Hashable, RawRepresentable<Strin
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMOpenAILikePlatformModelType {
     public var id: some Hashable { // swiftlint:disable:this missing_docs
         rawValue
