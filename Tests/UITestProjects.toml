@@ -147,7 +147,7 @@ app_products = ["Grove", "GroveFoundation", "GroveOnboarding", "GroveViews"]
 test_products = ["XCTestExtensions"]
 
 [GroveQuestionnaire]
-app_products = ["FHIRQuestionnaires", "Grove", "GroveQuestionnaire", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveViews"]
+app_products = ["FHIRQuestionnaires", "GroveQuestionnaire", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveViews"]
 test_products = ["XCTGroveQuestionnaire", "XCTestExtensions"]
 # Linked but not imported; kept so the linkage stays as it was.
 test_fixture_products = ["GroveFoundation"]

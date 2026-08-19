@@ -6,8 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
-// swiftlint:disable file_types_order
-
 #if canImport(UIKit)
 import GroveViews
 import PencilKit
@@ -32,7 +30,7 @@ struct AnnotateImageView: View {
         } label: {
             HStack(alignment: .top) {
                 if let image {
-                    previewImage(for: image)
+                    AnnotationPreviewImage(image: image, drawing: $response.drawing)
                 } else {
                     Image(systemName: "questionmark.square.dashed")
                         .resizable()
@@ -42,7 +40,7 @@ struct AnnotateImageView: View {
                 }
                 VStack(alignment: .leading) {
                     HStack {
-                        let regions = config.regions.map(\.name).joined(separator: ", ")
+                        let regions = config.regions.map(\.name).formatted()
                         Text("Mark \(regions)", bundle: .module)
                             .fontWeight(.medium)
                         Spacer()
@@ -56,11 +54,16 @@ struct AnnotateImageView: View {
                 }
                 .tint(colorScheme.textLabelForegroundStyle)
             }
+            .padding(.vertical, 8)
         }
         .disabled(image == nil)
+        .accessibilityIdentifier("OpenImageAnnotationEditor")
+        .accessibilityHint(Text("Opens an editor with drawing and zoom controls.", bundle: .module))
         .sheet(isPresented: $showSheet) {
             if let image {
-                Sheet(task: task, config: config, image: image, response: $response)
+                AnnotateImageSheet(task: task, config: config, image: image, response: $response)
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
             }
         }
     }
@@ -75,19 +78,12 @@ struct AnnotateImageView: View {
         self._response = response
         self.image = config.inputImage.image()
     }
-    
-    private func previewImage(for image: UIImage) -> some View {
-        ImageAnnotationView(image: image, drawing: $response.drawing, tool: .init(.pen))
-            .accessibilityLabel(Text("Image", bundle: .module))
-            .frame(height: 100)
-            .disabled(true)
-    }
 }
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension AnnotateImageView {
-    fileprivate static func ink(for region: AnnotateImageConfig.Region) -> PKInk {
+    static func ink(for region: AnnotateImageConfig.Region) -> PKInk {
         PKInk(.pen, color: UIColor(region.color))
     }
 }
@@ -126,134 +122,4 @@ extension AnnotateImageView {
 }
 
 
-@available(iOS 18, macOS 15, watchOS 11, *)
-private struct Sheet: View {
-    @Environment(\.dismiss) private var dismiss
-    
-    let task: Questionnaire.Task
-    let config: AnnotateImageConfig
-    let image: UIImage
-    @Binding var response: QuestionnaireResponses.ImageAnnotation
-    
-    @State private var selectedRegion: AnnotateImageConfig.Region?
-    @State private var isShowingResetAlert = false
-    
-    var body: some View {
-        NavigationStack { // swiftlint:disable:this closure_body_length
-            VStack(alignment: .leading) {
-                Group {
-                    Text(task.title)
-                        .font(.headline)
-                    Text(task.subtitle)
-                        .font(.subheadline)
-                    Divider()
-                    Text("ANNOTATE_IMAGE_INSTRUCTIONS", bundle: .module)
-                }
-                .padding(.horizontal)
-                Divider()
-                HStack {
-                    Spacer()
-                    ImageAnnotationView(
-                        image: image,
-                        drawing: $response.drawing,
-                        tool: selectedRegion.map { PKInkingTool(ink: AnnotateImageView.ink(for: $0), width: 2) } ?? .init(.crayon)
-                    )
-                    .disabled(selectedRegion == nil)
-                    Spacer()
-                }
-                .padding(.horizontal)
-                Spacer()
-                Form {
-                    ForEach(config.regions) { region in
-                        RegionRow(region: region, selectedRegion: $selectedRegion, drawing: $response.drawing)
-                    }
-                }
-                .frame(height: 150)
-                .sensoryFeedback(.selection, trigger: selectedRegion)
-            }
-            .navigationTitle(Text("Annotate Image", bundle: .module))
-            .navigationBarTitleDisplayMode(.inline)
-            .makeBackgroundMatchFormBackground()
-            .toolbar {
-                toolbarContent
-            }
-        }
-        .interactiveDismissDisabled()
-        .onAppear {
-            if config.regions.count == 1 {
-                selectedRegion = config.regions.first
-            }
-        }
-    }
-    
-    @ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .cancellationAction) {
-            Button(role: .destructive) {
-                isShowingResetAlert = true
-            } label: {
-                Label(LocalizedStringResource("Reset", bundle: .module), systemImage: "trash")
-            }
-            .tint(.red)
-            .confirmationDialog(LocalizedStringResource("Reset Annotations", bundle: .module), isPresented: $isShowingResetAlert) {
-                Button(role: .destructive) {
-                    response.drawing = .init()
-                } label: {
-                    Text("Reset", bundle: .module)
-                }
-            } message: {
-                Text("Do you want to remove all annotations?", bundle: .module)
-            }
-        }
-        ToolbarItem(placement: .confirmationAction) {
-            if #available(iOS 26, macOS 26, *) {
-                Button(role: .confirm) {
-                    dismiss()
-                } label: {
-                    Label(LocalizedStringResource("Save", bundle: .module), systemImage: "checkmark")
-                }
-            } else {
-                Button {
-                    dismiss()
-                } label: {
-                    Label(LocalizedStringResource("Save", bundle: .module), systemImage: "checkmark")
-                }
-                .buttonStyleGlassProminent()
-            }
-        }
-    }
-}
-
-
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension Sheet {
-    private struct RegionRow: View {
-        typealias Region = AnnotateImageConfig.Region
-        
-        @Environment(\.colorScheme) private var colorScheme
-        
-        let region: Region
-        @Binding var selectedRegion: Region?
-        @Binding var drawing: PKDrawing
-        
-        var body: some View {
-            Button {
-                selectedRegion = region
-            } label: {
-                HStack {
-                    Circle()
-                        .fill(region.color)
-                        .frame(height: 17)
-                    Text(region.name)
-                        .foregroundStyle(colorScheme.textLabelForegroundStyle)
-                    Spacer()
-                    if selectedRegion == region {
-                        Image(systemName: "checkmark")
-                            .accessibilityHidden(true)
-                            .fontWeight(.medium)
-                    }
-                }
-            }
-        }
-    }
-}
 #endif

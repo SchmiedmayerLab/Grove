@@ -38,43 +38,29 @@ extension QuestionnaireResponses {
         /// Produces an image by overlaying the drawing onto a base image.
 #if canImport(UIKit)
         public func draw(onto baseImage: UIImage) -> UIImage? {
-            let scale = baseImage.scale
-            guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
-                  let baseCGImage = baseImage.cgImage,
-                  let drawingCGImage = drawing.image(from: drawing.bounds, scale: scale).cgImage else {
-                return nil
-            }
-            let ctxBounds = CGRect(
-                origin: .zero,
-                size: CGSize(width: baseCGImage.width, height: baseCGImage.height)
+            let pixelSize = baseImage.size.applying(
+                CGAffineTransform(scaleX: baseImage.scale, y: baseImage.scale)
             )
-            guard let context = CGContext(
-                data: nil,
-                width: Int(ctxBounds.width),
-                height: Int(ctxBounds.height),
-                bitsPerComponent: 8,
-                bytesPerRow: 0,
-                space: colorSpace,
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-            ) else {
+            guard pixelSize.width > 0, pixelSize.height > 0 else {
                 return nil
             }
-            context.draw(baseCGImage, in: ctxBounds)
-            context.draw(drawingCGImage, in: { () -> CGRect in
-                // we need to flip the rect to compensate for the CGContext's flipped coordinate system
-                let rect = drawing.bounds.applying(
-                    CGAffineTransform(scaleX: scale, y: scale)
-                )
-                return CGRect(
-                    x: rect.origin.x,
-                    y: ctxBounds.height - rect.origin.y - rect.height,
-                    width: rect.width,
-                    height: rect.height
-                )
-            }())
-            return context.makeImage().map {
-                UIImage(cgImage: $0, scale: scale, orientation: baseImage.imageOrientation)
+
+            // The editor stores PencilKit coordinates in source-image pixels. Rendering at a
+            // scale of one preserves those coordinates for both @1x and Retina base images.
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1
+            format.opaque = false
+            let rendered = UIGraphicsImageRenderer(size: pixelSize, format: format).image { _ in
+                baseImage.draw(in: CGRect(origin: .zero, size: pixelSize))
+                guard !drawing.isEmpty else {
+                    return
+                }
+                drawing.image(from: drawing.bounds, scale: 1).draw(in: drawing.bounds)
             }
+            guard let renderedCGImage = rendered.cgImage else {
+                return nil
+            }
+            return UIImage(cgImage: renderedCGImage, scale: baseImage.scale, orientation: .up)
         }
         #endif
     }

@@ -18,6 +18,8 @@ extension TaskView {
         var body: some View {
             if !text.isEmpty {
                 Markdown(text)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }

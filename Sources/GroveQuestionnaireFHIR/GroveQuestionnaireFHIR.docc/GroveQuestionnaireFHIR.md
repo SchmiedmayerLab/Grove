@@ -10,81 +10,54 @@
 #
 -->
 
-Use FHIR questionnaires in your iOS app
+Import, present, and export FHIR R4 questionnaires.
 
+## Overview
 
-## Discussion
+`GroveQuestionnaireFHIR` connects Grove's questionnaire model with
+[FHIR R4 Questionnaire](https://hl7.org/fhir/R4/questionnaire.html) and
+[QuestionnaireResponse](https://hl7.org/fhir/R4/questionnaireresponse.html) resources.
+It preserves supported SDC branching, variables, initial expressions, calculated
+expressions, item metadata, and nested groups across an import/export round trip.
 
-The `GroveQuestionnaireFHIR` target extends the `GroveQuestionnaire` target, adding FHIR support:
-- Convert a [FHIR R4 Questionnaire](https://hl7.org/fhir/R4/questionnaire.html) into a Grove [`Questionnaire`](../../GroveQuestionnaire/GroveQuestionnaire.docc/GroveQuestionnaire.md)
-    - support for partially and fully custom question kinds using `item-control` and FHIR extensions
-- Convert a Grove [`QuestionnaireResponses`](../../GroveQuestionnaire/GroveQuestionnaire.docc/GroveQuestionnaire.md) instance into a [FHIR R4 QuestionnaireResponse](https://hl7.org/fhir/R4/questionnaireresponse.html)
+Decode a resource and install the expression engine before presenting it:
 
+```swift
+import GroveQuestionnaireFHIR
+import ModelsR4
 
-### Supported Question Kinds
-
-All of GroveQuestionnaire's builtin question kinds are supported when importing a FHIR R4 questionnaire.
-
-This includes the Annotate Image question kind; see below for an example FHIR R4 JSON definition of a question asking the user to highlight, on a bodymap image, the areas where they feel pain or stiffness:
-```json
-{
-  "linkId": "pain-leg",
-  "text": "In each leg, where do you feel pain?",
-  "type": "attachment",
-  "extension": [
-    {
-      "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-itemControl",
-      "valueCodeableConcept": {
-        "coding": [
-          {
-            "system": "http://spezi.stanford.edu/fhir/CodeSystem/questionnaire-item-control",
-            "code": "annotate-image"
-          }
-        ]
-      }
-    },
-    {
-      "url": "http://spezi.stanford.edu/fhir/CodeSystem/questionnaire-item-control/annotate-image/input-image",
-      "valueString": "bodymap.png"
-    },
-    {
-      "url": "http://spezi.stanford.edu/fhir/CodeSystem/questionnaire-item-control/annotate-image/region",
-      "extension": [
-        {
-          "url": "label",
-          "valueString": "Pain"
-        },
-        {
-          "url": "color",
-          "valueString": "red"
-        }
-      ]
-    },
-    {
-      "url": "http://spezi.stanford.edu/fhir/CodeSystem/questionnaire-item-control/annotate-image/region",
-      "extension": [
-        {
-          "url": "label",
-          "valueString": "Stiffness"
-        },
-        {
-          "url": "color",
-          "valueString": "blue"
-        }
-      ]
-    }
-  ]
-}
+let resource = try JSONDecoder().decode(ModelsR4.Questionnaire.self, from: data)
+let questionnaire = try Questionnaire(resource).withExpressionEngine()
 ```
 
+Grove questionnaires can also be published as FHIR resources, and collected answers
+can be submitted with stable identity and authorship metadata:
+
+```swift
+let fhirQuestionnaire = try ModelsR4.Questionnaire(questionnaire)
+let response = try ModelsR4.QuestionnaireResponse(
+    responses,
+    subject: participant,
+    identifier: submissionIdentifier,
+    authored: submittedAt
+)
+```
+
+Custom question kinds can participate by conforming their definitions and response
+values to the FHIR support protocols below. Unsupported custom kinds fail export rather
+than being silently omitted.
 
 ## Topics
 
-### FHIR ↔ GroveQuestionnaire Conversion
-- ``GroveQuestionnaire/Questionnaire/init(_:using:)``
-- ``ModelsR4/QuestionnaireResponse/init(_:)``
+### Conversion
 
-### Supporting Types
+- ``GroveQuestionnaire/Questionnaire/init(_:using:)``
+- ``ModelsR4/Questionnaire/init(_:)``
+- ``ModelsR4/QuestionnaireResponse/init(_:subject:author:source:status:identifier:authored:)``
+- ``GroveQuestionnaire/Questionnaire/withExpressionEngine(launchContext:)``
+
+### Custom Question Kinds
+
 - ``QuestionKindDefinitionWithFHIRSupport``
 - ``QuestionKindDefinitionWithFHIRDecodingSupport``
 - ``QuestionKindDefinitionWithFHIREncodingSupport``

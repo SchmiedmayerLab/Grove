@@ -7,13 +7,13 @@
 //
 
 private import CryptoKit
-private import Foundation
+public import Foundation
 public import GroveQuestionnaire
 public import ModelsR4
 
 
 /// An error that occurred when converting a Grove `QuestionnaireResponses` object into a FHIR R4 `QuestionnaireResponse`
-private struct FHIRConversionError: LocalizedError {
+struct FHIRResponseConversionError: LocalizedError {
     let errorDescription: String?
     
     init(_ message: String) {
@@ -41,35 +41,152 @@ extension GroveQuestionnaire.QuestionnaireResponses {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ModelsR4.QuestionnaireResponse {
     /// Creates a FHIR R4 `QuestionnaireResponse` from a Grove `QuestionnaireResponses`.
-    public init(_ other: GroveQuestionnaire.QuestionnaireResponses) throws {
-        self.init(status: .init(.completed))
-        self.id = other.id.uuidString.asFHIRStringPrimitive()
-        self.identifier = Identifier(value: other.id.uuidString.asFHIRStringPrimitive())
-        self.authored = try FHIRPrimitive(DateTime(date: .now))
-        if let url = other.questionnaire.metadata.url {
-            self.questionnaire = FHIRPrimitive(Canonical(url))
-        }
-        self.item = try other.responses.toFHIR(using: .init(
-            allTasks: other.questionnaire.sections.flatMap(\.tasks)
+    ///
+    /// The generated response mirrors the questionnaire's structure: answers within FHIR
+    /// groups are wrapped in items carrying the group linkIds, and answers to questions
+    /// nested beneath another question are nested beneath the parent's answer.
+    ///
+    /// - parameter other: The collected Grove responses to convert.
+    /// - parameter subject: Who the answers are about (`QuestionnaireResponse.subject`),
+    ///     typically a reference to the study participant.
+    /// - parameter author: Who recorded the answers (`QuestionnaireResponse.author`).
+    /// - parameter source: Who supplied the answers (`QuestionnaireResponse.source`).
+    /// - parameter status: The response's lifecycle state; pass `.inProgress` when
+    ///     exporting a partially answered draft.
+    /// - parameter identifier: A business identifier for the response. By default,
+    ///     Grove uses the questionnaire canonical as its system and the response UUID as its value.
+    /// - parameter authored: When the response was authored. Pass a stored timestamp
+    ///     when repeated exports must be byte-stable.
+    public init(
+        _ other: GroveQuestionnaire.QuestionnaireResponses,
+        subject: Reference? = nil,
+        author: Reference? = nil,
+        source: Reference? = nil,
+        status: QuestionnaireResponseStatus = .completed,
+        identifier: Identifier? = nil,
+        authored: Date = .now
+    ) throws {
+        try self.init(
+            other,
+            subject: subject,
+            author: author,
+            source: source,
+            status: status,
+            identifier: identifier,
+            authored: authored,
+            droppingUnconvertibleAnswers: false
+        )
+    }
+
+    /// A best-effort snapshot of the answers so far, for expression evaluation.
+    ///
+    /// An answer that cannot be expressed in FHIR yet — a half-entered number in an
+    /// integer item, say — is left out rather than failing the conversion, which would
+    /// take every expression in the form down with it.
+    init(evaluating responses: GroveQuestionnaire.QuestionnaireResponses) throws {
+        try self.init(responses, status: .inProgress, identifier: nil, authored: .now, droppingUnconvertibleAnswers: true)
+    }
+
+    private init(
+        _ other: GroveQuestionnaire.QuestionnaireResponses,
+        subject: Reference? = nil,
+        author: Reference? = nil,
+        source: Reference? = nil,
+        status: QuestionnaireResponseStatus,
+        identifier: Identifier?,
+        authored: Date,
+        droppingUnconvertibleAnswers: Bool
+    ) throws {
+        self.init(status: .init(status))
+        // Self-declare the profile so validators and profile-aware stores pick up
+        // the contract without out-of-band knowledge.
+        self.meta = Meta(profile: [
+            FHIRPrimitive(Canonical(
+            "https://grovealliance.org/fhir/core/StructureDefinition/grove-questionnaire-response"
         ))
+        ])
+        self.id = other.id.uuidString.asFHIRStringPrimitive()
+        self.identifier = identifier ?? Identifier(
+            system: other.questionnaire.metadata.url?.asFHIRURIPrimitive(),
+            value: other.id.uuidString.asFHIRStringPrimitive()
+        )
+        self.authored = try FHIRPrimitive(DateTime(date: authored))
+        self.subject = subject
+        self.author = author
+        self.source = source
+        // questionnaireresponse-completionMode: this renderer only captures
+        // electronically. The bound value set draws from v3 ParticipationMode.
+        self.extension = [
+            Extension(
+            url: "http://hl7.org/fhir/StructureDefinition/questionnaireresponse-completionMode",
+            value: .codeableConcept(CodeableConcept(coding: [
+                Coding(
+                code: "ELECTRONIC".asFHIRStringPrimitive(),
+                display: "electronic data".asFHIRStringPrimitive(),
+                system: "http://terminology.hl7.org/CodeSystem/v3-ParticipationMode".asFHIRURIPrimitive()
+            )
+            ]))
+        )
+        ]
+        if let url = other.questionnaire.metadata.url {
+            // Pin the canonical to the questionnaire's business version when known.
+            self.questionnaire = FHIRPrimitive(Canonical(url, version: other.questionnaire.metadata.version))
+        } else if !droppingUnconvertibleAnswers {
+            // Nothing else names the instrument, so a response without it cannot be read
+            // back. The evaluation snapshot never leaves the renderer and may go without.
+            throw FHIRResponseConversionError(
+                "Questionnaire '\(other.questionnaire.metadata.id)' has no url; its responses cannot reference the instrument they answer"
+            )
+        }
+        let items = try Self.items(for: other, droppingUnconvertibleAnswers: droppingUnconvertibleAnswers)
+        // An empty `item` array is invalid FHIR JSON; omit the element instead.
+        self.item = items.isEmpty ? nil : items
+    }
+
+    /// The response items for the questionnaire's sections, in section order.
+    private static func items(
+        for other: GroveQuestionnaire.QuestionnaireResponses,
+        droppingUnconvertibleAnswers: Bool
+    ) throws -> [QuestionnaireResponseItem] {
+        var items: [QuestionnaireResponseItem] = []
+        for section in other.questionnaire.sections {
+            let sectionItems = try other.responses.toFHIR(section: section, droppingUnconvertibleAnswers: droppingUnconvertibleAnswers)
+            guard !sectionItems.isEmpty else {
+                continue
+            }
+            if let groupId = section.fhirGroupId {
+                // The section mirrors a FHIR group: wrap its answers in the group's item.
+                var wrapper = QuestionnaireResponseItem(linkId: groupId.asFHIRStringPrimitive())
+                if !section.title.isEmpty {
+                    wrapper.text = section.title.asFHIRStringPrimitive()
+                }
+                wrapper.item = sectionItems
+                items.append(wrapper)
+            } else {
+                items.append(contentsOf: sectionItems)
+            }
+        }
+        return items
     }
 }
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses.Responses {
-    fileprivate struct FHIRConversionContext {
+    struct FHIRConversionContext {
         /// All tasks in the questionnaire, in the current context.
         ///
         /// For non-nested tasks, this simply contains all root-level tasks in the questionnaire.
         /// For nested tasks, this contains all nested tasks for the nested task's parent task.
         let allTasks: [GroveQuestionnaire.Questionnaire.Task]
     }
-    
-    fileprivate func toFHIR(using context: FHIRConversionContext) throws -> [QuestionnaireResponseItem] {
+
+    /// Builds the flat response items for a set of tasks (used for choice-option
+    /// follow-up responses, which FHIR nests beneath the selected answer).
+    func toFHIR(using context: FHIRConversionContext) throws -> [QuestionnaireResponseItem] {
         let items = try self.compactMap { taskId, response in
             guard let task = context.allTasks.first(where: { $0.id == taskId }) else {
-                throw FHIRConversionError("Unable to find task '\(taskId)'")
+                throw FHIRResponseConversionError("Unable to find task '\(taskId)'")
             }
             return try response.toFHIR(using: .init(task: task))
         }
@@ -83,163 +200,117 @@ extension QuestionnaireResponses.Responses {
             return tasksIdsByOverallPosition[lhsLinkId]! < tasksIdsByOverallPosition[rhsLinkId]! // swiftlint:disable:this force_unwrapping
         }
     }
-}
 
-
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension QuestionnaireResponses.Response {
-    fileprivate struct FHIRConversionContext { // maybe also use this for the CustomResponseValue conversion?
-        let task: GroveQuestionnaire.Questionnaire.Task
+    /// Builds the response items for one section, restoring the questionnaire's structure:
+    /// nested-group wrappers from each task's ``Questionnaire/Task/groupPath``, and
+    /// child-question answers beneath their parent per ``Questionnaire/Task/parentTaskId``.
+    fileprivate func toFHIR(
+        section: GroveQuestionnaire.Questionnaire.Section,
+        droppingUnconvertibleAnswers: Bool = false
+    ) throws -> [QuestionnaireResponseItem] {
+        let items = try flatItems(for: section, droppingUnconvertibleAnswers: droppingUnconvertibleAnswers)
+        let nested = attachingChildItems(to: items, in: section)
+        return groupWrappedItems(nested, in: section)
     }
-    
-    fileprivate func toFHIR( // swiftlint:disable:this function_body_length cyclomatic_complexity
-        using context: FHIRConversionContext
-    ) throws -> QuestionnaireResponseItem? {
-        // QUESTION do we need to place responses to tasks contained in a FHIR group in an empty QuestionnaireResponseItem?
-        // (RKoF currently doesn't)
-        let task = context.task
-        if !nestedResponses.isEmpty, task.kind.followUpTasks.isEmpty {
-            throw FHIRConversionError("Unexpectedly found nested responses in task without nested tasks")
+
+    /// The flat response item of every responded task in the section, keyed by task id.
+    private func flatItems(
+        for section: GroveQuestionnaire.Questionnaire.Section,
+        droppingUnconvertibleAnswers: Bool
+    ) throws -> [String: QuestionnaireResponseItem] {
+        var itemsByTaskId: [String: QuestionnaireResponseItem] = [:]
+        for task in section.tasks {
+            do {
+                // The subscript yields an empty response for unanswered tasks; toFHIR maps those to nil.
+                if let item = try self[task.id].toFHIR(using: .init(task: task)) {
+                    itemsByTaskId[task.id] = item
+                }
+            } catch {
+                guard droppingUnconvertibleAnswers else {
+                    throw error
+                }
+            }
         }
-        var responseItem = QuestionnaireResponseItem(
-            linkId: context.task.id.asFHIRStringPrimitive()
-        )
-        switch task.kind.variant {
-        case let .custom(questionKind, config: _):
-            if let questionKind = questionKind as? any QuestionKindDefinitionWithFHIREncodingSupport.Type {
-                do {
-                    responseItem.answer = try questionKind.toFHIR(self, for: task)
-                } catch {
-                }
-                return responseItem
+        return itemsByTaskId
+    }
+
+    /// Attaches child-question items beneath their parent (FHIR: in context of the answer).
+    ///
+    /// Children are processed deepest-first so grandchildren are attached before their
+    /// parent is itself attached elsewhere.
+    private func attachingChildItems(
+        to items: [String: QuestionnaireResponseItem],
+        in section: GroveQuestionnaire.Questionnaire.Section
+    ) -> [String: QuestionnaireResponseItem] {
+        var itemsByTaskId = items
+        for task in section.tasks.reversed() {
+            guard let parentId = task.parentTaskId, let childItem = itemsByTaskId.removeValue(forKey: task.id) else {
+                continue
             }
-        default:
-            break
-        }
-        switch self.value {
-        case .none:
-            guard nestedResponses.isEmpty else {
-                throw FHIRConversionError("Found empty response with nested responses")
-            }
-            return nil
-        case .string(let response):
-            responseItem.answer = [
-                .init(value: .string(response.asFHIRStringPrimitive()))
-            ]
-        case .bool(let response):
-            responseItem.answer = [
-                .init(value: .boolean(response.asPrimitive()))
-            ]
-        case .date(let response):
-            let value = try { () throws -> QuestionnaireResponseItemAnswer.ValueX in
-                guard case .dateTime(let config) = task.kind.variant else {
-                    throw FHIRConversionError("Invalid Input")
-                }
-                switch config.style {
-                case .dateOnly:
-                    return .date(FHIRPrimitive(FHIRDate(
-                        year: response.year ?? 0, // should always be non-nil
-                        month: response.month.map(numericCast),
-                        day: response.day.map(numericCast)
-                    )))
-                case .timeOnly:
-                    return .time(FHIRPrimitive(FHIRTime(
-                        hour: response.hour.map(numericCast) ?? 0,
-                        minute: response.minute.map(numericCast) ?? 0,
-                        second: response.second.map { Decimal($0) } ?? 0
-                    )))
-                case .dateAndTime:
-                    return .dateTime(FHIRPrimitive(DateTime(
-                        date: FHIRDate(
-                            year: response.year ?? 0,
-                            month: response.month.map(numericCast),
-                            day: response.day.map(numericCast)
-                        ),
-                        time: FHIRTime(
-                            hour: response.hour.map(numericCast) ?? 0,
-                            minute: response.minute.map(numericCast) ?? 0,
-                            second: response.second.map { Decimal($0) } ?? 0
-                        )
-                    )))
-                }
-            }()
-            responseItem.answer = [.init(value: value)]
-        case .number(let response):
-            guard case .numeric(let config) = task.kind.variant else {
-                throw FHIRConversionError("Invalid Input")
-            }
-            let value: QuestionnaireResponseItemAnswer.ValueX
-            if !config.unit.isEmpty {
-                value = .quantity(Quantity(
-                    unit: config.unit.asFHIRStringPrimitive(),
-                    value: response.asFHIRDecimalPrimitive()
-                ))
+            // A parent without an answer of its own (e.g. an optional question that was
+            // skipped while an unconditional child was answered) carries the children on an
+            // answerless parent item, which FHIR permits.
+            var parent = itemsByTaskId[parentId] ?? QuestionnaireResponseItem(linkId: parentId.asFHIRStringPrimitive())
+            if var answers = parent.answer, !answers.isEmpty {
+                answers[0].item = (answers[0].item ?? []) + [childItem]
+                parent.answer = answers
             } else {
-                // this will lead to integer questions getting decimal responses, but prob not an issue for the time being
-                value = .decimal(response.asFHIRDecimalPrimitive())
+                parent.item = (parent.item ?? []) + [childItem]
             }
-            responseItem.answer = [.init(value: value)]
-        case .choice(let response):
-            guard case .choice(let config) = task.kind.variant else {
-                throw FHIRConversionError("Invalid Input")
-            }
-            responseItem.answer = try response.selectedOptions.map { optionId in
-                guard let option = config.options.first(where: { $0.id == optionId }) else {
-                    throw FHIRConversionError("Unable to find option for '\(optionId)'")
+            itemsByTaskId[parentId] = parent
+        }
+        return itemsByTaskId
+    }
+
+    /// Assembles the items in task order, restoring the nested-group wrappers each task's
+    /// ``Questionnaire/Task/groupPath`` names.
+    private func groupWrappedItems(
+        _ itemsByTaskId: [String: QuestionnaireResponseItem],
+        in section: GroveQuestionnaire.Questionnaire.Section
+    ) -> [QuestionnaireResponseItem] {
+        var result: [QuestionnaireResponseItem] = []
+        // Stack of currently open group wrappers, outermost first.
+        var openGroups: [(linkId: String, item: QuestionnaireResponseItem)] = []
+        func close(downTo depth: Int) {
+            while openGroups.count > depth {
+                let closed = openGroups.removeLast()
+                if openGroups.isEmpty {
+                    result.append(closed.item)
+                } else {
+                    var parent = openGroups.removeLast()
+                    parent.item.item = (parent.item.item ?? []) + [closed.item]
+                    openGroups.append(parent)
                 }
-                return QuestionnaireResponseItemAnswer(value: .coding(option.toFHIRCoding()))
             }
-            if let otherText = response.freeTextOtherResponse {
-                // SAFETY: we just assigned a non-nil value above
-                responseItem.answer!.append(.init(value: .string(otherText.asFHIRStringPrimitive()))) // swiftlint:disable:this force_unwrapping
+        }
+        for task in section.tasks where task.parentTaskId == nil {
+            guard let item = itemsByTaskId[task.id] else {
+                continue
             }
-        case .attachments(let responses):
-            responseItem.answer = try responses.map { attachment in
-                try .init(attachment)
+            // Find the shared prefix between the open groups and this task's path.
+            let path = task.groupPath
+            var shared = 0
+            while shared < Swift.min(openGroups.count, path.count), openGroups[shared].linkId == path[shared].id {
+                shared += 1
             }
-        case .custom(let value):
-            typealias CustomFHIRSupportingValue = any QuestionnaireResponses.CustomResponseValueProtocolWithFHIRSupport
-            guard let value = value as? CustomFHIRSupportingValue else {
-                throw FHIRConversionError(
-                    """
-                    Encountered custom response value of type '\(type(of: value))', which is missing FHIR support.
-                    (Add FHIR support by conforming to '\(CustomFHIRSupportingValue.self)'.)
-                    """
-                )
+            close(downTo: shared)
+            for group in path[shared...] {
+                var wrapper = QuestionnaireResponseItem(linkId: group.id.asFHIRStringPrimitive())
+                if !group.title.isEmpty {
+                    // A QuestionnaireResponse group item carries the group's text, never its enableWhen.
+                    wrapper.text = group.title.asFHIRStringPrimitive()
+                }
+                openGroups.append((group.id, wrapper))
             }
-            if !value.isEmpty {
-                responseItem.answer = try value.toFHIR(for: context.task)
+            if var last = openGroups.popLast() {
+                last.item.item = (last.item.item ?? []) + [item]
+                openGroups.append(last)
             } else {
-                responseItem.answer = nil
+                result.append(item)
             }
         }
-        guard !nestedResponses.isEmpty else {
-            return responseItem
-        }
-        switch task.kind.variant {
-        case .choice(let taskConfig):
-            for (nestingId, responses) in nestedResponses {
-                switch nestingId {
-                case .choiceOption(let optionId):
-                    guard let option = taskConfig.options.first(where: { $0.id == optionId }) else {
-                        throw FHIRConversionError("Unable to find choice option '\(optionId)'")
-                    }
-                    guard self.value.choiceValue.selectedOptions.contains(option.id) else {
-                        throw FHIRConversionError("Found a nested answer for a choice option that isn't selected ('\(option.id)')")
-                    }
-                    guard let answerIdx = responseItem.answer?.firstIndex(where: { $0.value == .coding(option.toFHIRCoding()) }) else {
-                        throw FHIRConversionError("Unable to find answer for choice option")
-                    }
-                    // SAFETY: the guard above proved `answer` is non-nil
-                    responseItem.answer![answerIdx].item = try responses.toFHIR(using: .init(allTasks: task.kind.followUpTasks))
-                    // swiftlint:disable:previous force_unwrapping
-                }
-            }
-        default:
-            // Question: how to best handle this?
-            throw FHIRConversionError("Invalid Input")
-        }
-        return responseItem
+        close(downTo: 0)
+        return result
     }
 }
 
@@ -247,7 +318,7 @@ extension QuestionnaireResponses.Response {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
     func toFHIRCoding() -> Coding {
-        if let fhirCoding {
+        var coding = if let fhirCoding {
             Coding(
                 code: fhirCoding.code.asFHIRStringPrimitive(),
                 display: title.asFHIRStringPrimitive(),
@@ -260,6 +331,48 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
                 system: nil
             )
         }
+        if let weight {
+            // Carry the definitional weight onto the answer so consumers can score
+            // responses without resolving the questionnaire.
+            coding.extension = [
+                Extension(
+                url: "http://hl7.org/fhir/StructureDefinition/itemWeight",
+                value: .decimal(FHIRPrimitive(FHIRDecimal(weight)))
+            )
+            ]
+        }
+        return coding
+    }
+
+    /// The FHIR answer value for a selected option, typed to match the
+    /// `answerOption` the option was created from.
+    func toFHIRAnswerValue() throws -> QuestionnaireResponseItemAnswer.ValueX {
+        switch answerValue {
+        case .string(let string):
+            return .string(string.asFHIRStringPrimitive())
+        case .integer(let integer):
+            guard let value = Int32(exactly: integer) else {
+                throw FHIRResponseConversionError("Integer answer option out of range")
+            }
+            return .integer(FHIRPrimitive(FHIRInteger(value)))
+        case .date(let components):
+            guard let year = components.year else {
+                throw FHIRResponseConversionError("Date answer option is missing a year")
+            }
+            return .date(FHIRPrimitive(FHIRDate(
+                year: year,
+                month: components.month.map(numericCast),
+                day: components.day.map(numericCast)
+            )))
+        case .time(let components):
+            return .time(FHIRPrimitive(FHIRTime(
+                hour: components.hour.map(numericCast) ?? 0,
+                minute: components.minute.map(numericCast) ?? 0,
+                second: components.second.map { Decimal($0) } ?? 0
+            )))
+        case nil:
+            return .coding(toFHIRCoding())
+        }
     }
 }
 
@@ -269,7 +382,7 @@ extension QuestionnaireResponseItem {
         if let linkId = linkId.value?.string {
             return linkId
         } else {
-            throw FHIRConversionError("Unable to get linkId")
+            throw FHIRResponseConversionError("Unable to get linkId")
         }
     }
 }
@@ -278,10 +391,14 @@ extension QuestionnaireResponseItem {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponseItemAnswer {
     init(_ attachment: QuestionnaireResponses.CollectedAttachment) throws {
-        let data = try Data(contentsOf: attachment.url)
+        // Mapped loading keeps large attachments from being copied wholesale into memory
+        // before encoding.
+        let data = try Data(contentsOf: attachment.url, options: .mappedIfSafe)
         let sha1 = Insecure.SHA1.hash(data: data)
         self.init(value: .attachment(.init(
-            contentType: attachment.contentType?.preferredMIMEType?.asFHIRStringPrimitive(),
+            // att-1: inline data requires a contentType; fall back to the generic binary
+            // type when the UTType lookup cannot produce a MIME type.
+            contentType: (attachment.contentType?.preferredMIMEType ?? "application/octet-stream").asFHIRStringPrimitive(),
 //                        creation: <#T##FHIRPrimitive<DateTime>?#>, // not easy bc eg an imported photo/file will likely not be brand new...
             data: FHIRPrimitive(Base64Binary(data.base64EncodedString())),
             hash: FHIRPrimitive(Base64Binary(Data(sha1).base64EncodedString())),

@@ -142,6 +142,8 @@ extension QuestionnaireResponses {
             case bool(Bool)
             case date(DateComponents)
             case number(Double)
+            /// A number paired with the participant-chosen unit code (FHIR `unitOption`).
+            case quantity(Double, unitCode: String)
             case choice(ChoiceResponse)
             case attachments([CollectedAttachment])
             case custom(any CustomResponseValueProtocol)
@@ -171,6 +173,11 @@ extension QuestionnaireResponses {
                 case .number(let lhs):
                     return switch rhs {
                     case .number(lhs): true
+                    default: false
+                    }
+                case let .quantity(lhsValue, lhsUnit):
+                    return switch rhs {
+                    case .quantity(lhsValue, lhsUnit): true
                     default: false
                     }
                 case .choice(let lhs):
@@ -209,6 +216,10 @@ extension QuestionnaireResponses {
                 case .number(let value):
                     hasher.combine(ObjectIdentifier(type(of: value)))
                     hasher.combine(value)
+                case let .quantity(value, unitCode):
+                    hasher.combine(ObjectIdentifier(type(of: value)))
+                    hasher.combine(value)
+                    hasher.combine(unitCode)
                 case .choice(let value):
                     hasher.combine(ObjectIdentifier(type(of: value)))
                     hasher.combine(value)
@@ -286,7 +297,7 @@ extension QuestionnaireResponses {
             }
         }
         
-        init(selectedOptions: Set<Option.ID>, freeTextOtherResponse: String? = nil) {
+        package init(selectedOptions: Set<Option.ID>, freeTextOtherResponse: String? = nil) {
             self.selectedOptions = selectedOptions
             self.freeTextOtherResponse = freeTextOtherResponse
         }
@@ -300,6 +311,20 @@ extension QuestionnaireResponses {
                 selectedOptions.insert(optionId)
             }
         }
+
+        /// Selects an option, applying `questionnaire-optionExclusive` semantics:
+        /// selecting an exclusive option clears all other selections (and the free-text
+        /// "other" response); selecting any option clears exclusive selections.
+        mutating func select(_ optionId: Option.ID, in config: Questionnaire.Task.Kind.ChoiceConfig) {
+            if config.options.first(where: { $0.id == optionId })?.isExclusive == true {
+                selectedOptions = [optionId]
+                freeTextOtherResponse = nil
+            } else {
+                selectedOptions.subtract(config.options.lazy.filter(\.isExclusive).map(\.id))
+                selectedOptions.insert(optionId)
+            }
+        }
+
         mutating func deselect(_ optionId: Option.ID) {
             selectedOptions.remove(optionId)
         }
@@ -446,8 +471,23 @@ extension QuestionnaireResponses.Response.Value {
     }
     
     public var numberValue: Double? {
-        get { if case .number(let value) = self { value } else { nil } }
+        get {
+            switch self {
+            case .number(let value):
+                value
+            case .quantity(let value, unitCode: _):
+                value
+            default:
+                nil
+            }
+        }
         set { self = newValue.map { Self.number($0) } ?? .none }
+    }
+
+    /// The number and participant-chosen unit code of a ``quantity(_:unitCode:)`` response.
+    public var quantityValue: (value: Double, unitCode: String)? {
+        get { if case let .quantity(value, unitCode) = self { (value, unitCode) } else { nil } }
+        set { self = newValue.map { Self.quantity($0.value, unitCode: $0.unitCode) } ?? .none }
     }
     
     /// - Important: Assigning this property will unconditionally turn this `ResponseValue` into a choice question response value,
@@ -490,7 +530,7 @@ extension QuestionnaireResponses.Response.Value {
             [Calendar.Component.year, .month, .day, .hour, .minute, .second].allSatisfy {
                 components.value(for: $0) == nil
             }
-        case .number:
+        case .number, .quantity:
             false
         case .choice(let choiceResponse):
             choiceResponse.isEmpty

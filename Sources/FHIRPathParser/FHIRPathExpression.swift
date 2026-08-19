@@ -38,11 +38,8 @@ public enum FHIRPathExpression {
     /// - Throws: Throws an error of ``ExpressionError`` if evaluation failed. Throws a respective parser error if the
     ///     provided expression doesn't follow the FHIRPath grammar.
     public static func evaluate<Value: _FHIRPathValue>(expression: String, as value: Value.Type = Value.self) throws -> Value {
-        let stream = ANTLRInputStream(expression)
-        let lexer = FHIRPathLexer(stream)
-        let tokenStream = CommonTokenStream(lexer)
-        let parser = try FHIRPathParser(tokenStream)
-        let expression = try parser.expression()
-        return try value.evaluate(expression)
+        // Routed through the locked parse: ANTLR's shared caches are not thread-safe.
+        let parsed = try Self.parse(expression)
+        return try value.evaluate(parsed.tree)
     }
 }

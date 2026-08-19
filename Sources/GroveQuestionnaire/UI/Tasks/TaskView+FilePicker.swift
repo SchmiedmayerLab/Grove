@@ -18,8 +18,8 @@ struct FileAttachmentQuestionView: View {
     @Binding var attachments: [QuestionnaireResponses.CollectedAttachment]
     
     var body: some View {
-        ForEach(attachments) { attachment in
-            row(for: attachment)
+        ForEach(Array(attachments.enumerated()), id: \.element.id) { index, attachment in
+            row(for: attachment, isSeparated: index > 0)
         }
         .onDelete { indices in
             attachments.remove(atOffsets: indices)
@@ -30,13 +30,13 @@ struct FileAttachmentQuestionView: View {
             }
         }
     }
-    
+
     @ViewBuilder
-    private func row(for attachment: QuestionnaireResponses.CollectedAttachment) -> some View {
+    private func row(for attachment: QuestionnaireResponses.CollectedAttachment, isSeparated: Bool) -> some View {
         HStack {
             FileThumbnail(url: attachment.url, size: CGSize(width: 36, height: 36))
                 .frame(width: 36, height: 36, alignment: .center)
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(attachment.filename)
                     .accessibilityIdentifier("FileAttachmentFilename")
                 if let size = attachment.size {
@@ -45,6 +45,13 @@ struct FileAttachmentQuestionView: View {
                         .foregroundStyle(.secondary)
                         .accessibilityIdentifier("FileAttachmentFilesize")
                 }
+            }
+        }
+        .frame(minHeight: 44)
+        .overlay(alignment: .top) {
+            if isSeparated {
+                Divider()
+                    .allowsHitTesting(false)
             }
         }
         .accessibilityElement(children: .contain)

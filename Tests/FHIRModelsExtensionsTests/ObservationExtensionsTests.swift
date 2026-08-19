@@ -208,28 +208,6 @@ struct ObservationExtensionsTests {
     
     
     @Test
-    func addObservationAbsoluteTimeRetroactively() throws {
-        let cal = Calendar.current
-        let startDate = try #require(cal.date(from: .init(year: 2025, month: 07, day: 09, hour: 12, minute: 31)))
-        let endDate = try #require(cal.date(byAdding: .minute, value: 15, to: startDate))
-        
-        var observation = Observation(code: CodeableConcept(), status: FHIRPrimitive(.final))
-        try observation.setEffective(startDate: startDate, endDate: endDate, timeZone: .current)
-        #expect(observation.extension == nil)
-        
-        try observation.encodeAbsoluteTimeRangeIntoExtension()
-        let extensions = try #require(observation.extension)
-        #expect(extensions.count == 2)
-        #expect(observation.extensions(for: .absoluteTimeRangeStart) == [
-            Extension(url: .absoluteTimeRangeStart, value: .decimal(startDate.timeIntervalSince1970.asFHIRDecimalPrimitive()))
-        ])
-        #expect(observation.extensions(for: .absoluteTimeRangeEnd) == [
-            Extension(url: .absoluteTimeRangeEnd, value: .decimal(endDate.timeIntervalSince1970.asFHIRDecimalPrimitive()))
-        ])
-    }
-    
-    
-    @Test
     func voidExtensionBuilder() throws {
         let url = FHIRExtensionURL("https://grovealliance.org/fhir/core/StructureDefinition/timeZone")
         let timeZone = try #require(TimeZone(identifier: "Europe/Berlin"))

@@ -33,7 +33,9 @@ extension ORKTaskResult {
         questionnaireResponse.id = FHIRPrimitive(FHIRString(questionnaireResponseID))
         questionnaireResponse.authored = FHIRPrimitive(try? DateTime(date: Date()))
         
-        if let questionnaireURL = URL(string: questionnaireID) {
+        // Only reference the questionnaire when the task id is an actual canonical URL;
+        // a bare UUID fallback id would otherwise become a bogus, unresolvable canonical.
+        if let questionnaireURL = URL(string: questionnaireID), questionnaireURL.scheme != nil {
             questionnaireResponse.questionnaire = FHIRPrimitive(Canonical(questionnaireURL))
         }
         
@@ -44,6 +46,11 @@ extension ORKTaskResult {
     // MARK: Functions for creating FHIR responses from ResearchKit results
     
     private func appendResponseAnswer(_ value: QuestionnaireResponseItemAnswer.ValueX?, to responseAnswers: inout [QuestionnaireResponseItemAnswer]) {
+        // A valueless answer would serialize as an empty object, which is invalid FHIR
+        // (ele-1) and misreports a skipped question as answered.
+        guard let value else {
+            return
+        }
         var responseAnswer = QuestionnaireResponseItemAnswer()
         responseAnswer.value = value
         responseAnswers.append(responseAnswer)
@@ -78,7 +85,8 @@ extension ORKTaskResult {
             appendResponseAnswer(nil, to: &responseAnswers)
         }
         
-        response.answer = responseAnswers
+        // An empty `answer` array is invalid FHIR JSON; omit the element instead.
+        response.answer = responseAnswers.isEmpty ? nil : responseAnswers
         return response
     }
     

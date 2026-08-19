@@ -6,8 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
-// swiftlint:disable function_body_length multiline_arguments_brackets type_body_length
-
 import FHIRModelsExtensions
 import Foundation
 @testable import GroveQuestionnaire
@@ -65,7 +63,8 @@ struct FHIRConversionCustomTasksTests {
                 throw NSError(domain: "edu.stanford.Questionnaire", code: 0)
             }
         }
-        let input = Data("""
+        let input = Data(
+            """
             {
               "title": "Test",
               "resourceType": "Questionnaire",
@@ -168,7 +167,8 @@ struct FHIRConversionCustomTasksTests {
         #expect(task == .init(
             id: "t0",
             title: "Question 1",
-            kind: .custom(RankChoicesTask.self, config: .init(options: ["Strawberry", "Mango", "Chocolate"]))
+            kind: .custom(RankChoicesTask.self, config: .init(options: ["Strawberry", "Mango", "Chocolate"])),
+            isOptional: true // no `required` in the fixture; FHIR defaults it to false
         ))
         #expect(task.id == "t0")
         #expect(task.title == "Question 1")
@@ -190,7 +190,8 @@ struct FHIRConversionCustomTasksTests {
     
     @Test
     func annotationTask() throws {
-        let input = Data("""
+        let input = Data(
+            """
             {
               "title": "Test",
               "resourceType": "Questionnaire",
@@ -277,7 +278,180 @@ struct FHIRConversionCustomTasksTests {
                     .init(name: "Pain", color: .red),
                     .init(name: "Stiffness", color: .blue)
                 ]
-            ))
+            )),
+            isOptional: true // no `required` in the fixture; FHIR defaults it to false
         ))
+    }
+
+
+    /// The implementation guide's published example, byte for byte.
+    ///
+    /// The renderer and the guide have to agree on the exact identifiers, datatypes and
+    /// carrier extensions, and only the published bytes can prove that they do.
+    @Test
+    func publishedGuideExampleParses() throws {
+        let input = Data(#"""
+            {
+              "resourceType": "Questionnaire",
+              "id": "GroveQuestionnaireExample",
+              "status": "active",
+              "name": "GroveExampleQuestionnaire",
+              "title": "Grove Example Questionnaire",
+              "url": "https://grovealliance.org/fhir/core/Questionnaire/GroveQuestionnaireExample",
+              "item": [
+                {
+                  "linkId": "email",
+                  "type": "string",
+                  "text": "What is your email address?",
+                  "extension": [
+                    {
+                      "url": "http://hl7.org/fhir/StructureDefinition/targetConstraint",
+                      "extension": [
+                        {
+                          "url": "key",
+                          "valueId": "email-format"
+                        },
+                        {
+                          "url": "severity",
+                          "valueCode": "error"
+                        },
+                        {
+                          "url": "expression",
+                          "valueExpression": {
+                            "language": "text/fhirpath",
+                            "expression": "$this.matches('^[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\\\.[A-Za-z]{2,}$')"
+                          }
+                        },
+                        {
+                          "url": "human",
+                          "valueString": "Please enter a valid email address."
+                        }
+                      ]
+                    },
+                    {
+                      "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-keyboard",
+                      "valueCoding": {
+                        "system": "http://hl7.org/fhir/uv/sdc/CodeSystem/keyboardType",
+                        "code": "email"
+                      }
+                    },
+                    {
+                      "url": "https://grovealliance.org/fhir/core/StructureDefinition/grove-autocomplete",
+                      "valueCode": "email"
+                    },
+                    {
+                      "url": "https://grovealliance.org/fhir/core/StructureDefinition/grove-autocapitalize",
+                      "valueCode": "none"
+                    }
+                  ]
+                },
+                {
+                  "linkId": "pain-location",
+                  "type": "attachment",
+                  "text": "Mark where it hurts.",
+                  "extension": [
+                    {
+                      "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-itemControl",
+                      "valueCodeableConcept": {
+                        "coding": [
+                          {
+                            "system": "https://grovealliance.org/fhir/core/CodeSystem/grove-questionnaire-item-control",
+                            "code": "annotate-image"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-itemMedia",
+                      "valueAttachment": {
+                        "contentType": "image/png",
+                        "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+                        "title": "Body outline"
+                      }
+                    },
+                    {
+                      "url": "http://hl7.org/fhir/StructureDefinition/mimeType",
+                      "valueCode": "image/png"
+                    },
+                    {
+                      "url": "http://hl7.org/fhir/StructureDefinition/maxSize",
+                      "valueDecimal": 5242880
+                    },
+                    {
+                      "url": "https://grovealliance.org/fhir/core/StructureDefinition/grove-annotate-image-region",
+                      "extension": [
+                        {
+                          "url": "label",
+                          "valueString": "Left shoulder"
+                        },
+                        {
+                          "url": "code",
+                          "valueCoding": {
+                            "code": "16982005",
+                            "system": "http://snomed.info/sct",
+                            "display": "Shoulder region structure"
+                          }
+                        },
+                        {
+                          "url": "color",
+                          "valueCode": "red"
+                        }
+                      ]
+                    },
+                    {
+                      "url": "https://grovealliance.org/fhir/core/StructureDefinition/grove-annotate-image-region",
+                      "extension": [
+                        {
+                          "url": "label",
+                          "valueString": "Right shoulder"
+                        },
+                        {
+                          "url": "color",
+                          "valueCode": "blue"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            """#.utf8)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(
+            try JSONDecoder().decode(ModelsR4.Questionnaire.self, from: input)
+        )
+        let tasks = questionnaire.sections.flatMap(\.tasks)
+        // The annotate-image item resolves against the identifiers the guide publishes,
+        // taking its base image from the SDC itemMedia attachment.
+        let painLocation = try #require(tasks.first { $0.id == "pain-location" })
+        guard case .custom(_, let config) = painLocation.kind.variant,
+              let config = config as? AnnotateImageConfig else {
+            Issue.record("Expected the annotate-image kind, got \(painLocation.kind.variant)")
+            return
+        }
+        guard case .inlineData(let data) = config.inputImage else {
+            Issue.record("Expected the base image to come from itemMedia, got \(config.inputImage)")
+            return
+        }
+        #expect(!data.isEmpty)
+        #expect(config.regions == [.init(name: "Left shoulder", color: .red), .init(name: "Right shoulder", color: .blue)])
+        // The base image is not additionally rendered as decoration alongside the canvas.
+        #expect(painLocation.media == nil)
+
+        let email = try #require(tasks.first { $0.id == "email" })
+        guard case .freeText(let freeText) = email.kind.variant else {
+            Issue.record("Expected a free-text task")
+            return
+        }
+        #expect(freeText.keyboard == .email)
+        #expect(email.constraints.count == 1)
+        #expect(email.constraints.first?.key == "email-format")
+
+        // The guide's flagship validation rule accepts an address and rejects a non-address.
+        let responses = QuestionnaireResponses(questionnaire: questionnaire)
+        responses.responses["email"] = .init(value: .string("ada@example.org"))
+        #expect(responses.validateResponse(for: email).isOk)
+        responses.responses["email"] = .init(value: .string("not-an-address"))
+        #expect(responses.validateResponse(for: email).isInvalid)
+        #expect(responses.expressionFailures.isEmpty)
     }
 }
