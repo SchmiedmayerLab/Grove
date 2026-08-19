@@ -29,18 +29,50 @@ changed_files() {
   esac
 }
 
+base_ref() {
+  case "${1:-}" in
+    --all|--files) return 0 ;;
+    "") git rev-parse HEAD ;;
+    *...*)
+      local left="${1%%...*}" right="${1#*...}"
+      git merge-base "$left" "$right"
+      ;;
+    *..*) git rev-parse "${1%%..*}" ;;
+    *) git merge-base "$1" HEAD ;;
+  esac
+}
+
+TMP="$(mktemp -d)"
+trap 'git worktree remove --force "$TMP/base" 2>/dev/null || true; rm -rf "$TMP"' EXIT
+changed_files "$@" > "$TMP/changed.txt"
+
 echo "=== changed files (detect job input) ==="
-changed_files "$@" | sed 's/^/  /'
+sed 's/^/  /' "$TMP/changed.txt"
 echo
 
-OUT="$(changed_files "$@" | python3 Scripts/affected-test-matrix.py - 2>/dev/null)"
+ARGS=("$TMP/changed.txt")
+BASE_REF="$(base_ref "$@")"
+if [ -n "$BASE_REF" ] && { grep -Fxq "Package.swift" "$TMP/changed.txt" || grep -Fxq "packages.toml" "$TMP/changed.txt"; }; then
+  git worktree add --detach "$TMP/base" "$BASE_REF" >/dev/null
+  cp "$TMP/base/packages.toml" "$TMP/base-packages.toml"
+  ARGS+=(--base-packages "$TMP/base-packages.toml")
+  if grep -Fxq "Package.swift" "$TMP/changed.txt"; then
+    swift package --package-path "$TMP/base" dump-package > "$TMP/base-package.json"
+    swift package dump-package > "$TMP/head-package.json"
+    ARGS+=(--base-package-dump "$TMP/base-package.json" --head-package-dump "$TMP/head-package.json")
+  fi
+fi
+
+OUT="$(python3 Scripts/affected-test-matrix.py "${ARGS[@]}" 2>/dev/null)"
 MATRIX="$(printf '%s\n' "$OUT" | sed -n 's/^matrix=//p')"
 HAS_JOBS="$(printf '%s\n' "$OUT" | sed -n 's/^has_jobs=//p')"
+HAS_FHIR_CONFORMANCE="$(printf '%s\n' "$OUT" | sed -n 's/^has_fhir_conformance=//p')"
 AFFECTED="$(printf '%s\n' "$OUT" | sed -n 's/^affected=//p')"
 
 echo "=== detect job outputs ==="
 echo "  affected = $AFFECTED"
 echo "  has_jobs = $HAS_JOBS"
+echo "  has_fhir_conformance = $HAS_FHIR_CONFORMANCE"
 echo
 
 if [ "$HAS_JOBS" != "true" ]; then

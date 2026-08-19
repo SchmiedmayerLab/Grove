@@ -14,9 +14,10 @@ on:
       - main
   pull_request:
   workflow_dispatch:
+  workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: static-analysis-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:

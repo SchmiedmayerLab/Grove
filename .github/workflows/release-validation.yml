@@ -1,0 +1,66 @@
+#
+# This source file is part of the Grove open-source project
+#
+# SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+#
+# SPDX-License-Identifier: MIT
+#
+
+name: Release Validation
+
+# A single manual entry point for running every check, independent of affected-file selection.
+# Choose the release branch in the GitHub Actions UI, then run this workflow before a release.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: release-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  tests:
+    name: Complete test suite
+    uses: ./.github/workflows/tests.yml
+    with:
+      run_all: true
+
+  deployment-floor:
+    name: Complete deployment-floor suite
+    uses: ./.github/workflows/build-floor.yml
+
+  static-analysis:
+    name: Complete static-analysis suite
+    uses: ./.github/workflows/static-analysis.yml
+
+  repository-standards:
+    name: Complete repository-standards suite
+    uses: ./.github/workflows/repository-standards.yml
+
+  release-validation-complete:
+    name: Release validation complete
+    if: always()
+    needs: [tests, deployment-floor, static-analysis, repository-standards]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify every validation suite
+        env:
+          TESTS_RESULT: ${{ needs.tests.result }}
+          DEPLOYMENT_FLOOR_RESULT: ${{ needs.deployment-floor.result }}
+          STATIC_ANALYSIS_RESULT: ${{ needs.static-analysis.result }}
+          REPOSITORY_STANDARDS_RESULT: ${{ needs.repository-standards.result }}
+        run: |
+          echo "tests = $TESTS_RESULT"
+          echo "deployment floor = $DEPLOYMENT_FLOOR_RESULT"
+          echo "static analysis = $STATIC_ANALYSIS_RESULT"
+          echo "repository standards = $REPOSITORY_STANDARDS_RESULT"
+          for result in "$TESTS_RESULT" "$DEPLOYMENT_FLOOR_RESULT" "$STATIC_ANALYSIS_RESULT" "$REPOSITORY_STANDARDS_RESULT"; do
+            if [ "$result" != "success" ]; then
+              echo "::error::One or more release-validation suites did not pass (result: $result)."
+              exit 1
+            fi
+          done
+          echo "Every release-validation suite passed."
