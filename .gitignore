@@ -50,6 +50,9 @@ __pycache__/
 # local working clones for the monorepo migration
 .incoming/
 
+# local clone of the grove-fhir guides used by Scripts/validate-fhir-conformance.sh
+.fhir/
+
 # Shared SwiftPM bare-repo cache used by Scripts/run-package-tests.sh
 .packageCache/
 .derivedData-periphery/

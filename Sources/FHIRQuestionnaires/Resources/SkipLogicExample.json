@@ -78,7 +78,7 @@
             "system": "urn:uuid:ea53f9f1-4c06-4953-83b6-c944bccdeae3",
             "display": "Strawberry"
           }
-        },
+        }
       ],
       "enableWhen": [
         {

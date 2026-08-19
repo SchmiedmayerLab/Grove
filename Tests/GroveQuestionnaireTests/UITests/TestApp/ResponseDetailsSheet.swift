@@ -6,22 +6,32 @@
 // SPDX-License-Identifier: MIT
 //
 
-// swiftlint:disable file_types_order
 
+import GroveViews
 import ModelsR4
 import SwiftUI
 
 
+/// What the renderer handed back, read as FHIR: the metadata, the answer tree, and the JSON.
 struct ResponseDetailsSheet: View {
-    let response: ModelsR4.QuestionnaireResponse
-    
+    let entry: ResponsesStore.Entry
+
+    private var response: QuestionnaireResponse {
+        entry.response
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 Section("Metadata") {
-                    LabeledContent("Id", value: response.id?.value?.string ?? "n/a")
-                    LabeledContent("Authored", value: (try? response.authored?.value?.asNSDate())?.formatted() ?? "n/a")
-                    LabeledContent("Questionnaire", value: response.questionnaire?.value?.url.absoluteString ?? "n/a")
+                    LabeledContent("Source", value: entry.source)
+                    LabeledContent("Id", value: response.id?.value?.string ?? "—")
+                    LabeledContent("Authored", value: (try? response.authored?.value?.asNSDate())?.formatted() ?? "—")
+                    LabeledContent("Questionnaire", value: response.questionnaire?.value?.url.absoluteString ?? "—")
+                    NavigationLink("FHIR JSON") {
+                        FHIRSourceView(title: entry.source, json: response.prettyPrintedJSON)
+                    }
+                    .accessibilityIdentifier("ResponseJSON")
                 }
                 ForEach(response.item ?? [], id: \.self) { item in
                     Section {
@@ -29,7 +39,13 @@ struct ResponseDetailsSheet: View {
                     }
                 }
             }
-            .navigationTitle("Questionnaire Responses")
+            .navigationTitle("Questionnaire Response")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    DismissButton()
+                }
+            }
         }
     }
 }
@@ -37,24 +53,27 @@ struct ResponseDetailsSheet: View {
 
 private struct ResponseItemView: View {
     let item: QuestionnaireResponseItem
-    
+    var depth = 0
+
     var body: some View {
-        LabeledContent("linkId", value: item.linkId.value?.string ?? "n/a")
+        LabeledContent("linkId", value: item.linkId.value?.string ?? "—")
+            .padding(.leading, indent)
+            .accessibilityIdentifier("ResponseItem:\(item.linkId.value?.string ?? "—")")
         ForEach(item.answer ?? [], id: \.self) { answer in
             responseValueView(for: answer)
+                .padding(.leading, indent)
         }
-        NavigationLink {
-            Form {
-                ForEach(item.item ?? [], id: \.self) { item in
-                    ResponseItemView(item: item)
-                }
-            }
-        } label: {
-            LabeledContent("Nested Items", value: (item.item ?? []).count, format: .number)
+        // Every answer sits below at least one group item, so the nesting is rendered inline
+        // rather than behind a drill-down that would hide all of it.
+        ForEach(item.item ?? [], id: \.self) { item in
+            ResponseItemView(item: item, depth: depth + 1)
         }
-        .disabled((item.item ?? []).isEmpty)
     }
-    
+
+    private var indent: CGFloat {
+        CGFloat(depth) * 12
+    }
+
     @ViewBuilder
     private func responseValueView(for answer: QuestionnaireResponseItemAnswer) -> some View {
         NavigationLink {
@@ -73,7 +92,7 @@ private struct ResponseItemView: View {
 
 private struct AnswerView: View {
     let answer: QuestionnaireResponseItemAnswer
-    
+
     var body: some View {
         Form {
             Section("Value") {
@@ -92,9 +111,9 @@ private struct AnswerView: View {
             }
         }
     }
-    
+
     @ViewBuilder
-    private func valueInfo(for value: QuestionnaireResponseItemAnswer.ValueX) -> some View { // swiftlint:disable:this cyclomatic_complexity
+    private func valueInfo(for value: QuestionnaireResponseItemAnswer.ValueX) -> some View {
         switch value {
         case .attachment:
             LabeledContent("Value", value: "(attachment)")
@@ -165,7 +184,7 @@ extension QuestionnaireResponseItemAnswer.ValueX {
         case .uri: "uri"
         }
     }
-    
+
     fileprivate var valueDesc: String {
         switch self {
         case .attachment:

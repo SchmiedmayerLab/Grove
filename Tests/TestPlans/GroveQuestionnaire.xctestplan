@@ -1,52 +1,57 @@
 {
-  "configurations" : [
+  "configurations": [
     {
-      "id" : "00000000-0000-0000-0000-000000000023",
-      "name" : "Configuration 1",
-      "options" : {
-
-      }
+      "id": "00000000-0000-0000-0000-000000000023",
+      "name": "Configuration 1",
+      "options": {}
     }
   ],
-  "defaultOptions" : {
-    "codeCoverage" : {
-      "targets" : [
-      {
-        "containerPath" : "container:",
-        "identifier" : "GroveQuestionnaire",
-        "name" : "GroveQuestionnaire"
-      },
-      {
-        "containerPath" : "container:",
-        "identifier" : "GroveQuestionnaireCatalog",
-        "name" : "GroveQuestionnaireCatalog"
-      },
-      {
-        "containerPath" : "container:",
-        "identifier" : "GroveQuestionnaireFHIR",
-        "name" : "GroveQuestionnaireFHIR"
-      },
-      {
-        "containerPath" : "container:",
-        "identifier" : "GroveQuestionnaireLegacy",
-        "name" : "GroveQuestionnaireLegacy"
-      },
-      {
-        "containerPath" : "container:",
-        "identifier" : "XCTGroveQuestionnaire",
-        "name" : "XCTGroveQuestionnaire"
-      }
-    ]
+  "defaultOptions": {
+    "codeCoverage": {
+      "targets": [
+        {
+          "containerPath": "container:",
+          "identifier": "GroveQuestionnaire",
+          "name": "GroveQuestionnaire"
+        },
+        {
+          "containerPath": "container:",
+          "identifier": "GroveQuestionnaireCatalog",
+          "name": "GroveQuestionnaireCatalog"
+        },
+        {
+          "containerPath": "container:",
+          "identifier": "GroveQuestionnaireFHIR",
+          "name": "GroveQuestionnaireFHIR"
+        },
+        {
+          "containerPath": "container:",
+          "identifier": "GroveQuestionnaireLegacy",
+          "name": "GroveQuestionnaireLegacy"
+        },
+        {
+          "containerPath": "container:",
+          "identifier": "XCTGroveQuestionnaire",
+          "name": "XCTGroveQuestionnaire"
+        }
+      ]
     }
   },
-  "testTargets" : [
-      {
-        "target" : {
-          "containerPath" : "container:",
-          "identifier" : "GroveQuestionnaireTests",
-          "name" : "GroveQuestionnaireTests"
-        }
+  "testTargets": [
+    {
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveQuestionnaireTests",
+        "name": "GroveQuestionnaireTests"
       }
+    },
+    {
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveQuestionnaireMacrosTests",
+        "name": "GroveQuestionnaireMacrosTests"
+      }
+    }
   ],
-  "version" : 1
+  "version": 1
 }

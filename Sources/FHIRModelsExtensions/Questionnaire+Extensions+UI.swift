@@ -57,16 +57,15 @@ extension QuestionnaireItem {
 #if os(iOS) || os(visionOS) || os(tvOS)
     /// The item's preferred autocapitalization behaviour.
     public var autocapitalizationType: UITextAutocapitalizationType? {
-        switch autocapitalizationTypeRawValue {
-        case nil:
-            nil
+        switch autocapitalizeRawValue {
         case "none":
             UITextAutocapitalizationType.none
-        case "words":
-            .words
         case "sentences":
             .sentences
-        case "allCharacters":
+        case "words":
+            .words
+        // `allCharacters` is the retired iOS spelling of WHATWG's `characters`.
+        case "characters", "allCharacters":
             .allCharacters
         default:
             nil
@@ -74,97 +73,65 @@ extension QuestionnaireItem {
     }
 
     /// The item's preferred text content type.
+    ///
+    /// Authored as WHATWG `autocomplete` detail tokens, which map onto
+    /// `UITextContentType` here and onto Android autofill hints elsewhere.
     public var textContentType: UITextContentType? {
-        switch textContentTypeRawValue {
-        case nil:
-            return nil
-        case "URL":
-            return .URL
-        case "namePrefix":
-            return .namePrefix
+        switch autocompleteRawValue {
         case "name":
             return .name
-        case "nameSuffix":
-            return .nameSuffix
-        case "givenName":
+        case "given-name":
             return .givenName
-        case "middleName":
+        case "additional-name":
             return .middleName
-        case "familyName":
+        case "family-name":
             return .familyName
+        case "honorific-prefix":
+            return .namePrefix
+        case "honorific-suffix":
+            return .nameSuffix
         case "nickname":
             return .nickname
-        case "organizationName":
-            return .organizationName
-        case "jobTitle":
-            return .jobTitle
-        case "location":
-            return .location
-        case "fullStreetAddress":
-            return .fullStreetAddress
-        case "streetAddressLine1":
-            return .streetAddressLine1
-        case "streetAddressLine2":
-            return .streetAddressLine2
-        case "addressCity":
-            return .addressCity
-        case "addressCityAndState":
-            return .addressCityAndState
-        case "addressState":
-            return .addressState
-        case "postalCode":
-            return .postalCode
-        case "sublocality":
-            return .sublocality
-        case "countryName":
-            return .countryName
         case "username":
             return .username
-        case "password":
-            return .password
-        case "newPassword":
+        case "new-password":
             return .newPassword
-        case "oneTimeCode":
+        case "current-password":
+            return .password
+        case "one-time-code":
             return .oneTimeCode
-        case "emailAddress":
-            return .emailAddress
-        case "telephoneNumber":
+        case "organization-title":
+            return .jobTitle
+        case "organization":
+            return .organizationName
+        case "street-address":
+            return .fullStreetAddress
+        case "address-line1":
+            return .streetAddressLine1
+        case "address-line2":
+            return .streetAddressLine2
+        case "address-level1":
+            return .addressState
+        case "address-level2":
+            return .addressCity
+        // iOS models only the country name, so the code token resolves to it too.
+        case "country", "country-name":
+            return .countryName
+        case "postal-code":
+            return .postalCode
+        case "tel":
             return .telephoneNumber
-        case "creditCardNumber":
-            return .creditCardNumber
-        case "dateTime":
-            return .dateTime
-        case "flightNumber":
-            return .flightNumber
-        case "shipmentTrackingNumber":
-            return .shipmentTrackingNumber
-        case .some(let textContentTypeRawValue):
+        case "email":
+            return .emailAddress
+        case "url":
+            return .URL
+        case "bday":
             if #available(iOS 17, visionOS 1, tvOS 17, *) {
-                switch textContentTypeRawValue {
-                case "creditCardExpiration":
-                    return .creditCardExpiration
-                case "creditCardExpirationMonth":
-                    return .creditCardExpirationMonth
-                case "creditCardExpirationYear":
-                    return .creditCardExpirationYear
-                case "creditCardSecurityCode":
-                    return .creditCardSecurityCode
-                case "creditCardType":
-                    return .creditCardType
-                case "creditCardName":
-                    return .creditCardName
-                case "creditCardGivenName":
-                    return .creditCardGivenName
-                case "creditCardMiddleName":
-                    return .creditCardMiddleName
-                case "creditCardFamilyName":
-                    return .creditCardFamilyName
-                case "birthdate":
-                    return .birthdate
-                default:
-                    break
-                }
+                return .birthdate
             }
+            return nil
+        // `sex` and `photo` have no UIKit counterpart.
+        default:
             return nil
         }
     }

@@ -4,32 +4,65 @@
     "" : {
       "shouldTranslate" : false
     },
-    "Annotate Image" : {
+    "'%@' exceeds the maximum file size of %@" : {
 
     },
-    "ANNOTATE_IMAGE_INSTRUCTIONS" : {
+    "%lld questions still need an answer" : {
       "localizations" : {
         "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Please annotate the image below.\nSelect a region marker from underneath the image, and highlight the corresponding areas in the image."
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "1 question still needs an answer"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld questions still need an answer"
+                }
+              }
+            }
           }
         }
       }
     },
+    "Annotate Image" : {
+
+    },
+    "Answer this question to continue" : {
+
+    },
     "Answered" : {
 
     },
-    "Are you sure you want to cancel the questionnaire?\nYour responses will be lost." : {
+    "Checks your answers before continuing." : {
 
     },
-    "Cancel" : {
+    "Choose a date" : {
 
     },
-    "Cancel Questionnaire" : {
+    "Choose a date and time" : {
+
+    },
+    "Choose a time" : {
+
+    },
+    "Close" : {
 
     },
     "Continue" : {
+
+    },
+    "Date" : {
+
+    },
+    "Date & Time" : {
+
+    },
+    "Discard Answers" : {
 
     },
     "Discard Nested Responses" : {
@@ -41,10 +74,22 @@
     "Do you want to remove all annotations?" : {
 
     },
-    "Enter Date" : {
+    "Done" : {
 
     },
-    "Enter Time" : {
+    "Draw with one finger. Pinch or drag with two fingers to move the image." : {
+
+    },
+    "Enter a number" : {
+
+    },
+    "Enter a phone number" : {
+
+    },
+    "Enter a web address, like https://example.org" : {
+
+    },
+    "Enter an email address, like name@example.org" : {
 
     },
     "Follow-Up" : {
@@ -56,13 +101,22 @@
     "Image" : {
 
     },
+    "Image annotation canvas" : {
+
+    },
     "Image Missing" : {
+
+    },
+    "Incomplete" : {
 
     },
     "Internal Error" : {
 
     },
     "Invalid Input" : {
+
+    },
+    "Keep Answering" : {
 
     },
     "Length must be between %lld and %lld" : {
@@ -103,16 +157,19 @@
     "Missing" : {
 
     },
-    "Missing Response" : {
-
-    },
     "Missing response text for \"Other\" option" : {
 
     },
     "Must be after %@" : {
 
     },
+    "Must be at least %@" : {
+
+    },
     "Must be at least %lf" : {
+
+    },
+    "Must be at most %@" : {
 
     },
     "Must be at most %lf" : {
@@ -127,13 +184,22 @@
     "Not Yet Implemented" : {
 
     },
+    "Opens an editor with drawing and zoom controls." : {
+
+    },
     "Option: %@, Not Selected" : {
 
     },
     "Option: %@, Selected" : {
 
     },
+    "Other" : {
+
+    },
     "Please answer the follow-up questions below, for the **'%@'** option you just selected." : {
+
+    },
+    "Question %lld of %lld" : {
 
     },
     "Questionnaire Complete" : {
@@ -142,13 +208,22 @@
     "Questionnaire is Empty" : {
 
     },
-    "Reset" : {
+    "Ready" : {
 
     },
-    "Reset Annotations" : {
+    "Remove" : {
 
     },
-    "Save" : {
+    "Remove Annotations" : {
+
+    },
+    "Search options…" : {
+
+    },
+    "Select at least %lld options" : {
+
+    },
+    "Select at most %lld options" : {
 
     },
     "Select File" : {
@@ -172,7 +247,16 @@
     "Select Videos" : {
 
     },
+    "Select…" : {
+
+    },
     "Submit" : {
+
+    },
+    "Submit Answers" : {
+
+    },
+    "Submitting…" : {
 
     },
     "Take Photo" : {
@@ -181,7 +265,13 @@
     "Tap to annotate" : {
 
     },
+    "This isn't in the format this question expects" : {
+
+    },
     "This will de-select the '%@' option and discard all responses below." : {
+
+    },
+    "Time" : {
 
     },
     "Too long: can be at most %lld characters" : {
@@ -228,7 +318,29 @@
         }
       }
     },
+    "Unit" : {
+
+    },
     "Yes" : {
+
+    },
+    "You've answered %lld of %lld questions." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You've answered %1$lld of %2$lld questions."
+          }
+        }
+      }
+    },
+    "You've answered every question." : {
+
+    },
+    "Your answer" : {
+
+    },
+    "Your answers won't be saved." : {
 
     }
   },

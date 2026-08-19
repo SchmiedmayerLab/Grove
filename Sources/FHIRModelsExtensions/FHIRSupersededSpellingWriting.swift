@@ -7,14 +7,26 @@
 //
 
 import Foundation
+import GroveLegacyIdentifiers
 public import ModelsR4
+
+
+/// Controls extension appending
+public enum AppendExtensionBehaviour {
+    /// Adding an extension does not affect existing extensions with the same URL, instead the new value simply gets appended.
+    case additive
+    /// Adding an extension causes all other existing extensions with the same URL to be removed.
+    case replace
+}
 
 
 /// Whether resources also carry the spellings this project has retired.
 ///
 /// Writes emit the canonical spelling only. An analysis pipeline keyed on the pre-Grove URLs can opt
 /// into a compatibility copy alongside it, which buys time to migrate the pipeline instead of forcing
-/// it to happen on the same day as the app update.
+/// it to happen on the same day as the app update. The copy is the current payload under the old
+/// name, so an identifier whose payload changed shape when its url did is left out entirely — see
+/// `notReproducibleByDualWrite`.
 ///
 /// ```swift
 /// FHIRWritePolicy.default = .canonicalAndSuperseded
@@ -45,7 +57,11 @@ extension FHIRTypeWithExtensions {
     /// that identifier has superseded.
     ///
     /// Copies are deep, so a nested tree such as `sourceRevision/source/bundleIdentifier` is reproduced
-    /// in full with every url rewritten — byte-for-byte what this project wrote before the rename.
+    /// in full with every url rewritten. What it reproduces is the payload as written today, not the
+    /// bytes of the release that retired the spelling: a rename the encoding survived unchanged gives
+    /// the old pipeline exactly what it read before, while a spelling whose payload changed shape at
+    /// the same time is skipped altogether (`notReproducibleByDualWrite`), since
+    /// a copy in the current shape under the old name is not something any consumer has parsed.
     /// Existing superseded-spelled copies are removed first, which makes the pass idempotent.
     ///
     /// Does nothing under ``FHIRWritePolicy/canonicalOnly``.
@@ -57,17 +73,20 @@ extension FHIRTypeWithExtensions {
             return
         }
         var additions: [Extension] = []
-        for identifier in identifiers where !identifier.superseded.isEmpty {
+        for identifier in identifiers {
+            let spellings = identifier.superseded.filter {
+                !SupersededFHIRURLs.notReproducibleByDualWrite.contains($0)
+            }
             // Only rebuild when a canonical element exists to rebuild FROM. A resource written
             // before the rename carries the superseded spelling alone; removing it here would
             // destroy the resource's only copy of that extension.
-            guard elements.contains(where: { $0.urlString == identifier.canonical }) else {
+            guard !spellings.isEmpty, elements.contains(where: { $0.urlString == identifier.canonical }) else {
                 continue
             }
             // Rebuild rather than append, so running twice cannot stack duplicates.
-            elements.removeAll { identifier.superseded.contains($0.urlString ?? "") }
+            elements.removeAll { spellings.contains($0.urlString ?? "") }
             for element in elements where element.urlString == identifier.canonical {
-                additions += identifier.superseded.map {
+                additions += spellings.map {
                     element.rewritingURLPrefix(identifier.canonical, to: $0)
                 }
             }
@@ -81,9 +100,51 @@ extension FHIRTypeWithExtensions {
 }
 
 
+// Appending lives here rather than in the generated `FHIR+ExtensionUtils.swift`: it consults the
+// supersession registry, and the next `./useGYB` run would drop a hook the template does not carry.
+extension FHIRTypeWithExtensions {
+    /// Appends an `Extension`
+    ///
+    /// - parameter extension: The extension to add
+    /// - parameter behaviour: How the extension should be added, with respect to already-existing extensions with the same url.
+    public mutating func append(extension: Extension, behaviour: AppendExtensionBehaviour = .additive) {
+        append(extensions: CollectionOfOne(`extension`), behaviour: behaviour)
+    }
+
+    /// Appends multiple `Extension`s
+    public mutating func append(extensions: some Collection<Extension>, behaviour: AppendExtensionBehaviour = .additive) {
+        guard !extensions.isEmpty else {
+            return
+        }
+        switch behaviour {
+        case .additive:
+            break
+        case .replace:
+            for element in extensions {
+                removeAllExtensions(withUrl: element.url)
+            }
+        }
+        var storage = `extension` ?? []
+        storage.reserveCapacity(storage.count + extensions.count)
+        storage.append(contentsOf: extensions)
+        `extension` = storage
+        // Under .canonicalOnly this is a guard check; the appended urls are what a dual-write has to
+        // mirror, so doing it here covers every writer instead of every writer remembering to.
+        let retired = extensions.compactMap { element -> FHIRCanonicalURL? in
+            guard let spelling = element.url.value?.url.absoluteString else {
+                return nil
+            }
+            return FHIRSupersessionRegistry.identifier(forCanonical: spelling)
+        }
+        if !retired.isEmpty {
+            writeSupersededSpellings(of: retired)
+        }
+    }
+}
+
+
 extension ModelsR4.Extension {
     /// The extension's url as a plain string, if it has one.
-    @usableFromInline
     var urlString: String? {
         url.value?.url.absoluteString
     }

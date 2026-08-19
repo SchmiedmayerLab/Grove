@@ -53,6 +53,20 @@ extension QuestionnaireResponses {
             // the instant it's opened, turn bright red bc every question would complain about an invalid response
             return .ok
         }
+        // Authored rules (FHIR targetConstraint): the expression must hold for the answer.
+        if let engine = questionnaire.expressionEngine {
+            for constraint in task.constraints where constraint.severity == .error {
+                do {
+                    if try engine.evaluateBoolean(constraint.expression, scope: .answer(task.id), in: self) == .false {
+                        return .invalid(message: LocalizedStringResource(stringLiteral: constraint.humanDescription))
+                    }
+                } catch {
+                    // A rule that cannot be evaluated proves nothing, so the answer stands;
+                    // the failure is recorded so the instrument's author learns about it.
+                    recordExpressionFailure(constraint.expression, for: task.id, error: error)
+                }
+            }
+        }
         switch task.kind.variant {
         case .instructional:
             // instructional tasks never can have a response, so they're always ok
@@ -61,8 +75,14 @@ extension QuestionnaireResponses {
             // the user cannot provide an invalid response for boolean tasks
             return .ok
         case .choice(let config):
-            // when we support an `"other" with custom string entry" option, we'll need to validate that the string isn't empty.
-            // not a problem for now
+            // questionnaire-minOccurs/maxOccurs bound the selection count of multi-selects.
+            let selectionCount = responses[task.id].value.choiceValue.selectedOptions.count
+            if let minSelections = config.minSelections, selectionCount < minSelections {
+                return .invalid(message: "Select at least \(minSelections) options", bundle: .module)
+            }
+            if let maxSelections = config.maxSelections, selectionCount > maxSelections {
+                return .invalid(message: "Select at most \(maxSelections) options", bundle: .module)
+            }
             if config.hasFreeTextOtherOption {
                 guard let response = responses[task.id].value.choiceValue.freeTextOtherResponse else {
                     // this option isn't selected, so we're good
@@ -106,8 +126,14 @@ extension QuestionnaireResponses {
             }
             let responseNSString = response as NSString
             let wholeStringRange = NSRange(location: 0, length: responseNSString.length)
+            // FHIR regexes are anchored: the answer as a whole has to match, not some part of it.
             if let regex = config.regex, regex.rangeOfFirstMatch(in: response, range: wholeStringRange) != wholeStringRange {
-                return .invalid(message: "Invalid Input", bundle: .module)
+                return config.expectedFormat
+            }
+            if config.expectsURL {
+                guard let url = URL(string: response), url.scheme != nil else {
+                    return config.expectedFormat
+                }
             }
             return .ok
         case .dateTime(let config):
@@ -164,11 +190,13 @@ extension QuestionnaireResponses {
             guard let response = responses[task.id].value.numberValue else {
                 return .ok
             }
+            // Formatted, not interpolated: a bound of 100 is stored as a Double and reads back as
+            // "100.0", and one that came from a division drags a dozen decimals in with it.
             if let minimum = config.minimum, response < minimum {
-                return .invalid(message: "Must be at least \(minimum)", bundle: .module)
+                return .invalid(message: "Must be at least \(minimum.formatted(.number))", bundle: .module)
             }
             if let maximum = config.maximum, response > maximum {
-                return .invalid(message: "Must be at most \(maximum)", bundle: .module)
+                return .invalid(message: "Must be at most \(maximum.formatted(.number))", bundle: .module)
             }
             if let maxDecimalPlaces = config.maxDecimalPlaces {
                 let fmtNormal = response.formatted(.number)
@@ -178,10 +206,41 @@ extension QuestionnaireResponses {
                     : .invalid(message: "Limited to \(maxDecimalPlaces) decimal places", bundle: .module)
             }
             return .ok
-        case .fileAttachment:
+        case .fileAttachment(let config):
+            if let maxSize = config.maxSize,
+               let attachments = responses[task.id].value.attachmentsValue,
+               let oversized = attachments.first(where: { ($0.size ?? 0) > maxSize }) {
+                let limit = ByteCountFormatStyle().format(Int64(maxSize))
+                return .invalid(message: "'\(oversized.filename)' exceeds the maximum file size of \(limit)", bundle: .module)
+            }
             return .ok
         case let .custom(questionKind, config):
             return questionKind.validate(response: responses[task.id], for: config)
+        }
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension Questionnaire.Task.Kind.FreeTextConfig {
+    /// What the answer is supposed to look like, said in terms of the answer.
+    ///
+    /// The rule that rejected it is a regular expression or a URL parse, and neither tells the
+    /// participant anything. What the question is asking for does, and the keyboard the question
+    /// asks for is the authored declaration of that.
+    fileprivate var expectedFormat: QuestionnaireResponses.ResponseValidationResult {
+        if expectsURL || keyboard == .url {
+            return .invalid(message: "Enter a web address, like https://example.org", bundle: .module)
+        }
+        switch keyboard {
+        case .email:
+            return .invalid(message: "Enter an email address, like name@example.org", bundle: .module)
+        case .phone:
+            return .invalid(message: "Enter a phone number", bundle: .module)
+        case .number:
+            return .invalid(message: "Enter a number", bundle: .module)
+        case .url, .none:
+            return .invalid(message: "This isn't in the format this question expects", bundle: .module)
         }
     }
 }

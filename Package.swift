@@ -149,11 +149,8 @@ var dependencies: [Package.Dependency] = [
     // <0.9.2 upper bound: 0.9.2 raises FHIRModels' deployment targets to iOS 16/macOS 13 (OSAllocatedUnfairLock),
     // which conflicts with the lowered-deployment-target builds (`isLoweredDeploymentTargetEnabled`).
     .package(url: "https://github.com/SchmiedmayerLab/FHIRModels.git", .upToNextMinor(from: "0.9.3")),
-    .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "12.1.0"),
     .package(url: "https://github.com/PhoneNumberKit/PhoneNumberKit.git", from: "5.0.0"),
-    .package(url: "https://github.com/stephencelis/SQLite.swift.git", .upToNextMinor(from: "0.16.0")),
     .package(url: "https://github.com/apple/swift-algorithms.git", from: "1.2.1"),
-    .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.6.1"),
     .package(url: "https://github.com/apple/swift-async-algorithms.git", from: "1.1.3"),
     .package(url: "https://github.com/apple/swift-atomics.git", from: "1.2.0"),
     .package(url: "https://github.com/apple/swift-collections.git", from: "1.1.4"),
@@ -176,6 +173,17 @@ var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/techprimate/TPPDF.git", from: "2.6.1"),
     .package(url: "https://github.com/SchmiedmayerLab/zstd.git", exact: "1.5.8-beta.1")
 ]
+
+#if canImport(Darwin)
+// Declared only where they are used: SwiftPM resolves and clones a dependency even when no target
+// references it, so on Linux these were fetched for nothing. firebase-ios-sdk additionally ships no
+// Linux products, which breaks graph loading outright.
+dependencies += [
+    .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "12.1.0"),
+    .package(url: "https://github.com/stephencelis/SQLite.swift.git", .upToNextMinor(from: "0.16.0")),
+    .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.6.1")
+]
+#endif
 
 if enableSwiftLint {
     dependencies.append(
@@ -219,12 +227,6 @@ var products: [Product] = [
     .library(name: "GroveFHIRMockPatients", targets: ["GroveFHIRMockPatients"]),
     // MARK: GroveFileFormats
     .library(name: "EDFFormat", targets: ["EDFFormat"]),
-    // MARK: GroveFirebase
-    .library(name: "GroveFirebaseAccount", targets: ["GroveFirebaseAccount"]),
-    .library(name: "GroveFirebaseConfiguration", targets: ["GroveFirebaseConfiguration"]),
-    .library(name: "GroveFirestore", targets: ["GroveFirestore"]),
-    .library(name: "GroveFirebaseStorage", targets: ["GroveFirebaseStorage"]),
-    .library(name: "GroveFirebaseAccountStorage", targets: ["GroveFirebaseAccountStorage"]),
     // MARK: GroveFoundation
     .library(name: "GroveFoundation", targets: ["GroveFoundation"]),
     .library(name: "GroveLocalization", targets: ["GroveLocalization"]),
@@ -295,7 +297,13 @@ products += [
     // MARK: GroveScheduler
     .library(name: "GroveSchedulerUI", targets: ["GroveSchedulerUI"]),
     // MARK: GroveStudy
-    .library(name: "GroveStudy", targets: ["GroveStudy"])
+    .library(name: "GroveStudy", targets: ["GroveStudy"]),
+    // MARK: GroveFirebase
+    .library(name: "GroveFirebaseAccount", targets: ["GroveFirebaseAccount"]),
+    .library(name: "GroveFirebaseConfiguration", targets: ["GroveFirebaseConfiguration"]),
+    .library(name: "GroveFirestore", targets: ["GroveFirestore"]),
+    .library(name: "GroveFirebaseStorage", targets: ["GroveFirebaseStorage"]),
+    .library(name: "GroveFirebaseAccountStorage", targets: ["GroveFirebaseAccountStorage"])
 ]
 #endif
 
@@ -881,85 +889,6 @@ var targets: [Target] = [
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    .target(
-        name: "GroveFirebaseAccount",
-        dependencies: [
-            .target(name: "GroveLegacyIdentifiers"),
-            .target(name: "GroveFirebaseConfiguration"),
-            .target(name: "GroveFoundation"),
-            .target(name: "Grove"),
-            .target(name: "GroveValidation"),
-            .target(name: "GroveAccount"),
-            .target(name: "GroveLocalStorage"),
-            .target(name: "GroveKeychainStorage"),
-            .product(name: "FirebaseAuth", package: "firebase-ios-sdk")
-        ],
-        exclude: targetExcludes("GroveFirebaseAccount"),
-        resources: [
-            .process("Resources")
-        ],
-        swiftSettings: defaultSwiftSettings,
-        plugins: [] + defaultPlugins
-    ),
-    .target(
-        name: "GroveFirebaseConfiguration",
-        dependencies: [
-            .target(name: "Grove"),
-            .product(name: "FirebaseFirestore", package: "firebase-ios-sdk")
-        ],
-        exclude: targetExcludes("GroveFirebaseConfiguration"),
-        swiftSettings: defaultSwiftSettings,
-        plugins: [] + defaultPlugins
-    ),
-    .target(
-        name: "GroveFirestore",
-        dependencies: [
-            .target(name: "GroveFirebaseConfiguration"),
-            .target(name: "Grove"),
-            .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
-            .product(name: "Atomics", package: "swift-atomics")
-        ],
-        exclude: targetExcludes("GroveFirestore"),
-        resources: [
-            .process("Resources")
-        ],
-        swiftSettings: defaultSwiftSettings,
-        plugins: [] + defaultPlugins
-    ),
-    .target(
-        name: "GroveFirebaseStorage",
-        dependencies: [
-            .target(name: "GroveFirebaseConfiguration"),
-            .target(name: "Grove"),
-            .product(name: "FirebaseStorage", package: "firebase-ios-sdk")
-        ],
-        exclude: targetExcludes("GroveFirebaseStorage"),
-        swiftSettings: defaultSwiftSettings,
-        plugins: [] + defaultPlugins
-    ),
-    .target(
-        name: "GroveFirebaseAccountStorage",
-        dependencies: [
-            .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
-            .target(name: "Grove"),
-            .target(name: "GroveAccount"),
-            .target(name: "GroveFirestore")
-        ],
-        exclude: targetExcludes("GroveFirebaseAccountStorage"),
-        swiftSettings: defaultSwiftSettings,
-        plugins: [] + defaultPlugins
-    ),
-    .testTarget(
-        name: "GroveFirebaseTests",
-        dependencies: [
-            .target(name: "GroveFirebaseAccount"),
-            .target(name: "GroveFirebaseConfiguration"),
-            .target(name: "GroveFirestore")
-        ],
-        exclude: testTargetExcludes("GroveFirebaseTests", additional: ["UITests"]),
-        swiftSettings: defaultSwiftSettings,
-        plugins: [] + defaultPlugins
-    ),
     // MARK: ThreadLocal
     .macro(
         name: "ThreadLocalMacros",
@@ -1453,9 +1382,22 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     // MARK: GroveQuestionnaire
+    .macro(
+        name: "GroveQuestionnaireMacrosImpl",
+        dependencies: [
+            .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+            .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+            .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+            .product(name: "SwiftDiagnostics", package: "swift-syntax"),
+            .target(name: "FHIRPathParser")
+        ],
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
     .target(
         name: "GroveQuestionnaire",
         dependencies: [
+            .target(name: "GroveQuestionnaireMacrosImpl"),
             .target(name: "GroveQuestionnaireLegacy", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
             .target(name: "GroveViews"),
             .product(name: "MarkdownUI", package: "swift-markdown-ui"),
@@ -1483,6 +1425,7 @@ var targets: [Target] = [
             .target(name: "GroveQuestionnaire"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions"),
+            .target(name: "FHIRPathParser"),
             .product(name: "Algorithms", package: "swift-algorithms"),
             .target(name: "GroveFoundation")
         ],
@@ -1522,6 +1465,18 @@ var targets: [Target] = [
         exclude: testTargetExcludes("GroveQuestionnaireTests", additional: ["UITests"]),
         resources: [
             .process("Resources")
+        ],
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .testTarget(
+        name: "GroveQuestionnaireMacrosTests",
+        dependencies: [
+            .target(name: "GroveQuestionnaireMacrosImpl"),
+            .target(name: "FHIRPathParser"),
+            .product(name: "SwiftParser", package: "swift-syntax"),
+            .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+            .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
         ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
@@ -1809,7 +1764,7 @@ var targets: [Target] = [
         exclude: testTargetExcludes("XCTestExtensionsTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
-    ),
+    )
 ]
 
 #if canImport(Darwin)
@@ -1892,6 +1847,85 @@ targets += [
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
+    .target(
+        name: "GroveFirebaseAccount",
+        dependencies: [
+            .target(name: "GroveLegacyIdentifiers"),
+            .target(name: "GroveFirebaseConfiguration"),
+            .target(name: "GroveFoundation"),
+            .target(name: "Grove"),
+            .target(name: "GroveValidation"),
+            .target(name: "GroveAccount"),
+            .target(name: "GroveLocalStorage"),
+            .target(name: "GroveKeychainStorage"),
+            .product(name: "FirebaseAuth", package: "firebase-ios-sdk")
+        ],
+        exclude: targetExcludes("GroveFirebaseAccount"),
+        resources: [
+            .process("Resources")
+        ],
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .target(
+        name: "GroveFirebaseConfiguration",
+        dependencies: [
+            .target(name: "Grove"),
+            .product(name: "FirebaseFirestore", package: "firebase-ios-sdk")
+        ],
+        exclude: targetExcludes("GroveFirebaseConfiguration"),
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .target(
+        name: "GroveFirestore",
+        dependencies: [
+            .target(name: "GroveFirebaseConfiguration"),
+            .target(name: "Grove"),
+            .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
+            .product(name: "Atomics", package: "swift-atomics")
+        ],
+        exclude: targetExcludes("GroveFirestore"),
+        resources: [
+            .process("Resources")
+        ],
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .target(
+        name: "GroveFirebaseStorage",
+        dependencies: [
+            .target(name: "GroveFirebaseConfiguration"),
+            .target(name: "Grove"),
+            .product(name: "FirebaseStorage", package: "firebase-ios-sdk")
+        ],
+        exclude: targetExcludes("GroveFirebaseStorage"),
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .target(
+        name: "GroveFirebaseAccountStorage",
+        dependencies: [
+            .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
+            .target(name: "Grove"),
+            .target(name: "GroveAccount"),
+            .target(name: "GroveFirestore")
+        ],
+        exclude: targetExcludes("GroveFirebaseAccountStorage"),
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .testTarget(
+        name: "GroveFirebaseTests",
+        dependencies: [
+            .target(name: "GroveFirebaseAccount"),
+            .target(name: "GroveFirebaseConfiguration"),
+            .target(name: "GroveFirestore")
+        ],
+        exclude: testTargetExcludes("GroveFirebaseTests", additional: ["UITests"]),
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    )
 ]
 #endif
 
@@ -1917,7 +1951,7 @@ targets += [
         exclude: targetExcludes("Codegen", additional: ["HKTypeIdentifierDefs+Linux.swift.gyb"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
-    ),
+    )
 ]
 #endif
 

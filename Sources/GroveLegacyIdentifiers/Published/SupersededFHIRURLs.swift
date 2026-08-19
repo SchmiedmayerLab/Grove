@@ -11,7 +11,7 @@
 /// Unlike everything else in this target these are permanent. They identify extensions inside
 /// `Observation`s already uploaded to research databases, and inside questionnaires authored by
 /// other people, so reads must accept them forever. Nothing writes them unless a consumer opts into
-/// dual-write.
+/// dual-write — and not even then for the spellings in ``notReproducibleByDualWrite``.
 ///
 /// Not deprecated: the canonical declarations that reference them are the intended, permanent use.
 public enum SupersededFHIRURLs {
@@ -49,6 +49,10 @@ public enum SupersededFHIRURLs {
     public static let sourceRevision = ["https://bdh.stanford.edu/fhir/defs/sourceRevision"]
 
     /// Encoded HealthKit sample metadata.
+    ///
+    /// The retired spelling nested the platform key inside the extension URL
+    /// (`…/metadata/HKWeatherTemperature`), which no StructureDefinition can define.
+    /// The key is now a coding in a `key` sub-extension.
     public static let metadata = ["https://bdh.stanford.edu/fhir/defs/metadata"]
 
     /// Identifier of the HealthKit sample a resource was created from.
@@ -73,4 +77,15 @@ public enum SupersededFHIRURLs {
     public static let annotateImageRegion = [
         "http://spezi.stanford.edu/fhir/CodeSystem/questionnaire-item-control/annotate-image/region"
     ]
+
+    // MARK: Reproducibility
+
+    /// Spellings a dual-write must not reproduce, because the payload changed shape when the url did.
+    ///
+    /// Rewriting today's payload under one of these produces an encoding no pre-rename consumer has
+    /// ever seen, so nothing is written. Metadata is the case: the key moved out of the url into a
+    /// `key` sub-extension, and the entries now routed to `effective[x]` and the recording method are
+    /// no longer in the envelope at all, so the pre-rename bytes cannot be rebuilt from what is there.
+    /// Reads resolve these spellings like any other.
+    public static let notReproducibleByDualWrite = Set(metadata)
 }

@@ -8,19 +8,19 @@
 
 @testable import FHIRModelsExtensions
 import Foundation
-import GroveLegacyIdentifiers
 import ModelsR4
 import Testing
 
 
-/// Unlike questionnaire extensions, which this project only reads, these are written into
-/// `Observation`s that leave the device for a research database. A superseded spelling has to keep
-/// resolving, and a rewrite must never leave two spellings of one concept behind.
+/// These identify extensions inside `Observation`s that have already left the device for a research
+/// database. A superseded spelling has to keep resolving even after the writer is gone, and a rewrite
+/// must never leave two spellings of one concept behind.
 @Suite
 struct FHIRExtensionURLSupersessionTests {
+    /// The URL-typed form of a real declaration, so the spellings under test are the published ones.
     private static let identifier = FHIRExtensionURL(
-        "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice",
-        superseding: SupersededFHIRURLs.sourceDevice
+        RetiredFHIRCanonicalURLs.sourceDevice.canonical,
+        superseding: RetiredFHIRCanonicalURLs.sourceDevice.superseded
     )
 
     private func observation(withExtensionsAt urls: [URL]) -> Observation {
@@ -114,14 +114,15 @@ struct FHIRExtensionURLSupersessionTests {
         #expect(subject.extension == nil)
     }
 
-    /// Every URL this project publishes sits under the current authority, and whatever was published
-    /// before it stays readable.
-    @Test("published urls keep their earlier spellings", arguments: [
-        FHIRExtensionURL.absoluteTimeRangeStart,
-        FHIRExtensionURL.absoluteTimeRangeEnd
-    ])
-    func publishedURLsRetainSupersededSpellings(_ identifier: FHIRExtensionURL) {
-        #expect(identifier.url.absoluteString.hasPrefix("https://grovealliance.org/fhir/core/StructureDefinition/"))
-        #expect(!identifier.superseded.isEmpty)
+    /// A published URL sits under the current authority and keeps whatever was published before it
+    /// readable. Parameterised over the declarations themselves: the retired ones have no writer left,
+    /// so if one were dropped nothing else in the suite would notice.
+    @Test("retired identifiers still resolve every spelling they published", arguments: RetiredFHIRCanonicalURLs.all)
+    func retiredIdentifiersStillResolve(identifier: FHIRCanonicalURL) throws {
+        #expect(identifier.canonical.hasPrefix("https://grovealliance.org/fhir/core/StructureDefinition/"))
+
+        let published = try #require(identifier.superseded.last)
+        let resource = observation(withExtensionsAt: [try #require(URL(string: published))])
+        #expect(values(resource.extensions(for: identifier)) == [published])
     }
 }
