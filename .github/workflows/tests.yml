@@ -33,7 +33,7 @@ jobs:
     name: Detect affected packages
     # Package.swift changes are compared through SwiftPM's evaluated manifest graph. A macOS runner
     # makes that graph include the dependencies guarded by `#if canImport(Darwin)` as well.
-    runs-on: macOS-26
+    runs-on: macos-latest
     outputs:
       matrix: ${{ steps.compute.outputs.matrix }}
       ui_matrix: ${{ steps.compute.outputs.ui_matrix }}
@@ -137,11 +137,11 @@ jobs:
     needs: detect
     if: needs.detect.outputs.has_jobs == 'true'
     # Runner per job: Linux -> GitHub-hosted ubuntu; otherwise self-hosted iff packages.toml's
-    # self-hosted-ci routed unit tests there (matrix.selfHosted), else GitHub-hosted macOS-26. The
+    # self-hosted-ci routed unit tests there (matrix.selfHosted), else GitHub-hosted macos-latest. The
     # self-hosted label set (matrix.selfHostedLabels) is the base ["self-hosted","macOS"] plus any
     # per-package `extra_runner_labels` from packages.toml (e.g. "python3.11+"), computed by
     # Scripts/affected-test-matrix.py.
-    runs-on: ${{ matrix.platform == 'Linux' && 'ubuntu-latest' || (matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macOS-26"]')) }}
+    runs-on: ${{ matrix.platform == 'Linux' && 'ubuntu-latest' || (matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macos-latest"]')) }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
@@ -165,7 +165,7 @@ jobs:
     if: needs.detect.outputs.has_ui_jobs == 'true'
     # UI tests run on the self-hosted runner by default (packages.toml self-hosted-ci defaults to
     # ["ui"]); a package can move its UI tests to GitHub-hosted by dropping "ui" from that list.
-    runs-on: ${{ matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macOS-26"]') }}
+    runs-on: ${{ matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macos-latest"]') }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.detect.outputs.ui_matrix) }}
@@ -184,7 +184,7 @@ jobs:
     name: FHIR Output Conformance
     needs: detect
     if: needs.detect.outputs.has_fhir_conformance == 'true'
-    runs-on: macOS-26
+    runs-on: macos-latest
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7

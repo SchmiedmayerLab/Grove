@@ -55,7 +55,7 @@ jobs:
 
   periphery:
     name: Dead Code Analysis
-    runs-on: macOS-26
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install Periphery
@@ -65,7 +65,7 @@ jobs:
 
   documentation:
     name: Documentation
-    runs-on: macOS-26
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
       - name: Build DocC Documentation
