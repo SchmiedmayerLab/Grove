@@ -27,7 +27,7 @@ jobs:
     name: UI Test Project Consistency
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Verify generated UI test projects
         run: python3 Scripts/generate-ui-test-projects.py --check
 
@@ -44,7 +44,7 @@ jobs:
     name: SwiftLint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: SwiftLint
@@ -66,7 +66,7 @@ jobs:
     name: Documentation
     runs-on: macOS-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build DocC Documentation
         run: Scripts/build-documentation.sh
       - name: Clean generated artifacts
