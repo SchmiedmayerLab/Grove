@@ -176,8 +176,8 @@ uiTests = ["iOS"]
 
 [GroveSensorKit]
 platforms = ["iOS"]
-targets = ["GroveSensorKit"]
-tests = ["GroveSensorKitTests"]
+targets = ["GroveSensorKit", "GroveSensorKitFHIR"]
+tests = ["GroveSensorKitTests", "GroveSensorKitFHIRTests"]
 uiTests = ["iOS"]
 
 [GroveSpeech]

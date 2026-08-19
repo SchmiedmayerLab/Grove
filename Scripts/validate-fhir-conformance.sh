@@ -54,6 +54,7 @@ fi
 echo "==> emitting resources from the converter"
 ./Scripts/run-package-tests.sh GroveHealthKitFHIR macOS >/dev/null
 ./Scripts/run-package-tests.sh GroveQuestionnaire macOS >/dev/null
+./Scripts/run-package-tests.sh GroveSensorKit iOS >/dev/null
 
 count=$(find "$OUT" -name '*.json' | wc -l | tr -d ' ')
 if [ "$count" -eq 0 ]; then

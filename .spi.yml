@@ -61,6 +61,7 @@ builder:
         - XCTGroveQuestionnaire
         - GroveScheduler
         - GroveSensorKit
+        - GroveSensorKitFHIR
         - GroveSpeechRecognizer
         - GroveSpeechSynthesizer
         - GroveLocalStorage
