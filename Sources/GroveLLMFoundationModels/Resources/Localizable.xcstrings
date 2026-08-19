@@ -1,0 +1,182 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "LLM_FM_APPLE_INTELLIGENCE_OFF_DESCRIPTION" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence is turned off."
+          }
+        }
+      }
+    },
+    "LLM_FM_APPLE_INTELLIGENCE_OFF_RECOVERY" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn on Apple Intelligence in Settings, then try again."
+          }
+        }
+      }
+    },
+    "LLM_FM_CONTEXT_SIZE_DESCRIPTION" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The conversation is too long for the model."
+          }
+        }
+      }
+    },
+    "LLM_FM_CONTEXT_SIZE_RECOVERY" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start a new conversation, or remove some of the earlier messages."
+          }
+        }
+      }
+    },
+    "LLM_FM_DEVICE_NOT_ELIGIBLE_DESCRIPTION" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device doesn't support the model."
+          }
+        }
+      }
+    },
+    "LLM_FM_DEVICE_NOT_ELIGIBLE_RECOVERY" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use a device that supports Apple Intelligence, or pick a different model."
+          }
+        }
+      }
+    },
+    "LLM_FM_GENERATION_FAILED_DESCRIPTION" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model couldn't complete the response."
+          }
+        }
+      }
+    },
+    "LLM_FM_GENERATION_FAILED_RECOVERY" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again."
+          }
+        }
+      }
+    },
+    "LLM_FM_GUARDRAIL_DESCRIPTION" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model declined to answer."
+          }
+        }
+      }
+    },
+    "LLM_FM_GUARDRAIL_RECOVERY" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rephrase the message and try again."
+          }
+        }
+      }
+    },
+    "LLM_FM_MODEL_NOT_READY_DESCRIPTION" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model isn't ready yet."
+          }
+        }
+      }
+    },
+    "LLM_FM_MODEL_NOT_READY_RECOVERY" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model is still being prepared. Try again in a moment."
+          }
+        }
+      }
+    },
+    "LLM_FM_RATE_LIMITED_DESCRIPTION" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too many requests were made in a short time."
+          }
+        }
+      }
+    },
+    "LLM_FM_RATE_LIMITED_RECOVERY" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wait a moment before sending another message."
+          }
+        }
+      }
+    },
+    "LLM_FM_UNSUPPORTED_LANGUAGE_DESCRIPTION" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model doesn't support this language."
+          }
+        }
+      }
+    },
+    "LLM_FM_UNSUPPORTED_LANGUAGE_RECOVERY" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write the message in a supported language, or pick a different model."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

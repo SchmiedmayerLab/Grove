@@ -1,0 +1,251 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2023 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+import Grove
+import GroveViews
+import OrderedCollections
+import SwiftUI
+
+
+/// A internal subview of ``AccountOverview`` that expects to be embedded into a `Form`.
+@MainActor
+@available(iOS 18, macOS 15, watchOS 11, *)
+@available(macOS, unavailable)
+@available(watchOS, unavailable)
+struct AccountOverviewSections<AdditionalSections: View>: View {
+    private let logoutBehavior: AccountOverview<AdditionalSections>.AccountLogoutBehavior
+    private let deletionBehavior: AccountOverview<AdditionalSections>.AccountDeletionBehavior
+    private let additionalSections: AdditionalSections
+
+    private let accountDetails: AccountDetails
+    private let model: AccountOverviewFormViewModel
+    private let destructiveViewState: ViewState
+
+    @Environment(Account.self)
+    private var account
+
+    @Environment(\.editMode)
+    private var editMode
+
+    private var showLogoutButton: Bool {
+        switch logoutBehavior {
+        case .disabled:
+            false
+        case .enabled:
+            switch deletionBehavior {
+            case .inEditMode:
+                // if the delete button is displayed while the view is in edit mode ...
+                if editMode?.wrappedValue.isEditing == true {
+                    // ... and the view is currently in edit mode, we do not display the logout button
+                    false
+                } else {
+                    // ... and the view is currently not in edit view, we do display the logout button
+                    true
+                }
+            case .disabled, .belowLogout:
+                // for other account deletion modes (which are not defined relative to the edit mode),
+                // we simply always show the logout button
+                true
+            }
+        }
+    }
+
+    private var showDeleteButton: Bool {
+        switch deletionBehavior {
+        case .disabled:
+            // account deletion is disabled
+            false
+        case .inEditMode:
+            // account deletion is only enabled if the view is in edit mode
+            editMode?.wrappedValue.isEditing == true
+        case .belowLogout:
+            // account deletion is always available
+            true
+        }
+    }
+
+
+    var body: some View {
+        Section {
+            AccountOverviewHeader(details: accountDetails)
+        } header: {
+            Spacer(minLength: 0)
+                .listRowInsets(EdgeInsets())
+        }
+            .environment(\.defaultMinListHeaderHeight, 0)
+
+        defaultSections
+
+        sectionsView
+            .injectEnvironmentObjects(configuration: accountDetails.accountServiceConfiguration, model: model)
+            .animation(nil, value: editMode?.wrappedValue)
+
+        additionalSections
+            .injectEnvironmentObjects(configuration: accountDetails.accountServiceConfiguration, model: model)
+            .animation(nil, value: editMode?.wrappedValue)
+
+        if showLogoutButton {
+            Section {
+                Button(role: .destructive) {
+                    model.presentingLogoutAlert = true
+                } label: {
+                    Text("UP_LOGOUT", bundle: .module)
+                }
+                .disabled(destructiveViewState != .idle)
+                .frame(maxWidth: .infinity, alignment: .center)
+            }
+        }
+        if showDeleteButton {
+            Section {
+                Button(role: .destructive) {
+                    model.presentingRemovalAlert = true
+                } label: {
+                    Text(deletionBehavior.labels.formButton)
+                }
+                .disabled(destructiveViewState != .idle)
+                .frame(maxWidth: .infinity, alignment: .center)
+            }
+        }
+    }
+
+    @ViewBuilder private var defaultSections: some View {
+        let displayName = model.displaysNameDetails(accountDetails)
+        let displaySecurity = model.displaysSignInSecurityDetails(accountDetails)
+
+        if displayName || displaySecurity {
+            Section {
+                if displayName {
+                    NavigationLink {
+                        NameOverview(model: model, details: accountDetails)
+                    } label: {
+                        Label {
+                            model.accountIdentifierLabel(configuration: account.configuration, accountDetails)
+                        } icon: {
+                            DetailsSectionIcon()
+                        }
+                    }
+                }
+
+                if displaySecurity {
+                    NavigationLink {
+                        SecurityOverview(model: model, details: accountDetails)
+                    } label: {
+                        Label {
+                            Text("SIGN_IN_AND_SECURITY", bundle: .module)
+                        } icon: {
+                            SecuritySectionIcon()
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder private var sectionsView: some View {
+        ForEach(model.editableAccountKeys(details: accountDetails).elements, id: \.key) { category, accountKeys in
+            if !sectionIsEmpty(accountKeys) {
+                Section {
+                    // the id property of AccountKey.Type is static, so we can't reference it by a KeyPath, therefore the wrapper
+                    let forEachWrappers = accountKeys.map { key in
+                        ForEachAccountKeyWrapper(key)
+                    }
+                    
+                    ForEach(forEachWrappers) { wrapper in
+                        AccountKeyOverviewRow(details: accountDetails, for: wrapper.accountKey, model: model)
+                    }
+                        .onDelete { indexSet in
+                            model.deleteAccountKeys(at: indexSet, in: accountKeys)
+                        }
+                } header: {
+                    if let title = category.categoryTitle {
+                        Text(title)
+                    }
+                }
+            }
+        }
+    }
+    
+    init(
+        model: AccountOverviewFormViewModel,
+        details accountDetails: AccountDetails,
+        logout logoutBehavior: AccountOverview<AdditionalSections>.AccountLogoutBehavior,
+        deletion deletionBehavior: AccountOverview<AdditionalSections>.AccountDeletionBehavior,
+        destructiveViewState: ViewState,
+        additionalSections: AdditionalSections
+    ) {
+        self.model = model
+        self.accountDetails = accountDetails
+        self.logoutBehavior = logoutBehavior
+        self.deletionBehavior = deletionBehavior
+        self.destructiveViewState = destructiveViewState
+        self.additionalSections = additionalSections
+    }
+    
+    /// Computes if a given `Section` is empty. This is the case if we are **not** currently editing
+    /// and the accountDetails don't have values stored for any of the provided ``AccountKey``.
+    private func sectionIsEmpty(_ accountKeys: [any AccountKey.Type]) -> Bool {
+        guard editMode?.wrappedValue.isEditing == false else {
+            // there is always UI presented in EDIT mode
+            return false
+        }
+        
+        // we don't have to check for `addedAccountKeys` as these are only relevant in edit mode
+        return accountKeys.allSatisfy { element in
+            !accountDetails.contains(element) && !element.hasSetupView()
+        }
+    }
+}
+
+
+#if DEBUG && !os(macOS) && !os(watchOS)
+@available(iOS 18, macOS 15, watchOS 11, *)
+#Preview {
+    NavigationStack {
+        AccountOverview {
+            Section(header: Text(verbatim: "App")) {
+                NavigationLink {
+                    Text(String())
+                } label: {
+                    Text(verbatim: "General Settings")
+                }
+                NavigationLink {
+                    Text(String())
+                } label: {
+                    Text(verbatim: "License Information")
+                }
+            }
+        }
+    }
+        .previewWith {
+            AccountConfiguration(service: InMemoryAccountService(), activeDetails: .createMock(genderIdentity: .male))
+        }
+}
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+#Preview {
+    NavigationStack {
+        AccountOverview(deletion: .belowLogout) {
+            Section(header: Text(verbatim: "App")) {
+                NavigationLink {
+                    Text(String())
+                } label: {
+                    Text(verbatim: "General Settings")
+                }
+                NavigationLink {
+                    Text(String())
+                } label: {
+                    Text(verbatim: "License Information")
+                }
+            }
+        }
+    }
+        .previewWith {
+            AccountConfiguration(service: InMemoryAccountService(), activeDetails: .createMock(genderIdentity: .male))
+        }
+}
+#endif

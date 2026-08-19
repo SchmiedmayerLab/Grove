@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2025 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -12,7 +12,7 @@
 
 public import ArgumentParser
 public import Foundation
-import SpeziHealthKit
+import GroveHealthKit
 
 
 @main
@@ -22,7 +22,7 @@ struct Codegen: ParsableCommand {
         CommandConfiguration(
             abstract: "Generates HealthKit sample type identifier constants for use on Linux",
             discussion: """
-                The purpose of this tool is to generate the Sources/SpeziHealthKit/Sample Types/Linux/HKTypeIdentifiers+Linux.swift file,
+                The purpose of this tool is to generate the Sources/GroveHealthKit/Sample Types/Linux/HKTypeIdentifiers+Linux.swift file,
                 which provides HealthKit-related identifier definitions (like e.g. HKQuantityTypeIdentifier) on Linux, where HealthKit is
                 not available.
                 This allows `SampleType` and related APIs to be accessible on Linux.
@@ -45,7 +45,7 @@ struct Codegen: ParsableCommand {
     @Option(
         name: .customShort("o"),
         help: """
-            Output directory path. Should point to 'Sources/SpeziHealthKit/Sample Types/Linux/HKTypeIdentifiers+Linux.swift'.
+            Output directory path. Should point to 'Sources/GroveHealthKit/Sample Types/Linux/HKTypeIdentifiers+Linux.swift'.
             May be omitted to perform a dry run, in which case the resulting file will be printed to stdout, but not written to disk.
             """
     )
@@ -122,7 +122,7 @@ private struct IdentifierDefinitionsFile: ~Copyable {
     
     private var contents = """
         //
-        // This source file is part of the Stanford Spezi open-source project
+        // This source file is part of the Grove open-source project
         //
         // SPDX-FileCopyrightText: \(Calendar.current.component(.year, from: .now)) Stanford University and the project authors (see CONTRIBUTORS.md)
         //

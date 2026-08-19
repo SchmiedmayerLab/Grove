@@ -1,0 +1,424 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ API Key" : {
+
+    },
+    "%@ Model" : {
+
+    },
+    "API Key…" : {
+
+    },
+    "Continue" : {
+
+    },
+    "LLM_CONNECTIVITY_ERROR_DESCRIPTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectivity Error with the OpenAI API."
+          }
+        }
+      }
+    },
+    "LLM_CONNECTIVITY_ERROR_FAILURE_REASON" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The network connection to the OpenAI servers couldn't be established, most probably the device doesn't have an internet connection."
+          }
+        }
+      }
+    },
+    "LLM_CONNECTIVITY_ERROR_RECOVERY_SUGGESTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please ensure that the device has a stable internet connection."
+          }
+        }
+      }
+    },
+    "LLM_FILE_ATTACHMENT_API_ERROR_DESCRIPTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This model cannot send the attached file."
+          }
+        }
+      }
+    },
+    "LLM_FILE_ATTACHMENT_API_ERROR_FAILURE_REASON" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model is configured to use the Chat Completions API, which does not support file attachments."
+          }
+        }
+      }
+    },
+    "LLM_FILE_ATTACHMENT_API_ERROR_RECOVERY_SUGGESTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use a model configured for the Responses API, or remove the file and try again."
+          }
+        }
+      }
+    },
+    "LLM_FUNCTION_CALL_ERROR_DESCRIPTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LLM Function Call has failed."
+          }
+        }
+      }
+    },
+    "LLM_FUNCTION_CALL_ERROR_FAILURE_REASON" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The LLM Function Call executed on the device has thrown an error."
+          }
+        }
+      }
+    },
+    "LLM_FUNCTION_CALL_ERROR_RECOVERY_SUGGESTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please retry the input query or restart the application."
+          }
+        }
+      }
+    },
+    "LLM_FUNCTION_CALL_SCHEMA_EXTRACTION_ERROR_DESCRIPTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Function Call schema definition could not be extracted."
+          }
+        }
+      }
+    },
+    "LLM_FUNCTION_CALL_SCHEMA_EXTRACTION_ERROR_FAILURE_REASON" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The LLM Function Call schema definition could not be extracted from the defined function call."
+          }
+        }
+      }
+    },
+    "LLM_FUNCTION_CALL_SCHEMA_EXTRACTION_ERROR_RECOVERY_SUGGESTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please retry the input query or restart the application."
+          }
+        }
+      }
+    },
+    "LLM_GENERATION_ERROR_DESCRIPTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generation Error occurred during OpenAI inference."
+          }
+        }
+      }
+    },
+    "LLM_GENERATION_ERROR_FAILURE_REASON" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The OpenAI API responded with an error during the output generation."
+          }
+        }
+      }
+    },
+    "LLM_GENERATION_ERROR_RECOVERY_SUGGESTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please retry the input query."
+          }
+        }
+      }
+    },
+    "LLM_INSUFFICIENT_QUOTA_ERROR_DESCRIPTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI Quota limit reached."
+          }
+        }
+      }
+    },
+    "LLM_INSUFFICIENT_QUOTA_FAILURE_REASON" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The specified OpenAI API key has reached the quota limit of the associated OpenAI account."
+          }
+        }
+      }
+    },
+    "LLM_INSUFFICIENT_QUOTA_RECOVERY_SUGGESTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please increase the OpenAI quota limits or try again later."
+          }
+        }
+      }
+    },
+    "LLM_INVALID_FUNCTION_ARGUMENTS_ERROR_DESCRIPTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The LLM Function Call could not be executed."
+          }
+        }
+      }
+    },
+    "LLM_INVALID_FUNCTION_ARGUMENTS_FAILURE_REASON" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The parameters specified by the LLM Function Call do not match the argument sent by OpenAI. "
+          }
+        }
+      }
+    },
+    "LLM_INVALID_FUNCTION_ARGUMENTS_RECOVERY_SUGGESTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please ensure that the specified OpenAI Function Call schema is reflected within the GroveLLM Function Call definition."
+          }
+        }
+      }
+    },
+    "LLM_INVALID_FUNCTION_CALL_NAME_ERROR_DESCRIPTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LLM called an unknown function."
+          }
+        }
+      }
+    },
+    "LLM_INVALID_FUNCTION_CALL_NAME_ERROR_FAILURE_REASON" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The LLM has tried to call a function that doesn't exist."
+          }
+        }
+      }
+    },
+    "LLM_INVALID_FUNCTION_CALL_NAME_ERROR_RECOVERY_SUGGESTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please retry the input query."
+          }
+        }
+      }
+    },
+    "LLM_INVALID_REQUEST_ERROR_DESCRIPTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The request sent to the model was not valid."
+          }
+        }
+      }
+    },
+    "LLM_INVALID_REQUEST_FAILURE_REASON" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The request contained missing or unsupported fields, invalid parameters, or exceeded allowed limits."
+          }
+        }
+      }
+    },
+    "LLM_INVALID_REQUEST_RECOVERY_SUGGESTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please verify that all required fields are provided and that the request follows the expected format and model constraints."
+          }
+        }
+      }
+    },
+    "LLM_INVALID_TOKEN_ERROR_DESCRIPTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI API Key invalid."
+          }
+        }
+      }
+    },
+    "LLM_INVALID_TOKEN_FAILURE_REASON" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The specified OpenAI API key is not valid."
+          }
+        }
+      }
+    },
+    "LLM_INVALID_TOKEN_RECOVERY_SUGGESTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please ensure that the configured OpenAI API key is valid and able to access OpenAI models."
+          }
+        }
+      }
+    },
+    "LLM_MISSING_TOKEN_ERROR_DESCRIPTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI API Key missing."
+          }
+        }
+      }
+    },
+    "LLM_MISSING_TOKEN_FAILURE_REASON" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI API Key wasn't set before using the APIs generational capabilities."
+          }
+        }
+      }
+    },
+    "LLM_MISSING_TOKEN_RECOVERY_SUGGESTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ensure that the API Key is set before dispatching the first inference."
+          }
+        }
+      }
+    },
+    "LLM_MODEL_ACCESS_ERROR_DESCRIPTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI GPT Model couldn't be accessed."
+          }
+        }
+      }
+    },
+    "LLM_MODEL_ACCESS_ERROR_FAILURE_REASON" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The specified GPT model in combination with the API key couldn't be accessed. Ensure that the API key can access the specified model."
+          }
+        }
+      }
+    },
+    "LLM_MODEL_ACCESS_ERROR_RECOVERY_SUGGESTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please ensure that the specified API key has access to the configured GPT model."
+          }
+        }
+      }
+    },
+    "LLM_STORAGE_ERROR_DESCRIPTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Token could not be stored in a secure storage."
+          }
+        }
+      }
+    },
+    "LLM_STORAGE_ERROR_FAILURE_REASON" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The configured OpenAI API key could not be stored in the secure enclave."
+          }
+        }
+      }
+    },
+    "LLM_STORAGE_ERROR_RECOVERY_SUGGESTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please try to restart the application or the phone."
+          }
+        }
+      }
+    },
+    "Please enter your %@ API key" : {
+
+    },
+    "Select the %@ model that you want to use.\nEnsure that your API key has proper access to the model." : {
+
+    },
+    "You can create and inspect your %@ API keys [in the API keys section of the %@ Website](%@)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "You can create and inspect your %1$@ API keys [in the API keys section of the %2$@ Website](%3$@)."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

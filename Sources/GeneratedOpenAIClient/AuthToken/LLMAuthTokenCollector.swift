@@ -1,15 +1,16 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI)
 package import Foundation
-import Spezi
-package import SpeziKeychainStorage
-import SpeziOnboarding
+import Grove
+package import GroveKeychainStorage
+import GroveOnboarding
 package import SwiftUI
 
 
@@ -144,4 +145,5 @@ package struct LLMAuthTokenCollector: View {
             KeychainStorage()
         }
 }
+#endif
 #endif

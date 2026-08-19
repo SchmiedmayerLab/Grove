@@ -1,0 +1,572 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2025 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+// swiftlint:disable empty_string discouraged_optional_boolean type_body_length file_length
+
+import Foundation
+@testable public import GroveFoundation
+import Testing
+
+
+@Suite(.serialized)
+final class LocalPreferenceTests {
+    let suiteName = "org.grovealliance.GroveFoundation.unitTests"
+    let suite: UserDefaults
+    let store: LocalPreferencesStore
+    
+    init() throws {
+        suite = try #require(UserDefaults(suiteName: suiteName))
+        store = LocalPreferencesStore(defaults: suite)
+    }
+    
+    deinit { // swiftlint:disable:this type_contents_order
+        UserDefaults.standard.removePersistentDomain(forName: suiteName)
+    }
+    
+    
+    @Test
+    func simpleTypes() throws {
+        #expect(LocalPreferenceKeys.string.key.value == "org_grovealliance_GroveFoundation_unitTests:string")
+        #expect(LocalPreferenceKeys.stringOpt.key.value == "org_grovealliance_GroveFoundation_unitTests:stringOpt")
+        #expect(store[.string] == "")
+        #expect(store[.stringOpt] == nil)
+        #expect(suite.string(forKey: "org_grovealliance_GroveFoundation_unitTests:string") == nil)
+        store[.string] = "abc"
+        #expect(store[.string] == "abc")
+        #expect(try #require(suite.string(forKey: "org_grovealliance_GroveFoundation_unitTests:string")) == "abc")
+    }
+    
+    
+    @Test
+    func collectionTypes() throws {
+        let arrayKey = LocalPreferenceKey<[Int]>("arrayKey", default: [])
+        let dictKey = LocalPreferenceKey<[String: Int]>("dictKey", default: [:])
+        
+        store.removeEntry(for: arrayKey)
+        store.removeEntry(for: dictKey)
+        
+        #expect(store[arrayKey].isEmpty)
+        #expect(store[dictKey].isEmpty)
+        
+        store[arrayKey].append(12)
+        #expect(store[arrayKey] == [12])
+        store[arrayKey] = [1, 2, 3]
+        #expect(store[arrayKey] == [1, 2, 3])
+        
+        store[dictKey]["1"] = 1
+        #expect(store[dictKey] == ["1": 1])
+        store[dictKey] = [
+            "1": 1,
+            "2": 2,
+            "3": 3
+        ]
+        #expect(store[dictKey] == ["1": 1, "2": 2, "3": 3])
+    }
+    
+    
+    @Test
+    func userDefaultsBehaviours() throws {
+        let rawKey = "_bool1"
+        let key = LocalPreferenceKey<Bool>(.init(verbatim: rawKey, in: .none), default: false)
+        #expect(!suite.bool(forKey: rawKey))
+        suite.set(true, forKey: rawKey)
+        #expect(suite.bool(forKey: rawKey))
+        #expect(store[key])
+        
+        suite.set("true", forKey: rawKey)
+        #expect(suite.bool(forKey: rawKey))
+        #expect(store[key])
+        
+        suite.set("false", forKey: rawKey)
+        #expect(!suite.bool(forKey: rawKey))
+        #expect(!store[key])
+        
+        suite.set("abc", forKey: rawKey)
+        #expect(!suite.bool(forKey: rawKey))
+        #expect(!store[key])
+        
+        store[key] = true
+        #expect(suite.bool(forKey: rawKey))
+        #expect(store[key])
+        
+        suite.removeObject(forKey: rawKey)
+        #expect(!suite.bool(forKey: rawKey))
+        #expect(!store[key])
+        
+        let suite1 = UserDefaults.standard
+        let suite2 = try #require(UserDefaults(suiteName: "test"))
+        suite1.set("world", forKey: "hello")
+        #expect(suite1.string(forKey: "hello") == "world")
+        #expect(suite2.string(forKey: "hello") == nil)
+        
+        suite2.set("hello", forKey: "world")
+        #expect(suite1.string(forKey: "world") == nil)
+        #expect(suite2.string(forKey: "world") == "hello")
+        suite1.addSuite(named: "test")
+        #expect(suite1.string(forKey: "world") == "hello")
+    }
+    
+    
+    @Test
+    func directlySupportedTypes() throws {
+        func imp<T: HasDirectUserDefaultsSupport & Equatable & Sendable>(_: T.Type, defaultValue: T, testValue: T) throws {
+            let key = LocalPreferenceKey<T>(.init(verbatim: "testKey", in: .none), default: defaultValue)
+            store.removeEntry(for: key)
+            #expect(store[key] == defaultValue)
+            #expect(suite.object(forKey: key.key.value) == nil)
+            store[key] = testValue
+            if let testValue = testValue as? any AnyOptional, testValue.isNone {
+                #expect(suite.object(forKey: key.key.value) == nil)
+            } else {
+                #expect(suite.object(forKey: key.key.value) != nil)
+            }
+            #expect(store[key] == testValue)
+            store[key] = nil
+            #expect(suite.object(forKey: key.key.value) == nil)
+            #expect(store[key] == defaultValue)
+        }
+        
+        try imp(Bool.self, defaultValue: false, testValue: true)
+        try imp(Int.self, defaultValue: 0, testValue: 12)
+        try imp(String.self, defaultValue: "", testValue: "heyyy")
+        try imp(Double.self, defaultValue: 2, testValue: 4.7)
+        try imp(Float.self, defaultValue: 5, testValue: 3.1)
+        try imp(Data.self, defaultValue: Data([1, 2, 3]), testValue: Data([4, 5, 6]))
+        try imp(URL.self, defaultValue: URL(filePath: "/Users/Grove/"), testValue: URL(filePath: "/Users/Grove/Desktop"))
+        try imp(Date.self, defaultValue: Date(timeIntervalSince1970: 0), testValue: Date.now)
+        
+        try imp(Bool?.self, defaultValue: nil, testValue: false)
+        try imp(Bool?.self, defaultValue: nil, testValue: nil)
+        try imp(Bool?.self, defaultValue: nil, testValue: true)
+        try imp(Int?.self, defaultValue: nil, testValue: 12)
+        try imp(String?.self, defaultValue: nil, testValue: "hello")
+        try imp(Double?.self, defaultValue: nil, testValue: 1.1)
+        try imp(Float?.self, defaultValue: nil, testValue: 2.2)
+        try imp(Data?.self, defaultValue: nil, testValue: Data([0, 9, 8]))
+        try imp(URL?.self, defaultValue: nil, testValue: URL(filePath: "/Users/Grove/Desktop/file.txt"))
+        try imp(Date?.self, defaultValue: nil, testValue: Date(timeIntervalSinceReferenceDate: 0))
+    }
+    
+    
+    @Test
+    func optionalDirectlySupportedTypes() throws {
+        func imp(testValue: Bool?) {
+            let key = LocalPreferenceKey<Bool?>(.init(verbatim: "optBoolTestKey", in: .none))
+            store.removeEntry(for: key)
+            #expect(store[key] == nil)
+            #expect(suite.object(forKey: key.key.value) == nil)
+            store[key] = testValue
+            if testValue == nil {
+                #expect(suite.object(forKey: key.key.value) == nil)
+            } else {
+                #expect(suite.object(forKey: key.key.value) != nil)
+            }
+            #expect(store[key] == testValue)
+            store[key] = nil
+            #expect(suite.object(forKey: key.key.value) == nil)
+            #expect(store[key] == nil)
+        }
+        imp(testValue: nil)
+        imp(testValue: false)
+        imp(testValue: true)
+    }
+    
+    
+    @Test
+    func rawRepresentableTypes() throws {
+        func imp<R: RawRepresentable & Equatable & Sendable & SendableMetatype>(
+            _: R.Type,
+            defaultValue: R,
+            testValues: [R]
+        ) throws where R.RawValue: HasDirectUserDefaultsSupport {
+            let key = LocalPreferenceKey<R>("rrKey", default: defaultValue)
+            store.removeEntry(for: key)
+            #expect(!store.hasEntry(for: key))
+            #expect(store[key] == defaultValue)
+            for testValue in testValues {
+                store[key] = testValue
+                #expect(store.hasEntry(for: key))
+                #expect(store[key] == testValue)
+                store.removeEntry(for: key)
+                #expect(!store.hasEntry(for: key))
+                #expect(store[key] == defaultValue)
+            }
+            store[key] = nil
+            #expect(!store.hasEntry(for: key))
+            #expect(store[key] == defaultValue)
+            store[key] = defaultValue
+            #expect(store.hasEntry(for: key))
+            #expect(store[key] == defaultValue)
+        }
+        
+        struct IntID: RawRepresentable, Equatable {
+            let rawValue: Int
+        }
+        struct StringID: RawRepresentable, Equatable {
+            let rawValue: String
+        }
+        
+        try imp(
+            IntID.self,
+            defaultValue: IntID(rawValue: 0),
+            testValues: [IntID(rawValue: 1), IntID(rawValue: 2), IntID(rawValue: 3)]
+        )
+        try imp(
+            StringID.self,
+            defaultValue: StringID(rawValue: ""),
+            testValues: [StringID(rawValue: "a"), StringID(rawValue: "b"), StringID(rawValue: "c")]
+        )
+    }
+    
+    
+    @Test
+    func optionalRawRepresentableTypes() throws {
+        func imp<R: RawRepresentable & Equatable & Sendable & SendableMetatype>(
+            _: R.Type,
+            testValues: [Optional<R>]
+        ) throws where R.RawValue: HasDirectUserDefaultsSupport {
+            let key1 = LocalPreferenceKey<R?>("rrKey")
+            let key2 = LocalPreferenceKey<R?>("rrKey")
+            
+            store.removeEntry(for: key1)
+            #expect(!store.hasEntry(for: key1))
+            #expect(!store.hasEntry(for: key2))
+            #expect(store[key1] == nil)
+            #expect(store[key1] == store[key2])
+            
+            for testValue in testValues {
+                store[key1] = testValue
+                #expect(store.hasEntry(for: key1) == (testValue != nil))
+                #expect(store.hasEntry(for: key2) == (testValue != nil))
+                #expect(store[key1] == testValue)
+                #expect(store[key1] == store[key2])
+                store.removeEntry(for: key2)
+                #expect(!store.hasEntry(for: key1))
+                #expect(!store.hasEntry(for: key2))
+                #expect(store[key1] == nil)
+                #expect(store[key1] == store[key2])
+            }
+            
+            store[key2] = nil
+            #expect(!store.hasEntry(for: key1))
+            #expect(!store.hasEntry(for: key2))
+            #expect(store[key1] == nil)
+            #expect(store[key1] == store[key2])
+        }
+        
+        struct IntID: RawRepresentable, Equatable {
+            let rawValue: Int
+        }
+        struct StringID: RawRepresentable, Equatable {
+            let rawValue: String
+        }
+        
+        try imp(
+            IntID.self,
+            testValues: [IntID(rawValue: 1), nil, IntID(rawValue: 2), nil, IntID(rawValue: 3)]
+        )
+        try imp(
+            StringID.self,
+            testValues: [StringID(rawValue: "a"), nil, StringID(rawValue: "b"), nil, StringID(rawValue: "c")]
+        )
+    }
+    
+    
+    @Test
+    func codableTypes() throws {
+        func imp<T: Codable & Equatable & Sendable & SendableMetatype>(
+            _: T.Type,
+            defaultValue: T,
+            testValues: [T]
+        ) throws {
+            let key = LocalPreferenceKey<T>("codableTest", default: defaultValue)
+            store.removeEntry(for: key)
+            #expect(store[key] == defaultValue)
+            
+            for testValue in testValues {
+                store[key] = testValue
+                #expect(store[key] == testValue)
+                #expect(suite.object(forKey: key.key.value) is Data)
+            }
+        }
+        
+        struct Cat: Hashable, Codable {
+            let name: String
+            let age: Int
+        }
+        
+        try imp(
+            Cat.self,
+            defaultValue: Cat(name: "Steve", age: 7),
+            testValues: [Cat(name: "Martha", age: 5), Cat(name: "Blue", age: 9)]
+        )
+    }
+    
+    
+    @Test
+    func optionalCodableTypes() throws {
+        func imp<T: Codable & Equatable & Sendable & SendableMetatype>(
+            _: T.Type,
+            testValues: [T?]
+        ) throws {
+            let key = LocalPreferenceKey<T?>("codableTest")
+            store.removeEntry(for: key)
+            #expect(store[key] == nil)
+            
+            for testValue in testValues {
+                store[key] = testValue
+                #expect(store[key] == testValue)
+                if testValue == nil {
+                    #expect(suite.object(forKey: key.key.value) == nil)
+                } else {
+                    #expect(suite.object(forKey: key.key.value) is Data)
+                }
+            }
+        }
+        
+        struct Cat: Hashable, Codable {
+            let name: String
+            let age: Int
+        }
+        
+        try imp(
+            Cat.self,
+            testValues: [Cat(name: "Martha", age: 5), nil, Cat(name: "Blue", age: 9), nil, Cat(name: "Sōren", age: 110)]
+        )
+    }
+    
+    
+    @Test
+    func namespaceRemoval() {
+        func countEntries(in namespace: LocalPreferenceKeys.Namespace) -> Int {
+            store.defaults.dictionaryRepresentation().keys.count { key in
+                key.starts(with: namespace.format(keyName: "", applyKVOCompatibilityFixes: true))
+            }
+        }
+        func makeKey(_ key: String, in namespace: LocalPreferenceKeys.Namespace) -> LocalPreferenceKey<String> {
+            .init(LocalPreferenceKey<String>.Key(key, in: namespace), default: "")
+        }
+        
+        #expect(countEntries(in: .groveFoundationUnitTests) == 0)
+        #expect(!store.hasEntry(in: .groveFoundationUnitTests))
+        #expect(countEntries(in: .groveFoundationUnitTestsAlt) == 0)
+        #expect(!store.hasEntry(in: .groveFoundationUnitTestsAlt))
+        
+        let key1Main = makeKey("1", in: .groveFoundationUnitTests)
+        let key2Main = makeKey("2", in: .groveFoundationUnitTests)
+        let key1Alt = makeKey("1", in: .groveFoundationUnitTestsAlt)
+        
+        store[key1Main] = "Hey!"
+        store[key2Main] = "Hey!!!"
+        #expect(countEntries(in: .groveFoundationUnitTests) == 2)
+        #expect(store.hasEntry(in: .groveFoundationUnitTests))
+        #expect(countEntries(in: .groveFoundationUnitTestsAlt) == 0)
+        #expect(!store.hasEntry(in: .groveFoundationUnitTestsAlt))
+        
+        store.removeAllEntries(in: .groveFoundationUnitTests)
+        #expect(countEntries(in: .groveFoundationUnitTests) == 0)
+        #expect(!store.hasEntry(in: .groveFoundationUnitTests))
+        #expect(countEntries(in: .groveFoundationUnitTests) == 0)
+        #expect(!store.hasEntry(in: .groveFoundationUnitTests))
+        #expect(countEntries(in: .groveFoundationUnitTestsAlt) == 0)
+        #expect(!store.hasEntry(in: .groveFoundationUnitTestsAlt))
+        
+        store[key1Alt] = "Hi!"
+        store[key2Main] = "Oha"
+        #expect(countEntries(in: .groveFoundationUnitTestsAlt) == 1)
+        #expect(store.hasEntry(in: .groveFoundationUnitTestsAlt))
+        store.removeAllEntries(in: .groveFoundationUnitTestsAlt)
+        #expect(countEntries(in: .groveFoundationUnitTestsAlt) == 0)
+        #expect(!store.hasEntry(in: .groveFoundationUnitTestsAlt))
+        #expect(countEntries(in: .groveFoundationUnitTests) == 1)
+        #expect(store.hasEntry(in: .groveFoundationUnitTests))
+        
+        let verbatimKey = LocalPreferenceKey<String?>(.init(verbatim: "h.mmm", in: .groveFoundationUnitTests), default: nil)
+        let nonVerbatimKey = LocalPreferenceKey<String?>(.init("h.mmm", in: .groveFoundationUnitTests), default: nil)
+        store[verbatimKey] = "value1"
+        store[nonVerbatimKey] = "value2"
+        #expect(store[verbatimKey] == "value1")
+        #expect(store[nonVerbatimKey] == "value2")
+        store.removeAllEntries(in: .groveFoundationUnitTests)
+        #expect(store[verbatimKey] == nil)
+        #expect(store[nonVerbatimKey] == nil)
+    }
+    
+    
+    // MARK: Migration Testing
+    
+    private func withTemporarySuiteForMigration(
+        _ test: (_ store: LocalPreferencesStore) throws -> Void
+    ) throws {
+        let suiteName = "org.grovealliance.GroveFoundation.unitTests.migrationTesting.\(UUID().uuidString)"
+        defer {
+            UserDefaults.standard.removePersistentDomain(forName: suiteName)
+        }
+        let suite = try #require(UserDefaults(suiteName: suiteName))
+        let store = LocalPreferencesStore(defaults: suite)
+        try test(store)
+    }
+    
+    
+    @Test
+    func migrateName() throws {
+        try withTemporarySuiteForMigration { store in
+            let oldKey = LocalPreferenceKey<Date>("dateOfBrith", default: Date(timeIntervalSince1970: 0))
+            let newKey = LocalPreferenceKey<Date>("dateOfBirth", default: Date(timeIntervalSince1970: 0))
+            let now = Date()
+            #expect(!store.hasEntry(for: oldKey))
+            #expect(!store.hasEntry(for: newKey))
+            store[oldKey] = now
+            #expect(store[oldKey] == now)
+            #expect(!store.hasEntry(for: newKey))
+            let migration = LocalPreferencesStore.MigrateName(from: oldKey.key, to: newKey.key)
+            try store.runMigrations(migration)
+            #expect(!store.hasEntry(for: oldKey))
+            #expect(store[newKey] == now)
+            
+            // also test that we can run the migration as many times as we want and we'll always get the same result (ie the opertaion is idempotent)
+            for _ in 0..<20 {
+                let valueA = oldKey.read(in: store.defaults)
+                let valueB = newKey.read(in: store.defaults)
+                try store.runMigrations(migration)
+                #expect(oldKey.read(in: store.defaults) == valueA)
+                #expect(newKey.read(in: store.defaults) == valueB)
+            }
+        }
+    }
+    
+    
+    @Test
+    func migrateType() throws {
+        try withTemporarySuiteForMigration { store in
+            struct Wrapped<T: Codable & Equatable>: Codable, Equatable {
+                let value: T
+            }
+            let oldKey = LocalPreferenceKey<Wrapped<Int>>("number", default: .init(value: 0))
+            let newKey = LocalPreferenceKey<Wrapped<String>>("number", default: .init(value: "zero"))
+            #expect(!store.hasEntry(for: oldKey))
+            #expect(!store.hasEntry(for: newKey))
+            store[oldKey] = .init(value: 2)
+            #expect(oldKey.read(in: store.defaults).value?.value == 2)
+            #expect(newKey.read(in: store.defaults).error != nil)
+            let migration = LocalPreferencesStore.MigrateValue(from: oldKey, to: newKey) { (value: Wrapped<Int>) in
+                let fmt = NumberFormatter()
+                fmt.numberStyle = .spellOut
+                return try Wrapped(value: #require(fmt.string(from: NSNumber(value: value.value))))
+            }
+            try store.runMigrations(migration)
+            #expect(store[newKey].value == "two")
+            #expect(oldKey.read(in: store.defaults).error != nil)
+            
+            // also test that we can run the migration as many times as we want and we'll always get the same result (ie the operation is idempotent)
+            for idx in 0..<20 {
+                let valueA = oldKey.read(in: store.defaults)
+                let valueB = newKey.read(in: store.defaults)
+                #expect(valueA.error != nil)
+                #expect(valueB == .value(.init(value: "two")))
+                try store.runMigrations(migration)
+                #expect(String(reflecting: oldKey.read(in: store.defaults)) == String(reflecting: valueA), "\(idx)")
+                #expect(newKey.read(in: store.defaults) == valueB, "\(idx)")
+            }
+        }
+    }
+    
+    
+    @Test
+    func migrateValue2() throws {
+        try withTemporarySuiteForMigration { store in
+            let testData = Data([2, 3, 5, 7, 11, 13, 17, 19])
+            let testDataB64 = testData.base64EncodedString()
+            let oldKey = LocalPreferenceKey<String>("token", default: "")
+            let newKey = LocalPreferenceKey<Data?>("token")
+            let migration = LocalPreferencesStore.MigrateValue(from: oldKey, to: newKey) { (oldValue: String) -> Data? in
+                Data(base64Encoded: oldValue)
+            }
+            store.removeEntry(for: oldKey)
+            store.removeEntry(for: newKey)
+            store[oldKey] = testDataB64
+            #expect(store[oldKey] == testDataB64)
+            #expect(store[newKey] == nil)
+            #expect(store[oldKey] == testDataB64)
+            try store.runMigrations(migration)
+            #expect(store[oldKey] == "")
+            #expect(store[newKey] == testData)
+            for _ in 0..<20 {
+                try store.runMigrations(migration)
+                #expect(store[oldKey] == "")
+                #expect(store[newKey] == testData)
+            }
+        }
+    }
+}
+
+
+extension LocalPreferenceKeys.Namespace {
+    fileprivate static let groveFoundationUnitTests: Self = .custom("org.grovealliance.GroveFoundation.unitTests")
+    fileprivate static let groveFoundationUnitTestsAlt: Self = .custom("org.grovealliance.GroveFoundation.unitTests.alt")
+}
+
+extension LocalPreferenceKeys {
+    fileprivate static let string = LocalPreferenceKey<String>(
+        .init("string", in: .groveFoundationUnitTests),
+        default: ""
+    )
+    fileprivate static let stringOpt = LocalPreferenceKey<String?>(
+        .init("stringOpt", in: .groveFoundationUnitTests),
+        default: nil
+    )
+}
+
+
+// MARK: Utils
+
+extension LocalPreferenceKey.ReadResult {
+    var value: Value? {
+        switch self {
+        case .value(let value):
+            value
+        case .empty, .failure:
+            nil
+        }
+    }
+    
+    var error: (any Error)? {
+        switch self {
+        case .failure(let error):
+            error
+        case .empty, .value:
+            nil
+        }
+    }
+}
+
+
+extension LocalPreferenceKey.ReadResult: Equatable where Value: Equatable {
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        switch (lhs, rhs) {
+        case (.empty, .empty):
+            true
+        case let (.value(lhs), .value(rhs)):
+            lhs == rhs
+        case let (.failure(lhs), .failure(rhs)):
+            // https://github.com/swiftlang/swift/issues/85111
+            (lhs as any Equatable).isEqual(to: rhs)
+        default:
+            false
+        }
+    }
+}
+
+extension AnyOptional {
+    var isNone: Bool {
+        switch self.unwrappedOptional {
+        case .none: true
+        case .some: false
+        }
+    }
+}

@@ -1,5 +1,5 @@
 #
-# This source file is part of the Stanford Spezi open-source project
+# This source file is part of the Grove open-source project
 #
 # SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 #
@@ -31,6 +31,14 @@ jobs:
       - name: Verify generated UI test projects
         run: python3 Scripts/generate-ui-test-projects.py --check
 
+  documentation-targets:
+    name: Documentation Target Consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify .spi.yml documents every library product
+        run: python3 Scripts/check-documentation-targets.py
+
   # REUSE runs as part of the Repository Standards workflow.
   swiftlint:
     name: SwiftLint
@@ -43,6 +51,16 @@ jobs:
         uses: schmiedmayerlab/action-swiftlint@v4
         with:
           args: --strict
+
+  periphery:
+    name: Dead Code Analysis
+    runs-on: macOS-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Periphery
+        run: brew install periphery
+      - name: Periphery
+        run: Scripts/run-periphery.sh --strict
 
   documentation:
     name: Documentation

@@ -1,0 +1,160 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2024 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+public import CoreBluetooth
+public import Foundation
+import GroveFoundation
+import Synchronization
+
+
+struct CharacteristicAccessorCapture: Sendable {
+    let isNotifying: Bool
+    let properties: CBCharacteristicProperties
+
+    fileprivate init(isNotifying: Bool, properties: CBCharacteristicProperties) {
+        self.isNotifying = isNotifying
+        self.properties = properties
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+struct GATTCharacteristicCapture: Sendable {
+    let isNotifying: Bool
+    let value: Data?
+    let descriptors: CBInstance<[CBDescriptor]>?
+    init(from characteristic: CBCharacteristic) {
+        self.isNotifying = characteristic.isNotifying
+        self.value = characteristic.value
+        self.descriptors = characteristic.descriptors.map { CBInstance(instantiatedOnDispatchQueue: $0) }
+    }
+}
+
+
+/// A Bluetooth characteristic of a service.
+///
+/// ## Topics
+///
+/// ### Instance Properties
+/// - ``id``
+/// - ``value``
+/// - ``isNotifying``
+/// - ``properties``
+/// - ``descriptors``
+/// - ``service``
+@available(iOS 18, macOS 15, watchOS 11, *)
+@Observable
+public final class GATTCharacteristic {
+    let underlyingCharacteristic: CBCharacteristic
+
+    /// The associated service if still available.
+    public private(set) weak var service: GATTService?
+
+    /// Whether the characteristic is currently notifying or not.
+    public private(set) var isNotifying: Bool
+    /// The value of the characteristic.
+    public private(set) var value: Data?
+    /// A list of the descriptors that have so far been discovered in this characteristic.
+    public private(set) var descriptors: [CBDescriptor]? // swiftlint:disable:this discouraged_optional_collection
+
+    /// The Bluetooth UUID of the characteristic.
+    public var id: BTUUID {
+        BTUUID(data: underlyingCharacteristic.uuid.data)
+    }
+
+    /// The properties of the characteristic.
+    public var properties: CBCharacteristicProperties {
+        underlyingCharacteristic.properties
+    }
+
+    private let captureLock = Mutex<Void>(())
+
+    var captured: CharacteristicAccessorCapture {
+        access(keyPath: \.captured)
+        return captureLock.withLock { _ in
+            CharacteristicAccessorCapture(isNotifying: _isNotifying, properties: properties)
+        }
+    }
+
+    init(characteristic: CBCharacteristic, service: GATTService) {
+        self.underlyingCharacteristic = characteristic
+        self.service = service
+        self.isNotifying = characteristic.isNotifying
+        self.value = characteristic.value
+        self.descriptors = characteristic.descriptors
+    }
+
+
+    @GroveBluetooth
+    func synchronizeModel(capture: GATTCharacteristicCapture) {
+        var shouldNotifyCapture = false
+
+        if capture.isNotifying != isNotifying {
+            shouldNotifyCapture = true
+            withMutation(keyPath: \.isNotifying) {
+                captureLock.withLock { _ in
+                    _isNotifying = capture.isNotifying
+                }
+            }
+        }
+        if capture.value != value {
+            withMutation(keyPath: \.value) {
+                captureLock.withLock { _ in
+                    _value = capture.value
+                }
+            }
+        }
+        if capture.descriptors?.cbObject != descriptors {
+            withMutation(keyPath: \.descriptors) {
+                captureLock.withLock { _ in
+                    _descriptors = capture.descriptors?.cbObject
+                }
+            }
+        }
+
+        if shouldNotifyCapture {
+            // self is never mutated or even accessed in the withMutation call
+            nonisolated(unsafe) let this = self
+            Task { @Sendable @MainActor in
+                this.withMutation(keyPath: \.captured) {}
+            }
+        }
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension GATTCharacteristic {}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension GATTCharacteristic: Identifiable {}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension GATTCharacteristic: CustomStringConvertible, CustomDebugStringConvertible {
+    public var description: String {
+        "Characteristic(id: \(id), properties: \(properties), \(value.map { "value: \($0), " } ?? "")isNotifying, \(isNotifying))"
+    }
+
+    public var debugDescription: String {
+        description
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension GATTCharacteristic: Hashable {
+    public static func == (lhs: GATTCharacteristic, rhs: GATTCharacteristic) -> Bool {
+        lhs.underlyingCharacteristic == rhs.underlyingCharacteristic
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(underlyingCharacteristic)
+    }
+}

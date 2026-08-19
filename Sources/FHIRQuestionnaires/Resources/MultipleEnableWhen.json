@@ -3,10 +3,10 @@
   "language": "en-US",
   "title": "Multiple EnableWhen Expressions",
   "status": "draft",
-  "publisher": "CardinalKit",
+  "publisher": "Stanford University",
   "meta": {
     "profile": [
-      "http://cardinalkit.org/fhir/StructureDefinition/sdf-Questionnaire"
+      "https://grovealliance.org/fhir/core/StructureDefinition/sdf-Questionnaire"
     ],
     "tag": [
       {
@@ -35,13 +35,13 @@
   ],
   "contact": [
     {
-      "name": "http://cardinalkit.org"
+      "name": "https://grovealliance.org"
     }
   ],
   "subjectType": [
     "Patient"
   ],
-  "url": "http://cardinalkit.org/fhir/questionnaire/ec52e3b0-6405-461f-ae79-7c531a5ec5f0",
+  "url": "https://grovealliance.org/fhir/core/Questionnaire/ec52e3b0-6405-461f-ae79-7c531a5ec5f0",
   "item": [
     {
       "linkId": "ae4bde24-8709-436d-8961-15d04d649d7c",

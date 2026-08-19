@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2025 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -9,7 +9,7 @@
 import OSLog
 import XCTest
 
-let logger = Logger(subsystem: "XCTHealthKit", category: "")
+let logger = Logger(subsystem: "org.grovealliance.xctHealthKit", category: "")
 
 
 extension XCTest {

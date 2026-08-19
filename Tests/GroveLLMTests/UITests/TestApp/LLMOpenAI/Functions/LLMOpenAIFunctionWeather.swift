@@ -1,0 +1,34 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+import GroveLLMOpenAI
+
+
+struct LLMOpenAIFunctionWeather: LLMTool {
+    enum TemperatureUnit: String, LLMToolParameterEnum {
+        case celsius
+        case fahrenheit
+    }
+    
+    
+    let name: String = "get_current_weather"
+    let description: String = "Get the current weather in a given location"
+    
+    
+    @Parameter(
+        description: "The city and state of the to be determined weather, e.g. San Francisco, CA"
+    )
+    var location: String
+    @Parameter(description: "The unit of the temperature")
+    var unit: TemperatureUnit
+    
+    
+    func execute() async throws -> String? {
+        "The weather at \(location) is 30 degrees \(unit)"
+    }
+}

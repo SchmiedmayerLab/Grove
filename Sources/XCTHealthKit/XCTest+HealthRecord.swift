@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2025 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -106,29 +106,30 @@ extension XCTestCase {
 
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         let allowButton = springboard.buttons["Allow Once"]
-        if allowButton.waitForExistence(timeout: 5) {
+        if allowButton.wait(for: \.isHittable, toEqual: true, timeout: 5) {
             allowButton.tap()
+            XCTAssert(allowButton.waitForNonExistence(timeout: 10))
         }
 
         guard addInstitutionButton.waitForExistence(timeout: 10) else {
             XCTFail("Health Records institution did not appear")
             return false
         }
-        addInstitutionButton.tap()
+        addInstitutionButton.tapWhenHittable(timeout: 2)
 
         let connectAccountButton = healthApp.staticTexts["Connect Account"]
         guard connectAccountButton.waitForExistence(timeout: 10) else {
             XCTFail("Connect Account button did not appear")
             return false
         }
-        connectAccountButton.tap()
+        connectAccountButton.tapWhenHittable(timeout: 2)
 
         let doneButton = healthApp.staticTexts["Done"]
         guard doneButton.waitForExistence(timeout: 10) else {
             XCTFail("Health Records completion button did not appear")
             return false
         }
-        doneButton.tap()
+        doneButton.tapWhenHittable(timeout: 2)
         return true
     }
 
@@ -170,44 +171,38 @@ extension XCTestCase {
             }
         }
         
-        XCTAssertTrue(systemUnderTest.buttons["Next"].waitForExistence(timeout: 2))
-        systemUnderTest.buttons["Next"].tap()
-        
+        systemUnderTest.buttons["Next"].tapWhenHittable(timeout: 2)
+
         for account in accounts {
             guard !systemUnderTest.staticTexts[account.locationName].waitForExistence(timeout: 2) else {
                 continue
             }
-            XCTAssertTrue(systemUnderTest.staticTexts["Add Account"].waitForExistence(timeout: 2))
-            systemUnderTest.staticTexts["Add Account"].tap()
-            
+            systemUnderTest.staticTexts["Add Account"].tapWhenHittable(timeout: 2)
+
             handleHealthAppOnboardingIfNecessary(healthApp)
             guard connectHealthRecordAccount(in: healthApp, institutionName: account.institutionName) else {
                 return
             }
         }
-        
+
         for _ in 0..<2 {
-            XCTAssertTrue(systemUnderTest.buttons["Next"].waitForExistence(timeout: 2))
-            systemUnderTest.buttons["Next"].tap()
+            systemUnderTest.buttons["Next"].tapWhenHittable(timeout: 2)
         }
-        
-        HealthRecordType.allCases.forEach {
-            if !systemUnderTest.switches[$0.description].waitForExistence(timeout: 2) {
+
+        healthRecordTypes.forEach {
+            let toggle = systemUnderTest.switches[$0.description]
+            if !toggle.wait(for: \.isHittable, toEqual: true, timeout: 2) {
                 systemUnderTest.swipeDown()
-                XCTAssertTrue(systemUnderTest.switches[$0.description].waitForExistence(timeout: 2))
             }
-            systemUnderTest.switches[$0.description].tap()
+            toggle.tapWhenHittable(timeout: 2)
         }
-        
-        XCTAssertTrue(systemUnderTest.buttons["Share"].waitForExistence(timeout: 2))
-        systemUnderTest.buttons["Share"].tap()
-        
+
+        systemUnderTest.buttons["Share"].tapWhenHittable(timeout: 2)
+
         if automaticallyShareUpdates {
-            XCTAssertTrue(systemUnderTest.staticTexts["Automatically Share"].waitForExistence(timeout: 2))
-            systemUnderTest.staticTexts["Automatically Share"].tap()
+            systemUnderTest.staticTexts["Automatically Share"].tapWhenHittable(timeout: 2)
         }
-        
-        XCTAssertTrue(systemUnderTest.buttons["Done"].waitForExistence(timeout: 2))
-        systemUnderTest.buttons["Done"].tap()
+
+        systemUnderTest.buttons["Done"].tapWhenHittable(timeout: 2)
     }
 }

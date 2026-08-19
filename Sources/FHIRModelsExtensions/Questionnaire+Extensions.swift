@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -8,6 +8,7 @@
 
 private import FHIRPathParser
 public import Foundation
+import GroveLegacyIdentifiers
 public import ModelsR4
 
 
@@ -24,12 +25,22 @@ extension QuestionnaireItem {
         static let hidden = "http://hl7.org/fhir/StructureDefinition/questionnaire-hidden"
         static let entryFormat = "http://hl7.org/fhir/StructureDefinition/entryFormat"
         
-        static let validationMessageLegacy = "http://biodesign.stanford.edu/fhir/StructureDefinition/validationtext"
-        static let validationMessage = "http://bdh.stanford.edu/fhir/StructureDefinition/validationtext"
-        static let keyboardType = "http://bdh.stanford.edu/fhir/StructureDefinition/ios-keyboardtype"
-        
-        static let textContentType = "http://bdh.stanford.edu/fhir/StructureDefinition/ios-textcontenttype"
-        static let autocapitalizationType = "http://bdh.stanford.edu/fhir/StructureDefinition/ios-autocapitalizationType"
+        static let validationMessage = FHIRCanonicalURL(
+            "https://grovealliance.org/fhir/core/StructureDefinition/validationText",
+            superseding: SupersededFHIRURLs.validationText
+        )
+        static let keyboardType = FHIRCanonicalURL(
+            "https://grovealliance.org/fhir/core/StructureDefinition/iosKeyboardType",
+            superseding: SupersededFHIRURLs.iosKeyboardType
+        )
+        static let textContentType = FHIRCanonicalURL(
+            "https://grovealliance.org/fhir/core/StructureDefinition/iosTextContentType",
+            superseding: SupersededFHIRURLs.iosTextContentType
+        )
+        static let autocapitalizationType = FHIRCanonicalURL(
+            "https://grovealliance.org/fhir/core/StructureDefinition/iosAutocapitalizationType",
+            superseding: SupersededFHIRURLs.iosAutocapitalizationType
+        )
         
         static let dateMaxValue = "http://ehelse.no/fhir/StructureDefinition/sdf-maxvalue"
         static let dateMinValue = "http://ehelse.no/fhir/StructureDefinition/sdf-minvalue"
@@ -127,8 +138,7 @@ extension QuestionnaireItem {
     /// The validation message for a question.
     /// - Returns: An optional `String` containing the validation message, if it exists.
     public var validationMessage: String? {
-        let ext = extensions(for: SupportedExtensions.validationMessage).first ?? extensions(for: SupportedExtensions.validationMessageLegacy).first
-        return ext?.value?.stringValue?.value?.string
+        extensions(for: SupportedExtensions.validationMessage).first?.value?.stringValue?.value?.string
     }
 
     /// The placeholder text associated with the questionaire item.

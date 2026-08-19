@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2024 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -7,16 +7,16 @@
 //
 
 package import Foundation
+import GroveLLM
 package import HTTPTypes
 package import OpenAPIRuntime
-package import SpeziKeychainStorage
-import SpeziLLM
 
 
 /// Middleware for injecting an Bearer API token into outgoing requests based on the ``RemoteLLMInferenceAuthToken``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 package struct BearerAuthMiddleware: ClientMiddleware {
     private let authToken: RemoteLLMInferenceAuthToken
-    private let keychainStorage: KeychainStorage?
+    private let keychainStorage: LLMCredentialStorage?
 
 
     /// Build the middleware from a ``RemoteLLMInferenceAuthToken``.
@@ -26,17 +26,19 @@ package struct BearerAuthMiddleware: ClientMiddleware {
     ///   - keychainStorage: The key chain storage layer.
     package init(
         authToken: RemoteLLMInferenceAuthToken,
-        keychainStorage: KeychainStorage?
+        keychainStorage: LLMCredentialStorage?
     ) {
         self.authToken = authToken
         self.keychainStorage = keychainStorage
 
         // Check if keychain storage is specified
+        #if canImport(Security)
         if case .keychain = authToken {
             guard self.keychainStorage != nil else {
                 fatalError("Internal consistency error: Keychain storage could no be accessed, even though it was specified")
             }
         }
+        #endif
     }
 
     

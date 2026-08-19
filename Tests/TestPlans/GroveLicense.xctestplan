@@ -1,0 +1,32 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000017",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveLicense",
+        "name" : "GroveLicense"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveLicenseTests",
+          "name" : "GroveLicenseTests"
+        }
+      }
+  ],
+  "version" : 1
+}

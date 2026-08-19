@@ -1,0 +1,28 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2024 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+public import GroveBluetoothServices
+
+
+extension RecordAccessOpCode {
+    /// Report the sequence number of the latest records.
+    ///
+    /// Reports the the sequence number of the latest records on the peripheral.
+    /// The operator is [`null`](../../GroveBluetoothServices/BluetoothServices.docc/BluetoothServices.md)
+    /// and no operand is used.
+    ///
+    /// The number of stored records is returned using ``omronSequenceNumberOfLatestRecordsResponse``.
+    /// Erroneous conditions are returned using the [`responseCode`](../../GroveBluetoothServices/BluetoothServices.docc/BluetoothServices.md).
+    public static let omronReportSequenceNumberOfLatestRecords = RecordAccessOpCode(rawValue: 0x10)
+    /// Response returning the sequence number of the latest records.
+    ///
+    /// This is the response code to ``omronReportSequenceNumberOfLatestRecords``.
+    /// The operator is [`null`](../../GroveBluetoothServices/BluetoothServices.docc/BluetoothServices.md).
+    /// The operand contains the number of stored records as a `UInt16`.
+    public static let omronSequenceNumberOfLatestRecordsResponse = RecordAccessOpCode(rawValue: 0x11) // swiftlint:disable:this identifier_name
+}

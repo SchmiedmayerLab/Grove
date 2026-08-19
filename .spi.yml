@@ -2,77 +2,77 @@ version: 1
 builder:
   configs:
     - documentation_targets:
-        - Spezi
+        - Grove
         - FHIRModelsExtensions
         - FHIRPathParser
         - FHIRQuestionnaires
         - ResearchKitOnFHIR
-        - SpeziTesting
-        - XCTSpezi
-        - SpeziAccessGuard
-        - SpeziAccount
-        - XCTSpeziAccount
-        - SpeziAccountPhoneNumbers
-        - SpeziBluetoothServices
-        - SpeziBluetooth
-        - SpeziChat
-        - SpeziConsent
-        - SpeziContact
-        - SpeziDevices
-        - SpeziDevicesUI
-        - SpeziOmron
-        - SpeziFHIR
-        - SpeziFHIRMockPatients
+        - GroveTesting
+        - XCTGrove
+        - GroveAccessGuard
+        - GroveAccount
+        - XCTGroveAccount
+        - GroveAccountPhoneNumbers
+        - GroveBluetoothServices
+        - GroveBluetooth
+        - GroveChat
+        - GroveConsent
+        - GroveContact
+        - GroveDevices
+        - GroveDevicesUI
+        - GroveOmron
+        - GroveFHIR
+        - GroveFHIRMockPatients
         - EDFFormat
-        - SpeziFirebaseAccount
-        - SpeziFirebaseConfiguration
-        - SpeziFirestore
-        - SpeziFirebaseStorage
-        - SpeziFirebaseAccountStorage
-        - SpeziFoundation
-        - SpeziLocalization
+        - GroveFirebaseAccount
+        - GroveFirebaseConfiguration
+        - GroveFirestore
+        - GroveFirebaseStorage
+        - GroveFirebaseAccountStorage
+        - GroveFoundation
+        - GroveLocalization
         - ThreadLocal
-        - SpeziHealthKit
-        - SpeziHealthKitBulkExport
-        - SpeziHealthKitFHIR
-        - SpeziHealthKitUI
-        - SpeziLLM
-        - SpeziLLMLocal
-        - SpeziLLMLocalDownload
-        - SpeziLLMOpenAI
-        - SpeziLLMFog
-        - SpeziLLMOpenAIRealtime
-        - SpeziLLMAnthropic
-        - SpeziLLMGemini
-        - SpeziLicense
-        - SpeziLocation
+        - GroveHealthKit
+        - GroveHealthKitBulkExport
+        - GroveHealthKitFHIR
+        - GroveHealthKitUI
+        - GroveLLM
+        - GroveLLMLocal
+        - GroveLLMLocalDownload
+        - GroveLLMOpenAI
+        - GroveLLMOpenAIRealtime
+        - GroveLLMAnthropic
+        - GroveLLMGemini
+        - GroveLLMFoundationModels
+        - GroveLicense
+        - GroveLocation
         - ByteCoding
-        - SpeziNumerics
+        - GroveNumerics
         - XCTByteCoding
         - ByteCodingTesting
-        - SpeziNotifications
-        - XCTSpeziNotifications
-        - XCTSpeziNotificationsUI
-        - SpeziOnboarding
-        - SpeziQuestionnaire
-        - SpeziQuestionnaireCatalog
-        - SpeziQuestionnaireFHIR
-        - SpeziQuestionnaireLegacy
-        - XCTSpeziQuestionnaire
-        - SpeziScheduler
-        - SpeziSensorKit
-        - SpeziSpeechRecognizer
-        - SpeziSpeechSynthesizer
-        - SpeziLocalStorage
-        - SpeziKeychainStorage
-        - SpeziStudyDefinition
-        - SpeziViews
-        - SpeziPersonalInfo
-        - SpeziValidation
+        - GroveNotifications
+        - XCTGroveNotifications
+        - XCTGroveNotificationsUI
+        - GroveOnboarding
+        - GroveQuestionnaire
+        - GroveQuestionnaireCatalog
+        - GroveQuestionnaireFHIR
+        - GroveQuestionnaireLegacy
+        - XCTGroveQuestionnaire
+        - GroveScheduler
+        - GroveSensorKit
+        - GroveSpeechRecognizer
+        - GroveSpeechSynthesizer
+        - GroveLocalStorage
+        - GroveKeychainStorage
+        - GroveStudyDefinition
+        - GroveViews
+        - GrovePersonalInfo
+        - GroveValidation
         - XCTHealthKit
         - RuntimeAssertions
         - RuntimeAssertionsTesting
         - XCTestApp
         - XCTestExtensions
-        - SpeziSchedulerUI
-        - SpeziStudy
+        - GroveSchedulerUI
+        - GroveStudy

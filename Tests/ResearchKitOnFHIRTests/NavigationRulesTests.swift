@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -33,7 +33,7 @@ struct NavigationRulesTests {
                 )
             ],
             status: FHIRPrimitive(PublicationStatus.draft),
-            url: FHIRPrimitive(FHIRURI(stringLiteral: "http://biodesign.stanford.edu/fhir/questionnaire/navigation-rule-test"))
+            url: FHIRPrimitive(FHIRURI(stringLiteral: "http://grovealliance.org/fhir/questionnaire/navigation-rule-test"))
         )
         return try ORKNavigableOrderedTask(questionnaire: questionnaire)
     }
@@ -234,7 +234,7 @@ struct NavigationRulesTests {
         let firstItemID = UUID().uuidString, secondItemID = UUID().uuidString
         let coding = Coding(
             code: FHIRPrimitive(FHIRString("testCode")),
-            system: FHIRPrimitive(FHIRURI("http://biodesign.stanford.edu/fhir/system/testSystem"))
+            system: FHIRPrimitive(FHIRURI("http://grovealliance.org/fhir/system/testSystem"))
         )
         let enableWhen = QuestionnaireItemEnableWhen(
             answer: .coding(coding),
@@ -257,7 +257,7 @@ struct NavigationRulesTests {
         let firstItemID = UUID().uuidString, secondItemID = UUID().uuidString
         let coding = Coding(
             code: FHIRPrimitive(FHIRString("testCode")),
-            system: FHIRPrimitive(FHIRURI("http://biodesign.stanford.edu/fhir/system/testSystem"))
+            system: FHIRPrimitive(FHIRURI("http://grovealliance.org/fhir/system/testSystem"))
         )
         let enableWhen = QuestionnaireItemEnableWhen(
             answer: .coding(coding),

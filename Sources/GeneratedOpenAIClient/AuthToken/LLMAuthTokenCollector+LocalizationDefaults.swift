@@ -1,11 +1,12 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI) // Defaults for the ``LLMAuthTokenCollector``, which only exists where SwiftUI does.
 package import Foundation
 
 
@@ -41,3 +42,4 @@ extension LLMAuthTokenCollector {
         )
     }
 }
+#endif

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# This source file is part of the Stanford Spezi open-source project
+# This source file is part of the Grove open-source project
 #
 # SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 #
@@ -40,8 +40,8 @@ case "$PLATFORM:$KIND" in
 esac
 
 # Make sure a lowered floor, not the current OS wave, is what we compile against.
-export SPEZI_LOWERED_DEPLOYMENT_TARGETS=1
-unset SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS || true
+export GROVE_LOWERED_DEPLOYMENT_TARGETS=1
+unset GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS || true
 # Everything lives under the gitignored `.derivedData/` so a build leaves the checkout clean.
 mkdir -p .derivedData
 DD=".derivedData/floor-$PLATFORM-$KIND"
@@ -154,10 +154,10 @@ IFS=' ' read -r -a MODS <<< "$SUPPORTED"
 # bodyless function on macOS), so they cannot compile on the excluded platform regardless of the
 # deployment floor. They are skipped so the check flags only genuine floor regressions, never a
 # limitation that predates this work. Keep this list SMALL and each entry justified. Format: Product:platform.
-#   XCTSpeziNotifications on macOS and watchOS: its XCUIApplication authorization-alert helper
+#   XCTGroveNotifications on macOS and watchOS: its XCUIApplication authorization-alert helper
 #     (XCUIApplication+AuthorizationAlert.swift) is `#if os(iOS) … #elseif os(visionOS) … #endif` with no
 #     macOS/watchOS branch, leaving a bodyless `-> Bool` method there. Byte-identical to main; not floor-related.
-FLOOR_SKIP="XCTSpeziNotifications:macOS XCTSpeziNotifications:watchOS"
+FLOOR_SKIP="XCTGroveNotifications:macOS XCTGroveNotifications:watchOS"
 skipped() { case " $FLOOR_SKIP " in *" $1:$PLATFORM "*) return 0 ;; *) return 1 ;; esac; }
 
 echo "==> $PLATFORM ($KIND) at deployment floor — ${#TOP[@]} top-level products cover ${#MODS[@]} modules"

@@ -1,5 +1,5 @@
 #
-# This source file is part of the Stanford Spezi open-source project
+# This source file is part of the Grove open-source project
 #
 # SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 #
@@ -12,9 +12,11 @@
 # together to implement a set of APIs. Used to map changed files -> affected sub-package -> tests.
 #   platforms = the platforms the sub-package's upstream repo tested on (CI may schedule a subset).
 #               "Linux" is recorded where upstream ran `swift test` on Linux; it is not yet scheduled
-#               (xcodebuild CI is Apple-only) and SpeziAccount lists iOS deliberately (some tests fail).
+#               (xcodebuild CI is Apple-only) and GroveAccount lists iOS deliberately (some tests fail).
 #   targets   = its source target directories  (Sources/<name>)
 #   tests     = its test target directories     (Tests/<name>; a Tests/<name>/UITests/ subfolder counts too)
+#   linuxTargets = optional; what the Linux leg compile-checks instead of `tests`, for a package whose
+#               test target is Apple-only but whose sources build on Linux.
 #   uiTests   = the platforms its UITests Xcode project runs on (absent = no UI tests).
 #   self-hosted-ci = which test kinds run on the self-hosted runner (vs GitHub-hosted): a subset of
 #               ["unit", "ui"]. Optional; defaults to ["ui"] — UI tests on the self-hosted runner,
@@ -23,7 +25,7 @@
 #               need more CPU cores (e.g. RuntimeAssertions, whose cooperative-pool-blocking tests
 #               starve on the few-vCPU GitHub runner). Linux unit jobs always stay on GitHub-hosted
 #               ubuntu regardless (the self-hosted runner is macOS).
-# Note: SpeziFoundation's "CZlib" is a directory name (Sources/CZlib); its Swift target is "SpeziCZlib".
+# Note: GroveFoundation's "CZlib" is a directory name (Sources/CZlib); its Swift target is "GroveCZlib".
 
 [FHIRModelsExtensions]
 platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "tvOS"]
@@ -36,167 +38,169 @@ targets = ["ResearchKitOnFHIR"]
 tests = ["ResearchKitOnFHIRTests"]
 uiTests = ["iOS"]
 
-[Spezi]
+[Grove]
 platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "tvOS", "Linux"]
-targets = ["Spezi", "SpeziTesting", "XCTSpezi"]
-tests = ["SpeziTests"]
+targets = ["Grove", "GroveTesting", "XCTGrove"]
+tests = ["GroveTests"]
 uiTests = ["iOS", "visionOS"]
 
-[SpeziAccessGuard]
+[GroveAccessGuard]
 platforms = ["iOS"]
-targets = ["SpeziAccessGuard"]
-tests = ["SpeziAccessGuardTests"]
+targets = ["GroveAccessGuard"]
+tests = ["GroveAccessGuardTests"]
 uiTests = ["iOS"]
 
-[SpeziAccount]
+[GroveAccount]
 platforms = ["iOS", "macOS"]
-targets = ["SpeziAccount", "SpeziAccountMacros", "SpeziAccountPhoneNumbers", "XCTSpeziAccount"]
-tests = ["SpeziAccountTests", "SpeziAccountMacrosTests"]
+targets = ["GroveAccount", "GroveAccountMacros", "GroveAccountPhoneNumbers", "XCTGroveAccount"]
+tests = ["GroveAccountTests", "GroveAccountMacrosTests"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
 
-[SpeziBluetooth]
+[GroveBluetooth]
 platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "tvOS"]
-targets = ["SpeziBluetooth", "SpeziBluetoothServices", "TestPeripheral"]
-tests = ["SpeziBluetoothTests", "SpeziBluetoothServicesTests"]
+targets = ["GroveBluetooth", "GroveBluetoothServices", "TestPeripheral"]
+tests = ["GroveBluetoothTests", "GroveBluetoothServicesTests"]
 uiTests = ["iOS"]
 
-[SpeziChat]
+[GroveChat]
 platforms = ["iOS", "macOS", "visionOS"]
-targets = ["SpeziChat"]
-tests = ["SpeziChatTests"]
+targets = ["GroveChat"]
+tests = ["GroveChatTests"]
 uiTests = ["iOS", "visionOS"]
 
-[SpeziConsent]
+[GroveConsent]
 platforms = ["iOS", "macOS", "visionOS"]
-targets = ["SpeziConsent"]
-tests = ["SpeziConsentTests"]
+targets = ["GroveConsent"]
+tests = ["GroveConsentTests"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
 
-[SpeziContact]
+[GroveContact]
 platforms = ["iOS"]
-targets = ["SpeziContact"]
-tests = ["SpeziContactTests"]
+targets = ["GroveContact"]
+tests = ["GroveContactTests"]
 uiTests = ["iOS"]
 
-[SpeziDevices]
+[GroveDevices]
 platforms = ["iOS", "macOS", "macCatalyst", "visionOS"]
-targets = ["SpeziDevices", "SpeziDevicesUI", "SpeziOmron"]
-tests = ["SpeziDevicesTests", "SpeziOmronTests"]
+targets = ["GroveDevices", "GroveDevicesUI", "GroveOmron"]
+tests = ["GroveDevicesTests", "GroveOmronTests"]
 uiTests = ["iOS"]
 
-[SpeziFHIR]
+[GroveFHIR]
 platforms = ["iOS", "macOS"]
-targets = ["SpeziFHIR", "SpeziFHIRMockPatients"]
-tests = ["SpeziFHIRTests"]
+targets = ["GroveFHIR", "GroveFHIRMockPatients"]
+tests = ["GroveFHIRTests"]
 uiTests = ["iOS"]
 
-[SpeziFileFormats]
+[GroveFileFormats]
 platforms = ["iOS", "macOS", "watchOS", "visionOS", "tvOS"]
-targets = ["SpeziFileFormats", "EDFFormat"]
+targets = ["GroveFileFormats", "EDFFormat"]
 tests = ["EDFFormatTests"]
 
-[SpeziFirebase]
+[GroveFirebase]
 platforms = ["iOS"]
-targets = ["SpeziFirebase", "SpeziFirebaseAccount", "SpeziFirebaseAccountStorage", "SpeziFirebaseConfiguration", "SpeziFirebaseStorage", "SpeziFirestore"]
-tests = ["SpeziFirebaseTests"]
+targets = ["GroveFirebase", "GroveFirebaseAccount", "GroveFirebaseAccountStorage", "GroveFirebaseConfiguration", "GroveFirebaseStorage", "GroveFirestore"]
+tests = ["GroveFirebaseTests"]
 uiTests = ["iOS"]
 
-[SpeziFoundation]
+[GroveFoundation]
 platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "tvOS", "Linux"]
-targets = ["SpeziFoundation", "CZlib", "SpeziFoundationObjC", "SpeziLocalization"]
-tests = ["SpeziFoundationTests", "SpeziLocalizationTests"]
+targets = ["GroveFoundation", "CZlib", "GroveFoundationObjC", "GroveLocalization"]
+tests = ["GroveFoundationTests", "GroveLocalizationTests"]
 uiTests = ["iOS"]
 
-[SpeziHealthKit]
+[GroveHealthKit]
 platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "Linux"]
-targets = ["SpeziHealthKit", "Codegen", "LocalizationsProcessor", "SpeziHealthKitBulkExport", "SpeziHealthKitUI"]
-tests = ["SpeziHealthKitTests"]
+targets = ["GroveHealthKit", "Codegen", "LocalizationsProcessor", "GroveHealthKitBulkExport", "GroveHealthKitUI"]
+tests = ["GroveHealthKitTests"]
 uiTests = ["iOS"]
 
-# Formerly the standalone HealthKitOnFHIR package; merged into SpeziHealthKit by its PR #86 (see
-# Package.swift). Kept as its own scheduling entry rather than folded into [SpeziHealthKit], so its
+# Formerly a standalone HealthKit-to-FHIR package, merged into this monorepo (see Package.swift). Kept as its own scheduling entry rather than folded into [GroveHealthKit], so its
 # UITests project keeps a home and CI stays granular -- the test matrix is directory-based.
-[SpeziHealthKitFHIR]
+[GroveHealthKitFHIR]
 platforms = ["iOS", "macOS", "watchOS"]
-targets = ["SpeziHealthKitFHIR", "SpeziHealthKitFHIRMacros", "SpeziHealthKitFHIRMacrosImpl"]
-tests = ["SpeziHealthKitFHIRTests", "SpeziHealthKitFHIRMacrosTests"]
+targets = ["GroveHealthKitFHIR", "GroveHealthKitFHIRMacros", "GroveHealthKitFHIRMacrosImpl"]
+tests = ["GroveHealthKitFHIRTests", "GroveHealthKitFHIRMacrosTests"]
 uiTests = ["iOS"]
 
-[SpeziLLM]
-platforms = ["iOS", "macOS", "visionOS"]
-targets = ["SpeziLLM", "GeneratedOpenAIClient", "SpeziLLMAnthropic", "SpeziLLMFog", "SpeziLLMGemini", "SpeziLLMLocal", "SpeziLLMLocalDownload", "SpeziLLMOpenAI", "SpeziLLMOpenAIRealtime"]
-tests = ["SpeziLLMTests"]
+[GroveLLM]
+platforms = ["iOS", "macOS", "visionOS", "Linux"]
+targets = ["GroveLLM", "GeneratedOpenAIClient", "GroveLLMAnthropic", "GroveLLMFoundationModels", "GroveLLMGemini", "GroveLLMLocal", "GroveLLMLocalDownload", "GroveLLMOpenAI", "GroveLLMOpenAIRealtime"]
+tests = ["GroveLLMTests"]
+# The tests pull in GroveChat and the on-device targets; the inference core and the remote providers
+# are what a server actually uses, so those are what Linux checks.
+linuxTargets = ["GroveLLM", "GeneratedOpenAIClient", "GroveLLMOpenAI", "GroveLLMAnthropic", "GroveLLMGemini"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
 
-[SpeziLicense]
+[GroveLicense]
 platforms = ["iOS"]
-targets = ["SpeziLicense"]
-tests = ["SpeziLicenseTests"]
+targets = ["GroveLicense"]
+tests = ["GroveLicenseTests"]
 uiTests = ["iOS", "iPadOS"]
 
-[SpeziLocation]
+[GroveLocation]
 platforms = ["iOS", "watchOS"]
-targets = ["SpeziLocation"]
-tests = ["SpeziLocationTests"]
+targets = ["GroveLocation"]
+tests = ["GroveLocationTests"]
 uiTests = ["iOS", "iPadOS"]
 
-[SpeziNetworking]
+[GroveNetworking]
 platforms = ["iOS", "macOS", "watchOS", "visionOS", "tvOS"]
-targets = ["SpeziNetworking", "ByteCoding", "ByteCodingTesting", "SpeziNumerics", "XCTByteCoding"]
-tests = ["ByteCodingTests", "SpeziNumericsTests"]
+targets = ["GroveNetworking", "ByteCoding", "ByteCodingTesting", "GroveNumerics", "XCTByteCoding"]
+tests = ["ByteCodingTests", "GroveNumericsTests"]
 
-[SpeziNotifications]
+[GroveNotifications]
 platforms = ["iOS", "macOS", "watchOS", "visionOS", "tvOS"]
-targets = ["SpeziNotifications", "XCTSpeziNotifications", "XCTSpeziNotificationsUI"]
-tests = ["SpeziNotificationsTests"]
+targets = ["GroveNotifications", "XCTGroveNotifications", "XCTGroveNotificationsUI"]
+tests = ["GroveNotificationsTests"]
 uiTests = ["iOS", "visionOS"]
 
-[SpeziOnboarding]
+[GroveOnboarding]
 platforms = ["iOS", "macOS", "visionOS"]
-targets = ["SpeziOnboarding"]
-tests = ["SpeziOnboardingTests"]
+targets = ["GroveOnboarding"]
+tests = ["GroveOnboardingTests"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
 
-[SpeziQuestionnaire]
+[GroveQuestionnaire]
 platforms = ["iOS", "macOS"]
-targets = ["SpeziQuestionnaire", "SpeziQuestionnaireCatalog", "SpeziQuestionnaireFHIR", "SpeziQuestionnaireLegacy", "XCTSpeziQuestionnaire"]
-tests = ["SpeziQuestionnaireTests"]
+targets = ["GroveQuestionnaire", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveQuestionnaireLegacy", "XCTGroveQuestionnaire"]
+tests = ["GroveQuestionnaireTests"]
 uiTests = ["iOS", "iPadOS"]
 
-[SpeziScheduler]
+[GroveScheduler]
 platforms = ["iOS", "macOS", "watchOS", "visionOS"]
-targets = ["SpeziScheduler", "SpeziSchedulerMacros", "SpeziSchedulerUI"]
-tests = ["SpeziSchedulerTests", "SpeziSchedulerUITests"]
+targets = ["GroveScheduler", "GroveSchedulerMacros", "GroveSchedulerUI"]
+tests = ["GroveSchedulerTests", "GroveSchedulerUITests"]
 uiTests = ["iOS"]
 
-[SpeziSensorKit]
+[GroveSensorKit]
 platforms = ["iOS"]
-targets = ["SpeziSensorKit"]
-tests = ["SpeziSensorKitTests"]
+targets = ["GroveSensorKit"]
+tests = ["GroveSensorKitTests"]
 uiTests = ["iOS"]
 
-[SpeziSpeech]
+[GroveSpeech]
 platforms = ["iOS", "macOS", "visionOS"]
-targets = ["SpeziSpeech", "SpeziSpeechRecognizer", "SpeziSpeechSynthesizer"]
-tests = ["SpeziSpeechTests"]
+targets = ["GroveSpeech", "GroveSpeechRecognizer", "GroveSpeechSynthesizer"]
+tests = ["GroveSpeechTests"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
 
-[SpeziStorage]
+[GroveStorage]
 platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS"]
-targets = ["SpeziStorage", "SpeziKeychainStorage", "SpeziLocalStorage"]
-tests = ["SpeziStorageTests"]
+targets = ["GroveStorage", "GroveKeychainStorage", "GroveLocalStorage"]
+tests = ["GroveStorageTests"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
 
-[SpeziStudy]
+[GroveStudy]
 platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "Linux"]
-targets = ["SpeziStudy", "SpeziStudyDefinition"]
-tests = ["SpeziStudyTests"]
+targets = ["GroveStudy", "GroveStudyDefinition"]
+tests = ["GroveStudyTests"]
 uiTests = ["iOS"]
 
-[SpeziViews]
+[GroveViews]
 platforms = ["iOS", "macOS", "watchOS", "visionOS", "tvOS"]
-targets = ["SpeziViews", "SpeziPersonalInfo", "SpeziValidation"]
-tests = ["SpeziViewsTests"]
+targets = ["GroveViews", "GrovePersonalInfo", "GroveValidation"]
+tests = ["GroveViewsTests"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
 
 [ThreadLocal]

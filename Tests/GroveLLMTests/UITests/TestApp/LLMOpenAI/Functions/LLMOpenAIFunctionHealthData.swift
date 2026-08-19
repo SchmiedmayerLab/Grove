@@ -1,0 +1,39 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+import GroveLLMOpenAI
+
+
+struct LLMOpenAIFunctionHealthData: LLMTool {
+    let name: String = "get_health_data"
+    let description: String = "Get the health data of a patient based on health data types."
+    
+    
+    @Parameter(
+        description: "The types of health data that are requested",
+        enum: ["allergies", "medications", "preconditions"]
+    )
+    var healthDataTypes: [String]
+
+    
+    func execute() async throws -> String? {
+        var healthData = ""
+        
+        if healthDataTypes.contains(where: { $0 == "allergies" }) {
+            healthData += "The patient has an allergy against nuts. "
+        }
+        if healthDataTypes.contains(where: { $0 == "medications" }) {
+            healthData += "The patient takes painkillers twice a day. "
+        }
+        if healthDataTypes.contains(where: { $0 == "preconditions" }) {
+            healthData += "The patient has a depression. "
+        }
+        
+        return healthData
+    }
+}

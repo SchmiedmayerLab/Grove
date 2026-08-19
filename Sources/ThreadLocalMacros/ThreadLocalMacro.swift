@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2025 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -13,6 +13,7 @@ public import SwiftSyntaxMacros
 
 
 private struct SimpleError: Error {
+    // periphery:ignore - surfaced via String(describing:) in the compiler's macro-expansion diagnostic
     let message: String
 
     init(_ message: String) {

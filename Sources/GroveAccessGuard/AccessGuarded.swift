@@ -1,0 +1,59 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+public import SwiftUI
+
+
+/// A view that guards the access to a view.
+///
+/// > Important: You will need to register the ``AccessGuard`` module in your Grove using the [`configuration`](../Grove/Grove.docc/Grove.md)
+/// in a [`GroveAppDelegate`](../Grove/Grove.docc/Grove.md) as detailed in the ``AccessGuard`` documentation.
+///
+/// ```swift
+/// AccessGuarded(identifier: .accessGuardIdentifier) {
+///     Text("Secured View")
+/// }
+/// ```
+///
+/// > Tip: You can allow a user to set the passcode using the ``SetAccessGuard`` view.
+@available(iOS 18, macOS 15, watchOS 11, *)
+public struct AccessGuarded<GuardedView: View, Config: _AccessGuardConfig>: View {
+    @AccessGuard<Config> private var accessGuard: Config._Model
+    private let guarded: @MainActor () -> GuardedView
+
+    public var body: some View {
+        AccessGuardView(
+            config: accessGuard.config,
+            model: accessGuard,
+            guarded: guarded
+        )
+    }
+
+
+    /// - Parameters:
+    ///   - identifier: The identifier of the access guard configuration that should be used to guard this view.
+    ///   - guarded: The guarded view.
+    public init(
+        _ identifier: AccessGuardIdentifier<Config>,
+        @ViewBuilder guarded: @escaping @MainActor () -> GuardedView
+    ) {
+        _accessGuard = .init(identifier)
+        self.guarded = guarded
+    }
+}
+
+
+#if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
+#Preview {
+    let identifier = AccessGuardIdentifier.passcode("org.example.app.myView")
+    AccessGuarded(identifier) {
+        Text("Super secret stuff 🤫")
+    }
+}
+#endif

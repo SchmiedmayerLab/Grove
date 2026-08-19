@@ -1,0 +1,49 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000014",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveFoundation",
+        "name" : "GroveFoundation"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveFoundationObjC",
+        "name" : "GroveFoundationObjC"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveLocalization",
+        "name" : "GroveLocalization"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveFoundationTests",
+          "name" : "GroveFoundationTests"
+        }
+      },
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveLocalizationTests",
+          "name" : "GroveLocalizationTests"
+        }
+      }
+  ],
+  "version" : 1
+}

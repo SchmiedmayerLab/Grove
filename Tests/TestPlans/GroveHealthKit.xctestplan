@@ -1,0 +1,52 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000015",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveHealthKit",
+        "name" : "GroveHealthKit"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveHealthKitBulkExport",
+        "name" : "GroveHealthKitBulkExport"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveHealthKitUI",
+        "name" : "GroveHealthKitUI"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "LocalizationsProcessor",
+        "name" : "LocalizationsProcessor"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "Codegen",
+        "name" : "Codegen"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveHealthKitTests",
+          "name" : "GroveHealthKitTests"
+        }
+      }
+  ],
+  "version" : 1
+}

@@ -6,7 +6,7 @@
   "publisher": "Stanford University",
   "meta": {
     "profile": [
-      "http://biodesign.stanford.edu/fhir/StructureDefinition/sdf-Questionnaire"
+      "https://grovealliance.org/fhir/core/StructureDefinition/sdf-Questionnaire"
     ],
     "tag": [
       {
@@ -35,13 +35,13 @@
   ],
   "contact": [
     {
-      "name": "http://biodesign.stanford.edu"
+      "name": "https://grovealliance.org"
     }
   ],
   "subjectType": [
     "Patient"
   ],
-  "url": "http://biodesign.stanford.edu/fhir/questionnaire/4f34fe66-ee0d-4e8d-8a3b-0cf952f4a35d",
+  "url": "https://grovealliance.org/fhir/core/Questionnaire/4f34fe66-ee0d-4e8d-8a3b-0cf952f4a35d",
   "item": [
     {
       "linkId": "2b441d69-0e29-4cd7-88b7-91ce722d47e1",

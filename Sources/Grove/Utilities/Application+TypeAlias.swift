@@ -1,0 +1,37 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2024 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+#if canImport(SwiftUI)
+public import SwiftUI
+
+
+#if os(iOS) || os(visionOS) || os(tvOS)
+/// Platform agnostic Application.
+///
+/// Type-alias for the `UIApplication`.
+public typealias _Application = UIApplication // swiftlint:disable:this type_name
+#elseif os(macOS)
+/// Platform agnostic Application.
+///
+/// Type-alias for the `NSApplication`.
+public typealias _Application = NSApplication // swiftlint:disable:this type_name
+#elseif os(watchOS)
+/// Platform agnostic Application.
+///
+/// Type-alias for the `WKApplication`.
+public typealias _Application = WKApplication // swiftlint:disable:this type_name
+
+extension WKApplication {
+    /// Allow the same access pattern for WKApplication. Bridges to the `shared()` method.
+    @_documentation(visibility: internal)
+    public static var shared: WKApplication {
+        shared()
+    }
+}
+#endif
+#endif

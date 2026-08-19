@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# This source file is part of the Stanford Spezi open-source project
+# This source file is part of the Grove open-source project
 #
 # SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 #
@@ -8,7 +8,7 @@
 #
 # Reproduces the union CI testing matrix of the original input packages using Xcode test plans.
 # Each former package has a test plan under Tests/TestPlans/<Package>.xctestplan, all hosted by the
-# single "Spezi-Tests" scheme. This script runs a given package's tests on a given platform (or on
+# single "Grove-Tests" scheme. This script runs a given package's tests on a given platform (or on
 # every platform that package was tested on upstream), or runs the whole suite on iOS.
 #
 # Usage:
@@ -47,52 +47,57 @@ TESTING_FLOOR_DEPLOYMENT_TARGETS="IPHONEOS_DEPLOYMENT_TARGET=26.0 MACOSX_DEPLOYM
 # an iOS-15 consumer's default graph stays lean. Tests exercise the FULL feature set, so enable all
 # traits for the test build (the manifest reads this env var; per-platform `.when(platforms:)`
 # conditions still keep watchOS-/macOS-incompatible deps out of those platforms' graphs).
-export SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS=1
+export GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS=1
 
 # DocC catalogs are never needed to compile or run the tests. Excluding them from the test build
 # (the manifest's targetExcludes() honors this flag) avoids unnecessary work; doc builds set it to 0
 # so DocC can still resolve their articles and assets. (`.license` files are excluded unconditionally
 # by the manifest to suppress SwiftPM unhandled-file warnings, independent of this flag.)
-export SPEZI_EXCLUDE_DOCC_CATALOGS="${SPEZI_EXCLUDE_DOCC_CATALOGS:-1}"
+export GROVE_EXCLUDE_DOCC_CATALOGS="${GROVE_EXCLUDE_DOCC_CATALOGS:-1}"
 
 # Keep Xcode's high-churn build output outside the package checkout in CI. Xcode 26 can otherwise
 # observe its own DerivedData/result writes as package-graph changes and invalidate a running test bundle.
-DERIVED_DATA_PATH="${RUNNER_TEMP:+$RUNNER_TEMP/spezi}"
+DERIVED_DATA_PATH="${RUNNER_TEMP:+$RUNNER_TEMP/grove}"
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$PWD/.derivedData}"
 
-PACKAGES="FHIRModelsExtensions ResearchKitOnFHIR Spezi SpeziAccessGuard SpeziAccount SpeziBluetooth SpeziChat SpeziConsent SpeziContact SpeziDevices SpeziFHIR SpeziFileFormats SpeziFirebase SpeziFoundation SpeziHealthKit SpeziHealthKitFHIR SpeziLLM SpeziLicense SpeziLocation SpeziNetworking SpeziNotifications SpeziOnboarding SpeziQuestionnaire SpeziScheduler SpeziSensorKit SpeziSpeech SpeziStorage SpeziStudy SpeziViews ThreadLocal XCTHealthKit RuntimeAssertions XCTestExtensions"
+# One bare-repo cache shared by every leg, deliberately outside DERIVED_DATA_PATH so cleaning build
+# output does not force a re-clone. Safe to share: keyed by repository URL and only appended to.
+PACKAGE_CACHE_PATH="${PACKAGE_CACHE_PATH:-${RUNNER_TEMP:-$PWD}/.packageCache}"
+mkdir -p "$PACKAGE_CACHE_PATH"
+
+PACKAGES="FHIRModelsExtensions ResearchKitOnFHIR Grove GroveAccessGuard GroveAccount GroveBluetooth GroveChat GroveConsent GroveContact GroveDevices GroveFHIR GroveFileFormats GroveFirebase GroveFoundation GroveHealthKit GroveHealthKitFHIR GroveLLM GroveLicense GroveLocation GroveNetworking GroveNotifications GroveOnboarding GroveQuestionnaire GroveScheduler GroveSensorKit GroveSpeech GroveStorage GroveStudy GroveViews ThreadLocal XCTHealthKit RuntimeAssertions XCTestExtensions"
 
 # package -> the platforms it was tested on upstream (the union CI matrix)
 platforms_for() { case "$1" in
     FHIRModelsExtensions) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
     ResearchKitOnFHIR) echo "iOS" ;;
-    Spezi) echo "iOS visionOS macOS tvOS watchOS macCatalyst" ;;
-    SpeziAccessGuard) echo "iOS" ;;
-    SpeziAccount) echo "macOS" ;;
-    SpeziBluetooth) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
-    SpeziChat) echo "iOS macOS visionOS" ;;
-    SpeziConsent) echo "iOS macOS visionOS" ;;
-    SpeziContact) echo "iOS" ;;
-    SpeziDevices) echo "iOS macOS macCatalyst visionOS" ;;
-    SpeziFHIR) echo "iOS macOS" ;;
-    SpeziFileFormats) echo "iOS watchOS visionOS tvOS macOS" ;;
-    SpeziFirebase) echo "iOS" ;;
-    SpeziFoundation) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
-    SpeziHealthKit) echo "iOS watchOS macOS macCatalyst visionOS" ;;
-    SpeziHealthKitFHIR) echo "iOS macOS watchOS" ;;
-    SpeziLLM) echo "iOS visionOS macOS" ;;
-    SpeziLicense) echo "iOS" ;;
-    SpeziLocation) echo "iOS watchOS" ;;
-    SpeziNetworking) echo "iOS watchOS visionOS tvOS macOS" ;;
-    SpeziNotifications) echo "iOS macOS watchOS visionOS tvOS" ;;
-    SpeziOnboarding) echo "iOS macOS visionOS" ;;
-    SpeziQuestionnaire) echo "iOS macOS" ;;
-    SpeziScheduler) echo "iOS macOS visionOS watchOS" ;;
-    SpeziSensorKit) echo "iOS" ;;
-    SpeziSpeech) echo "iOS visionOS macOS" ;;
-    SpeziStorage) echo "iOS macOS macCatalyst watchOS visionOS" ;;
-    SpeziStudy) echo "iOS macOS macCatalyst watchOS visionOS" ;;
-    SpeziViews) echo "iOS visionOS tvOS watchOS macOS" ;;
+    Grove) echo "iOS visionOS macOS tvOS watchOS macCatalyst" ;;
+    GroveAccessGuard) echo "iOS" ;;
+    GroveAccount) echo "macOS" ;;
+    GroveBluetooth) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
+    GroveChat) echo "iOS macOS visionOS" ;;
+    GroveConsent) echo "iOS macOS visionOS" ;;
+    GroveContact) echo "iOS" ;;
+    GroveDevices) echo "iOS macOS macCatalyst visionOS" ;;
+    GroveFHIR) echo "iOS macOS" ;;
+    GroveFileFormats) echo "iOS watchOS visionOS tvOS macOS" ;;
+    GroveFirebase) echo "iOS" ;;
+    GroveFoundation) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
+    GroveHealthKit) echo "iOS watchOS macOS macCatalyst visionOS" ;;
+    GroveHealthKitFHIR) echo "iOS macOS watchOS" ;;
+    GroveLLM) echo "iOS visionOS macOS" ;;
+    GroveLicense) echo "iOS" ;;
+    GroveLocation) echo "iOS watchOS" ;;
+    GroveNetworking) echo "iOS watchOS visionOS tvOS macOS" ;;
+    GroveNotifications) echo "iOS macOS watchOS visionOS tvOS" ;;
+    GroveOnboarding) echo "iOS macOS visionOS" ;;
+    GroveQuestionnaire) echo "iOS macOS" ;;
+    GroveScheduler) echo "iOS macOS visionOS watchOS" ;;
+    GroveSensorKit) echo "iOS" ;;
+    GroveSpeech) echo "iOS visionOS macOS" ;;
+    GroveStorage) echo "iOS macOS macCatalyst watchOS visionOS" ;;
+    GroveStudy) echo "iOS macOS macCatalyst watchOS visionOS" ;;
+    GroveViews) echo "iOS visionOS tvOS watchOS macOS" ;;
     ThreadLocal) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
     XCTHealthKit) echo "iOS" ;;
     RuntimeAssertions) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
@@ -101,7 +106,7 @@ platforms_for() { case "$1" in
   esac; }
 
 dest() { case "$1" in
-  iOS)          echo "platform=iOS Simulator,name=iPhone 17 Pro" ;;
+  iOS)          echo "platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5" ;;
   iPadOS)       echo "platform=iOS Simulator,name=iPad Pro 13-inch (M4)" ;;
   macOS)        echo "platform=macOS,arch=arm64" ;;
   macCatalyst)  echo "platform=macOS,arch=arm64,variant=Mac Catalyst" ;;
@@ -114,6 +119,34 @@ esac; }
 # Pretty-print xcodebuild output via xcbeautify; emit GitHub annotations when running in CI.
 beautify() { if [ -n "${GITHUB_ACTIONS:-}" ]; then xcbeautify --renderer github-actions; else xcbeautify; fi; }
 
+# HealthKit and keychain state lives in the device container, not the app's, so uninstalling the test
+# apps leaves it behind and every leg inherits what the previous ones wrote. Erase the device instead.
+# Set GROVE_SKIP_SIM_RESET to keep a leg running against the current simulator state.
+reset_simulator() { # <platform>
+  local name os udid
+  case "$1" in iOS|iPadOS) ;; *) return 0 ;; esac
+  [ -z "${GROVE_SKIP_SIM_RESET:-}" ] || return 0
+  name="$(dest "$1" | sed -n 's/.*name=\([^,]*\).*/\1/p')"
+  os="$(dest "$1" | sed -n 's/.*OS=\([0-9.]*\).*/\1/p')"
+  udid="$(xcrun simctl list devices available -j | python3 -c '
+import json, sys
+want_name = sys.argv[1]; want_os = sys.argv[2]
+for rt, devs in json.load(sys.stdin)["devices"].items():
+    if want_os and want_os.replace(".", "-") not in rt:
+        continue
+    for d in devs:
+        if d["name"] == want_name:
+            print(d["udid"]); sys.exit(0)
+' "$name" "$os")"
+  [ -n "$udid" ] || return 0
+  xcrun simctl shutdown "$udid" 2>/dev/null || true
+  if ! xcrun simctl erase "$udid"; then
+    echo "::warning::could not erase $udid; leg runs against inherited simulator state"
+  fi
+  xcrun simctl bootstatus "$udid" -b
+  return 0
+}
+
 run() { # <package> <platform> [mode: "ui"]
   if [ "${3:-}" = "ui" ]; then
     # UI tests: build+run the package's embedded TestApp (Tests/<Pkg>Tests/UITests/UITests.xcodeproj),
@@ -122,9 +155,10 @@ run() { # <package> <platform> [mode: "ui"]
     local result="${1}-${2}-UITests.xcresult"
     local uidir="Tests/${1}Tests/UITests"
     rm -rf "$result"   # self-hosted runners reuse the workspace — avoid a stale bundle path
+    reset_simulator "$2"
     echo "==> $1 UI tests on $2"
     if [ -f "$uidir/firebase.json" ]; then
-      # This package's UITests need the Firebase emulator (e.g. SpeziFirebase). Run the test inside
+      # This package's UITests need the Firebase emulator (e.g. GroveFirebase). Run the test inside
       # `firebase emulators:exec` from the UITests dir (so firebase.json/.firebaserc/rules resolve),
       # writing the .xcresult back to the repo root (absolute path) so the test-ui upload step finds it.
       # Requires the `firebase` CLI (firebase-tools) on the runner — as the upstream CI also relied on.
@@ -139,11 +173,13 @@ run() { # <package> <platform> [mode: "ui"]
       -scheme TestApp \
       -configuration Debug \
       -destination "$(dest "$2")" \
-      -parallel-testing-enabled NO \
+      -parallel-testing-enabled "${UI_PARALLEL:-NO}" \
+      -maximum-concurrent-test-simulator-destinations "${UI_WORKERS:-4}" \
       -resultBundlePath "$result" \
       -skipMacroValidation \
       -skipPackagePluginValidation \
       -derivedDataPath "$DERIVED_DATA_PATH" \
+      -packageCachePath "$PACKAGE_CACHE_PATH" \
       $TESTING_FLOOR_DEPLOYMENT_TARGETS \
     | beautify
     return
@@ -154,14 +190,17 @@ run() { # <package> <platform> [mode: "ui"]
     # Linux, so a combined test build fails before any test runs. Actually RUNNING a single sub-package's
     # tests on Linux needs more work (tracked separately); for now, compile-check each of the package's
     # test targets (scoped via --target, which SwiftPM resolves natively) to verify they still build.
+    # A package whose test target is itself Apple-only names the source targets to check via
+    # `linuxTargets` instead.
     local tts
-    tts="$(python3 -c "import tomllib; print(' '.join(tomllib.load(open('packages.toml','rb'))['$1']['tests']))")"
+    tts="$(python3 -c "import tomllib; p = tomllib.load(open('packages.toml','rb'))['$1']; print(' '.join(p.get('linuxTargets') or p['tests']))")"
     for tt in $tts; do
       echo "==> $1 on Linux: swift build --target $tt (compile-check)"
       swift build --target "$tt"
     done
     return
   fi
+  reset_simulator "$2"
   echo "==> $1 on $2"
   # Xcode 26 SIGABRTs (exit 134, DVTInvalidation "message sent to invalidated object") when a single
   # `xcodebuild test` launches a SECOND .xctest bundle: in-checkout writes during the run (DerivedData,
@@ -186,7 +225,7 @@ run() { # <package> <platform> [mode: "ui"]
     fi
     rm -rf "$part" "$part_path"
     xcodebuild test \
-      -scheme Spezi-Tests \
+      -scheme Grove-Tests \
       -testPlan "$1" \
       -only-testing:"$tt" \
       -destination "$(dest "$2")" \
@@ -194,6 +233,7 @@ run() { # <package> <platform> [mode: "ui"]
       -skipMacroValidation \
       -skipPackagePluginValidation \
       -derivedDataPath "$DERIVED_DATA_PATH" \
+      -packageCachePath "$PACKAGE_CACHE_PATH" \
       $TESTING_FLOOR_DEPLOYMENT_TARGETS \
     | beautify || rc=1
     if [ -d "$part_path" ]; then
@@ -222,7 +262,7 @@ case "${1:-}" in
     for p in $PACKAGES; do printf '%-24s %s\n' "$p" "$(platforms_for "$p")"; done ;;
   --all-ios)
     echo "==> entire package on iOS Simulator"
-    xcodebuild test -scheme Spezi-Package -destination "$(dest iOS)" \
+    xcodebuild test -scheme Grove-Package -destination "$(dest iOS)" \
       -skipMacroValidation -skipPackagePluginValidation $TESTING_FLOOR_DEPLOYMENT_TARGETS | beautify ;;
   "")
     echo "usage: $0 <Package> [Platform] [ui] | --all-ios | --list" >&2; exit 1 ;;

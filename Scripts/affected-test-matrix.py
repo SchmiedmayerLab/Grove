@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# This source file is part of the Stanford Spezi open-source project
+# This source file is part of the Grove open-source project
 #
 # SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 #
@@ -30,11 +30,11 @@
 #   git diff --name-only A B | affected-test-matrix.py
 #
 # Emits (to stdout, GITHUB_OUTPUT format):
-#   matrix={"include":[{"package":"SpeziAccount","platform":"macOS","selfHosted":false,"selfHostedLabels":"[...]"}, ...]}  # unit
-#   ui_matrix={"include":[{"package":"SpeziViews","platform":"iOS","selfHosted":true,"selfHostedLabels":"[...]"}, ...]}    # UI
+#   matrix={"include":[{"package":"GroveAccount","platform":"macOS","selfHosted":false,"selfHostedLabels":"[...]"}, ...]}  # unit
+#   ui_matrix={"include":[{"package":"GroveViews","platform":"iOS","selfHosted":true,"selfHostedLabels":"[...]"}, ...]}    # UI
 #   has_jobs=true|false
 #   has_ui_jobs=true|false
-#   affected=SpeziAccount,SpeziViews
+#   affected=GroveAccount,GroveViews
 import sys
 
 # tomllib needs Python 3.11+; checking the version (rather than try-importing) also lets Pylance
@@ -56,9 +56,12 @@ for _pkg, _info in PKGS.items():
         DIR2PKG[_d] = _pkg
 
 # Any change to these means "run everything" (shared manifest / test infra / CI / lint / pkg defs).
+# The legacy-identifier vault is in here because it belongs to no single package: every string in it
+# names data already on a user's device, and fourteen targets read it.
 GLOBAL_PREFIXES = (
     "Package.swift", "Package@", "Package.resolved", "packages.toml",
     ".swiftlint.yml", ".github/", "Scripts/", "Tests/TestPlans/", "Tests/UITestProjects.toml", ".swiftpm/",
+    "Sources/GroveLegacyIdentifiers/",
 )
 
 # TEMPORARY: limit UNIT-test scheduling to these platforms (macCatalyst/visionOS/tvOS excluded for

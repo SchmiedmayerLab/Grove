@@ -1,0 +1,49 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000024",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveScheduler",
+        "name" : "GroveScheduler"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveSchedulerMacros",
+        "name" : "GroveSchedulerMacros"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveSchedulerUI",
+        "name" : "GroveSchedulerUI"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveSchedulerTests",
+          "name" : "GroveSchedulerTests"
+        }
+      },
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveSchedulerUITests",
+          "name" : "GroveSchedulerUITests"
+        }
+      }
+  ],
+  "version" : 1
+}

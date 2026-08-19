@@ -43,15 +43,15 @@
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziHealthKitFHIRMacrosTests",
-        "name" : "SpeziHealthKitFHIRMacrosTests"
+        "identifier" : "GroveHealthKitFHIRMacrosTests",
+        "name" : "GroveHealthKitFHIRMacrosTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziHealthKitFHIRTests",
-        "name" : "SpeziHealthKitFHIRTests"
+        "identifier" : "GroveHealthKitFHIRTests",
+        "name" : "GroveHealthKitFHIRTests"
       }
     },
     {
@@ -71,197 +71,197 @@
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziAccessGuardTests",
-        "name" : "SpeziAccessGuardTests"
+        "identifier" : "GroveAccessGuardTests",
+        "name" : "GroveAccessGuardTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziBluetoothServicesTests",
-        "name" : "SpeziBluetoothServicesTests"
+        "identifier" : "GroveBluetoothServicesTests",
+        "name" : "GroveBluetoothServicesTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziBluetoothTests",
-        "name" : "SpeziBluetoothTests"
+        "identifier" : "GroveBluetoothTests",
+        "name" : "GroveBluetoothTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziChatTests",
-        "name" : "SpeziChatTests"
+        "identifier" : "GroveChatTests",
+        "name" : "GroveChatTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziConsentTests",
-        "name" : "SpeziConsentTests"
+        "identifier" : "GroveConsentTests",
+        "name" : "GroveConsentTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziContactTests",
-        "name" : "SpeziContactTests"
+        "identifier" : "GroveContactTests",
+        "name" : "GroveContactTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziDevicesTests",
-        "name" : "SpeziDevicesTests"
+        "identifier" : "GroveDevicesTests",
+        "name" : "GroveDevicesTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziFHIRTests",
-        "name" : "SpeziFHIRTests"
+        "identifier" : "GroveFHIRTests",
+        "name" : "GroveFHIRTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziFirebaseTests",
-        "name" : "SpeziFirebaseTests"
+        "identifier" : "GroveFirebaseTests",
+        "name" : "GroveFirebaseTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziFoundationTests",
-        "name" : "SpeziFoundationTests"
+        "identifier" : "GroveFoundationTests",
+        "name" : "GroveFoundationTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziHealthKitTests",
-        "name" : "SpeziHealthKitTests"
+        "identifier" : "GroveHealthKitTests",
+        "name" : "GroveHealthKitTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziLLMTests",
-        "name" : "SpeziLLMTests"
+        "identifier" : "GroveLLMTests",
+        "name" : "GroveLLMTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziLicenseTests",
-        "name" : "SpeziLicenseTests"
+        "identifier" : "GroveLicenseTests",
+        "name" : "GroveLicenseTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziLocalizationTests",
-        "name" : "SpeziLocalizationTests"
+        "identifier" : "GroveLocalizationTests",
+        "name" : "GroveLocalizationTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziLocationTests",
-        "name" : "SpeziLocationTests"
+        "identifier" : "GroveLocationTests",
+        "name" : "GroveLocationTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziNotificationsTests",
-        "name" : "SpeziNotificationsTests"
+        "identifier" : "GroveNotificationsTests",
+        "name" : "GroveNotificationsTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziNumericsTests",
-        "name" : "SpeziNumericsTests"
+        "identifier" : "GroveNumericsTests",
+        "name" : "GroveNumericsTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziOmronTests",
-        "name" : "SpeziOmronTests"
+        "identifier" : "GroveOmronTests",
+        "name" : "GroveOmronTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziOnboardingTests",
-        "name" : "SpeziOnboardingTests"
+        "identifier" : "GroveOnboardingTests",
+        "name" : "GroveOnboardingTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziQuestionnaireTests",
-        "name" : "SpeziQuestionnaireTests"
+        "identifier" : "GroveQuestionnaireTests",
+        "name" : "GroveQuestionnaireTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziSchedulerTests",
-        "name" : "SpeziSchedulerTests"
+        "identifier" : "GroveSchedulerTests",
+        "name" : "GroveSchedulerTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziSchedulerUITests",
-        "name" : "SpeziSchedulerUITests"
+        "identifier" : "GroveSchedulerUITests",
+        "name" : "GroveSchedulerUITests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziSensorKitTests",
-        "name" : "SpeziSensorKitTests"
+        "identifier" : "GroveSensorKitTests",
+        "name" : "GroveSensorKitTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziSpeechTests",
-        "name" : "SpeziSpeechTests"
+        "identifier" : "GroveSpeechTests",
+        "name" : "GroveSpeechTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziStorageTests",
-        "name" : "SpeziStorageTests"
+        "identifier" : "GroveStorageTests",
+        "name" : "GroveStorageTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziStudyTests",
-        "name" : "SpeziStudyTests"
+        "identifier" : "GroveStudyTests",
+        "name" : "GroveStudyTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziTests",
-        "name" : "SpeziTests"
+        "identifier" : "GroveTests",
+        "name" : "GroveTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SpeziViewsTests",
-        "name" : "SpeziViewsTests"
+        "identifier" : "GroveViewsTests",
+        "name" : "GroveViewsTests"
       }
     },
     {

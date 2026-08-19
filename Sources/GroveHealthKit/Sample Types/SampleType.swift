@@ -1,0 +1,273 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2024 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+// swiftlint:disable file_types_order
+
+public import Foundation
+#if canImport(HealthKit)
+public import HealthKit
+#endif
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+@dynamicMemberLookup
+public struct SampleType<Sample: _HKSampleWithSampleType>: AnySampleType, Sendable {
+    @_documentation(visibility: internal)
+    public typealias Sample = Sample
+    
+    @usableFromInline
+    enum Variant: Sendable {
+        /// - parameter canonicalUnit: The sample type's canonical unit
+        /// - parameter displayUnits: The sample type's localized display units.
+        /// - parameter expectedValuesRange: The expected range of values we expect to see for this sample type, if applicable.
+        ///     The main purpose of this is to be able to e.g. adjust chart value ranges based on the specific sample types being visualised.
+        case quantity(
+            canonicalUnit: HKUnit,
+            displayUnits: LocalizedUnit,
+            expectedValuesRange: ClosedRange<Double>?
+        )
+        /// - parameter associatedQuantityTypes: The correlation's associated sample types, if known.
+        case correlation(associatedQuantityTypes: Set<SampleType<HKQuantitySample>>)
+        case category
+        /// The ``SampleType`` represents an `HKSampleType` outside the "normal" ones, i.e. one that isn't a quantity, correlation, or category sample,
+        /// and which we also don't need to carry any special data for.
+        case other
+    }
+    
+    public let hkSampleType: Sample._SampleType
+    
+    public let displayTitle: String
+    
+    public let canonicalTitle: String
+    
+    /// Variant-specific additional information.
+    @usableFromInline let variant: Variant
+    
+    /// Creates a ``SampleType`` from a type-erased ``AnySampleType``.
+    ///
+    /// Since ``SampleType`` is the only type allowed to conform to ``AnySampleType``, this is guaranteed to always succeed.
+    @inlinable public init(_ typeErased: any AnySampleType<Sample>) {
+        // SAFETY: `SampleType` is the only type allowed to conform to `AnySampleType`.
+        self = typeErased as! Self // swiftlint:disable:this force_cast
+    }
+    
+    /// Creates a new ``SampleType``.
+    ///
+    /// Use this initializer only if the sample type you want to work with isn't already defined by GroveHealthKit, and only if none of the static factory methods are suitable.
+    /// - parameter hkSampleType: The sample type's underlying `HKSampleType`
+    /// - parameter displayTitle: The localized string which should be used when displaying this sample type's title in a user-visible context.
+    /// - parameter canonicalTitle: The sample type's canonical, non-localized title.
+    /// - parameter variant: The internal variant that should be used for storing any additional data associated with the sample type's specific underlying HealthKit sample type.
+    @usableFromInline init(
+        _ hkSampleType: Sample._SampleType,
+        displayTitle: LocalizedStringResource? = nil,
+        canonicalTitle: String,
+        variant: Variant
+    ) {
+        self.hkSampleType = hkSampleType
+        self.variant = variant
+        // we use the identifier here as a fallback; however this will never be used bc the localizedTitle(for:) call will always return a nonnil title.
+        // (we have tests to verify this behaviour).
+        #if canImport(Darwin)
+        self.displayTitle = displayTitle.map { String(localized: $0) } ?? Self.localizedTitle(for: hkSampleType) ?? hkSampleType.identifier
+        #else
+        self.displayTitle = displayTitle?.value ?? Self.localizedTitle(for: hkSampleType) ?? hkSampleType.identifier
+        #endif
+        self.canonicalTitle = canonicalTitle
+    }
+    
+    #if canImport(HealthKit)
+    // swiftlint:disable:next identifier_name
+    public func _makeSamplePredicateInternal(filter filterPredicate: NSPredicate?) -> HKSamplePredicate<Sample._QueryResult> {
+        Sample._makeSamplePredicateInternal(type: hkSampleType, filter: filterPredicate)
+    }
+    #endif
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension SampleType: CustomStringConvertible {
+    public var description: String {
+        "\(Self.self)(\(id))"
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension SampleType {
+    /// Accesses a property on the underlying `HKSampleType`.
+    @inlinable
+    public subscript<T>(dynamicMember keyPath: KeyPath<Sample._SampleType, T>) -> T {
+        hkSampleType[keyPath: keyPath]
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension SampleType where Sample == HKQuantitySample {
+    /// The recommended localized unit that should be used when displaying values of this sample type to a user.
+    @inlinable public var displayUnit: HKUnit {
+        displayUnit(for: .current)
+    }
+    
+    /// The expected range of values we expect to see for this sample type, if applicable.
+    ///
+    /// The main purpose of this is to be able to e.g. adjust chart value ranges based on the specific sample types being visualised.
+    @inlinable public var expectedValuesRange: ClosedRange<Double>? {
+        switch variant {
+        case .quantity(canonicalUnit: _, displayUnits: _, let expectedValuesRange):
+            return expectedValuesRange
+        case .correlation, .category, .other:
+            // SAFETY:
+            // This branch is unreachable; the initializers are defined and structured in a way that all
+            // `SampleType<HKQuantitySample>` objects always must specify an expectedValuesRange.
+            preconditionFailure("Cannot provide '\(#function)' for '\(Self.self)'")
+        }
+    }
+    
+    /// The canonical, non-localized unit associated with the quantity type.
+    @inlinable public var canonicalUnit: HKUnit {
+        switch variant {
+        case .quantity(let canonicalUnit, _, _):
+            return canonicalUnit
+        case .correlation, .category, .other:
+            // SAFETY:
+            // This branch is unreachable; the initializers are defined and structured in a way that all
+            // `SampleType<HKQuantitySample>` objects always must specify a canonicalUnit.
+            preconditionFailure("Cannot provide '\(#function)' for '\(Self.self)'")
+        }
+    }
+    
+    
+    /// The recommended localized unit for a specific locale, that should be used when displaying values of this sample type to a user.
+    @inlinable
+    public func displayUnit(for locale: Locale) -> HKUnit {
+        switch variant {
+        case .quantity(canonicalUnit: _, let displayUnits, expectedValuesRange: _):
+            return displayUnits[locale]
+        case .correlation, .category, .other:
+            // SAFETY:
+            // This branch is unreachable; the initializers are defined and structured in a way that all
+            // `SampleType<HKQuantitySample>` objects always must specify a displayUnit.
+            preconditionFailure("Cannot provide '\(#function)' for '\(Self.self)'")
+        }
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension SampleType where Sample == HKCorrelation {
+    /// The correlation's associated sample types, if known.
+    @inlinable public var associatedQuantityTypes: Set<SampleType<HKQuantitySample>> {
+        switch variant {
+        case .correlation(let associatedQuantityTypes):
+            return associatedQuantityTypes
+        case .quantity, .category, .other:
+            // SAFETY:
+            // This branch is unreachable; the initializers are defined and structured in a way that all
+            // `SampleType<HKCorrelation>` objects always must specify associatedQuantityTypes.
+            fatalError("Cannot provide '\(#function)' for '\(Self.self)'")
+        }
+    }
+}
+
+
+// MARK: Factory methods for commonly-used sample types
+
+#if !canImport(Darwin)
+// swiftlint:disable:next type_name
+public struct _FakeLocalizedStringResource: ExpressibleByStringLiteral {
+    let value: String
+    public init(stringLiteral value: String) {
+        self.value = value
+    }
+}
+#endif
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension SampleType {
+    #if canImport(Darwin)
+    // swiftlint:disable:next missing_docs
+    public typealias LocalizedStringResource = Foundation.LocalizedStringResource
+    #else
+    // swiftlint:disable:next missing_docs
+    public typealias LocalizedStringResource = _FakeLocalizedStringResource
+    #endif
+    
+    /// Creates a new quantity sample type.
+    /// Use this initializer only if the sample type you want to work with isn't already defined by GroveHealthKit.
+    /// - parameter identifier: The sample type's underlying `HKQuantityTypeIdentifier`
+    /// - parameter displayTitle: The localized string which should be used when displaying this sample type's title in a user-visible context.
+    /// - parameter canonicalTitle: The sample type's canonical, non-localized title.
+    /// - parameter canonicalUnit: The sample type's canonical unit.
+    /// - parameter displayUnits: The sample type's localized display units.
+    /// - parameter expectedValuesRange: If applicable, the expected range the individual sample values will most likely fall into.
+    ///     Providing this information allows some components to optimize how they display data belonging to this sample type.
+    @inlinable public static func quantity(
+        _ identifier: HKQuantityTypeIdentifier,
+        displayTitle: LocalizedStringResource? = nil,
+        canonicalTitle: String,
+        canonicalUnit: HKUnit,
+        displayUnits: LocalizedUnit,
+        expectedValuesRange: ClosedRange<Double>? = nil
+    ) -> SampleType<HKQuantitySample> {
+        .init(
+            HKQuantityType(identifier),
+            displayTitle: displayTitle,
+            canonicalTitle: canonicalTitle,
+            variant: .quantity(canonicalUnit: canonicalUnit, displayUnits: displayUnits, expectedValuesRange: expectedValuesRange)
+        )
+    }
+    
+    /// Creates a new correlation sample type.
+    /// Use this initializer only if the sample type you want to work with isn't already defined by GroveHealthKit.
+    /// - parameter identifier: The sample type's underlying `HKCorrelationTypeIdentifier`
+    /// - parameter displayTitle: The localized string which should be used when displaying this sample type's title in a user-visible context.
+    /// - parameter canonicalTitle: The sample type's canonical, non-localized title.
+    /// - parameter associatedQuantityTypes: The sample type's associated quantity sample types. E.g.: for the blood pressure correlation type, the associated quantity types would be systolic and siastolic blood pressure.
+    @inlinable public static func correlation(
+        _ identifier: HKCorrelationTypeIdentifier,
+        displayTitle: LocalizedStringResource? = nil,
+        canonicalTitle: String,
+        associatedQuantityTypes: Set<SampleType<HKQuantitySample>>
+    ) -> SampleType<HKCorrelation> {
+        .init(
+            HKCorrelationType(identifier),
+            displayTitle: displayTitle,
+            canonicalTitle: canonicalTitle,
+            variant: .correlation(associatedQuantityTypes: associatedQuantityTypes)
+        )
+    }
+    
+    /// Creates a new category sample type.
+    /// Use this initializer only if the sample type you want to work with isn't already defined by GroveHealthKit.
+    /// - parameter identifier: The sample type's underlying `HKCategoryTypeIdentifier`
+    /// - parameter displayTitle: The localized string which should be used when displaying this sample type's title in a user-visible context.
+    /// - parameter canonicalTitle: The sample type's canonical, non-localized title.
+    @inlinable public static func category(
+        _ identifier: HKCategoryTypeIdentifier,
+        displayTitle: LocalizedStringResource? = nil,
+        canonicalTitle: String
+    ) -> SampleType<HKCategorySample> {
+        .init(HKCategoryType(identifier), displayTitle: displayTitle, canonicalTitle: canonicalTitle, variant: .category)
+    }
+    
+    /// Creates a new clinical record sample type.
+    /// Use this initializer only if the sample type you want to work with isn't already defined by GroveHealthKit.
+    /// - parameter identifier: The sample type's underlying `HKClinicalTypeIdentifier`
+    /// - parameter displayTitle: The localized string which should be used when displaying this sample type's title in a user-visible context.
+    /// - parameter canonicalTitle: The sample type's canonical, non-localized title.
+    @available(watchOS, unavailable)
+    @inlinable public static func clinical(
+        _ identifier: HKClinicalTypeIdentifier,
+        displayTitle: LocalizedStringResource? = nil,
+        canonicalTitle: String
+    ) -> SampleType<HKClinicalRecord> {
+        .init(HKClinicalType(identifier), displayTitle: displayTitle, canonicalTitle: canonicalTitle, variant: .other)
+    }
+}

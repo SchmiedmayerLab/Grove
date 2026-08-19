@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2025 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -7,6 +7,7 @@
 //
 
 
+// periphery:ignore - macro declarations and applications are invisible to the index
 /// Defines a thread-local static variable.
 ///
 /// Thread-local variables are backed using pthreads thread-specific data.

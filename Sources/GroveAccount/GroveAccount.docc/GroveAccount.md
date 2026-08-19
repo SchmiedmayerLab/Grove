@@ -1,0 +1,113 @@
+# ``GroveAccount``
+
+A Grove framework that provides account-related functionality including login, sign up and password reset.
+
+<!--
+
+This source file is part of the Grove open-source project
+
+SPDX-FileCopyrightText: 2023 Stanford University and the project authors (see CONTRIBUTORS.md)
+
+SPDX-License-Identifier: MIT
+
+-->
+
+## Overview
+
+The `GroveAccount` framework fully abstracts setup and management of user account functionality for the
+[Grove](../../Grove/Grove.docc/Grove.md) framework ecosystem.
+
+@Row {
+    @Column {
+        @Image(source: "AccountSetup", alt: "Screenshot displaying the account setup view with an email and password prompt and a Sign In with Apple button.") {
+            The ``AccountSetup`` is the central view for account onboarding, facilitating account login and creation.
+        }
+    }
+    @Column {
+        @Image(source: "SignupForm", alt: "Screenshot displaying the Signup Form for Account setup.") {
+            The ``SignupForm`` is used by email-password-based AccountServices by default.
+        }
+    }
+    @Column {
+        @Image(source: "AccountOverview", alt: "Screenshot displaying the Account Overview.") {
+            The ``AccountOverview`` is used to view and modify the user details of the currently associated account.
+        }
+    }
+}
+
+The ``AccountSetup`` and ``AccountOverview`` views are central to `GroveAccount`.
+You use the ``AccountDetails`` collection within your views to visualize account information of the associated user account.
+
+An ``AccountService`` provides an abstraction layer for managing different types of account management services
+(e.g., email address and password-based service combined with an identity provider like Sign in with Apple).
+
+> Note: The [GroveFirebase](../../GroveFirebase/GroveFirebase.docc/GroveFirebase.md)
+framework provides the [`FirebaseAccountService`](../../GroveFirebaseAccount/GroveFirebaseAccount.docc/GroveFirebaseAccount.md)
+you can use to configure an Account Service base on the Google Firebase service.
+
+## Setup
+
+You need to add the Grove Account Swift package to
+[your app in Xcode](https://developer.apple.com/documentation/xcode/adding-package-dependencies-to-your-app#) or
+[Swift package](https://developer.apple.com/documentation/xcode/creating-a-standalone-swift-package-with-xcode#Add-a-dependency-on-another-Swift-package).
+
+> Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial-Setup.md) to set up the core Grove infrastructure.
+
+The <doc:Initial-Setup> article provides a quick-start guide to set up `GroveAccount` in your App.
+
+Refer to the <doc:Creating-your-own-Account-Service> article if you plan on implementing your own Account Service.
+
+
+## Topics
+
+### Configuration
+
+- <doc:Initial-Setup>
+- ``AccountConfiguration``
+- ``AccountValueConfiguration``
+
+### Account Details
+
+- ``Account``
+- ``AccountDetails``
+- <doc:Adding-new-Account-Values>
+
+### Account UI
+
+- ``AccountSetup``
+- ``AccountOverview``
+- ``AccountHeader``
+- ``FollowUpInfoSheet``
+- ``SwiftUICore/View/accountRequired(_:accountSetupIsComplete:setupSheet:)``
+- ``SwiftUICore/EnvironmentValues/accountRequired``
+
+### Environment & Preferences
+
+- ``SwiftUICore/View/preferredAccountSetupStyle(_:)``
+- ``SwiftUICore/View/followUpBehaviorAfterSetup(_:)``
+
+### Reacting to Events
+
+- ``AccountNotifyConstraint``
+- ``AccountNotifications``
+
+### Account Service
+
+- <doc:Creating-your-own-Account-Service>
+- ``AccountService``
+- ``IdentityProvider``
+- ``SecurityRelatedModifier``
+- ``AccountModifications``
+
+### External Storage
+
+- <doc:Custom-Storage-Provider>
+- ``AccountStorageProvider``
+- ``ExternalAccountStorage``
+- ``AccountDetailsCache``
+
+### In Memory Implementations
+
+In memory implementations are useful for SwiftUI Previews and UI testing purposes.
+- ``InMemoryAccountService``
+- ``InMemoryAccountStorageProvider``

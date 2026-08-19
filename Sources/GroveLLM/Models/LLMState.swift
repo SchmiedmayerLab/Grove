@@ -1,0 +1,58 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+import Foundation
+#if !canImport(Darwin) // `LocalizedStringResource` is Darwin-only; GroveLocalization stands in elsewhere.
+import GroveLocalization
+#endif
+
+/// Describes possible states that the ``LLMSession`` can be in.
+///
+/// Based on the ``LLMState``, `GroveLLM` performs proper actions on the model as well as state management.
+@available(iOS 18, macOS 15, watchOS 11, *)
+public enum LLMState: CustomStringConvertible, Equatable, Sendable {
+    /// The Grove ``LLMSession`` is allocated, but the underlying model has not yet been initialized.
+    case uninitialized
+    /// The Grove ``LLMSession`` is in the process of being initialized.
+    case loading
+    /// The Grove ``LLMSession`` is initialized and ready for use.
+    case ready
+    /// The Grove ``LLMSession`` is currently in the process of generating an output.
+    case generating
+    /// The Grove ``LLMSession`` is currently executing function calls requested by the LLM.
+    case callingTools
+    /// The Grove ``LLMSession`` is in an error state as described by the associated value ``LLMError``.
+    case error(error: any LLMError)
+    
+    
+    /// A textual description of the current ``LLMState``.
+    public var description: String {
+        switch self {
+        case .uninitialized: String(localized: LocalizedStringResource("LLM_STATE_UNINITIALIZED", bundle: .atURL(from: .module)))
+        case .loading: String(localized: LocalizedStringResource("LLM_STATE_LOADING", bundle: .atURL(from: .module)))
+        case .ready: String(localized: LocalizedStringResource("LLM_STATE_READY", bundle: .atURL(from: .module)))
+        case .generating: String(localized: LocalizedStringResource("LLM_STATE_GENERATING", bundle: .atURL(from: .module)))
+        case .callingTools: String(localized: LocalizedStringResource("LLM_STATE_CALLING_TOOLS", bundle: .atURL(from: .module)))
+        case .error: String(localized: LocalizedStringResource("LLM_STATE_ERROR", bundle: .atURL(from: .module)))
+        }
+    }
+    
+    
+    /// Necessary `Equatable` implementation
+    public static func == (lhs: LLMState, rhs: LLMState) -> Bool {
+        switch (lhs, rhs) {
+        case (.uninitialized, .uninitialized): true
+        case (.loading, .loading): true
+        case (.ready, .ready): true
+        case (.generating, .generating): true
+        case (.callingTools, .callingTools): true
+        case (.error, .error): true
+        default: false
+        }
+    }
+}

@@ -1,0 +1,48 @@
+# ``GroveFirestore``
+
+<!--
+
+This source file is part of the Grove open-source project
+
+SPDX-FileCopyrightText: 2024 Stanford University and the project authors (see CONTRIBUTORS.md)
+
+SPDX-License-Identifier: MIT
+
+-->
+
+Easily configure and interact with Firebase Firestore.
+
+## Overview
+
+The ``Firestore`` module allows for easy configuration of Firebase Firestore.
+
+You can configure the `Firestore` module in the `GroveAppDelegate`, e.g. the configure it using the Firebase emulator.
+```swift
+import GroveFirestore
+
+class FirestoreExampleDelegate: GroveAppDelegate {
+    override var configuration: Configuration {
+        Configuration {
+            Firestore(settings: .emulator)
+            // ...
+        }
+    }
+}
+```
+
+## Topics
+
+### Configuration
+
+- ``Firestore``
+- ``FirebaseFirestoreInternal/FirestoreSettings/emulator``
+
+### Document Reference
+
+- ``FirebaseFirestoreInternal/DocumentReference/setData(isolation:from:encoder:)``
+- ``FirebaseFirestoreInternal/DocumentReference/setData(isolation:from:merge:encoder:)``
+- ``FirebaseFirestoreInternal/DocumentReference/setData(isolation:from:mergeFields:encoder:)``
+
+### Errors
+
+- ``FirestoreError``

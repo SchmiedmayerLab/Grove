@@ -1,0 +1,60 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+import FirebaseCore
+public import FirebaseFirestore
+public import Grove
+import GroveFirebaseConfiguration
+import SwiftUI
+
+
+/// Easy configuration of Firebase Firestore.
+///
+/// You can configure the `Firestore` module in the `GroveAppDelegate`, e.g. the configure it using the Firebase emulator.
+/// ```swift
+/// import Grove
+/// import GroveFirestore
+///
+/// class FirestoreExampleDelegate: GroveAppDelegate {
+///     override var configuration: Configuration {
+///         Configuration {
+///             Firestore(settings: .emulator)
+///             // ...
+///         }
+///     }
+/// }
+/// ```
+///
+/// - Note: We recommend using the [Firebase Firestore SDK as defined in the API documentation](https://firebase.google.com/docs/firestore/manage-data/add-data#swift)
+///     throughout the application. We **highly recommend using the async/await variants of the APIs** instead of the closure-based APIs the SDK provides.
+@available(iOS 18, macOS 15, watchOS 11, *)
+public class Firestore: Module, DefaultInitializable {
+    // periphery:ignore - @Dependency declaration collected via Mirror by the module system
+    @Dependency(ConfigureFirebaseApp.self)
+    private var configureFirebaseApp
+
+    private let settings: FirestoreSettings
+    
+    
+    public required convenience init() {
+        self.init(settings: FirestoreSettings())
+    }
+    
+    /// - Parameters:
+    ///   - settings: The firestore settings according to the [Firebase Firestore Swift Package](https://firebase.google.com/docs/reference/swift/firebasefirestore/api/reference/Classes/FirestoreSettings)
+    public init(settings: FirestoreSettings) {
+        self.settings = settings
+    }
+    
+    
+    public func configure() {
+        FirebaseFirestore.Firestore.firestore().settings = self.settings
+        
+        _ = FirebaseFirestore.Firestore.firestore()
+    }
+}
