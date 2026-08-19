@@ -1,9 +1,0 @@
-version = 1
-
-[[annotations]]
-path = [
-    "Sources/FHIRPathParser/Generated/**",
-    "Sources/FHIRQuestionnaires/Resources/**"
-]
-SPDX-FileCopyrightText = "2025 Stanford University and the project authors (see CONTRIBUTORS.md)"
-SPDX-License-Identifier = "MIT"

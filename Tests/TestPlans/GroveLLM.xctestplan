@@ -1,0 +1,67 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000016",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveLLM",
+        "name" : "GroveLLM"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveLLMLocal",
+        "name" : "GroveLLMLocal"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveLLMLocalDownload",
+        "name" : "GroveLLMLocalDownload"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveLLMOpenAI",
+        "name" : "GroveLLMOpenAI"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveLLMOpenAIRealtime",
+        "name" : "GroveLLMOpenAIRealtime"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveLLMAnthropic",
+        "name" : "GroveLLMAnthropic"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveLLMGemini",
+        "name" : "GroveLLMGemini"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GeneratedOpenAIClient",
+        "name" : "GeneratedOpenAIClient"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveLLMTests",
+          "name" : "GroveLLMTests"
+        }
+      }
+  ],
+  "version" : 1
+}

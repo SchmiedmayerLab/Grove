@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -33,7 +33,8 @@ extension XCTestCase {
         // There might still be some state restoration going on (eg: the Health app will sometimes navigate to the last-used
         // page w/in one of the tabs), but that's easy to handle.
         healthApp.launch()
-        
+        XCTAssert(healthApp.wait(for: .runningForeground, timeout: 30))
+
         // Handle onboarding, if necessary
         handleHealthAppOnboardingIfNecessary(healthApp)
         
@@ -66,7 +67,7 @@ extension XCUIApplication {
                 return
             }
             let searchTabBarButton = self.tabBars.buttons["Search"]
-            guard searchTabBarButton.waitForExistence(timeout: 10) && searchTabBarButton.isHittable else {
+            guard searchTabBarButton.wait(for: \.isHittable, toEqual: true, timeout: 10) else {
                 if dismissAccountSheetIfNecessary() {
                     try goToBrowseTab()
                     return
@@ -75,15 +76,16 @@ extension XCUIApplication {
                 }
             }
             searchTabBarButton.tap() // select the tab
-            if searchTabBarButton.isHittable {
+            if searchTabBarButton.wait(for: \.isHittable, toEqual: true, timeout: 2) {
                 searchTabBarButton.tap() // go back to the tab's root VC, if necessary
             }
         } else {
             let browseTabBarButton = self.tabBars["Tab Bar"].buttons["Browse"]
-            if !browseTabBarButton.waitForExistence(timeout: 2) && browseTabBarButton.isHittable {
+            guard browseTabBarButton.wait(for: \.isHittable, toEqual: true, timeout: 2) else {
                 throw XCTHealthKitError("Unable to find 'Browse' tab bar item")
             }
             browseTabBarButton.tap() // select the tab
+            XCTAssert(browseTabBarButton.wait(for: \.isHittable, toEqual: true, timeout: 2))
             browseTabBarButton.tap() // go back to the tab's root VC, if necessary
         }
     }
@@ -93,6 +95,7 @@ extension XCUIApplication {
     func dismissAccountSheetIfNecessary() -> Bool {
         let doneButton = self.navigationBars["HealthExperienceUI.ProfileView"].buttons["Done"]
         if doneButton.exists {
+            XCTAssert(doneButton.wait(for: \.isHittable, toEqual: true, timeout: 2))
             doneButton.tap()
             XCTAssert(doneButton.waitForNonExistence(timeout: 2))
             return true

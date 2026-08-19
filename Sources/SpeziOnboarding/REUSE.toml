@@ -1,8 +1,0 @@
-version = 1
-
-[[annotations]]
-path = [
-    "Sources/SpeziOnboarding/SpeziOnboarding.docc/Resources/**",
-]
-SPDX-FileCopyrightText = "2025 Stanford University and the project authors (see CONTRIBUTORS.md)"
-SPDX-License-Identifier = "MIT"

@@ -1,0 +1,54 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000005",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveAccountMacros",
+        "name" : "GroveAccountMacros"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveAccount",
+        "name" : "GroveAccount"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "XCTGroveAccount",
+        "name" : "XCTGroveAccount"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveAccountPhoneNumbers",
+        "name" : "GroveAccountPhoneNumbers"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveAccountTests",
+          "name" : "GroveAccountTests"
+        }
+      },
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveAccountMacrosTests",
+          "name" : "GroveAccountMacrosTests"
+        }
+      }
+  ],
+  "version" : 1
+}

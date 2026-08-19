@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -10,6 +10,7 @@ public import typealias Foundation.TimeInterval
 
 
 /// Defines delay between retries.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum DelayPolicy: Hashable, Sendable {
     /// No delay; retry immediately.
     case none

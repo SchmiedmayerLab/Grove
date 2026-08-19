@@ -1,0 +1,49 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000001",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveHealthKitFHIRMacrosImpl",
+        "name" : "GroveHealthKitFHIRMacrosImpl"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveHealthKitFHIRMacros",
+        "name" : "GroveHealthKitFHIRMacros"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveHealthKitFHIR",
+        "name" : "GroveHealthKitFHIR"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveHealthKitFHIRTests",
+          "name" : "GroveHealthKitFHIRTests"
+        }
+      },
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveHealthKitFHIRMacrosTests",
+          "name" : "GroveHealthKitFHIRMacrosTests"
+        }
+      }
+  ],
+  "version" : 1
+}

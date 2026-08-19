@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -12,6 +12,7 @@ package import OpenAPIRuntime
 
 
 /// Middleware that retries HTTP requests based on defined conditions.
+@available(iOS 18, macOS 15, watchOS 11, *)
 package struct RetryMiddleware: Sendable {
     /// Signals that trigger evaluation of the retry policy.
     package var signals: Set<RetryableSignal>

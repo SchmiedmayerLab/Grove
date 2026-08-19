@@ -1,0 +1,72 @@
+# Characteristics
+
+Reusable implementations of standardized Bluetooth Characteristics.
+
+<!--
+#
+# This source file is part of the Grove open-source project
+#
+# SPDX-FileCopyrightText: 2024 Stanford University and the project authors (see CONTRIBUTORS.md)
+#
+# SPDX-License-Identifier: MIT
+#
+-->
+
+## Overview
+
+GroveBluetooth provides a collection of Bluetooth characteristics already out of the box.
+This includes generic characteristics like
+``DateTime`` and a collection of characteristics from the health domain.
+
+Below is a list of already implemented characteristics.
+Encoding and decoding is handled using [`ByteCodable`](../../ByteCoding/ByteCoding.docc/ByteCoding.md)
+which natively integrates with GroveBluetooth-defined services.
+
+## Topics
+
+### Device Information
+
+- ``PnPID``
+- ``VendorIDSource``
+
+### Time
+
+- ``DateTime``
+- ``DayOfWeek``
+- ``DayDateTime``
+- ``ExactTime256``
+- ``CurrentTime``
+
+### Pulse Oximetry
+
+- ``PLXContinuousMeasurement``
+- ``PLXSpotCheckMeasurement``
+- ``PLXFeatures``
+
+### Blood Pressure
+
+- ``BloodPressureMeasurement``
+- ``BloodPressureFeature``
+- ``IntermediateCuffPressure``
+
+### Temperature Measurement
+
+- ``TemperatureMeasurement``
+- ``TemperatureType``
+- ``MeasurementInterval``
+
+### Weight Measurement
+
+- ``WeightMeasurement``
+- ``WeightScaleFeature``
+
+
+### Record Access Control Point
+
+- ``RecordAccessControlPoint``
+- ``RecordAccessOpCode``
+- ``RecordAccessOperator``
+- ``RecordAccessOperand``
+- ``RecordAccessResponseCode``
+- ``RecordAccessOperationContent``
+- ``RecordAccessGenericOperand``

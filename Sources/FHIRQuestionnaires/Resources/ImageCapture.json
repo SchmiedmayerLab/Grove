@@ -3,10 +3,10 @@
   "resourceType": "Questionnaire",
   "language": "en-US",
   "status": "draft",
-  "publisher": "CardinalKit",
+  "publisher": "Stanford University",
   "meta": {
     "profile": [
-      "http://cardinalkit.org/fhir/StructureDefinition/sdf-Questionnaire"
+      "https://grovealliance.org/fhir/core/StructureDefinition/sdf-Questionnaire"
     ],
     "tag": [
       {
@@ -35,13 +35,13 @@
   ],
   "contact": [
     {
-      "name": "http://cardinalkit.org"
+      "name": "https://grovealliance.org"
     }
   ],
   "subjectType": [
     "Patient"
   ],
-  "url": "http://cardinalkit.org/fhir/questionnaire/7c10f9e2-0662-4f5e-c592-28115f8d9adb",
+  "url": "https://grovealliance.org/fhir/core/Questionnaire/7c10f9e2-0662-4f5e-c592-28115f8d9adb",
   "item": [
     {
       "linkId": "1aca86a1-cb08-49cd-a2ba-d210e7ed0a07",

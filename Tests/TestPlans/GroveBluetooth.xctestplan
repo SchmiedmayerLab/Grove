@@ -1,0 +1,49 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000006",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveBluetooth",
+        "name" : "GroveBluetooth"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveBluetoothServices",
+        "name" : "GroveBluetoothServices"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "TestPeripheral",
+        "name" : "TestPeripheral"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveBluetoothTests",
+          "name" : "GroveBluetoothTests"
+        }
+      },
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveBluetoothServicesTests",
+          "name" : "GroveBluetoothServicesTests"
+        }
+      }
+  ],
+  "version" : 1
+}

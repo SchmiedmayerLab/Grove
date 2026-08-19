@@ -1,0 +1,222 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2023 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+public import Grove
+import os
+public import SwiftUI
+
+
+/// The primary entry point for UI components and ``AccountService``s to interact with ``GroveAccount`` interfaces.
+///
+/// You can access the current user account state using the `Account` `Module`.
+/// It provides information if the user is currently ``Account/signedIn`` and allows to access the user ``Account/details``.
+///
+/// - Note: For more information on how to access and use the `Account` object when implementing a custom ``AccountService``
+///     refer to the <doc:Creating-your-own-Account-Service> article.
+///
+/// Below is a short code example demonstrating how to access `Account` from your SwiftUI view hierarchy.
+/// ```swift
+/// struct MyView: View {
+///     @Environment(Account.self)
+///     private var account
+///
+///     var body: some View {
+///         // ...
+///     }
+/// }
+/// ```
+///
+///
+/// Accessing the `Account` from within your `Module` is equally simple using the Grove dependency system.
+///
+/// ```swift
+/// final class MyModule: Module {
+///     @Dependency(Account.self)
+///     private var account
+/// }
+/// ```
+///
+/// - Note: The code example declares a required dependency and would crash if the user doesn't configure `GroveAccount`.
+///     You might want to consider it as an optional dependency to gracefully handle the case where `GroveAccount` might not be configured.
+///
+/// ## Topics
+///
+/// ### Associated User Account
+/// Determine account association status and retrieve associated user details.
+///
+/// - ``signedIn``
+/// - ``details``
+///
+/// ### Managing Account State
+/// Manage user account association as an `AccountService`.
+///
+/// - ``supplyUserDetails(_:)``
+/// - ``removeUserDetails()``
+@available(iOS 18, macOS 15, watchOS 11, *)
+@Observable
+public final class Account {
+    @ObservationIgnored @Application(\.logger)
+    var logger
+
+    @Dependency @ObservationIgnored private var notifications = AccountNotifications()
+
+    /// The user-defined configuration of account values that all user accounts need to support.
+    public let configuration: AccountValueConfiguration
+
+    /// Determine if there is are associated account details.
+    ///
+    /// - Note: If the property is set to `true`, it is guaranteed that ``details`` is present.
+    @MainActor public private(set) var signedIn: Bool
+
+    /// The user details of the currently associated user account.
+    ///
+    /// - Note: The ``AccountDetails`` acts as a typed collection and is implemented as a
+    /// [Shared Repository](../Grove/Grove.docc/Grove.md).
+    @MainActor public private(set) var details: AccountDetails?
+
+    @MainActor private weak var _accountService: (any AccountService)?
+
+    /// The account service that was configured.
+    @MainActor public var accountService: any AccountService {
+        guard let service = _accountService else {
+            preconditionFailure("Tried to access account service that was deallocated!")
+        }
+        return service
+    }
+
+    /// The account setup components specified via the ``IdentityProvider`` property wrapper that are shown in the ``AccountSetup`` view.
+    let accountSetupComponents: [any AnyAccountSetupComponent]
+    /// A security related modifier (see ``SecurityRelatedModifier``).
+    let securityRelatedModifiers: [any AnySecurityModifier]
+
+    /// Initialize a new `Account` object by providing all properties individually.
+    /// - Parameters:
+    ///   - services: A collection of ``AccountService`` that are used to handle account-related functionality.
+    ///   - supportedConfiguration: The ``AccountValueConfiguration`` to user intends to support.
+    ///   - details: A initial ``AccountDetails`` object. The ``signedIn`` is set automatically based on the presence of this argument.
+    init(
+        service: some AccountService,
+        supportedConfiguration: AccountValueConfiguration = .default,
+        details: AccountDetails? = nil
+    ) {
+        self.configuration = supportedConfiguration
+
+        self._signedIn = details != nil
+        self._details = details
+        self.__accountService = service
+
+
+        let mirror = Mirror(reflecting: service)
+        self.accountSetupComponents = mirror.children.reduce(into: []) { partialResult, property in
+            guard let provider = property.value as? any AnyIdentityProvider else {
+                return
+            }
+
+            partialResult.append(provider.component)
+        }
+        self.securityRelatedModifiers = mirror.children.reduce(into: [], { partialResult, property in
+            guard let modifier = property.value as? any AnySecurityRelatedModifier else {
+                return
+            }
+
+            partialResult.append(modifier.securityModifier)
+        })
+    }
+
+    /// Configures the module.
+    public func configure() {
+        if configuration.userId == nil {
+            logger.warning(
+                """
+                Your AccountConfiguration doesn't have the \\.userId (aka. UserIdKey) configured. \
+                A primary, user-visible identifier is recommended with most GroveAccount components for \
+                an optimal user experience. Ignore this warning if you know what you are doing.
+                """
+            )
+        }
+    }
+
+    /// Supply the ``AccountDetails`` of the currently logged in user.
+    ///
+    /// This method is called by the ``AccountService`` every time the state of the user account changes.
+    /// Either if the went from no logged in user to having a logged in user, or if the details of the user account changed.
+    ///
+    /// - Note: Please set the ``AccountDetails/isNewUser`` or ``AccountDetails/isAnonymous`` properties to communicate the type of account details
+    ///     supplied to `Account`.
+    ///
+    /// - Parameter details: The ``AccountDetails`` of the currently logged in user account.
+    @MainActor
+    public func supplyUserDetails(_ details: AccountDetails) {
+        precondition(
+            details.contains(AccountKeys.accountId),
+            """
+            The provided `AccountDetails` do not have the \\.accountId (aka. AccountIdKey) set. \
+            A primary, unique and stable user identifier is expected with most GroveAccount components and \
+            will result in those components breaking.
+            """
+        )
+
+        guard let accountService = _accountService else {
+            assertionFailure("The account service was deallocated.")
+            return
+        }
+
+        var details = details
+        details.accountServiceConfiguration = accountService.configuration
+        details.password = nil // ensure password never leaks
+
+        let previousDetails = self.details
+
+        self.details = details
+
+        if !signedIn {
+            signedIn = true
+        }
+
+        Task { @MainActor [notifications, previousDetails, details] in
+            do {
+                if let previousDetails {
+                    try await notifications.reportEvent(.detailsChanged(previousDetails, details))
+                } else {
+                    try await notifications.reportEvent(.associatedAccount(details))
+                }
+            } catch {
+                logger.error("Account Association event failed unexpectedly: \(error)")
+            }
+        }
+    }
+
+    /// Removes the currently logged in user.
+    ///
+    /// This method is called by the currently active ``AccountService`` to remove the ``AccountDetails`` of the currently
+    /// signed in user and notify others that the user logged out (or the account was removed).
+    @MainActor
+    public func removeUserDetails() {
+        if let details {
+            Task { @MainActor [notifications, details] in
+                do {
+                    try await notifications.reportEvent(.disassociatingAccount(details))
+                } catch {
+                    logger.error("Account Disassociation event failed unexpectedly: \(error)")
+                }
+            }
+        }
+        if signedIn {
+            signedIn = false
+        }
+        details = nil
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension Account: @unchecked Sendable {} // unchecked because of the property wrapper storage
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension Account: Module, EnvironmentAccessible {}

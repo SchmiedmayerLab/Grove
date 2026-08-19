@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2024 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -36,6 +36,7 @@ struct ByteCodableTests {
         #expect(buffer.getData(at: 0, length: buffer.readableBytes) == data)
     }
 
+    @Test("Ambiguous Data")
     func testAmbiguousData() throws {
         // basically just a test if it compiles
 

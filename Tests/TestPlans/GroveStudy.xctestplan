@@ -1,0 +1,37 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000028",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveStudyDefinition",
+        "name" : "GroveStudyDefinition"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveStudy",
+        "name" : "GroveStudy"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveStudyTests",
+          "name" : "GroveStudyTests"
+        }
+      }
+  ],
+  "version" : 1
+}

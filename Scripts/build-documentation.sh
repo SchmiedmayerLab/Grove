@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# This source file is part of the Stanford Spezi open-source project
+# This source file is part of the Grove open-source project
 #
 # SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 #
@@ -10,19 +10,19 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 if [ -n "${RUNNER_TEMP:-}" ]; then
-  DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$RUNNER_TEMP/spezi-docs-derivedData}"
-  DOC_OUTPUT_DIR="${DOC_OUTPUT_DIR:-$RUNNER_TEMP/spezi-documentation}"
+  DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$RUNNER_TEMP/grove-docs-derivedData}"
+  DOC_OUTPUT_DIR="${DOC_OUTPUT_DIR:-$RUNNER_TEMP/grove-documentation}"
 else
   DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-.derivedData-docs}"
   DOC_OUTPUT_DIR="${DOC_OUTPUT_DIR:-.build/documentation}"
 fi
 
-DOC_SCHEME="${DOC_SCHEME:-Spezi-Package}"
+DOC_SCHEME="${DOC_SCHEME:-Grove-Package}"
 DOC_DESTINATION="${DOC_DESTINATION:-generic/platform=iOS Simulator}"
 DOC_DEPLOYMENT_TARGET="${DOC_DEPLOYMENT_TARGET:-18.0}"
 DOC_LOG_PATH="${DOC_LOG_PATH:-$DOC_OUTPUT_DIR/docbuild.log}"
-COMBINED_ARCHIVE="${COMBINED_ARCHIVE:-$DOC_OUTPUT_DIR/Spezi.doccarchive}"
-STATIC_ARCHIVE="${STATIC_ARCHIVE:-$DOC_OUTPUT_DIR/Spezi-static.doccarchive}"
+COMBINED_ARCHIVE="${COMBINED_ARCHIVE:-$DOC_OUTPUT_DIR/Grove.doccarchive}"
+STATIC_ARCHIVE="${STATIC_ARCHIVE:-$DOC_OUTPUT_DIR/Grove-static.doccarchive}"
 
 documentation_targets() {
   python3 - <<'PY'
@@ -84,17 +84,28 @@ ignored_markers = (
 
 warnings = []
 for line in log_path.read_text(encoding="utf-8", errors="replace").splitlines():
+    stripped = line.strip()
+    # DocC reports catalog-level problems with no source location at all. The Swift compiler always
+    # prefixes `file:line:col:`, so a bare `warning:` here can only have come from docc, and the
+    # path-based filtering below would drop it silently.
+    if stripped.startswith("warning: "):
+        if stripped not in warnings:
+            warnings.append(stripped)
+        continue
     if ": warning:" not in line or repo_prefix not in line:
         continue
     if any(marker in line for marker in ignored_markers):
         continue
-    is_documentation_warning = (
-        "/Sources/" in line and "/.docc/" in line
-    ) or any(
+    # Symbol links live in Swift doc comments as well as in catalogs, so match on the message rather
+    # than the path: keying on `.docc/` dropped every warning raised in a .swift file, and keying on
+    # `/Sources/` swept in ordinary compiler warnings that this gate is not about.
+    is_documentation_warning = ("/Sources/" in line and ".docc/" in line) or any(
         marker in line
         for marker in (
             " doesn't exist at ",
             " is ambiguous at ",
+            " isn't a disambiguation for ",
+            "used to document parameter",
             "Parameter '" ,
             " not found in ",
         )
@@ -118,8 +129,8 @@ done < <(documentation_targets)
 mkdir -p "$DOC_OUTPUT_DIR"
 rm -rf "$COMBINED_ARCHIVE" "$STATIC_ARCHIVE"
 
-export SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS="${SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS:-1}"
-export SPEZI_EXCLUDE_DOCC_CATALOGS=0
+export GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS="${GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS:-1}"
+export GROVE_EXCLUDE_DOCC_CATALOGS=0
 export LLVM_PROFILE_FILE="${LLVM_PROFILE_FILE:-$DOC_OUTPUT_DIR/default-%p.profraw}"
 
 echo "Building DocC documentation for scheme '$DOC_SCHEME' with all default package traits enabled."
@@ -159,14 +170,14 @@ fi
 xcrun docc merge \
   "${archives[@]}" \
   --output-path "$COMBINED_ARCHIVE" \
-  --synthesized-landing-page-name Spezi \
+  --synthesized-landing-page-name Grove \
   --synthesized-landing-page-kind Package \
   --synthesized-landing-page-topics-style compactGrid
 
 xcrun docc process-archive transform-for-static-hosting \
   "$COMBINED_ARCHIVE" \
   --output-path "$STATIC_ARCHIVE" \
-  --hosting-base-path "${DOC_HOSTING_BASE_PATH:-/Spezi}"
+  --hosting-base-path "${DOC_HOSTING_BASE_PATH:-/Grove}"
 
 echo "Built combined DocC archive at $COMBINED_ARCHIVE"
 echo "Built static-hosting DocC archive at $STATIC_ARCHIVE"

@@ -1,5 +1,5 @@
 #
-# This source file is part of the Stanford Spezi open-source project
+# This source file is part of the Grove open-source project
 #
 # SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 #
@@ -16,7 +16,7 @@ authors:
 - family-names: "Kollmer"
   given-names: "Lukas"
   orcid: "https://orcid.org/0000-0002-1065-1320"
-title: "Spezi"
+title: "Grove"
 license: MIT
-url: "https://github.com/SchmiedmayerLab/Spezi"
-repository-code: "https://github.com/SchmiedmayerLab/Spezi"
+url: "https://github.com/SchmiedmayerLab/Grove"
+repository-code: "https://github.com/SchmiedmayerLab/Grove"

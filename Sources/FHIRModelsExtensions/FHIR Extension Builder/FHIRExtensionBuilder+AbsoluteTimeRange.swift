@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2025 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -7,16 +7,23 @@
 //
 
 private import Foundation
+import GroveLegacyIdentifiers
 public import ModelsR4
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRExtensionURL {
     /// Url of a FHIR Extension containing, if applicable, the absolute start date timestamp of a FHIR `Observation`.
-    public static let absoluteTimeRangeStart = Self("https://bdh.stanford.edu/fhir/defs/absoluteTimeRangeStart")
+    public static let absoluteTimeRangeStart = Self(
+        "https://grovealliance.org/fhir/core/StructureDefinition/absoluteTimeRangeStart",
+        superseding: SupersededFHIRURLs.absoluteTimeRangeStart
+    )
     
     /// Url of a FHIR Extension containing, if applicable, the absolute end date timestamp of a FHIR `Observation`.
-    public static let absoluteTimeRangeEnd = Self("https://bdh.stanford.edu/fhir/defs/absoluteTimeRangeEnd")
+    public static let absoluteTimeRangeEnd = Self(
+        "https://grovealliance.org/fhir/core/StructureDefinition/absoluteTimeRangeEnd",
+        superseding: SupersededFHIRURLs.absoluteTimeRangeEnd
+    )
 }
 
 
@@ -44,7 +51,7 @@ extension Observation {
             startDate = try instant.value.flatMap { try DateTime(instant: $0) }
             endDate = startDate
         case .timing:
-            throw NSError(domain: "edu.stanford.Spezi.FHIRModelsExtensions", code: 0, userInfo: [
+            throw NSError(domain: "org.grovealliance.fhirModelsExtensions", code: 0, userInfo: [
                 NSLocalizedDescriptionKey: "Not supported"
             ])
         }

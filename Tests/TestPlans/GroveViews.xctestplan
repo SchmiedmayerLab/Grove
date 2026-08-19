@@ -1,0 +1,42 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000029",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveViews",
+        "name" : "GroveViews"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GrovePersonalInfo",
+        "name" : "GrovePersonalInfo"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveValidation",
+        "name" : "GroveValidation"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveViewsTests",
+          "name" : "GroveViewsTests"
+        }
+      }
+  ],
+  "version" : 1
+}

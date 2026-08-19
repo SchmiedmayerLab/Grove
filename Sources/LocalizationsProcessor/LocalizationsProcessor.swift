@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2025 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -12,7 +12,7 @@
 
 public import ArgumentParser
 public import Foundation
-import SpeziHealthKit
+import GroveHealthKit
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -20,7 +20,6 @@ private let allObjectTypes = HKObjectType.allKnownObjectTypes.sorted { $0.identi
 
 
 enum CommandError: Error {
-    case unableToFindLoctable
     case unableToDecodeLoctable(URL)
     case other(String)
 }
@@ -47,7 +46,7 @@ struct LocalizationsProcessor: ParsableCommand {
     @Option(
         name: .customShort("o"),
         help: """
-            Output directory path. Should point to 'Sources/SpeziHealthKit/Resources/'.
+            Output directory path. Should point to 'Sources/GroveHealthKit/Resources/'.
             May be omitted to perform a dry run, in which case the resulting translation mappings will be printed to stdout, but not written to disk.
             """
     )
@@ -84,7 +83,7 @@ struct LocalizationsProcessor: ParsableCommand {
         let year = Calendar.current.component(.year, from: .now)
         var stringsFile = """
             //
-            // This source file is part of the Stanford Spezi open-source project
+            // This source file is part of the Grove open-source project
             //
             // SPDX-FileCopyrightText: \(year) Stanford University and the project authors (see CONTRIBUTORS.md)
             //
@@ -247,17 +246,6 @@ extension Localizations {
             "es_US": "Nutrición"
         ]
     ]
-}
-
-
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension Locale.Language {
-    static let english = Locale.Language(identifier: "en")
-    static let englishUK = Locale.Language(identifier: "en_GB")
-    static let german = Locale.Language(identifier: "de")
-    static let french = Locale.Language(identifier: "fr")
-    static let spanish = Locale.Language(identifier: "es")
-    static let spanishUS = Locale.Language(identifier: "es_US")
 }
 
 

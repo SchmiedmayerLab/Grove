@@ -4,10 +4,10 @@
   "title": "Contained ValueSet Example",
   "status": "draft",
   "publisher": "Stanford University",
-  "url": "http://biodesign.stanford.edu/fhir/questionnaires/contained-valueset-example",
+  "url": "https://grovealliance.org/fhir/core/Questionnaire/contained-valueset-example",
   "meta": {
     "profile": [
-      "http://biodesign.stanford.edu/fhir/StructureDefinition/sdf-Questionnaire"
+      "https://grovealliance.org/fhir/core/StructureDefinition/sdf-Questionnaire"
     ],
     "tag": [
       {
@@ -35,7 +35,7 @@
   ],
   "contact": [
     {
-      "name": "http://biodesign.stanford.edu"
+      "name": "https://grovealliance.org"
     }
   ],
   "subjectType": [
@@ -43,7 +43,7 @@
   ],
   "contained": [
     {
-      "url": "http://biodesign.stanford.edu/fhir/ValueSet/Predefined",
+      "url": "https://grovealliance.org/fhir/core/ValueSet/Predefined",
       "resourceType": "ValueSet",
       "id": "9523",
       "version": "1.0",

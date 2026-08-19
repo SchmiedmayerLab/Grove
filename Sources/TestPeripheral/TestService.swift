@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2024 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -7,10 +7,10 @@
 //
 
 import CoreBluetooth
-import OSLog
-import SpeziBluetooth
+import GroveBluetooth
 @_spi(TestingSupport)
-import SpeziBluetoothServices
+import GroveBluetoothServices
+import OSLog
 
 
 struct ATTErrorCode: Error, Sendable {
@@ -28,7 +28,7 @@ struct ATTErrorCode: Error, Sendable {
 @available(tvOS, unavailable)
 final class TestService: Sendable {
     private var logger: Logger {
-        Logger(subsystem: "edu.stanford.spezi.bluetooth", category: "TestService")
+        Logger(subsystem: "org.grovealliance.bluetooth", category: "TestService")
     }
 
     nonisolated(unsafe) private weak var peripheral: TestPeripheral?
@@ -53,7 +53,7 @@ final class TestService: Sendable {
     }
 
     private var lastEvent: EventLog = .none
-    private var readWriteStringValue: String = "Hello Spezi"
+    private var readWriteStringValue: String = "Hello Grove"
 
     init(peripheral: TestPeripheral) {
         self.peripheral = peripheral
@@ -91,7 +91,7 @@ final class TestService: Sendable {
     @MainActor
     private func resetState() {
         self.readStringCount = 1
-        self.readWriteStringValue = "Hello Spezi"
+        self.readWriteStringValue = "Hello Grove"
     }
 
 

@@ -1,0 +1,286 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+import FHIRQuestionnaires
+import struct ModelsR4.Questionnaire
+import struct ModelsR4.QuestionnaireResponse
+import GroveQuestionnaire
+import GroveQuestionnaireCatalog
+import GroveQuestionnaireFHIR
+import GroveQuestionnaireLegacy
+import GroveViews
+import SwiftUI
+import UniformTypeIdentifiers
+
+
+struct ContentView: View {
+    struct WrappedQuestionnaire: Hashable, Identifiable {
+        let r4: ModelsR4.Questionnaire? // swiftlint:disable:this identifier_name
+        let grove: GroveQuestionnaire.Questionnaire
+        
+        var id: some Hashable {
+            grove.id
+        }
+        
+        init(r4 questionnaire: ModelsR4.Questionnaire) throws {
+            self.r4 = questionnaire
+            self.grove = try .init(questionnaire)
+        }
+        
+        init(grove questionnaire: GroveQuestionnaire.Questionnaire) {
+            self.r4 = nil
+            self.grove = questionnaire
+        }
+    }
+    
+    @Environment(ResponsesStore.self) var responsesStore
+    
+    @State private var loadedQuestionnaire: WrappedQuestionnaire?
+    
+    @State private var showPredefinedQuestionnairePicker = false
+    @State private var showFileImporter = false
+    @State private var viewState: ViewState = .idle
+    
+    @State private var activeQuestionnaireNewImpl: GroveQuestionnaire.Questionnaire?
+    @State private var activeQuestionnaireOldImpl: ModelsR4.Questionnaire?
+    @State private var currentlyShownResponse: ModelsR4.QuestionnaireResponse?
+    
+    var body: some View {
+        Form {
+            Section {
+                sectionContent
+            } header: {
+                Text("Surveys")
+            } footer: {
+                Text("Pick a predefined questionnaire or import one from a file.")
+            }
+            if let loadedQuestionnaire {
+                Section("Loaded Questionnaire") {
+                    loadedQuestionnaireSection(for: loadedQuestionnaire)
+                }
+            }
+            if !responsesStore.responses.isEmpty {
+                responsesSection
+            }
+        }
+        .navigationTitle("Grove Questionnaire")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                NavigationLink("Tests") {
+                    TestsPage()
+                }
+            }
+        }
+        .viewStateAlert(state: $viewState)
+        .sheet(isPresented: $showPredefinedQuestionnairePicker) {
+            PredefinedQuestionnairePicker(viewState: $viewState) {
+                loadedQuestionnaire = $0
+            }
+        }
+        .sheet(item: $activeQuestionnaireNewImpl) { questionnaire in
+            QuestionnaireSheet(questionnaire) { result in
+                switch result {
+                case .completed(let response):
+                    do {
+                        let fhirResponse = try ModelsR4.QuestionnaireResponse(response)
+                        responsesStore.responses.append(fhirResponse)
+                        try printFhirResponse(fhirResponse)
+                    } catch {
+                        print("\(error)")
+                    }
+                default:
+                    break
+                }
+                activeQuestionnaireNewImpl = nil
+            }
+            .presentationSizing(.page)
+        }
+        .sheet(item: $activeQuestionnaireOldImpl) { r4Questionnaire in
+            QuestionnaireView(
+                questionnaire: r4Questionnaire,
+                completionStepMessage: "Completed"
+            ) { result in
+                switch result {
+                case .completed(let response):
+                    responsesStore.responses.append(response)
+                    try? printFhirResponse(response)
+                default:
+                    break
+                }
+                activeQuestionnaireOldImpl = nil
+            }
+        }
+        .sheet(item: $currentlyShownResponse) { response in
+            ResponseDetailsSheet(response: response)
+        }
+    }
+    
+    @ViewBuilder private var sectionContent: some View {
+        HStack {
+            Label("Completed", systemImage: "checkmark.circle")
+            Spacer()
+            Text(responsesStore.responses.count, format: .number)
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityLabel("Completed, \(responsesStore.responses.count)")
+        Button("Pick Predefined Questionnaire") {
+            showPredefinedQuestionnairePicker = true
+        }
+        fileImporterButton
+    }
+    
+    
+    private var fileImporterButton: some View {
+        Button("Load Questionnaire from File") {
+            showFileImporter = true
+        }
+        .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.json]) { result in
+            do {
+                viewState = .processing
+                switch result {
+                case .success(let url):
+                    loadedQuestionnaire = try importQuestionnaire(from: url)
+                case .failure(let error):
+                    throw error
+                }
+                viewState = .idle
+            } catch {
+                viewState = .error(AnyLocalizedError(error: error))
+            }
+        }
+    }
+    
+    private var responsesSection: some View {
+        Section("Responses") {
+            ForEach(responsesStore.responses, id: \.self) { response in
+                Button {
+                    currentlyShownResponse = response
+                } label: {
+                    VStack(alignment: .leading) {
+                        Text(response.questionnaire?.value?.url.absoluteString ?? "n/a")
+                        if let authoredDate = try? response.authored?.value?.asNSDate() {
+                            Text(authoredDate, format: .iso8601)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    @ViewBuilder
+    private func loadedQuestionnaireSection(for loadedQuestionnaire: WrappedQuestionnaire) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(loadedQuestionnaire.grove.metadata.title)
+                .font(.headline)
+            if let url = loadedQuestionnaire.grove.metadata.url?.absoluteString {
+                Text(url)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.top, 4)
+        Button {
+            activeQuestionnaireNewImpl = loadedQuestionnaire.grove
+        } label: {
+            Label("Start Questionnaire (Grove Impl)", systemImage: "play.circle")
+        }
+        Button {
+            activeQuestionnaireOldImpl = loadedQuestionnaire.r4
+        } label: {
+            Label("Start Questionnaire (ResearchKit Impl)", systemImage: "play.circle")
+        }
+        .disabled(loadedQuestionnaire.r4 == nil)
+    }
+    
+    private func importQuestionnaire(from url: URL) throws -> WrappedQuestionnaire {
+        guard url.startAccessingSecurityScopedResource() else {
+            throw NSError(domain: "org.grovealliance.GroveQuestionnaire", code: 123)
+        }
+        defer {
+            url.stopAccessingSecurityScopedResource()
+        }
+        let data = try Data(contentsOf: url)
+        let fhirQuestionnaire = try JSONDecoder().decode(ModelsR4.Questionnaire.self, from: data)
+        return try WrappedQuestionnaire(r4: fhirQuestionnaire)
+    }
+    
+    private func printFhirResponse(_ response: ModelsR4.QuestionnaireResponse) throws {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
+        let data = try encoder.encode(response)
+        let string = String(decoding: data, as: UTF8.self)
+        print(string)
+    }
+}
+
+
+extension ContentView {
+    private struct PredefinedQuestionnairePicker: View {
+        @Environment(\.dismiss) private var dismiss
+        
+        @Binding var viewState: ViewState
+        let onSelection: @MainActor (ContentView.WrappedQuestionnaire) -> Void
+        
+        var body: some View {
+            NavigationStack {
+                Form {
+                    Section {
+                        menuButton(title: "Question Kinds Showcase", questionnaire: .testQuestionnaire)
+                        menuButton(title: "Follow-Up Tasks", questionnaire: .followUpTasksQuestionnaire)
+                    }
+                    Section("Examples") {
+                        menuButton(title: "Skip Logic Example", questionnaire: .skipLogicExample)
+                        menuButton(title: "Multiple EnableWhen", questionnaire: .multipleEnableWhen)
+                        menuButton(title: "Text Validation Example", questionnaire: .textValidationExample)
+                        menuButton(title: "Contained ValueSet Example", questionnaire: .containedValueSetExample)
+                        menuButton(title: "Number Example", questionnaire: .numberExample)
+                        menuButton(title: "Date/Time Example", questionnaire: .dateTimeExample)
+                        menuButton(title: "Form Example", questionnaire: .formExample)
+                        menuButton(title: "Image Capture Example", questionnaire: .imageCaptureExample)
+                        menuButton(title: "Slider Example", questionnaire: .sliderExample)
+                    }
+                    Section("Research") {
+                        menuButton(title: "PHQ-9 (Native)", questionnaire: GroveQuestionnaire.Questionnaire.phq9)
+                        menuButton(title: "PHQ-9 (FHIR)", questionnaire: ModelsR4.Questionnaire.phq9)
+                        menuButton(title: "GAD-7 (Native)", questionnaire: GroveQuestionnaire.Questionnaire.gad7)
+                        menuButton(title: "GAD-7 (FHIR)", questionnaire: ModelsR4.Questionnaire.gad7)
+                        menuButton(title: "IPSS", questionnaire: .ipss)
+                        menuButton(title: "GCS", questionnaire: .gcs)
+                    }
+                }
+                .navigationTitle("Pick Questionnaire")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        DismissButton()
+                    }
+                }
+            }
+        }
+        
+        private func menuButton(title: String, questionnaire: GroveQuestionnaire.Questionnaire) -> some View {
+            Button(title) {
+                dismiss()
+                onSelection(.init(grove: questionnaire))
+            }
+        }
+        
+        private func menuButton(title: String, questionnaire: ModelsR4.Questionnaire) -> some View {
+            AsyncButton(title, state: $viewState) {
+                dismiss()
+                onSelection(try .init(r4: questionnaire))
+            }
+        }
+    }
+}
+
+
+extension ModelsR4.Questionnaire: @retroactive Identifiable {}
+extension ModelsR4.QuestionnaireResponse: @retroactive Identifiable {}

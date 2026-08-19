@@ -1,0 +1,42 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000021",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveNotifications",
+        "name" : "GroveNotifications"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "XCTGroveNotifications",
+        "name" : "XCTGroveNotifications"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "XCTGroveNotificationsUI",
+        "name" : "XCTGroveNotificationsUI"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveNotificationsTests",
+          "name" : "GroveNotificationsTests"
+        }
+      }
+  ],
+  "version" : 1
+}

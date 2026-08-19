@@ -1,0 +1,691 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+// swiftlint:disable file_length
+
+public import Foundation
+
+#if canImport(HealthKit)
+
+public import Grove
+public import GroveFoundation
+@_exported public import enum GroveFoundation.ArrayBuilder
+import GroveLocalStorage
+import HealthKit
+import OSLog
+import SwiftUI
+
+
+/// Grove Module for interacting with the HealthKit system.
+///
+/// See <doc:ModuleConfiguration> for a detailed introduction.
+///
+/// ## Topics
+///
+/// ### Initializing the HealthKit Module
+/// - ``init()``
+/// - ``init(_:)``
+///
+/// ### Instance Properties
+/// - ``healthStore``
+/// - ``configurationState``
+/// - ``ConfigState``
+///
+/// ### Registering Data Collectors
+/// - ``addHealthDataCollector(_:)-(CollectSamples<Any>)``
+/// - ``triggerDataSourceCollection()``
+/// - ``resetSampleCollection(for:)``
+///
+/// ### Fetching Health Data
+/// - ``query(_:timeRange:source:limit:sortedBy:predicate:)``
+/// - ``query(_:timeRange:anchor:source:limit:predicate:)``
+/// - ``oldestSampleDate(for:)``
+/// - ``continuousQuery(_:timeRange:anchor:limit:predicate:)->AsyncMapSequence<HKAnchoredObjectQueryDescriptor<Sample>.Results,HealthKit.ContinuousQueryElement<Sample>>``
+/// - ``ContinuousQueryElement``
+///
+/// ### Handling Authorization
+/// - ``dataAccessRequirements-swift.property``
+/// - ``isFullyAuthorized``
+/// - ``askForAuthorization()``
+/// - ``askForAuthorization(for:)``
+/// - ``isAuthorized(toWrite:)-(SampleType<Any>)``
+/// - ``isAuthorized(toWrite:)-(HKObjectType)``
+/// - ``didAskForAuthorization(for:)``
+/// - ``didAskForAuthorization(toRead:)-(SampleType<Any>)``
+/// - ``didAskForAuthorization(toRead:)-([AnySampleType])``
+/// - ``didAskForAuthorization(toRead:)-(HKObjectType)``
+/// - ``didAskForAuthorization(toRead:)-(Set<HKObjectType>)``
+/// - ``didAskForAuthorization(toWrite:)-(SampleType<Any>)``
+/// - ``didAskForAuthorization(toWrite:)-(HKObjectType)``
+/// - ``waitForConfigurationDone()``
+///
+/// ## See Also
+/// - <doc:ModuleConfiguration>
+@available(iOS 18, macOS 15, watchOS 11, *)
+@Observable
+public final class HealthKit: Module, EnvironmentAccessible, DefaultInitializable, @unchecked Sendable {
+    /// The state of the HealthKit module's initial configuration operation.
+    public enum ConfigState: Hashable, Sendable {
+        /// The module has yet to perform its initial configuration
+        case pending
+        /// The module is currently performing its initial configuration
+        case ongoing
+        /// The module has completes its initial configuration
+        case completed
+    }
+    
+    private struct AuthorizationEventObserver {
+        let accessRequirements: DataAccessRequirements
+        let continuation: AsyncStream<DataAccessRequirements>.Continuation
+    }
+    
+    static let logger = Logger(subsystem: "org.grovealliance.healthKit", category: "HealthKit")
+    
+    @ObservationIgnored @StandardActor
+    private var standard: any HealthKitConstraint
+    
+    var logger: Logger { Self.logger }
+    
+    @ObservationIgnored @Dependency(LocalStorage.self)
+    private var localStorage
+    
+    /// The HealthKit module's underlying `HKHealthStore`.
+    public let healthStore: HKHealthStore
+    
+    /// The data access requirements that resulted form the initial configuration passed to the ``HealthKit-swift.class`` module.
+    @_spi(Testing)
+    public let initialConfigDataAccessRequirements: DataAccessRequirements
+    
+    /// The HealthKit module's current access requirements, resulting from its initial configuration and subsequent authorizations.
+    public private(set) var dataAccessRequirements: DataAccessRequirements = .init()
+    
+    /// Whether all of the module's current data access requirements were prompted to the user.
+    ///
+    /// - Note: The value of this property can change throughout the lifetime of the module;
+    /// e.g. if additional data access requirements are introduced after a call to ``HealthKit-swift.class/askForAuthorization()``, it might transition from `true` back to `false`.
+    ///
+    /// - Note: This property being `true` does not imply that the user actually granted access to all sample types; it just means that the user was asked.
+    public private(set) var isFullyAuthorized: Bool = false
+    
+    /// The state of the module's configuration, i.e. whether the initial configuration is still pending, currently ongoing, or already completed.
+    @ObservationIgnored public private(set) var configurationState: ConfigState = .pending
+    
+    @ObservationIgnored private var configurationDoneWaiters: [CheckedContinuation<Void, Never>] = [] {
+        didSet {
+            // once the initial config is done, we don't allow registering new waiters (but we allow clearing old ones...)
+            assert(configurationDoneWaiters.isEmpty || configurationState != .completed)
+        }
+    }
+    
+    /// Configurations which were supplied to the initializer, but have not yet been applied.
+    /// - Note: This property is intended only to store the configuration until `configure()` has been called. It is not used afterwards.
+    @ObservationIgnored private var pendingConfiguration: [any HealthKitConfigurationComponent] = []
+    
+    /// All background-data-collecting data sources registered with the HealthKit module.
+    @ObservationIgnored /* private-but-testable */ private(set) var registeredDataCollectors: [any HealthDataCollector] = []
+    
+    private var authorizationEventObservers: [UUID: AuthorizationEventObserver] = [:]
+    
+    
+    /// Creates a new instance of the ``HealthKit-class`` module, with the specified configuration.
+    /// - parameter config: The configuration defines the behaviour of the `HealthKit` module,
+    ///     specifying e.g. which samples the app wants to continuously collect (via ``CollectSamples``),
+    ///     and which sample and object types the user should be prompted to grant the app read access to (via ``RequestReadAccess``).
+    public init(
+        @ArrayBuilder<any HealthKitConfigurationComponent> _ config: () -> [any HealthKitConfigurationComponent]
+    ) {
+        healthStore = HKHealthStore()
+        pendingConfiguration = config()
+        initialConfigDataAccessRequirements = pendingConfiguration.reduce(.init()) { dataReqs, component in
+            dataReqs.merging(with: component.dataAccessRequirements)
+        }
+        dataAccessRequirements = initialConfigDataAccessRequirements
+        if !HKHealthStore.isHealthDataAvailable() {
+            // If HealthKit is not available, we still initialise the module and the health store as normal.
+            // Queries and sample collection, in this case, will simply not return any results.
+            logger.error(
+                """
+                HealthKit is not available.
+                GroveHealthKit and its module will still exist in the application, but all HealthKit-related functionality will be disabled.
+                """
+            )
+        }
+    }
+    
+    
+    /// Creates a new instance of the ``HealthKit-class`` module, with an empty configuration.
+    public convenience init() {
+        self.init { /* intentionally empty config */ }
+    }
+    
+    
+    /// Configures the HealthKit module.
+    @_documentation(visibility: internal)
+    public func configure() {
+        configurationState = .ongoing
+        Task {
+            for component in exchange(&pendingConfiguration, with: []) {
+                await component.configure(for: self, on: self.standard)
+            }
+            await updateIsFullyAuthorized(for: dataAccessRequirements)
+            configurationState = .completed
+            for continuation in exchange(&configurationDoneWaiters, with: []) {
+                continuation.resume()
+            }
+        }
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKit {
+    // MARK: Config State Handling
+    
+    /// Waits until the module has finished its initial configuration.
+    ///
+    /// If the initial configuration is already completed, the function will return immediately.
+    @MainActor
+    public func waitForConfigurationDone() async {
+        switch configurationState {
+        case .pending, .ongoing:
+            await withCheckedContinuation { continuation in
+                configurationDoneWaiters.append(continuation)
+            }
+        case .completed:
+            return
+        }
+    }
+    
+    
+    // MARK: HealthKit authorization handling
+    
+    /// Requests authorization for accessing all HealthKit data types defined in the ``HealthKit-swift.class`` module's current data access requirements list.
+    /// Once the initial configuration of the ``HealthKit-swift.class`` module has completed, this list will consist of all data types defined by the individual configuration components,
+    /// i.e., for example anything required by a ``CollectSamples`` component, or explicitly requested via ``RequestReadAccess`` or ``RequestWriteAccess``.
+    ///
+    /// Calling this function will also activate all data collecting components from the module configuration (e.g., ``CollectSamples``)
+    /// which require read access to data types for which the user hadn't already be prompted in the past.
+    /// If all necessary authorizations have already been requested (regardless of whether the user granted or denied access),
+    /// this function will not present any UI to the user, but will still activate the configuration components.
+    ///
+    /// - Note: There is no need for an app itself to keep track of whether it already requested health data access; the ``HealthKit-swift.class`` takes care of this.
+    ///
+    /// - Important: You need to call this function at some point during your app's lifecycle, ideally soon after the app was launched.
+    @MainActor
+    public func askForAuthorization() async throws {
+        try await askForAuthorization(for: dataAccessRequirements)
+    }
+    
+    
+    /// Requests authorization for read and/or write access to a specific set of `HealthKit` sample types.
+    ///
+    /// This function exists in addition to ``askForAuthorization()``, and allows an app to request additional health data access beyond the initial,
+    /// access requirements (which are computed based on the ``HealthKit-swift.class`` module's configuration).
+    ///
+    /// If all necessary authorizations have already been requested (regardless of whether the user granted or denied access),
+    /// this function will not present any UI to the user.
+    ///
+    /// - Note: There is no need for an app itself to keep track of whether it already requested health data access; the ``HealthKit-swift.class`` module takes care of this.
+    ///
+    /// - Warning: Only request read or write access to HealthKit data if your app's `Info.plist` file
+    ///     contains an entry for `NSHealthShareUsageDescription` and `NSHealthUpdateUsageDescription` respectively.
+    @MainActor
+    public func askForAuthorization(for accessRequirements: DataAccessRequirements) async throws {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            return
+        }
+        let prevAuthStates = await authorizationRequestStates(for: accessRequirements)
+        let accessRequirements = { () -> DataAccessRequirements in
+            /// See ``HealthKit/needsBloodPressureAuthFlowFix`` for info.
+            if HealthKit.needsBloodPressureAuthFlowFix {
+                let undecided = DataAccessRequirements(
+                    read: accessRequirements.read.filter { prevAuthStates[$0] == .shouldRequest },
+                    write: accessRequirements.write.filter { prevAuthStates[$0] == .shouldRequest }
+                )
+                let bloodPressureTypes = SampleType.bloodPressure.effectiveSampleTypesForAuthentication.mapIntoSet { $0.hkSampleType }
+                if Set(undecided.read).union(undecided.write).allSatisfy({
+                    $0.effectiveObjectTypesForAuthorization == bloodPressureTypes
+                }) {
+                    // is on iOS 26.5.x, and would ask for only blood pressure
+                    return DataAccessRequirements()
+                } else {
+                    // would ask for other things as well
+                    return accessRequirements
+                }
+            } else {
+                // no need to adjust anything
+                return accessRequirements
+            }
+        }()
+        do {
+            if !accessRequirements.isEmpty {
+                self.dataAccessRequirements.merge(with: accessRequirements)
+                try await healthStore.requestAuthorization(
+                    toShare: accessRequirements.write,
+                    read: accessRequirements.read
+                )
+            }
+            for collector in registeredDataCollectors {
+                await startAutomaticDataCollectionIfPossible(collector)
+            }
+            for observer in authorizationEventObservers.values {
+                let overlap = observer.accessRequirements.intersection(accessRequirements)
+                guard !overlap.isEmpty else {
+                    continue
+                }
+                if overlap.read.contains(where: { dataAccessRequirements.read.contains($0) && prevAuthStates[$0] != .unnecessary })
+                    || overlap.write.contains(where: { dataAccessRequirements.write.contains($0) && prevAuthStates[$0] != .unnecessary }) {
+                    observer.continuation.yield(accessRequirements)
+                }
+            }
+            await updateIsFullyAuthorized(for: accessRequirements)
+        } catch {
+            await updateIsFullyAuthorized(for: accessRequirements)
+            throw error
+        }
+    }
+    
+    
+    /// Returns whether the user was already asked for authorization to access the specified object type.
+    /// - Note: A `true` return value does **not** imply that the user actually granted access; it just means that the user was asked.
+    @MainActor
+    public func didAskForAuthorization(toRead sampleType: SampleType<some Any>) async -> Bool {
+        await didAskForAuthorization(toRead: [sampleType])
+    }
+    
+    /// Returns whether the user was already asked for authorization to access the specified object type.
+    /// - Note: A `true` return value does **not** imply that the user actually granted access; it just means that the user was asked.
+    @MainActor
+    public func didAskForAuthorization(toRead objectType: HKObjectType) async -> Bool {
+        await didAskForAuthorization(toRead: [objectType])
+    }
+    
+    /// Returns whether the user was already asked for authorization to access all of the specified object types.
+    ///
+    /// This will only return `true` if the user was asked for authorization for all of the specified object types.
+    ///
+    /// - parameter sampleTypes: The set of sample types the function should check for. Passing in an empty set will result in a `true` return value, since there's nothing to check for.
+    ///
+    /// - Note: A `true` return value does **not** imply that the user actually granted access; it just means that the user was asked.
+    @MainActor
+    public func didAskForAuthorization(toRead sampleTypes: [any AnySampleType]) async -> Bool {
+        await didAskForAuthorization(toRead: sampleTypes.flatMapIntoSet {
+            $0.effectiveSampleTypesForAuthentication.map { $0.hkSampleType }
+        })
+    }
+    
+    /// Returns whether the user was already asked for authorization to access all of the specified object types.
+    ///
+    /// This will only return `true` if the user was asked for authorization for all of the specified object types.
+    ///
+    /// - parameter objectTypes: The set of object types the function should check for. Passing in an empty set will result in a `true` return value, since there's nothing to check for.
+    ///
+    /// - Note: A `true` return value does **not** imply that the user actually granted access; it just means that the user was asked.
+    @MainActor
+    public func didAskForAuthorization(toRead objectTypes: Set<HKObjectType>) async -> Bool {
+        guard !objectTypes.isEmpty else {
+            return true
+        }
+        let objectTypes = objectTypes.flatMapIntoSet { $0.effectiveObjectTypesForAuthorization }
+        do {
+            // status: whether the user would be presented with an authorization request sheet, were we to request access
+            let status = try await healthStore.statusForAuthorizationRequest(toShare: [], read: objectTypes)
+            switch status {
+            case .shouldRequest:
+                // we should request access, meaning that it would show a sheet, meaning that we haven't yet asked.
+                return false
+            case .unknown:
+                // Docs: "The authorization request status could not be determined because an error occurred."
+                // Question here is whether this branch is actually reachable for us, sincce we're using the async version of the method
+                // (which doesn't use a completionHandler which would be passed both an error and the enum.)
+                // We interpret this as not having asked the user. (Same as how we handle the error branch below.)
+                return false
+            case .unnecessary:
+                // we have already requested access.
+                return true
+            @unknown default:
+                return false
+            }
+        } catch {
+            // We interpret an error as not having asked the user
+            return false
+        }
+    }
+    
+    /// Returns whether the user was already asked for authorization to  the specified sample type.
+    /// - Note: A `true` return value does **not** imply that the user actually granted access; it just means that the user was asked.
+    ///     Use ``HealthKit-swift.class/isAuthorized(toWrite:)-(SampleType<Any>)`` to check the current authorization status.
+    public func didAskForAuthorization(toWrite sampleType: SampleType<some Any>) -> Bool {
+        sampleType.effectiveSampleTypesForAuthentication.allSatisfy {
+            didAskForAuthorization(toWrite: $0.hkSampleType)
+        }
+    }
+    
+    /// Returns whether the user was already asked for authorization to the specified object type.
+    ///
+    /// - Note: A `true` return value does **not** imply that the user actually granted access; it just means that the user was asked.
+    ///     Use ``HealthKit-swift.class/isAuthorized(toWrite:)-(HKObjectType)`` to check the current authorization status.
+    public func didAskForAuthorization(toWrite objectType: HKObjectType) -> Bool {
+        switch healthStore.authorizationStatus(for: objectType) {
+        case .notDetermined:
+            false
+        case .sharingAuthorized, .sharingDenied:
+            true
+        @unknown default:
+            false // fallback. better be safe than sorry.
+        }
+    }
+    
+    /// Returns whether the user was already asked for authorization to access all of the specified object types.
+    ///
+    /// This will only return `true` if the user was asked for authorization for all of the specified object types.
+    ///
+    /// - parameter dataAccessRequirements: The set of object types the function should check for. Passing in an empty set will result in a `true` return value, since there's nothing to check for.
+    ///
+    /// - Note: A `true` return value does **not** imply that the user actually granted access; it just means that the user was asked.
+    public func didAskForAuthorization(for dataAccessRequirements: DataAccessRequirements) async -> Bool {
+        await didAskForAuthorization(toRead: dataAccessRequirements.read) && dataAccessRequirements.write.allSatisfy {
+            didAskForAuthorization(toWrite: $0)
+        }
+    }
+    
+    
+    /// Returns whether the application is currently authorized to write data of the specified object type into the health store..
+    /// - Note: A `false` return value does **not** imply that the user actually denied access; it could also mean that the user hasn't yet been asked.
+    ///     Use ``HealthKit-swift.class/didAskForAuthorization(toWrite:)-(SampleType<Any>)`` to determine that.
+    public func isAuthorized(toWrite sampleType: SampleType<some Any>) -> Bool {
+        sampleType.effectiveSampleTypesForAuthentication.allSatisfy {
+            isAuthorized(toWrite: $0.hkSampleType)
+        }
+    }
+    
+    /// Returns whether the application is currently authorized to write data of the specified object type into the health store..
+    /// - Note: A `false` return value does **not** imply that the user actually denied access; it could also mean that the user hasn't yet been asked.
+    ///     Use ``HealthKit-swift.class/didAskForAuthorization(toWrite:)-(HKObjectType)`` to determine that.
+    public func isAuthorized(toWrite objectType: HKObjectType) -> Bool {
+        switch healthStore.authorizationStatus(for: objectType) {
+        case .sharingAuthorized:
+            true
+        case .notDetermined, .sharingDenied:
+            false
+        @unknown default:
+            false // fallback. better be safe than sorry.
+        }
+    }
+    
+    
+    @MainActor
+    private func updateIsFullyAuthorized(for dataAccessRequirements: DataAccessRequirements) async {
+        guard !dataAccessRequirements.isEmpty else {
+            return
+        }
+        if await !didAskForAuthorization(toRead: dataAccessRequirements.read) {
+            isFullyAuthorized = false
+        } else if !dataAccessRequirements.write.allSatisfy({ didAskForAuthorization(toWrite: $0) }) {
+            isFullyAuthorized = false
+        } else {
+            isFullyAuthorized = true
+        }
+    }
+    
+    /// Monitor changes to the application's Health Data Authorizations
+    ///
+    /// Creates an `AsyncStream` that will emit an element every time health access authorizations are requested that overlap with the specified `accessRequirements`.
+    ///
+    /// - Note: For read requirements, the stream will emit an element regardless of whether or not the user actually granted access.
+    @_spi(APISupport)
+    @MainActor
+    public func observeAuthenticationEvents(matching accessRequirements: DataAccessRequirements) -> AsyncStream<DataAccessRequirements> {
+        let (stream, continuation) = AsyncStream.makeStream(of: DataAccessRequirements.self)
+        let id = UUID()
+        self.authorizationEventObservers[id] = .init(
+            accessRequirements: accessRequirements,
+            continuation: continuation
+        )
+        continuation.onTermination = { [weak self] _ in
+            Task { @MainActor in
+                self?.authorizationEventObservers[id] = nil
+            }
+        }
+        return stream
+    }
+    
+    private func authorizationRequestStates(for accessRequirements: DataAccessRequirements) async -> [HKObjectType: HKAuthorizationRequestStatus] {
+        await withTaskGroup(
+            of: (HKObjectType, HKAuthorizationRequestStatus).self,
+            returning: [HKObjectType: HKAuthorizationRequestStatus].self
+        ) { [healthStore] taskGroup in
+            for writeTy in accessRequirements.write {
+                taskGroup.addTask {
+                    let types = writeTy.effectiveObjectTypesForAuthorization.compactMapIntoSet { $0 as? HKSampleType }
+                    let status = try? await healthStore.statusForAuthorizationRequest(toShare: types, read: types)
+                    return (writeTy, status ?? .unknown)
+                }
+            }
+            for readTy in accessRequirements.read.subtracting(accessRequirements.write) {
+                taskGroup.addTask {
+                    let types = readTy.effectiveObjectTypesForAuthorization
+                    let status = try? await healthStore.statusForAuthorizationRequest(toShare: [], read: types)
+                    return (readTy, status ?? .unknown)
+                }
+            }
+            var retval: [HKObjectType: HKAuthorizationRequestStatus] = [:]
+            for await (type, status) in taskGroup {
+                retval[type] = status
+            }
+            return retval
+        }
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKit {
+    // MARK: HealthKit data collection
+    
+    /// Provides access to the HealthKit module's query anchor storage system.
+    var queryAnchors: SampleTypeScopedLocalStorage<QueryAnchor> {
+        SampleTypeScopedLocalStorage(
+            localStorage: localStorage,
+            storageKeyPrefix: "HealthKit.queryAnchors",
+            storageSetting: .unencrypted(excludeFromBackup: false)
+        )
+    }
+    
+    /// Keeps track of the first time a ``SampleType`` was registered for collection using ``CollectSamples``.
+    var sampleCollectionStartDates: SampleTypeScopedLocalStorage<Date> {
+        SampleTypeScopedLocalStorage(
+            localStorage: localStorage,
+            storageKeyPrefix: "HealthKit.sampleCollectionStartDates",
+            storageSetting: .unencrypted(excludeFromBackup: false)
+        )
+    }
+    
+    /// Resets the internal state associated with a sample type's collection via ``CollectSamples``.
+    ///
+    /// Use this function if you want to reset ``CollectSamples``, so that the next time a ``CollectSamples`` instance is registered with the ``HealthKit-swift.class`` module,
+    /// its behaviour will be as if it were being registered for the first time.
+    ///
+    /// - Note: Calling this function will stop currently-active sample collection for the specified `sampleType`.
+    @MainActor
+    public func resetSampleCollection<Sample>(for sampleType: SampleType<Sample>) async {
+        defer {
+            queryAnchors[sampleType] = nil
+            sampleCollectionStartDates[sampleType] = nil
+        }
+        // we need to also stop the sample collector (and in fact we need to do so before resetting the query anchor and the start date),
+        // since otherwise (were we to just reset the anchor and start date), the collection would continue to run and the next
+        // query update would end up restoring the just-reset anchor.
+        for (idx, collector) in registeredDataCollectors.enumerated().reversed() {
+            guard let collector = collector as? HealthKitSampleCollector<Sample>,
+                  collector.source == .collectSamples,
+                  collector.typeErasedSampleType == sampleType else {
+                continue
+            }
+            await collector.stopDataCollection()
+            registeredDataCollectors.remove(at: idx)
+            return
+        }
+    }
+    
+    /// Adds a new ``CollectSamples`` definition to the module.
+    ///
+    /// Calling this function is equivalent to including the ``CollectSamples`` definition in the initial module configuration.
+    @MainActor
+    public func addHealthDataCollector(_ collectSamples: CollectSamples<some Any>) async {
+        switch configurationState {
+        case .pending:
+            pendingConfiguration.append(collectSamples)
+        case .ongoing, .completed:
+            dataAccessRequirements.merge(with: collectSamples.dataAccessRequirements)
+            await collectSamples.configure(for: self, on: standard)
+        }
+    }
+    
+    /// Adds a new data source for collecting health data in the background.
+    ///
+    /// If the user was already asked for access to this collector's sample type, the collector will immediately be informed to
+    /// start its automatic data collection.
+    @MainActor
+    public func addHealthDataCollector(_ newCollector: any HealthDataCollector) async {
+        enum Action {
+            case add
+            case dontAdd
+            case replace(index: Int)
+        }
+        let action: Action = { () -> Action in
+            // Determine, based on the existing currently-registered collectors, how this one should be handled.
+            for (idx, existingCollector) in self.registeredDataCollectors.enumerated() {
+                guard existingCollector.typeErasedSampleType == newCollector.typeErasedSampleType else {
+                    continue
+                }
+                if existingCollector.deliverySetting == newCollector.deliverySetting {
+                    // the existing collector has the same sample type and delivery setting as the new one
+                    // -> there's no need to add the new one (we already have an identical one)
+                    return .dontAdd
+                } else if existingCollector.deliverySetting.continueInBackground && !newCollector.deliverySetting.continueInBackground {
+                    // we have an existing one which is supposed to run in the background, and a new one which is not.
+                    // -> the background-enabled one can subsume the new one
+                    return .dontAdd
+                } else if !existingCollector.deliverySetting.continueInBackground && newCollector.deliverySetting.continueInBackground {
+                    // the existing collector is supposed to only run while the app is active, while the new one should also
+                    // continue in the background. we replace the existing one with the new one, thereby effectively subsuming it into the new one
+                    return .replace(index: idx)
+                }
+            }
+            // if none of the existing collectors matched against the new one (or if there weren't any existing ones),
+            // we want to add the new one.
+            return .add
+        }()
+        switch action {
+        case .dontAdd:
+            return
+        case .replace(let index):
+            let oldCollector = exchange(&registeredDataCollectors[index], with: newCollector)
+            await oldCollector.stopDataCollection()
+            await startAutomaticDataCollectionIfPossible(newCollector)
+        case .add:
+            registeredDataCollectors.append(newCollector)
+            await startAutomaticDataCollectionIfPossible(newCollector)
+        }
+        await updateIsFullyAuthorized(for: dataAccessRequirements)
+    }
+    
+    
+    /// Tells the collector to start its automatic data collection, if applicable and possible.
+    @MainActor
+    private func startAutomaticDataCollectionIfPossible(_ collector: some HealthDataCollector) async {
+        if !collector.isActive,
+           collector.deliverySetting.startSetting == .automatic,
+           await didAskForAuthorization(toRead: collector.sampleType) {
+            await collector.startDataCollection()
+        }
+    }
+    
+    /// Triggers data collection for any currently registered ``HealthDataCollector``s that have a manual delivery setting.
+    @MainActor
+    public func triggerDataSourceCollection() async {
+        await withTaskGroup(of: Void.self) { group in
+            for collector in registeredDataCollectors where collector.deliverySetting.startSetting == .manual {
+                group.addTask { @MainActor @Sendable in
+                    await collector.startDataCollection()
+                }
+            }
+            await group.waitForAll()
+        }
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKit.DataAccessRequirements {
+    func intersection(_ other: Self) -> Self {
+        Self(
+            read: read.intersection(other.read),
+            write: write.intersection(other.write)
+        )
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HKUnit {
+    /// Creates a unit as the composition of dividing a unit by another unit.
+    @inlinable public static func / (lhs: HKUnit, rhs: HKUnit) -> HKUnit {
+        lhs.unitDivided(by: rhs)
+    }
+    
+    /// Creates a unit as the composition of multiplying a unit with another unit.
+    @inlinable public static func * (lhs: HKUnit, rhs: HKUnit) -> HKUnit {
+        lhs.unitMultiplied(by: rhs)
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKit {
+    /// Whether the OS version the app is running on needs to work around Blood Pressure auth being skipped by HealthKit.
+    ///
+    /// - Note: Reported as FB23147195.
+    ///
+    /// Issue: when requesting access to a set of sample types that contains blood pressure, iOS 26.5
+    /// will omit the "Blood Pressure" entry from the list in the auth sheet, if the request contains
+    /// additional other sample types alongside blood pressure. if the request is only for blood pressure
+    /// access (either because blood pressure is the only sample type being requested, or because all other
+    /// sample types have already been decided), it presents a non-dismissable full-screen sheet, which
+    /// sometimes will stay on screen indefinitely and sometimes will auto-dismiss itself immediately after
+    /// being presented.
+    /// We try to work around this, by attempting to anticipate that this is about to happen, and skipping the
+    /// blood pressure request in that case.
+    /// This is important because it is an explicitly recommented pattern for a GroveHealthKit-using app to
+    /// perform an unconditional "ask for all permissions i need" call on launch, regardless of what the current
+    /// authorization status is, plus especially if some authorizations are still undetermined.
+    /// (Which is exactly the situation this HealthKit bug will leave an app in, since Blood Pressure being omitted
+    /// from the list in the sheet will cause the sample type to never be decided on, unless the user manually
+    /// goes to the settings app and toggles the switch there.)
+    @_spi(TestingSupport)
+    public static var needsBloodPressureAuthFlowFix: Bool {
+        (Version(26, 5, 0)..<Version(27, 0, 0)).contains(Version(ProcessInfo.processInfo.operatingSystemVersion))
+    }
+}
+
+
+#endif
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKit {
+    /// The `Bundle` of the GroveHealthKit package.
+    ///
+    /// - Note: The reason this exists is because `Bundle(for: HealthKit.self)` will return an incorrect bundle in some circumstances.
+    ///     E.g., when you're running in a unit test, it'll return the xctest bundle, which is not what we're looking for in this case.
+    @_spi(Testing)
+    public static var bundle: Bundle {
+        Bundle.module
+    }
+}

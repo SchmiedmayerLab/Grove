@@ -2,7 +2,7 @@
 
 <!--
                   
-This source file is part of the Stanford Spezi open-source project
+This source file is part of the Grove open-source project
 
 SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 
@@ -53,6 +53,7 @@ The `enter(value:)` and `delete(count:)` methods provide the `checkIfTextWasEnte
 - ``XCTAssertThrowsErrorAsync(_:_:file:line:_:)``
 
 ### App Interaction
+- ``XCUIAutomation/XCUIApplication/launchAndWait(for:timeout:)``
 - ``XCUIAutomation/XCUIApplication/deleteAndLaunch(withSpringboardAppName:)``
 - ``XCUIAutomation/XCUIApplication/delete(app:)``
 - ``XCUIAutomation/XCUIApplication/dismissKeyboard()``

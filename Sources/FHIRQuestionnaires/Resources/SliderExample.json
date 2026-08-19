@@ -5,7 +5,7 @@
   "title": "Slider Example",
   "status": "draft",
   "publisher": "Stanford University",
-  "url": "http://biodesign.stanford.edu/questionnaires/sliderexample",
+  "url": "https://grovealliance.org/fhir/core/Questionnaire/sliderexample",
   "item": [
     {
       "linkId": "1",

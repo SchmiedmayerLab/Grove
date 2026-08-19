@@ -1,0 +1,182 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2025 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+#if canImport(HealthKit)
+import HealthKit
+
+
+/// A characteristic as defined by HealthKit.
+@available(iOS 18, macOS 15, watchOS 11, *)
+public protocol HealthKitCharacteristicProtocol<Value>: Hashable, Sendable {
+    /// The type of the characteristic's value
+    associatedtype Value
+    
+    /// The underlying `HKCharacteristicType`
+    var hkType: HKCharacteristicType { get }
+    /// The characteristic's title, suitable for user-visible display.
+    var displayTitle: String { get }
+    
+    /// Fetches the characteristic's value from a `HKHealthStore`.
+    @_spi(APISupport)
+    func value(in healthStore: HKHealthStore) throws -> Value
+}
+
+
+/// A type-safe wrapper around `HKCharacteristicType`, usable for reading data from HealthKit.
+///
+/// ## Topics
+///
+/// ### Instance Properties
+/// - ``displayTitle``
+/// - ``hkType``
+///
+/// ### Characteristic Types
+/// - ``activityMoveMode``
+/// - ``biologicalSex``
+/// - ``bloodType``
+/// - ``dateOfBirth``
+/// - ``dateOfBirthComponents``
+/// - ``fitzpatrickSkinType``
+/// - ``wheelchairUse``
+@available(iOS 18, macOS 15, watchOS 11, *)
+public struct HealthKitCharacteristic<Value>: HealthKitCharacteristicProtocol, Sendable {
+    public let hkType: HKCharacteristicType
+    public let displayTitle: String
+    let accessor: @Sendable (HKHealthStore) throws -> Value
+    
+    fileprivate init(
+        _ identifier: HKCharacteristicTypeIdentifier,
+        displayTitle: LocalizedStringResource? = nil,
+        accessor: @escaping @Sendable (HKHealthStore) throws -> Value
+    ) {
+        self.hkType = .init(identifier)
+        self.displayTitle = displayTitle.map { String(localized: $0) }
+            ?? SampleType<HKQuantitySample>.localizedTitle(for: hkType)
+            ?? hkType.identifier
+        self.accessor = accessor
+    }
+    
+    @_spi(APISupport)
+    public func value(in healthStore: HKHealthStore) throws -> Value {
+        try accessor(healthStore)
+    }
+}
+
+// NOTE: `HealthKitCharacteristic`'s conformance to Hashable and Equatable
+// intentionally looks only at the characteristic's underlying HKCharacteristicType.
+// This is fine, since there is a fixed amount of characteristics, all of which are defined here in this file
+// (there are multiple characteristics with the same underlying hkType, but they have different concrete swift types),
+// and it is impossible for users to create custom characteristics.
+// As a result, we can guarantee that each instance uses a different HKCharacteristicType,
+// and that the hkType can be used as a stable identity.
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitCharacteristicProtocol {
+    /// Compares two characteristics for equality, based on their underlying `HKCharacteristicType`s
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.hkType == rhs.hkType
+    }
+    
+    /// Hashes the characteristic, based on its underlying `HKCharacteristicType`
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(hkType)
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<HKActivityMoveMode> {
+    /// The activity move mode characteristic.
+    public static var activityMoveMode: HealthKitCharacteristic<HKActivityMoveMode> {
+        Self(.activityMoveMode) { healthStore in
+            try healthStore.activityMoveMode().activityMoveMode
+        }
+    }
+}
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<HKBiologicalSex> {
+    /// The characteristic representing the user's biological sex.
+    public static var biologicalSex: HealthKitCharacteristic<HKBiologicalSex> {
+        Self(.biologicalSex) { healthStore in
+            try healthStore.biologicalSex().biologicalSex
+        }
+    }
+}
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<HKBloodType> {
+    /// The characteristic representing the user's blood type.
+    public static var bloodType: HealthKitCharacteristic<HKBloodType> {
+        Self(.bloodType) { healthStore in
+            try healthStore.bloodType().bloodType
+        }
+    }
+}
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<Date> {
+    /// The characteristic representing the user's date of birth.
+    ///
+    /// The `Date` values returned here are always implicitly adjusted to match midnight in the current time zone,
+    /// regardless of whether the resulting date would still fall into the same day as the original birthday.
+    /// This behaviour matches the instinctive way most people treat birthdays: if you were born in the morning on may 17th in asia,
+    /// your birthday is still may 17th when you move to the united states.
+    ///
+    /// - Note: Prefer using ``dateOfBirthComponents`` if you need the user's date of birth in a non-UI-related context.
+    ///     The `DateComponents` will have their `calendar` and `timeZone` properties set based on the specific time zone in which the user entered their date of birth.
+    public static var dateOfBirth: HealthKitCharacteristic<Date> {
+        Self(.dateOfBirth) { healthStore in
+            let components = try healthStore.dateOfBirthComponents()
+            if let date = Calendar.current.date(from: .init(year: components.year, month: components.month, day: components.day)) {
+                return date
+            } else {
+                // We don't use a custom error type here, since the error will be discarded anyway.
+                throw NSError(domain: "org.grovealliance.healthKit", code: 0, userInfo: [
+                    NSLocalizedDescriptionKey: "Unable to create Date from DateComponents"
+                ])
+            }
+        }
+    }
+}
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<DateComponents> {
+    /// The characteristic representing the user's date of birth.
+    ///
+    /// The `DateComponents` returned here will, if available, have their `calendar` and `timeZone` properties
+    /// set based on the specific time zone in which the user entered their date of birth into the Health app.
+    public static var dateOfBirthComponents: HealthKitCharacteristic<DateComponents> {
+        Self(.dateOfBirth) { healthStore in
+            var components = try healthStore.dateOfBirthComponents()
+            components.timeZone = components.calendar?.timeZone
+            return components
+        }
+    }
+}
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<HKFitzpatrickSkinType> {
+    /// The characteristic representing the user's skin type.
+    public static var fitzpatrickSkinType: HealthKitCharacteristic<HKFitzpatrickSkinType> {
+        Self(.fitzpatrickSkinType) { healthStore in
+            try healthStore.fitzpatrickSkinType().skinType
+        }
+    }
+}
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitCharacteristicProtocol where Self == HealthKitCharacteristic<HKWheelchairUse> {
+    /// The characteristic representing the user's wheelchair use status.
+    public static var wheelchairUse: HealthKitCharacteristic<HKWheelchairUse> {
+        Self(.wheelchairUse) { healthStore in
+            try healthStore.wheelchairUse().wheelchairUse
+        }
+    }
+}
+
+#endif

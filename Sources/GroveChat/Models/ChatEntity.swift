@@ -1,0 +1,88 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2023 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+public import Foundation
+
+
+/// Represents the basic building block of a Grove ``Chat``.
+///
+/// A ``ChatEntity`` can be thought of as a single message entity within a ``Chat``
+/// It consists of a ``ChatEntity/Role``, a unique identifier, a timestamp in the form of a `Date` as well as an `String`-based ``ChatEntity/content`` property which can contain Markdown-formatted text.
+/// Furthermore, the ``ChatEntity/complete`` flag indicates if the current state of the ``ChatEntity`` is final and the content will not be updated anymore.
+@available(iOS 18, macOS 15, watchOS 11, *)
+public struct ChatEntity: Codable, Equatable, Hashable, Identifiable {
+    /// Indicates which ``ChatEntity/Role`` is associated with a ``ChatEntity``.
+    public enum Role: Codable, Equatable, Hashable {
+        case user
+        case assistant
+        case assistantToolCall
+        case assistantToolResponse
+        case hidden(type: ChatEntity.HiddenMessageType)
+        
+        
+        var rawValue: String {
+            switch self {
+            case .user: "user"
+            case .assistant: "assistant"
+            case .assistantToolCall: "assistant_tool_call"
+            case .assistantToolResponse: "assistant_tool_response"
+            case .hidden(let type): "hidden_\(type.name)"
+            }
+        }
+    }
+    
+    
+    /// ``ChatEntity/Role`` associated with the ``ChatEntity``.
+    public let role: Role
+    /// `String`-based content of the ``ChatEntity``.
+    public let content: String
+    /// Indicates if the ``ChatEntity`` is complete and will not receive any additional content.
+    public let complete: Bool
+    /// Unique identifier of the ``ChatEntity``.
+    public let id: UUID
+    /// The creation date of the ``ChatEntity``.
+    public let date: Date
+    
+    
+    /// Markdown-formatted ``ChatEntity/content`` as an `AttributedString`, required to render the text in Markdown-style within the ``MessageView``.
+    var attributedContent: AttributedString {
+        let markdownOptions = AttributedString.MarkdownParsingOptions(
+            interpretedSyntax: .inlineOnlyPreservingWhitespace,
+            failurePolicy: .returnPartiallyParsedIfPossible
+        )
+        
+        if let attributedContent = try? AttributedString(markdown: content, options: markdownOptions) {
+            return attributedContent
+        } else {
+            return AttributedString(stringLiteral: content)
+        }
+    }
+
+    
+    /// Creates a ``ChatEntity`` which is the building block of a Grove ``Chat``.
+    ///
+    /// - Parameters:
+    ///    - role: ``ChatEntity/Role`` associated with the ``ChatEntity``.
+    ///    - content: `String`-based content of the ``ChatEntity``. Can contain Markdown-formatted text.
+    ///    - complete: Indicates if the content of the ``ChatEntity`` is complete and will not receive any additional content. Defaults to `true`.
+    ///    - id: Unique identifier of the ``ChatEntity``, defaults to a randomly assigned id.
+    ///    - date: Timestamp on when the ``ChatEntity`` was originally created, defaults to the current time.
+    public init<Content: StringProtocol>(
+        role: Role,
+        content: Content,
+        complete: Bool = true,
+        id: UUID = .init(),
+        date: Date = .now
+    ) {
+        self.role = role
+        self.content = String(content)
+        self.complete = complete
+        self.id = id
+        self.date = date
+    }
+}

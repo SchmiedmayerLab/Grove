@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -8,6 +8,7 @@
 
 
 /// Conditions under which a request should be retried.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum RetryableSignal: Hashable, Sendable {
     /// Retry when response status matches this code.
     case statusCode(Int)

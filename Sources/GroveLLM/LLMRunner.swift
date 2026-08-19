@@ -1,0 +1,229 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+public import Foundation
+public import Grove
+import GroveChat
+import GroveFoundation
+import Synchronization
+
+/// Manages the execution of LLMs in the Grove ecosystem.
+///
+/// The ``LLMRunner`` is a Grove `Module` available for access through the SwiftUI `Environment` that is responsible for turning a ``LLMSchema`` towards an executable and stateful ``LLMSession``.
+/// The ``LLMRunner`` delegates the creation of the ``LLMSession``s to the respective ``LLMPlatform``s, allowing for customized creation and dependency injection for each LLM type.
+///
+/// Within the Grove ecosystem, the ``LLMRunner`` is set up via the Grove `Configuration` by taking a trailing closure argument within ``LLMRunner/init(_:)``.
+/// The closure aggregates multiple stated ``LLMPlatform``s via is the ``LLMPlatformBuilder``, enabling easy and dynamic configuration of all wanted ``LLMPlatform``s.
+///
+/// The main functionality of the ``LLMRunner`` is``LLMRunner/callAsFunction(with:)``, turning a ``LLMSchema`` to an executable ``LLMSession`` via the respective ``LLMPlatform``.
+/// The created ``LLMSession`` then holds the LLM context and is able to perform the actual LLM inference.
+/// For one-shot LLM inference tasks, the ``LLMRunner`` provides ``LLMRunner/oneShot(with:context:)->AsyncThrowingStream<String,Error>`` and ``LLMRunner/oneShot(with:context:)->String``, enabling the ``LLMRunner`` to deal with the LLM state management and reducing the burden on developers by just returning an `AsyncThrowingStream` or `String` directly.
+///
+/// ### Usage
+///
+/// The code section below showcases a complete, bare-bone code example on how to use the ``LLMRunner`` with the ``LLMSchema``.
+/// The example is structured as a SwiftUI `View` with a `Button` to trigger LLM inference via the ``LLMMockSchema``. The generated output stream is displayed in a `Text` field.
+///
+/// - Tip: GroveLLM provides the `@LLMSessionProvider` property wrapper (`View/LLMSessionProvider`) that drastically simplifies the state management of using the ``LLMSchema`` with the ``LLMRunner``. Refer to the docs for more information.
+///
+/// ```swift
+/// struct LLMDemoView: View {
+///     // The runner responsible for executing the LLM.
+///     @Environment(LLMRunner.self) var runner
+///
+///     // The LLM in execution, as defined by the ``LLMSchema``.
+///     @State var llmSession: LLMMockSession?
+///     @State var responseText = ""
+///
+///     var body: some View {
+///         VStack {
+///             Button {
+///                 Task {
+///                     try await executePrompt(prompt: "Hello LLM!")
+///                 }
+///             } label: {
+///                 Text("Start LLM inference")
+///             }
+///                 .disabled(if: llmSession)
+///
+///             Text(responseText)
+///         }
+///             .task {
+///                 // Instantiate the `LLMSchema` to an `LLMSession` via the `LLMRunner`.
+///                 self.llmSession = runner(with: LLMMockSchema())
+///             }
+///     }
+///
+///     func executePrompt(prompt: String) async throws {
+///         await MainActor.run {
+///             llmSession?.context.append(userInput: prompt)
+///         }
+///
+///         // Performing the LLM inference, returning a stream of outputs.
+///         guard let stream = try await llmSession?.generate() else {
+///             return
+///         }
+///
+///         for try await token in stream {
+///             responseText.append(token)
+///         }
+///    }
+/// }
+/// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
+@Observable
+public final class LLMRunner: Module, EnvironmentAccessible, DefaultInitializable {
+    /// The ``State`` describes the current state of the ``LLMRunner``.
+    /// As of now, the ``State`` is quite minimal with only ``LLMRunner/State-swift.enum/idle`` and ``LLMRunner/State-swift.enum/processing`` states.
+    public enum State {
+        case idle
+        case processing
+    }
+    
+
+    /// Holds all configured ``LLMPlatform``s of the ``LLMRunner`` as expressed by all stated ``LLMPlatform``'s in the ``LLMRunner/init(_:)``.
+    @Dependency @ObservationIgnored private var llmPlatformModules: [any Module]
+    /// Maps the ``LLMSchema`` (identified by the `ObjectIdentifier`) towards the respective ``LLMPlatform``.
+    private let llmPlatforms = Mutex<[ObjectIdentifier: any LLMPlatform]>([:])
+
+    /// The ``State`` of the runner, derived from the individual ``LLMPlatform``'s.
+    @MainActor public var state: State {
+        var state: State = .idle
+
+        self.llmPlatforms.withLock { llmPlatforms in
+            for platform in llmPlatforms.values where platform.state == .processing {
+                state = .processing
+            }
+        }
+        
+        return state
+    }
+    
+    /// Creates the ``LLMRunner`` which is responsible for executing LLMs within the Grove ecosystem.
+    ///
+    /// - Parameters:
+    ///   - dependencies: A result builder that aggregates all stated ``LLMPlatform``s.
+    public init(
+        @LLMPlatformBuilder _ dependencies: () -> DependencyCollection
+    ) {
+        self._llmPlatformModules = Dependency(using: dependencies())
+    }
+    
+    /// Convenience initializer for the creation of an ``LLMRunner`` that doesn't support any ``LLMPlatform``s
+    /// Helpful for stating a Grove `Dependency` to the ``LLMRunner``.
+    public convenience init() {
+        self.init {}
+    }
+    
+    
+    public func configure() {
+        self.llmPlatforms.withLock { llmPlatforms in
+            // Sadly we are only able to access the dependencies in here after they have been activated
+            llmPlatforms = self._llmPlatformModules.wrappedValue.compactMap { platform in
+                platform as? (any LLMPlatform)
+            }
+            .reduce(into: [:]) { partialResult, platform in
+                partialResult[platform.schemaId] = platform
+            }
+        }
+    }
+
+    /// Turns the received ``LLMSchema`` to an executable ``LLMSession``.
+    ///
+    /// The ``LLMRunner`` uses the configured ``LLMPlatform``s to create an executable ``LLMSession`` from the passed ``LLMSchema``
+    ///
+    /// - Parameters:
+    ///   - llmSchema: The ``LLMSchema`` that should be turned into an ``LLMSession``.
+    ///
+    /// - Returns: The ready to use ``LLMSession``.
+    public func callAsFunction<L: LLMSchema>(with llmSchema: L) -> L.Platform.Session {
+        let platform = self.llmPlatforms.withLock { llmPlatforms in
+            llmPlatforms[ObjectIdentifier(L.self)]
+        }
+
+        // Searches for the respective `LLMPlatform` associated with the `LLMSchema`.
+        guard let platform  else {
+            fatalError("""
+            The designated `LLMPlatform` \(String(describing: L.Platform.Session.self)) to run the `LLMSchema` \(String(describing: L.self)) was not configured within the Grove `Configuration`.
+            Ensure that the `LLMRunner` is set up with all required `LLMPlatform`s.
+            """)
+        }
+        
+        // Checks the conformance of the related `LLMSession` to `Observable`.
+        guard L.Platform.Session.self is any Observable.Type else {
+            fatalError("""
+            The passed `LLMSchema` \(String(describing: L.self)) corresponds to a not observable `LLMSession` type (found session was \(String(describing: L.Platform.Session.self))).
+            Ensure that the used `LLMSession` type (\(String(describing: L.Platform.Session.self))) conforms to the `Observable` protocol via the `@Observable` macro.
+            """)
+        }
+        
+        // Delegates the creation of the `LLMSession` to the configured `LLMPlatform`s.
+        return platform.determinePlatform(for: llmSchema)
+    }
+    
+    /// One-shot mechanism to turn the received ``LLMSchema`` into an `AsyncThrowingStream`.
+    ///
+    /// Directly returns an `AsyncThrowingStream` based on the defined ``LLMSchema`` as well as the passed `Chat` (context of the LLM).
+    ///
+    /// - Parameters:
+    ///   - llmSchema: The ``LLMSchema`` that should be turned into an ``LLMSession``.
+    ///   - context: The context of the LLM used for the inference.
+    ///
+    /// - Returns: The ready to use `AsyncThrowingStream`.
+    public func oneShot<L: LLMSchema>(with llmSchema: L, context: LLMContext) async throws -> AsyncThrowingStream<String, any Error> {
+        let llmSession = self.callAsFunction(with: llmSchema)
+        await MainActor.run {
+            llmSession.context = context
+        }
+        
+        return try await llmSession.generate()
+    }
+    
+    /// One-shot mechanism to turn the received ``LLMSchema`` into a completed output `String`.
+    ///
+    /// Directly returns the finished output `String` based on the defined ``LLMSchema`` as well as the passed `Chat` (context of the LLM).
+    ///
+    /// - Parameters:
+    ///   - llmSchema: The ``LLMSchema`` that should be turned into an ``LLMSession``.
+    ///   - context: The context of the LLM used for the inference.
+    ///
+    /// - Returns: The completed output `String`.
+    public func oneShot<L: LLMSchema>(with llmSchema: L, context: LLMContext) async throws -> String {
+        var output = ""
+        
+        for try await stringPiece in try await self.oneShot(with: llmSchema, context: context) {
+            output.append(stringPiece)
+        }
+        
+        return output
+    }
+}
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension LLMRunner: @unchecked Sendable {} // unchecked because of the `Dependency` property wrapper storage
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension LLMPlatform {
+    /// Determine the correct ``LLMPlatform`` for the passed ``LLMSchema``.
+    fileprivate func determinePlatform<L: LLMSchema>(for schema: L) -> L.Platform.Session {
+        guard let schema = schema as? Schema else {
+            fatalError("""
+            Reached inconsistent state. Ensure that the specified LLMSchema matches the schema defined within the LLMPlatform.
+            """)
+        }
+        
+        guard let session = self(with: schema) as? L.Platform.Session else {
+            fatalError("""
+            Reached inconsistent state. Ensure that the specified LLMSession matches the session defined within the LLMPlatform.
+            """)
+        }
+        
+        return session
+    }
+}

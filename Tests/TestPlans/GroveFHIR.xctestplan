@@ -1,0 +1,35 @@
+{
+  "configurations": [
+    {
+      "id": "00000000-0000-0000-0000-000000000011",
+      "name": "Configuration 1",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "codeCoverage": {
+      "targets": [
+        {
+          "containerPath": "container:",
+          "identifier": "GroveFHIR",
+          "name": "GroveFHIR"
+        },
+        {
+          "containerPath": "container:",
+          "identifier": "GroveFHIRMockPatients",
+          "name": "GroveFHIRMockPatients"
+        }
+      ]
+    }
+  },
+  "testTargets": [
+    {
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveFHIRTests",
+        "name": "GroveFHIRTests"
+      }
+    }
+  ],
+  "version": 1
+}

@@ -1,0 +1,35 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2024 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+import CoreBluetooth
+public import GroveBluetooth
+
+
+@_spi(TestingSupport)
+@available(iOS 18, macOS 15, watchOS 11, *)
+public struct TestService: BluetoothService, Sendable {
+    public static let id: BTUUID = .testService
+
+    @Characteristic(id: .eventLogCharacteristic, notify: true)
+    public var eventLog: EventLog?
+
+
+    @Characteristic(id: .readStringCharacteristic)
+    public var readString: String?
+
+    @Characteristic(id: .writeStringCharacteristic)
+    public var writeString: String?
+
+    @Characteristic(id: .readWriteStringCharacteristic)
+    public var readWriteString: String?
+
+    @Characteristic(id: .resetCharacteristic)
+    public var reset: Bool? // swiftlint:disable:this discouraged_optional_boolean
+
+    public init() {}
+}

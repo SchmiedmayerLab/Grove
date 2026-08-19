@@ -1,0 +1,49 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000010",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveDevices",
+        "name" : "GroveDevices"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveDevicesUI",
+        "name" : "GroveDevicesUI"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveOmron",
+        "name" : "GroveOmron"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveDevicesTests",
+          "name" : "GroveDevicesTests"
+        }
+      },
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveOmronTests",
+          "name" : "GroveOmronTests"
+        }
+      }
+  ],
+  "version" : 1
+}

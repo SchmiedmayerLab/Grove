@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2024 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -7,13 +7,14 @@
 //
 
 package import Foundation
+package import GroveKeychainStorage
+import GroveLLM
 package import HTTPTypes
 package import OpenAPIRuntime
-package import SpeziKeychainStorage
-import SpeziLLM
 
 
 /// Middleware for injecting an Bearer API token into outgoing requests based on the ``RemoteLLMInferenceAuthToken``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 package struct BearerAuthMiddleware: ClientMiddleware {
     private let authToken: RemoteLLMInferenceAuthToken
     private let keychainStorage: KeychainStorage?

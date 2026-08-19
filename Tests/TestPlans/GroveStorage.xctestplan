@@ -1,0 +1,37 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000027",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveKeychainStorage",
+        "name" : "GroveKeychainStorage"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveLocalStorage",
+        "name" : "GroveLocalStorage"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveStorageTests",
+          "name" : "GroveStorageTests"
+        }
+      }
+  ],
+  "version" : 1
+}

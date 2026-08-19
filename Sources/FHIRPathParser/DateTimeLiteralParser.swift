@@ -1,5 +1,5 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2024 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -92,14 +92,8 @@ struct DateTimeLiteralParser<Input: StringProtocol>: ~Copyable {
     private var current: Character? {
         input[safe: position]
     }
-    private var next: Character? {
-        input[safe: input.index(after: position)]
-    }
     private var isAtEnd: Bool {
         position >= input.endIndex
-    }
-    private var numRemainingTokens: Int {
-        input.distance(from: position, to: input.endIndex)
     }
     
     

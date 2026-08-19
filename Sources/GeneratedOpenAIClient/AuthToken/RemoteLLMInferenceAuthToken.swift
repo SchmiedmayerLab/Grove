@@ -1,15 +1,16 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
 // SPDX-License-Identifier: MIT
 //
 
-public import struct SpeziKeychainStorage.CredentialsTag
+public import struct GroveKeychainStorage.CredentialsTag
 
 
 /// The type of auth token for remote LLM services, such as the OpenAI or Fog layer.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum RemoteLLMInferenceAuthToken: Sendable {
     /// No auth token.
     case none

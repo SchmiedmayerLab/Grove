@@ -1,0 +1,43 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+// swiftlint:disable multiline_function_chains
+
+import XCTest
+import XCTestExtensions
+import XCTGroveQuestionnaire
+
+
+final class QuestionKindTests: TestAppUITests, @unchecked Sendable {
+    @MainActor
+    func testFileAttachments() {
+        launchAppAndStartTestQuestionnaire(named: "File Attachment")
+        let navigator = QuestionnaireSheetNavigator(app)
+        
+        XCTAssert(app.otherElements["Task:t0"].waitForExistence(timeout: 10))
+        XCTAssertFalse(navigator.isContinueButtonEnabled)
+
+        navigator.task(withId: "t0").selectFilePickerOption(.selectPhoto)
+        let image = app.otherElements["Photos"].scrollViews.otherElements["photos_sectioned_layout"].images.firstMatch
+        XCTAssert(image.waitForExistence(timeout: 30))
+        image.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        do {
+            let task0 = app.otherElements["Task:t0"]
+            XCTAssert(
+                task0.staticTexts.element(
+                    matching: "identifier = %@ AND label MATCHES %@", "FileAttachmentFilename", "IMG_.*.jpeg"
+                ).waitForExistence(timeout: 30)
+            )
+            XCTAssert(
+                task0.staticTexts.element(
+                    matching: "identifier = %@ AND label MATCHES %@", "FileAttachmentFilesize", ".* MB"
+                ).waitForExistence(timeout: 10)
+            )
+        }
+    }
+}

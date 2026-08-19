@@ -1,15 +1,16 @@
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
 // SPDX-License-Identifier: MIT
 //
 
-import SpeziLLM
+import GroveLLM
 
 
 /// Errors that originate from the handling of ``RemoteLLMInferenceAuthToken``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 package enum RemoteLLMInferenceAuthTokenError: LLMError {
     /// The auth method indicated that a token should be in the keychain, however there is none
     case noTokenInKeychain

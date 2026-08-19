@@ -1,6 +1,6 @@
 // swift-tools-version:6.3
 //
-// This source file is part of the Stanford Spezi open-source project
+// This source file is part of the Grove open-source project
 //
 // SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
@@ -21,7 +21,7 @@ let enableSwiftLint = false
 // package graph may depend on iOS-18+-only dependencies. The deployment-floor CI legs
 // (Scripts/build-floor.sh) opt in via this environment variable; the planned iOS-15 mirror repo
 // instead flips the default (and disables all traits).
-let isLoweredDeploymentTargetEnabled = Context.environment["SPEZI_LOWERED_DEPLOYMENT_TARGETS"] == "1"
+let isLoweredDeploymentTargetEnabled = Context.environment["GROVE_LOWERED_DEPLOYMENT_TARGETS"] == "1"
 
 // FHIRModels >= 0.9 cannot link for armv7k: its struct-based models exceed the 32-bit Mach-O
 // scattered-relocation limit, and the App Store rejects watchOS-8-target binaries that lack the
@@ -49,12 +49,12 @@ let mlxTrait = "MLX"
 let researchKitTrait = "ResearchKit"
 let optionalPackageTraits = [textualTrait, mlxTrait, researchKitTrait]
 
-let defaultEnabledTraits: Set<String> = Context.environment["SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS"] == "1"
+let defaultEnabledTraits: Set<String> = Context.environment["GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS"] == "1"
     ? Set(optionalPackageTraits)
     : []
 // Compile/test builds can exclude DocC catalogs to avoid SwiftPM unhandled-file warnings.
 // Documentation builds keep them included so DocC can resolve articles and assets.
-let excludeDocCCatalogs = Context.environment["SPEZI_EXCLUDE_DOCC_CATALOGS"] == "1"
+let excludeDocCCatalogs = Context.environment["GROVE_EXCLUDE_DOCC_CATALOGS"] == "1"
 
 let packagePlatforms: [SupportedPlatform] = if isLoweredDeploymentTargetEnabled {
     [.iOS(.v15), .macOS(.v12), .watchOS(.v9)]
@@ -179,95 +179,94 @@ var products: [Product] = [
     .library(name: "FHIRQuestionnaires", targets: ["FHIRQuestionnaires"]),
     // MARK: ResearchKitOnFHIR
     .library(name: "ResearchKitOnFHIR", targets: ["ResearchKitOnFHIR"]),
-    // MARK: Spezi
-    .library(name: "Spezi", targets: ["Spezi"]),
-    .library(name: "SpeziTesting", targets: ["SpeziTesting"]),
-    .library(name: "XCTSpezi", targets: ["XCTSpezi"]),
-    // MARK: SpeziAccessGuard
-    .library(name: "SpeziAccessGuard", targets: ["SpeziAccessGuard"]),
-    // MARK: SpeziAccount
-    .library(name: "SpeziAccount", targets: ["SpeziAccount"]),
-    .library(name: "XCTSpeziAccount", targets: ["XCTSpeziAccount"]),
-    .library(name: "SpeziAccountPhoneNumbers", targets: ["SpeziAccountPhoneNumbers"]),
-    // MARK: SpeziBluetooth
-    .library(name: "SpeziBluetoothServices", targets: ["SpeziBluetoothServices"]),
-    .library(name: "SpeziBluetooth", targets: ["SpeziBluetooth"]),
-    // MARK: SpeziChat
-    .library(name: "SpeziChat", targets: ["SpeziChat"]),
-    // MARK: SpeziConsent
-    .library(name: "SpeziConsent", targets: ["SpeziConsent"]),
-    // MARK: SpeziContact
-    .library(name: "SpeziContact", targets: ["SpeziContact"]),
-    // MARK: SpeziDevices
-    .library(name: "SpeziDevices", targets: ["SpeziDevices"]),
-    .library(name: "SpeziDevicesUI", targets: ["SpeziDevicesUI"]),
-    .library(name: "SpeziOmron", targets: ["SpeziOmron"]),
-    // MARK: SpeziFHIR
-    .library(name: "SpeziFHIR", targets: ["SpeziFHIR"]),
-    .library(name: "SpeziFHIRMockPatients", targets: ["SpeziFHIRMockPatients"]),
-    // MARK: SpeziFileFormats
+    // MARK: Grove
+    .library(name: "Grove", targets: ["Grove"]),
+    .library(name: "GroveTesting", targets: ["GroveTesting"]),
+    .library(name: "XCTGrove", targets: ["XCTGrove"]),
+    // MARK: GroveAccessGuard
+    .library(name: "GroveAccessGuard", targets: ["GroveAccessGuard"]),
+    // MARK: GroveAccount
+    .library(name: "GroveAccount", targets: ["GroveAccount"]),
+    .library(name: "XCTGroveAccount", targets: ["XCTGroveAccount"]),
+    .library(name: "GroveAccountPhoneNumbers", targets: ["GroveAccountPhoneNumbers"]),
+    // MARK: GroveBluetooth
+    .library(name: "GroveBluetoothServices", targets: ["GroveBluetoothServices"]),
+    .library(name: "GroveBluetooth", targets: ["GroveBluetooth"]),
+    // MARK: GroveChat
+    .library(name: "GroveChat", targets: ["GroveChat"]),
+    // MARK: GroveConsent
+    .library(name: "GroveConsent", targets: ["GroveConsent"]),
+    // MARK: GroveContact
+    .library(name: "GroveContact", targets: ["GroveContact"]),
+    // MARK: GroveDevices
+    .library(name: "GroveDevices", targets: ["GroveDevices"]),
+    .library(name: "GroveDevicesUI", targets: ["GroveDevicesUI"]),
+    .library(name: "GroveOmron", targets: ["GroveOmron"]),
+    // MARK: GroveFHIR
+    .library(name: "GroveFHIR", targets: ["GroveFHIR"]),
+    .library(name: "GroveFHIRMockPatients", targets: ["GroveFHIRMockPatients"]),
+    // MARK: GroveFileFormats
     .library(name: "EDFFormat", targets: ["EDFFormat"]),
-    // MARK: SpeziFirebase
-    .library(name: "SpeziFirebaseAccount", targets: ["SpeziFirebaseAccount"]),
-    .library(name: "SpeziFirebaseConfiguration", targets: ["SpeziFirebaseConfiguration"]),
-    .library(name: "SpeziFirestore", targets: ["SpeziFirestore"]),
-    .library(name: "SpeziFirebaseStorage", targets: ["SpeziFirebaseStorage"]),
-    .library(name: "SpeziFirebaseAccountStorage", targets: ["SpeziFirebaseAccountStorage"]),
-    // MARK: SpeziFoundation
-    .library(name: "SpeziFoundation", targets: ["SpeziFoundation"]),
-    .library(name: "SpeziLocalization", targets: ["SpeziLocalization"]),
+    // MARK: GroveFirebase
+    .library(name: "GroveFirebaseAccount", targets: ["GroveFirebaseAccount"]),
+    .library(name: "GroveFirebaseConfiguration", targets: ["GroveFirebaseConfiguration"]),
+    .library(name: "GroveFirestore", targets: ["GroveFirestore"]),
+    .library(name: "GroveFirebaseStorage", targets: ["GroveFirebaseStorage"]),
+    .library(name: "GroveFirebaseAccountStorage", targets: ["GroveFirebaseAccountStorage"]),
+    // MARK: GroveFoundation
+    .library(name: "GroveFoundation", targets: ["GroveFoundation"]),
+    .library(name: "GroveLocalization", targets: ["GroveLocalization"]),
     .library(name: "ThreadLocal", targets: ["ThreadLocal"]),
-    // MARK: SpeziHealthKit
-    .library(name: "SpeziHealthKit", targets: ["SpeziHealthKit"]),
-    .library(name: "SpeziHealthKitBulkExport", targets: ["SpeziHealthKitBulkExport"]),
-    .library(name: "SpeziHealthKitUI", targets: ["SpeziHealthKitUI"]),
-    .library(name: "SpeziHealthKitFHIR", targets: ["SpeziHealthKitFHIR"]),
-    // MARK: SpeziLLM
-    .library(name: "SpeziLLM", targets: ["SpeziLLM"]),
-    .library(name: "SpeziLLMLocal", targets: ["SpeziLLMLocal"]),
-    .library(name: "SpeziLLMLocalDownload", targets: ["SpeziLLMLocalDownload"]),
-    .library(name: "SpeziLLMOpenAI", targets: ["SpeziLLMOpenAI"]),
-    .library(name: "SpeziLLMFog", targets: ["SpeziLLMFog"]),
-    .library(name: "SpeziLLMOpenAIRealtime", targets: ["SpeziLLMOpenAIRealtime"]),
-    .library(name: "SpeziLLMAnthropic", targets: ["SpeziLLMAnthropic"]),
-    .library(name: "SpeziLLMGemini", targets: ["SpeziLLMGemini"]),
-    // MARK: SpeziLicense
-    .library(name: "SpeziLicense", targets: ["SpeziLicense"]),
-    // MARK: SpeziLocation
-    .library(name: "SpeziLocation", targets: ["SpeziLocation"]),
-    // MARK: SpeziNetworking
+    // MARK: GroveHealthKit
+    .library(name: "GroveHealthKit", targets: ["GroveHealthKit"]),
+    .library(name: "GroveHealthKitBulkExport", targets: ["GroveHealthKitBulkExport"]),
+    .library(name: "GroveHealthKitUI", targets: ["GroveHealthKitUI"]),
+    .library(name: "GroveHealthKitFHIR", targets: ["GroveHealthKitFHIR"]),
+    // MARK: GroveLLM
+    .library(name: "GroveLLM", targets: ["GroveLLM"]),
+    .library(name: "GroveLLMLocal", targets: ["GroveLLMLocal"]),
+    .library(name: "GroveLLMLocalDownload", targets: ["GroveLLMLocalDownload"]),
+    .library(name: "GroveLLMOpenAI", targets: ["GroveLLMOpenAI"]),
+    .library(name: "GroveLLMOpenAIRealtime", targets: ["GroveLLMOpenAIRealtime"]),
+    .library(name: "GroveLLMAnthropic", targets: ["GroveLLMAnthropic"]),
+    .library(name: "GroveLLMGemini", targets: ["GroveLLMGemini"]),
+    // MARK: GroveLicense
+    .library(name: "GroveLicense", targets: ["GroveLicense"]),
+    // MARK: GroveLocation
+    .library(name: "GroveLocation", targets: ["GroveLocation"]),
+    // MARK: GroveNetworking
     .library(name: "ByteCoding", targets: ["ByteCoding"]),
-    .library(name: "SpeziNumerics", targets: ["SpeziNumerics"]),
+    .library(name: "GroveNumerics", targets: ["GroveNumerics"]),
     .library(name: "XCTByteCoding", targets: ["XCTByteCoding"]),
     .library(name: "ByteCodingTesting", targets: ["ByteCodingTesting"]),
-    // MARK: SpeziNotifications
-    .library(name: "SpeziNotifications", targets: ["SpeziNotifications"]),
-    .library(name: "XCTSpeziNotifications", targets: ["XCTSpeziNotifications"]),
-    .library(name: "XCTSpeziNotificationsUI", targets: ["XCTSpeziNotificationsUI"]),
-    // MARK: SpeziOnboarding
-    .library(name: "SpeziOnboarding", targets: ["SpeziOnboarding"]),
-    // MARK: SpeziQuestionnaire
-    .library(name: "SpeziQuestionnaire", targets: ["SpeziQuestionnaire"]),
-    .library(name: "SpeziQuestionnaireCatalog", targets: ["SpeziQuestionnaireCatalog"]),
-    .library(name: "SpeziQuestionnaireFHIR", targets: ["SpeziQuestionnaireFHIR"]),
-    .library(name: "SpeziQuestionnaireLegacy", targets: ["SpeziQuestionnaireLegacy"]),
-    .library(name: "XCTSpeziQuestionnaire", targets: ["XCTSpeziQuestionnaire"]),
-    // MARK: SpeziScheduler
-    .library(name: "SpeziScheduler", targets: ["SpeziScheduler"]),
-    // MARK: SpeziSensorKit
-    .library(name: "SpeziSensorKit", targets: ["SpeziSensorKit"]),
-    // MARK: SpeziSpeech
-    .library(name: "SpeziSpeechRecognizer", targets: ["SpeziSpeechRecognizer"]),
-    .library(name: "SpeziSpeechSynthesizer", targets: ["SpeziSpeechSynthesizer"]),
-    // MARK: SpeziStorage
-    .library(name: "SpeziLocalStorage", targets: ["SpeziLocalStorage"]),
-    .library(name: "SpeziKeychainStorage", targets: ["SpeziKeychainStorage"]),
-    // MARK: SpeziStudy
-    .library(name: "SpeziStudyDefinition", targets: ["SpeziStudyDefinition"]),
-    // MARK: SpeziViews
-    .library(name: "SpeziViews", targets: ["SpeziViews"]),
-    .library(name: "SpeziPersonalInfo", targets: ["SpeziPersonalInfo"]),
-    .library(name: "SpeziValidation", targets: ["SpeziValidation"]),
+    // MARK: GroveNotifications
+    .library(name: "GroveNotifications", targets: ["GroveNotifications"]),
+    .library(name: "XCTGroveNotifications", targets: ["XCTGroveNotifications"]),
+    .library(name: "XCTGroveNotificationsUI", targets: ["XCTGroveNotificationsUI"]),
+    // MARK: GroveOnboarding
+    .library(name: "GroveOnboarding", targets: ["GroveOnboarding"]),
+    // MARK: GroveQuestionnaire
+    .library(name: "GroveQuestionnaire", targets: ["GroveQuestionnaire"]),
+    .library(name: "GroveQuestionnaireCatalog", targets: ["GroveQuestionnaireCatalog"]),
+    .library(name: "GroveQuestionnaireFHIR", targets: ["GroveQuestionnaireFHIR"]),
+    .library(name: "GroveQuestionnaireLegacy", targets: ["GroveQuestionnaireLegacy"]),
+    .library(name: "XCTGroveQuestionnaire", targets: ["XCTGroveQuestionnaire"]),
+    // MARK: GroveScheduler
+    .library(name: "GroveScheduler", targets: ["GroveScheduler"]),
+    // MARK: GroveSensorKit
+    .library(name: "GroveSensorKit", targets: ["GroveSensorKit"]),
+    // MARK: GroveSpeech
+    .library(name: "GroveSpeechRecognizer", targets: ["GroveSpeechRecognizer"]),
+    .library(name: "GroveSpeechSynthesizer", targets: ["GroveSpeechSynthesizer"]),
+    // MARK: GroveStorage
+    .library(name: "GroveLocalStorage", targets: ["GroveLocalStorage"]),
+    .library(name: "GroveKeychainStorage", targets: ["GroveKeychainStorage"]),
+    // MARK: GroveStudy
+    .library(name: "GroveStudyDefinition", targets: ["GroveStudyDefinition"]),
+    // MARK: GroveViews
+    .library(name: "GroveViews", targets: ["GroveViews"]),
+    .library(name: "GrovePersonalInfo", targets: ["GrovePersonalInfo"]),
+    .library(name: "GroveValidation", targets: ["GroveValidation"]),
     // MARK: XCTHealthKit
     .library(name: "XCTHealthKit", targets: ["XCTHealthKit"]),
     // MARK: RuntimeAssertions
@@ -280,10 +279,10 @@ var products: [Product] = [
 
 #if canImport(Darwin)
 products += [
-    // MARK: SpeziScheduler
-    .library(name: "SpeziSchedulerUI", targets: ["SpeziSchedulerUI"]),
-    // MARK: SpeziStudy
-    .library(name: "SpeziStudy", targets: ["SpeziStudy"])
+    // MARK: GroveScheduler
+    .library(name: "GroveSchedulerUI", targets: ["GroveSchedulerUI"]),
+    // MARK: GroveStudy
+    .library(name: "GroveStudy", targets: ["GroveStudy"])
 ]
 #endif
 
@@ -293,6 +292,7 @@ var targets: [Target] = [
     .target(
         name: "FHIRModelsExtensions",
         dependencies: [
+            .target(name: "GroveLegacyIdentifiers"),
             .target(name: "FHIRPathParser"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .product(name: "ModelsDSTU2", package: "FHIRModels", condition: fhirModelsCondition)
@@ -324,6 +324,7 @@ var targets: [Target] = [
     .testTarget(
         name: "FHIRModelsExtensionsTests",
         dependencies: [
+            .target(name: "GroveLegacyIdentifiers"),
             .target(name: "FHIRModelsExtensions"),
             .target(name: "FHIRQuestionnaires")
         ],
@@ -338,9 +339,9 @@ var targets: [Target] = [
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziHealthKitFHIR
+    // MARK: GroveHealthKitFHIR
     .macro(
-        name: "SpeziHealthKitFHIRMacrosImpl",
+        name: "GroveHealthKitFHIRMacrosImpl",
         dependencies: [
             .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
             .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
@@ -351,43 +352,43 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziHealthKitFHIRMacros",
+        name: "GroveHealthKitFHIRMacros",
         dependencies: [
-            .target(name: "SpeziHealthKitFHIRMacrosImpl")
+            .target(name: "GroveHealthKitFHIRMacrosImpl")
         ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziHealthKitFHIR",
+        name: "GroveHealthKitFHIR",
         dependencies: [
-            .target(name: "SpeziHealthKitFHIRMacros"),
-            .target(name: "SpeziHealthKit"),
-            .target(name: "SpeziFoundation"),
-            .target(name: "SpeziFHIR"),
+            .target(name: "GroveHealthKitFHIRMacros"),
+            .target(name: "GroveHealthKit"),
+            .target(name: "GroveFoundation"),
+            .target(name: "GroveFHIR"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .product(name: "ModelsDSTU2", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions")
         ],
-        exclude: targetExcludes("SpeziHealthKitFHIR"),
+        exclude: targetExcludes("GroveHealthKitFHIR"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziHealthKitFHIRTests",
+        name: "GroveHealthKitFHIRTests",
         dependencies: [
-            .target(name: "SpeziHealthKitFHIR"),
-            .target(name: "SpeziFoundation")
+            .target(name: "GroveHealthKitFHIR"),
+            .target(name: "GroveFoundation")
         ],
-        exclude: testTargetExcludes("SpeziHealthKitFHIRTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveHealthKitFHIRTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziHealthKitFHIRMacrosTests",
+        name: "GroveHealthKitFHIRMacrosTests",
         dependencies: [
-            .target(name: "SpeziHealthKitFHIRMacros"),
-            .target(name: "SpeziHealthKitFHIRMacrosImpl"),
+            .target(name: "GroveHealthKitFHIRMacros"),
+            .target(name: "GroveHealthKitFHIRMacrosImpl"),
             .target(name: "FHIRModelsExtensions"),
             .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
             .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
@@ -419,59 +420,60 @@ var targets: [Target] = [
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: Spezi
+    // MARK: Grove
     .target(
-        name: "Spezi",
+        name: "Grove",
         dependencies: [
-            .target(name: "SpeziFoundation"),
+            .target(name: "GroveFoundation"),
             .target(name: "RuntimeAssertions"),
             .product(name: "OrderedCollections", package: "swift-collections")
         ],
-        exclude: targetExcludes("Spezi"),
+        exclude: targetExcludes("Grove"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziTesting",
+        name: "GroveTesting",
         dependencies: [
-            .target(name: "Spezi")
+            .target(name: "Grove")
         ],
-        exclude: targetExcludes("SpeziTesting"),
+        exclude: targetExcludes("GroveTesting"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "XCTSpezi",
+        name: "XCTGrove",
         dependencies: [
-            .target(name: "Spezi"),
-            .target(name: "SpeziTesting")
+            .target(name: "Grove"),
+            .target(name: "GroveTesting")
         ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziTests",
+        name: "GroveTests",
         dependencies: [
-            .target(name: "Spezi"),
-            .target(name: "SpeziTesting"),
+            .target(name: "Grove"),
+            .target(name: "GroveTesting"),
             .product(name: "TestingExpectation", package: "swift-testing-expectation")
         ],
-        exclude: testTargetExcludes("SpeziTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings + [
             .define("DEBUG", .when(configuration: .debug))
         ],
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziAccessGuard
+    // MARK: GroveAccessGuard
     .target(
-        name: "SpeziAccessGuard",
+        name: "GroveAccessGuard",
         dependencies: [
-            .target(name: "Spezi"),
-            .target(name: "SpeziKeychainStorage"),
-            .target(name: "SpeziViews"),
-            .target(name: "SpeziFoundation")
+            .target(name: "GroveLegacyIdentifiers"),
+            .target(name: "Grove"),
+            .target(name: "GroveKeychainStorage"),
+            .target(name: "GroveViews"),
+            .target(name: "GroveFoundation")
         ],
-        exclude: targetExcludes("SpeziAccessGuard"),
+        exclude: targetExcludes("GroveAccessGuard"),
         resources: [
             .process("Resources")
         ],
@@ -479,22 +481,23 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziAccessGuardTests",
+        name: "GroveAccessGuardTests",
         dependencies: [
-            .target(name: "SpeziAccessGuard"),
-            .target(name: "SpeziTesting"),
+            .target(name: "GroveLegacyIdentifiers"),
+            .target(name: "GroveAccessGuard"),
+            .target(name: "GroveTesting"),
             .product(name: "SnapshotTesting", package: "swift-snapshot-testing", condition: .when(platforms: [.iOS]))
         ],
-        exclude: testTargetExcludes("SpeziAccessGuardTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveAccessGuardTests", additional: ["UITests"]),
         resources: [
             .process("__Snapshots__")
         ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziAccount
+    // MARK: GroveAccount
     .macro(
-        name: "SpeziAccountMacros",
+        name: "GroveAccountMacros",
         dependencies: [
             .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
             .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
@@ -504,20 +507,20 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziAccount",
+        name: "GroveAccount",
         dependencies: [
-            .target(name: "SpeziFoundation"),
-            .target(name: "Spezi"),
-            .target(name: "SpeziViews"),
-            .target(name: "SpeziPersonalInfo"),
-            .target(name: "SpeziValidation"),
-            .target(name: "SpeziLocalStorage"),
+            .target(name: "GroveFoundation"),
+            .target(name: "Grove"),
+            .target(name: "GroveViews"),
+            .target(name: "GrovePersonalInfo"),
+            .target(name: "GroveValidation"),
+            .target(name: "GroveLocalStorage"),
             .target(name: "RuntimeAssertions"),
             .product(name: "OrderedCollections", package: "swift-collections"),
             .product(name: "Atomics", package: "swift-atomics"),
-            .target(name: "SpeziAccountMacros")
+            .target(name: "GroveAccountMacros")
         ],
-        exclude: targetExcludes("SpeziAccount"),
+        exclude: targetExcludes("GroveAccount"),
         resources: [
             .process("Resources")
         ],
@@ -525,22 +528,22 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "XCTSpeziAccount",
+        name: "XCTGroveAccount",
         dependencies: [
-            .target(name: "SpeziAccount"),
+            .target(name: "GroveAccount"),
             .target(name: "XCTestExtensions")
         ],
-        exclude: targetExcludes("XCTSpeziAccount"),
+        exclude: targetExcludes("XCTGroveAccount"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziAccountPhoneNumbers",
+        name: "GroveAccountPhoneNumbers",
         dependencies: [
-            .target(name: "SpeziAccount"),
+            .target(name: "GroveAccount"),
             .product(name: "PhoneNumberKit", package: "PhoneNumberKit")
         ],
-        exclude: targetExcludes("SpeziAccountPhoneNumbers"),
+        exclude: targetExcludes("GroveAccountPhoneNumbers"),
         resources: [
             .process("Resources")
         ],
@@ -548,15 +551,15 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziAccountTests",
+        name: "GroveAccountTests",
         dependencies: [
-            .target(name: "SpeziAccount"),
-            .target(name: "SpeziAccountPhoneNumbers"),
-            .target(name: "Spezi"),
-            .target(name: "SpeziTesting"),
+            .target(name: "GroveAccount"),
+            .target(name: "GroveAccountPhoneNumbers"),
+            .target(name: "Grove"),
+            .target(name: "GroveTesting"),
             .product(name: "SnapshotTesting", package: "swift-snapshot-testing", condition: .when(platforms: [.iOS]))
         ],
-        exclude: testTargetExcludes("SpeziAccountTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveAccountTests", additional: ["UITests"]),
         resources: [
             .process("__Snapshots__")
         ],
@@ -564,28 +567,28 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziAccountMacrosTests",
+        name: "GroveAccountMacrosTests",
         dependencies: [
-            .target(name: "SpeziAccountMacros"),
+            .target(name: "GroveAccountMacros"),
             .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
             .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
         ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziBluetooth
+    // MARK: GroveBluetooth
     .target(
-        name: "SpeziBluetooth",
+        name: "GroveBluetooth",
         dependencies: [
-            .target(name: "Spezi"),
+            .target(name: "Grove"),
             .product(name: "NIOCore", package: "swift-nio"),
-            .target(name: "SpeziViews"),
+            .target(name: "GroveViews"),
             .product(name: "OrderedCollections", package: "swift-collections"),
-            .target(name: "SpeziFoundation"),
+            .target(name: "GroveFoundation"),
             .target(name: "ByteCoding"),
             .product(name: "Atomics", package: "swift-atomics")
         ],
-        exclude: targetExcludes("SpeziBluetooth", additional: ["bin"]),
+        exclude: targetExcludes("GroveBluetooth", additional: ["bin"]),
         resources: [
             .process("Resources")
         ],
@@ -593,21 +596,21 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziBluetoothServices",
+        name: "GroveBluetoothServices",
         dependencies: [
-            .target(name: "SpeziBluetooth"),
+            .target(name: "GroveBluetooth"),
             .target(name: "ByteCoding"),
-            .target(name: "SpeziNumerics")
+            .target(name: "GroveNumerics")
         ],
-        exclude: targetExcludes("SpeziBluetoothServices"),
+        exclude: targetExcludes("GroveBluetoothServices"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .executableTarget(
         name: "TestPeripheral",
         dependencies: [
-            .target(name: "SpeziBluetooth"),
-            .target(name: "SpeziBluetoothServices"),
+            .target(name: "GroveBluetooth"),
+            .target(name: "GroveBluetoothServices"),
             .target(name: "ByteCoding")
         ],
         exclude: targetExcludes("TestPeripheral"),
@@ -615,37 +618,37 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziBluetoothTests",
+        name: "GroveBluetoothTests",
         dependencies: [
-            .target(name: "SpeziBluetooth"),
-            .target(name: "SpeziBluetoothServices")
+            .target(name: "GroveBluetooth"),
+            .target(name: "GroveBluetoothServices")
         ],
-        exclude: testTargetExcludes("SpeziBluetoothTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveBluetoothTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziBluetoothServicesTests",
+        name: "GroveBluetoothServicesTests",
         dependencies: [
-            .target(name: "SpeziBluetooth"),
-            .target(name: "SpeziBluetoothServices"),
+            .target(name: "GroveBluetooth"),
+            .target(name: "GroveBluetoothServices"),
             .product(name: "NIOCore", package: "swift-nio"),
             .target(name: "ByteCodingTesting")
         ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziChat
+    // MARK: GroveChat
     .target(
-        name: "SpeziChat",
+        name: "GroveChat",
         dependencies: [
-            .target(name: "SpeziFoundation"),
-            .target(name: "SpeziSpeechRecognizer"),
-            .target(name: "SpeziSpeechSynthesizer"),
-            .target(name: "SpeziViews"),
+            .target(name: "GroveFoundation"),
+            .target(name: "GroveSpeechRecognizer"),
+            .target(name: "GroveSpeechSynthesizer"),
+            .target(name: "GroveViews"),
             .product(name: "Textual", package: "textual", condition: .when(traits: [textualTrait]))
         ],
-        exclude: targetExcludes("SpeziChat"),
+        exclude: targetExcludes("GroveChat"),
         resources: [
             .process("Resources")
         ],
@@ -653,27 +656,27 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziChatTests",
+        name: "GroveChatTests",
         dependencies: [
-            .target(name: "SpeziChat")
+            .target(name: "GroveChat")
         ],
-        exclude: testTargetExcludes("SpeziChatTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveChatTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziConsent
+    // MARK: GroveConsent
     .target(
-        name: "SpeziConsent",
+        name: "GroveConsent",
         dependencies: [
-            .target(name: "Spezi"),
-            .target(name: "SpeziFoundation"),
-            .target(name: "SpeziViews"),
-            .target(name: "SpeziOnboarding"),
-            .target(name: "SpeziPersonalInfo"),
+            .target(name: "Grove"),
+            .target(name: "GroveFoundation"),
+            .target(name: "GroveViews"),
+            .target(name: "GroveOnboarding"),
+            .target(name: "GrovePersonalInfo"),
             .product(name: "TPPDF", package: "TPPDF"),
             .product(name: "MarkdownUI", package: "swift-markdown-ui")
         ],
-        exclude: targetExcludes("SpeziConsent"),
+        exclude: targetExcludes("GroveConsent"),
         resources: [
             .process("Resources")
         ],
@@ -681,13 +684,13 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziConsentTests",
+        name: "GroveConsentTests",
         dependencies: [
-            .target(name: "SpeziConsent"),
-            .target(name: "SpeziFoundation"),
+            .target(name: "GroveConsent"),
+            .target(name: "GroveFoundation"),
             .product(name: "SnapshotTesting", package: "swift-snapshot-testing", condition: .when(platforms: [.iOS]))
         ],
-        exclude: testTargetExcludes("SpeziConsentTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveConsentTests", additional: ["UITests"]),
         resources: [
             .process("Resources"),
             .process("__Snapshots__")
@@ -695,14 +698,14 @@ var targets: [Target] = [
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziContact
+    // MARK: GroveContact
     .target(
-        name: "SpeziContact",
+        name: "GroveContact",
         dependencies: [
-            .target(name: "SpeziViews"),
-            .target(name: "SpeziPersonalInfo")
+            .target(name: "GroveViews"),
+            .target(name: "GrovePersonalInfo")
         ],
-        exclude: targetExcludes("SpeziContact"),
+        exclude: targetExcludes("GroveContact"),
         resources: [
             .process("Resources")
         ],
@@ -712,40 +715,41 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziContactTests",
+        name: "GroveContactTests",
         dependencies: [
-            .target(name: "SpeziContact")
+            .target(name: "GroveContact")
         ],
-        exclude: testTargetExcludes("SpeziContactTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveContactTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings + [
             .enableExperimentalFeature("StrictConcurrency")
         ],
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziDevices
+    // MARK: GroveDevices
     .target(
-        name: "SpeziDevices",
+        name: "GroveDevices",
         dependencies: [
+            .target(name: "GroveLegacyIdentifiers"),
             .product(name: "OrderedCollections", package: "swift-collections"),
-            .target(name: "SpeziFoundation"),
-            .target(name: "SpeziBluetooth"),
-            .target(name: "SpeziBluetoothServices"),
-            .target(name: "SpeziViews"),
-            .target(name: "Spezi")
+            .target(name: "GroveFoundation"),
+            .target(name: "GroveBluetooth"),
+            .target(name: "GroveBluetoothServices"),
+            .target(name: "GroveViews"),
+            .target(name: "Grove")
         ],
-        exclude: targetExcludes("SpeziDevices"),
+        exclude: targetExcludes("GroveDevices"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziDevicesUI",
+        name: "GroveDevicesUI",
         dependencies: [
-            .target(name: "SpeziDevices"),
-            .target(name: "SpeziViews"),
-            .target(name: "SpeziValidation"),
-            .target(name: "SpeziBluetooth")
+            .target(name: "GroveDevices"),
+            .target(name: "GroveViews"),
+            .target(name: "GroveValidation"),
+            .target(name: "GroveBluetooth")
         ],
-        exclude: targetExcludes("SpeziDevicesUI"),
+        exclude: targetExcludes("GroveDevicesUI"),
         resources: [
             .process("Resources")
         ],
@@ -753,13 +757,13 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziOmron",
+        name: "GroveOmron",
         dependencies: [
-            .target(name: "SpeziDevices"),
-            .target(name: "SpeziBluetooth"),
-            .target(name: "SpeziBluetoothServices")
+            .target(name: "GroveDevices"),
+            .target(name: "GroveBluetooth"),
+            .target(name: "GroveBluetoothServices")
         ],
-        exclude: targetExcludes("SpeziOmron"),
+        exclude: targetExcludes("GroveOmron"),
         resources: [
             .process("Resources")
         ],
@@ -767,48 +771,49 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziDevicesTests",
+        name: "GroveDevicesTests",
         dependencies: [
-            .target(name: "SpeziDevices"),
-            .target(name: "SpeziFoundation"),
-            .target(name: "SpeziTesting"),
-            .target(name: "SpeziBluetooth"),
-            .target(name: "SpeziBluetoothServices")
+            .target(name: "GroveLegacyIdentifiers"),
+            .target(name: "GroveDevices"),
+            .target(name: "GroveFoundation"),
+            .target(name: "GroveTesting"),
+            .target(name: "GroveBluetooth"),
+            .target(name: "GroveBluetoothServices")
         ],
-        exclude: testTargetExcludes("SpeziDevicesTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveDevicesTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziOmronTests",
+        name: "GroveOmronTests",
         dependencies: [
-            .target(name: "SpeziOmron"),
-            .target(name: "SpeziBluetooth"),
+            .target(name: "GroveOmron"),
+            .target(name: "GroveBluetooth"),
             .target(name: "ByteCodingTesting")
         ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziFHIR
+    // MARK: GroveFHIR
     .target(
-        name: "SpeziFHIR",
+        name: "GroveFHIR",
         dependencies: [
-            .target(name: "Spezi"),
+            .target(name: "Grove"),
             .target(name: "FHIRModelsExtensions"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .product(name: "ModelsDSTU2", package: "FHIRModels", condition: fhirModelsCondition)
         ],
-        exclude: targetExcludes("SpeziFHIR"),
+        exclude: targetExcludes("GroveFHIR"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziFHIRMockPatients",
+        name: "GroveFHIRMockPatients",
         dependencies: [
-            .target(name: "SpeziFHIR"),
+            .target(name: "GroveFHIR"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
         ],
-        exclude: targetExcludes("SpeziFHIRMockPatients"),
+        exclude: targetExcludes("GroveFHIRMockPatients"),
         resources: [
             .process("Resources")
         ],
@@ -816,19 +821,19 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziFHIRTests",
+        name: "GroveFHIRTests",
         dependencies: [
-            .target(name: "SpeziFHIR"),
-            "SpeziHealthKitFHIR"
+            .target(name: "GroveFHIR"),
+            "GroveHealthKitFHIR"
         ],
-        exclude: testTargetExcludes("SpeziFHIRTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveFHIRTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziFileFormats
+    // MARK: GroveFileFormats
     .target(
-        name: "SpeziFileFormats",
-        exclude: targetExcludes("SpeziFileFormats"),
+        name: "GroveFileFormats",
+        exclude: targetExcludes("GroveFileFormats"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
@@ -836,7 +841,7 @@ var targets: [Target] = [
         name: "EDFFormat",
         dependencies: [
             .target(name: "ByteCoding"),
-            .target(name: "SpeziNumerics")
+            .target(name: "GroveNumerics")
         ],
         exclude: targetExcludes("EDFFormat"),
         swiftSettings: defaultSwiftSettings + [
@@ -855,26 +860,27 @@ var targets: [Target] = [
         ],
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziFirebase
+    // MARK: GroveFirebase
     .target(
-        name: "SpeziFirebase",
-        exclude: targetExcludes("SpeziFirebase"),
+        name: "GroveFirebase",
+        exclude: targetExcludes("GroveFirebase"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziFirebaseAccount",
+        name: "GroveFirebaseAccount",
         dependencies: [
-            .target(name: "SpeziFirebaseConfiguration"),
-            .target(name: "SpeziFoundation"),
-            .target(name: "Spezi"),
-            .target(name: "SpeziValidation"),
-            .target(name: "SpeziAccount"),
-            .target(name: "SpeziLocalStorage"),
-            .target(name: "SpeziKeychainStorage"),
+            .target(name: "GroveLegacyIdentifiers"),
+            .target(name: "GroveFirebaseConfiguration"),
+            .target(name: "GroveFoundation"),
+            .target(name: "Grove"),
+            .target(name: "GroveValidation"),
+            .target(name: "GroveAccount"),
+            .target(name: "GroveLocalStorage"),
+            .target(name: "GroveKeychainStorage"),
             .product(name: "FirebaseAuth", package: "firebase-ios-sdk")
         ],
-        exclude: targetExcludes("SpeziFirebaseAccount"),
+        exclude: targetExcludes("GroveFirebaseAccount"),
         resources: [
             .process("Resources")
         ],
@@ -882,24 +888,24 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziFirebaseConfiguration",
+        name: "GroveFirebaseConfiguration",
         dependencies: [
-            .target(name: "Spezi"),
+            .target(name: "Grove"),
             .product(name: "FirebaseFirestore", package: "firebase-ios-sdk")
         ],
-        exclude: targetExcludes("SpeziFirebaseConfiguration"),
+        exclude: targetExcludes("GroveFirebaseConfiguration"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziFirestore",
+        name: "GroveFirestore",
         dependencies: [
-            .target(name: "SpeziFirebaseConfiguration"),
-            .target(name: "Spezi"),
+            .target(name: "GroveFirebaseConfiguration"),
+            .target(name: "Grove"),
             .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
             .product(name: "Atomics", package: "swift-atomics")
         ],
-        exclude: targetExcludes("SpeziFirestore"),
+        exclude: targetExcludes("GroveFirestore"),
         resources: [
             .process("Resources")
         ],
@@ -907,36 +913,36 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziFirebaseStorage",
+        name: "GroveFirebaseStorage",
         dependencies: [
-            .target(name: "SpeziFirebaseConfiguration"),
-            .target(name: "Spezi"),
+            .target(name: "GroveFirebaseConfiguration"),
+            .target(name: "Grove"),
             .product(name: "FirebaseStorage", package: "firebase-ios-sdk")
         ],
-        exclude: targetExcludes("SpeziFirebaseStorage"),
+        exclude: targetExcludes("GroveFirebaseStorage"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziFirebaseAccountStorage",
+        name: "GroveFirebaseAccountStorage",
         dependencies: [
             .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
-            .target(name: "Spezi"),
-            .target(name: "SpeziAccount"),
-            .target(name: "SpeziFirestore")
+            .target(name: "Grove"),
+            .target(name: "GroveAccount"),
+            .target(name: "GroveFirestore")
         ],
-        exclude: targetExcludes("SpeziFirebaseAccountStorage"),
+        exclude: targetExcludes("GroveFirebaseAccountStorage"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziFirebaseTests",
+        name: "GroveFirebaseTests",
         dependencies: [
-            .target(name: "SpeziFirebaseAccount"),
-            .target(name: "SpeziFirebaseConfiguration"),
-            .target(name: "SpeziFirestore")
+            .target(name: "GroveFirebaseAccount"),
+            .target(name: "GroveFirebaseConfiguration"),
+            .target(name: "GroveFirestore")
         ],
-        exclude: testTargetExcludes("SpeziFirebaseTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveFirebaseTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
@@ -976,18 +982,23 @@ var targets: [Target] = [
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziFoundation
+    // MARK: GroveFoundation
     .systemLibrary(
-        name: "SpeziCZlib",
+        name: "GroveCZlib",
         path: "Sources/CZlib",
         pkgConfig: "zlib",
         providers: [.apt(["zlib1g-dev"])]
     ),
     .target(
-        name: "SpeziFoundation",
+        name: "GroveLegacyIdentifiers",
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .target(
+        name: "GroveFoundation",
         dependencies: [
-            .target(name: "SpeziFoundationObjC"),
-            .target(name: "SpeziCZlib", condition: .when(platforms: [.linux])),
+            .target(name: "GroveFoundationObjC"),
+            .target(name: "GroveCZlib", condition: .when(platforms: [.linux])),
             .product(name: "libzstd", package: "zstd"),
             .product(name: "Atomics", package: "swift-atomics"),
             .product(name: "Algorithms", package: "swift-algorithms"),
@@ -995,7 +1006,7 @@ var targets: [Target] = [
             .product(name: "Logging", package: "swift-log"),
             .target(name: "ThreadLocal")
         ],
-        exclude: targetExcludes("SpeziFoundation", additional: ["Dockerfile"]),
+        exclude: targetExcludes("GroveFoundation", additional: ["Dockerfile"]),
         resources: [
             .process("Resources")
         ],
@@ -1003,52 +1014,53 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziFoundationObjC",
+        name: "GroveFoundationObjC",
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziLocalization",
+        name: "GroveLocalization",
         dependencies: [
-            .target(name: "SpeziFoundation"),
+            .target(name: "GroveFoundation"),
             .product(name: "Algorithms", package: "swift-algorithms")
         ],
-        exclude: targetExcludes("SpeziLocalization"),
+        exclude: targetExcludes("GroveLocalization"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziFoundationTests",
+        name: "GroveFoundationTests",
         dependencies: [
-            .target(name: "SpeziFoundation")
+            .target(name: "GroveFoundation"),
+            .target(name: "GroveLegacyIdentifiers")
         ],
-        exclude: testTargetExcludes("SpeziFoundationTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveFoundationTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziLocalizationTests",
+        name: "GroveLocalizationTests",
         dependencies: [
-            .target(name: "SpeziLocalization"),
-            .target(name: "SpeziFoundation")
+            .target(name: "GroveLocalization"),
+            .target(name: "GroveFoundation")
         ],
-        exclude: testTargetExcludes("SpeziLocalizationTests"),
+        exclude: testTargetExcludes("GroveLocalizationTests"),
         resources: [
             .process("Resources")
         ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziHealthKit
+    // MARK: GroveHealthKit
     .target(
-        name: "SpeziHealthKit",
+        name: "GroveHealthKit",
         dependencies: [
-            .target(name: "Spezi"),
-            .target(name: "SpeziFoundation"),
-            .target(name: "SpeziLocalStorage", condition: .when(platforms: [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS])),
+            .target(name: "Grove"),
+            .target(name: "GroveFoundation"),
+            .target(name: "GroveLocalStorage", condition: .when(platforms: [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS])),
             .product(name: "Algorithms", package: "swift-algorithms"),
             .product(name: "AsyncAlgorithms", package: "swift-async-algorithms")
         ],
-        exclude: targetExcludes("SpeziHealthKit", additional: [
+        exclude: targetExcludes("GroveHealthKit", additional: [
             "Sample Types/SampleTypeDefs.py",
             "Sample Types/SampleTypes.swift.gyb",
             "codecov.yml"
@@ -1060,51 +1072,51 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziHealthKitBulkExport",
+        name: "GroveHealthKitBulkExport",
         dependencies: [
-            .target(name: "SpeziHealthKit"),
-            .target(name: "SpeziFoundation"),
-            .target(name: "SpeziLocalStorage", condition: .when(platforms: [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS]))
+            .target(name: "GroveHealthKit"),
+            .target(name: "GroveFoundation"),
+            .target(name: "GroveLocalStorage", condition: .when(platforms: [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS]))
         ],
-        exclude: targetExcludes("SpeziHealthKitBulkExport"),
+        exclude: targetExcludes("GroveHealthKitBulkExport"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziHealthKitUI",
+        name: "GroveHealthKitUI",
         dependencies: [
-            .target(name: "SpeziHealthKit"),
-            .target(name: "SpeziFoundation")
+            .target(name: "GroveHealthKit"),
+            .target(name: "GroveFoundation")
         ],
-        exclude: targetExcludes("SpeziHealthKitUI"),
+        exclude: targetExcludes("GroveHealthKitUI"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziHealthKitTests",
+        name: "GroveHealthKitTests",
         dependencies: [
-            .target(name: "XCTSpezi"),
-            .target(name: "SpeziHealthKit"),
-            .target(name: "SpeziHealthKitBulkExport"),
-            .target(name: "SpeziHealthKitUI"),
+            .target(name: "XCTGrove"),
+            .target(name: "GroveHealthKit"),
+            .target(name: "GroveHealthKitBulkExport"),
+            .target(name: "GroveHealthKitUI"),
             .product(name: "SnapshotTesting", package: "swift-snapshot-testing", condition: .when(platforms: [.iOS]))
         ],
-        exclude: testTargetExcludes("SpeziHealthKitTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveHealthKitTests", additional: ["UITests"]),
         resources: [
             .process("__Snapshots__")
         ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziLLM
+    // MARK: GroveLLM
     .target(
-        name: "SpeziLLM",
+        name: "GroveLLM",
         dependencies: [
-            .target(name: "Spezi"),
-            .target(name: "SpeziChat"),
-            .target(name: "SpeziViews")
+            .target(name: "Grove"),
+            .target(name: "GroveChat"),
+            .target(name: "GroveViews")
         ],
-        exclude: targetExcludes("SpeziLLM", additional: ["FogNode"]),
+        exclude: targetExcludes("GroveLLM"),
         resources: [
             .process("Resources")
         ],
@@ -1112,17 +1124,17 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziLLMLocal",
+        name: "GroveLLMLocal",
         dependencies: [
-            .target(name: "SpeziLLM"),
-            .target(name: "SpeziFoundation"),
-            .target(name: "Spezi"),
+            .target(name: "GroveLLM"),
+            .target(name: "GroveFoundation"),
+            .target(name: "Grove"),
             .product(name: "MLX", package: "mlx-swift", condition: .when(traits: [mlxTrait])),
             .product(name: "MLXRandom", package: "mlx-swift", condition: .when(traits: [mlxTrait])),
             .product(name: "Transformers", package: "swift-transformers", condition: .when(traits: [mlxTrait])),
             .product(name: "MLXLLM", package: "mlx-swift-examples", condition: .when(traits: [mlxTrait]))
         ],
-        exclude: targetExcludes("SpeziLLMLocal"),
+        exclude: targetExcludes("GroveLLMLocal"),
         resources: [
             .process("Resources")
         ],
@@ -1130,14 +1142,14 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziLLMLocalDownload",
+        name: "GroveLLMLocalDownload",
         dependencies: [
-            .target(name: "SpeziOnboarding"),
-            .target(name: "SpeziViews"),
-            .target(name: "SpeziLLMLocal"),
+            .target(name: "GroveOnboarding"),
+            .target(name: "GroveViews"),
+            .target(name: "GroveLLMLocal"),
             .product(name: "MLXLLM", package: "mlx-swift-examples", condition: .when(traits: [mlxTrait]))
         ],
-        exclude: targetExcludes("SpeziLLMLocalDownload"),
+        exclude: targetExcludes("GroveLLMLocalDownload"),
         resources: [
             .process("Resources")
         ],
@@ -1145,19 +1157,19 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziLLMOpenAI",
+        name: "GroveLLMOpenAI",
         dependencies: [
-            .target(name: "SpeziLLM"),
+            .target(name: "GroveLLM"),
             .target(name: "GeneratedOpenAIClient"),
             .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
             .product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession"),
-            .target(name: "SpeziFoundation"),
-            .target(name: "Spezi"),
-            .target(name: "SpeziChat"),
-            .target(name: "SpeziKeychainStorage"),
-            .target(name: "SpeziOnboarding")
+            .target(name: "GroveFoundation"),
+            .target(name: "Grove"),
+            .target(name: "GroveChat"),
+            .target(name: "GroveKeychainStorage"),
+            .target(name: "GroveOnboarding")
         ],
-        exclude: targetExcludes("SpeziLLMOpenAI"),
+        exclude: targetExcludes("GroveLLMOpenAI"),
         resources: [
             .process("Resources")
         ],
@@ -1165,20 +1177,20 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziLLMOpenAIRealtime",
+        name: "GroveLLMOpenAIRealtime",
         dependencies: [
-            .target(name: "SpeziLLM"),
-            .target(name: "SpeziLLMOpenAI"),
+            .target(name: "GroveLLM"),
+            .target(name: "GroveLLMOpenAI"),
             .target(name: "GeneratedOpenAIClient"),
             .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
             .product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession"),
-            .target(name: "SpeziFoundation"),
-            .target(name: "Spezi"),
-            .target(name: "SpeziChat"),
-            .target(name: "SpeziKeychainStorage"),
-            .target(name: "SpeziOnboarding")
+            .target(name: "GroveFoundation"),
+            .target(name: "Grove"),
+            .target(name: "GroveChat"),
+            .target(name: "GroveKeychainStorage"),
+            .target(name: "GroveOnboarding")
         ],
-        exclude: targetExcludes("SpeziLLMOpenAIRealtime"),
+        exclude: targetExcludes("GroveLLMOpenAIRealtime"),
         resources: [
             .process("Resources")
         ],
@@ -1186,48 +1198,31 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziLLMAnthropic",
+        name: "GroveLLMAnthropic",
         dependencies: [
-            .target(name: "SpeziLLMOpenAI"),
-            .target(name: "SpeziKeychainStorage")
+            .target(name: "GroveLLMOpenAI"),
+            .target(name: "GroveKeychainStorage")
         ],
-        exclude: targetExcludes("SpeziLLMAnthropic"),
+        exclude: targetExcludes("GroveLLMAnthropic"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziLLMGemini",
+        name: "GroveLLMGemini",
         dependencies: [
-            .target(name: "SpeziLLMOpenAI"),
-            .target(name: "SpeziKeychainStorage")
+            .target(name: "GroveLLMOpenAI"),
+            .target(name: "GroveKeychainStorage")
         ],
-        exclude: targetExcludes("SpeziLLMGemini"),
-        swiftSettings: defaultSwiftSettings,
-        plugins: [] + defaultPlugins
-    ),
-    .target(
-        name: "SpeziLLMFog",
-        dependencies: [
-            .target(name: "SpeziLLM"),
-            .target(name: "GeneratedOpenAIClient"),
-            .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
-            .product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession"),
-            .target(name: "Spezi"),
-            .target(name: "SpeziOnboarding")
-        ],
-        exclude: targetExcludes("SpeziLLMFog"),
-        resources: [
-            .process("Resources")
-        ],
+        exclude: targetExcludes("GroveLLMGemini"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
         name: "GeneratedOpenAIClient",
         dependencies: [
-            .target(name: "SpeziLLM"),
-            .target(name: "SpeziKeychainStorage"),
-            .target(name: "SpeziOnboarding"),
+            .target(name: "GroveLLM"),
+            .target(name: "GroveKeychainStorage"),
+            .target(name: "GroveOnboarding"),
             .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime")
         ],
         exclude: targetExcludes("GeneratedOpenAIClient", additional: [
@@ -1242,24 +1237,24 @@ var targets: [Target] = [
         plugins: [.plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziLLMTests",
+        name: "GroveLLMTests",
         dependencies: [
-            .target(name: "Spezi"),
-            .target(name: "SpeziTesting"),
-            .target(name: "SpeziLLM"),
-            .target(name: "SpeziLLMOpenAI")
+            .target(name: "Grove"),
+            .target(name: "GroveTesting"),
+            .target(name: "GroveLLM"),
+            .target(name: "GroveLLMOpenAI")
         ],
-        exclude: testTargetExcludes("SpeziLLMTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveLLMTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziLicense
+    // MARK: GroveLicense
     .target(
-        name: "SpeziLicense",
+        name: "GroveLicense",
         dependencies: [
             .product(name: "SwiftPackageList", package: "swift-package-list")
         ],
-        exclude: targetExcludes("SpeziLicense"),
+        exclude: targetExcludes("GroveLicense"),
         resources: [
             .process("Resources")
         ],
@@ -1267,42 +1262,42 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziLicenseTests",
+        name: "GroveLicenseTests",
         dependencies: [
-            .target(name: "SpeziLicense"),
-            .target(name: "Spezi")
+            .target(name: "GroveLicense"),
+            .target(name: "Grove")
         ],
-        exclude: testTargetExcludes("SpeziLicenseTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveLicenseTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziLocation
+    // MARK: GroveLocation
     .target(
-        name: "SpeziLocation",
+        name: "GroveLocation",
         dependencies: [
-            .target(name: "Spezi")
+            .target(name: "Grove")
         ],
-        exclude: targetExcludes("SpeziLocation"),
+        exclude: targetExcludes("GroveLocation"),
         swiftSettings: defaultSwiftSettings + [
             .swiftLanguageMode(.v5) // TODO???
         ],
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziLocationTests",
+        name: "GroveLocationTests",
         dependencies: [
-            .target(name: "SpeziLocation")
+            .target(name: "GroveLocation")
         ],
-        exclude: testTargetExcludes("SpeziLocationTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveLocationTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings + [
             .swiftLanguageMode(.v5) // TODO???
         ],
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziNetworking
+    // MARK: GroveNetworking
     .target(
-        name: "SpeziNetworking",
-        exclude: targetExcludes("SpeziNetworking"),
+        name: "GroveNetworking",
+        exclude: targetExcludes("GroveNetworking"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
@@ -1317,12 +1312,12 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziNumerics",
+        name: "GroveNumerics",
         dependencies: [
             .target(name: "ByteCoding"),
             .product(name: "NIOCore", package: "swift-nio")
         ],
-        exclude: targetExcludes("SpeziNumerics"),
+        exclude: targetExcludes("GroveNumerics"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
@@ -1354,42 +1349,44 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziNumericsTests",
+        name: "GroveNumericsTests",
         dependencies: [
             .target(name: "ByteCoding"),
-            .target(name: "SpeziNumerics"),
+            .target(name: "GroveNumerics"),
             .target(name: "ByteCodingTesting"),
             .product(name: "RealModule", package: "swift-numerics")
         ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziNotifications
+    // MARK: GroveNotifications
     .target(
-        name: "SpeziNotifications",
+        name: "GroveNotifications",
         dependencies: [
-            .target(name: "Spezi")
+            .target(name: "GroveLegacyIdentifiers"),
+            .target(name: "GroveFoundation"),
+            .target(name: "Grove")
         ],
-        exclude: targetExcludes("SpeziNotifications"),
+        exclude: targetExcludes("GroveNotifications"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "XCTSpeziNotifications",
+        name: "XCTGroveNotifications",
         dependencies: [
-            .target(name: "SpeziNotifications")
+            .target(name: "GroveNotifications")
         ],
-        exclude: targetExcludes("XCTSpeziNotifications"),
+        exclude: targetExcludes("XCTGroveNotifications"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "XCTSpeziNotificationsUI",
+        name: "XCTGroveNotificationsUI",
         dependencies: [
-            .target(name: "SpeziNotifications"),
-            .target(name: "SpeziViews")
+            .target(name: "GroveNotifications"),
+            .target(name: "GroveViews")
         ],
-        exclude: targetExcludes("XCTSpeziNotificationsUI"),
+        exclude: targetExcludes("XCTGroveNotificationsUI"),
         resources: [
             .process("Resources")
         ],
@@ -1397,24 +1394,24 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziNotificationsTests",
+        name: "GroveNotificationsTests",
         dependencies: [
-            .target(name: "SpeziNotifications"),
-            .target(name: "Spezi"),
-            .target(name: "XCTSpezi")
+            .target(name: "GroveNotifications"),
+            .target(name: "Grove"),
+            .target(name: "XCTGrove")
         ],
-        exclude: testTargetExcludes("SpeziNotificationsTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveNotificationsTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziOnboarding
+    // MARK: GroveOnboarding
     .target(
-        name: "SpeziOnboarding",
+        name: "GroveOnboarding",
         dependencies: [
-            .target(name: "Spezi"),
-            .target(name: "SpeziViews")
+            .target(name: "Grove"),
+            .target(name: "GroveViews")
         ],
-        exclude: targetExcludes("SpeziOnboarding"),
+        exclude: targetExcludes("GroveOnboarding"),
         resources: [
             .process("Resources")
         ],
@@ -1422,24 +1419,24 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziOnboardingTests",
+        name: "GroveOnboardingTests",
         dependencies: [
-            .target(name: "SpeziOnboarding")
+            .target(name: "GroveOnboarding")
         ],
-        exclude: testTargetExcludes("SpeziOnboardingTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveOnboardingTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziQuestionnaire
+    // MARK: GroveQuestionnaire
     .target(
-        name: "SpeziQuestionnaire",
+        name: "GroveQuestionnaire",
         dependencies: [
-            .target(name: "SpeziQuestionnaireLegacy", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
-            .target(name: "SpeziViews"),
+            .target(name: "GroveQuestionnaireLegacy", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
+            .target(name: "GroveViews"),
             .product(name: "MarkdownUI", package: "swift-markdown-ui"),
             .product(name: "Numerics", package: "swift-numerics")
         ],
-        exclude: targetExcludes("SpeziQuestionnaire"),
+        exclude: targetExcludes("GroveQuestionnaire"),
         resources: [
             .process("Resources")
         ],
@@ -1447,28 +1444,29 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziQuestionnaireCatalog",
+        name: "GroveQuestionnaireCatalog",
         dependencies: [
-            .target(name: "SpeziQuestionnaire")
+            .target(name: "GroveQuestionnaire")
         ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziQuestionnaireFHIR",
+        name: "GroveQuestionnaireFHIR",
         dependencies: [
-            .target(name: "SpeziQuestionnaire"),
+            .target(name: "GroveLegacyIdentifiers"),
+            .target(name: "GroveQuestionnaire"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions"),
             .product(name: "Algorithms", package: "swift-algorithms"),
-            .target(name: "SpeziFoundation")
+            .target(name: "GroveFoundation")
         ],
-        exclude: targetExcludes("SpeziQuestionnaireFHIR"),
+        exclude: targetExcludes("GroveQuestionnaireFHIR"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziQuestionnaireLegacy",
+        name: "GroveQuestionnaireLegacy",
         dependencies: [
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .product(name: "ResearchKit", package: "ResearchKit", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
@@ -1479,7 +1477,7 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "XCTSpeziQuestionnaire",
+        name: "XCTGroveQuestionnaire",
         dependencies: [
             .target(name: "XCTestExtensions")
         ],
@@ -1487,155 +1485,158 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziQuestionnaireTests",
+        name: "GroveQuestionnaireTests",
         dependencies: [
-            .target(name: "SpeziQuestionnaire"),
-            .target(name: "SpeziQuestionnaireCatalog"),
-            .target(name: "SpeziQuestionnaireFHIR"),
+            .target(name: "GroveQuestionnaire"),
+            .target(name: "GroveQuestionnaireCatalog"),
+            .target(name: "GroveQuestionnaireFHIR"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions"),
             .target(name: "FHIRQuestionnaires")
         ],
-        exclude: testTargetExcludes("SpeziQuestionnaireTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveQuestionnaireTests", additional: ["UITests"]),
         resources: [
             .process("Resources")
         ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziScheduler
+    // MARK: GroveScheduler
     .target(
-        name: "SpeziScheduler",
+        name: "GroveScheduler",
         dependencies: { () -> [Target.Dependency] in
             var deps: [Target.Dependency] = [
-                .target(name: "Spezi"),
-                .target(name: "SpeziFoundation"),
+                .target(name: "Grove"),
+                .target(name: "GroveFoundation"),
                 .product(name: "Algorithms", package: "swift-algorithms"),
                 .target(name: "RuntimeAssertions")
             ]
             #if canImport(Darwin)
             deps += [
-                .target(name: "SpeziSchedulerMacros"),
-                .target(name: "SpeziViews"),
-                .target(name: "SpeziNotifications"),
-                .target(name: "SpeziLocalStorage"),
+                .target(name: "GroveSchedulerMacros"),
+                .target(name: "GroveViews"),
+                .target(name: "GroveNotifications"),
+                .target(name: "GroveLocalStorage"),
                 .product(name: "SQLite", package: "SQLite.swift")
             ]
             #endif
             return deps
         }(),
-        exclude: targetExcludes("SpeziScheduler"),
+        exclude: targetExcludes("GroveScheduler"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziSensorKit
+    // MARK: GroveSensorKit
     .target(
-        name: "SpeziSensorKit",
+        name: "GroveSensorKit",
         dependencies: [
-            .target(name: "Spezi"),
-            .target(name: "SpeziFoundation"),
-            .target(name: "SpeziLocalStorage")
+            .target(name: "GroveLegacyIdentifiers"),
+            .target(name: "Grove"),
+            .target(name: "GroveFoundation"),
+            .target(name: "GroveLocalStorage")
         ],
-        exclude: targetExcludes("SpeziSensorKit"),
+        exclude: targetExcludes("GroveSensorKit"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziSensorKitTests",
+        name: "GroveSensorKitTests",
         dependencies: [
-            .target(name: "SpeziSensorKit")
+            .target(name: "GroveSensorKit")
         ],
-        exclude: testTargetExcludes("SpeziSensorKitTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveSensorKitTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziSpeech
+    // MARK: GroveSpeech
     .target(
-        name: "SpeziSpeech",
-        exclude: targetExcludes("SpeziSpeech"),
-        swiftSettings: defaultSwiftSettings,
-        plugins: [] + defaultPlugins
-    ),
-    .target(
-        name: "SpeziSpeechRecognizer",
-        dependencies: [
-            .target(name: "Spezi")
-        ],
-        exclude: targetExcludes("SpeziSpeechRecognizer"),
+        name: "GroveSpeech",
+        exclude: targetExcludes("GroveSpeech"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziSpeechSynthesizer",
+        name: "GroveSpeechRecognizer",
         dependencies: [
-            .target(name: "Spezi")
+            .target(name: "Grove")
         ],
-        exclude: targetExcludes("SpeziSpeechSynthesizer"),
+        exclude: targetExcludes("GroveSpeechRecognizer"),
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .target(
+        name: "GroveSpeechSynthesizer",
+        dependencies: [
+            .target(name: "Grove")
+        ],
+        exclude: targetExcludes("GroveSpeechSynthesizer"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziSpeechTests",
+        name: "GroveSpeechTests",
         dependencies: [
-            .target(name: "SpeziSpeechRecognizer"),
-            .target(name: "SpeziSpeechSynthesizer")
+            .target(name: "GroveSpeechRecognizer"),
+            .target(name: "GroveSpeechSynthesizer")
         ],
-        exclude: testTargetExcludes("SpeziSpeechTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveSpeechTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziStorage
+    // MARK: GroveStorage
     .target(
-        name: "SpeziStorage",
-        exclude: targetExcludes("SpeziStorage"),
+        name: "GroveStorage",
+        exclude: targetExcludes("GroveStorage"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziKeychainStorage",
+        name: "GroveKeychainStorage",
         dependencies: [
-            .target(name: "Spezi"),
+            .target(name: "Grove"),
             .target(name: "RuntimeAssertions")
         ],
-        exclude: targetExcludes("SpeziKeychainStorage"),
+        exclude: targetExcludes("GroveKeychainStorage"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziLocalStorage",
+        name: "GroveLocalStorage",
         dependencies: [
-            .target(name: "Spezi"),
-            .target(name: "SpeziFoundation"),
-            .target(name: "SpeziKeychainStorage")
+            .target(name: "GroveLegacyIdentifiers"),
+            .target(name: "Grove"),
+            .target(name: "GroveFoundation"),
+            .target(name: "GroveKeychainStorage")
         ],
-        exclude: targetExcludes("SpeziLocalStorage"),
+        exclude: targetExcludes("GroveLocalStorage"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziStorageTests",
+        name: "GroveStorageTests",
         dependencies: [
-            .target(name: "SpeziLocalStorage"),
-            .target(name: "XCTSpezi")
+            .target(name: "GroveLegacyIdentifiers"),
+            .target(name: "GroveLocalStorage"),
+            .target(name: "XCTGrove")
         ],
-        exclude: testTargetExcludes("SpeziStorageTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveStorageTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziStudy
+    // MARK: GroveStudy
     .target(
-        name: "SpeziStudyDefinition",
+        name: "GroveStudyDefinition",
         dependencies: [
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
-            .target(name: "SpeziHealthKit"),
-            .target(name: "SpeziHealthKitBulkExport"),
-            .target(name: "SpeziFoundation"),
-            .target(name: "SpeziLocalization"),
-            .target(name: "SpeziScheduler"),
+            .target(name: "GroveHealthKit"),
+            .target(name: "GroveHealthKitBulkExport"),
+            .target(name: "GroveFoundation"),
+            .target(name: "GroveLocalization"),
+            .target(name: "GroveScheduler"),
             .product(name: "DequeModule", package: "swift-collections"),
             .product(name: "Logging", package: "swift-log")
         ],
-        exclude: targetExcludes("SpeziStudyDefinition"),
+        exclude: targetExcludes("GroveStudyDefinition"),
         resources: [
             .process("Resources")
         ],
@@ -1643,21 +1644,21 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziStudyTests",
+        name: "GroveStudyTests",
         dependencies: { () -> [Target.Dependency] in
             var deps: [Target.Dependency] = [
-                .target(name: "SpeziStudyDefinition"),
+                .target(name: "GroveStudyDefinition"),
                 .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
             ]
             #if canImport(Darwin)
             deps += [
-                .target(name: "SpeziStudy"),
-                .target(name: "SpeziTesting")
+                .target(name: "GroveStudy"),
+                .target(name: "GroveTesting")
             ]
             #endif
             return deps
         }(),
-        exclude: testTargetExcludes("SpeziStudyTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveStudyTests", additional: ["UITests"]),
         resources: [
             .process("Resources/questionnaires"),
             .copy("Resources/assets")
@@ -1665,16 +1666,16 @@ var targets: [Target] = [
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziViews
+    // MARK: GroveViews
     .target(
-        name: "SpeziViews",
+        name: "GroveViews",
         dependencies: [
-            .target(name: "Spezi"),
-            .target(name: "SpeziFoundation"),
-            .target(name: "SpeziLocalization"),
+            .target(name: "Grove"),
+            .target(name: "GroveFoundation"),
+            .target(name: "GroveLocalization"),
             .product(name: "MarkdownUI", package: "swift-markdown-ui")
         ],
-        exclude: targetExcludes("SpeziViews"),
+        exclude: targetExcludes("GroveViews"),
         resources: [
             .process("Resources")
         ],
@@ -1682,11 +1683,11 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziPersonalInfo",
+        name: "GrovePersonalInfo",
         dependencies: [
-            .target(name: "SpeziViews")
+            .target(name: "GroveViews")
         ],
-        exclude: targetExcludes("SpeziPersonalInfo"),
+        exclude: targetExcludes("GrovePersonalInfo"),
         resources: [
             .process("Resources")
         ],
@@ -1694,13 +1695,13 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .target(
-        name: "SpeziValidation",
+        name: "GroveValidation",
         dependencies: [
-            .target(name: "SpeziViews"),
-            .target(name: "SpeziFoundation"),
+            .target(name: "GroveViews"),
+            .target(name: "GroveFoundation"),
             .product(name: "OrderedCollections", package: "swift-collections")
         ],
-        exclude: targetExcludes("SpeziValidation"),
+        exclude: targetExcludes("GroveValidation"),
         resources: [
             .process("Resources")
         ],
@@ -1708,13 +1709,13 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     .testTarget(
-        name: "SpeziViewsTests",
+        name: "GroveViewsTests",
         dependencies: [
-            .target(name: "SpeziViews"),
-            .target(name: "SpeziValidation"),
+            .target(name: "GroveViews"),
+            .target(name: "GroveValidation"),
             .product(name: "SnapshotTesting", package: "swift-snapshot-testing", condition: .when(platforms: [.iOS]))
         ],
-        exclude: testTargetExcludes("SpeziViewsTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveViewsTests", additional: ["UITests"]),
         resources: [
             .process("__Snapshots__")
         ],
@@ -1788,9 +1789,9 @@ var targets: [Target] = [
 
 #if canImport(Darwin)
 targets += [
-    // MARK: SpeziScheduler
+    // MARK: GroveScheduler
     .macro(
-        name: "SpeziSchedulerMacros",
+        name: "GroveSchedulerMacros",
         dependencies: [
             .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
             .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
@@ -1799,46 +1800,47 @@ targets += [
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziScheduler
+    // MARK: GroveScheduler
     .target(
-        name: "SpeziSchedulerUI",
+        name: "GroveSchedulerUI",
         dependencies: [
-            .target(name: "SpeziScheduler"),
-            .target(name: "SpeziViews")
+            .target(name: "GroveScheduler"),
+            .target(name: "GroveViews")
         ],
-        exclude: targetExcludes("SpeziSchedulerUI"),
+        exclude: targetExcludes("GroveSchedulerUI"),
         resources: [
             .process("Resources")
         ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziScheduler
+    // MARK: GroveScheduler
     .testTarget(
-        name: "SpeziSchedulerTests",
+        name: "GroveSchedulerTests",
         dependencies: [
-            .target(name: "SpeziScheduler"),
-            .target(name: "SpeziSchedulerMacros"),
-            .target(name: "XCTSpezi"),
-            .target(name: "SpeziLocalStorage"),
+            .target(name: "GroveLegacyIdentifiers"),
+            .target(name: "GroveScheduler"),
+            .target(name: "GroveSchedulerMacros"),
+            .target(name: "XCTGrove"),
+            .target(name: "GroveLocalStorage"),
             .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
             .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
         ],
-        exclude: testTargetExcludes("SpeziSchedulerTests", additional: ["UITests"]),
+        exclude: testTargetExcludes("GroveSchedulerTests", additional: ["UITests"]),
         resources: [
             .process("Resources")
         ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziScheduler
+    // MARK: GroveScheduler
     .testTarget(
-        name: "SpeziSchedulerUITests",
+        name: "GroveSchedulerUITests",
         dependencies: [
-            .target(name: "SpeziScheduler"),
-            .target(name: "SpeziSchedulerUI"),
-            .target(name: "SpeziTesting"),
-            .target(name: "XCTSpezi"),
+            .target(name: "GroveScheduler"),
+            .target(name: "GroveSchedulerUI"),
+            .target(name: "GroveTesting"),
+            .target(name: "XCTGrove"),
             .product(name: "SnapshotTesting", package: "swift-snapshot-testing", condition: .when(platforms: [.iOS]))
         ],
         resources: [
@@ -1847,20 +1849,21 @@ targets += [
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziStudy
+    // MARK: GroveStudy
     .target(
-        name: "SpeziStudy",
+        name: "GroveStudy",
         dependencies: [
-            .target(name: "SpeziStudyDefinition"),
-            .target(name: "Spezi"),
+            .target(name: "GroveLegacyIdentifiers"),
+            .target(name: "GroveStudyDefinition"),
+            .target(name: "Grove"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
-            .target(name: "SpeziHealthKit"),
-            .target(name: "SpeziLocalStorage"),
-            .target(name: "SpeziScheduler"),
-            .target(name: "SpeziSchedulerUI"),
+            .target(name: "GroveHealthKit"),
+            .target(name: "GroveLocalStorage"),
+            .target(name: "GroveScheduler"),
+            .target(name: "GroveSchedulerUI"),
             .product(name: "Algorithms", package: "swift-algorithms")
         ],
-        exclude: targetExcludes("SpeziStudy"),
+        exclude: targetExcludes("GroveStudy"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
@@ -1869,21 +1872,21 @@ targets += [
 
 #if canImport(HealthKit)
 targets += [
-    // MARK: SpeziHealthKit
+    // MARK: GroveHealthKit
     .executableTarget(
         name: "LocalizationsProcessor",
         dependencies: [
-            .target(name: "SpeziHealthKit"),
+            .target(name: "GroveHealthKit"),
             .product(name: "ArgumentParser", package: "swift-argument-parser")
         ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
-    // MARK: SpeziHealthKit
+    // MARK: GroveHealthKit
     .executableTarget(
         name: "Codegen",
         dependencies: [
-            .target(name: "SpeziHealthKit"),
+            .target(name: "GroveHealthKit"),
             .product(name: "ArgumentParser", package: "swift-argument-parser")
         ],
         exclude: targetExcludes("Codegen", additional: ["HKTypeIdentifierDefs+Linux.swift.gyb"]),
@@ -1894,7 +1897,7 @@ targets += [
 #endif
 
 let package = Package(
-    name: "Spezi",
+    name: "Grove",
     defaultLocalization: "en",
     platforms: packagePlatforms,
     products: products,

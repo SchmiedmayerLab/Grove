@@ -1,0 +1,54 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000020",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+      {
+        "containerPath" : "container:",
+        "identifier" : "ByteCoding",
+        "name" : "ByteCoding"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "GroveNumerics",
+        "name" : "GroveNumerics"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "ByteCodingTesting",
+        "name" : "ByteCodingTesting"
+      },
+      {
+        "containerPath" : "container:",
+        "identifier" : "XCTByteCoding",
+        "name" : "XCTByteCoding"
+      }
+    ]
+    }
+  },
+  "testTargets" : [
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "ByteCodingTests",
+          "name" : "ByteCodingTests"
+        }
+      },
+      {
+        "target" : {
+          "containerPath" : "container:",
+          "identifier" : "GroveNumericsTests",
+          "name" : "GroveNumericsTests"
+        }
+      }
+  ],
+  "version" : 1
+}

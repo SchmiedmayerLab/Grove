@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 #
-# This source file is part of the Stanford Spezi open-source project
+# This source file is part of the Grove open-source project
 #
 # SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 #
 # SPDX-License-Identifier: MIT
 #
-"""Generate all UITests.xcodeproj files from the canonical Spezi reference project."""
+"""Generate all UITests.xcodeproj files from the canonical Grove reference project."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ import tomllib
 ROOT = Path(__file__).resolve().parent.parent
 PROJECTS_FILE = ROOT / "Tests" / "UITestProjects.toml"
 PACKAGES_FILE = ROOT / "packages.toml"
-TEMPLATE = ROOT / "Tests" / "SpeziTests" / "UITests" / "UITests.xcodeproj" / "project.pbxproj"
+TEMPLATE = ROOT / "Tests" / "GroveTests" / "UITests" / "UITests.xcodeproj" / "project.pbxproj"
 
 LOCAL_PACKAGE_ID = "654293E43002D0F400AF6915"
 APP_TARGET_ID = "000000000000000100000000"
@@ -269,7 +269,7 @@ def render_project(package: str, spec: dict[str, object], platforms: list[str], 
     # package resolution. Note that Xcode's GUI trait toggle WRITES `(X, default)` — after any GUI
     # edit, regenerate so the committed form stays `default`-free. An explicit list replaces the
     # default set, which is fine: these TestApps need exactly the listed traits (CI's
-    # SPEZI_ENABLE_DEFAULT_PACKAGE_TRAITS=1 only affects trait-less projects).
+    # GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS=1 only affects trait-less projects).
     traits = [str(trait) for trait in spec.get("traits", [])]
     if "default" in traits:
         raise ValueError(f"{package}: the `default` pseudo-trait must not be listed (crashes xcodebuild)")
@@ -330,7 +330,7 @@ def render_project(package: str, spec: dict[str, object], platforms: list[str], 
 
     app_settings = {str(key): str(value) for key, value in spec.get("app_settings", {}).items()}
     test_settings = {str(key): str(value) for key, value in spec.get("test_settings", {}).items()}
-    bundle_identifier = f"edu.stanford.spezi.{package.lower()}"
+    bundle_identifier = f"org.grovealliance.{package.lower()}"
     app_settings.setdefault("PRODUCT_BUNDLE_IDENTIFIER", f"{bundle_identifier}.testapp")
     test_settings.setdefault("PRODUCT_BUNDLE_IDENTIFIER", f"{bundle_identifier}.testapp.uitests")
     for target, settings in (("TestApp", app_settings), ("TestAppUITests", test_settings)):

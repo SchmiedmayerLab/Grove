@@ -1,0 +1,59 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2023 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+
+import SwiftUI
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+struct DocumentationInfoView<Label: View, Description: View>: View {
+    private let label: Label
+    private let description: Description
+    private let url: URL
+
+
+    var body: some View {
+        ContentUnavailableView {
+            label
+        } description: {
+            description
+        } actions: {
+#if !os(watchOS)
+            Button {
+#if os(macOS)
+                NSWorkspace.shared.open(url)
+#else
+                UIApplication.shared.open(url)
+#endif
+            } label: {
+                Text("OPEN_DOCUMENTATION", bundle: .module)
+            }
+#endif
+        }
+    }
+
+
+    init(url: URL, @ViewBuilder label: () -> Label, @ViewBuilder description: () -> Description) {
+        self.url = url
+        self.label = label()
+        self.description = description()
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+#Preview {
+    guard let url = URL(string: "https://google.com") else {
+        return EmptyView()
+    }
+    return DocumentationInfoView(url: url) {
+        Text(verbatim: "This is an info text.")
+    } description: {
+        Text(verbatim: "This is more description")
+    }
+}

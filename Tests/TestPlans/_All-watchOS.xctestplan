@@ -41,15 +41,15 @@
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "SpeziHealthKitFHIRMacrosTests",
-        "name": "SpeziHealthKitFHIRMacrosTests"
+        "identifier": "GroveHealthKitFHIRMacrosTests",
+        "name": "GroveHealthKitFHIRMacrosTests"
       }
     },
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "SpeziHealthKitFHIRTests",
-        "name": "SpeziHealthKitFHIRTests"
+        "identifier": "GroveHealthKitFHIRTests",
+        "name": "GroveHealthKitFHIRTests"
       }
     },
     {
@@ -62,99 +62,99 @@
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "SpeziBluetoothServicesTests",
-        "name": "SpeziBluetoothServicesTests"
+        "identifier": "GroveBluetoothServicesTests",
+        "name": "GroveBluetoothServicesTests"
       }
     },
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "SpeziBluetoothTests",
-        "name": "SpeziBluetoothTests"
+        "identifier": "GroveBluetoothTests",
+        "name": "GroveBluetoothTests"
       }
     },
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "SpeziFoundationTests",
-        "name": "SpeziFoundationTests"
+        "identifier": "GroveFoundationTests",
+        "name": "GroveFoundationTests"
       }
     },
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "SpeziHealthKitTests",
-        "name": "SpeziHealthKitTests"
+        "identifier": "GroveHealthKitTests",
+        "name": "GroveHealthKitTests"
       }
     },
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "SpeziLocalizationTests",
-        "name": "SpeziLocalizationTests"
+        "identifier": "GroveLocalizationTests",
+        "name": "GroveLocalizationTests"
       }
     },
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "SpeziLocationTests",
-        "name": "SpeziLocationTests"
+        "identifier": "GroveLocationTests",
+        "name": "GroveLocationTests"
       }
     },
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "SpeziNotificationsTests",
-        "name": "SpeziNotificationsTests"
+        "identifier": "GroveNotificationsTests",
+        "name": "GroveNotificationsTests"
       }
     },
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "SpeziNumericsTests",
-        "name": "SpeziNumericsTests"
+        "identifier": "GroveNumericsTests",
+        "name": "GroveNumericsTests"
       }
     },
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "SpeziSchedulerTests",
-        "name": "SpeziSchedulerTests"
+        "identifier": "GroveSchedulerTests",
+        "name": "GroveSchedulerTests"
       }
     },
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "SpeziSchedulerUITests",
-        "name": "SpeziSchedulerUITests"
+        "identifier": "GroveSchedulerUITests",
+        "name": "GroveSchedulerUITests"
       }
     },
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "SpeziStorageTests",
-        "name": "SpeziStorageTests"
+        "identifier": "GroveStorageTests",
+        "name": "GroveStorageTests"
       }
     },
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "SpeziStudyTests",
-        "name": "SpeziStudyTests"
+        "identifier": "GroveStudyTests",
+        "name": "GroveStudyTests"
       }
     },
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "SpeziTests",
-        "name": "SpeziTests"
+        "identifier": "GroveTests",
+        "name": "GroveTests"
       }
     },
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "SpeziViewsTests",
-        "name": "SpeziViewsTests"
+        "identifier": "GroveViewsTests",
+        "name": "GroveViewsTests"
       }
     },
     {
