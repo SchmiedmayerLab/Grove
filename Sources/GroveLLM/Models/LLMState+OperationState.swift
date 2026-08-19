@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(GroveViews)
 import Foundation
 public import GroveViews
 
@@ -25,3 +26,4 @@ extension LLMState: OperationState {
         }
     }
 }
+#endif

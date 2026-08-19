@@ -9,7 +9,6 @@
 // swiftlint:disable file_types_order
 
 public import Foundation
-public import GroveKeychainStorage
 public import GroveLLMOpenAI
 
 
@@ -129,6 +128,7 @@ public typealias LLMGeminiSchema = LLMOpenAILikeSchema<GeminiPlatformDefinition>
 public typealias LLMGeminiSession = LLMOpenAILikeSession<GeminiPlatformDefinition>
 
 
+#if canImport(SwiftUI)
 /// View to display an onboarding step for the user to enter a Gemini API Key.
 ///
 /// - Warning: Ensure that the ``LLMGeminiPlatform`` is specified within the Grove `Configuration` when using this view in the onboarding flow.
@@ -141,6 +141,11 @@ public typealias LLMGeminiAPITokenOnboardingStep = LLMOpenAILikeAPITokenOnboardi
 /// View to display an onboarding step for the user to select a Gemini model.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMGeminiModelOnboardingStep = LLMOpenAILikeModelOnboardingStep<GeminiPlatformDefinition>
+#endif
+
+
+#if canImport(Security)
+public import GroveKeychainStorage
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -148,6 +153,7 @@ extension CredentialsTag {
     /// The canonical credentials tag for the Gemini API key
     public static let geminiKey = Self.for(GeminiPlatformDefinition.self)
 }
+#endif
 
 
 // MARK: Models
@@ -156,19 +162,38 @@ extension CredentialsTag {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension GeminiPlatformDefinition.ModelType {
     /// The default model to be used with Gemini.
-    public static let `default`: Self = .gemini2_5_pro
+    public static let `default`: Self = .gemini3_7_flash
 
     public static let wellKnownModels: [Self] = [ // swiftlint:disable:this missing_docs
-        .gemini3_1_pro, .gemini3_pro, .gemini3_flash,
+        .gemini3_7_flash, .gemini3_6_flash, .gemini3_5_flash, .gemini3_5_flash_lite, .gemini3_1_flash_lite,
+        .gemini3_1_pro_preview,
         .gemini2_5_pro, .gemini2_5_flash, .gemini2_5_flash_lite
     ]
 
-    /// Gemini 3.1 Pro
-    public static let gemini3_1_pro = Self(rawValue: "gemini-3.1-pro")
-    /// Gemini 3 Pro
-    public static let gemini3_pro = Self(rawValue: "gemini-3-pro")
-    /// Gemini 3 Flash
-    public static let gemini3_flash = Self(rawValue: "gemini-3-flash")
+    /// Gemini 3.7 Flash
+    public static let gemini3_7_flash = Self(rawValue: "gemini-3.7-flash")
+    /// Gemini 3.6 Flash
+    public static let gemini3_6_flash = Self(rawValue: "gemini-3.6-flash")
+    /// Gemini 3.5 Flash
+    public static let gemini3_5_flash = Self(rawValue: "gemini-3.5-flash")
+    /// Gemini 3.5 Flash Lite
+    public static let gemini3_5_flash_lite = Self(rawValue: "gemini-3.5-flash-lite")
+    /// Gemini 3.1 Flash Lite
+    public static let gemini3_1_flash_lite = Self(rawValue: "gemini-3.1-flash-lite")
+
+    /// Gemini 3.1 Pro, the most capable Gemini model. Google still ships it as a preview.
+    public static let gemini3_1_pro_preview = Self(rawValue: "gemini-3.1-pro-preview")
+    /// Gemini 3 Flash. Google still ships it as a preview.
+    public static let gemini3_flash_preview = Self(rawValue: "gemini-3-flash-preview")
+
+    @available(*, deprecated, renamed: "gemini3_1_pro_preview", message: "Google only serves Gemini 3.1 Pro as a preview.")
+    public static let gemini3_1_pro = Self(rawValue: "gemini-3.1-pro-preview") // swiftlint:disable:this missing_docs
+
+    @available(*, deprecated, renamed: "gemini3_1_pro_preview", message: "There is no Gemini 3 Pro; use Gemini 3.1 Pro.")
+    public static let gemini3_pro = Self(rawValue: "gemini-3.1-pro-preview") // swiftlint:disable:this missing_docs
+
+    @available(*, deprecated, renamed: "gemini3_flash_preview", message: "Google only serves Gemini 3 Flash as a preview.")
+    public static let gemini3_flash = Self(rawValue: "gemini-3-flash-preview") // swiftlint:disable:this missing_docs
 
     /// Gemini 2.5 Pro
     public static let gemini2_5_pro = Self(rawValue: "gemini-2.5-pro")

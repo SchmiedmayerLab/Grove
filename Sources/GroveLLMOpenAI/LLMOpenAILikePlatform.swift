@@ -7,11 +7,13 @@
 //
 
 import Foundation
+import GeneratedOpenAIClient
 import Grove
 import GroveFoundation
+#if canImport(Security)
 public import GroveKeychainStorage
+#endif
 public import GroveLLM
-import OSLog
 
 
 /// A `LLMPlatform` that is interoperable with the OpenAI API.
@@ -25,7 +27,15 @@ public final class LLMOpenAILikePlatform<PlatformDefinition: LLMOpenAILikePlatfo
     /// Queue that processed the LLM inference tasks in a structured concurrency manner.
     let queue: LLMInferenceQueue<String>
 
+    #if canImport(Security)
     @Dependency(KeychainStorage.self) private var keychainStorage
+
+    /// The credential store handed to each session.
+    private var credentialStorage: LLMCredentialStorage? { keychainStorage }
+    #else
+    /// No Keychain on this platform; tokens come from the configuration instead.
+    private var credentialStorage: LLMCredentialStorage? { nil }
+    #endif
     @MainActor public var state: LLMPlatformState {
         self.queue.platformState
     }
@@ -55,7 +65,7 @@ public final class LLMOpenAILikePlatform<PlatformDefinition: LLMOpenAILikePlatfo
     }
 
     public func callAsFunction(with llmSchema: LLMOpenAILikeSchema<PlatformDefinition>) -> LLMOpenAILikeSession<PlatformDefinition> {
-        LLMOpenAILikeSession<PlatformDefinition>(self, schema: llmSchema, keychainStorage: keychainStorage)
+        LLMOpenAILikeSession<PlatformDefinition>(self, schema: llmSchema, keychainStorage: credentialStorage)
     }
 
 
@@ -72,6 +82,7 @@ extension LLMOpenAILikePlatform {
         "\(PlatformDefinition.platformName)_Token"
     }
     
+    #if canImport(Security)
     /// Deletes the platform's API key credentials from the keychain.
     ///
     /// - Note: This function requires that the platform's configuration use a keychain-based auth token.
@@ -84,4 +95,5 @@ extension LLMOpenAILikePlatform {
             break
         }
     }
+    #endif
 }

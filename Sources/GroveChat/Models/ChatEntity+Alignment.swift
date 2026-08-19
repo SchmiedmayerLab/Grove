@@ -17,20 +17,20 @@ extension ChatEntity {
         case leading
         case trailing
     }
-    
-    
-    /// Dependent on the ``ChatEntity/Role``, display a ``ChatEntity`` in a leading or trailing position.
+
+
+    /// Dependent on the ``ChatEntity/Role-swift.enum``, display a ``ChatEntity`` in a leading or trailing position.
     var alignment: Alignment {
-        switch self.role {
+        switch role {
         case .user:
             .trailing
         default:
             .leading
         }
     }
-    
+
     var horziontalAlignment: HorizontalAlignment {
-        switch self.alignment {
+        switch alignment {
         case .leading:
             .leading
         case .trailing:

@@ -55,7 +55,7 @@ The core components of the ``GroveLLMOpenAI`` target are the ``LLMOpenAISchema``
 
 ### LLM OpenAI
 
-``LLMOpenAISchema`` offers a variety of configuration possibilities that are supported by the OpenAI API, such as the model type, the system prompt, the temperature of the model, and many more. These options can be set via the ``LLMOpenAILikeSchema/init(parameters:modelParameters:injectIntoContext:_:)`` initializer and the ``LLMOpenAIParameters`` and ``LLMOpenAIModelParameters``.
+``LLMOpenAISchema`` offers a variety of configuration possibilities that are supported by the OpenAI API, such as the model type, the system prompt, the temperature of the model, and many more. These options can be set via the ``LLMOpenAILikeSchema/init(parameters:modelParameters:injectIntoContext:searchesTheWeb:_:)`` initializer and the ``LLMOpenAIParameters`` and ``LLMOpenAIModelParameters``.
 
 - Important: The OpenAI LLM abstractions shouldn't be used on it's own but always used together with the Grove `LLMRunner`.
 
@@ -124,11 +124,62 @@ struct LLMOpenAIDemoView: View {
 }
 ```
 
-#### LLM Function Calling
+#### Chat Completions and the Responses API
+
+OpenAI serves its models over two APIs, and ``GroveLLMOpenAI`` picks the right one automatically from the selected
+``OpenAIPlatformDefinition/ModelType``'s ``LLMOpenAILikePlatformModelType/apiMode``: older models such as
+``OpenAIPlatformDefinition/ModelType/gpt4o`` use `/v1/chat/completions`, while everything else — including the GPT-5 and
+o-series models — uses `/v1/responses`.
+
+The Responses API additionally keeps the conversation on the server, which ``GroveLLMOpenAI`` continues via
+`previous_response_id`. Only the entities produced on the client — user messages and tool call outputs — are sent on
+subsequent turns, rather than replaying the whole history each time.
+
+Reasoning models also stream a summary of their thinking. For models whose
+``LLMOpenAILikePlatformModelType/supportsReasoningSummary`` is `true`, those summaries land in the `LLMContext` as
+`assistantThinking` entities, which `GroveChat` renders as a "Thought for …" disclosure. Every entity produced by one
+turn — reasoning summaries, tool calls, tool outputs, and the final answer — shares an `LLMInteractionId`, so that the
+UI can group them.
+
+A model identifier that ``GroveLLMOpenAI`` doesn't know about defaults to the Responses API:
+
+```swift
+let schema = LLMOpenAISchema(parameters: .init(modelType: .init(rawValue: "some-new-model")))
+```
+
+#### OpenAI-Compatible Gateways
+
+Pointing ``LLMOpenAILikePlatformConfiguration/serverUrl`` at a gateway rather than at OpenAI itself may mean a less
+complete API surface. Prefer the Responses API wherever the gateway supports it. It preserves server-side context,
+reasoning summaries, and file attachments; ``LLMOpenAILikePlatformConfiguration/streamingFallback`` also handles a
+gateway that accepts non-streaming Responses requests but cannot stream them.
+
+Only fall back to Chat Completions when `/v1/responses` is genuinely unsupported. Institutional gateways may proxy
+several vendors through one OpenAI-compatible endpoint, so support still needs to be established for the particular
+model and deployment rather than inferred from its model identifier.
+
+Take the per-model inference out of the picture by fixing the API mode on the platform:
+
+```swift
+LLMOpenAIPlatform(
+    configuration: .init(
+        serverUrl: URL(string: "https://gateway.example.edu/v1")!,
+        authToken: .keychain(tag: .openAIKey, username: "gateway"),
+        apiMode: .fixed(.chatCompletions)
+    )
+)
+```
+
+Every model then goes over Chat Completions, whatever its own ``LLMOpenAILikePlatformModelType/apiMode`` says. That
+legacy path carries text, inline images, and function calling, but not file attachments, server-side conversation
+state, or reasoning summaries. Attempting to send a file this way produces ``LLMOpenAIError`` instead of silently
+sending an empty user message.
+
+#### Tool Calling
 
 The OpenAI GPT-based LLMs provide function calling capabilities in order to enable a structured, bidirectional, and reliable communication between the OpenAI LLMs and external tools, such as the Grove ecosystem.
 ``GroveLLMOpenAI`` provides a declarative Domain Specific Language to make LLM function calling as seamless as possible within Grove.
-An extensive documentation can be found in <doc:FunctionCalling>.
+An extensive documentation can be found in <doc:ToolCalling>.
 
 ### Onboarding Flow
 
@@ -194,6 +245,16 @@ Now the OpenAI API Key entry view will appear within your application's onboardi
 
 - ``LLMOpenAIParameters``
 - ``LLMOpenAIModelParameters``
+
+### Tool calling
+
+- ``LLMTool``
+- ``LLMTool/Parameter``
+- ``LLMToolBuilder``
+- ``LLMToolParameter``
+- ``LLMToolParameterEnum``
+- ``LLMToolParameterArrayElement``
+- ``LLMFoundationModelsTool``
 
 ### Misc
 

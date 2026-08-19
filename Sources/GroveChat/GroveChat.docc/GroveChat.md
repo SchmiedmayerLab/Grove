@@ -58,9 +58,9 @@ These entries are mandatory for apps that utilize microphone and speech recognit
 ## Usage
 
 The underlying data model of ``GroveChat`` is a ``Chat``. It represents the content of a typical text-based chat between user and system(s). A ``Chat`` is nothing more than an ordered array of ``ChatEntity``s which contain the content of the individual messages.
-A ``ChatEntity`` consists of a ``ChatEntity/Role-swift.enum``, a timestamp as well as an `String`-based content which can contain Markdown-formatted text. In addition, a flag indicates if the `ChatEntity` is complete and no further content will be added.
+A ``ChatEntity`` consists of a ``ChatEntity/Role-swift.enum``, a timestamp, and its ``ChatEntity/Content-swift.struct`` — Markdown-formatted text, images, or both. In addition, a flag indicates if the `ChatEntity` is complete and no further content will be added.
 
-> Tip: The ``ChatEntity`` is able to store Markdown-based content which in turn is rendered as styled text in the ``ChatView``, ``MessagesView``, and ``MessageView``.
+> Tip: The ``ChatEntity`` is able to store Markdown-based content which in turn is rendered as styled text in the ``ChatView`` and ``MessagesView``.
 
 ### Chat View
 
@@ -70,7 +70,7 @@ In addition, the ``ChatView`` provides functionality to export the visualized ``
 ```swift
 struct ChatTestView: View {
     @State private var chat: Chat = [
-        ChatEntity(role: .assistant, content: "Assistant Message!")
+        ChatEntity(role: .assistant(.response), text: "Assistant Message!")
     ]
 
 
@@ -92,8 +92,8 @@ The `typingIndicator` parameter controls when a typing indicator is shown onscre
 ```swift
 struct MessagesViewTestView: View {
     @State private var chat: Chat = [
-        ChatEntity(role: .user, content: "User Message!"),
-        ChatEntity(role: .assistant, content: "Assistant Message!")
+        ChatEntity(role: .user, text: "User Message!"),
+        ChatEntity(role: .assistant(.response), text: "Assistant Message!")
     ]
 
 
@@ -103,48 +103,99 @@ struct MessagesViewTestView: View {
 }
 ```
 
-### Message View
+### Message Content
 
-The ``MessageView`` is a reusable SwiftUI `View` to display the contents of a ``ChatEntity`` within a typical chat message bubble. This bubble is properly aligned according to the associated ``ChatEntity/Role``.
+A message is an ordered list of ``ChatEntity/Content-swift.struct/Part``s — text, images and files, in the order
+they are shown — which is how both the OpenAI API and Apple's `FoundationModels` model a message. The common cases
+stay one-liners: ``ChatEntity/Content-swift.struct/text(_:)`` builds text content and
+``ChatEntity/Content-swift.struct/text`` reads it back.
+
+Images may either be in-memory ``PlatformImage``s — for example ones the user attached from their photo library —
+or remote `URL`s that are loaded lazily. Files are copies the app owns, so they outlive the picker that produced
+them.
 
 ```swift
-struct MessageViewTestView: View {
+struct AttachmentTestView: View {
+    @State private var chat: Chat = [
+        ChatEntity(role: .user, content: .images([.image(screenshot)], text: "What is this?")),
+        ChatEntity(role: .assistant(.response), text: "That's a chest X-ray.")
+    ]
+
+
     var body: some View {
-        VStack {
-            MessageView(ChatEntity(role: .user, content: "User Message!"))
-            MessageView(ChatEntity(role: .assistant, content: "Assistant Message!"))
-            MessageView(ChatEntity(role: .hidden(type: .unknown), content: "System Message (hidden)!"))
-        }
-            .padding()
+        ChatView($chat)
     }
 }
 ```
 
-### MessageInput View
-
-The ``MessageInputView`` is a reusable SwiftUI `View` to handle text-based or speech-based user input. The provided message is attached to the passed ``Chat`` via a SwiftUI `Binding`.
+On iOS and visionOS 26+, the composer lets the user attach images itself, so no extra wiring is needed to accept
+them. Use ``SwiftUICore/View/chatAttachments(_:)`` to choose what may be attached, or to take the attach button away:
 
 ```swift
-struct MessageInputTestView: View {
-    @State private var chat: Chat = []
-    @State private var disableInput = false
+ChatView($chat)
+    .chatAttachments([])    // a chat that only takes text
+```
 
+Tapping any image in the conversation — attached or generated — opens it full screen, pages through the rest of
+the message's images, and offers the one on screen to the share sheet. A file opens in Quick Look, so every format
+the system can preview works without the chat knowing about any of them.
+
+### Showing Where an Answer Came From
+
+A model that searches the web or reads a document reports what it drew on, and those sources arrive as
+``ChatEntity/Citation``s on the message. The chat shows them as one quiet line under the answer rather than as
+links through the text; tapping it lists them, and a web source opens in a Safari view without leaving the
+conversation.
+
+```swift
+ChatEntity(
+    role: .assistant(.response),
+    content: .text("The gateway runs LiteLLM."),
+    citations: [.init(title: "AI API Gateway", source: .web(url))]
+)
+```
+
+### Thinking and Tool Calls
+
+Reasoning models expose their progress via ``ChatEntity/Role-swift.enum/assistant(_:)`` entities carrying
+``ChatEntity/Role-swift.enum/AssistantMessageKind-swift.enum/thinking(startDate:endDate:)``, which render as a live
+timer while the model works and as a "Thought for …" disclosure once it finishes. Tool calls and their responses use
+``ChatEntity/Role-swift.enum/AssistantMessageKind-swift.enum/toolCall`` and
+``ChatEntity/Role-swift.enum/AssistantMessageKind-swift.enum/toolResponse``.
+
+Use ``MessagesView/MessagesVisibility`` to choose which of these the user sees:
+
+```swift
+MessagesView($chat, messagesVisibility: .init(hiddenMessages: .all, toolCalls: .visible))
+```
+
+### Reporting What the Assistant Is Doing
+
+A ``ChatView`` shows a conversation; it does not run one. Tell it what is happening and it adapts: while an answer
+is in flight the composer will not send a second message, and the send button becomes a stop button when there is
+something to stop.
+
+```swift
+struct ConversationView: View {
+    @State private var chat = Chat()
+    @State private var lastError: (any Error)?
 
     var body: some View {
-        VStack {
-            Spacer()
-            MessageInputView($chat, messagePlaceholder: "TestMessage")
-                .disabled(disableInput)
-                /// Get the height of the `MessageInputView` via a SwiftUI `PreferenceKey`
-                /// Indicates the height of the input message field, necessary for properly shifting other view content.
-                .onPreferenceChange(MessageInputViewHeightKey.self) { newValue in
-                    let messageInputHeight: CGFloat = newValue
-                    // ...
-                }
-        }
+        ChatView($chat)
+            .chatEmptyState("Ask About Your Medication", description: "Answers come from your care team's guidance.")
+            .chatGenerating(session.state == .generating) {
+                session.cancel()
+            }
+            .chatError(lastError) {
+                lastError = nil
+                respond()
+            }
     }
 }
 ```
+
+A failure reported this way appears inline, where the answer would have been, rather than as an alert that takes
+the conversation away — with a retry next to it.
 
 ## Topics
 
@@ -152,16 +203,43 @@ struct MessageInputTestView: View {
 
 - ``ChatView``
 - ``MessagesView``
-- ``MessageView``
 
 ### Message models
 
 - ``Chat``
 - ``ChatEntity``
 - ``ChatEntity/Role-swift.enum``
+- ``ChatEntity/Content-swift.struct``
+- ``ChatEntity/Content-swift.struct/Part``
+- ``ChatEntity/Content-swift.struct/File``
+- ``ChatEntity/Citation``
 - ``ChatEntity/HiddenMessageType``
+- ``PlatformImage``
 
-### User input
+### Reporting state
 
-- ``MessageInputView``
-- ``MessageInputViewHeightKey``
+- ``SwiftUICore/View/chatGenerating(_:onCancel:)``
+- ``SwiftUICore/View/chatError(_:retry:)``
+- ``SwiftUICore/View/chatEmptyState(_:description:systemImage:)``
+- ``SwiftUICore/View/chatEmptyState(_:)``
+
+### Composing messages
+
+- ``ChatAttachmentKinds``
+- ``ChatAttachmentStore``
+- ``ChatAttachmentStorage``
+- ``FileSystemChatAttachmentStorage``
+- ``SwiftUICore/View/chatAttachments(_:)``
+- ``SwiftUICore/View/speechToText(_:)``
+
+### Choosing what is shown
+
+- ``MessagesView/MessagesVisibility``
+- ``ChatMessageActions``
+- ``ChatMessageActionsPresentation``
+- ``SwiftUICore/View/chatMessageActions(_:presentation:)``
+
+### Styling
+
+- ``SwiftUICore/View/chatViewInsets(_:)``
+- ``SwiftUICore/View/chatAccentColor(_:)``

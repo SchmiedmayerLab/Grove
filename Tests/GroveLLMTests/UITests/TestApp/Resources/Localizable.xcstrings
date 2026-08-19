@@ -1,52 +1,22 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "ACCOUNT_SETUP_DESCRIPTION" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You may login to your existing account. Or create a new one if you don't have one already."
-          }
-        }
-      }
-    },
-    "ACCOUNT_SIGNED_IN_DESCRIPTION" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You are already logged in with the account shown below. Continue or change your account by logging out."
-          }
-        }
-      }
-    },
-    "ACCOUNT_SUBTITLE" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The authentication is provided via GroveAccount and the Firebase Account Module."
-          }
-        }
-      }
-    },
-    "ACCOUNT_TITLE" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your Account"
-          }
-        }
-      }
-    },
     "DISMISS_BUTTON_LABEL" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dismiss"
+          }
+        }
+      }
+    },
+    "GROVE_LLM_TEST_NAVIGATION_TITLE" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GroveLLM UI Test"
           }
         }
       }
@@ -60,16 +30,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "By default, the application downloads the Llama 3.2 3B model in its instruct variation. The size of the model is around 3GB."
-          }
-        }
-      }
-    },
-    "LLM_FOG_CHAT_VIEW_TITLE" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LLM Fog Chat"
           }
         }
       }
@@ -94,17 +54,6 @@
         }
       }
     },
-    "LLM_OPENAI_CHAT_VIEW_TITLE" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LLM OpenAI Chat"
-          }
-        }
-      }
-    },
     "LLM_OPENAI_MODEL_SELECTED" : {
       "localizations" : {
         "en" : {
@@ -115,15 +64,8 @@
         }
       }
     },
-    "Next" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Next"
-          }
-        }
-      }
+    "Model Unavailable" : {
+
     },
     "OK" : {
       "localizations" : {
@@ -137,16 +79,6 @@
     },
     "Onboarding" : {
 
-    },
-    "GROVE_LLM_TEST_NAVIGATION_TITLE" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "GroveLLM UI Test"
-          }
-        }
-      }
     },
     "Start Recording" : {
 

@@ -190,8 +190,10 @@ run() { # <package> <platform> [mode: "ui"]
     # Linux, so a combined test build fails before any test runs. Actually RUNNING a single sub-package's
     # tests on Linux needs more work (tracked separately); for now, compile-check each of the package's
     # test targets (scoped via --target, which SwiftPM resolves natively) to verify they still build.
+    # A package whose test target is itself Apple-only names the source targets to check via
+    # `linuxTargets` instead.
     local tts
-    tts="$(python3 -c "import tomllib; print(' '.join(tomllib.load(open('packages.toml','rb'))['$1']['tests']))")"
+    tts="$(python3 -c "import tomllib; p = tomllib.load(open('packages.toml','rb'))['$1']; print(' '.join(p.get('linuxTargets') or p['tests']))")"
     for tt in $tts; do
       echo "==> $1 on Linux: swift build --target $tt (compile-check)"
       swift build --target "$tt"

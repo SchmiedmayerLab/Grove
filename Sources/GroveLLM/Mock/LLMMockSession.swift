@@ -6,7 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
-import GroveChat
 public import Observation
 
 
@@ -53,12 +52,14 @@ public final class LLMMockSession: LLMSession, Sendable {
                     self.state = .loading
                 }
                 try? await Task.sleep(for: .seconds(1))
-                // Check for cancellation
+                // Check for cancellation. The return has to be out here: inside the `MainActor.run` closure it
+                // would leave only the closure, and the mock would carry on generating after a cancel.
                 if continuationObserver.isCancelled {
                     await MainActor.run {
-                        self.state = .uninitialized
-                        return
+                        self.state = .ready
                     }
+                    continuationObserver.continuation.finish()
+                    return
                 }
 
                 await MainActor.run {
@@ -78,14 +79,14 @@ public final class LLMMockSession: LLMSession, Sendable {
 
                     if self.schema.injectIntoContext {
                         await MainActor.run {
-                            self.context.append(assistantOutput: token)
+                            self.context.append(assistantOutputDelta: token, isComplete: false)
                         }
                     }
                 }
 
                 continuationObserver.continuation.finish()
                 await MainActor.run {
-                    self.context.completeAssistantStreaming()
+                    self.context.markAssistantOutputCompleted()
                     self.state = .ready
                 }
             }

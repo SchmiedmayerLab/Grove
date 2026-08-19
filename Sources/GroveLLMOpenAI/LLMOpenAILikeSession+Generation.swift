@@ -8,7 +8,6 @@
 
 import Foundation
 import GeneratedOpenAIClient
-import GroveChat
 import GroveLLM
 import OpenAPIRuntime
 
@@ -28,6 +27,9 @@ extension LLMOpenAILikeSession {
             return
         }
 
+        /// Groups every context entity produced by this single user → LLM interaction.
+        let interactionId = LLMInteractionId()
+
         await MainActor.run {
             self.state = .generating
         }
@@ -42,7 +44,7 @@ extension LLMOpenAILikeSession {
             var llmStreamResults: [Int: LLMOpenAIStreamResult] = [:]
             
             do {
-                let response = try await openAiClient.createChatCompletion(openAIChatQuery)
+                let response = try await openAiClient.createChatCompletion(openAIChatQuery())
 
                 if case let .undocumented(statusCode: statusCode, payload) = response {
                     let llmError = handleErrorCode(statusCode)
@@ -100,7 +102,7 @@ extension LLMOpenAILikeSession {
                     // Automatically inject the yielded string piece into the `LLMLocal/context`
                     if schema.injectIntoContext {
                         await MainActor.run {
-                            context.append(assistantOutput: content)
+                            context.append(assistantOutputDelta: content, isComplete: false, interactionId: interactionId)
                         }
                     }
 
@@ -110,7 +112,7 @@ extension LLMOpenAILikeSession {
                 
                 if schema.injectIntoContext {
                     await MainActor.run {
-                        context.completeAssistantStreaming()
+                        context.markAssistantOutputCompleted()
                     }
                 }
             } catch let error as ClientError {
@@ -119,7 +121,7 @@ extension LLMOpenAILikeSession {
                 return
             } catch let error as LLMOpenAIError {
                 Self.logger.error("GroveLLMOpenAI: \(error.localizedDescription)")
-                await finishGenerationWithError(LLMOpenAIError.functionCallSchemaExtractionError(error), on: continuationObserver.continuation)
+                await finishGenerationWithError(error, on: continuationObserver.continuation)
                 return
             } catch {
                 Self.logger.error("GroveLLMOpenAI: Unknown Generation error occurred - \(error)")
@@ -145,7 +147,7 @@ extension LLMOpenAILikeSession {
                 return .init(id: functionCallID, name: functionCallName, arguments: functionCall.arguments ?? "")
             }
             await MainActor.run {
-                context.append(functionCalls: functionCallContext)
+                context.append(toolCalls: functionCallContext, interactionId: interactionId)
             }
 
             // Parallel function call execution
@@ -172,9 +174,10 @@ extension LLMOpenAILikeSession {
 
                             await MainActor.run {
                                 self.context.append(
-                                    forFunction: functionCallResponse.functionName,
-                                    withID: functionCallResponse.functionID,
-                                    response: functionCallResponse.response
+                                    toolCallResponse: functionCallResponse.response,
+                                    for: functionCallResponse.functionName,
+                                    withId: functionCallResponse.functionID,
+                                    interactionId: interactionId
                                 )
                             }
                         }

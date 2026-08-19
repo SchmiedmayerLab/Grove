@@ -107,8 +107,9 @@ minimum_version = "1.2.1"
 products = ["Algorithms"]
 
 [GroveLLM]
-app_products = ["Grove", "GroveAccount", "GroveChat", "GroveFirebaseAccount", "GroveFirebaseAccountStorage", "GroveKeychainStorage", "GroveLLM", "GroveLLMAnthropic", "GroveLLMGemini", "GroveLLMLocal", "GroveLLMLocalDownload", "GroveLLMOpenAI", "GroveLLMOpenAIRealtime", "GroveOnboarding", "GroveViews"]
+app_products = ["Grove", "GroveChat", "GroveKeychainStorage", "GroveLLM", "GroveLLMAnthropic", "GroveLLMFoundationModels", "GroveLLMGemini", "GroveLLMLocal", "GroveLLMLocalDownload", "GroveLLMOpenAI", "GroveLLMOpenAIRealtime", "GroveOnboarding", "GroveViews"]
 test_products = ["XCTestExtensions"]
+traits = ["MLX"]
 [GroveLLM.app_settings]
 "INFOPLIST_KEY_NSMicrophoneUsageDescription" = "The Test Application uses the micophone to test the dication functionality."
 "INFOPLIST_KEY_NSSpeechRecognitionUsageDescription" = "Speech recognition necessary for transcribing voice input."
@@ -148,10 +149,14 @@ test_products = ["XCTestExtensions"]
 [GroveQuestionnaire]
 app_products = ["FHIRQuestionnaires", "Grove", "GroveQuestionnaire", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveViews"]
 test_products = ["XCTGroveQuestionnaire", "XCTestExtensions"]
+# Linked but not imported; kept so the linkage stays as it was.
+test_fixture_products = ["GroveFoundation"]
 traits = ["ResearchKit"]
 [GroveScheduler]
 app_products = ["Grove", "GroveFoundation", "GroveNotifications", "GroveScheduler", "GroveSchedulerUI", "GroveViews", "XCTGroveNotificationsUI", "XCTestApp"]
 test_products = ["XCTestExtensions", "XCTGroveNotifications"]
+# Linked but not imported; kept so the linkage stays as it was.
+test_fixture_products = ["GroveFoundation"]
 [GroveScheduler.app_settings]
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 "INFOPLIST_FILE" = "TestApp/Info.plist"
@@ -185,7 +190,9 @@ test_products = ["XCTestExtensions"]
 
 [GroveViews]
 app_products = ["GroveViews", "XCTestApp", "GrovePersonalInfo", "GroveValidation", "Grove", "GroveFoundation"]
-test_products = ["XCTestExtensions", "Algorithms", "GroveFoundation"]
+test_products = ["XCTestExtensions", "Algorithms"]
+# Linked but not imported; kept so the linkage stays as it was.
+test_fixture_products = ["GroveFoundation"]
 [[GroveViews.remote_packages]]
 url = "https://github.com/apple/swift-algorithms.git"
 kind = "upToNextMajorVersion"

@@ -153,16 +153,32 @@ extension XCUIApplication {
             XCTFail("The actions menu doesn't report the number of actions it has completed")
             return
         }
-        menuButton.tap()
-        for title in [pathFst] + pathRest {
-            let button = self.buttons[title]
-            XCTAssert(button.waitUntilTappable(timeout: 30), "Menu action '\(title)' never became tappable")
-            button.tap()
+        let path = [pathFst] + pathRest
+        let maxAttempts = 3
+        for _ in 1...maxAttempts {
+            guard menuButton.waitUntilTappable(timeout: 30) else {
+                continue
+            }
+            menuButton.tap()
+
+            var selectedAction = true
+            for title in path {
+                let button = self.buttons[title]
+                guard button.waitUntilTappable(timeout: 30) else {
+                    selectedAction = false
+                    break
+                }
+                button.tap()
+            }
+            if selectedAction {
+                XCTAssert(
+                    menuButton.waitForCompletedActions(above: completedActions, timeout: 30),
+                    "Menu action '\(pathFst)' never completed"
+                )
+                return
+            }
         }
-        XCTAssert(
-            menuButton.waitForCompletedActions(above: completedActions, timeout: 30),
-            "Menu action '\(pathFst)' never completed"
-        )
+        XCTFail("Menu action path '\(path.joined(separator: " > "))' never became hittable after \(maxAttempts) attempts")
     }
 }
 

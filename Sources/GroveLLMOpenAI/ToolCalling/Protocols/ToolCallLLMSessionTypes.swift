@@ -1,0 +1,36 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2025 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+package import GroveLLM
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+package enum ToolCallLLMSessionTypes {
+    /// The response returned after successfully executing a function call.
+    package struct ToolCallResponse {
+        /// The unique identifier for the function call, as assigned by the LLM.
+        package let functionID: String
+        /// The name of the function that was called.
+        package let functionName: String
+        /// The result of executing the function
+        package let response: String
+    }
+
+    package enum ToolCallFailureHandling {
+        /// On function call error, simply throw the error to the caller.
+        case throwError
+
+        /// On function call error, throw the error and also stop the inference immediately.
+        /// The provided `ContinuationObserver` is used to finish generation with an error.
+        case throwAndStopInference(ContinuationObserver<String, any Error>)
+
+        /// On function call error, do not throw. Instead, the error is included in the returned
+        /// `ToolCallResponse`, so the LLM can "see" the error and adjust its reasoning or responses.
+        case returnErrorInResponse
+    }
+}

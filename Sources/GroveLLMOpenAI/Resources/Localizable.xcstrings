@@ -13,61 +13,6 @@
     "Continue" : {
 
     },
-    "LLM_AUTH_TOKEN_ONBOARDING_ACTION_TEXT" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Next"
-          }
-        }
-      }
-    },
-    "LLM_AUTH_TOKEN_ONBOARDING_HINT" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You can create and inspect your OpenAI API keys [in the API keys section of your OpenAI Account](https://platform.openai.com/account/api-keys)."
-          }
-        }
-      }
-    },
-    "LLM_AUTH_TOKEN_ONBOARDING_PROMPT" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OpenAI API Key"
-          }
-        }
-      }
-    },
-    "LLM_AUTH_TOKEN_ONBOARDING_SUBTITLE" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Please enter your OpenAI API key."
-          }
-        }
-      }
-    },
-    "LLM_AUTH_TOKEN_ONBOARDING_TITLE" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OpenAI API Key"
-          }
-        }
-      }
-    },
     "LLM_CONNECTIVITY_ERROR_DESCRIPTION" : {
       "localizations" : {
         "en" : {
@@ -94,6 +39,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Please ensure that the device has a stable internet connection."
+          }
+        }
+      }
+    },
+    "LLM_FILE_ATTACHMENT_API_ERROR_DESCRIPTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This model cannot send the attached file."
+          }
+        }
+      }
+    },
+    "LLM_FILE_ATTACHMENT_API_ERROR_FAILURE_REASON" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model is configured to use the Chat Completions API, which does not support file attachments."
+          }
+        }
+      }
+    },
+    "LLM_FILE_ATTACHMENT_API_ERROR_RECOVERY_SUGGESTION" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use a model configured for the Responses API, or remove the file and try again."
           }
         }
       }
@@ -424,121 +399,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Please try to restart the application or the phone."
-          }
-        }
-      }
-    },
-    "OPENAI_API_KEY_SAVE_BUTTON" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Weiter"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Next"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Siguiente"
-          }
-        }
-      }
-    },
-    "OPENAI_MODEL_SELECTION_DESCRIPTION" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OpenAI GPT-Modell"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OpenAI GPT Model"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Modelo GPT de OpenAI"
-          }
-        }
-      }
-    },
-    "OPENAI_MODEL_SELECTION_SAVE_BUTTON" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Weiter"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Next"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Siguiente"
-          }
-        }
-      }
-    },
-    "OPENAI_MODEL_SELECTION_SUBTITLE" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wählen Sie das OpenAI-Modell, das Sie verwenden möchten. Stellen Sie sicher, dass Ihr API-Schlüssel angemessenen Zugriff auf das ausgewählte Modell hat."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select the OpenAI model that you want to use. Ensure that your API key has proper access to the model you select."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Seleccione el modelo de OpenAI que desea utilizar. Asegúrese de que su clave API tenga acceso adecuado al modelo que seleccione."
-          }
-        }
-      }
-    },
-    "OPENAI_MODEL_SELECTION_TITLE" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wählen Sie ein OpenAI-Modell"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select an OpenAI Model"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Seleccione un Modelo de OpenAI"
           }
         }
       }

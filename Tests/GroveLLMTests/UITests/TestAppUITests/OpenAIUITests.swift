@@ -11,6 +11,9 @@ import XCTestExtensions
 
 
 final class TestAppLLMOpenAIUITests: TestAppTestCase {
+    private static let defaultModel = "gpt-5.6"
+
+
     func testGroveLLMOpenAIOnboarding() throws {    // swiftlint:disable:this function_body_length
         let openAIButton = app.buttons["LLMOpenAI"]
         launch(enableMockMode: true, showOnboarding: false, clearAPIKeysFromKeychain: true, waitingFor: openAIButton)
@@ -36,17 +39,17 @@ final class TestAppLLMOpenAIUITests: TestAppTestCase {
         let modelMenuItem = app.menuItems["gpt-5-chat-latest"]
         XCTAssert(modelMenuItem.wait(for: \.isHittable, toEqual: true, timeout: 5))
         modelMenuItem.tap()
-        XCTAssert(app.popUpButtons["gpt-5-chat-latest"].waitForExistence(timeout: 5))
+        assertSelectedModel("gpt-5-chat-latest")
         #elseif os(visionOS)
         let modelPickerWheel = app.pickers["modelPicker"].pickerWheels.element(boundBy: 0)
         XCTAssert(modelPickerWheel.wait(for: \.isHittable, toEqual: true, timeout: 5))
         modelPickerWheel.swipeUp()
-        XCTAssert(app.pickerWheels["gpt-3.5-turbo"].waitForExistence(timeout: 5))     // swipe down to the gpt-3.5-turbo model
+        assertSelectedModel("gpt-3.5-turbo")     // swipe down to the gpt-3.5-turbo model
         #else
         let modelPickerWheel = app.pickers["modelPicker"].pickerWheels.element(boundBy: 0)
         XCTAssert(modelPickerWheel.wait(for: \.isHittable, toEqual: true, timeout: 5))
         modelPickerWheel.adjust(toPickerWheelValue: "gpt-5-chat-latest")
-        XCTAssert(app.pickerWheels["gpt-5-chat-latest"].waitForExistence(timeout: 5))
+        assertSelectedModel("gpt-5-chat-latest")
         #endif
 
         XCTAssert(continueButton.wait(for: \.isHittable, toEqual: true, timeout: 5))
@@ -87,11 +90,7 @@ final class TestAppLLMOpenAIUITests: TestAppTestCase {
         XCTAssert(continueButton.wait(for: \.isEnabled, toEqual: true, timeout: 5))
         continueButton.tap()
 
-        #if !os(macOS)
-        XCTAssert(app.pickerWheels["gpt-4o"].waitForExistence(timeout: 5))
-        #else
-        XCTAssert(app.popUpButtons["gpt-4o"].waitForExistence(timeout: 5))
-        #endif
+        assertSelectedModel(Self.defaultModel)
         XCTAssert(continueButton.wait(for: \.isHittable, toEqual: true, timeout: 5))
         continueButton.tap()
 
@@ -99,14 +98,14 @@ final class TestAppLLMOpenAIUITests: TestAppTestCase {
         let alert2 = app.alerts["Model Selected"]
 
         XCTAssertTrue(alert2.waitForExistence(timeout: 5), "The `Model Selected` alert did not appear.")
-        XCTAssertTrue(alert2.staticTexts["gpt-4o"].exists, "The correct model was not registered.")
+        XCTAssertTrue(alert2.staticTexts[Self.defaultModel].exists, "The correct model was not registered.")
 
         let okButton2 = alert2.buttons["OK"]
         XCTAssertTrue(okButton2.wait(for: \.isHittable, toEqual: true, timeout: 5), "The OK button on the alert was not found.")
         okButton2.tap()
         #else
         XCTAssertTrue(app.staticTexts["Model Selected"].waitForExistence(timeout: 5), "The `Model Selected` alert did not appear.")
-        XCTAssertTrue(app.staticTexts["gpt-5"].exists, "The correct model was not registered.")
+        XCTAssertTrue(app.staticTexts[Self.defaultModel].exists, "The correct model was not registered.")
         let okButton2 = app.buttons["OK"].firstMatch
         XCTAssert(okButton2.wait(for: \.isHittable, toEqual: true, timeout: 5))
         okButton2.tap()
@@ -124,11 +123,7 @@ final class TestAppLLMOpenAIUITests: TestAppTestCase {
         XCTAssert(continueButton.wait(for: \.isHittable, toEqual: true, timeout: 5))
         continueButton.tap()
 
-        #if !os(macOS)
-        XCTAssert(app.pickerWheels["gpt-4o"].waitForExistence(timeout: 5))
-        #else
-        XCTAssert(app.popUpButtons["gpt-4o"].waitForExistence(timeout: 5))
-        #endif
+        assertSelectedModel(Self.defaultModel)
     }
     
     
@@ -149,6 +144,34 @@ final class TestAppLLMOpenAIUITests: TestAppTestCase {
         sendButton.tap()
 
         // The mock session idles for a second and then streams its four tokens half a second apart.
-        XCTAssert(app.staticTexts["Mock Message from GroveLLM!"].waitForExistence(timeout: 15))
+        assertRenderedText("Mock Message from GroveLLM!", timeout: 15)
+    }
+
+
+    private func assertSelectedModel(
+        _ expectedModel: String,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        #if os(macOS)
+        let picker = app.popUpButtons["modelPicker"]
+        #else
+        let picker = app.pickers["modelPicker"].pickerWheels.element(boundBy: 0)
+        #endif
+        XCTAssertTrue(
+            picker.waitForExistence(timeout: 5),
+            "The model picker did not appear.",
+            file: file,
+            line: line
+        )
+        let predicate = NSPredicate(format: "value == %@", expectedModel)
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: picker)
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [expectation], timeout: 5),
+            .completed,
+            "Expected model '\(expectedModel)', but the picker value was '\(String(describing: picker.value))'.",
+            file: file,
+            line: line
+        )
     }
 }

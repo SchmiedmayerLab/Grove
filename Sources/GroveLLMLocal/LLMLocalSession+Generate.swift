@@ -155,7 +155,7 @@ extension LLMLocalSession {
 
             if schema.injectIntoContext {
                 Task { @MainActor in
-                    context.append(assistantOutput: text)
+                    context.append(assistantOutputDelta: text, isComplete: false)
                 }
             }
         }
@@ -177,8 +177,7 @@ extension LLMLocalSession {
         
         if schema.injectIntoContext {
             Task { @MainActor in
-                context.append(assistantOutput: text)
-                context.completeAssistantStreaming()
+                context.append(assistantOutputDelta: text, isComplete: true)
             }
         }
     }
@@ -209,7 +208,7 @@ extension LLMLocalSession {
         
         continuationObserver.continuation.finish()
         await MainActor.run {
-            self.context.completeAssistantStreaming()
+            self.context.markAssistantOutputCompleted()
             self.state = .ready
         }
     }

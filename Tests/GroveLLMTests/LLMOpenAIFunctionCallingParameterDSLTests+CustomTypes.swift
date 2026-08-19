@@ -12,8 +12,8 @@ import Testing
 
 
 extension LLMOpenAIFunctionCallingParameterDSLTests {
-    struct CustomType: LLMFunctionParameterArrayElement, Encodable, Equatable {
-        static let itemSchema: LLMFunctionParameterItemSchema = {
+    struct CustomType: LLMToolParameterArrayElement, Encodable, Equatable {
+        static let itemSchema: LLMToolParameterItemSchema = {
             do {
                 return try .init(unvalidatedValue: [
                     "type": "object",
@@ -49,9 +49,9 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
         let customOptionalArrayParameter: [CustomType] = []
     }
     
-    struct LLMFunctionTestCustom: LLMFunction {
-        static let name: String = "test_custom_type_function"
-        static let description: String = "This is a test custom type LLM function."
+    struct LLMFunctionTestCustom: LLMTool {
+        let name: String = "test_custom_type_function"
+        let description: String = "This is a test custom type LLM function."
         
         let someInitArg: String
 
@@ -87,7 +87,7 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
         let llmFunctionPair = try #require(llm.functions.first)
         
         // Validate parameter metadata
-        #expect(llmFunctionPair.key == LLMFunctionTestCustom.name)
+        #expect(llmFunctionPair.key == llmFunctionPair.value.name)
         let llmFunction = llmFunctionPair.value
         #expect(try #require(llmFunction.parameterValueCollectors["customArrayParameter"]).isOptional == false)
         #expect(try #require(llmFunction.parameterValueCollectors["customOptionalArrayParameter"]).isOptional)
@@ -125,8 +125,8 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
         // Validate parameter injection
         let parameterData = try JSONEncoder().encode(ParametersCustom.shared)
         
-        try llmFunction.injectParameters(from: parameterData)
-        let llmFunctionResponse = try await llmFunction.execute()
+        let arguments = try llmFunction.arguments(from: parameterData)
+        let llmFunctionResponse = try await llmFunction.execute(with: arguments)
         #expect(llmFunctionResponse == "testArg")
     }
 }

@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI)
 package import Foundation
 import Grove
 package import GroveKeychainStorage
@@ -144,4 +145,5 @@ package struct LLMAuthTokenCollector: View {
             KeychainStorage()
         }
 }
+#endif
 #endif

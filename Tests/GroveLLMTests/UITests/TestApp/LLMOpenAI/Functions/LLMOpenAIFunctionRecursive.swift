@@ -12,9 +12,9 @@ import GroveLLMOpenAI
 /// A function that demonstrates recursive function calling behavior.
 /// This function is designed to call itself repeatedly, which can help demonstrate
 /// state transition issues in the LLM session when handling multiple function calls.
-struct LLMOpenAIFunctionRecursive: LLMFunction {
-    static let name: String = "recursive_call"
-    static let description: String = "A function that can call itself repeatedly to demonstrate state transition issues"
+struct LLMOpenAIFunctionRecursive: LLMTool {
+    let name: String = "recursive_call"
+    let description: String = "A function that can call itself repeatedly to demonstrate state transition issues"
 
 
     @Parameter(description: "Current number of times in the recursive iteration", minimum: 1.0, maximum: 3.0)
@@ -40,7 +40,7 @@ struct LLMOpenAIFunctionRecursive: LLMFunction {
             return """
             \(response)
             
-            Please call the \(LLMOpenAIFunctionRecursive.name) function again with these parameters:
+            Please call the \(name) function again with these parameters:
             - callCount: \(callCount + 1)
             - maxCalls: \(maxCalls)
             - message: "Continuing recursive chain - \(callCount + 1) of \(maxCalls)"

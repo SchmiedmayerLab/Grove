@@ -21,9 +21,9 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
         let stringArrayParameter = ["test1", "test2"]
     }
     
-    struct LLMFunctionTestArray: LLMFunction {
-        static let name: String = "test_array_function"
-        static let description: String = "This is a test array LLM function."
+    struct LLMFunctionTestArray: LLMTool {
+        let name: String = "test_array_function"
+        let description: String = "This is a test array LLM function."
         
         let someInitArg: String
 
@@ -65,7 +65,7 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
         let llmFunctionPair = try #require(llm.functions.first)
         
         // Validate parameter metadata
-        #expect(llmFunctionPair.key == LLMFunctionTestArray.name)
+        #expect(llmFunctionPair.key == llmFunctionPair.value.name)
         let llmFunction = llmFunctionPair.value
         #expect(try #require(llmFunction.parameterValueCollectors["intArrayParameter"]).isOptional == false)
         #expect(try #require(llmFunction.parameterValueCollectors["doubleArrayParameter"]).isOptional == false)
@@ -112,8 +112,8 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
         // Validate parameter injection
         let parameterData = try JSONEncoder().encode(ParametersArray.shared)
         
-        try llmFunction.injectParameters(from: parameterData)
-        let llmFunctionResponse = try await llmFunction.execute()
+        let arguments = try llmFunction.arguments(from: parameterData)
+        let llmFunctionResponse = try await llmFunction.execute(with: arguments)
         #expect(llmFunctionResponse == "testArg")
     }
 }

@@ -9,15 +9,15 @@
 import GroveLLMOpenAI
 
 
-struct LLMOpenAIFunctionWeather: LLMFunction {
-    enum TemperatureUnit: String, LLMFunctionParameterEnum {
+struct LLMOpenAIFunctionWeather: LLMTool {
+    enum TemperatureUnit: String, LLMToolParameterEnum {
         case celsius
         case fahrenheit
     }
     
     
-    static let name: String = "get_current_weather"
-    static let description: String = "Get the current weather in a given location"
+    let name: String = "get_current_weather"
+    let description: String = "Get the current weather in a given location"
     
     
     @Parameter(

@@ -8,7 +8,6 @@
 
 public import Foundation
 public import GeneratedOpenAIClient
-public import GroveKeychainStorage
 public import OpenAPIRuntime
 
 
@@ -22,6 +21,10 @@ public struct LLMOpenAILikePlatformConfiguration<PlatformDefinition: LLMOpenAILi
     public let serverUrl: URL
     /// The OpenAI API token on a global basis.
     public let authToken: RemoteLLMInferenceAuthToken
+    /// How the API a request is served over is picked.
+    public let apiMode: LLMOpenAIAPIModePolicy
+    /// Whether a Responses API request that fails before producing any output is retried without streaming.
+    public let streamingFallback: Bool
     /// Indicates the maximum number of concurrent streams to the OpenAI API.
     public let concurrentStreams: Int
     /// Maximum network timeout of OpenAI requests in seconds.
@@ -41,6 +44,12 @@ public struct LLMOpenAILikePlatformConfiguration<PlatformDefinition: LLMOpenAILi
     /// - Parameters:
     ///   - serverUrl: The server `URL` that the inference tasks are dispatched to. Defaults to the OpenAI API endpoint specified in the OpenAI OpenAPI document.
     ///   - authToken: Specifies the OpenAI API token on a global basis.
+    ///   - apiMode: How the API a request is served over is picked. Defaults to letting each model decide, which is
+    ///     what the platform's own endpoint expects. Prefer `.fixed(.responses)` for compatible gateways; use
+    ///     `.fixed(.chatCompletions)` only when the gateway does not implement the Responses API.
+    ///   - streamingFallback: Whether a Responses API request that fails before producing any output is retried
+    ///     without streaming. Defaults to `true`, which keeps a gateway that serves `/v1/responses` but cannot
+    ///     stream it usable — the answer arrives in one piece instead of not at all.
     ///   - concurrentStreams: Indicates the maximum number of concurrent streams to the OpenAI API, defaults to `10`.
     ///   - timeout: Indicates the maximum network timeout of OpenAI requests in seconds. defaults to `60`.
     ///   - retryPolicy: The retry policy that should be used, defaults to `3` retry attempts.
@@ -49,6 +58,8 @@ public struct LLMOpenAILikePlatformConfiguration<PlatformDefinition: LLMOpenAILi
     public init(
         serverUrl: URL = PlatformDefinition.defaultServerUrl,
         authToken: RemoteLLMInferenceAuthToken,
+        apiMode: LLMOpenAIAPIModePolicy = .perModel,
+        streamingFallback: Bool = true,
         concurrentStreams: Int = 10,
         timeout: TimeInterval = 60,
         retryPolicy: RetryPolicy = .attempts(3),
@@ -57,6 +68,8 @@ public struct LLMOpenAILikePlatformConfiguration<PlatformDefinition: LLMOpenAILi
     ) {
         self.serverUrl = serverUrl
         self.authToken = authToken
+        self.apiMode = apiMode
+        self.streamingFallback = streamingFallback
         self.concurrentStreams = concurrentStreams
         self.timeout = timeout
         self.retryPolicy = retryPolicy
@@ -64,6 +77,10 @@ public struct LLMOpenAILikePlatformConfiguration<PlatformDefinition: LLMOpenAILi
         self.middlewares = middlewares
     }
 }
+
+
+#if canImport(Security)
+public import GroveKeychainStorage
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -85,3 +102,4 @@ extension RemoteLLMInferenceAuthToken {
         )
     }
 }
+#endif

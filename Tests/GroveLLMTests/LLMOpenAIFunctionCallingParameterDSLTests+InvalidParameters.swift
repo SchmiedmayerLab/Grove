@@ -18,9 +18,9 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
         let intParameter = 12
     }
     
-    struct LLMFunctionTestInvalid: LLMFunction {
-        static let name: String = "test_invalid_parameters_function"
-        static let description: String = "This is a test invalid parameters LLM function."
+    struct LLMFunctionTestInvalid: LLMTool {
+        let name: String = "test_invalid_parameters_function"
+        let description: String = "This is a test invalid parameters LLM function."
         
         let someInitArg: String
         
@@ -52,7 +52,7 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
         let llmFunctionPair = try #require(llm.functions.first)
         
         // Validate parameter metadata
-        #expect(llmFunctionPair.key == LLMFunctionTestInvalid.name)
+        #expect(llmFunctionPair.key == llmFunctionPair.value.name)
         let llmFunction = llmFunctionPair.value
         #expect(try #require(llmFunction.parameterValueCollectors["randomParameter"]).isOptional == false)
         
@@ -70,7 +70,7 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
             throws: DecodingError.self,
             "Mismatch between the defined values of the LLM Function and the requested values by the LLM"
         ) {
-            try llmFunction.injectParameters(from: parameterData)
+            _ = try llmFunction.arguments(from: parameterData)
         }
     }
 }

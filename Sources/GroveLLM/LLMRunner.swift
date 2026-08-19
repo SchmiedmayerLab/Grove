@@ -6,10 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-public import Foundation
+import Foundation
 public import Grove
-import GroveChat
 import GroveFoundation
+public import Observation
 import Synchronization
 
 /// Manages the execution of LLMs in the Grove ecosystem.
@@ -61,7 +61,7 @@ import Synchronization
 ///
 ///     func executePrompt(prompt: String) async throws {
 ///         await MainActor.run {
-///             llmSession?.context.append(userInput: prompt)
+///             llmSession?.context.append(userMessage: prompt)
 ///         }
 ///
 ///         // Performing the LLM inference, returning a stream of outputs.
