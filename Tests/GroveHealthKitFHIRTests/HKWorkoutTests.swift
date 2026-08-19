@@ -144,10 +144,10 @@ struct HKWorkoutTests {
             start: try startDate,
             end: try endDate
         )
-        let observation = try #require(workoutSample.resource().get(if: Observation.self))
+        let observation = try #require(workoutSample.resource(subject: Reference(reference: "Patient/example")).get(if: Observation.self))
         let expectedValue = createCodeableConcept(
             code: try activityType.fhirWorkoutTypeValue,
-            system: "http://developer.apple.com/documentation/healthkit"
+            system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-workout-activity-type"
         )
         #expect(observation.value == .codeableConcept(expectedValue))
     }

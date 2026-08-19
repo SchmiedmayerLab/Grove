@@ -31,6 +31,16 @@ extension HKCorrelation: FHIRObservationBuildable {
             }
             observation.append(component: try sample.quantity.buildObservationComponent(for: sampleType, mapping: mapping.quantityTypesMapping))
         }
+        if self.objects.isEmpty {
+            // vs-3: an Observation without value or component must say why the data is absent.
+            observation.dataAbsentReason = CodeableConcept(coding: [
+                Coding(
+                code: "unknown".asFHIRStringPrimitive(),
+                display: "Unknown".asFHIRStringPrimitive(),
+                system: "http://terminology.hl7.org/CodeSystem/data-absent-reason".asFHIRURIPrimitive()
+            )
+            ])
+        }
     }
 }
 

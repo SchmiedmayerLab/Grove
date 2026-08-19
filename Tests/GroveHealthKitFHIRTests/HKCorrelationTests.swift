@@ -53,7 +53,7 @@ struct HKCorrelationTests {
             objects: [systolicBloodPressure, diastolicBloodPressure]
         )
         
-        let observation = try #require(correlation.resource().get(if: Observation.self))
+        let observation = try #require(correlation.resource(subject: Reference(reference: "Patient/example")).get(if: Observation.self))
 
         #expect(1 == observation.component?.filter {
             $0.value == .quantity(
@@ -95,7 +95,7 @@ struct HKCorrelationTests {
             objects: [vitaminC]
         )
         #expect(throws: GroveHealthKitFHIRError.self) {
-            try correlation.resource()
+            try correlation.resource(subject: Reference(reference: "Patient/example"))
         }
     }
 }

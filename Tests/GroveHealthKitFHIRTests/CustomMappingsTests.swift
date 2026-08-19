@@ -18,8 +18,7 @@ import Testing
 struct CustomMappingsTests {
     @Test
     func customMappings() throws {
-        // swiftlint:disable:previous function_body_length
-        // We disable the function body length as this is a test case
+            // We disable the function body length as this is a test case
         let quantitySample = HKQuantitySample(
             type: HKQuantityType(.bodyMass),
             quantity: HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: 60),
@@ -50,7 +49,7 @@ struct CustomMappingsTests {
         ]
         
         let observation = try quantitySample
-            .resource(withMapping: hkSampleMapping)
+            .resource(withMapping: hkSampleMapping, subject: Reference(reference: "Patient/example"))
             .get(if: Observation.self)
         
         #expect(quantitySample.quantityType.codes() == [
@@ -67,7 +66,7 @@ struct CustomMappingsTests {
             Coding(
                 code: "HKQuantityTypeIdentifierBodyMass",
                 display: "Body Mass",
-                system: FHIRPrimitive(FHIRURI(stringLiteral: "http://developer.apple.com/documentation/healthkit"))
+                system: FHIRPrimitive(FHIRURI(stringLiteral: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-sample-type"))
             )
         ])
         

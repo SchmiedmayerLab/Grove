@@ -70,24 +70,24 @@ extension StateOfMindTypeFHIRMapping {
     public static let `default` = Self(
         codings: [
             Coding(
-                code: "HKStateOfMind",
+                code: "HKDataTypeStateOfMind",  // the runtime value of HKObjectType.stateOfMindType().identifier
                 display: "State of Mind",
-                system: "http://developer.apple.com/documentation/healthkit"
+                system: GroveFHIRVocabulary.healthKitSampleType
             )
         ],
         categories: [
             Coding(
                 code: "survey",
                 display: "Survey",
-                system: "http://terminology.hl7.org/CodeSystem/observation-category"
+                system: GroveFHIRVocabulary.observationCategory
             )
         ],
         kind: CategoryTypeFHIRMapping(
             codings: [
                 Coding(
-                    code: "HKStateOfMindKind",
+                    code: "kind",
                     display: "State of Mind Kind",
-                    system: "http://developer.apple.com/documentation/healthkit"
+                    system: GroveFHIRVocabulary.healthKitStateOfMindProperty
                 )
             ],
             categories: []
@@ -95,9 +95,9 @@ extension StateOfMindTypeFHIRMapping {
         valence: CategoryTypeFHIRMapping(
             codings: [
                 Coding(
-                    code: "HKStateOfMindValence",
+                    code: "valence",
                     display: "State of Mind Valence",
-                    system: "http://developer.apple.com/documentation/healthkit"
+                    system: GroveFHIRVocabulary.healthKitStateOfMindProperty
                 )
             ],
             categories: []
@@ -105,9 +105,9 @@ extension StateOfMindTypeFHIRMapping {
         valenceClassification: CategoryTypeFHIRMapping(
             codings: [
                 Coding(
-                    code: "HKStateOfMindValenceClassification",
+                    code: "valence-classification",
                     display: "State of Mind Valence Classification",
-                    system: "http://developer.apple.com/documentation/healthkit"
+                    system: GroveFHIRVocabulary.healthKitStateOfMindProperty
                 )
             ],
             categories: []
@@ -115,9 +115,9 @@ extension StateOfMindTypeFHIRMapping {
         label: CategoryTypeFHIRMapping(
             codings: [
                 Coding(
-                    code: "HKStateOfMindLabel",
+                    code: "label",
                     display: "State of Mind Label",
-                    system: "http://developer.apple.com/documentation/healthkit"
+                    system: GroveFHIRVocabulary.healthKitStateOfMindProperty
                 )
             ],
             categories: []
@@ -125,9 +125,9 @@ extension StateOfMindTypeFHIRMapping {
         association: CategoryTypeFHIRMapping(
             codings: [
                 Coding(
-                    code: "HKStateOfMindAssociation",
+                    code: "association",
                     display: "State of Mind Association",
-                    system: "http://developer.apple.com/documentation/healthkit"
+                    system: GroveFHIRVocabulary.healthKitStateOfMindProperty
                 )
             ],
             categories: []

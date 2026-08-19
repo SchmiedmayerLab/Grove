@@ -28,17 +28,46 @@ struct HKStateOfMindTests {
             labels: [.indifferent],
             associations: [.work]
         )
-        let observation = try #require(sample.resource().get(if: Observation.self))
+        let observation = try #require(sample.resource(subject: Reference(reference: "Patient/example")).get(if: Observation.self))
         #expect(observation.effective == .dateTime(try FHIRPrimitive<DateTime>(.init(date: yesterday))))
         #expect(observation.category?.first?.coding?.first?.code == "survey")
         #expect(observation.status == .final)
         let components = try #require(observation.component)
         #expect(components.count == 5)
-        components.expectContainsComponent(withCode: "HKStateOfMindKind", value: .string("daily mood"))
-        components.expectContainsComponent(withCode: "HKStateOfMindValence", value: .quantity(.init(value: 0.27)))
-        components.expectContainsComponent(withCode: "HKStateOfMindValenceClassification", value: .string("slightly pleasant"))
-        components.expectContainsComponent(withCode: "HKStateOfMindLabel", value: .string("indifferent"))
-        components.expectContainsComponent(withCode: "HKStateOfMindAssociation", value: .string("work"))
+        components.expectContainsComponent(withCode: "kind", value: .codeableConcept(CodeableConcept(coding: [
+            Coding(
+                code: "dailyMood".asFHIRStringPrimitive(),
+                display: "daily mood".asFHIRStringPrimitive(),
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-state-of-mind-kind"
+            )
+        ])))
+        components.expectContainsComponent(withCode: "valence", value: .quantity(Quantity(
+            code: "1".asFHIRStringPrimitive(),
+            system: "http://unitsofmeasure.org",
+            unit: "score".asFHIRStringPrimitive(),
+            value: 0.27.asFHIRDecimalPrimitive()
+        )))
+        components.expectContainsComponent(withCode: "valence-classification", value: .codeableConcept(CodeableConcept(coding: [
+            Coding(
+                code: "slightlyPleasant".asFHIRStringPrimitive(),
+                display: "slightly pleasant".asFHIRStringPrimitive(),
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-state-of-mind-valence-classification"
+            )
+        ])))
+        components.expectContainsComponent(withCode: "label", value: .codeableConcept(CodeableConcept(coding: [
+            Coding(
+                code: "indifferent".asFHIRStringPrimitive(),
+                display: "indifferent".asFHIRStringPrimitive(),
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-state-of-mind-label"
+            )
+        ])))
+        components.expectContainsComponent(withCode: "association", value: .codeableConcept(CodeableConcept(coding: [
+            Coding(
+                code: "work".asFHIRStringPrimitive(),
+                display: "work".asFHIRStringPrimitive(),
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-state-of-mind-association"
+            )
+        ])))
     }
     
     
@@ -54,21 +83,74 @@ struct HKStateOfMindTests {
             labels: [.brave, .confident, .lonely],
             associations: [.dating, .community, .friends]
         )
-        let observation = try #require(sample.resource().get(if: Observation.self))
+        let observation = try #require(sample.resource(subject: Reference(reference: "Patient/example")).get(if: Observation.self))
         #expect(observation.effective == .dateTime(try FHIRPrimitive<DateTime>(.init(date: yesterday))))
         #expect(observation.category?.first?.coding?.first?.code == "survey")
         #expect(observation.status == .final)
         let components = try #require(observation.component)
         #expect(components.count == 9)
-        components.expectContainsComponent(withCode: "HKStateOfMindKind", value: .string("momentary emotion"))
-        components.expectContainsComponent(withCode: "HKStateOfMindValence", value: .quantity(.init(value: -0.52)))
-        components.expectContainsComponent(withCode: "HKStateOfMindValenceClassification", value: .string("unpleasant"))
-        components.expectContainsComponent(withCode: "HKStateOfMindLabel", value: .string("brave"))
-        components.expectContainsComponent(withCode: "HKStateOfMindLabel", value: .string("confident"))
-        components.expectContainsComponent(withCode: "HKStateOfMindLabel", value: .string("lonely"))
-        components.expectContainsComponent(withCode: "HKStateOfMindAssociation", value: .string("dating"))
-        components.expectContainsComponent(withCode: "HKStateOfMindAssociation", value: .string("community"))
-        components.expectContainsComponent(withCode: "HKStateOfMindAssociation", value: .string("friends"))
+        components.expectContainsComponent(withCode: "kind", value: .codeableConcept(CodeableConcept(coding: [
+            Coding(
+                code: "momentaryEmotion".asFHIRStringPrimitive(),
+                display: "momentary emotion".asFHIRStringPrimitive(),
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-state-of-mind-kind"
+            )
+        ])))
+        components.expectContainsComponent(withCode: "valence", value: .quantity(Quantity(
+            code: "1".asFHIRStringPrimitive(),
+            system: "http://unitsofmeasure.org",
+            unit: "score".asFHIRStringPrimitive(),
+            value: FHIRPrimitive(FHIRDecimal(-0.52))
+        )))
+        components.expectContainsComponent(withCode: "valence-classification", value: .codeableConcept(CodeableConcept(coding: [
+            Coding(
+                code: "unpleasant".asFHIRStringPrimitive(),
+                display: "unpleasant".asFHIRStringPrimitive(),
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-state-of-mind-valence-classification"
+            )
+        ])))
+        components.expectContainsComponent(withCode: "label", value: .codeableConcept(CodeableConcept(coding: [
+            Coding(
+                code: "brave".asFHIRStringPrimitive(),
+                display: "brave".asFHIRStringPrimitive(),
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-state-of-mind-label"
+            )
+        ])))
+        components.expectContainsComponent(withCode: "label", value: .codeableConcept(CodeableConcept(coding: [
+            Coding(
+                code: "confident".asFHIRStringPrimitive(),
+                display: "confident".asFHIRStringPrimitive(),
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-state-of-mind-label"
+            )
+        ])))
+        components.expectContainsComponent(withCode: "label", value: .codeableConcept(CodeableConcept(coding: [
+            Coding(
+                code: "lonely".asFHIRStringPrimitive(),
+                display: "lonely".asFHIRStringPrimitive(),
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-state-of-mind-label"
+            )
+        ])))
+        components.expectContainsComponent(withCode: "association", value: .codeableConcept(CodeableConcept(coding: [
+            Coding(
+                code: "dating".asFHIRStringPrimitive(),
+                display: "dating".asFHIRStringPrimitive(),
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-state-of-mind-association"
+            )
+        ])))
+        components.expectContainsComponent(withCode: "association", value: .codeableConcept(CodeableConcept(coding: [
+            Coding(
+                code: "community".asFHIRStringPrimitive(),
+                display: "community".asFHIRStringPrimitive(),
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-state-of-mind-association"
+            )
+        ])))
+        components.expectContainsComponent(withCode: "association", value: .codeableConcept(CodeableConcept(coding: [
+            Coding(
+                code: "friends".asFHIRStringPrimitive(),
+                display: "friends".asFHIRStringPrimitive(),
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-state-of-mind-association"
+            )
+        ])))
     }
 }
 

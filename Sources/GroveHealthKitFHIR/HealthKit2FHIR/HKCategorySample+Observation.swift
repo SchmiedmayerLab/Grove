@@ -17,66 +17,84 @@ import ModelsR4
 extension HKCategorySample: FHIRObservationBuildable {
     func build(_ observation: inout Observation, mapping: SampleTypesFHIRMapping) throws {
         guard let sampleType = SampleType(self.categoryType),
-              let mapping = mapping.categoryTypesMapping[sampleType] else {
+              let categoryMapping = mapping.categoryTypesMapping[sampleType] else {
             throw GroveHealthKitFHIRError.notSupported
         }
-        observation.append(codings: mapping.codings)
-        observation.append(categories: mapping.categories.map { CodeableConcept(coding: [$0]) })
+        observation.append(codings: categoryMapping.codings)
+        observation.append(categories: categoryMapping.categories.map { CodeableConcept(coding: [$0]) })
         let assocDataInfo = try categoryType.associatedDataInfo
         if let valueType = assocDataInfo.valueType {
             guard let value = valueType.init(rawValue: self.value) else {
                 throw GroveHealthKitFHIRError.invalidValue
             }
-            observation.value = .codeableConcept(CodeableConcept(coding: [value.asCoding]))
-        } else {
-            // If the sample doesn't have a value type associated with it, we set the value to the category identifier
-            observation.value = .string(self.categoryType.identifier.asFHIRStringPrimitive())
+            observation.value = .codeableConcept(CodeableConcept(coding: [value.asCoding] + value.additionalCodings))
         }
-        for metadataKey in assocDataInfo.metadataKeys {
-            guard let value = self.metadata?[metadataKey] else {
+        // A category type without a value type carries no value: repeating the identifier `code` already
+        // states would observe nothing, the event itself being asserted by `effective[x]`.
+        // Sorted, so the same sample always yields the same component order.
+        for (_, component) in try metadataComponents(mapping: mapping.quantityTypesMapping).sorted(by: { $0.key < $1.key }) {
+            observation.append(component: component)
+        }
+    }
+
+    /// The components promoted from this sample's metadata, keyed by the metadata entry each one consumed.
+    ///
+    /// Every component is coded by its platform metadata key, which is what lets the Layer-4 envelope skip
+    /// exactly what Layer 3 took.
+    func metadataComponents(mapping: QuantityTypesFHIRMapping) throws -> [String: ObservationComponent] {
+        var components: [String: ObservationComponent] = [:]
+        for metadataKey in try categoryType.associatedDataInfo.metadataKeys {
+            guard let value = self.metadata?[metadataKey],
+                  let keyCoding = HKCategoryType.coding(forMetadataKey: metadataKey) else {
                 continue
             }
             if let quantity = value as? HKQuantity {
-                guard let quantityType = HKCategoryType.quantityType(forMetadataKey: metadataKey) else {
+                guard let quantityType = HKCategoryType.quantityType(forMetadataKey: metadataKey),
+                      let quantityMapping = mapping[quantityType] else {
                     continue
                 }
-                observation.append(component: try quantity.buildObservationComponent(for: quantityType))
-            } else if let value = value as? Bool {
-                guard let coding = HKCategoryType.coding(forMetadataKey: metadataKey) else {
-                    continue
-                }
-                observation.append(component: ObservationComponent(
-                    code: CodeableConcept(coding: [coding]),
-                    value: .boolean(value.asPrimitive())
-                ))
-            } else {
-                continue
+                // A threshold is an alert setting, not a reading: coding it as the concept it triggers on
+                // would let a query for that concept ingest configuration as measurement.
+                let measurementCodings = HKCategoryType.isEventThreshold(metadataKey) ? [] : quantityMapping.codings
+                components[metadataKey] = ObservationComponent(
+                    code: CodeableConcept(coding: [keyCoding] + measurementCodings),
+                    value: .quantity(try quantity.buildQuantity(mapping: quantityMapping))
+                )
+            } else if let flag = value as? Bool {
+                components[metadataKey] = ObservationComponent(
+                    code: CodeableConcept(coding: [keyCoding]),
+                    value: .boolean(flag.asPrimitive())
+                )
             }
         }
+        return components
     }
 }
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HKCategoryType {
     fileprivate static func coding(forMetadataKey key: String) -> Coding? {
-        switch key {
-        case HKMetadataKeyMenstrualCycleStart:
+        let display: String? = switch key {
+        case HKMetadataKeyMenstrualCycleStart: "Menstrual Cycle Start"
+        case HKMetadataKeySexualActivityProtectionUsed: "Sexual Activity: Protection Used"
+        case HKMetadataKeyHeartRateEventThreshold: "Heart Rate Event Threshold"
+        case HKMetadataKeyLowCardioFitnessEventThreshold: "Low Cardio Fitness Event Threshold"
+        case HKMetadataKeyVO2MaxValue: "VO2 Max Value"
+        default: nil
+        }
+        return display.map { display in
             Coding(
                 code: key.asFHIRStringPrimitive(),
-                display: "Menstrual Cycle Start".asFHIRStringPrimitive(),
-                system: "http://developer.apple.com/documentation/healthkit".asFHIRURIPrimitive()
+                display: display.asFHIRStringPrimitive(),
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
-        case HKMetadataKeySexualActivityProtectionUsed:
-            Coding(
-                code: key.asFHIRStringPrimitive(),
-                display: "Sexual Activity: Protection Used".asFHIRStringPrimitive(),
-                system: "http://developer.apple.com/documentation/healthkit".asFHIRURIPrimitive()
-            )
-        default:
-            nil
         }
     }
-    
+
+    fileprivate static func isEventThreshold(_ key: String) -> Bool {
+        key == HKMetadataKeyHeartRateEventThreshold || key == HKMetadataKeyLowCardioFitnessEventThreshold
+    }
+
     fileprivate static func quantityType(forMetadataKey key: String) -> SampleType<HKQuantitySample>? {
         switch key {
         case HKMetadataKeyHeartRateEventThreshold:

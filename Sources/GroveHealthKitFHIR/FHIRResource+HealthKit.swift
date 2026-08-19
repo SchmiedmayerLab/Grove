@@ -13,7 +13,7 @@ public import GroveFHIR
 public import GroveHealthKit
 import HealthKit
 import ModelsDSTU2
-import ModelsR4
+public import ModelsR4
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -21,11 +21,13 @@ extension FHIRResource {
     /// Creates a new ``FHIRResource`` instance using an `HKSample`.
     /// - Parameters:
     ///   - sample: The sample that should be transformed in a ``FHIRResource``.
+    ///   - subject: The patient the sample was recorded for, required by the Observation profile the conversion stamps.
     ///   - healthKit: Optional `HealthKit` module used to query additional context such as symptoms and voltage measurements for electrocardiograms and attachments for clinical records.
     ///   - loadHealthKitAttachments: Indicates if the `HKAttachmentStore` should be queried for any document references found in clinical records.
     /// - Returns: Created ``FHIRResource`` instance.
     public static func initialize( // swiftlint:disable:this function_body_length cyclomatic_complexity
         basedOn sample: HKSample,
+        subject: ModelsR4.Reference,
         using healthKit: HealthKit? = nil,
         loadHealthKitAttachments: Bool = false
     ) async throws -> FHIRResource {
@@ -46,7 +48,10 @@ extension FHIRResource {
                     domainResource.extension!.append( // swiftlint:disable:this force_unwrapping
                         ModelsDSTU2.Extension(
                             url: FHIRExtensionURL.hkSampleId.dstu2,
-                            value: .id(record.uuid.uuidString.asFHIRStringPrimitive())
+                            value: .identifier(ModelsDSTU2.Identifier(
+                                system: FHIRPrimitive(ModelsDSTU2.FHIRURI(stringLiteral: FHIRResource.healthKitSampleIdSystem)),
+                                value: record.uuid.uuidString.asFHIRStringPrimitive()
+                            ))
                         )
                     )
                     resource = domainResource
@@ -67,7 +72,10 @@ extension FHIRResource {
                     domainResource.append(
                         extension: ModelsR4.Extension(
                             url: .hkSampleId,
-                            value: .id(record.uuid.uuidString.asFHIRStringPrimitive())
+                            value: .identifier(ModelsR4.Identifier(
+                                system: FHIRPrimitive(ModelsR4.FHIRURI(stringLiteral: FHIRResource.healthKitSampleIdSystem)),
+                                value: record.uuid.uuidString.asFHIRStringPrimitive()
+                            ))
                         )
                     )
                     if let updated = domainResource as? any ModelsR4.Resource {
@@ -95,6 +103,7 @@ extension FHIRResource {
             async let symptoms = try electrocardiogram.symptoms(from: healthKit)
             async let voltageMeasurements = try electrocardiogram.voltageMeasurements(from: healthKit.healthStore)
             let electrocardiogramResource = try await electrocardiogram.observation(
+                subject: subject,
                 symptoms: symptoms,
                 voltageMeasurements: voltageMeasurements.map { ($0.timeOffset, $0.voltage) }
             )
@@ -103,7 +112,7 @@ extension FHIRResource {
                 displayName: String(localized: "FHIR_RESOURCES_SUMMARY_ID_TITLE \(electrocardiogramResource.id?.value?.string ?? "-")")
             )
         default:
-            let genericResource = try sample.resource().get()
+            let genericResource = try sample.resource(subject: subject).get()
             return FHIRResource(
                 versionedResource: .r4(genericResource),
                 displayName: String(localized: "FHIR_RESOURCES_SUMMARY_ID_TITLE \(genericResource.id?.value?.string ?? "-")")

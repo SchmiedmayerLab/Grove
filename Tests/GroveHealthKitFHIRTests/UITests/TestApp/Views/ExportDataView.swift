@@ -7,8 +7,8 @@
 //
 
 import Foundation
-import HealthKit
 import GroveHealthKitFHIR
+import HealthKit
 import SwiftUI
 
 
@@ -63,7 +63,7 @@ struct ExportDataView: View {
                 let fetchEndTS = CACurrentMediaTime()
                 print("did fetch samples (#=\(samples.count)) (took \(fetchEndTS - fetchStartTS) sec)")
                 let mapResourcesStartTS = CACurrentMediaTime()
-                _ = try samples.mapIntoResourceProxies()
+                _ = try samples.mapIntoResourceProxies(subject: Reference(reference: "Patient/example"))
                 let mapResourcesEndTS = CACurrentMediaTime()
                 print("did turn into resources (took \(mapResourcesEndTS - mapResourcesStartTS) sec)")
                 await MainActor.run {

@@ -20,9 +20,13 @@ import ModelsR4
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRExtensionURL {
-    /// Url of a FHIR Extension containing, if applicable, encoded metadata of the `HKObject` from which a FHIR `Observation` was created.
+    /// Url of a FHIR Extension carrying one entry of a HealthKit sample's metadata dictionary.
+    ///
+    /// One extension per entry, each with a `key` coding and a typed `value` — a
+    /// platform key cannot become part of the extension URL, since every extension URL
+    /// must resolve to a StructureDefinition.
     public static let metadata = Self(
-        "https://grovealliance.org/fhir/core/StructureDefinition/metadata",
+        "https://grovealliance.org/fhir/core/StructureDefinition/grove-platform-metadata",
         superseding: SupersededFHIRURLs.metadata
     )
 }
@@ -31,114 +35,101 @@ extension FHIRExtensionURL {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKObject> {
     /// A FHIR Extension Builder that writes encoded metadata of a HealthKit sample into a FHIR `Observation` created from the sample.
-    public static var metadata: FHIRExtensionBuilder<HKObject> {
-        .init { (object: HKObject, resource) in // swiftlint:disable:this closure_body_length
-            guard let metadata = object.metadata, !metadata.isEmpty else {
-                resource.removeAllExtensions(withUrl: .metadata)
+    ///
+    /// - parameter promotedKeys: Metadata keys the conversion has already promoted to Layer-3 components.
+    ///     Layer 4 carries whatever survives layers 1–3, so these must not be written a second time.
+    public static func metadata(excluding promotedKeys: Set<String> = []) -> FHIRExtensionBuilder<HKObject> {
+        .init { (object: HKObject, resource) in
+            // Keys with first-class FHIR homes are routed there by the conversion
+            // (timezone extension on effective[x], grove-recording-method) and must
+            // not be duplicated into the metadata envelope.
+            let routedKeys = promotedKeys.union([HKMetadataKeyTimeZone, HKMetadataKeyWasUserEntered])
+            resource.removeAllExtensions(withUrl: .metadata)
+            guard let metadata = object.metadata?.filter({ !routedKeys.contains($0.key) }), !metadata.isEmpty else {
                 return
             }
-            var metadataExtension = Extension(url: .metadata)
-            for (key, value) in metadata {
-                // The HKObject docs state that "Keys must be NSString and values must be either NSString, NSNumber, NSDate, or HKQuantity".
-                // Additionally, there are some HKMetadataKey constants which say that they store a BOOL, so we support that as well.
-                let extensionValue: Extension.ValueX
-                switch value {
-                case let value as String:
-                    extensionValue = .string(value.asFHIRStringPrimitive())
-                case let value as NSNumber:
-                    if let type = Self.type(forMetadataKey: key), let value = type.init(rawValue: value.intValue) {
-                        extensionValue = .coding(value.asCoding)
-                    } else {
-                        @_transparent
-                        func typeEncoding(_ type: (some Any).Type) -> String {
-                            String(cString: _getObjCTypeEncoding(type))
-                        }
-                        switch String(cString: value.objCType) {
-                        case "c" where value.intValue == 0 || value.intValue == 1:
-                            // if the number reports as a char (int8), and it's value is 0 or 1, we treat it as a boolean value.
-                            // we need to do this as ObjC bools are encoded as chars.
-                            // the likelihood of a HKSample containing an int8-typed metadata entry that is actually supposed to be a
-                            // numeric value is significantly lower than the sample containing a boolean-typed metadata value
-                            // originating from ObjC.
-                            fallthrough // swiftlint:disable:this no_fallthrough_only
-                        case typeEncoding(Bool.self), typeEncoding(ObjCBool.self):
-                            extensionValue = .boolean(value.boolValue.asPrimitive())
-                        default:
-                            extensionValue = .decimal(FHIRPrimitive(FHIRDecimal(value.decimalValue)))
-                        }
-                    }
-                case let value as Date:
-                    extensionValue = .dateTime(FHIRPrimitive(try DateTime(date: value)))
-                case let value as Bool:
-                    extensionValue = .boolean(value.asPrimitive())
-                case let value as HKQuantity:
-                    switch key {
-                    case HKMetadataKeyWeatherTemperature:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .weatherTemperature))
-                    case HKMetadataKeyWeatherHumidity:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .weatherHumidity))
-                    case HKMetadataKeySessionEstimate:
-                        guard let sample = object as? HKQuantitySample,
-                              let sampleType = SampleType(sample.quantityType),
-                              let mapping = QuantityTypesFHIRMapping.default[sampleType] else {
-                            continue // should be unreachable. skipping
-                        }
-                        extensionValue = .quantity(try value.buildQuantity(mapping: mapping))
-                    case HKMetadataKeyHeartRateRecoveryActivityDuration:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .heartRateRecoveryActivityDuration))
-                    case HKMetadataKeyHeartRateRecoveryMaxObservedRecoveryHeartRate:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .heartRateRecoveryMaxObservedRecoveryHeartRate))
-                    case HKMetadataKeyAverageSpeed:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .averageSpeed))
-                    case HKMetadataKeyMaximumSpeed:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .maximumSpeed))
-                    case HKMetadataKeyAlpineSlopeGrade:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .alpineSlopeGrade))
-                    case HKMetadataKeyElevationAscended:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .elevationAscended))
-                    case HKMetadataKeyElevationDescended:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .elevationDescended))
-                    case HKMetadataKeyFitnessMachineDuration:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .fitnessMachineDuration))
-                    case HKMetadataKeyIndoorBikeDistance:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .indoorBikeDistance))
-                    case HKMetadataKeyCrossTrainerDistance:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .crossTrainerDistance))
-                    case HKMetadataKeyHeartRateEventThreshold:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .highHeartRateEventThreshold))
-                    case HKMetadataKeyAverageMETs:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .averageMETs))
-                    case HKMetadataKeyAudioExposureLevel:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .audioExposureLevel))
-                    case HKMetadataKeyAudioExposureDuration:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .audioExposureDuration))
-                    case HKMetadataKeyBarometricPressure:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .barometricPressure))
-                    case HKMetadataKeyVO2MaxValue:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .vo2MaxValue))
-                    case HKMetadataKeyLowCardioFitnessEventThreshold:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .lowCardioFitnessEventThreshold))
-                    case HKMetadataKeyHeadphoneGain:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .headphoneGain))
-                    case HKMetadataKeyMaximumLightIntensity:
-                        extensionValue = .quantity(try value.buildQuantity(mapping: .maximumLightIntensity))
-                    default:
-                        print("Encountered unexpected HKQuantity metadata value for key '\(key)'. Skipping.")
-                        continue
-                    }
-                default:
-                    print("Encountered unexpected HKSample metadata value of type \(Swift.type(of: value)), for key '\(key)'. Skipping.")
+            // Sorted, so the same sample always yields the same extension order.
+            for (key, value) in metadata.sorted(by: { $0.key < $1.key }) {
+                guard let extensionValue = try Self.extensionValue(for: value, forKey: key, of: object) else {
                     continue
                 }
-                metadataExtension.append(
-                    extension: Extension(url: .metadata.appending(component: key), value: extensionValue),
-                    behaviour: .replace
-                )
-                resource.append(extension: metadataExtension, behaviour: .replace)
+                var entry = Extension(url: .metadata)
+                entry.extension = [
+                    Extension(
+                        url: "key",
+                        value: .coding(Coding(
+                            code: key.asFHIRStringPrimitive(),
+                            system: GroveFHIRVocabulary.healthKitMetadataKey
+                        ))
+                    ),
+                    Extension(url: "value", value: extensionValue)
+                ]
+                resource.append(extension: entry, behaviour: .additive)
             }
         }
     }
-    
+
+    /// The `value[x]` one metadata entry is written as, or nil when the entry has no FHIR spelling.
+    ///
+    /// The HKObject docs state that "Keys must be NSString and values must be either NSString, NSNumber, NSDate, or HKQuantity".
+    /// Additionally, there are some HKMetadataKey constants which say that they store a BOOL, so we support that as well.
+    private static func extensionValue(for value: Any, forKey key: String, of object: HKObject) throws -> Extension.ValueX? {
+        switch value {
+        case let value as String:
+            return .string(value.asFHIRStringPrimitive())
+        case let value as NSNumber:
+            return Self.numberValue(value, forKey: key)
+        case let value as Date:
+            return .dateTime(FHIRPrimitive(try DateTime(date: value)))
+        case let value as Bool:
+            return .boolean(value.asPrimitive())
+        case let value as HKQuantity:
+            return try Self.quantityValue(value, forKey: key, of: object)
+        default:
+            print("Encountered unexpected HKSample metadata value of type \(Swift.type(of: value)), for key '\(key)'. Skipping.")
+            return nil
+        }
+    }
+
+    private static func numberValue(_ value: NSNumber, forKey key: String) -> Extension.ValueX {
+        if let type = Self.type(forMetadataKey: key), let value = type.init(rawValue: value.intValue) {
+            return .coding(value.asCoding)
+        }
+        @_transparent
+        func typeEncoding(_ type: (some Any).Type) -> String {
+            String(cString: _getObjCTypeEncoding(type))
+        }
+        switch String(cString: value.objCType) {
+        case "c" where value.intValue == 0 || value.intValue == 1:
+            // if the number reports as a char (int8), and it's value is 0 or 1, we treat it as a boolean value.
+            // we need to do this as ObjC bools are encoded as chars.
+            // the likelihood of a HKSample containing an int8-typed metadata entry that is actually supposed to be a
+            // numeric value is significantly lower than the sample containing a boolean-typed metadata value
+            // originating from ObjC.
+            fallthrough // swiftlint:disable:this no_fallthrough_only
+        case typeEncoding(Bool.self), typeEncoding(ObjCBool.self):
+            return .boolean(value.boolValue.asPrimitive())
+        default:
+            return .decimal(FHIRPrimitive(FHIRDecimal(value.decimalValue)))
+        }
+    }
+
+    private static func quantityValue(_ value: HKQuantity, forKey key: String, of object: HKObject) throws -> Extension.ValueX? {
+        if key == HKMetadataKeySessionEstimate {
+            guard let sample = object as? HKQuantitySample,
+                  let sampleType = SampleType(sample.quantityType),
+                  let mapping = QuantityTypesFHIRMapping.default[sampleType] else {
+                return nil // should be unreachable. skipping
+            }
+            return .quantity(try value.buildQuantity(mapping: mapping))
+        }
+        guard let mapping = QuantityTypeFHIRMapping.byMetadataKey[key] else {
+            print("Encountered unexpected HKQuantity metadata value for key '\(key)'. Skipping.")
+            return nil
+        }
+        return .quantity(try value.buildQuantity(mapping: mapping))
+    }
+
     private static func type(forMetadataKey key: String) -> (any FHIRCodingConvertibleHKEnum.Type)? { // swiftlint:disable:this cyclomatic_complexity
         switch key {
         case HKMetadataKeyAppleECGAlgorithmVersion:
@@ -182,12 +173,38 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKObje
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension QuantityTypeFHIRMapping {
+    /// `HKMetadataKeySessionEstimate` is deliberately absent: its value carries the sample's own
+    /// unit, so it is written with the sample's mapping rather than one of its own.
+    fileprivate static let byMetadataKey: [String: QuantityTypeFHIRMapping] = [
+        HKMetadataKeyWeatherTemperature: .weatherTemperature,
+        HKMetadataKeyWeatherHumidity: .weatherHumidity,
+        HKMetadataKeyHeartRateRecoveryActivityDuration: .heartRateRecoveryActivityDuration,
+        HKMetadataKeyHeartRateRecoveryMaxObservedRecoveryHeartRate: .heartRateRecoveryMaxObservedRecoveryHeartRate,
+        HKMetadataKeyAverageSpeed: .averageSpeed,
+        HKMetadataKeyMaximumSpeed: .maximumSpeed,
+        HKMetadataKeyAlpineSlopeGrade: .alpineSlopeGrade,
+        HKMetadataKeyElevationAscended: .elevationAscended,
+        HKMetadataKeyElevationDescended: .elevationDescended,
+        HKMetadataKeyFitnessMachineDuration: .fitnessMachineDuration,
+        HKMetadataKeyIndoorBikeDistance: .indoorBikeDistance,
+        HKMetadataKeyCrossTrainerDistance: .crossTrainerDistance,
+        HKMetadataKeyHeartRateEventThreshold: .highHeartRateEventThreshold,
+        HKMetadataKeyAverageMETs: .averageMETs,
+        HKMetadataKeyAudioExposureLevel: .audioExposureLevel,
+        HKMetadataKeyAudioExposureDuration: .audioExposureDuration,
+        HKMetadataKeyBarometricPressure: .barometricPressure,
+        HKMetadataKeyVO2MaxValue: .vo2MaxValue,
+        HKMetadataKeyLowCardioFitnessEventThreshold: .lowCardioFitnessEventThreshold,
+        HKMetadataKeyHeadphoneGain: .headphoneGain,
+        HKMetadataKeyMaximumLightIntensity: .maximumLightIntensity
+    ]
+
     fileprivate static let weatherTemperature = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyWeatherTemperature",
+                code: HKMetadataKeyWeatherTemperature.asFHIRStringPrimitive(),
                 display: "Weather Temperature",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -201,9 +218,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let weatherHumidity = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyWeatherHumidity",
+                code: HKMetadataKeyWeatherHumidity.asFHIRStringPrimitive(),
                 display: "Weather Humidity",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -217,9 +234,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let heartRateRecoveryActivityDuration = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyHeartRateRecoveryActivityDuration",
+                code: HKMetadataKeyHeartRateRecoveryActivityDuration.asFHIRStringPrimitive(),
                 display: "Heart Rate Recovery Activity Duration",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -233,9 +250,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let heartRateRecoveryMaxObservedRecoveryHeartRate = Self( // swiftlint:disable:this identifier_name
         codings: [
             Coding(
-                code: "HKMetadataKeyHeartRateRecoveryMaxObservedRecoveryHeartRate",
+                code: HKMetadataKeyHeartRateRecoveryMaxObservedRecoveryHeartRate.asFHIRStringPrimitive(),
                 display: "Heart Rate Recovery Max Observed Recovery Heart Rate",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             ),
             Coding(
                 code: "8867-4",
@@ -259,9 +276,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let averageSpeed = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyAverageSpeed",
+                code: HKMetadataKeyAverageSpeed.asFHIRStringPrimitive(),
                 display: "Average Speed",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -275,9 +292,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let maximumSpeed = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyMaximumSpeed",
+                code: HKMetadataKeyMaximumSpeed.asFHIRStringPrimitive(),
                 display: "Maximum Speed",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -291,9 +308,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let alpineSlopeGrade = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyAlpineSlopeGrade",
+                code: HKMetadataKeyAlpineSlopeGrade.asFHIRStringPrimitive(),
                 display: "Alpine Slope Grade",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -307,9 +324,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let elevationAscended = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyElevationAscended",
+                code: HKMetadataKeyElevationAscended.asFHIRStringPrimitive(),
                 display: "Elevation Ascended",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -323,9 +340,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let elevationDescended = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyElevationDescended",
+                code: HKMetadataKeyElevationDescended.asFHIRStringPrimitive(),
                 display: "Elevation Descended",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -339,9 +356,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let fitnessMachineDuration = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyFitnessMachineDuration",
+                code: HKMetadataKeyFitnessMachineDuration.asFHIRStringPrimitive(),
                 display: "Fitness Machine Duration",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -355,9 +372,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let indoorBikeDistance = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyIndoorBikeDistance",
+                code: HKMetadataKeyIndoorBikeDistance.asFHIRStringPrimitive(),
                 display: "Indoor Bike Distance",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -371,9 +388,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let crossTrainerDistance = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyCrossTrainerDistance",
+                code: HKMetadataKeyCrossTrainerDistance.asFHIRStringPrimitive(),
                 display: "Cross Trainer Distance",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -387,9 +404,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let highHeartRateEventThreshold = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyHeartRateEventThreshold",
+                code: HKMetadataKeyHeartRateEventThreshold.asFHIRStringPrimitive(),
                 display: "Heart Rate Event Threshold",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             ),
             Coding(
                 code: "8867-4",
@@ -413,9 +430,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let averageMETs = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyAverageMETs",
+                code: HKMetadataKeyAverageMETs.asFHIRStringPrimitive(),
                 display: "Average METs",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -429,9 +446,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let audioExposureLevel = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyAudioExposureLevel",
+                code: HKMetadataKeyAudioExposureLevel.asFHIRStringPrimitive(),
                 display: "Audio Exposure Level",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -445,9 +462,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let audioExposureDuration = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyAudioExposureDuration",
+                code: HKMetadataKeyAudioExposureDuration.asFHIRStringPrimitive(),
                 display: "Audio Exposure Duration",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -461,9 +478,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let barometricPressure = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyBarometricPressure",
+                code: HKMetadataKeyBarometricPressure.asFHIRStringPrimitive(),
                 display: "Barometric Pressure",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -477,9 +494,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let vo2MaxValue = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyVO2MaxValue",
+                code: HKMetadataKeyVO2MaxValue.asFHIRStringPrimitive(),
                 display: "VO2Max Value",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -493,9 +510,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let lowCardioFitnessEventThreshold = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyLowCardioFitnessEventThreshold",
+                code: HKMetadataKeyLowCardioFitnessEventThreshold.asFHIRStringPrimitive(),
                 display: "Low Cardio Fitness Event Threshold",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -509,9 +526,9 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let headphoneGain = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyHeadphoneGain",
+                code: HKMetadataKeyHeadphoneGain.asFHIRStringPrimitive(),
                 display: "Headphone Gain",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
@@ -525,16 +542,16 @@ extension QuantityTypeFHIRMapping {
     fileprivate static let maximumLightIntensity = Self(
         codings: [
             Coding(
-                code: "HKMetadataKeyMaximumLightIntensity",
+                code: HKMetadataKeyMaximumLightIntensity.asFHIRStringPrimitive(),
                 display: "Maximum Light Intensity",
-                system: .healthKitSystem
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ],
         unit: Unit(
             hkUnit: .lux(),
             unit: "lux",
             system: .unitsOfMeasureSystem,
-            code: "lux"
+            code: "lx"
         )
     )
 }

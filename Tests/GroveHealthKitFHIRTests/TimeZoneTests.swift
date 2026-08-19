@@ -15,7 +15,7 @@ import Testing
 
 
 @Suite
-struct TimeZoneTests { // swiftlint:disable:this type_body_length
+struct TimeZoneTests {
     func createDateInTimeZone(_ components: DateComponents, timeZone: TimeZone) throws -> Date {
         var calendar = Calendar.current
         calendar.timeZone = timeZone
@@ -59,7 +59,7 @@ struct TimeZoneTests { // swiftlint:disable:this type_body_length
             end: end,
             metadata: metadata
         )
-        return try #require(quantitySample.resource().get(if: Observation.self))
+        return try #require(quantitySample.resource(subject: Reference(reference: "Patient/example")).get(if: Observation.self))
     }
     
     /// Tests specifying the pacific standard time zone (-08:00) in metadata with a different start and end date (results in a FHIR `Period`)
@@ -279,13 +279,6 @@ struct TimeZoneTests { // swiftlint:disable:this type_body_length
         let startTimestamp = try #require(period.start?.value?.description)
         let endTimestamp = try #require(period.end?.value?.description)
         
-        let currentTimeZone = TimeZone.current
-        let totalMinutes = currentTimeZone.secondsFromGMT(for: startDate) / 60
-        let hours = abs(totalMinutes / 60)
-        let minutes = abs(totalMinutes % 60)
-        let sign = totalMinutes >= 0 ? "+" : "-"
-        let expectedOffsetString = String(format: "%@%02d:%02d", sign, hours, minutes)
-        
         #expect(startTimestamp.starts(with: "2024-12-01T09:00:00"), "Start timestamp should begin with correct date and time")
         #expect(endTimestamp.starts(with: "2024-12-01T10:45:00"), "End timestamp should begin with correct date and time")
         #expect(try #require(period.start?.value).asNSDate() == startDate)
@@ -315,13 +308,6 @@ struct TimeZoneTests { // swiftlint:disable:this type_body_length
         }
         
         let timestamp = try #require(dateTime.value?.description)
-        
-        let currentTimeZone = TimeZone.current
-        let totalMinutes = currentTimeZone.secondsFromGMT(for: startDate) / 60
-        let hours = abs(totalMinutes / 60)
-        let minutes = abs(totalMinutes % 60)
-        let sign = totalMinutes >= 0 ? "+" : "-"
-        let expectedOffsetString = String(format: "%@%02d:%02d", sign, hours, minutes)
         
         #expect(timestamp.starts(with: "2024-12-01T09:00:00"), "Timestamp should begin with correct date and time")
         #expect(try #require(dateTime.value).asNSDate() == startDate)

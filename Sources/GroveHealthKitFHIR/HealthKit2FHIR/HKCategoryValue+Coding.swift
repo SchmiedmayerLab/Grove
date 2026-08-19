@@ -14,16 +14,44 @@ import ModelsR4
 
 
 /// Models a value type used by a `HKCategoryType`.
+///
+/// The coding members are synthesized by `@SynthesizeDisplayProperty`: `code` is the
+/// Swift case name, and ``fhirSystemName`` names the Grove-published CodeSystem for
+/// the type. Platform raw integers are deliberately not used as codes — Apple may
+/// reassign them, and they carry no meaning to a consumer.
+///
+/// A value the platform reports but this build does not know is coded as
+/// `unrecognized-platform-value`: several of these types declare an `unknown` case of
+/// their own, so the fallback has to be a code Apple cannot also mean.
 protocol FHIRCodingConvertible {
-    static var system: FHIRPrimitive<FHIRURI> { get }
-    
+    /// The type's code system name within the Grove platform vocabulary,
+    /// e.g. `healthkit-category-value-sleep-analysis`.
+    static var fhirSystemName: String { get }
+    /// The code system's title, e.g. `HealthKit Category Value Sleep Analysis`.
+    static var fhirSystemTitle: String { get }
+    /// The platform type the system publishes, spelled as the framework refers to it.
+    static var fhirPlatformTypeName: String { get }
+    /// Every code the mapping can write, including the `unrecognized-platform-value`
+    /// sentinel — what the vocabulary generator publishes, so the code system stays
+    /// complete without duplicating the case list.
+    static var fhirPublishedCodes: [(code: String, display: String)] { get }
+
     var code: String { get }
     var display: String? { get }
-    
+    /// Parallel codings from standard vocabularies (e.g. LOINC sleep stages),
+    /// appended after the HealthKit coding. A protocol requirement so conforming
+    /// types' implementations dispatch dynamically.
+    var additionalCodings: [Coding] { get }
+
     init?(rawValue: Int)
 }
 
 extension FHIRCodingConvertible {
+    /// The type's canonical code system.
+    static var system: FHIRPrimitive<FHIRURI> {
+        FHIRPrimitive(FHIRURI(stringLiteral: "\(GroveFHIRVocabulary.platformCodeSystemBase)/\(fhirSystemName)"))
+    }
+
     var asCoding: Coding {
         Coding(
             code: code.asFHIRStringPrimitive(),
@@ -31,24 +59,14 @@ extension FHIRCodingConvertible {
             system: Self.system
         )
     }
-}
 
-
-extension FHIRCodingConvertible where Self: RawRepresentable, RawValue == Int {
-    var code: String {
-        String(rawValue)
-    }
+    /// Parallel codings from standard vocabularies (e.g. LOINC sleep stages),
+    /// appended after the HealthKit coding.
+    var additionalCodings: [Coding] { [] }
 }
 
 
 protocol FHIRCodingConvertibleHKEnum: FHIRCodingConvertible {}
-
-extension FHIRCodingConvertibleHKEnum {
-    static var system: FHIRPrimitive<FHIRURI> {
-        let typename = String(describing: Self.self).lowercased()
-        return "https://developer.apple.com/documentation/healthkit/\(typename)".asFHIRURIPrimitive()! // swiftlint:disable:this force_unwrapping
-    }
-}
 
 
 // MARK: Extensions
@@ -190,3 +208,37 @@ extension HKCategoryValueSeverity: FHIRCodingConvertibleHKEnum {}
 extension HKCategoryValuePresence: FHIRCodingConvertibleHKEnum {}
 
 #endif
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HKCategoryValueSleepAnalysis {
+    /// LOINC sleep-stage codes carried alongside the HealthKit value, so consumers
+    /// can aggregate stage durations without Apple-specific vocabulary.
+    var additionalCodings: [Coding] {
+        let loinc: (code: String, display: String)?
+        switch self {
+        case .inBed, .asleepUnspecified:
+            loinc = ("93832-4", "Sleep duration")
+        case .asleepREM:
+            loinc = ("93829-0", "REM sleep duration")
+        case .asleepCore:
+            loinc = ("93830-8", "Light sleep duration")
+        case .asleepDeep:
+            loinc = ("93831-6", "Deep sleep duration")
+        case .awake:
+            loinc = nil
+        @unknown default:
+            loinc = nil
+        }
+        guard let loinc else {
+            return []
+        }
+        return [
+            Coding(
+            code: loinc.code.asFHIRStringPrimitive(),
+            display: loinc.display.asFHIRStringPrimitive(),
+            system: .loincSystem
+        )
+        ]
+    }
+}

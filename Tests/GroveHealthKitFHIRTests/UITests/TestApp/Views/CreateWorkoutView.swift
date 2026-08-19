@@ -7,8 +7,8 @@
 //
 
 import Foundation
-import HealthKit
 import GroveHealthKitFHIR
+import HealthKit
 import ModelsR4
 import SwiftUI
 
@@ -72,7 +72,7 @@ struct CreateWorkoutView: View {
                 activityType: .running
             )
 
-            let observation = try workout.resource()
+            let observation = try workout.resource(subject: Reference(reference: "Patient/example"))
 
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]

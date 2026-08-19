@@ -6,7 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
-// swiftlint:disable file_length type_body_length
 
 #if canImport(HealthKit)
 
@@ -45,7 +44,7 @@ struct HKCategorySampleTests {
             end: try endDate,
             metadata: metadata
         )
-        return try #require(categorySample.resource().get(if: Observation.self))
+        return try #require(categorySample.resource(subject: Reference(reference: "Patient/example")).get(if: Observation.self))
     }
 
     func createCategoryCoding(
@@ -61,19 +60,19 @@ struct HKCategorySampleTests {
 
     
     @Test(arguments: [
-        (HKCategoryValueCervicalMucusQuality.dry, "1", "dry"),
-        (HKCategoryValueCervicalMucusQuality.sticky, "2", "sticky"),
-        (HKCategoryValueCervicalMucusQuality.creamy, "3", "creamy"),
-        (HKCategoryValueCervicalMucusQuality.watery, "4", "watery"),
-        (HKCategoryValueCervicalMucusQuality.eggWhite, "5", "egg white")
+        (HKCategoryValueCervicalMucusQuality.dry, "dry", "dry"),
+        (HKCategoryValueCervicalMucusQuality.sticky, "sticky", "sticky"),
+        (HKCategoryValueCervicalMucusQuality.creamy, "creamy", "creamy"),
+        (HKCategoryValueCervicalMucusQuality.watery, "watery", "watery"),
+        (HKCategoryValueCervicalMucusQuality.eggWhite, "eggWhite", "egg white")
     ])
     func cervicalMucusQuality(value: HKCategoryValueCervicalMucusQuality, expectedCode: String, expectedDisplay: String) throws {
-        let system: FHIRPrimitive<FHIRURI> = "https://developer.apple.com/documentation/healthkit/hkcategoryvaluecervicalmucusquality"
+        let system: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-category-value-cervical-mucus-quality"
         let observation = try createObservationFrom(
             type: .cervicalMucusQuality,
             value: value.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .cervicalMucusQuality,
             display: "Cervical Mucus Quality"
         ))
@@ -87,14 +86,14 @@ struct HKCategorySampleTests {
     }
 
     @Test(arguments: [
-        (HKCategoryValueMenstrualFlow.unspecified, "1", "unspecified"),
-        (HKCategoryValueMenstrualFlow.light, "2", "light"),
-        (HKCategoryValueMenstrualFlow.medium, "3", "medium"),
-        (HKCategoryValueMenstrualFlow.heavy, "4", "heavy"),
-        (HKCategoryValueMenstrualFlow.none, "5", "none")
+        (HKCategoryValueMenstrualFlow.unspecified, "unspecified", "unspecified"),
+        (HKCategoryValueMenstrualFlow.light, "light", "light"),
+        (HKCategoryValueMenstrualFlow.medium, "medium", "medium"),
+        (HKCategoryValueMenstrualFlow.heavy, "heavy", "heavy"),
+        (HKCategoryValueMenstrualFlow.none, "none", "none")
     ])
     func menstrualFlow(value: HKCategoryValueMenstrualFlow, expectedCode: String, expectedDisplay: String) throws {
-        let system: FHIRPrimitive<FHIRURI> = "https://developer.apple.com/documentation/healthkit/hkcategoryvaluemenstrualflow"
+        let system: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-category-value-menstrual-flow"
         let observation = try createObservationFrom(
             type: .menstrualFlow,
             value: value.rawValue,
@@ -114,18 +113,18 @@ struct HKCategorySampleTests {
     }
 
     @Test(arguments: [
-        (HKCategoryValueOvulationTestResult.negative, "1", "negative"),
-        (HKCategoryValueOvulationTestResult.luteinizingHormoneSurge, "2", "luteinizing hormone surge"),
-        (HKCategoryValueOvulationTestResult.indeterminate, "3", "indeterminate"),
-        (HKCategoryValueOvulationTestResult.estrogenSurge, "4", "estrogen surge")
+        (HKCategoryValueOvulationTestResult.negative, "negative", "negative"),
+        (HKCategoryValueOvulationTestResult.luteinizingHormoneSurge, "luteinizingHormoneSurge", "luteinizing hormone surge"),
+        (HKCategoryValueOvulationTestResult.indeterminate, "indeterminate", "indeterminate"),
+        (HKCategoryValueOvulationTestResult.estrogenSurge, "estrogenSurge", "estrogen surge")
     ])
     func ovulationTestResult(value: HKCategoryValueOvulationTestResult, expectedCode: String, expectedDisplay: String) throws {
-        let system: FHIRPrimitive<FHIRURI> = "https://developer.apple.com/documentation/healthkit/hkcategoryvalueovulationtestresult"
+        let system: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-category-value-ovulation-test-result"
         let observation = try createObservationFrom(
             type: .ovulationTestResult,
             value: value.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .ovulationTestResult,
             display: "Ovulation Test Result"
         ))
@@ -142,21 +141,21 @@ struct HKCategorySampleTests {
     }
 
     @Test(arguments: [
-        (HKCategoryValueContraceptive.unspecified, "1", "unspecified"),
-        (HKCategoryValueContraceptive.implant, "2", "implant"),
-        (HKCategoryValueContraceptive.injection, "3", "injection"),
-        (HKCategoryValueContraceptive.intrauterineDevice, "4", "intrauterine device"),
-        (HKCategoryValueContraceptive.intravaginalRing, "5", "intravaginal ring"),
-        (HKCategoryValueContraceptive.oral, "6", "oral"),
-        (HKCategoryValueContraceptive.patch, "7", "patch")
+        (HKCategoryValueContraceptive.unspecified, "unspecified", "unspecified"),
+        (HKCategoryValueContraceptive.implant, "implant", "implant"),
+        (HKCategoryValueContraceptive.injection, "injection", "injection"),
+        (HKCategoryValueContraceptive.intrauterineDevice, "intrauterineDevice", "intrauterine device"),
+        (HKCategoryValueContraceptive.intravaginalRing, "intravaginalRing", "intravaginal ring"),
+        (HKCategoryValueContraceptive.oral, "oral", "oral"),
+        (HKCategoryValueContraceptive.patch, "patch", "patch")
     ])
     func contraceptive(value: HKCategoryValueContraceptive, expectedCode: String, expectedDisplay: String) throws {
-        let system: FHIRPrimitive<FHIRURI> = "https://developer.apple.com/documentation/healthkit/hkcategoryvaluecontraceptive"
+        let system: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-category-value-contraceptive"
         let observation = try createObservationFrom(
             type: .contraceptive,
             value: value.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .contraceptive,
             display: "Contraceptive"
         ))
@@ -170,45 +169,59 @@ struct HKCategorySampleTests {
     }
 
     @Test(arguments: [
-        (HKCategoryValueSleepAnalysis.inBed, "0", "in bed"),
-        (HKCategoryValueSleepAnalysis.asleepUnspecified, "1", "asleep unspecified"),
-        (HKCategoryValueSleepAnalysis.awake, "2", "awake"),
-        (HKCategoryValueSleepAnalysis.asleepCore, "3", "asleep core"),
-        (HKCategoryValueSleepAnalysis.asleepDeep, "4", "asleep deep"),
-        (HKCategoryValueSleepAnalysis.asleepREM, "5", "asleep REM")
+        (HKCategoryValueSleepAnalysis.inBed, "inBed", "in bed"),
+        (HKCategoryValueSleepAnalysis.asleepUnspecified, "asleepUnspecified", "asleep unspecified"),
+        (HKCategoryValueSleepAnalysis.awake, "awake", "awake"),
+        (HKCategoryValueSleepAnalysis.asleepCore, "asleepCore", "asleep core"),
+        (HKCategoryValueSleepAnalysis.asleepDeep, "asleepDeep", "asleep deep"),
+        (HKCategoryValueSleepAnalysis.asleepREM, "asleepREM", "asleep REM")
     ])
     func sleepAnalysis(value: HKCategoryValueSleepAnalysis, expectedCode: String, expectedDisplay: String) throws {
-        let system: FHIRPrimitive<FHIRURI> = "https://developer.apple.com/documentation/healthkit/hkcategoryvaluesleepanalysis"
+        let system: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-category-value-sleep-analysis"
         let observation = try createObservationFrom(
             type: .sleepAnalysis,
             value: value.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .sleepAnalysis,
             display: "Sleep Analysis"
         ))
-        #expect(observation.value == .codeableConcept(CodeableConcept(coding: [
+        // The HealthKit stage coding, plus a parallel LOINC stage code where one exists.
+        let loinc: Coding? = switch value {
+        case .inBed, .asleepUnspecified:
+            Coding(code: "93832-4", display: "Sleep duration".asFHIRStringPrimitive(), system: "http://loinc.org")
+        case .asleepREM:
+            Coding(code: "93829-0", display: "REM sleep duration".asFHIRStringPrimitive(), system: "http://loinc.org")
+        case .asleepCore:
+            Coding(code: "93830-8", display: "Light sleep duration".asFHIRStringPrimitive(), system: "http://loinc.org")
+        case .asleepDeep:
+            Coding(code: "93831-6", display: "Deep sleep duration".asFHIRStringPrimitive(), system: "http://loinc.org")
+        default:
+            nil
+        }
+        let expected = [
             Coding(
                 code: expectedCode.asFHIRStringPrimitive(),
                 display: expectedDisplay.asFHIRStringPrimitive(),
                 system: system
             )
-        ])))
+        ] + (loinc.map { [$0] } ?? [])
+        #expect(observation.value == .codeableConcept(CodeableConcept(coding: expected)))
     }
 
     @Test(arguments: [
-        (HKCategoryValueAppetiteChanges.unspecified, "0", "unspecified"),
-        (HKCategoryValueAppetiteChanges.noChange, "1", "no change"),
-        (HKCategoryValueAppetiteChanges.decreased, "2", "decreased"),
-        (HKCategoryValueAppetiteChanges.increased, "3", "increased")
+        (HKCategoryValueAppetiteChanges.unspecified, "unspecified", "unspecified"),
+        (HKCategoryValueAppetiteChanges.noChange, "noChange", "no change"),
+        (HKCategoryValueAppetiteChanges.decreased, "decreased", "decreased"),
+        (HKCategoryValueAppetiteChanges.increased, "increased", "increased")
     ])
     func appetiteChanges(value: HKCategoryValueAppetiteChanges, expectedCode: String, expectedDisplay: String) throws {
-        let system: FHIRPrimitive<FHIRURI> = "https://developer.apple.com/documentation/healthkit/hkcategoryvalueappetitechanges"
+        let system: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-category-value-appetite-changes"
         let observation = try createObservationFrom(
             type: .appetiteChanges,
             value: value.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .appetiteChanges,
             display: "Appetite Changes"
         ))
@@ -227,15 +240,15 @@ struct HKCategorySampleTests {
             type: .environmentalAudioExposureEvent,
             value: HKCategoryValueEnvironmentalAudioExposureEvent.momentaryLimit.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .environmentalAudioExposureEvent,
             display: "Environmental Audio Exposure Event"
         ))
         #expect(observation.value == .codeableConcept(CodeableConcept(coding: [
             Coding(
-                code: "1".asFHIRStringPrimitive(),
+                code: "momentaryLimit".asFHIRStringPrimitive(),
                 display: "momentary limit".asFHIRStringPrimitive(),
-                system: "https://developer.apple.com/documentation/healthkit/hkcategoryvalueenvironmentalaudioexposureevent".asFHIRURIPrimitive()
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-category-value-environmental-audio-exposure-event".asFHIRURIPrimitive()
             )
         ])))
     }
@@ -246,15 +259,15 @@ struct HKCategorySampleTests {
             type: .headphoneAudioExposureEvent,
             value: HKCategoryValueHeadphoneAudioExposureEvent.sevenDayLimit.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .headphoneAudioExposureEvent,
             display: "Headphone Audio Exposure Event"
         ))
         #expect(observation.value == .codeableConcept(CodeableConcept(coding: [
             Coding(
-                code: "1".asFHIRStringPrimitive(),
+                code: "sevenDayLimit".asFHIRStringPrimitive(),
                 display: "seven day limit".asFHIRStringPrimitive(),
-                system: "https://developer.apple.com/documentation/healthkit/hkcategoryvalueheadphoneaudioexposureevent".asFHIRURIPrimitive()
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-category-value-headphone-audio-exposure-event".asFHIRURIPrimitive()
             )
         ])))
     }
@@ -265,15 +278,15 @@ struct HKCategorySampleTests {
             type: .lowCardioFitnessEvent,
             value: HKCategoryValueLowCardioFitnessEvent.lowFitness.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .lowCardioFitnessEvent,
             display: "Low Cardio Fitness Event"
         ))
         #expect(observation.value == .codeableConcept(CodeableConcept(coding: [
             Coding(
-                code: "1".asFHIRStringPrimitive(),
+                code: "lowFitness".asFHIRStringPrimitive(),
                 display: "low fitness".asFHIRStringPrimitive(),
-                system: "https://developer.apple.com/documentation/healthkit/hkcategoryvaluelowcardiofitnessevent".asFHIRURIPrimitive()
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-category-value-low-cardio-fitness-event".asFHIRURIPrimitive()
             )
         ])))
     }
@@ -287,28 +300,29 @@ struct HKCategorySampleTests {
                 HKMetadataKeyLowCardioFitnessEventThreshold: HKQuantity(unit: HKUnit(from: "ml/(kg*min)"), doubleValue: 41)
             ]
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .lowCardioFitnessEvent,
             display: "Low Cardio Fitness Event"
         ))
         #expect(observation.value == .codeableConcept(CodeableConcept(coding: [
             Coding(
-                code: "1".asFHIRStringPrimitive(),
+                code: "lowFitness".asFHIRStringPrimitive(),
                 display: "low fitness".asFHIRStringPrimitive(),
-                system: "https://developer.apple.com/documentation/healthkit/hkcategoryvaluelowcardiofitnessevent".asFHIRURIPrimitive()
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-category-value-low-cardio-fitness-event".asFHIRURIPrimitive()
             )
         ])))
         #expect(observation.component?.count == 1)
         let component = try #require(observation.component?.first)
+        // The threshold is coded by its metadata key, never by the VO2max code it triggers on.
         #expect(component.code.coding == [
             Coding(
-                code: "HKQuantityTypeIdentifierVO2Max".asFHIRStringPrimitive(),
-                display: "VO2Max".asFHIRStringPrimitive(),
-                system: SupportedCodeSystem.apple.rawValue.asFHIRURIPrimitive()
+                code: "HKLowCardioFitnessEventThreshold".asFHIRStringPrimitive(),
+                display: "Low Cardio Fitness Event Threshold".asFHIRStringPrimitive(),
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ])
         #expect(component.value == .quantity(Quantity(
-            code: "mL/kg/min",
+            code: "mL/min/kg{body_wt}",
             system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
             unit: "mL/kg/min",
             value: 41.asFHIRDecimalPrimitive()
@@ -323,7 +337,7 @@ struct HKCategorySampleTests {
                 type: .appleWalkingSteadinessEvent,
                 value: value.rawValue
             )
-            #expect(observation.code.coding?.first == createCategoryCoding(
+            #expect(observation.code.coding?.last == createCategoryCoding(
                 categoryType: .appleWalkingSteadinessEvent,
                 display: "Apple Walking Steadiness Event"
             ))
@@ -367,28 +381,19 @@ struct HKCategorySampleTests {
                 HKMetadataKeyHeartRateEventThreshold: HKQuantity(unit: HKUnit(from: "count/min"), doubleValue: 47)
             ]
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: category,
             display: displayTitle
         ))
-        #expect(observation.value == .string(category.rawValue.asFHIRStringPrimitive()))
+        #expect(observation.value == nil)
         #expect(observation.component?.count == 1)
         let component = try #require(observation.component?.first)
+        // The threshold is coded by its metadata key, never by the heart rate code it triggers on.
         #expect(component.code.coding == [
             Coding(
-                code: "8867-4".asFHIRStringPrimitive(),
-                display: "Heart rate".asFHIRStringPrimitive(),
-                system: SupportedCodeSystem.loinc.rawValue.asFHIRURIPrimitive()
-            ),
-            Coding(
-                code: "364075005",
-                display: "Heart rate",
-                system: .snomedCT
-            ),
-            Coding(
-                code: "HKQuantityTypeIdentifierHeartRate".asFHIRStringPrimitive(),
-                display: "Heart Rate".asFHIRStringPrimitive(),
-                system: SupportedCodeSystem.apple.rawValue.asFHIRURIPrimitive()
+                code: "HKHeartRateEventThreshold".asFHIRStringPrimitive(),
+                display: "Heart Rate Event Threshold".asFHIRStringPrimitive(),
+                system: GroveFHIRVocabulary.healthKitMetadataKey
             )
         ])
         #expect(component.value == .quantity(Quantity(
@@ -407,7 +412,7 @@ struct HKCategorySampleTests {
                 type: .pregnancyTestResult,
                 value: value.rawValue
             )
-            #expect(observation.code.coding?.first == createCategoryCoding(
+            #expect(observation.code.coding?.last == createCategoryCoding(
                 categoryType: .pregnancyTestResult,
                 display: "Pregnancy Test Result"
             ))
@@ -427,11 +432,11 @@ struct HKCategorySampleTests {
             type: .pregnancy,
             value: HKCategoryValue.notApplicable.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .pregnancy,
             display: "Pregnancy"
         ))
-        #expect(observation.value == .string("HKCategoryTypeIdentifierPregnancy".asFHIRStringPrimitive()))
+        #expect(observation.value == nil)
     }
 
     @Test
@@ -442,7 +447,7 @@ struct HKCategorySampleTests {
                 type: .progesteroneTestResult,
                 value: value.rawValue
             )
-            #expect(observation.code.coding?.first == createCategoryCoding(
+            #expect(observation.code.coding?.last == createCategoryCoding(
                 categoryType: .progesteroneTestResult,
                 display: "Progesterone Test Result"
             ))
@@ -462,11 +467,11 @@ struct HKCategorySampleTests {
             type: .sexualActivity,
             value: HKCategoryValue.notApplicable.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .sexualActivity,
             display: "Sexual Activity"
         ))
-        #expect(observation.value == .string("HKCategoryTypeIdentifierSexualActivity".asFHIRStringPrimitive()))
+        #expect(observation.value == nil)
         #expect(observation.component == nil)
     }
     
@@ -479,11 +484,11 @@ struct HKCategorySampleTests {
                 HKMetadataKeySexualActivityProtectionUsed: true
             ]
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .sexualActivity,
             display: "Sexual Activity"
         ))
-        #expect(observation.value == .string("HKCategoryTypeIdentifierSexualActivity".asFHIRStringPrimitive()))
+        #expect(observation.value == nil)
         #expect(observation.component?.count == 1)
         #expect(observation.component?.first?.value == .boolean(true))
     }
@@ -497,11 +502,11 @@ struct HKCategorySampleTests {
                 HKMetadataKeySexualActivityProtectionUsed: false
             ]
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .sexualActivity,
             display: "Sexual Activity"
         ))
-        #expect(observation.value == .string("HKCategoryTypeIdentifierSexualActivity".asFHIRStringPrimitive()))
+        #expect(observation.value == nil)
         #expect(observation.component?.count == 1)
         #expect(observation.component?.first?.value == .boolean(false))
     }
@@ -514,14 +519,14 @@ struct HKCategorySampleTests {
         }
         let tests: [TestCase] = [
             .init(input: .stood, expectedOutput: Coding(
-                code: "0".asFHIRStringPrimitive(),
+                code: "stood".asFHIRStringPrimitive(),
                 display: "stood",
-                system: "https://developer.apple.com/documentation/healthkit/hkcategoryvalueapplestandhour"
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-category-value-apple-stand-hour"
             )),
             .init(input: .idle, expectedOutput: Coding(
-                code: "1".asFHIRStringPrimitive(),
+                code: "idle".asFHIRStringPrimitive(),
                 display: "idle",
-                system: "https://developer.apple.com/documentation/healthkit/hkcategoryvalueapplestandhour"
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-category-value-apple-stand-hour"
             ))
         ]
         for test in tests {
@@ -529,7 +534,7 @@ struct HKCategorySampleTests {
                 type: .appleStandHour,
                 value: test.input.rawValue
             )
-            #expect(observation.code.coding?.first == createCategoryCoding(
+            #expect(observation.code.coding?.last == createCategoryCoding(
                 categoryType: .appleStandHour,
                 display: "Apple Stand Hour"
             ))
@@ -543,11 +548,11 @@ struct HKCategorySampleTests {
             type: .intermenstrualBleeding,
             value: HKCategoryValue.notApplicable.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .intermenstrualBleeding,
             display: "Intermenstrual Bleeding"
         ))
-        #expect(observation.value == .string("HKCategoryTypeIdentifierIntermenstrualBleeding".asFHIRStringPrimitive()))
+        #expect(observation.value == nil)
     }
 
     @Test
@@ -556,11 +561,11 @@ struct HKCategorySampleTests {
             type: .infrequentMenstrualCycles,
             value: HKCategoryValue.notApplicable.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .infrequentMenstrualCycles,
             display: "Infrequent Menstrual Cycles"
         ))
-        #expect(observation.value == .string("HKCategoryTypeIdentifierInfrequentMenstrualCycles".asFHIRStringPrimitive()))
+        #expect(observation.value == nil)
     }
     
     @Test
@@ -569,11 +574,11 @@ struct HKCategorySampleTests {
             type: .irregularHeartRhythmEvent,
             value: HKCategoryValue.notApplicable.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .irregularHeartRhythmEvent,
             display: "Irregular Heart Rhythm Event"
         ))
-        #expect(observation.value == .string("HKCategoryTypeIdentifierIrregularHeartRhythmEvent".asFHIRStringPrimitive()))
+        #expect(observation.value == nil)
     }
 
     @Test
@@ -582,11 +587,11 @@ struct HKCategorySampleTests {
             type: .irregularMenstrualCycles,
             value: HKCategoryValue.notApplicable.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .irregularMenstrualCycles,
             display: "Irregular Menstrual Cycles"
         ))
-        #expect(observation.value == .string("HKCategoryTypeIdentifierIrregularMenstrualCycles".asFHIRStringPrimitive()))
+        #expect(observation.value == nil)
     }
 
     @Test
@@ -595,11 +600,11 @@ struct HKCategorySampleTests {
             type: .persistentIntermenstrualBleeding,
             value: HKCategoryValue.notApplicable.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .persistentIntermenstrualBleeding,
             display: "Persistent Intermenstrual Bleeding"
         ))
-        #expect(observation.value == .string("HKCategoryTypeIdentifierPersistentIntermenstrualBleeding".asFHIRStringPrimitive()))
+        #expect(observation.value == nil)
     }
 
     @Test
@@ -608,11 +613,11 @@ struct HKCategorySampleTests {
             type: .prolongedMenstrualPeriods,
             value: HKCategoryValue.notApplicable.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .prolongedMenstrualPeriods,
             display: "Prolonged Menstrual Periods"
         ))
-        #expect(observation.value == .string("HKCategoryTypeIdentifierProlongedMenstrualPeriods".asFHIRStringPrimitive()))
+        #expect(observation.value == nil)
     }
 
     @Test
@@ -621,11 +626,11 @@ struct HKCategorySampleTests {
             type: .lactation,
             value: HKCategoryValue.notApplicable.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .lactation,
             display: "Lactation"
         ))
-        #expect(observation.value == .string("HKCategoryTypeIdentifierLactation".asFHIRStringPrimitive()))
+        #expect(observation.value == nil)
     }
 
     @Test
@@ -634,11 +639,11 @@ struct HKCategorySampleTests {
             type: .handwashingEvent,
             value: HKCategoryValue.notApplicable.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .handwashingEvent,
             display: "Handwashing Event"
         ))
-        #expect(observation.value == .string("HKCategoryTypeIdentifierHandwashingEvent".asFHIRStringPrimitive()))
+        #expect(observation.value == nil)
     }
 
     @Test
@@ -647,11 +652,11 @@ struct HKCategorySampleTests {
             type: .toothbrushingEvent,
             value: HKCategoryValue.notApplicable.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .toothbrushingEvent,
             display: "Toothbrushing Event"
         ))
-        #expect(observation.value == .string("HKCategoryTypeIdentifierToothbrushingEvent".asFHIRStringPrimitive()))
+        #expect(observation.value == nil)
     }
 
     @Test
@@ -660,11 +665,11 @@ struct HKCategorySampleTests {
             type: .mindfulSession,
             value: HKCategoryValue.notApplicable.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: .mindfulSession,
             display: "Mindful Session"
         ))
-        #expect(observation.value == .string("HKCategoryTypeIdentifierMindfulSession".asFHIRStringPrimitive()))
+        #expect(observation.value == nil)
     }
 
     
@@ -678,7 +683,7 @@ struct HKCategorySampleTests {
                 type: type,
                 value: value.rawValue
             )
-            #expect(observation.code.coding?.first == createCategoryCoding(
+            #expect(observation.code.coding?.last == createCategoryCoding(
                 categoryType: type,
                 display: display
             ))
@@ -810,7 +815,7 @@ struct HKCategorySampleTests {
                 type: .moodChanges,
                 value: value.rawValue
             )
-            #expect(observation.code.coding?.first == createCategoryCoding(
+            #expect(observation.code.coding?.last == createCategoryCoding(
                 categoryType: .moodChanges,
                 display: "Mood Changes"
             ))
@@ -832,7 +837,7 @@ struct HKCategorySampleTests {
                 type: .sleepChanges,
                 value: value.rawValue
             )
-            #expect(observation.code.coding?.first == createCategoryCoding(
+            #expect(observation.code.coding?.last == createCategoryCoding(
                 categoryType: .sleepChanges,
                 display: "Sleep Changes"
             ))
@@ -859,7 +864,7 @@ struct HKCategorySampleTests {
             type: category,
             value: value.rawValue
         )
-        #expect(observation.code.coding?.first == createCategoryCoding(
+        #expect(observation.code.coding?.last == createCategoryCoding(
             categoryType: category,
             display: displayTitle
         ))

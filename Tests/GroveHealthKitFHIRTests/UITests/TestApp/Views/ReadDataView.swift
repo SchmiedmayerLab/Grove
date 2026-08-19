@@ -7,10 +7,10 @@
 //
 
 import Foundation
-import HealthKit
-import GroveHealthKitFHIR
-import ModelsR4
 import GroveHealthKit
+import GroveHealthKitFHIR
+import HealthKit
+import ModelsR4
 import SwiftUI
 
 
@@ -53,7 +53,7 @@ struct ReadDataView<Sample: _HKSampleWithSampleType>: View {
             limit: 1,
             sortedBy: [.init(\.startDate, order: .reverse)]
         )
-        let observations = samples.compactMap { try? $0.resource() }
+        let observations = samples.compactMap { try? $0.resource(subject: Reference(reference: "Patient/example")) }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         let data = try encoder.encode(observations)

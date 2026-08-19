@@ -40,7 +40,7 @@ extension WorkoutTypeFHIRMapping {
     public static let `default` = Self(
         codings: [
             Coding(
-                code: "HKWorkout",
+                code: "HKWorkoutTypeIdentifier",  // the runtime value of HKObjectType.workoutType().identifier
                 display: "Workout",
                 system: .healthKitSystem
             ),

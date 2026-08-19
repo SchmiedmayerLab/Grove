@@ -138,8 +138,8 @@ If the keychain is locked it defers instead of reporting "no passcode set".
 Canonical URLs moved to the `grovealliance.org` authority:
 
 ```diff
--https://bdh.stanford.edu/fhir/defs/sourceDevice
-+https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice
+-https://bdh.stanford.edu/fhir/defs/metadata
++https://grovealliance.org/fhir/core/StructureDefinition/grove-platform-metadata
 ```
 
 Reads accept **every spelling ever published**; writes emit only the new one.
@@ -152,7 +152,7 @@ FHIRWritePolicy.default = .canonicalAndSuperseded
 ```
 
 Every `Observation` Grove builds from a HealthKit sample then carries a compatibility copy under each superseded spelling.
-Copies are deep, so nested extensions such as `sourceRevision/source/bundleIdentifier` are reproduced in full, and the pass is idempotent.
+Copies are deep, so a nested extension such as a `grove-platform-metadata` entry with its `key` and `value` children is reproduced in full, and the pass is idempotent.
 Resources you assemble yourself — and the clinical records Grove only tags — opt in by calling `writeSupersededSpellings(of:)` once the extensions are in place.
 
 > Note: Dual-written extensions are duplicates, not new information.

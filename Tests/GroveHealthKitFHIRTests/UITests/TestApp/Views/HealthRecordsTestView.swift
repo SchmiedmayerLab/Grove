@@ -7,8 +7,8 @@
 //
 
 import Foundation
-import HealthKit
 import GroveHealthKitFHIR
+import HealthKit
 import ModelsR4
 import SwiftUI
 
@@ -62,7 +62,7 @@ struct HealthRecordsTestView: View {
         let resources: [ResourceProxy] = try await manager.readHealthRecords(type: type)
             .compactMap { sample in
                 do {
-                    return try sample.resource()
+                    return try sample.resource(subject: Reference(reference: "Patient/example"))
                 } catch {
                     print(error.localizedDescription)
                 }

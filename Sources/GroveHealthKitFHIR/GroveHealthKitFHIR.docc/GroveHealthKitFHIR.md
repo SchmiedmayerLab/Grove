@@ -19,110 +19,26 @@ You use the GroveHealthKitFHIR module to convert HealthKit samples into FHIR R4 
 
 ```swift
 let sample: HKQuantitySample = // ... a heart rate sample fetched from HealthKit
-let resource = try sample.resource()
+let subject = Reference(reference: "Patient/example".asFHIRStringPrimitive())
+let resource = try sample.resource(subject: subject)
 ```
 
-This resource will be of Observation type, and have the following JSON structure:
-```json
-{
-  "issued" : "2026-02-15T16:12:42.361982941+01:00",
-  "status" : "final",
-  "extension" : [
-    {
-      "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice",
-      "extension" : [
-        {
-          "valueString" : "Apple Watch",
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice/name"
-        },
-        {
-          "valueString" : "Apple Inc.",
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice/manufacturer"
-        },
-        {
-          "valueString" : "Watch",
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice/model"
-        },
-        {
-          "valueString" : "Watch7,12",
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice/hardwareVersion"
-        },
-        {
-          "valueString" : "26.2.1",
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice/softwareVersion"
-        }
-      ]
-    },
-    {
-      "extension" : [
-        {
-          "extension" : [
-            {
-              "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/source/name",
-              "valueString" : "Lukas' Apple Watch"
-            },
-            {
-              "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/source/bundleIdentifier",
-              "valueString" : "com.apple.health.B83FE7C9-B62D-44D9-92A8-5CB2AE037A06"
-            }
-          ],
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/source"
-        },
-        {
-          "valueString" : "26",
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/version"
-        },
-        {
-          "valueString" : "Watch7,12",
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/productType"
-        },
-        {
-          "valueString" : "26.2.1",
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/OSVersion"
-        }
-      ],
-      "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision"
-    },
-    {
-      "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata",
-      "extension" : [
-        {
-          "valueDecimal" : 1,
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata/HKMetadataKeyHeartRateMotionContext"
-        }
-      ]
-    }
-  ],
-  "valueQuantity" : {
-    "code" : "/min",
-    "value" : 87,
-    "system" : "http://unitsofmeasure.org",
-    "unit" : "beats/minute"
-  },
-  "resourceType" : "Observation",
-  "code" : {
-    "coding" : [
-      {
-        "code" : "8867-4",
-        "display" : "Heart rate",
-        "system" : "http://loinc.org"
-      },
-      {
-        "code" : "HKQuantityTypeIdentifierHeartRate",
-        "display" : "Heart Rate",
-        "system" : "http://developer.apple.com/documentation/healthkit"
-      }
-    ]
-  },
-  "effectiveDateTime" : "2026-02-15T14:59:21.786418914+01:00",
-  "id" : "00A0FDCB-4D90-4F17-AA5A-703CAC9A85DF",
-  "identifier" : [
-    {
-      "id" : "00A0FDCB-4D90-4F17-AA5A-703CAC9A85DF"
-    }
-  ]
-}
-```
+The profile pins `subject`, so pass the participant reference: an observation of nobody
+does not conform, whatever else it carries.
+
+This resource is an `Observation` shaped by the Grove FHIR core implementation guide:
+the LOINC code and UCUM
+value on the resource itself, the recording watch and the saving app as contained
+`Device`s (`Observation.device` and the HL7 `observation-gatewayDevice` extension), the
+HealthKit record id in `Observation.identifier`, timing in `effective[x]` with an IANA
+`timezone` extension, and whatever platform metadata has no better home in repeating
+`grove-platform-metadata` entries. `meta.profile` names the profile the observation
+claims.
+
+The guide carries worked examples of every resource this module produces; they are
+validated on each publish, so they cannot drift from the profiles the way a snippet
+pasted here would.
+
 
 
 GroveHealthKitFHIR supports:
@@ -135,7 +51,7 @@ The GroveHealthKitFHIR module provides extensions that convert supported HealthK
 
 ```swift
 let sample: HKSample = // ...
-let resource = try sample.resource()
+let resource = try sample.resource(subject: subject)
 ```
 
 ### Observations
@@ -144,7 +60,7 @@ let resource = try sample.resource()
 
 ```swift
 let sample: HKQuantitySample = // ...
-let observation = try sample.resource().get(if: Observation.self)
+let observation = try sample.resource(subject: subject).get(if: Observation.self)
 ```
 
 Codes and units can be customized by passing in a custom `SampleTypesFHIRMapping` instance to the `resource(withMapping:)` method.
@@ -152,7 +68,7 @@ Codes and units can be customized by passing in a custom `SampleTypesFHIRMapping
 ```swift
 let sample: HKQuantitySample = // ...
 let sampleMapping: SampleTypesFHIRMapping = // ...
-let observation = try sample.resource(withMapping: sampleMapping).get(if: Observation.self)
+let observation = try sample.resource(withMapping: sampleMapping, subject: subject).get(if: Observation.self)
 ```
 
 ### Clinical Records
@@ -183,9 +99,10 @@ let sample = HKQuantitySample(
 )
 
 // Convert the results to FHIR observations
+let subject = Reference(reference: "Patient/example".asFHIRStringPrimitive())
 let observation: Observation?
 do {
-    try observation = sample.resource().get(if: Observation.self)
+    try observation = sample.resource(subject: subject).get(if: Observation.self)
 } catch {
     // Handle any mapping errors here.
     // ...
@@ -206,40 +123,12 @@ let json = String(decoding: data, as: UTF8.self)
 print(json)
 ```
 
-The following example generates the following FHIR observation:
-
-```json
-{
-  "code" : {
-    "coding" : [
-      {
-        "code" : "8867-4",
-        "display" : "Heart rate",
-        "system" : "http://loinc.org"
-      }
-    ]
-  },
-  "effectiveDateTime" : "1885-11-11T00:00:00-08:00",
-  "identifier" : [
-    {
-      "id" : "8BA093D9-B99B-4A3C-8C9E-98C86F49F5D8"
-    }
-  ],
-  "issued" : "2023-01-01T00:00:00-08:00",
-  "resourceType" : "Observation",
-  "status" : "final",
-  "valueQuantity" : {
-    "code": "/min",
-    "unit": "beats/minute",
-    "system": "http://unitsofmeasure.org",
-    "value" : 42
-  }
-}
-```
+The guide includes a heart-rate example that is validated on every publish, so it stays
+in step with the profiles.
 
 ## Topics
 
 ### Mapping HealthKit Samples into FHIR Observations
-- ``HealthKit/HKSample/resource(withMapping:issuedDate:extensions:)``
+- ``HealthKit/HKSample/resource(withMapping:issuedDate:subject:extensions:)``
 - ``HealthKit/HKSampleType/fhirResourceType``
-- ``HealthKit/HKElectrocardiogram/observation(symptoms:voltageMeasurements:withMapping:issuedDate:extensions:)``
+- ``HealthKit/HKElectrocardiogram/observation(subject:symptoms:voltageMeasurements:withMapping:issuedDate:extensions:)``

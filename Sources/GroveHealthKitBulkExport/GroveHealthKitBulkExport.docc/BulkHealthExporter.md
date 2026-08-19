@@ -46,11 +46,13 @@ In this case, we implicitly define the Batch Processor's `Output` type as `Void`
 
 ```swift
 struct FirebaseUploader: BulkHealthExporter.BatchProcessor {
+    let subject: Reference   // the participant every exported observation is about
+
     func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) async throws {
         let batch = Firestore.firestore().batch()
         for sample in samples {
             let document = db.collection("healthData").document(sample.uuid.uuidString) 
-            try batch.setData(from: sample.resource(), for: document)
+            try batch.setData(from: sample.resource(subject: subject), for: document)
         }
         try await batch.commit()
     }
@@ -89,8 +91,10 @@ extension BulkExportSessionIdentifier {
 }
 
 struct FHIREncodedJSONExporter: BatchProcessor {
+    let subject: Reference
+
     func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) throws -> URL {
-        let resources = try samples.mapIntoResourceProxies() // using GroveHealthKitFHIR
+        let resources = try samples.mapIntoResourceProxies(subject: subject) // using GroveHealthKitFHIR
         let encoded = try JSONEncoder().encode(resources)
         let url = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString, conformingTo: .json)
         try encoded.write(to: url)

@@ -30,19 +30,26 @@ extension HKElectrocardiogram {
     /// If you do not need `HKElectrocardiogram` specific context added you can use the generic `observation` extension on `HKSample`.
     ///
     /// - Parameters:
+    ///   - subject: The patient the electrocardiogram was recorded for.
     ///   - symptoms: The ``Symptoms`` that should be encoded in the FHIR observation.
     ///   - voltageMeasurements: the ECG's associated raw voltage measurements.
     ///   - mapping: The ``SampleTypesFHIRMapping`` used to populate the FHIR observation.
     ///   - issuedDate: `Instant` specifying when this version of the resource was made available. Defaults to `Date.now`.
     ///   - extensions: `FHIRExtensionBuilder`s that should be applied to the resulting `Observation`.
     public func observation(
+        subject: Reference,
         symptoms: Symptoms,
         voltageMeasurements: VoltageMeasurements,
         withMapping mapping: SampleTypesFHIRMapping = .default,
         issuedDate: FHIRPrimitive<Instant>? = nil,
         extensions: [any FHIRExtensionBuilderProtocol] = []
     ) throws -> Observation {
-        guard var observation = try resource(withMapping: mapping, issuedDate: issuedDate, extensions: extensions).get(if: Observation.self) else {
+        guard var observation = try resource(
+            withMapping: mapping,
+            issuedDate: issuedDate,
+            subject: subject,
+            extensions: extensions
+        ).get(if: Observation.self) else {
             throw GroveHealthKitFHIRError.notSupported
         }
         if !symptoms.isEmpty {
@@ -158,7 +165,8 @@ extension HKElectrocardiogram: FHIRObservationBuildable {
         symptoms: Symptoms,
         mapping: SampleTypesFHIRMapping
     ) throws {
-        for symptom in symptoms {
+        // Sorted so a dictionary's arbitrary order cannot reshuffle the components.
+        for symptom in symptoms.sorted(by: { $0.key.identifier < $1.key.identifier }) {
             guard let sampleType = SampleType(symptom.key),
                   let mapping = mapping.categoryTypesMapping[sampleType] else {
                 throw GroveHealthKitFHIRError.notSupported
@@ -177,58 +185,75 @@ extension HKElectrocardiogram: FHIRObservationBuildable {
         voltageMeasurements: VoltageMeasurements,
         mapping ecgTypeMapping: ECGTypeFHIRMapping
     ) throws {
+        guard !voltageMeasurements.isEmpty else {
+            return
+        }
+        observation.append(component: ObservationComponent(
+            code: CodeableConcept(coding: ecgTypeMapping.voltageMeasurements.codings),
+            value: .sampledData(try Self.sampledVoltageData(
+                samplingFrequency: samplingFrequency,
+                voltageMeasurements: voltageMeasurements,
+                mapping: ecgTypeMapping
+            ))
+        ))
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HKElectrocardiogram {
+    /// Builds the `SampledData` carrying a strip's voltage measurements.
+    ///
+    /// Separate from ``appendVoltageMeasurementsComponent(to:voltageMeasurements:mapping:)`` because an
+    /// `HKElectrocardiogram` cannot be constructed outside HealthKit, so this is the only testable surface.
+    static func sampledVoltageData(
+        samplingFrequency: HKQuantity?,
+        voltageMeasurements: VoltageMeasurements,
+        mapping ecgTypeMapping: ECGTypeFHIRMapping
+    ) throws -> SampledData {
         let voltageMapping = ecgTypeMapping.voltageMeasurements
         let voltageMeasurements = voltageMeasurements.sorted(by: { $0.time < $1.time })
-        
-        // Number of milliseconds between samples
-        let period: Double = if let samplingFrequency {
-            (1.0 / samplingFrequency.doubleValue(for: .hertz())) * 1000
+        // Milliseconds between samples, as a Decimal: SampledData carries no per-sample timing, so this
+        // period is the only time anchor the strip has, and a Double round-trip would print artifacts for
+        // non-dyadic frequencies. Exact division prints them too — 512.4 Hz runs to 34 digits — so the
+        // quotient is rounded to a scale no ECG rate outruns.
+        let period: Decimal
+        if let samplingFrequency {
+            period = Self.roundedPeriod(Decimal(1000) / Decimal(samplingFrequency.doubleValue(for: .hertz())))
+        } else if voltageMeasurements.count > 1,
+                  let first = voltageMeasurements.first?.time,
+                  let last = voltageMeasurements.last?.time {
+            // n samples span n-1 intervals.
+            period = Self.roundedPeriod(Decimal((last - first) * 1000 / Double(voltageMeasurements.count - 1)))
         } else {
-            ((voltageMeasurements.last?.time ?? 0.0) * 1000) / Double(voltageMeasurements.count)
+            throw GroveHealthKitFHIRError.notSupported
         }
-        
-        // Batch the measurements in 10 Second Intervals
-        var lastIndex = 0
-        var lastRemainder = 10.0
-        var voltageMeasurementBatches: [[(time: TimeInterval, value: HKQuantity)]] = []
-        for voltageMeasurement in voltageMeasurements.enumerated() {
-            let remainder = voltageMeasurement.element.time.truncatingRemainder(dividingBy: 10.0)
-            if lastRemainder > remainder && lastIndex < voltageMeasurement.offset {
-                voltageMeasurementBatches.append(Array(voltageMeasurements[lastIndex..<voltageMeasurement.offset]))
-                lastIndex = voltageMeasurement.offset
-            }
-            lastRemainder = remainder
-        }
-        // Append the last elements that are left over (ideally exactly 10 seconds of data).
-        voltageMeasurementBatches.append(Array(voltageMeasurements[lastIndex..<voltageMeasurements.count]))
-        
-        // Check that we did not loose any data in the batching process.
-        assert(voltageMeasurements.count == voltageMeasurementBatches.reduce(0, { $0 + $1.count }))
-        
+        // The whole strip is ONE SampledData: repeated components carry no ordering or
+        // timing semantics in FHIR, so splitting a lead across them loses the sample
+        // positions. Consumers reconstruct sample times from effective[x] + period.
         let voltagePrecision = ecgTypeMapping.voltagePrecision
-        for voltageMeasurementBatch in voltageMeasurementBatches {
-            // Create a space separated string of all the measurement values as defined by the mapping unit
-            let data = voltageMeasurementBatch
-                .map { String(format: "%.\(voltagePrecision)f", $0.value.doubleValue(for: voltageMapping.unit.hkUnit)) }
-                .joined(separator: " ")
-            let component = ObservationComponent(
-                code: CodeableConcept(coding: voltageMapping.codings),
-                value: .sampledData(
-                    SampledData(
-                        data: data.asFHIRStringPrimitive(),
-                        dimensions: 1,
-                        origin: Quantity(
-                            code: voltageMapping.unit.code,
-                            system: voltageMapping.unit.system,
-                            unit: voltageMapping.unit.unit.asFHIRStringPrimitive(),
-                            value: 0.asFHIRDecimalPrimitive()
-                        ),
-                        period: try period.asFHIRDecimalPrimitiveSafe()
-                    )
-                )
-            )
-            observation.append(component: component)
-        }
+        let data = voltageMeasurements
+            .map { String(format: "%.\(voltagePrecision)f", $0.value.doubleValue(for: voltageMapping.unit.hkUnit)) }
+            .joined(separator: " ")
+        return SampledData(
+            data: data.asFHIRStringPrimitive(),
+            dimensions: 1,
+            origin: Quantity(
+                code: voltageMapping.unit.code,
+                system: voltageMapping.unit.system,
+                unit: voltageMapping.unit.unit.asFHIRStringPrimitive(),
+                value: 0.asFHIRDecimalPrimitive()
+            ),
+            period: FHIRPrimitive(FHIRDecimal(period))
+        )
+    }
+
+    /// Six fraction digits of a millisecond is a nanosecond, finer than any sampling rate resolves.
+    private static func roundedPeriod(_ period: Decimal) -> Decimal {
+        var period = period
+        var rounded = Decimal()
+        NSDecimalRound(&rounded, &period, 6, .plain)
+        return rounded
     }
 }
 

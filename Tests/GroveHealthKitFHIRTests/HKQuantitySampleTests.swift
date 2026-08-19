@@ -6,7 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
-// swiftlint:disable file_length
 
 #if canImport(HealthKit)
 
@@ -21,8 +20,20 @@ import Testing
 
 @Suite
 struct HKQuantitySampleTests {
-    // swiftlint:disable:previous type_body_length
-    // We disable the type body length as this is a test class
+    /// One expectation per quantity type whose conversion is a plain
+    /// codings + coded-quantity mapping; distinctive behaviors (metadata, devices,
+    /// time ranges, components) keep tests of their own.
+    struct QuantitySampleExpectation: @unchecked Sendable, CustomStringConvertible {
+        // @unchecked: HKUnit is an immutable NSObject and safe to share.
+        let identifier: HKQuantityTypeIdentifier
+        let unit: HKUnit
+        let value: Double
+        let expectedCodings: [Coding]
+        let expectedValue: Observation.ValueX
+
+        var description: String { identifier.rawValue }
+    }
+
     var startDate: Date {
         get throws {
             let dateComponents = DateComponents(year: 1891, month: 10, day: 1, hour: 12, minute: 0, second: 0) // Date Stanford University opened (https://www.stanford.edu/about/history/)
@@ -53,7 +64,7 @@ struct HKQuantitySampleTests {
             device: device,
             metadata: metadata
         )
-        return try #require(quantitySample.resource(extensions: extensions).get(if: Observation.self))
+        return try #require(quantitySample.resource(subject: Reference(reference: "Patient/example"), extensions: extensions).get(if: Observation.self))
     }
     
     func createCoding(
@@ -68,2149 +79,8 @@ struct HKQuantitySampleTests {
         )
     }
     
-    @Test
-    func bloodGlucose() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.bloodGlucose),
-            quantity: HKQuantity(unit: HKUnit(from: "mg/dL"), doubleValue: 99)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "41653-7",
-                display: "Glucose Glucometer (BldC) [Mass/Vol]",
-                system: .loinc
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierBloodGlucose",
-                display: "Blood Glucose",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg/dL",
-                system: "http://unitsofmeasure.org",
-                unit: "mg/dL",
-                value: 99.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryBiotin() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryBiotin),
-            quantity: HKQuantity(unit: .gramUnit(with: .micro), doubleValue: 100)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryBiotin",
-                display: "Dietary Biotin Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "ug",
-                system: "http://unitsofmeasure.org",
-                unit: "ug",
-                value: 100.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryCaffeine() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryCaffeine),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 100)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryCaffeine",
-                display: "Dietary Caffeine Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 100.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryCalcium() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryCalcium),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 1000)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryCalcium",
-                display: "Dietary Calcium Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 1000.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryCarbohydrates() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryCarbohydrates),
-            quantity: HKQuantity(unit: .gram(), doubleValue: 1000)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryCarbohydrates",
-                display: "Dietary Carbohydrates Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "g",
-                system: "http://unitsofmeasure.org",
-                unit: "g",
-                value: 1000.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryChloride() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryChloride),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 2300)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryChloride",
-                display: "Dietary Chloride Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 2300.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryCholesterol() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryCholesterol),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 100)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryCholesterol",
-                display: "Dietary Cholesterol Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 100.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryChromium() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryChromium),
-            quantity: HKQuantity(unit: .gramUnit(with: .micro), doubleValue: 25)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryChromium",
-                display: "Dietary Chromium Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "ug",
-                system: "http://unitsofmeasure.org",
-                unit: "ug",
-                value: 25.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryCopper() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryCopper),
-            quantity: HKQuantity(unit: .gramUnit(with: .micro), doubleValue: 900)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryCopper",
-                display: "Dietary Copper Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "ug",
-                system: "http://unitsofmeasure.org",
-                unit: "ug",
-                value: 900.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryFatMonounsaturated() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryFatMonounsaturated),
-            quantity: HKQuantity(unit: .gram(), doubleValue: 22)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryFatMonounsaturated",
-                display: "Dietary Monounsaturated Fat Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "g",
-                system: "http://unitsofmeasure.org",
-                unit: "g",
-                value: 22.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryFatPolyunsaturated() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryFatPolyunsaturated),
-            quantity: HKQuantity(unit: .gram(), doubleValue: 30)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryFatPolyunsaturated",
-                display: "Dietary Polyunsaturated Fat Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "g",
-                system: "http://unitsofmeasure.org",
-                unit: "g",
-                value: 30.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryFatSaturated() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryFatSaturated),
-            quantity: HKQuantity(unit: .gram(), doubleValue: 30)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryFatSaturated",
-                display: "Dietary Saturated Fat Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "g",
-                system: "http://unitsofmeasure.org",
-                unit: "g",
-                value: 30.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryFatTotal() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryFatTotal),
-            quantity: HKQuantity(unit: .gram(), doubleValue: 66)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryFatTotal",
-                display: "Dietary Total Fat Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "g",
-                system: "http://unitsofmeasure.org",
-                unit: "g",
-                value: 66.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryFiber() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryFiber),
-            quantity: HKQuantity(unit: .gram(), doubleValue: 30)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "LP203183-1",
-                display: "Fiber intake",
-                system: .loinc
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryFiber",
-                display: "Dietary Fiber Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "g",
-                system: "http://unitsofmeasure.org",
-                unit: "g",
-                value: 30.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryFolate() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryFolate),
-            quantity: HKQuantity(unit: .gramUnit(with: .micro), doubleValue: 400)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryFolate",
-                display: "Dietary Folate Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "ug",
-                system: "http://unitsofmeasure.org",
-                unit: "ug",
-                value: 400.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryIodine() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryIodine),
-            quantity: HKQuantity(unit: .gramUnit(with: .micro), doubleValue: 140)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryIodine",
-                display: "Dietary Iodine Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "ug",
-                system: "http://unitsofmeasure.org",
-                unit: "ug",
-                value: 140.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryIron() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryIron),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 16)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryIron",
-                display: "Dietary Iron Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 16.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryMagnesium() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryMagnesium),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 400)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryMagnesium",
-                display: "Dietary Magnesium Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 400.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryManganese() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryManganese),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 2.3)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryManganese",
-                display: "Dietary Manganese Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 2.3.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryMolybdenum() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryMolybdenum),
-            quantity: HKQuantity(unit: .gramUnit(with: .micro), doubleValue: 45)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryMolybdenum",
-                display: "Dietary Molybdenum Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "ug",
-                system: "http://unitsofmeasure.org",
-                unit: "ug",
-                value: 45.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryPhosphorus() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryPhosphorus),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 1000)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryPhosphorus",
-                display: "Dietary Phosphorus Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 1000.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryPotassium() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryPotassium),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 1000)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryPotassium",
-                display: "Dietary Potassium Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 1000.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietarySodium() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietarySodium),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 1000)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietarySodium",
-                display: "Dietary Sodium Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 1000.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryNiacin() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryNiacin),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 16)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryNiacin",
-                display: "Dietary Niacin Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 16.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryPantothenicAcid() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryPantothenicAcid),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 5)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryPantothenicAcid",
-                display: "Dietary Pantothenic Acid Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 5.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryProtein() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryProtein),
-            quantity: HKQuantity(unit: .gram(), doubleValue: 40)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryProtein",
-                display: "Dietary Protein Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "g",
-                system: "http://unitsofmeasure.org",
-                unit: "g",
-                value: 40.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryRiboflavin() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryRiboflavin),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 1.3)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryRiboflavin",
-                display: "Dietary Riboflavin Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 1.3.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietarySelenium() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietarySelenium),
-            quantity: HKQuantity(unit: .gramUnit(with: .micro), doubleValue: 55)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietarySelenium",
-                display: "Dietary Selenium Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "ug",
-                system: "http://unitsofmeasure.org",
-                unit: "ug",
-                value: 55.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietarySugar() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietarySugar),
-            quantity: HKQuantity(unit: .gram(), doubleValue: 30)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietarySugar",
-                display: "Dietary Sugar Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "g",
-                system: "http://unitsofmeasure.org",
-                unit: "g",
-                value: 30.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryThiamin() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryThiamin),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 1.2)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryThiamin",
-                display: "Dietary Thiamin Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 1.2.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryVitaminA() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryVitaminA),
-            quantity: HKQuantity(unit: .gramUnit(with: .micro), doubleValue: 900)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryVitaminA",
-                display: "Dietary Vitamin A Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "ug",
-                system: "http://unitsofmeasure.org",
-                unit: "ug",
-                value: 900.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryVitaminB12() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryVitaminB12),
-            quantity: HKQuantity(unit: .gramUnit(with: .micro), doubleValue: 2.4)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryVitaminB12",
-                display: "Dietary Vitamin B12 Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "ug",
-                system: "http://unitsofmeasure.org",
-                unit: "ug",
-                value: 2.4.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryVitaminB6() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryVitaminB6),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 1.5)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryVitaminB6",
-                display: "Dietary Vitamin B6 Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 1.5.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryVitaminC() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryVitaminC),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 90)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryVitaminC",
-                display: "Dietary Vitamin C Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 90.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryVitaminD() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryVitaminD),
-            quantity: HKQuantity(unit: .gramUnit(with: .micro), doubleValue: 20)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryVitaminD",
-                display: "Dietary Vitamin D Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "ug",
-                system: "http://unitsofmeasure.org",
-                unit: "ug",
-                value: 20.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryVitaminE() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryVitaminE),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 15)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryVitaminE",
-                display: "Dietary Vitamin E Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 15.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryVitaminK() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryVitaminK),
-            quantity: HKQuantity(unit: .gramUnit(with: .micro), doubleValue: 15)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryVitaminK",
-                display: "Dietary Vitamin K Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "ug",
-                system: "http://unitsofmeasure.org",
-                unit: "ug",
-                value: 15.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryWater() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryWater),
-            quantity: HKQuantity(unit: .liter(), doubleValue: 2)
-        )
-        #expect(observation.code.coding == [
-            Coding(
-                code: "8999-5",
-                display: "Fluid intake oral Estimated",
-                system: .loincSystem
-            ),
-            Coding(
-                code: "226354008",
-                display: "Water intake",
-                system: .snomedCT
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryWater",
-                display: "Dietary Water Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "l",
-                system: "http://unitsofmeasure.org",
-                unit: "l",
-                value: 2.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryWater2() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryWater),
-            quantity: HKQuantity(unit: .literUnit(with: .milli), doubleValue: 2500)
-        )
-        #expect(observation.code.coding == [
-            Coding(
-                code: "8999-5",
-                display: "Fluid intake oral Estimated",
-                system: .loincSystem
-            ),
-            Coding(
-                code: "226354008",
-                display: "Water intake",
-                system: .snomedCT
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryWater",
-                display: "Dietary Water Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "l",
-                system: "http://unitsofmeasure.org",
-                unit: "l",
-                value: 2.5.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func dietaryZinc() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.dietaryZinc),
-            quantity: HKQuantity(unit: .gramUnit(with: .milli), doubleValue: 11)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDietaryZinc",
-                display: "Dietary Zinc Intake",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mg",
-                system: "http://unitsofmeasure.org",
-                unit: "mg",
-                value: 11.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func electrodermalActivity() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.electrodermalActivity),
-            quantity: HKQuantity(unit: .siemen(), doubleValue: 0.000001)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierElectrodermalActivity",
-                display: "Electrodermal Activity",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "uS",
-                system: "http://unitsofmeasure.org",
-                unit: "microsiemens",
-                value: 1.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func forcedExpiratoryVolume1() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.forcedExpiratoryVolume1),
-            quantity: HKQuantity(unit: .liter(), doubleValue: 3.5)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "20150-9",
-                display: "FEV1",
-                system: .loinc
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierForcedExpiratoryVolume1",
-                display: "Forced Expiratory Volume (1 sec)",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "L",
-                system: "http://unitsofmeasure.org",
-                unit: "L",
-                value: 3.5.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func forcedVitalCapacity() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.forcedVitalCapacity),
-            quantity: HKQuantity(unit: .liter(), doubleValue: 5.5)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "19870-5",
-                display: "Forced vital capacity [Volume] Respiratory system",
-                system: .loinc
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierForcedVitalCapacity",
-                display: "Forced Vital Capacity",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "L",
-                system: "http://unitsofmeasure.org",
-                unit: "L",
-                value: 5.5.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func inhalerUsage() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.inhalerUsage),
-            quantity: HKQuantity(unit: .count(), doubleValue: 3)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierInhalerUsage",
-                display: "Inhaler Usage",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                unit: "count",
-                value: 3.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
+    // MARK: Distinctive Tests
 
-    @Test
-    func stepCount() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.stepCount),
-            quantity: HKQuantity(unit: .count(), doubleValue: 42)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "55423-8",
-                display: "Number of steps in unspecified time Pedometer",
-                system: .loinc
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierStepCount",
-                display: "Step Count",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                unit: "steps",
-                value: 42.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func flightsClimbed() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.flightsClimbed),
-            quantity: HKQuantity(unit: .count(), doubleValue: 10)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "100304-5",
-                display: "Flights climbed [#] Reporting Period",
-                system: .loinc
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierFlightsClimbed",
-                display: "Flights Climbed",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                unit: "flights",
-                value: 10.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func heartRate() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.heartRate),
-            quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 84)
-        )
-        #expect(observation.code.coding == [
-            Coding(
-                code: "8867-4",
-                display: "Heart rate",
-                system: .loincSystem
-            ),
-            Coding(
-                code: "364075005",
-                display: "Heart rate",
-                system: .snomedCT
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierHeartRate",
-                display: "Heart Rate",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "/min",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "beats/minute",
-                value: 84.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func restingHeartRate() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.restingHeartRate),
-            quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 84)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "40443-4",
-                display: "Heart rate --resting",
-                system: .loinc
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierRestingHeartRate",
-                display: "Resting Heart Rate",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "/min",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "beats/minute",
-                value: 84.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func walkingHeartRateAverage() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.walkingHeartRateAverage),
-            quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 84)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierWalkingHeartRateAverage",
-                display: "Walking Heart Rate Average",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "/min",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "beats/minute",
-                value: 84.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func walkingAsymmetryPercentage() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.walkingAsymmetryPercentage),
-            quantity: HKQuantity(unit: .percent(), doubleValue: 0.5)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierWalkingAsymmetryPercentage",
-                display: "Walking Asymmetry Percentage",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "%",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "%",
-                value: 50.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func walkingSpeed() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.walkingSpeed),
-            quantity: HKQuantity(unit: HKUnit.meter().unitDivided(by: HKUnit.second()), doubleValue: 1.5)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierWalkingSpeed",
-                display: "Walking Speed",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "m/s",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "m/s",
-                value: 1.5.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func heartRateVariabilitySDNN() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.heartRateVariabilitySDNN),
-            quantity: HKQuantity(unit: .secondUnit(with: .milli), doubleValue: 100)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "80404-7",
-                display: "R-R interval.standard deviation (Heart rate variability)",
-                system: .loinc
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierHeartRateVariabilitySDNN",
-                display: "Heart Rate Variability SDNN",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "ms",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "ms",
-                value: 100.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func oxygenSaturation() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.oxygenSaturation),
-            quantity: HKQuantity(unit: .percent(), doubleValue: 0.99)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "59408-5",
-                display: "Oxygen saturation in Arterial blood by Pulse oximetry",
-                system: .loinc
-            ),
-            Coding(
-                code: "431314004",
-                display: "Peripheral oxygen saturation",
-                system: .snomedCT
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierOxygenSaturation",
-                display: "Oxygen Saturation",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "%",
-                system: "http://unitsofmeasure.org",
-                unit: "%",
-                value: 99.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func peakExpiratoryFlowRate() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.peakExpiratoryFlowRate),
-            quantity: HKQuantity(unit: .liter().unitDivided(by: .minute()), doubleValue: 600)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "19935-6",
-                display: "Maximum expiratory gas flow Respiratory system airway by Peak flow meter",
-                system: .loinc
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierPeakExpiratoryFlowRate",
-                display: "Peak Expiratory Flow Rate",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "L/min",
-                system: "http://unitsofmeasure.org",
-                unit: "L/min",
-                value: 600.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func peripheralPerfusionIndex() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.peripheralPerfusionIndex),
-            quantity: HKQuantity(unit: .percent(), doubleValue: 0.05)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "61006-3",
-                display: "Perfusion index Tissue by Pulse oximetry",
-                system: .loinc
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierPeripheralPerfusionIndex",
-                display: "Peripheral Perfusion Index",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "%",
-                system: "http://unitsofmeasure.org",
-                unit: "%",
-                value: 5.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func pushCount() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.pushCount),
-            quantity: HKQuantity(unit: .count(), doubleValue: 5)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "96502-0",
-                display: "Number of wheelchair pushes per time period",
-                system: .loinc
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierPushCount",
-                display: "Wheelchair Push Count",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                unit: "wheelchair pushes",
-                value: 5.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @available(iOS 17.0, macOS 14.0, watchOS 10.0, *)
-    @Test
-    func timeInDaylight() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.timeInDaylight),
-            quantity: HKQuantity(unit: .minute(), doubleValue: 100)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierTimeInDaylight",
-                display: "Time in Daylight",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "min",
-                system: "http://unitsofmeasure.org",
-                unit: "min",
-                value: 100.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func uvExposure() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.uvExposure),
-            quantity: HKQuantity(unit: .count(), doubleValue: 5)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierUVExposure",
-                display: "UV Exposure",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                unit: "count",
-                value: 5.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-
-    @Test
-    func vo2Max() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.vo2Max),
-            quantity: HKQuantity(unit: HKUnit(from: "mL/kg*min"), doubleValue: 31)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierVO2Max",
-                display: "VO2Max",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "mL/kg/min",
-                system: "http://unitsofmeasure.org",
-                unit: "mL/kg/min",
-                value: 31.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func waistCircumference() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.waistCircumference),
-            quantity: HKQuantity(unit: HKUnit(from: "in"), doubleValue: 38.7)
-        )
-        #expect(observation.code.coding == [
-            Coding(
-                code: "8280-0",
-                display: "Waist Circumference at umbilicus by Tape measure",
-                system: .loincSystem
-            ),
-            Coding(
-                code: "276361009",
-                display: "Waist circumference",
-                system: .snomedCT
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierWaistCircumference",
-                display: "Waist Circumference",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "cm",
-                system: "http://unitsofmeasure.org",
-                unit: "cm",
-                value: 98.298.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func bodyTemperature() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.bodyTemperature),
-            quantity: HKQuantity(unit: .degreeCelsius(), doubleValue: 37)
-        )
-        #expect(observation.code.coding == [
-            Coding(
-                code: "8310-5",
-                display: "Body temperature",
-                system: .loincSystem
-            ),
-            Coding(
-                code: "386725007",
-                display: "Body temperature",
-                system: .snomedCT
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierBodyTemperature",
-                display: "Body Temperature",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "Cel",
-                system: "http://unitsofmeasure.org",
-                unit: "C",
-                value: 37.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func basalBodyTemperature() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.basalBodyTemperature),
-            quantity: HKQuantity(unit: .degreeCelsius(), doubleValue: 37)
-        )
-        #expect(observation.code.coding == [
-            Coding(
-                code: "8310-5",
-                display: "Body temperature",
-                system: .loincSystem
-            ),
-            Coding(
-                code: "300076005",
-                display: "Basal body temperature",
-                system: .snomedCT
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierBasalBodyTemperature",
-                display: "Basal Body Temperature",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "Cel",
-                system: "http://unitsofmeasure.org",
-                unit: "C",
-                value: 37.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func basalEnergyBurned() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.basalEnergyBurned),
-            quantity: HKQuantity(unit: HKUnit(from: "kcal"), doubleValue: 1200)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierBasalEnergyBurned",
-                display: "Basal Energy Burned",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "kcal",
-                system: "http://unitsofmeasure.org",
-                unit: "kcal",
-                value: 1200.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func bloodAlcoholContent() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.bloodAlcoholContent),
-            quantity: HKQuantity(unit: .percent(), doubleValue: 0.0)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "74859-0",
-                display: "Ethanol [Mass/volume] in Blood Estimated from serum or plasma level",
-                system: .loinc
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierBloodAlcoholContent",
-                display: "Blood Alcohol Content",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "%",
-                system: "http://unitsofmeasure.org",
-                unit: "%",
-                value: 0.0.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func bodyFatPercentage() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.bodyFatPercentage),
-            quantity: HKQuantity(unit: .percent(), doubleValue: 0.21)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "41982-0",
-                display: "Percentage of body fat Measured",
-                system: .loinc
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierBodyFatPercentage",
-                display: "Body Fat Percentage",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "%",
-                system: "http://unitsofmeasure.org",
-                unit: "%",
-                value: 21.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func bodyMassIndex() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.bodyMassIndex),
-            quantity: HKQuantity(unit: .count(), doubleValue: 20)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "39156-5",
-                display: "Body mass index (BMI) [Ratio]",
-                system: .loinc
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierBodyMassIndex",
-                display: "BMI",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "kg/m2",
-                system: "http://unitsofmeasure.org",
-                unit: "kg/m^2",
-                value: 20.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func height() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.height),
-            quantity: HKQuantity(unit: .meter(), doubleValue: 1.87)
-        )
-        #expect(observation.code.coding == [
-            Coding(
-                code: "8302-2",
-                display: "Body height",
-                system: .loincSystem
-            ),
-            Coding(
-                code: "50373000",
-                display: "Body height measure",
-                system: .snomedCT
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierHeight",
-                display: "Height",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "cm",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "cm",
-                value: 187.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func bodyMass() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.bodyMass),
-            quantity: HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: 68.7)
-        )
-        #expect(observation.code.coding == [
-            Coding(
-                code: "29463-7",
-                display: "Body weight",
-                system: .loincSystem
-            ),
-            Coding(
-                code: "27113001",
-                display: "Body weight",
-                system: .snomedCT
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierBodyMass",
-                display: "Body Mass",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "kg",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "kg",
-                value: 68.7.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func leanBodyMass() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.leanBodyMass),
-            quantity: HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: 67)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "91557-9",
-                display: "Lean body weight",
-                system: .loinc
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierLeanBodyMass",
-                display: "Lean Body Mass",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "kg",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "kg",
-                value: 67.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func numberOfTimesFallen() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.numberOfTimesFallen),
-            quantity: HKQuantity(unit: .count(), doubleValue: 0)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierNumberOfTimesFallen",
-                display: "Number of Times Fallen",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                unit: "falls",
-                value: 0.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-
-    @Test
-    func swimmingStrokeCount() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.swimmingStrokeCount),
-            quantity: HKQuantity(unit: .count(), doubleValue: 10)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierSwimmingStrokeCount",
-                display: "Swimming Stroke Count",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                unit: "strokes",
-                value: 10.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-
-    @Test
-    func respiratoryRate() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.respiratoryRate),
-            quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 18)
-        )
-        #expect(observation.code.coding == [
-            Coding(
-                code: "9279-1",
-                display: "Respiratory rate",
-                system: .loincSystem
-            ),
-            Coding(
-                code: "86290005",
-                display: "Respiratory rate",
-                system: .snomedCT
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierRespiratoryRate",
-                display: "Respiratory Rate",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "/min",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "breaths/minute",
-                value: 18.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func activeEnergyBurned() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.activeEnergyBurned),
-            quantity: HKQuantity(unit: .largeCalorie(), doubleValue: 100)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "41981-2",
-                display: "Calories burned",
-                system: .loinc
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierActiveEnergyBurned",
-                display: "Active Energy Burned",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "kcal",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "kcal",
-                value: 100.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func appleExerciseTime() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.appleExerciseTime),
-            quantity: HKQuantity(unit: .minute(), doubleValue: 100)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierAppleExerciseTime",
-                display: "Apple Exercise Time",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "min",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "min",
-                value: 100.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func appleMoveTime() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.appleMoveTime),
-            quantity: HKQuantity(unit: .minute(), doubleValue: 100)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierAppleMoveTime",
-                display: "Apple Move Time",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "min",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "min",
-                value: 100.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @available(iOS 17.0, macOS 14.0, watchOS 10.0, *)
-    @Test
-    func applePhysicalEffort() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.physicalEffort),
-            quantity: HKQuantity(unit: HKUnit(from: "kcal/hr*kg"), doubleValue: 2)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierPhysicalEffort",
-                display: "Physical Effort",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "kcal/(kg.h)",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "kcal/(kg.h)",
-                value: 2.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func appleStandTime() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.appleStandTime),
-            quantity: HKQuantity(unit: .minute(), doubleValue: 100)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierAppleStandTime",
-                display: "Apple Stand Time",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "min",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "min",
-                value: 100.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func ppleWalkingSteadiness() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.appleWalkingSteadiness),
-            quantity: HKQuantity(unit: .percent(), doubleValue: 0.5)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierAppleWalkingSteadiness",
-                display: "Apple Walking Steadiness",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "%",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "%",
-                value: 50.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-
-    @Test
-    func distanceCycling() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.distanceCycling),
-            quantity: HKQuantity(unit: .meterUnit(with: .kilo), doubleValue: 1.75)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDistanceCycling",
-                display: "Cycling Distance",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "m",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "m",
-                value: 1750.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func distanceDownhillSnowSports() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.distanceDownhillSnowSports),
-            quantity: HKQuantity(unit: .meter(), doubleValue: 1750)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDistanceDownhillSnowSports",
-                display: "Downhill Snow Sports Distance",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "m",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "m",
-                value: 1750.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func distanceSwimming() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.distanceSwimming),
-            quantity: HKQuantity(unit: .meter(), doubleValue: 100)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "93816-7",
-                display: "Swimming distance unspecified time",
-                system: .loinc
-            ),
-            createCoding(
-                code: "HKQuantityTypeIdentifierDistanceSwimming",
-                display: "Swimming Distance",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "m",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "m",
-                value: 100.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-
-    
-    @Test
-    func distanceWalkingRunning() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.distanceWalkingRunning),
-            quantity: HKQuantity(unit: .meter(), doubleValue: 100)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDistanceWalkingRunning",
-                display: "Distance Walking/Running",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "m",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "m",
-                value: 100.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func distanceWheelchair() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.distanceWheelchair),
-            quantity: HKQuantity(unit: .meter(), doubleValue: 100)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierDistanceWheelchair",
-                display: "Wheelchair Distance",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "m",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "m",
-                value: 100.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func environmentalAudioExposure() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.environmentalAudioExposure),
-            quantity: HKQuantity(unit: .decibelAWeightedSoundPressureLevel(), doubleValue: 100)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierEnvironmentalAudioExposure",
-                display: "Environmental Audio Exposure",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "dB[SPL]",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "dB(SPL)",
-                value: 100.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    @Test
-    func headphoneAudioExposure() throws {
-        let observation = try createObservationFrom(
-            type: HKQuantityType(.headphoneAudioExposure),
-            quantity: HKQuantity(unit: .decibelAWeightedSoundPressureLevel(), doubleValue: 100)
-        )
-        #expect(observation.code.coding == [
-            createCoding(
-                code: "HKQuantityTypeIdentifierHeadphoneAudioExposure",
-                display: "Headphone Audio Exposure",
-                system: .apple
-            )
-        ])
-        #expect(observation.value == .quantity(
-            Quantity(
-                code: "dB[SPL]",
-                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
-                unit: "dB(SPL)",
-                value: 100.asFHIRDecimalPrimitive()
-            )
-        ))
-    }
-    
-    // need to find a new unsupported type
-//    @Test
-//    func unsupportedTypeSample() throws {
-//        let quantitySample = HKQuantitySample(
-//            type: HKQuantityType(.nikeFuel),
-//            quantity: HKQuantity(unit: .count(), doubleValue: 1),
-//            start: try startDate,
-//            end: try endDate
-//        )
-//        #expect(throws: GroveHealthKitFHIRError.self) {
-//            try quantitySample.resource().get(if: Observation.self)
-//        }
-//    }
-    
     @Test
     func invalidComponent() throws {
         let startDate = try startDate
@@ -2237,10 +107,9 @@ struct HKQuantitySampleTests {
             return
         }
         #expect(throws: GroveHealthKitFHIRError.self) {
-            try correlation.resource()
+            try correlation.resource(subject: Reference(reference: "Patient/example"))
         }
     }
-    
     @Test
     func unsupportedType() throws {
         #expect(throws: GroveHealthKitFHIRError.self) {
@@ -2250,69 +119,9 @@ struct HKQuantitySampleTests {
                 expirationDate: nil,
                 device: nil,
                 metadata: nil
-            ).resource()
+            ).resource(subject: Reference(reference: "Patient/example"))
         }
     }
-    
-    // need to find a new unsupported type
-//    @Test
-//    func unsupportedMapping() throws {
-//        let sample = HKQuantitySample(
-//            type: HKQuantityType(.nikeFuel),
-//            quantity: HKQuantity(unit: .count(), doubleValue: 1),
-//            start: try startDate,
-//            end: try endDate
-//        )
-//        #expect(sample.quantityType.codes().isEmpty)
-//    }
-    
-    @Test func invalidValue() throws {
-        #expect(Decimal(Double.nan).doubleValue.isNaN)
-        #expect(Decimal(Double.signalingNaN).doubleValue.isNaN)
-        
-        let unit: HKUnit = .count().unitDivided(by: .minute())
-        let makeSample = {
-            HKQuantitySample(
-                type: HKQuantityType(.heartRate),
-                quantity: HKQuantity(unit: unit, doubleValue: $0),
-                start: .now,
-                end: .now
-            )
-        }
-        #expect(throws: (any Error).self) {
-            try makeSample(+.infinity).resource()
-        }
-        #expect(throws: (any Error).self) {
-            try makeSample(-.infinity).resource()
-        }
-        #expect(throws: Never.self) {
-            try makeSample(.nan).resource()
-        }
-        
-        let samples = [
-            makeSample(+.infinity),
-            makeSample(-.infinity),
-            makeSample(.nan),
-            makeSample(.signalingNaN),
-            makeSample(+0),
-            makeSample(-0)
-        ]
-        
-        let resources = try samples.compactMapIntoResourceProxies()
-        let values: [Double] = resources.compactMap { resource in
-            guard let observation = resource.get(if: Observation.self) else {
-                return nil
-            }
-            switch observation.value {
-            case .quantity(let quantity):
-                return quantity.value?.value?.decimal.doubleValue
-            default:
-                return nil
-            }
-        }
-        #expect(values.map(\.bitPattern) == [Double.nan, .nan, 0, 0].map(\.bitPattern))
-    }
-    
     @Test
     func collectionSampleToResourceProxy() throws {
         func makeSample(numSteps: Int, date: DateComponents) throws -> HKQuantitySample {
@@ -2332,86 +141,36 @@ struct HKQuantitySampleTests {
             try makeSample(numSteps: 16, date: .init(year: 2025, month: 1, day: 1, hour: 4)),
             try makeSample(numSteps: 17, date: .init(year: 2025, month: 1, day: 1, hour: 5))
         ]
-        let resources = try samples.mapIntoResourceProxies()
+        let resources = try samples.mapIntoResourceProxies(subject: Reference(reference: "Patient/example"))
         #expect(resources.count == samples.count)
         for resource in resources {
             #expect(resource.get(if: Observation.self) != nil)
         }
     }
-    
-    // need to find a new unsupported type
-//    @Test
-//    func collectionSampleToResourceProxyWithUnsupportedSample() throws {
-//        func makeSample(numSteps: Int, date: DateComponents) throws -> HKQuantitySample {
-//            let date = try #require(Calendar.current.date(from: date))
-//            return HKQuantitySample(
-//                type: HKQuantityType(.stepCount),
-//                quantity: HKQuantity(unit: .count(), doubleValue: Double(numSteps)),
-//                start: date,
-//                end: date
-//            )
-//        }
-//        let samples = [
-//            try makeSample(numSteps: 12, date: .init(year: 2025, month: 1, day: 1, hour: 0)),
-//            try makeSample(numSteps: 13, date: .init(year: 2025, month: 1, day: 1, hour: 1)),
-//            try makeSample(numSteps: 14, date: .init(year: 2025, month: 1, day: 1, hour: 2)),
-//            try makeSample(numSteps: 15, date: .init(year: 2025, month: 1, day: 1, hour: 3)),
-//            try makeSample(numSteps: 16, date: .init(year: 2025, month: 1, day: 1, hour: 4)),
-//            try makeSample(numSteps: 17, date: .init(year: 2025, month: 1, day: 1, hour: 5)),
-//            HKQuantitySample(type: HKQuantityType(.nikeFuel), quantity: HKQuantity(unit: .count(), doubleValue: 123), start: .now, end: .now)
-//        ]
-//        #expect(throws: GroveHealthKitFHIRError.self) {
-//            try samples.mapIntoResourceProxies()
-//        }
-//        let resources = try samples.compactMapIntoResourceProxies()
-//        #expect(resources.count == samples.count - 1)
-//        for resource in resources {
-//            #expect(resource.get(if: Observation.self) != nil)
-//        }
-//    }
-    
     @Test
-    func absoluteTimeRangeStoredInExtension() throws {
+    func timingLivesInEffectivePeriodRatherThanAnExtension() throws {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = .gmt
         let startDate = try #require(cal.date(from: .init(year: 1970, month: 1, day: 1, hour: 0, minute: 0, second: 0)))
         let endDate = try #require(cal.date(from: .init(year: 1970, month: 1, day: 1, hour: 0, minute: 15, second: 0)))
-        
-        let observation1 = try createObservationFrom(
+        let observation = try createObservationFrom(
             type: HKQuantityType(.stepCount),
             quantity: HKQuantity(unit: .count(), doubleValue: 42),
             timeRange: startDate..<endDate,
             extensions: []
         )
-        do {
-            let extensions = try #require(observation1.extension)
-            #expect(extensions.count == 1)
-            #expect(extensions.map(\.url) == [FHIRExtensionURL.sourceRevision.r4])
+        // Epoch seconds used to ride along in a pair of Grove extensions. effective[x]
+        // carries the same instants at full precision, so nothing duplicates them.
+        guard case let .period(period) = observation.effective else {
+            Issue.record("Expected an effectivePeriod")
+            return
         }
-        
-        let observation2 = try createObservationFrom(
-            type: HKQuantityType(.stepCount),
-            quantity: HKQuantity(unit: .count(), doubleValue: 42),
-            timeRange: startDate..<endDate,
-            extensions: [.includeAbsoluteTimeRange]
-        )
-        do {
-            let extensions = try #require(observation2.extension)
-            let absoluteTimeRangeStart = ModelsR4.FHIRPrimitive(
-                ModelsR4.FHIRURI(stringLiteral: RetiredFHIRCanonicalURLs.absoluteTimeRangeStart.canonical)
-            )
-            let absoluteTimeRangeEnd = ModelsR4.FHIRPrimitive(
-                ModelsR4.FHIRURI(stringLiteral: RetiredFHIRCanonicalURLs.absoluteTimeRangeEnd.canonical)
-            )
-            #expect(extensions.count == 3)
-            #expect(Set(extensions.map(\.url)) == [
-                FHIRExtensionURL.sourceRevision.r4, absoluteTimeRangeStart, absoluteTimeRangeEnd
-            ])
-            #expect(extensions.contains(Extension(url: absoluteTimeRangeStart, value: .decimal(0.asFHIRDecimalPrimitive()))))
-            #expect(extensions.contains(Extension(url: absoluteTimeRangeEnd, value: .decimal(900.asFHIRDecimalPrimitive()))))
-        }
+        // Asserted as instants: the rendering carries the converting machine's offset,
+        // so comparing strings would only test where the test runs.
+        #expect(try #require(period.start?.value).asNSDate() == startDate)
+        #expect(try #require(period.end?.value).asNSDate() == endDate)
+        #expect(observation.extension == nil)
     }
-    
     @Test
     func sampleSourceInfo() throws {
         var cal = Calendar(identifier: .gregorian)
@@ -2435,26 +194,36 @@ struct HKQuantitySampleTests {
             device: device,
             extensions: []
         )
-        let extensions = try #require(observation.extension)
-        #expect(extensions.count == 2)
-        #expect(Set(extensions.map(\.url)) == [FHIRExtensionURL.sourceRevision.r4, FHIRExtensionURL.sourceDevice.r4])
-        let deviceExtension = try #require(extensions.first { $0.url == FHIRExtensionURL.sourceDevice.r4 })
-        _ = try #require(extensions.first { $0.url == FHIRExtensionURL.sourceRevision.r4 })
-        
-        try checkProperty(in: deviceExtension, ["name"], value: device.name.map { .string($0.asFHIRStringPrimitive()) })
-        try checkProperty(in: deviceExtension, ["manufacturer"], value: device.manufacturer.map { .string($0.asFHIRStringPrimitive()) })
-        try checkProperty(in: deviceExtension, ["model"], value: device.model.map { .string($0.asFHIRStringPrimitive()) })
-        try checkProperty(in: deviceExtension, ["hardwareVersion"], value: device.hardwareVersion.map { .string($0.asFHIRStringPrimitive()) })
-        try checkProperty(in: deviceExtension, ["firmwareVersion"], value: device.firmwareVersion.map { .string($0.asFHIRStringPrimitive()) })
-        try checkProperty(in: deviceExtension, ["softwareVersion"], value: device.softwareVersion.map { .string($0.asFHIRStringPrimitive()) })
-        try checkProperty(in: deviceExtension, ["localIdentifier"], value: device.localIdentifier.map { .string($0.asFHIRStringPrimitive()) })
-        try checkProperty(in: deviceExtension, ["udiDeviceIdentifier"], value: device.udiDeviceIdentifier.map { .string($0.asFHIRStringPrimitive()) })
-        
-        // can't unit-test the encoding of the source revision into the extensions,
-        // since HKSamples only have a source revision once they're saved to HealthKit, which we can't do here.
+        // The recording hardware is a contained Device referenced from Observation.device;
+        // the saving app rides the HL7 observation-gatewayDevice extension. A sample with
+        // a device (and no user-entered flag) is automatically recorded.
+        #expect(observation.device?.reference?.value?.string == "#sensor-device")
+        // An unsaved sample carries no source revision, so there is no gateway app to
+        // describe and none is contained — an empty Device would fail its own profile.
+        let extensionUrls = Set((observation.extension ?? []).compactMap { $0.url.value?.url.absoluteString })
+        #expect(extensionUrls == ["https://grovealliance.org/fhir/core/StructureDefinition/grove-recording-method"])
+        let contained = observation.contained ?? []
+        let sensor = try #require(
+            contained.compactMap { $0.get(if: Device.self) }.first { $0.id?.value?.string == "sensor-device" }
+        )
+        #expect(sensor.deviceName?.first?.name.value?.string == "Cerebral Activity Modulator")
+        #expect(sensor.deviceName?.first?.type.value == .userFriendlyName)
+        #expect(sensor.manufacturer?.value?.string == "Lukas Industries")
+        #expect(sensor.modelNumber?.value?.string == "A1000")
+        #expect(sensor.identifier?.first?.system?.value?.url.absoluteString == "https://grovealliance.org/fhir/sid/device-local-id")
+        #expect(sensor.identifier?.first?.value?.value?.string == device.localIdentifier)
+        // MDC-coded version slices, per the Personal Health Device IG vocabulary.
+        func version(_ mdcCode: String) -> String? {
+            sensor.version?
+                .first { $0.type?.coding?.first?.code?.value?.string == mdcCode }?
+                .value.value?.string
+        }
+        #expect(version("531974") == "X12/49")
+        #expect(version("531976") == "2.1.4")
+        #expect(version("531975") == "1.7.9")
+        #expect(sensor.version?.first?.type?.coding?.first?.system?.value?.url.absoluteString == "urn:iso:std:iso:11073:10101")
+        #expect(!contained.compactMap { $0.get(if: Device.self) }.contains { $0.id?.value?.string == "gateway-device" })
     }
-    
-    
     @Test
     func sampleMetadataExtension() throws {
         var cal = Calendar(identifier: .gregorian)
@@ -2475,35 +244,33 @@ struct HKQuantitySampleTests {
             ]
         )
         let extensions = try #require(observation.extension)
-        #expect(extensions.count == 2)
-        #expect(Set(extensions.compactMap(\.url)) == [FHIRExtensionURL.metadata.r4, FHIRExtensionURL.sourceRevision.r4])
-        let metadataExtension = try #require(extensions.first { $0.url == FHIRExtensionURL.metadata.r4 })
-        
-        try checkProperty(
-            in: metadataExtension,
-            [HKMetadataKeyExternalUUID],
-            value: .string(metadataExternalUUID.uuidString.asFHIRStringPrimitive())
-        )
-        try checkProperty(
-            in: metadataExtension,
-            [HKMetadataKeyTimeZone],
-            value: .string(metadataTimeZone.identifier.asFHIRStringPrimitive())
-        )
-        try checkProperty(
-            in: metadataExtension,
-            [HKMetadataKeyWeatherCondition],
-            value: .coding(Coding(
-                code: "12".asFHIRStringPrimitive(),
+        #expect(Set(extensions.compactMap(\.url)) == [FHIRExtensionURL.metadata.r4])
+        // Each surviving entry is its own extension: a key coding plus a typed value.
+        // The key never becomes part of the extension URL — every extension URL has to
+        // resolve to a StructureDefinition.
+        #expect(metadataValue(in: extensions, forKey: HKMetadataKeyExternalUUID)
+            == .string(metadataExternalUUID.uuidString.asFHIRStringPrimitive()))
+        #expect(metadataValue(in: extensions, forKey: HKMetadataKeyWeatherCondition)
+            == .coding(Coding(
+                code: "snow".asFHIRStringPrimitive(),
                 display: "snow",
-                system: "https://developer.apple.com/documentation/healthkit/hkweathercondition".asFHIRURIPrimitive()
-            ))
-        )
-        
+                system: "https://grovealliance.org/fhir/platforms/CodeSystem/healthkit-weather-condition".asFHIRURIPrimitive()
+            )))
+        // The time zone is routed to the timezone extension on effective[x], so it
+        // must not appear as a metadata entry too.
+        #expect(metadataValue(in: extensions, forKey: HKMetadataKeyTimeZone) == nil)
+        if case let .period(period) = observation.effective {
+            let zoneExtension = period.start?.extension?.first {
+                $0.url.value?.url.absoluteString == "http://hl7.org/fhir/StructureDefinition/timezone"
+            }
+            #expect(zoneExtension?.value == .code(FHIRPrimitive(FHIRString(metadataTimeZone.identifier))))
+        } else {
+            Issue.record("Expected an effectivePeriod")
+        }
+
         // can't unit-test the encoding of the source revision into the extensions,
         // since HKSamples only have a source revision once they're saved to HealthKit, which we can't do here.
     }
-    
-    
     @Test
     func simpleSampleToJson() throws {
         let date = try #require(Calendar.current.date(from: .init(year: 2026, month: 4, day: 21, hour: 12, minute: 7)))
@@ -2513,40 +280,2004 @@ struct HKQuantitySampleTests {
             start: date,
             end: date
         )
-        let resource = try sample.resource()
+        let resource = try sample.resource(subject: Reference(reference: "Patient/example"))
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
         let json = String(decoding: try encoder.encode(resource), as: UTF8.self)
         print(json)
+    }
+
+    // MARK: Uniform Type Mappings
+
+    @Test(arguments: quantityMappingExpectations)
+    func quantityMapping(_ expectation: QuantitySampleExpectation) throws {
+        let observation = try createObservationFrom(
+            type: HKQuantityType(expectation.identifier),
+            quantity: HKQuantity(unit: expectation.unit, doubleValue: expectation.value)
+        )
+        #expect(observation.code.coding == expectation.expectedCodings)
+        #expect(observation.value == expectation.expectedValue)
     }
 }
 
 
 // MARK: Utils
 
-func checkProperty(
-    in parentExtension: Extension,
-    _ path: some Collection<String>,
-    value expectedValue: Extension.ValueX?,
-    loc: SourceLocation = #_sourceLocation
-) throws {
-    guard let name = path.first else {
-        Issue.record("Empty path")
-        return
-    }
-    let url: ModelsR4.FHIRPrimitive = try #require(parentExtension.url.value).url.appending(component: name).asFHIRURIPrimitive()
-    guard let ext = parentExtension.extension?.first(where: { $0.url == url }) else {
-        if expectedValue != nil {
-            Issue.record("Unable to find extension for \(try #require(url.value?.url).absoluteString)")
+/// The value of the platform-metadata entry for `key`, or `nil` if there is none.
+func metadataValue(in extensions: [Extension], forKey key: String) -> Extension.ValueX? {
+    for entry in extensions where entry.url == FHIRExtensionURL.metadata.r4 {
+        let matchesKey = entry.extension?.contains {
+            $0.url == "key" && $0.value == .coding(Coding(
+                code: key.asFHIRStringPrimitive(),
+                system: GroveFHIRVocabulary.healthKitMetadataKey
+            ))
         }
-        return
+        if matchesKey == true {
+            return entry.extension?.first { $0.url == "value" }?.value
+        }
     }
-    guard path.count == 1 else {
-        try checkProperty(in: ext, path.dropFirst(), value: expectedValue, loc: loc)
-        return
-    }
-    let value = try #require(ext.value)
-    #expect(value == expectedValue, sourceLocation: loc)
+    return nil
 }
+
+
+/// Builds a test-expected `Coding` (file-scope so the expectation table can use it).
+private func makeCoding(code: String, display: String, system: SupportedCodeSystem) -> Coding {
+    Coding(
+        code: FHIRPrimitive(stringLiteral: code),
+        display: FHIRPrimitive(stringLiteral: display),
+        system: FHIRPrimitive(FHIRURI(stringLiteral: system.rawValue))
+    )
+}
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+private let quantityMappingExpectations: [HKQuantitySampleTests.QuantitySampleExpectation] = [
+        .init(
+            identifier: .bloodGlucose,
+            unit: HKUnit(from: "mg/dL"),
+            value: 99,
+            expectedCodings: [
+                makeCoding(
+                code: "2339-0",
+                display: "Glucose [Mass/volume] in Blood",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierBloodGlucose",
+                display: "Blood Glucose",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg/dL",
+                system: "http://unitsofmeasure.org",
+                unit: "mg/dL",
+                value: 99.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryBiotin,
+            unit: .gramUnit(with: .micro),
+            value: 100,
+            expectedCodings: [
+                makeCoding(
+                code: "700183008",
+                display: "Biotin intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryBiotin",
+                display: "Dietary Biotin Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "ug",
+                system: "http://unitsofmeasure.org",
+                unit: "ug",
+                value: 100.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryCaffeine,
+            unit: .gramUnit(with: .milli),
+            value: 100,
+            expectedCodings: [
+                makeCoding(
+                code: "1208604004",
+                display: "Caffeine intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryCaffeine",
+                display: "Dietary Caffeine Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 100.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryCalcium,
+            unit: .gramUnit(with: .milli),
+            value: 1000,
+            expectedCodings: [
+                makeCoding(
+                code: "230122008",
+                display: "Calcium intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryCalcium",
+                display: "Dietary Calcium Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 1000.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryCarbohydrates,
+            unit: .gram(),
+            value: 1000,
+            expectedCodings: [
+                makeCoding(
+                code: "788472008",
+                display: "Carbohydrate intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryCarbohydrates",
+                display: "Dietary Carbohydrates Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "g",
+                system: "http://unitsofmeasure.org",
+                unit: "g",
+                value: 1000.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryChloride,
+            unit: .gramUnit(with: .milli),
+            value: 2300,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryChloride",
+                display: "Dietary Chloride Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 2300.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryCholesterol,
+            unit: .gramUnit(with: .milli),
+            value: 100,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryCholesterol",
+                display: "Dietary Cholesterol Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 100.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryChromium,
+            unit: .gramUnit(with: .micro),
+            value: 25,
+            expectedCodings: [
+                makeCoding(
+                code: "890196009",
+                display: "Chromium intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryChromium",
+                display: "Dietary Chromium Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "ug",
+                system: "http://unitsofmeasure.org",
+                unit: "ug",
+                value: 25.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryCopper,
+            unit: .gramUnit(with: .micro),
+            value: 900,
+            expectedCodings: [
+                makeCoding(
+                code: "286615007",
+                display: "Copper intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryCopper",
+                display: "Dietary Copper Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "ug",
+                system: "http://unitsofmeasure.org",
+                unit: "ug",
+                value: 900.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryFatMonounsaturated,
+            unit: .gram(),
+            value: 22,
+            expectedCodings: [
+                makeCoding(
+                code: "226329008",
+                display: "Monounsaturated fat intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryFatMonounsaturated",
+                display: "Dietary Monounsaturated Fat Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "g",
+                system: "http://unitsofmeasure.org",
+                unit: "g",
+                value: 22.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryFatPolyunsaturated,
+            unit: .gram(),
+            value: 30,
+            expectedCodings: [
+                makeCoding(
+                code: "226330003",
+                display: "Polyunsaturated fat intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryFatPolyunsaturated",
+                display: "Dietary Polyunsaturated Fat Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "g",
+                system: "http://unitsofmeasure.org",
+                unit: "g",
+                value: 30.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryFatSaturated,
+            unit: .gram(),
+            value: 30,
+            expectedCodings: [
+                makeCoding(
+                code: "226328000",
+                display: "Saturated fat intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryFatSaturated",
+                display: "Dietary Saturated Fat Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "g",
+                system: "http://unitsofmeasure.org",
+                unit: "g",
+                value: 30.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryFatTotal,
+            unit: .gram(),
+            value: 66,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryFatTotal",
+                display: "Dietary Total Fat Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "g",
+                system: "http://unitsofmeasure.org",
+                unit: "g",
+                value: 66.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryFiber,
+            unit: .gram(),
+            value: 30,
+            expectedCodings: [
+                makeCoding(
+                code: "876831004",
+                display: "Plant fiber intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryFiber",
+                display: "Dietary Fiber Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "g",
+                system: "http://unitsofmeasure.org",
+                unit: "g",
+                value: 30.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryFolate,
+            unit: .gramUnit(with: .micro),
+            value: 400,
+            expectedCodings: [
+                makeCoding(
+                code: "792806007",
+                display: "Folate and/or folate derivative intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryFolate",
+                display: "Dietary Folate Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "ug",
+                system: "http://unitsofmeasure.org",
+                unit: "ug",
+                value: 400.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryIodine,
+            unit: .gramUnit(with: .micro),
+            value: 140,
+            expectedCodings: [
+                makeCoding(
+                code: "890199002",
+                display: "Iodine intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryIodine",
+                display: "Dietary Iodine Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "ug",
+                system: "http://unitsofmeasure.org",
+                unit: "ug",
+                value: 140.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryIron,
+            unit: .gramUnit(with: .milli),
+            value: 16,
+            expectedCodings: [
+                makeCoding(
+                code: "286614006",
+                display: "Iron intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryIron",
+                display: "Dietary Iron Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 16.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryMagnesium,
+            unit: .gramUnit(with: .milli),
+            value: 400,
+            expectedCodings: [
+                makeCoding(
+                code: "230124009",
+                display: "Magnesium intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryMagnesium",
+                display: "Dietary Magnesium Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 400.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryManganese,
+            unit: .gramUnit(with: .milli),
+            value: 2.3,
+            expectedCodings: [
+                makeCoding(
+                code: "890198005",
+                display: "Manganese intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryManganese",
+                display: "Dietary Manganese Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 2.3.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryMolybdenum,
+            unit: .gramUnit(with: .micro),
+            value: 45,
+            expectedCodings: [
+                makeCoding(
+                code: "890200004",
+                display: "Molybdenum intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryMolybdenum",
+                display: "Dietary Molybdenum Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "ug",
+                system: "http://unitsofmeasure.org",
+                unit: "ug",
+                value: 45.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryPhosphorus,
+            unit: .gramUnit(with: .milli),
+            value: 1000,
+            expectedCodings: [
+                makeCoding(
+                code: "230123003",
+                display: "Phosphorus intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryPhosphorus",
+                display: "Dietary Phosphorus Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 1000.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryPotassium,
+            unit: .gramUnit(with: .milli),
+            value: 1000,
+            expectedCodings: [
+                makeCoding(
+                code: "788479004",
+                display: "Potassium intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryPotassium",
+                display: "Dietary Potassium Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 1000.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietarySodium,
+            unit: .gramUnit(with: .milli),
+            value: 1000,
+            expectedCodings: [
+                makeCoding(
+                code: "1148504005",
+                display: "Sodium intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietarySodium",
+                display: "Dietary Sodium Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 1000.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryNiacin,
+            unit: .gramUnit(with: .milli),
+            value: 16,
+            expectedCodings: [
+                makeCoding(
+                code: "286583002",
+                display: "Niacin intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryNiacin",
+                display: "Dietary Niacin Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 16.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryPantothenicAcid,
+            unit: .gramUnit(with: .milli),
+            value: 5,
+            expectedCodings: [
+                makeCoding(
+                code: "286600006",
+                display: "Pantothenic acid intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryPantothenicAcid",
+                display: "Dietary Pantothenic Acid Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 5.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryProtein,
+            unit: .gram(),
+            value: 40,
+            expectedCodings: [
+                makeCoding(
+                code: "874875003",
+                display: "Protein and/or protein derivative intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryProtein",
+                display: "Dietary Protein Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "g",
+                system: "http://unitsofmeasure.org",
+                unit: "g",
+                value: 40.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryRiboflavin,
+            unit: .gramUnit(with: .milli),
+            value: 1.3,
+            expectedCodings: [
+                makeCoding(
+                code: "286581000",
+                display: "Vitamin B2 intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryRiboflavin",
+                display: "Dietary Riboflavin Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 1.3.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietarySelenium,
+            unit: .gramUnit(with: .micro),
+            value: 55,
+            expectedCodings: [
+                makeCoding(
+                code: "286616008",
+                display: "Selenium intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietarySelenium",
+                display: "Dietary Selenium Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "ug",
+                system: "http://unitsofmeasure.org",
+                unit: "ug",
+                value: 55.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietarySugar,
+            unit: .gram(),
+            value: 30,
+            expectedCodings: [
+                makeCoding(
+                code: "226459004",
+                display: "Sugar intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietarySugar",
+                display: "Dietary Sugar Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "g",
+                system: "http://unitsofmeasure.org",
+                unit: "g",
+                value: 30.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryThiamin,
+            unit: .gramUnit(with: .milli),
+            value: 1.2,
+            expectedCodings: [
+                makeCoding(
+                code: "286579002",
+                display: "Vitamin B1 intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryThiamin",
+                display: "Dietary Thiamin Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 1.2.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryVitaminA,
+            unit: .gramUnit(with: .micro),
+            value: 900,
+            expectedCodings: [
+                makeCoding(
+                code: "286604002",
+                display: "Vitamin A intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryVitaminA",
+                display: "Dietary Vitamin A Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "ug",
+                system: "http://unitsofmeasure.org",
+                unit: "ug",
+                value: 900.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryVitaminB12,
+            unit: .gramUnit(with: .micro),
+            value: 2.4,
+            expectedCodings: [
+                makeCoding(
+                code: "1144896002",
+                display: "Vitamin B12 and/or vitamin B12 derivative intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryVitaminB12",
+                display: "Dietary Vitamin B12 Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "ug",
+                system: "http://unitsofmeasure.org",
+                unit: "ug",
+                value: 2.4.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryVitaminB6,
+            unit: .gramUnit(with: .milli),
+            value: 1.5,
+            expectedCodings: [
+                makeCoding(
+                code: "1144810007",
+                display: "Vitamin B6 and/or vitamin B6 derivative intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryVitaminB6",
+                display: "Dietary Vitamin B6 Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 1.5.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryVitaminC,
+            unit: .gramUnit(with: .milli),
+            value: 90,
+            expectedCodings: [
+                makeCoding(
+                code: "286586005",
+                display: "Vitamin C intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryVitaminC",
+                display: "Dietary Vitamin C Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 90.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryVitaminD,
+            unit: .gramUnit(with: .micro),
+            value: 20,
+            expectedCodings: [
+                makeCoding(
+                code: "286607009",
+                display: "Vitamin D intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryVitaminD",
+                display: "Dietary Vitamin D Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "ug",
+                system: "http://unitsofmeasure.org",
+                unit: "ug",
+                value: 20.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryVitaminE,
+            unit: .gramUnit(with: .milli),
+            value: 15,
+            expectedCodings: [
+                makeCoding(
+                code: "286606000",
+                display: "Vitamin E intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryVitaminE",
+                display: "Dietary Vitamin E Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 15.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryVitaminK,
+            unit: .gramUnit(with: .micro),
+            value: 15,
+            expectedCodings: [
+                makeCoding(
+                code: "430195004",
+                display: "Vitamin K intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryVitaminK",
+                display: "Dietary Vitamin K Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "ug",
+                system: "http://unitsofmeasure.org",
+                unit: "ug",
+                value: 15.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryWater,
+            unit: .liter(),
+            value: 2,
+            expectedCodings: [
+                Coding(
+                code: "8999-5",
+                display: "Fluid intake oral Estimated",
+                system: .loincSystem
+                ),
+                Coding(
+                code: "226354008",
+                display: "Water intake",
+                system: .snomedCT
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryWater",
+                display: "Dietary Water Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "L",
+                system: "http://unitsofmeasure.org",
+                unit: "L",
+                value: 2.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryWater,
+            unit: .literUnit(with: .milli),
+            value: 2500,
+            expectedCodings: [
+                Coding(
+                code: "8999-5",
+                display: "Fluid intake oral Estimated",
+                system: .loincSystem
+                ),
+                Coding(
+                code: "226354008",
+                display: "Water intake",
+                system: .snomedCT
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryWater",
+                display: "Dietary Water Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "L",
+                system: "http://unitsofmeasure.org",
+                unit: "L",
+                value: 2.5.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .dietaryZinc,
+            unit: .gramUnit(with: .milli),
+            value: 11,
+            expectedCodings: [
+                makeCoding(
+                code: "286617004",
+                display: "Zinc intake",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDietaryZinc",
+                display: "Dietary Zinc Intake",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mg",
+                system: "http://unitsofmeasure.org",
+                unit: "mg",
+                value: 11.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .electrodermalActivity,
+            unit: .siemen(),
+            value: 0.000001,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierElectrodermalActivity",
+                display: "Electrodermal Activity",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "uS",
+                system: "http://unitsofmeasure.org",
+                unit: "microsiemens",
+                value: 1.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .forcedExpiratoryVolume1,
+            unit: .liter(),
+            value: 3.5,
+            expectedCodings: [
+                makeCoding(
+                code: "20150-9",
+                display: "FEV1",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierForcedExpiratoryVolume1",
+                display: "Forced Expiratory Volume (1 sec)",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "L",
+                system: "http://unitsofmeasure.org",
+                unit: "L",
+                value: 3.5.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .forcedVitalCapacity,
+            unit: .liter(),
+            value: 5.5,
+            expectedCodings: [
+                makeCoding(
+                code: "19870-5",
+                display: "Forced vital capacity [Volume] Respiratory system",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierForcedVitalCapacity",
+                display: "Forced Vital Capacity",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "L",
+                system: "http://unitsofmeasure.org",
+                unit: "L",
+                value: 5.5.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .inhalerUsage,
+            unit: .count(),
+            value: 3,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierInhalerUsage",
+                display: "Inhaler Usage",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "{puff}",
+                system: "http://unitsofmeasure.org",
+                unit: "puffs",
+                value: 3.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .stepCount,
+            unit: .count(),
+            value: 42,
+            expectedCodings: [
+                makeCoding(
+                code: "55423-8",
+                display: "Number of steps in unspecified time Pedometer",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierStepCount",
+                display: "Step Count",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "{steps}",
+                system: "http://unitsofmeasure.org",
+                unit: "steps",
+                value: 42.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .flightsClimbed,
+            unit: .count(),
+            value: 10,
+            expectedCodings: [
+                makeCoding(
+                code: "100304-5",
+                display: "Flights climbed [#] Reporting Period",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierFlightsClimbed",
+                display: "Flights Climbed",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "{flight}",
+                system: "http://unitsofmeasure.org",
+                unit: "flights",
+                value: 10.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .heartRate,
+            unit: .count().unitDivided(by: .minute()),
+            value: 84,
+            expectedCodings: [
+                Coding(
+                code: "8867-4",
+                display: "Heart rate",
+                system: .loincSystem
+                ),
+                Coding(
+                code: "364075005",
+                display: "Heart rate",
+                system: .snomedCT
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierHeartRate",
+                display: "Heart Rate",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "/min",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "beats/minute",
+                value: 84.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .restingHeartRate,
+            unit: .count().unitDivided(by: .minute()),
+            value: 84,
+            expectedCodings: [
+                makeCoding(
+                code: "40443-4",
+                display: "Heart rate --resting",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierRestingHeartRate",
+                display: "Resting Heart Rate",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "/min",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "beats/minute",
+                value: 84.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .walkingHeartRateAverage,
+            unit: .count().unitDivided(by: .minute()),
+            value: 84,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierWalkingHeartRateAverage",
+                display: "Walking Heart Rate Average",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "/min",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "beats/minute",
+                value: 84.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .walkingAsymmetryPercentage,
+            unit: .percent(),
+            value: 0.5,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierWalkingAsymmetryPercentage",
+                display: "Walking Asymmetry Percentage",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "%",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "%",
+                value: 50.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .walkingSpeed,
+            unit: HKUnit.meter().unitDivided(by: HKUnit.second()),
+            value: 1.5,
+            expectedCodings: [
+                makeCoding(
+                code: "724237005",
+                display: "Gait speed",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierWalkingSpeed",
+                display: "Walking Speed",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "m/s",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "m/s",
+                value: 1.5.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .heartRateVariabilitySDNN,
+            unit: .secondUnit(with: .milli),
+            value: 100,
+            expectedCodings: [
+                makeCoding(
+                code: "80404-7",
+                display: "R-R interval.standard deviation (Heart rate variability)",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierHeartRateVariabilitySDNN",
+                display: "Heart Rate Variability SDNN",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "ms",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "ms",
+                value: 100.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .oxygenSaturation,
+            unit: .percent(),
+            value: 0.99,
+            expectedCodings: [
+                makeCoding(
+                code: "2708-6",
+                display: "Oxygen saturation in Arterial blood",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "59408-5",
+                display: "Oxygen saturation in Arterial blood by Pulse oximetry",
+                system: .loinc
+                ),
+                Coding(
+                code: "431314004",
+                display: "Peripheral oxygen saturation",
+                system: .snomedCT
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierOxygenSaturation",
+                display: "Oxygen Saturation",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "%",
+                system: "http://unitsofmeasure.org",
+                unit: "%",
+                value: 99.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .peakExpiratoryFlowRate,
+            unit: .liter().unitDivided(by: .minute()),
+            value: 600,
+            expectedCodings: [
+                makeCoding(
+                code: "33452-4",
+                display: "Maximum expiratory gas flow Respiratory system airway",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierPeakExpiratoryFlowRate",
+                display: "Peak Expiratory Flow Rate",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "L/min",
+                system: "http://unitsofmeasure.org",
+                unit: "L/min",
+                value: 600.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .peripheralPerfusionIndex,
+            unit: .percent(),
+            value: 0.05,
+            expectedCodings: [
+                makeCoding(
+                code: "61006-3",
+                display: "Perfusion index Tissue by Pulse oximetry",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierPeripheralPerfusionIndex",
+                display: "Peripheral Perfusion Index",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "%",
+                system: "http://unitsofmeasure.org",
+                unit: "%",
+                value: 5.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .pushCount,
+            unit: .count(),
+            value: 5,
+            expectedCodings: [
+                makeCoding(
+                code: "96502-0",
+                display: "Number of wheelchair pushes per time period",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierPushCount",
+                display: "Wheelchair Push Count",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "{wheelchair-push}",
+                system: "http://unitsofmeasure.org",
+                unit: "wheelchair pushes",
+                value: 5.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .timeInDaylight,
+            unit: .minute(),
+            value: 100,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierTimeInDaylight",
+                display: "Time in Daylight",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "min",
+                system: "http://unitsofmeasure.org",
+                unit: "min",
+                value: 100.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .uvExposure,
+            unit: .count(),
+            value: 5,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierUVExposure",
+                display: "UV Exposure",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "{count}",
+                system: "http://unitsofmeasure.org",
+                unit: "count",
+                value: 5.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .vo2Max,
+            unit: HKUnit(from: "mL/kg*min"),
+            value: 31,
+            expectedCodings: [
+                makeCoding(
+                code: "94122-9",
+                display: "Oxygen consumption (VO2)/Body weight [Volume Rate Content] --peak during exercise",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierVO2Max",
+                display: "VO2Max",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "mL/min/kg{body_wt}",
+                system: "http://unitsofmeasure.org",
+                unit: "mL/kg/min",
+                value: 31.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .waistCircumference,
+            unit: HKUnit(from: "in"),
+            value: 38.7,
+            expectedCodings: [
+                Coding(
+                code: "276361009",
+                display: "Waist circumference",
+                system: .snomedCT
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierWaistCircumference",
+                display: "Waist Circumference",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "cm",
+                system: "http://unitsofmeasure.org",
+                unit: "cm",
+                value: 98.298.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .bodyTemperature,
+            unit: .degreeCelsius(),
+            value: 37,
+            expectedCodings: [
+                Coding(
+                code: "8310-5",
+                display: "Body temperature",
+                system: .loincSystem
+                ),
+                Coding(
+                code: "386725007",
+                display: "Body temperature",
+                system: .snomedCT
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierBodyTemperature",
+                display: "Body Temperature",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "Cel",
+                system: "http://unitsofmeasure.org",
+                unit: "C",
+                value: 37.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .basalBodyTemperature,
+            unit: .degreeCelsius(),
+            value: 37,
+            expectedCodings: [
+                Coding(
+                code: "8310-5",
+                display: "Body temperature",
+                system: .loincSystem
+                ),
+                Coding(
+                code: "300076005",
+                display: "Basal body temperature",
+                system: .snomedCT
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierBasalBodyTemperature",
+                display: "Basal Body Temperature",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "Cel",
+                system: "http://unitsofmeasure.org",
+                unit: "C",
+                value: 37.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .basalEnergyBurned,
+            unit: HKUnit(from: "kcal"),
+            value: 1200,
+            expectedCodings: [
+                makeCoding(
+                code: "1285369003",
+                display: "Resting energy expenditure",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierBasalEnergyBurned",
+                display: "Basal Energy Burned",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "kcal",
+                system: "http://unitsofmeasure.org",
+                unit: "kcal",
+                value: 1200.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .bloodAlcoholContent,
+            unit: .percent(),
+            value: 0.0,
+            expectedCodings: [
+                makeCoding(
+                code: "74859-0",
+                display: "Ethanol [Mass/volume] in Blood Estimated from serum or plasma level",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierBloodAlcoholContent",
+                display: "Blood Alcohol Content",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "%",
+                system: "http://unitsofmeasure.org",
+                unit: "%",
+                value: 0.0.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .bodyFatPercentage,
+            unit: .percent(),
+            value: 0.21,
+            expectedCodings: [
+                makeCoding(
+                code: "41982-0",
+                display: "Percentage of body fat Measured",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierBodyFatPercentage",
+                display: "Body Fat Percentage",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "%",
+                system: "http://unitsofmeasure.org",
+                unit: "%",
+                value: 21.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .bodyMassIndex,
+            unit: .count(),
+            value: 20,
+            expectedCodings: [
+                makeCoding(
+                code: "39156-5",
+                display: "Body mass index (BMI) [Ratio]",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierBodyMassIndex",
+                display: "BMI",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "kg/m2",
+                system: "http://unitsofmeasure.org",
+                unit: "kg/m^2",
+                value: 20.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .height,
+            unit: .meter(),
+            value: 1.87,
+            expectedCodings: [
+                Coding(
+                code: "8302-2",
+                display: "Body height",
+                system: .loincSystem
+                ),
+                Coding(
+                code: "50373000",
+                display: "Body height measure",
+                system: .snomedCT
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierHeight",
+                display: "Height",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "cm",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "cm",
+                value: 187.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .bodyMass,
+            unit: .gramUnit(with: .kilo),
+            value: 68.7,
+            expectedCodings: [
+                Coding(
+                code: "29463-7",
+                display: "Body weight",
+                system: .loincSystem
+                ),
+                Coding(
+                code: "27113001",
+                display: "Body weight",
+                system: .snomedCT
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierBodyMass",
+                display: "Body Mass",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "kg",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "kg",
+                value: 68.7.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .leanBodyMass,
+            unit: .gramUnit(with: .kilo),
+            value: 67,
+            expectedCodings: [
+                makeCoding(
+                code: "91557-9",
+                display: "Lean body weight",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierLeanBodyMass",
+                display: "Lean Body Mass",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "kg",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "kg",
+                value: 67.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .numberOfTimesFallen,
+            unit: .count(),
+            value: 0,
+            expectedCodings: [
+                makeCoding(
+                code: "298348009",
+                display: "Number of falls",
+                system: .snomed
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierNumberOfTimesFallen",
+                display: "Number of Times Fallen",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "{fall}",
+                system: "http://unitsofmeasure.org",
+                unit: "falls",
+                value: 0.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .swimmingStrokeCount,
+            unit: .count(),
+            value: 10,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierSwimmingStrokeCount",
+                display: "Swimming Stroke Count",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "{stroke}",
+                system: "http://unitsofmeasure.org",
+                unit: "strokes",
+                value: 10.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .respiratoryRate,
+            unit: .count().unitDivided(by: .minute()),
+            value: 18,
+            expectedCodings: [
+                Coding(
+                code: "9279-1",
+                display: "Respiratory rate",
+                system: .loincSystem
+                ),
+                Coding(
+                code: "86290005",
+                display: "Respiratory rate",
+                system: .snomedCT
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierRespiratoryRate",
+                display: "Respiratory Rate",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "/min",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "breaths/minute",
+                value: 18.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .activeEnergyBurned,
+            unit: .largeCalorie(),
+            value: 100,
+            expectedCodings: [
+                makeCoding(
+                code: "41981-2",
+                display: "Calories burned",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierActiveEnergyBurned",
+                display: "Active Energy Burned",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "kcal",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "kcal",
+                value: 100.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .appleExerciseTime,
+            unit: .minute(),
+            value: 100,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierAppleExerciseTime",
+                display: "Apple Exercise Time",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "min",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "min",
+                value: 100.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .appleMoveTime,
+            unit: .minute(),
+            value: 100,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierAppleMoveTime",
+                display: "Apple Move Time",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "min",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "min",
+                value: 100.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .physicalEffort,
+            unit: HKUnit(from: "kcal/hr*kg"),
+            value: 2,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierPhysicalEffort",
+                display: "Physical Effort",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "kcal/(kg.h)",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "kcal/(kg.h)",
+                value: 2.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .appleStandTime,
+            unit: .minute(),
+            value: 100,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierAppleStandTime",
+                display: "Apple Stand Time",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "min",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "min",
+                value: 100.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .appleWalkingSteadiness,
+            unit: .percent(),
+            value: 0.5,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierAppleWalkingSteadiness",
+                display: "Apple Walking Steadiness",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "%",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "%",
+                value: 50.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .distanceCycling,
+            unit: .meterUnit(with: .kilo),
+            value: 1.75,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDistanceCycling",
+                display: "Cycling Distance",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "m",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "m",
+                value: 1750.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .distanceDownhillSnowSports,
+            unit: .meter(),
+            value: 1750,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDistanceDownhillSnowSports",
+                display: "Downhill Snow Sports Distance",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "m",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "m",
+                value: 1750.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .distanceSwimming,
+            unit: .meter(),
+            value: 100,
+            expectedCodings: [
+                makeCoding(
+                code: "93816-7",
+                display: "Swimming distance unspecified time",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDistanceSwimming",
+                display: "Swimming Distance",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "m",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "m",
+                value: 100.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .distanceWalkingRunning,
+            unit: .meter(),
+            value: 100,
+            expectedCodings: [
+                makeCoding(
+                code: "55430-3",
+                display: "Walking distance unspecified time Pedometer",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDistanceWalkingRunning",
+                display: "Distance Walking/Running",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "m",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "m",
+                value: 100.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .distanceWheelchair,
+            unit: .meter(),
+            value: 100,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierDistanceWheelchair",
+                display: "Wheelchair Distance",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "m",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "m",
+                value: 100.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .environmentalAudioExposure,
+            unit: .decibelAWeightedSoundPressureLevel(),
+            value: 100,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierEnvironmentalAudioExposure",
+                display: "Environmental Audio Exposure",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "dB[SPL]{A}",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "dB(A) SPL",
+                value: 100.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .environmentalSoundReduction,
+            unit: .decibelAWeightedSoundPressureLevel(),
+            value: 25,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierEnvironmentalSoundReduction",
+                display: "Environmental Sound Reduction",
+                system: .apple
+                )
+            ],
+            // An attenuation is a ratio, so plain `dB` rather than the absolute `dB[SPL]`.
+            expectedValue: .quantity(Quantity(
+                code: "dB{A}",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "dB(A)",
+                value: 25.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .sixMinuteWalkTestDistance,
+            unit: .meter(),
+            value: 480,
+            expectedCodings: [
+                makeCoding(
+                code: "64098-7",
+                display: "Six minute walk test",
+                system: .loinc
+                ),
+                makeCoding(
+                code: "HKQuantityTypeIdentifierSixMinuteWalkTestDistance",
+                display: "6 Minute Walk Test Distance",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "m",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "m",
+                value: 480.asFHIRDecimalPrimitive()
+            ))
+        ),
+        .init(
+            identifier: .headphoneAudioExposure,
+            unit: .decibelAWeightedSoundPressureLevel(),
+            value: 100,
+            expectedCodings: [
+                makeCoding(
+                code: "HKQuantityTypeIdentifierHeadphoneAudioExposure",
+                display: "Headphone Audio Exposure",
+                system: .apple
+                )
+            ],
+            expectedValue: .quantity(Quantity(
+                code: "dB[SPL]{A}",
+                system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+                unit: "dB(A) SPL",
+                value: 100.asFHIRDecimalPrimitive()
+            ))
+        )
+]
 
 #endif

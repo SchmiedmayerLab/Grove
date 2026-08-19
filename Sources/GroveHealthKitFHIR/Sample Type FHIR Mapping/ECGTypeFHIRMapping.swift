@@ -81,29 +81,34 @@ extension ECGTypeFHIRMapping {
     public static let `default` = Self(
         codings: [
             Coding(
-                code: "HKElectrocardiogram",
-                display: "Electrocardiogram",
-                system: "http://developer.apple.com/documentation/healthkit"
-            ),
-            Coding(
                 code: "131328",
                 display: "MDC_ECG_ELEC_POTL",
-                system: "urn:oid:2.16.840.1.113883.6.24"
+                system: GroveFHIRVocabulary.mdc
+            ),
+            Coding(
+                code: "11524-6",
+                display: "EKG study",
+                system: GroveFHIRVocabulary.loinc
+            ),
+            Coding(
+                code: "HKDataTypeIdentifierElectrocardiogram",  // the runtime value of HKObjectType.electrocardiogramType().identifier
+                display: "Electrocardiogram",
+                system: GroveFHIRVocabulary.healthKitSampleType
             )
         ],
         categories: [
             Coding(
                 code: "procedure",
                 display: "Procedure",
-                system: "http://terminology.hl7.org/CodeSystem/observation-category"
+                system: GroveFHIRVocabulary.observationCategory
             )
         ],
         classification: CategoryTypeFHIRMapping(
             codings: [
                 Coding(
-                    code: "HKElectrocardiogram.Classification",
+                    code: "classification",
                     display: "Electrocardiogram Classification",
-                    system: "http://developer.apple.com/documentation/healthkit"
+                    system: GroveFHIRVocabulary.healthKitECGProperty
                 )
             ],
             categories: []
@@ -111,9 +116,9 @@ extension ECGTypeFHIRMapping {
         symptomsStatus: CategoryTypeFHIRMapping(
             codings: [
                 Coding(
-                    code: "HKElectrocardiogram.SymptomsStatus",
+                    code: "symptoms-status",
                     display: "Electrocardiogram Symptoms Status",
-                    system: "http://developer.apple.com/documentation/healthkit"
+                    system: GroveFHIRVocabulary.healthKitECGProperty
                 )
             ],
             categories: []
@@ -121,28 +126,30 @@ extension ECGTypeFHIRMapping {
         numberOfVoltageMeasurements: QuantityTypeFHIRMapping(
             codings: [
                 Coding(
-                    code: "HKElectrocardiogram.NumberOfVoltageMeasurements",
+                    code: "number-of-voltage-measurements",
                     display: "Electrocardiogram Number of Voltage Measurements",
-                    system: "http://developer.apple.com/documentation/healthkit"
+                    system: GroveFHIRVocabulary.healthKitECGProperty
                 )
             ],
             unit: QuantityTypeFHIRMapping.Unit(
                 hkUnit: .count(),
-                unit: "measurements"
+                unit: "measurements",
+                system: GroveFHIRVocabulary.ucum,
+                code: "{measurements}"
             )
         ),
         samplingFrequency: QuantityTypeFHIRMapping(
             codings: [
                 Coding(
-                    code: "HKElectrocardiogram.SamplingFrequency",
+                    code: "sampling-frequency",
                     display: "Sampling Frequency",
-                    system: "http://developer.apple.com/documentation/healthkit"
+                    system: GroveFHIRVocabulary.healthKitECGProperty
                 )
             ],
             unit: QuantityTypeFHIRMapping.Unit(
                 hkUnit: .hertz(),
                 unit: "Hz",
-                system: "http://unitsofmeasure.org",
+                system: GroveFHIRVocabulary.ucum,
                 code: "Hz"
             )
         ),
@@ -151,18 +158,23 @@ extension ECGTypeFHIRMapping {
                 Coding(
                     code: "8867-4",
                     display: "Heart rate",
-                    system: "http://loinc.org"
+                    system: GroveFHIRVocabulary.loinc
+                ),
+                Coding(
+                    code: "147842",
+                    display: "MDC_ECG_HEART_RATE",
+                    system: GroveFHIRVocabulary.mdc
                 ),
                 Coding(
                     code: "HKQuantityTypeIdentifierHeartRate",
                     display: "Heart Rate",
-                    system: "http://developer.apple.com/documentation/healthkit"
+                    system: GroveFHIRVocabulary.healthKitSampleType
                 )
             ],
             unit: QuantityTypeFHIRMapping.Unit(
                 hkUnit: .count() / .minute(),
                 unit: "beats/minute",
-                system: "http://unitsofmeasure.org",
+                system: GroveFHIRVocabulary.ucum,
                 code: "/min"
             )
         ),
@@ -171,16 +183,16 @@ extension ECGTypeFHIRMapping {
                 Coding(
                     code: "131329",
                     display: "MDC_ECG_ELEC_POTL_I",
-                    system: "urn:oid:2.16.840.1.113883.6.24"
+                    system: GroveFHIRVocabulary.mdc
                 )
             ],
             unit: QuantityTypeFHIRMapping.Unit(
                 hkUnit: .voltUnit(with: .micro),
                 unit: "uV",
-                system: "http://unitsofmeasure.org",
+                system: GroveFHIRVocabulary.ucum,
                 code: "uV"
             )
         ),
-        voltagePrecision: 3
+        voltagePrecision: 1
     )
 }

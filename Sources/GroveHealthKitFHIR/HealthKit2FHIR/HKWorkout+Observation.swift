@@ -24,7 +24,7 @@ extension HKWorkout: FHIRObservationBuildable {
             coding: [
                 Coding(
                     code: try self.workoutActivityType.fhirWorkoutTypeValue.asFHIRStringPrimitive(),
-                    system: "http://developer.apple.com/documentation/healthkit".asFHIRURIPrimitive()
+                    system: GroveFHIRVocabulary.healthKitWorkoutActivityType
                 )
             ]
         )
@@ -61,7 +61,7 @@ extension HKWorkoutActivityType {
             case .climbing:
                 return "climbing"
             case .cooldown:
-                return "coolDown"
+                return "cooldown"  // matches the Swift case name `HKWorkoutActivityType.cooldown`
             case .coreTraining:
                 return "coreTraining"
             case .cricket:
