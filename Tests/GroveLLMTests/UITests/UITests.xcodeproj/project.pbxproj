@@ -8,13 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		D5F4B14026F7DBBF259FE3F2 /* Grove in Frameworks */ = {isa = PBXBuildFile; productRef = AC4395F06F909FCED62A3B72 /* Grove */; };
-		DAE3C5516D5F4A354E66868D /* GroveAccount in Frameworks */ = {isa = PBXBuildFile; productRef = BC44D412572AD7E41451764A /* GroveAccount */; };
 		75C825714C21527567E9BBBD /* GroveChat in Frameworks */ = {isa = PBXBuildFile; productRef = 650A006199CDBE860E97C8F2 /* GroveChat */; };
-		843AACC2B2133B3C33CB4FBE /* GroveFirebaseAccount in Frameworks */ = {isa = PBXBuildFile; productRef = FE1185A799B3C86BA948F880 /* GroveFirebaseAccount */; };
-		21AB9B1430012AB3DB754958 /* GroveFirebaseAccountStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 7006BFA81D001891B90DB9E0 /* GroveFirebaseAccountStorage */; };
 		3D2DF7A8A12A55C9BD08E420 /* GroveKeychainStorage in Frameworks */ = {isa = PBXBuildFile; productRef = D54A8BA2131FD885FBB40062 /* GroveKeychainStorage */; };
 		DBFE2999136184436167305B /* GroveLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 3543F513595177026884C085 /* GroveLLM */; };
 		5E850DA2396DFE90CA290A20 /* GroveLLMAnthropic in Frameworks */ = {isa = PBXBuildFile; productRef = E259A1769CBE9560A6310BBE /* GroveLLMAnthropic */; };
+		AC06110AC8D8DA30803659AC /* GroveLLMFoundationModels in Frameworks */ = {isa = PBXBuildFile; productRef = D661A423350840D577A1D0F6 /* GroveLLMFoundationModels */; };
 		DF82E69316FE250EBF94BAF4 /* GroveLLMGemini in Frameworks */ = {isa = PBXBuildFile; productRef = 5A9FE592FC622D936D572419 /* GroveLLMGemini */; };
 		A77F53080DE7911A67324DDB /* GroveLLMLocal in Frameworks */ = {isa = PBXBuildFile; productRef = 41FD2E03BF7A446A456480C1 /* GroveLLMLocal */; };
 		D2843831FF9CB090CA05E8EE /* GroveLLMLocalDownload in Frameworks */ = {isa = PBXBuildFile; productRef = 12E8DC1FE95F3FB3B5B4738B /* GroveLLMLocalDownload */; };
@@ -58,13 +56,11 @@
 			isa = PBXFrameworksBuildPhase;
 			files = (
 				D5F4B14026F7DBBF259FE3F2 /* Grove in Frameworks */,
-				DAE3C5516D5F4A354E66868D /* GroveAccount in Frameworks */,
 				75C825714C21527567E9BBBD /* GroveChat in Frameworks */,
-				843AACC2B2133B3C33CB4FBE /* GroveFirebaseAccount in Frameworks */,
-				21AB9B1430012AB3DB754958 /* GroveFirebaseAccountStorage in Frameworks */,
 				3D2DF7A8A12A55C9BD08E420 /* GroveKeychainStorage in Frameworks */,
 				DBFE2999136184436167305B /* GroveLLM in Frameworks */,
 				5E850DA2396DFE90CA290A20 /* GroveLLMAnthropic in Frameworks */,
+				AC06110AC8D8DA30803659AC /* GroveLLMFoundationModels in Frameworks */,
 				DF82E69316FE250EBF94BAF4 /* GroveLLMGemini in Frameworks */,
 				A77F53080DE7911A67324DDB /* GroveLLMLocal in Frameworks */,
 				D2843831FF9CB090CA05E8EE /* GroveLLMLocalDownload in Frameworks */,
@@ -128,13 +124,11 @@
 			name = TestApp;
 			packageProductDependencies = (
 				AC4395F06F909FCED62A3B72 /* Grove */,
-				BC44D412572AD7E41451764A /* GroveAccount */,
 				650A006199CDBE860E97C8F2 /* GroveChat */,
-				FE1185A799B3C86BA948F880 /* GroveFirebaseAccount */,
-				7006BFA81D001891B90DB9E0 /* GroveFirebaseAccountStorage */,
 				D54A8BA2131FD885FBB40062 /* GroveKeychainStorage */,
 				3543F513595177026884C085 /* GroveLLM */,
 				E259A1769CBE9560A6310BBE /* GroveLLMAnthropic */,
+				D661A423350840D577A1D0F6 /* GroveLLMFoundationModels */,
 				5A9FE592FC622D936D572419 /* GroveLLMGemini */,
 				41FD2E03BF7A446A456480C1 /* GroveLLMLocal */,
 				12E8DC1FE95F3FB3B5B4738B /* GroveLLMLocalDownload */,
@@ -533,6 +527,9 @@
 		654293E43002D0F400AF6915 /* XCLocalSwiftPackageReference "../../.." */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../../..;
+			traits = (
+				MLX,
+			);
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -542,25 +539,10 @@
 			package = 654293E43002D0F400AF6915 /* package */;
 			productName = Grove;
 		};
-		BC44D412572AD7E41451764A /* GroveAccount */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* package */;
-			productName = GroveAccount;
-		};
 		650A006199CDBE860E97C8F2 /* GroveChat */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 654293E43002D0F400AF6915 /* package */;
 			productName = GroveChat;
-		};
-		FE1185A799B3C86BA948F880 /* GroveFirebaseAccount */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* package */;
-			productName = GroveFirebaseAccount;
-		};
-		7006BFA81D001891B90DB9E0 /* GroveFirebaseAccountStorage */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* package */;
-			productName = GroveFirebaseAccountStorage;
 		};
 		D54A8BA2131FD885FBB40062 /* GroveKeychainStorage */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -576,6 +558,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 654293E43002D0F400AF6915 /* package */;
 			productName = GroveLLMAnthropic;
+		};
+		D661A423350840D577A1D0F6 /* GroveLLMFoundationModels */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 654293E43002D0F400AF6915 /* package */;
+			productName = GroveLLMFoundationModels;
 		};
 		5A9FE592FC622D936D572419 /* GroveLLMGemini */ = {
 			isa = XCSwiftPackageProductDependency;

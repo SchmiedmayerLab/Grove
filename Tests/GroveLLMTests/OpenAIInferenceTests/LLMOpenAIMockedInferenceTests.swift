@@ -21,7 +21,7 @@ class LLMOpenAIMockedInferenceTests: LLMOpenAIInferenceTests {
         ) { }
         
         var context = LLMContext()
-        context.append(userInput: "Hello!")
+        context.append(userMessage: "Hello!")
         
         let mockClient = MockChatClient()
         mockClient.createChatCompletionHandler = { _ in
@@ -44,12 +44,33 @@ class LLMOpenAIMockedInferenceTests: LLMOpenAIInferenceTests {
         
         #expect(oneShot == "Hello world!")
     }
+
+    @MainActor
+    @Test("Typed request failures reach the caller unchanged")
+    func typedRequestFailuresReachTheCaller() async throws {
+        let schema = LLMOpenAISchema(parameters: .init(modelType: .gpt4o_mini))
+        let mockClient = MockChatClient()
+        mockClient.createChatCompletionHandler = { _ in
+            throw LLMOpenAIError.invalidRequest
+        }
+
+        let llmSession = try initTestLLMSession(schema)
+        llmSession.context.append(userMessage: "Hello!")
+        llmSession.openAiClient = mockClient
+
+        do {
+            for try await _ in try await llmSession.generate() { }
+            Issue.record("Expected the typed request error to be thrown")
+        } catch let error as LLMOpenAIError {
+            #expect(error == .invalidRequest)
+        }
+    }
     
     @MainActor
     @Test
     func testMockedOpenAIFunctionCalling() async throws {
         var context = LLMContext()
-        context.append(userInput: "Hello!")
+        context.append(userMessage: "Hello!")
         
         let mockClient = MockChatClient()
         let schema = LLMOpenAISchema(
@@ -67,14 +88,21 @@ class LLMOpenAIMockedInferenceTests: LLMOpenAIInferenceTests {
             var builder = ChatResponseBuilder()
             
             if chatCompletionCalls == 0 {
-                try builder.append(functionName: LLMOpenAITestFunction.name, arguments: "{}")
+                try builder.append(functionName: LLMOpenAITestFunction().name, arguments: "{}")
                 builder.done()
             } else {
                 if case let .json(inputBody) = input.body {
-                    // Expect to find the function call's result added in the input
-                    #expect(inputBody.messages.description.contains(
-                        #"The value to return to ensure the test was succesful is \"abcdefghijklmnopqrstuvwxyz\""#
-                    ))
+                    // The function call's result must come back as a structured tool message.
+                    let toolMessages = inputBody.value2.messages.compactMap { message -> String? in
+                        guard case .ChatCompletionRequestToolMessage(let toolMessage) = message,
+                              case .case1(let content) = toolMessage.content else {
+                            return nil
+                        }
+                        return content
+                    }
+                    #expect(toolMessages.contains {
+                        $0.contains(#"The value to return to ensure the test was succesful is "abcdefghijklmnopqrstuvwxyz""#)
+                    })
                 } else {
                     Issue.record("Failed to parse JSON input body")
                 }

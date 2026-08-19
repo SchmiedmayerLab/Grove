@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI)
 public import GroveChat
 public import SwiftUI
 
@@ -73,4 +74,5 @@ public struct LLMChatViewSchema<Schema: LLMSchema>: View {
             }
     }
 }
+#endif
 #endif

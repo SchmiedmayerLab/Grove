@@ -8,94 +8,73 @@
 
 import SwiftUI
 
-/// Provides styling for the visualization of a textual ``ChatEntity`` within the ``ChatView``.
+
+/// Styles a ``ChatEntity``'s content as a chat bubble within the ``ChatView``.
+///
+/// Only messages that sit on the trailing edge — the user's own — get a bubble; assistant output runs
+/// full-width against the view's background, matching how modern assistant UIs read.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct MessageStyleModifier: ViewModifier {
-    private let chatAlignment: ChatEntity.Alignment
-    // periphery:ignore - read in the visionOS branch of backgroundColor; the scan indexes an iOS destination
-    private let backgroundColorUserChat: Color
+    /// The bubble's inset, which content that fills it edge to edge — an image — has to cancel out.
+    static let padding = EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
+    static let cornerRadius: CGFloat = 22
 
-    
-    private var foregroundColor: Color {
-        chatAlignment == .leading ? .primary : .white
+    private let chatAlignment: ChatEntity.Alignment
+    private let backgroundColorUserChat: Color?
+
+    @Environment(\.chatAccentColor) private var chatAccentColor
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var palette: ChatPalette {
+        ChatPalette(accent: chatAccentColor, colorScheme: colorScheme)
     }
-    
-    private var backgroundColor: Color {
-        #if os(macOS)
-        chatAlignment == .leading ? Color(.secondarySystemFill) : .accentColor
-        #elseif os(visionOS)
-        chatAlignment == .leading ? Color(.lightGray) : backgroundColorUserChat
-        #else
-        chatAlignment == .leading ? Color(.secondarySystemBackground) : .accentColor
-        #endif
-    }
-    
-    private var arrowRotation: Angle {
-        .degrees(chatAlignment == .leading ? -50 : -130)
-    }
-    
-    private var arrowAlignment: CGFloat {
-        chatAlignment == .leading ? -7 : 7
-    }
-    
-    private var overlayAlignment: Alignment {
-        chatAlignment == .leading ? .bottomLeading : .bottomTrailing
-    }
-    
-    
-    init(chatAlignment: ChatEntity.Alignment, backgroundColorUserChat: Color) {
+
+    init(chatAlignment: ChatEntity.Alignment, backgroundColorUserChat: Color?) {
         self.chatAlignment = chatAlignment
         self.backgroundColorUserChat = backgroundColorUserChat
     }
-    
 
     func body(content: Content) -> some View {
-        content
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .foregroundColor(foregroundColor)
-            .background(backgroundColor)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(
-                Image(systemName: "arrowtriangle.left.fill")
-                    .accessibilityHidden(true)
-                    .foregroundColor(backgroundColor)
-                    .rotationEffect(arrowRotation)
-                    .offset(x: arrowAlignment),
-                alignment: overlayAlignment
-            )
-            .padding(.horizontal, 4)
+        switch chatAlignment {
+        case .leading:
+            content
+                .foregroundStyle(.primary)
+        case .trailing:
+            content
+                .padding(Self.padding)
+                .foregroundStyle(palette.userBubbleLabel)
+                .background(
+                    backgroundColorUserChat ?? palette.userBubble,
+                    in: .rect(cornerRadius: Self.cornerRadius, style: .continuous)
+                )
+        }
     }
 }
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
-    /// Attach this modifier to `Text`-based content in SwiftUI to format it as a typical chat bubble within a chat view.
-    /// The modifier handles text alignment, paddings, colourings, background, as well as the typical chat bubble visualization.
+    /// Formats content as a chat bubble within a chat view.
     ///
-    /// As visionOS doesn't properly set the `.accentColor`during chat export via the `ImageRenderer` (always "white" in our testing),
-    /// we enable to pass a custom background color for chat user messages.
+    /// The modifier handles padding, colouring, and the bubble background.
+    ///
+    /// As visionOS doesn't properly resolve the `.accentColor` during chat export via the `ImageRenderer`
+    /// — it was always "white" in our testing — a custom background color can be passed for user messages.
     ///
     /// ### Usage
-    ///
-    /// A minimal example can be found below.
-    /// See the ``MessageView`` for a more complete example.
     ///
     /// ```swift
     /// struct ChatMessageView: View {
     ///     let chatEntity: ChatEntity
     ///
     ///     var body: some View {
-    ///         Text(chatEntity.content)
+    ///         Text(chatEntity.content.text ?? "")
     ///             .chatMessageStyle(alignment: chatEntity.alignment)
     ///     }
     /// }
     /// ```
     @available(iOS 18, macOS 15, watchOS 11, *)
-    func chatMessageStyle(alignment: ChatEntity.Alignment, backgroundColorUserChat: Color = .accentColor) -> some View {
-        self.modifier(
-            MessageStyleModifier(chatAlignment: alignment, backgroundColorUserChat: backgroundColorUserChat)
-        )
+    func chatMessageStyle(alignment: ChatEntity.Alignment, backgroundColorUserChat: Color? = nil) -> some View {
+        modifier(MessageStyleModifier(chatAlignment: alignment, backgroundColorUserChat: backgroundColorUserChat))
     }
 }

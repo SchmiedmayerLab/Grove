@@ -7,7 +7,6 @@
 //
 
 package import Foundation
-package import GroveKeychainStorage
 import GroveLLM
 package import HTTPTypes
 package import OpenAPIRuntime
@@ -17,7 +16,7 @@ package import OpenAPIRuntime
 @available(iOS 18, macOS 15, watchOS 11, *)
 package struct BearerAuthMiddleware: ClientMiddleware {
     private let authToken: RemoteLLMInferenceAuthToken
-    private let keychainStorage: KeychainStorage?
+    private let keychainStorage: LLMCredentialStorage?
 
 
     /// Build the middleware from a ``RemoteLLMInferenceAuthToken``.
@@ -27,17 +26,19 @@ package struct BearerAuthMiddleware: ClientMiddleware {
     ///   - keychainStorage: The key chain storage layer.
     package init(
         authToken: RemoteLLMInferenceAuthToken,
-        keychainStorage: KeychainStorage?
+        keychainStorage: LLMCredentialStorage?
     ) {
         self.authToken = authToken
         self.keychainStorage = keychainStorage
 
         // Check if keychain storage is specified
+        #if canImport(Security)
         if case .keychain = authToken {
             guard self.keychainStorage != nil else {
                 fatalError("Internal consistency error: Keychain storage could no be accessed, even though it was specified")
             }
         }
+        #endif
     }
 
     

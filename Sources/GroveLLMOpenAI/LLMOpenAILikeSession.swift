@@ -7,15 +7,13 @@
 //
 
 package import Atomics
-public import Foundation
+import Foundation
 import GeneratedOpenAIClient
-import GroveChat
-import GroveFoundation
-import GroveKeychainStorage
+package import GroveFoundation
 public import GroveLLM
+public import Observation
 import OpenAPIRuntime
 import OpenAPIURLSession
-package import os
 import Synchronization
 
 /// Represents an ``LLMOpenAILikeSchema`` in execution.
@@ -28,7 +26,7 @@ import Synchronization
 ///
 /// - Warning: The ``LLMOpenAILikeSession`` shouldn't be created manually but always through the ``LLMOpenAILikePlatform`` via the `LLMRunner`.
 ///
-/// - Tip: ``LLMOpenAILikeSession`` also enables the function calling mechanism to establish a structured, bidirectional, and reliable communication between the OpenAI LLMs and external tools. For details, refer to ``LLMFunction`` and ``LLMFunction/Parameter`` or the <doc:FunctionCalling> DocC article.
+/// - Tip: ``LLMOpenAILikeSession`` also enables the function calling mechanism to establish a structured, bidirectional, and reliable communication between the OpenAI LLMs and external tools. For details, refer to ``LLMTool`` and ``LLMTool/Parameter`` or the <doc:ToolCalling> DocC article.
 ///
 /// - Tip: For more information, refer to the documentation of the `LLMSession` from GroveLLM.
 ///
@@ -74,7 +72,7 @@ import Synchronization
 @Observable
 public final class LLMOpenAILikeSession<
     PlatformDefinition: LLMOpenAILikePlatformDefinition
->: LLMSession, FunctionCallLLMSession, SchemaProvidingLLMSession, Sendable {
+>: LLMSession, ToolCallLLMSession, SchemaProvidingLLMSession, Sendable {
     /// A Swift Logger that logs important information from the ``LLMOpenAISession``.
     package static var logger: Logger {
         Logger(subsystem: "org.grovealliance", category: "GroveLLMOpenAI")
@@ -82,7 +80,7 @@ public final class LLMOpenAILikeSession<
     
     let platform: LLMOpenAILikePlatform<PlatformDefinition>
     package let schema: LLMOpenAILikeSchema<PlatformDefinition>
-    let keychainStorage: KeychainStorage
+    let keychainStorage: LLMCredentialStorage?
  
     private let client = Mutex<(any LLMOpenAIChatClientProtocol)?>(nil)
     /// Counter for tracking nested tool calls
@@ -90,6 +88,20 @@ public final class LLMOpenAILikeSession<
     package let toolCallCompletionState = LLMState.generating
     /// Holds the currently generating continuations so that we can cancel them if required.
     let continuationHolder = LLMInferenceQueueContinuationHolder()
+
+    /// The state of the server-side Responses API conversation, guarded against the streaming task and the
+    /// consuming task touching it concurrently — e.g. when a view disappears mid-generation.
+    @ObservationIgnored let responsesConversation = Mutex(ResponsesConversationState())
+
+    /// The ID of the last completed Responses API response. Visible for tests.
+    var lastResponseId: String? {
+        responsesConversation.withLock { $0.lastResponseId }
+    }
+
+    /// The API this session's inference is served over, after applying the platform's API mode policy.
+    package var apiMode: LLMOpenAIAPIMode {
+        platform.configuration.apiMode.resolve(for: schema.parameters.modelType)
+    }
 
     @MainActor public var state: LLMState = .uninitialized
     @MainActor public var context: LLMContext = []
@@ -118,13 +130,13 @@ public final class LLMOpenAILikeSession<
     /// - Parameters:
     ///   - platform: Reference to the ``LLMOpenAIPlatform`` where the ``LLMOpenAISession`` is running on.
     ///   - schema: The configuration of the OpenAI LLM expressed by the ``LLMOpenAISchema``.
-    ///   - keychainStorage: Reference to the `KeychainStorage` from `GroveStorage` in order to securely persist the token.
+    ///   - keychainStorage: The credential store a keychain-backed auth token is read from; `nil` where the platform has no Keychain.
     ///
     /// - Important: Only the ``LLMOpenAIPlatform`` should create an instance of ``LLMOpenAISession``.
     init(
         _ platform: LLMOpenAILikePlatform<PlatformDefinition>,
         schema: LLMOpenAILikeSchema<PlatformDefinition>,
-        keychainStorage: KeychainStorage
+        keychainStorage: LLMCredentialStorage?
     ) {
         self.platform = platform
         self.schema = schema
@@ -138,7 +150,7 @@ public final class LLMOpenAILikeSession<
         if await self.context.isEmpty {
             await MainActor.run {
                 for prompt in self.schema.parameters.systemPrompts {
-                    self.context.append(systemMessage: prompt)
+                    self.context.append(systemMessage: prompt, to: .leadingSystemMessages)
                 }
             }
         }
@@ -165,8 +177,13 @@ public final class LLMOpenAILikeSession<
                     }
                 }
 
-                // Execute the inference
-                await self._generate(with: continuationObserver)
+                // Execute the inference using the API the selected model is served over
+                switch self.apiMode {
+                case .chatCompletions:
+                    await self._generate(with: continuationObserver)
+                case .responses:
+                    await self._generateWithResponses(with: continuationObserver)
+                }
             }
         }
     }

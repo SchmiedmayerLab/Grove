@@ -12,7 +12,7 @@ import Testing
 
 
 extension LLMOpenAIFunctionCallingParameterDSLTests {
-    enum CustomEnumType: String, LLMFunctionParameterEnum, Encodable {
+    enum CustomEnumType: String, LLMToolParameterEnum, Encodable {
         case optionA
         case optionB
     }
@@ -26,9 +26,9 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
         let optionalArrayEnumParameter = [CustomEnumType.optionB, CustomEnumType.optionA]
     }
     
-    struct LLMFunctionTestEnum: LLMFunction {
-        static let name: String = "test_enum_function"
-        static let description: String = "This is a test enum LLM function."
+    struct LLMFunctionTestEnum: LLMTool {
+        let name: String = "test_enum_function"
+        let description: String = "This is a test enum LLM function."
         
         let someInitArg: String
 
@@ -70,7 +70,7 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
         let llmFunctionPair = try #require(llm.functions.first)
         
         // Validate parameter metadata
-        #expect(llmFunctionPair.key == LLMFunctionTestEnum.name)
+        #expect(llmFunctionPair.key == llmFunctionPair.value.name)
         let llmFunction = llmFunctionPair.value
         #expect(try #require(llmFunction.parameterValueCollectors["enumParameter"]).isOptional == false)
         #expect(try #require(llmFunction.parameterValueCollectors["optionalEnumParameter"]).isOptional)
@@ -113,8 +113,8 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
         // Validate parameter injection
         let parameterData = try JSONEncoder().encode(ParametersEnum.shared)
         
-        try llmFunction.injectParameters(from: parameterData)
-        let llmFunctionResponse = try await llmFunction.execute()
+        let arguments = try llmFunction.arguments(from: parameterData)
+        let llmFunctionResponse = try await llmFunction.execute(with: arguments)
         #expect(llmFunctionResponse == "testArg")
     }
 }

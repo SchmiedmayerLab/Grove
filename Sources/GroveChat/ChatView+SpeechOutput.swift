@@ -37,8 +37,8 @@ private struct ChatViewSpeechModifier: ViewModifier {
                     return
                 }
                 
-                if lastChatEntity.role == .assistant {
-                    speechSynthesizer.speak(lastChatEntity.content)
+                if lastChatEntity.role == .assistant(.response), let text = lastChatEntity.content.text {
+                    speechSynthesizer.speak(text)
                 } else if lastChatEntity.role == .user {
                     speechSynthesizer.stop()
                 }
@@ -66,10 +66,10 @@ private struct ChatViewSpeechModifier: ViewModifier {
 extension View {
     /// Provides text-to-speech capabilities to the ``ChatView``.
     ///
-    /// Attaching the modifier to a ``ChatView`` will enable the automatic speech output of the latest added ``ChatEntity/Role-swift.enum/assistant`` ``Chat`` message that is ``ChatEntity/complete``.
+    /// Attaching the modifier to a ``ChatView`` will enable the automatic speech output of the latest added ``ChatEntity/Role-swift.enum/assistant(_:)`` ``Chat`` message that is ``ChatEntity/complete``.
     /// The text-to-speech capability can be muted via a `Bool` flag in the ``speak(_:muted:)`` modifier.
     ///
-    /// It is important to note that only the latest ``ChatEntity/Role-swift.enum/assistant`` and ``ChatEntity/complete`` ``Chat`` messages will be synthesized to natural language speech, as soon as it is persisted in the ``Chat``.
+    /// It is important to note that only the latest ``ChatEntity/Role-swift.enum/assistant(_:)`` and ``ChatEntity/complete`` ``Chat`` messages will be synthesized to natural language speech, as soon as it is persisted in the ``Chat``.
     /// The speech output is immediately stopped as soon as a ``ChatEntity/complete`` ``ChatEntity/Role-swift.enum/user`` message is added to the ``Chat``,
     /// the passed `muted` `Binding` turns to `true`, or the `View` becomes inactive or is moved to the background.
     ///
@@ -80,7 +80,7 @@ extension View {
     /// ```swift
     /// struct ChatTestView: View {
     ///     @State private var chat: Chat = [
-    ///         ChatEntity(role: .assistant, content: "**Assistant** Message!")
+    ///         ChatEntity(role: .assistant(.response), text: "**Assistant** Message!")
     ///     ]
     ///     @State private var muted = true
     ///
@@ -121,9 +121,9 @@ extension View {
 #Preview("ChatView") {
     @Previewable @State var chat: Chat = .init(
         [
-            ChatEntity(role: .user, content: "User Message!"),
-            ChatEntity(role: .hidden(type: .unknown), content: "Hidden Message!"),
-            ChatEntity(role: .assistant, content: "Assistant Message!")
+            ChatEntity(role: .user, text: "User Message!"),
+            ChatEntity(role: .hidden(type: .unknown), text: "Hidden Message!"),
+            ChatEntity(role: .assistant(.response), text: "Assistant Message!")
         ]
     )
     
@@ -136,7 +136,7 @@ extension View {
 #Preview("ChatViewSpeechOutput") {
     @Previewable @State var chat: Chat = .init(
         [
-            ChatEntity(role: .assistant, content: "Assistant Message!")
+            ChatEntity(role: .assistant(.response), text: "Assistant Message!")
         ]
     )
     @Previewable @State var muted = false
@@ -152,7 +152,7 @@ extension View {
 #Preview("ChatViewSpeechOutputDisabled") {
     @Previewable @State var chat: Chat = .init(
         [
-            ChatEntity(role: .assistant, content: "Assistant Message!")
+            ChatEntity(role: .assistant(.response), text: "Assistant Message!")
         ]
     )
     @Previewable @State var muted = true

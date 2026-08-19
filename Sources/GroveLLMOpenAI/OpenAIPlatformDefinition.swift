@@ -10,7 +10,6 @@
 
 public import Foundation
 import GeneratedOpenAIClient
-public import GroveKeychainStorage
 
 
 /// The OpenAI platform's definition.
@@ -91,7 +90,7 @@ public typealias LLMOpenAIPlatform = LLMOpenAILikePlatform<OpenAIPlatformDefinit
 /// The ``LLMOpenAISchema`` is used as a configuration for the to-be-used OpenAI LLM. It contains all information necessary for the creation of an executable ``LLMOpenAISession``.
 /// It is bound to a ``LLMOpenAIPlatform`` that is responsible for turning the ``LLMOpenAISchema`` to an ``LLMOpenAISession``.
 ///
-/// - Tip: ``LLMOpenAISchema`` also enables the function calling mechanism to establish a structured, bidirectional, and reliable communication between the OpenAI LLMs and external tools. For details, refer to ``LLMFunction`` and ``LLMFunction/Parameter`` or the <doc:FunctionCalling> DocC article.
+/// - Tip: ``LLMOpenAISchema`` also enables the function calling mechanism to establish a structured, bidirectional, and reliable communication between the OpenAI LLMs and external tools. For details, refer to ``LLMTool`` and ``LLMTool/Parameter`` or the <doc:ToolCalling> DocC article.
 ///
 /// - Tip: For more information, refer to the documentation of the `LLMSchema` from GroveLLM.
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -108,7 +107,7 @@ public typealias LLMOpenAISchema = LLMOpenAILikeSchema<OpenAIPlatformDefinition>
 ///
 /// - Warning: The ``LLMOpenAISession`` shouldn't be created manually but always through the ``LLMOpenAIPlatform`` via the `LLMRunner`.
 ///
-/// - Tip: ``LLMOpenAISession`` also enables the function calling mechanism to establish a structured, bidirectional, and reliable communication between the OpenAI LLMs and external tools. For details, refer to ``LLMFunction`` and ``LLMFunction/Parameter`` or the <doc:FunctionCalling> DocC article.
+/// - Tip: ``LLMOpenAISession`` also enables the function calling mechanism to establish a structured, bidirectional, and reliable communication between the OpenAI LLMs and external tools. For details, refer to ``LLMTool`` and ``LLMTool/Parameter`` or the <doc:ToolCalling> DocC article.
 ///
 /// - Tip: For more information, refer to the documentation of the `LLMSession` from GroveLLM.
 ///
@@ -154,6 +153,7 @@ public typealias LLMOpenAISchema = LLMOpenAILikeSchema<OpenAIPlatformDefinition>
 public typealias LLMOpenAISession = LLMOpenAILikeSession<OpenAIPlatformDefinition>
 
 
+#if canImport(SwiftUI)
 /// View to display an onboarding step for the user to enter an OpenAI API Key.
 ///
 /// - Warning: Ensure that the ``LLMOpenAIPlatform`` is specified within the Grove `Configuration` when using this view in the onboarding flow.
@@ -166,6 +166,11 @@ public typealias LLMOpenAIAPITokenOnboardingStep = LLMOpenAILikeAPITokenOnboardi
 /// View to display an onboarding step for the user to select an OpenAI model.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMOpenAIModelOnboardingStep = LLMOpenAILikeModelOnboardingStep<OpenAIPlatformDefinition>
+#endif
+
+
+#if canImport(Security)
+public import GroveKeychainStorage
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -173,6 +178,7 @@ extension CredentialsTag {
     /// The canonical credentials tag for the OpenAI API key
     public static let openAIKey = Self.for(OpenAIPlatformDefinition.self)
 }
+#endif
 
 
 // MARK: Models
@@ -180,10 +186,14 @@ extension CredentialsTag {
 // swiftlint:disable identifier_name missing_docs
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension OpenAIPlatformDefinition.ModelType {
-    public static let `default`: Self = .gpt4o
-    
+    public static let `default`: Self = .gpt5_6
+
     public static let wellKnownModels: [Self] = [
-        .gpt5, .gpt5_mini, .gpt5_nano, .gpt5_chat,
+        .gpt5_6, .gpt5_6_sol, .gpt5_6_terra, .gpt5_6_luna,
+        .gpt5_5, .gpt5_5_pro,
+        .gpt5_4, .gpt5_4_pro, .gpt5_4_mini, .gpt5_4_nano,
+        .gpt5_2, .gpt5_2_pro, .gpt5_1,
+        .gpt5, .gpt5_mini, .gpt5_nano, .gpt5_chat, .gpt5_pro,
         .gpt4o, .gpt4o_mini,
         .gpt4_turbo,
         .gpt4_1, .gpt4_1_mini, .gpt4_1_nano,
@@ -192,12 +202,40 @@ extension OpenAIPlatformDefinition.ModelType {
         .o1_pro, .o1, .o1_mini,
         .gpt3_5_turbo
     ]
-    
+
+    /// The models that OpenAI only serves over the legacy Chat Completions API.
+    ///
+    /// Everything else — including model identifiers we don't know about — goes through the Responses API.
+    private static let chatCompletionModelIds: Set<String> = [
+        "gpt-4o", "gpt-4o-mini",
+        "gpt-4-turbo",
+        "gpt-3.5-turbo"
+    ]
+
     // GPT-5 series
     public static let gpt5 = Self(rawValue: "gpt-5")
     public static let gpt5_mini = Self(rawValue: "gpt-5-mini")
     public static let gpt5_nano = Self(rawValue: "gpt-5-nano")
     public static let gpt5_chat = Self(rawValue: "gpt-5-chat-latest")
+    public static let gpt5_pro = Self(rawValue: "gpt-5-pro")
+    public static let gpt5_1 = Self(rawValue: "gpt-5.1")
+    public static let gpt5_2 = Self(rawValue: "gpt-5.2")
+    public static let gpt5_2_pro = Self(rawValue: "gpt-5.2-pro")
+    public static let gpt5_4 = Self(rawValue: "gpt-5.4")
+    public static let gpt5_4_pro = Self(rawValue: "gpt-5.4-pro")
+    public static let gpt5_4_mini = Self(rawValue: "gpt-5.4-mini")
+    public static let gpt5_4_nano = Self(rawValue: "gpt-5.4-nano")
+    public static let gpt5_5 = Self(rawValue: "gpt-5.5")
+    public static let gpt5_5_pro = Self(rawValue: "gpt-5.5-pro")
+
+    /// Routes to whichever model OpenAI currently considers the flagship of the 5.6 family.
+    public static let gpt5_6 = Self(rawValue: "gpt-5.6")
+    /// The frontier model of the 5.6 family.
+    public static let gpt5_6_sol = Self(rawValue: "gpt-5.6-sol")
+    /// The 5.6 model balancing capability against cost.
+    public static let gpt5_6_terra = Self(rawValue: "gpt-5.6-terra")
+    /// The 5.6 model for cost-sensitive, high-volume work.
+    public static let gpt5_6_luna = Self(rawValue: "gpt-5.6-luna")
 
     // GPT-4 series
     public static let gpt4o = Self(rawValue: "gpt-4o")
@@ -219,4 +257,19 @@ extension OpenAIPlatformDefinition.ModelType {
 
     // Others
     public static let gpt3_5_turbo = Self(rawValue: "gpt-3.5-turbo")
+
+    public var apiMode: LLMOpenAIAPIMode {
+        Self.chatCompletionModelIds.contains(rawValue) ? .chatCompletions : .responses
+    }
+
+    public var supportsReasoningSummary: Bool {
+        guard apiMode == .responses else {
+            return false
+        }
+        // `gpt-5-chat-latest` is the non-reasoning chat variant, and does not emit summaries.
+        guard rawValue != Self.gpt5_chat.rawValue else {
+            return false
+        }
+        return ["o1", "o3", "o4", "gpt-5"].contains { rawValue.hasPrefix($0) }
+    }
 }

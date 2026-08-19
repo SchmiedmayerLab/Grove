@@ -43,6 +43,7 @@ builder:
         - GroveLLMOpenAIRealtime
         - GroveLLMAnthropic
         - GroveLLMGemini
+        - GroveLLMFoundationModels
         - GroveLicense
         - GroveLocation
         - ByteCoding

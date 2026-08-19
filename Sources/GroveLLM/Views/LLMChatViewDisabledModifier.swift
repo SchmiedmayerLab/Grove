@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI)
 public import SwiftUI
 
 
@@ -62,3 +63,4 @@ extension View {
         )
     }
 }
+#endif

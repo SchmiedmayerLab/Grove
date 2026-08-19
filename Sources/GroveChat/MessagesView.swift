@@ -6,23 +6,24 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Combine
+#if os(iOS)
+private import Combine
+#endif
 public import SwiftUI
 
 
-/// Displays a ``Chat`` containing multiple ``ChatEntity``s with different ``ChatEntity/Role``s in a typical chat-like fashion.
-/// The `View` automatically scrolls down to the newest message that is added to the passed ``Chat`` SwiftUI `Binding`.
+/// Displays a ``Chat`` containing multiple ``ChatEntity``s with different ``ChatEntity/Role-swift.enum``s in a typical chat-like fashion.
 ///
-/// Depending on the parameters, ``ChatEntity``s with certain ``ChatEntity/Role``s are hidden from the `View`.
-/// The ``MessagesView`` is shifted from the bottom by a configurable parameter which is important for input fields, e.g., ``MessageInputView``.
+/// The `View` automatically scrolls down to the newest message that is added to the passed ``Chat`` SwiftUI `Binding`.
+/// Depending on the configured ``MessagesView/MessagesVisibility``, ``ChatEntity``s with certain roles are hidden from the `View`.
 ///
 /// ### Usage
 ///
 /// ```swift
 /// struct MessagesViewTestView: View {
 ///     @State private var chat: Chat = [
-///         ChatEntity(role: .user, content: "User Message!"),
-///         ChatEntity(role: .assistant, content: "Assistant Message!")
+///         ChatEntity(role: .user, text: "User Message!"),
+///         ChatEntity(role: .assistant(.response), text: "Assistant Message!")
 ///     ]
 ///
 ///     var body: some View {
@@ -30,54 +31,106 @@ public import SwiftUI
 ///     }
 /// }
 /// ```
+///
+/// ## Topics
+///
+/// ### Initializers
+/// - ``init(_:insets:messagesVisibility:typingIndicator:)-(Binding<Chat>,_,_,_)``
+/// - ``init(_:insets:messagesVisibility:typingIndicator:)-(Chat,_,_,_)``
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct MessagesView: View {
-    /// Represents a configuration used in the initializer of ``MessagesView`` to specify when to display an animation indicating a pending message from a chat participant.
-    ///
-    /// ``TypingIndicatorDisplayMode`` has two possible cases:
-    /// - ``TypingIndicatorDisplayMode/automatic``: The animation is shown whenever the last message in the chat is from the user,
-    ///   and the assistant has not yet begun to respond.
-    /// - ``TypingIndicatorDisplayMode/manual(shouldDisplay:)``: The animation will be displayed based on the provided Boolean flag.
-    public enum TypingIndicatorDisplayMode {
+    /// Specifies when to display an animation indicating a pending message from a chat participant.
+    public enum TypingIndicatorDisplayMode: Hashable, Sendable {
+        /// The animation is shown whenever the last message in the chat is from the user, and the assistant has not yet begun to respond.
         case automatic
+        /// The animation is displayed based on the provided Boolean flag.
         case manual(shouldDisplay: Bool)
     }
-    
-    
-    private static let bottomSpacerIdentifier = "Bottom Spacer"
-    
-    @Binding private var chat: Chat
-    @Binding private var bottomPadding: CGFloat
-    private let hideMessages: MessageView.HiddenMessages
-    private let typingIndicator: TypingIndicatorDisplayMode?
-    
-    
-    #if !os(macOS)
-    private var keyboardPublisher: AnyPublisher<Bool, Never> {
-        Publishers
-            .Merge(
-                NotificationCenter
-                    .default
-                    .publisher(for: UIResponder.keyboardWillShowNotification)
-                    .map { _ in true },
-                NotificationCenter
-                    .default
-                    .publisher(for: UIResponder.keyboardWillHideNotification)
-                    .map { _ in false }
-            )
-            .debounce(for: .seconds(0.1), scheduler: RunLoop.main)
-            .eraseToAnyPublisher()
+
+    /// Configures which kinds of ``ChatEntity`` are surfaced to the user.
+    public struct MessagesVisibility: Hashable, Sendable {
+        /// Indicates which types of ``ChatEntity/Role-swift.enum/hidden(type:)`` message roles should be hidden from the chat.
+        public enum HiddenMessages: Hashable, Sendable {
+            /// Hide all messages with a `hidden` role, regardless of the message's ``ChatEntity/HiddenMessageType``.
+            case all
+            /// Displays all hidden messages, except some, based on their ``ChatEntity/HiddenMessageType``.
+            case custom(Set<ChatEntity.HiddenMessageType>)
+
+            /// No messages should be hidden.
+            public static var none: Self {
+                .custom([])
+            }
+        }
+
+        /// Hides the messages a chat marks hidden, and shows everything the assistant actually did.
+        ///
+        /// Tool calls stay visible because that is what a chat showed before this type existed; an app that wants
+        /// the tidier transcript asks for `toolCalls: .hidden` rather than being given it silently.
+        public static var `default`: Self {
+            .init(hiddenMessages: .all, toolCalls: .visible)
+        }
+
+        let hiddenMessages: HiddenMessages
+        let toolCalls: Visibility
+        let thinking: Visibility
+
+        /// Creates a new visibility configuration.
+        ///
+        /// - Parameters:
+        ///   - hiddenMessages: Which ``ChatEntity/Role-swift.enum/hidden(type:)`` messages to hide.
+        ///   - toolCalls: Whether tool calls and their responses are shown.
+        ///   - thinking: Whether the model's thinking phases are shown.
+        public init(
+            hiddenMessages: HiddenMessages,
+            toolCalls: Visibility = .automatic,
+            thinking: Visibility = .automatic
+        ) {
+            self.hiddenMessages = hiddenMessages
+            self.toolCalls = toolCalls
+            self.thinking = thinking
+        }
     }
-    #endif
-    
+
+
+    private static let bottomAnchorIdentifier = "Bottom Anchor"
+    /// How close (in points) to the bottom edge the user must be for the view to keep following new content.
+    private static let followContentThreshold: CGFloat = 64
+
+    @Binding private var chat: Chat
+    private let insets: EdgeInsets
+    private let messagesVisibility: MessagesVisibility
+    private let typingIndicator: TypingIndicatorDisplayMode?
+
+    /// Whether the user is pinned (near) the bottom of the conversation.
+    ///
+    /// While pinned, the view follows streaming content; once the user scrolls up to read, it stops yanking
+    /// them back down and only resumes following when they return to the bottom or send a message themselves.
+    @State private var isNearBottom = true
+    @Environment(\.chatEmptyState) private var emptyState
+    @Environment(\.chatErrorState) private var errorState
+    @Environment(\.chatGeneration) private var generation
+
+    private var visibleMessages: [ChatEntity] {
+        chat.filter { !shouldHide($0) }
+    }
+
     private var shouldDisplayTypingIndicator: Bool {
-        switch self.typingIndicator {
+        // A chat that reports its generation state has already answered this question, and answers it better:
+        // the indicator then tracks the request itself rather than guessing from who spoke last — which would
+        // leave it spinning after a cancelled answer, since the user's message is still the most recent one.
+        if let generation {
+            return generation.isGenerating
+        }
+        return switch typingIndicator {
         case .automatic:
-            switch self.chat.last?.role {
-            case .user: true
-            // Ensure that the typing indicator is not shown when the chat is empty (only hidden messages present)
-            case .hidden: (self.chat.contains(where: { $0.role == .user || $0.role == .assistant }))
-            default: false
+            switch chat.last?.role {
+            case .user:
+                true
+            // Ensure that the typing indicator is not shown when the chat only contains hidden messages.
+            case .hidden:
+                chat.contains { $0.role == .user || $0.role == .assistant(.response) }
+            default:
+                false
             }
         case .manual(let shouldDisplay):
             shouldDisplay
@@ -85,76 +138,145 @@ public struct MessagesView: View {
             false
         }
     }
-    
-    public var body: some View {
-        ScrollViewReader { scrollViewProxy in
-            ScrollView {
-                VStack {
-                    ForEach(Array(chat.enumerated()), id: \.offset) { _, message in
-                        MessageView(message, hideMessages: hideMessages)
-                    }
-                    if shouldDisplayTypingIndicator {
-                        TypingIndicator()
-                    }
-                    Spacer()
-                        .frame(height: bottomPadding)
-                        .id(MessagesView.bottomSpacerIdentifier)
-                }
-                    .padding(.horizontal)
-                    .onAppear {
-                        scrollToBottom(scrollViewProxy)
-                    }
-                    .onChange(of: chat) {
-                        scrollToBottom(scrollViewProxy)
-                    }
-                    #if !os(macOS)
-                    .onReceive(keyboardPublisher) { _ in
-                        scrollToBottom(scrollViewProxy)
-                    }
-                    #endif
+
+    private var messageStack: some View {
+        LazyVStack(spacing: 24) {
+            ForEach(visibleMessages) { message in
+                MessageView(message)
+                    .id(message.id)
             }
+            if shouldDisplayTypingIndicator {
+                TypingIndicator()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            ChatErrorView(state: errorState)
+            Color.clear
+                .frame(height: 1)
+                .id(Self.bottomAnchorIdentifier)
         }
     }
-    
-    
-    /// - Parameters:
-    ///   - chat: The chat messages that should be displayed.
-    ///   - hideMessages: Types of ``ChatEntity/Role-swift.enum/hidden(type:)`` messages that should be hidden from the user.
-    ///   - bottomPadding: A fixed bottom padding for the messages view.
-    ///   - typingIndicator: Indicates whether a  "three dots" animation should be automatically or manually shown; default value of `nil` will result in no indicator being shown under any condition.
-    public init(
-        _ chat: Chat,
-        hideMessages: MessageView.HiddenMessages = .all,
-        typingIndicator: TypingIndicatorDisplayMode? = nil,
-        bottomPadding: CGFloat = 0
-    ) {
-        self._chat = .constant(chat)
-        self.hideMessages = hideMessages
-        self.typingIndicator = typingIndicator
-        self._bottomPadding = .constant(bottomPadding)
+
+    /// Fills the conversation's space while it has nothing to show.
+    @ViewBuilder private var emptyStateView: some View {
+        if let content = emptyState.content, visibleMessages.isEmpty, !shouldDisplayTypingIndicator, errorState.error == nil {
+            content()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .transition(.opacity)
+        }
     }
 
+    public var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                messageStack
+                    .padding(.horizontal)
+                    .padding(.top, insets.top)
+                    .padding(.bottom, insets.bottom)
+                    .scrollTargetLayout()
+            }
+            .overlay {
+                emptyStateView
+            }
+            #if !os(visionOS)
+            .scrollDismissesKeyboard(.interactively)
+            #endif
+            .defaultScrollAnchor(.bottom)
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.contentSize.height + geometry.contentInsets.bottom - geometry.visibleRect.maxY < Self.followContentThreshold
+            } action: { _, newValue in
+                isNearBottom = newValue
+            }
+            .onChange(of: chat) { oldValue, newValue in
+                if newValue.count > oldValue.count && newValue.last?.role == .user {
+                    // The user just sent a message; always bring it into view.
+                    scrollToBottom(proxy)
+                } else if isNearBottom {
+                    // Follow streaming content only while the user hasn't scrolled away to read.
+                    scrollToBottom(proxy, animated: newValue.count != oldValue.count)
+                }
+            }
+            #if os(iOS)
+            .onReceive(keyboardWillShowPublisher) { _ in
+                if isNearBottom {
+                    scrollToBottom(proxy)
+                }
+            }
+            #endif
+        }
+    }
+
+    #if os(iOS)
+    /// Fires shortly after the keyboard starts appearing, once the adjusted safe area has settled.
+    private var keyboardWillShowPublisher: AnyPublisher<Void, Never> {
+        NotificationCenter.default
+            .publisher(for: UIResponder.keyboardWillShowNotification)
+            .map { _ in () }
+            .debounce(for: .seconds(0.1), scheduler: RunLoop.main)
+            .eraseToAnyPublisher()
+    }
+    #endif
+
+
+    /// Creates a `MessagesView` displaying an interactive conversation flow.
+    ///
     /// - Parameters:
     ///   - chat: The chat messages that should be displayed.
-    ///   - hideMessages: Types of ``ChatEntity/Role-swift.enum/hidden(type:)`` messages that should be hidden from the user.
-    ///   - bottomPadding: A bottom padding for the messages view.
-    ///   - typingIndicator: Indicates whether a  "three dots" animation should be automatically or manually shown; default value of `nil` will result in no indicator being shown under any condition.
+    ///   - insets: `EdgeInsets` that should be applied within the view.
+    ///   - messagesVisibility: Which kinds of messages should be surfaced to the user.
+    ///   - typingIndicator: Whether a "three dots" animation should be automatically or manually shown; the default of `nil` results in no indicator being shown.
     public init(
         _ chat: Binding<Chat>,
-        hideMessages: MessageView.HiddenMessages = .all,
-        typingIndicator: TypingIndicatorDisplayMode? = nil,
-        bottomPadding: Binding<CGFloat> = .constant(0)
+        insets: EdgeInsets = EdgeInsets(),
+        messagesVisibility: MessagesVisibility = .default,
+        typingIndicator: TypingIndicatorDisplayMode? = nil
     ) {
         self._chat = chat
-        self.hideMessages = hideMessages
+        self.insets = insets
+        self.messagesVisibility = messagesVisibility
         self.typingIndicator = typingIndicator
-        self._bottomPadding = bottomPadding
     }
 
-    
-    private func scrollToBottom(_ scrollViewProxy: ScrollViewProxy) {
-        withAnimation(.easeOut) {
-            scrollViewProxy.scrollTo(MessagesView.bottomSpacerIdentifier)
+    /// Creates a `MessagesView` displaying a static conversation flow.
+    ///
+    /// - Parameters:
+    ///   - chat: The chat messages that should be displayed.
+    ///   - insets: `EdgeInsets` that should be applied within the view.
+    ///   - messagesVisibility: Which kinds of messages should be surfaced to the user.
+    ///   - typingIndicator: Whether a "three dots" animation should be automatically or manually shown; the default of `nil` results in no indicator being shown.
+    public init(
+        _ chat: Chat,
+        insets: EdgeInsets = EdgeInsets(),
+        messagesVisibility: MessagesVisibility = .default,
+        typingIndicator: TypingIndicatorDisplayMode? = nil
+    ) {
+        self.init(.constant(chat), insets: insets, messagesVisibility: messagesVisibility, typingIndicator: typingIndicator)
+    }
+
+    private func scrollToBottom(_ proxy: ScrollViewProxy, animated: Bool = true) {
+        if animated {
+            withAnimation(.smooth(duration: 0.3)) {
+                proxy.scrollTo(Self.bottomAnchorIdentifier, anchor: .bottom)
+            }
+        } else {
+            proxy.scrollTo(Self.bottomAnchorIdentifier, anchor: .bottom)
+        }
+    }
+
+    private func shouldHide(_ message: ChatEntity) -> Bool {
+        switch message.role {
+        case .user, .assistant(.response):
+            false
+        case .assistant(.toolCall), .assistant(.toolResponse):
+            messagesVisibility.toolCalls == .hidden
+        case .assistant(.thinking):
+            messagesVisibility.thinking == .hidden
+        case .hidden(let type):
+            switch messagesVisibility.hiddenMessages {
+            case .all:
+                true
+            case .custom(let hiddenMessageTypes):
+                hiddenMessageTypes.contains(type)
+            }
         }
     }
 }
@@ -163,26 +285,24 @@ public struct MessagesView: View {
 #if DEBUG
 @available(iOS 18, macOS 15, watchOS 11, *)
 #Preview("Regular Message View") {
-    MessagesView(
-        [
-            ChatEntity(role: .user, content: "User Message!"),
-            ChatEntity(role: .hidden(type: .unknown), content: "Hidden Message!"),
-            ChatEntity(role: .assistant, content: "Assistant Message!")
-        ]
-    )
+    MessagesView([
+        ChatEntity(role: .user, text: "Tell me a joke"),
+        ChatEntity(role: .hidden(type: .unknown), text: "Hidden Message!"),
+        ChatEntity(role: .assistant(.response), text: "Why do programmers prefer dark mode?\n\nBecause light attracts bugs.")
+    ])
 }
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 #Preview("Unhidden Message View") {
     MessagesView(
         [
-            ChatEntity(role: .user, content: "User Message!"),
-            ChatEntity(role: .hidden(type: .unknown), content: "Hidden Message (but still visible)!"),
-            ChatEntity(role: .assistantToolCall, content: "Assistant Message!"),
-            ChatEntity(role: .assistantToolResponse, content: "Assistant Message!f jiodsjfiods \n fudshfdusi"),
-            ChatEntity(role: .assistant, content: "Assistant Message!")
+            ChatEntity(role: .user, text: "What's the weather?"),
+            ChatEntity(role: .hidden(type: .unknown), text: "Hidden Message (but still visible)!"),
+            ChatEntity(role: .assistant(.toolCall), text: "get_weather(location: \"Stanford\")"),
+            ChatEntity(role: .assistant(.toolResponse), text: "{\n  \"temperature\": 21\n}"),
+            ChatEntity(role: .assistant(.response), text: "It's 21 °C in Stanford.")
         ],
-        hideMessages: .custom(hiddenMessageTypes: [])
+        messagesVisibility: .init(hiddenMessages: .none, toolCalls: .visible)
     )
 }
 #endif

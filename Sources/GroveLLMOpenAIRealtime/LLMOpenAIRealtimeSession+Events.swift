@@ -13,7 +13,7 @@ import GroveLLMOpenAI
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
-extension LLMOpenAIRealtimeSession: FunctionCallLLMSession {
+extension LLMOpenAIRealtimeSession: ToolCallLLMSession {
     @MainActor
     func listenToLLMEvents() { // swiftlint:disable:this cyclomatic_complexity
         Task { [weak self] in
@@ -21,16 +21,14 @@ extension LLMOpenAIRealtimeSession: FunctionCallLLMSession {
                 Self.logger.error("GroveLLMOpenAIRealtime: No self in listenToLLMEvents...")
                 return
             }
-
             do {
                 for try await event in eventStream {
                     let shouldInject = self?.schema.injectIntoContext ?? true
-
                     switch event {
                     case .assistantTranscriptDelta(let content) where shouldInject:
-                        self?.context.append(assistantOutput: content)
+                        self?.context.append(assistantOutputDelta: content, isComplete: false, interactionId: nil)
                     case .assistantTranscriptDone where shouldInject:
-                        self?.context.completeAssistantStreaming()
+                        self?.context.markAssistantOutputCompleted()
                     case .userTranscriptDelta(let content) where shouldInject:
                         self?.handleTranscript(itemId: content.itemId, content: content.delta, isComplete: false)
                     case .userTranscriptDone(let content) where shouldInject:
@@ -72,11 +70,11 @@ extension LLMOpenAIRealtimeSession: FunctionCallLLMSession {
         let existingMessage = self.context[existingTranscriptIdx]
 
         self.context[existingTranscriptIdx] = .init(
+            id: contentUUID,
+            date: existingMessage.date,
             role: .user,
             content: existingMessage.content + content,
-            complete: isComplete,
-            id: contentUUID,
-            date: existingMessage.date
+            complete: isComplete
         )
     }
     
@@ -93,11 +91,11 @@ extension LLMOpenAIRealtimeSession: FunctionCallLLMSession {
         let contentUUID = UUID.deterministic(from: itemId)
         self.context.append(
             .init(
+                id: contentUUID,
+                date: Date.now,
                 role: .user,
                 content: "",
-                complete: false,
-                id: contentUUID,
-                date: Date.now
+                complete: false
             )
         )
     }
@@ -124,9 +122,11 @@ extension LLMOpenAIRealtimeSession: FunctionCallLLMSession {
                 ConversationItemCreateEvent(
                     _type: .conversation_period_item_period_create,
                     item: .init(
-                        _type: .function_call_output,
-                        call_id: functionCallResponse.functionID,
-                        output: functionCallResponse.response
+                        value5: .init(
+                            _type: .function_call_output,
+                            call_id: functionCallResponse.functionID,
+                            output: functionCallResponse.response
+                        )
                     )
                 )
             )

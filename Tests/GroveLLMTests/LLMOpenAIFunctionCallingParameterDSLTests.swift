@@ -22,9 +22,9 @@ struct LLMOpenAIFunctionCallingParameterDSLTests { // swiftlint:disable:this typ
         let stringParameter = "1234"
     }
     
-    struct LLMFunctionTestPrimitive: LLMFunction {
-        static let name: String = "test_function"
-        static let description: String = "This is a test LLM function."
+    struct LLMFunctionTestPrimitive: LLMTool {
+        let name: String = "test_function"
+        let description: String = "This is a test LLM function."
         
         let someInitArg: String
 
@@ -66,7 +66,7 @@ struct LLMOpenAIFunctionCallingParameterDSLTests { // swiftlint:disable:this typ
         let llmFunctionPair = try #require(llm.functions.first)
         
         // Validate parameter metadata
-        #expect(llmFunctionPair.key == LLMFunctionTestPrimitive.name)
+        #expect(llmFunctionPair.key == llmFunctionPair.value.name)
         let llmFunction = llmFunctionPair.value
         #expect(try #require(llmFunction.parameterValueCollectors["intParameter"]).isOptional == false)
         #expect(try #require(llmFunction.parameterValueCollectors["doubleParameter"]).isOptional == false)
@@ -100,8 +100,8 @@ struct LLMOpenAIFunctionCallingParameterDSLTests { // swiftlint:disable:this typ
         // Validate parameter injection
         let parameterData = try JSONEncoder().encode(ParametersPrimitive.shared)
         
-        try llmFunction.injectParameters(from: parameterData)
-        let llmFunctionResponse = try await llmFunction.execute()
+        let arguments = try llmFunction.arguments(from: parameterData)
+        let llmFunctionResponse = try await llmFunction.execute(with: arguments)
         #expect(llmFunctionResponse == "testArg")
     }
 }

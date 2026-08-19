@@ -9,10 +9,10 @@
 import GroveLLMOpenAI
 
 
-struct LLMOpenAIFunctionPerson: LLMFunction {
-    struct CustomArrayItemType: LLMFunctionParameterArrayElement {
-        static let itemSchema: LLMFunctionParameterItemSchema = {
-            guard let schema = try? LLMFunctionParameterItemSchema(
+struct LLMOpenAIFunctionPerson: LLMTool {
+    struct CustomArrayItemType: LLMToolParameterArrayElement {
+        static let itemSchema: LLMToolParameterItemSchema = {
+            guard let schema = try? LLMToolParameterItemSchema(
                 .init(name: "firstName", type: .string, description: "The first name of the person"),
                 .init(name: "lastName", type: .string, description: "The last name of the person")
             ) else {
@@ -26,8 +26,8 @@ struct LLMOpenAIFunctionPerson: LLMFunction {
         let lastName: String
     }
     
-    static let name: String = "get_age_persons"
-    static let description: String = "Gets the age of persons."
+    let name: String = "get_age_persons"
+    let description: String = "Gets the age of persons."
     
     
     @Parameter(description: "Persons which age is to be determined.")

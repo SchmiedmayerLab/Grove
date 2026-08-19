@@ -109,7 +109,7 @@ struct LLMDemoView: View {
 
     func executePrompt(prompt: String) async throws {
         await MainActor.run {
-            llmSession?.context.append(userInput: prompt)
+            llmSession?.context.append(userMessage: prompt)
         }
 
         // Performing the LLM inference, returning a stream of outputs.
@@ -139,7 +139,7 @@ struct LLMDemoView: View {
         VStack {
             Button {
                 Task { @MainActor in
-                    llm.context.append(userInput: "Hello!")
+                    llm.context.append(userMessage: "Hello!")
 
                     for try await token in try await llm.generate() {
                         responseText.append(token)
@@ -165,7 +165,7 @@ The ``LLMChatView`` is passed an ``LLMSession`` that represents the LLM in execu
 > Tip: The ``LLMChatView`` and ``LLMChatViewSchema`` build on top of the [GroveChat package](../../GroveChat/GroveChat.docc/GroveChat.md).
     For more details, please refer to the DocC documentation of the [`ChatView`](../../GroveChat/GroveChat.docc/GroveChat.md).
 
-> Tip: By default, the ``LLMChatView`` presents no share button in the toolbar that exports the current `GroveChat/Chat`. To add this element or change the export functionality, pass the desired export format for the `exportFormat` parameter in ``LLMChatView/init(session:exportFormat:)``.
+> Tip: By default, the ``LLMChatView`` presents no share button in the toolbar that exports the current `GroveChat/Chat`. To add this element or change the export functionality, pass the desired export format for the `exportFormat` parameter in ``LLMChatView/init(session:exportFormat:messagesVisibility:attachments:)``.
 
 #### Usage
 

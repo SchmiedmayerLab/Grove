@@ -7,8 +7,10 @@
 //
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import GeneratedOpenAIClient
-import GroveKeychainStorage
 import GroveLLM
 import OpenAPIRuntime
 import OpenAPIURLSession

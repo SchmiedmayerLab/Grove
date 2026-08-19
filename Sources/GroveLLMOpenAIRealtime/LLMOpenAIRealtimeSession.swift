@@ -29,7 +29,7 @@ package import os
 /// - Warning: The ``LLMOpenAIRealtimeSession`` shouldn't be created manually but always through the ``LLMOpenAIRealtimePlatform`` via the `LLMRunner`.
 ///
 /// - Tip: ``LLMOpenAIRealtimeSession`` also enables the function calling mechanism to establish a structured, bidirectional, and reliable communication
-///   between the OpenAI LLMs and external tools. For details, refer to `LLMFunction` and `LLMFunction/Parameter` from GroveLLMOpenAI, or see GroveLLMOpenAI's FunctionCalling documentation.
+///   between the OpenAI LLMs and external tools. For details, refer to `LLMTool` and `LLMTool/Parameter` from GroveLLMOpenAI, or see GroveLLMOpenAI's FunctionCalling documentation.
 ///
 /// - Tip: For more information, refer to the documentation of the `LLMSession` from GroveLLM.
 ///
@@ -149,9 +149,11 @@ public final class LLMOpenAIRealtimeSession: LLMSession, SchemaProvidingLLMSessi
                         ConversationItemCreate(
                             _type: .conversation_period_item_period_create,
                             item: .init(
-                                _type: .message,
-                                role: .user,
-                                content: [.init(_type: .input_text, text: lastContext?.content ?? "")]
+                                value2: .init(
+                                    _type: .message,
+                                    role: .user,
+                                    content: [.init(_type: .input_text, text: lastContext?.content ?? "")]
+                                )
                             )
                         )
                     )

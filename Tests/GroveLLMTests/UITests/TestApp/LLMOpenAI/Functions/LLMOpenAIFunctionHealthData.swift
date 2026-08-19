@@ -9,9 +9,9 @@
 import GroveLLMOpenAI
 
 
-struct LLMOpenAIFunctionHealthData: LLMFunction {
-    static let name: String = "get_health_data"
-    static let description: String = "Get the health data of a patient based on health data types."
+struct LLMOpenAIFunctionHealthData: LLMTool {
+    let name: String = "get_health_data"
+    let description: String = "Get the health data of a patient based on health data types."
     
     
     @Parameter(

@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI) // Defaults for the ``LLMAuthTokenCollector``, which only exists where SwiftUI does.
 package import Foundation
 
 
@@ -41,3 +42,4 @@ extension LLMAuthTokenCollector {
         )
     }
 }
+#endif
