@@ -186,6 +186,10 @@ def changed_keys(base, head):
     }
 
 
+class UnclassifiedTargetsError(ValueError):
+    pass
+
+
 def package_for_target(target_name, targets, directory_maps):
     target = targets.get(target_name, {})
     path = target.get("path", "")
@@ -257,11 +261,28 @@ def affected_by_manifest(base_dump, head_dump, base_packages):
 
     directory_maps = [DIR2PKG, directory_to_package(base_packages)]
     all_targets = {**base_targets, **head_targets}
-    return {
-        package
-        for target in affected_targets
-        if (package := package_for_target(target, all_targets, directory_maps)) in PKGS
-    }
+    affected_packages = set()
+    unclassified_targets = set()
+    for target in affected_targets:
+        package = package_for_target(target, all_targets, directory_maps)
+        if package in PKGS:
+            affected_packages.add(package)
+        else:
+            unclassified_targets.add(target)
+
+    # A pre-existing unclassified helper may legitimately force the conservative full suite, but a
+    # brand-new target must first be assigned to a logical package in packages.toml. Otherwise it
+    # could silently disappear from the package-level test matrix.
+    new_targets = set(head_targets) - set(base_targets)
+    new_unclassified_targets = unclassified_targets & new_targets
+    if new_unclassified_targets:
+        names = ", ".join(sorted(new_unclassified_targets))
+        raise UnclassifiedTargetsError(
+            f"new Package.swift target(s) are not classified in packages.toml: {names}"
+        )
+    if unclassified_targets:
+        return None
+    return affected_packages
 
 
 def affected_by_package_configuration(base_packages):
@@ -318,11 +339,14 @@ def main():
                 run_all = True
                 run_fhir_conformance = True
                 continue
-            manifest_affected = affected_by_manifest(
-                load_json(args.base_package_dump),
-                load_json(args.head_package_dump),
-                load_toml(args.base_packages) if args.base_packages else PKGS,
-            )
+            try:
+                manifest_affected = affected_by_manifest(
+                    load_json(args.base_package_dump),
+                    load_json(args.head_package_dump),
+                    load_toml(args.base_packages) if args.base_packages else PKGS,
+                )
+            except UnclassifiedTargetsError as error:
+                sys.exit(f"error: {error}")
             if manifest_affected is None:
                 run_all = True
                 run_fhir_conformance = True

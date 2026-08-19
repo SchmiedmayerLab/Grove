@@ -103,6 +103,16 @@ class AffectedManifestTests(unittest.TestCase):
 
         self.assertEqual(affected, {"GroveHealthKitFHIR"})
 
+    def test_new_unclassified_target_fails_instead_of_silently_disappearing(self):
+        base = package_dump([])
+        head = package_dump([target("UnclassifiedTarget")])
+
+        with self.assertRaisesRegex(
+            MODULE.UnclassifiedTargetsError,
+            "UnclassifiedTarget",
+        ):
+            MODULE.affected_by_manifest(base, head, MODULE.PKGS)
+
     def test_global_manifest_change_falls_back_to_every_package(self):
         base = package_dump([], platforms=[{"platformName": "ios", "version": "15.0"}])
         head = package_dump([], platforms=[{"platformName": "ios", "version": "18.0"}])
