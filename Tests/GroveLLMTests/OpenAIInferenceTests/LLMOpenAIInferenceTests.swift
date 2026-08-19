@@ -13,12 +13,11 @@ import os
 import SwiftUI
 import Testing
 
-// To enable tests that require an OpenAI API key:
-// Open the `GroveLLM-Package.xctestplan` file and navigate to
-// Configurations > Environment Variables. Add a new variable:
+// To enable tests that require an OpenAI API key, pass it on the command line — the test plan forwards it into the
+// test process, so the key stays out of the tracked plan file:
 //
-//   Name:  OPENAI_API_TOKEN
-//   Value: your-secret-key-here
+//   xcodebuild test -scheme Grove-Tests -testPlan GroveLLM -destination 'platform=macOS' \
+//     OPENAI_API_TOKEN="$(security find-generic-password -s openai-api-key-grove -w)"
 @Suite("LLM OpenAI Inference Tests (Using API Key)",
        .disabled(
         if: ProcessInfo.processInfo.environment["OPENAI_API_TOKEN"] == nil ||
@@ -27,9 +26,9 @@ import Testing
        )
 )
 class LLMOpenAIInferenceTests {
-    struct LLMOpenAITestFunction: LLMFunction {
-        static let name: String = "perform_test"
-        static let description: String = "Performs a tests and returns a specific value to ensure this function has been called"
+    struct LLMOpenAITestFunction: LLMTool {
+        let name: String = "perform_test"
+        let description: String = "Performs a tests and returns a specific value to ensure this function has been called"
         
         
         func execute() async throws -> String? {
@@ -81,10 +80,9 @@ class LLMOpenAIInferenceTests {
             LLMOpenAITestFunction()
         }
         
-        var context = LLMContext()
-        context.append(userInput: "Hello! Return me the value needed for this test")
-        
         let llmSession = try initTestLLMSession(schema)
+        llmSession.context.append(userMessage: "Hello! Return me the value needed for this test")
+
         var oneShot = ""
         for try await stringPiece in try await llmSession.generate() {
             oneShot.append(stringPiece)

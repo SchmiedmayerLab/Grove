@@ -16,7 +16,7 @@ public import GroveLLMOpenAI
 /// The ``LLMOpenAIRealtimeSchema`` is used as a configuration for the to-be-used Realtime OpenAI LLM. It contains all information necessary for the creation of an executable ``LLMOpenAIRealtimeSession``.
 /// It is bound to a ``LLMOpenAIRealtimePlatform`` that is responsible for turning the ``LLMOpenAIRealtimeSchema`` to an ``LLMOpenAIRealtimeSession``.
 ///
-/// - Tip: ``LLMOpenAIRealtimeSchema`` also enables the function calling mechanism to establish a structured, bidirectional, and reliable communication between the OpenAI LLMs and external tools. For details, refer to `LLMFunction` and `LLMFunction/Parameter` from GroveLLMOpenAI or see [Function Calling](../GroveLLMOpenAI/GroveLLMOpenAI.docc/FunctionCalling.md).
+/// - Tip: ``LLMOpenAIRealtimeSchema`` also enables tool calling, to establish a structured, bidirectional, and reliable communication between the OpenAI LLMs and external tools. For details, refer to `LLMTool` and `LLMTool/Parameter` from GroveLLMOpenAI or see [Tool Calling](../GroveLLMOpenAI/GroveLLMOpenAI.docc/ToolCalling.md).
 ///
 /// - Tip: For more information, refer to the documentation of the `LLMSchema` from GroveLLM.
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -24,7 +24,7 @@ public struct LLMOpenAIRealtimeSchema: LLMSchema, Sendable {
     public typealias Platform = LLMOpenAIRealtimePlatform
 
     let parameters: LLMOpenAIRealtimeParameters
-    let functions: [String: any LLMFunction]
+    let functions: [String: any LLMTool]
     public var injectIntoContext: Bool
 
     /// Creates an instance of the ``LLMOpenAIRealtimeSchema`` containing all necessary configuration for Realtime OpenAI LLM inference.
@@ -37,7 +37,7 @@ public struct LLMOpenAIRealtimeSchema: LLMSchema, Sendable {
     public init(
         parameters: LLMOpenAIRealtimeParameters,
         injectIntoContext: Bool = true,
-        @LLMFunctionBuilder _ functionsCollection: () -> _LLMFunctionCollection = { _LLMFunctionCollection() }
+        @LLMToolBuilder _ functionsCollection: () -> _LLMToolCollection = { _LLMToolCollection() }
     ) {
         self.parameters = parameters
         self.injectIntoContext = injectIntoContext

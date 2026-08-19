@@ -39,6 +39,6 @@ final class TestAppLLMLocalUITests: TestAppTestCase {
         XCTAssert(app.staticTexts["New Message!"].waitForExistence(timeout: 5))
 
         // The mock session idles for a second and then streams its four tokens half a second apart.
-        XCTAssert(app.staticTexts["Mock Message from GroveLLM!"].waitForExistence(timeout: 15))
+        assertRenderedText("Mock Message from GroveLLM!", timeout: 15)
     }
 }

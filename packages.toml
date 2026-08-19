@@ -15,6 +15,8 @@
 #               (xcodebuild CI is Apple-only) and GroveAccount lists iOS deliberately (some tests fail).
 #   targets   = its source target directories  (Sources/<name>)
 #   tests     = its test target directories     (Tests/<name>; a Tests/<name>/UITests/ subfolder counts too)
+#   linuxTargets = optional; what the Linux leg compile-checks instead of `tests`, for a package whose
+#               test target is Apple-only but whose sources build on Linux.
 #   uiTests   = the platforms its UITests Xcode project runs on (absent = no UI tests).
 #   self-hosted-ci = which test kinds run on the self-hosted runner (vs GitHub-hosted): a subset of
 #               ["unit", "ui"]. Optional; defaults to ["ui"] — UI tests on the self-hosted runner,
@@ -122,9 +124,12 @@ tests = ["GroveHealthKitFHIRTests", "GroveHealthKitFHIRMacrosTests"]
 uiTests = ["iOS"]
 
 [GroveLLM]
-platforms = ["iOS", "macOS", "visionOS"]
-targets = ["GroveLLM", "GeneratedOpenAIClient", "GroveLLMAnthropic", "GroveLLMGemini", "GroveLLMLocal", "GroveLLMLocalDownload", "GroveLLMOpenAI", "GroveLLMOpenAIRealtime"]
+platforms = ["iOS", "macOS", "visionOS", "Linux"]
+targets = ["GroveLLM", "GeneratedOpenAIClient", "GroveLLMAnthropic", "GroveLLMFoundationModels", "GroveLLMGemini", "GroveLLMLocal", "GroveLLMLocalDownload", "GroveLLMOpenAI", "GroveLLMOpenAIRealtime"]
 tests = ["GroveLLMTests"]
+# The tests pull in GroveChat and the on-device targets; the inference core and the remote providers
+# are what a server actually uses, so those are what Linux checks.
+linuxTargets = ["GroveLLM", "GeneratedOpenAIClient", "GroveLLMOpenAI", "GroveLLMAnthropic", "GroveLLMGemini"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
 
 [GroveLicense]

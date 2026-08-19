@@ -10,6 +10,4 @@
 enum StorageKeys {
     /// A `Bool` flag indicating of the local onboarding was completed.
     static let localOnboardingFlowComplete = "localOnboardingFlow.complete"
-    /// A `Bool` flag indicating of the fog onboarding was completed.
-    static let fogOnboardingFlowComplete = "fogOnboardingFlow.complete"
 }

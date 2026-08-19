@@ -33,6 +33,10 @@ package struct ContinuationObserver<T: Sendable, E: Error>: Sendable {
             switch termination {
             case .cancelled:
                 cancelled.store(true, ordering: .sequentiallyConsistent)
+            // Stopping a session finishes its stream with a `CancellationError` rather than dropping it, so that the
+            // consumer sees why it ended. That is still a cancellation, and the generation has to read it as one.
+            case .finished(let error) where error is CancellationError:
+                cancelled.store(true, ordering: .sequentiallyConsistent)
             default:
                 break
             }

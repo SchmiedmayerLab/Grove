@@ -21,9 +21,9 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
         let stringDictionaryParameter = ["first": "test1", "second": "test2"]
     }
     
-    struct LLMFunctionTestDictionary: LLMFunction {
-        static let name: String = "test_dictionary_function"
-        static let description: String = "This is a test dictionary LLM function."
+    struct LLMFunctionTestDictionary: LLMTool {
+        let name: String = "test_dictionary_function"
+        let description: String = "This is a test dictionary LLM function."
 
         @Parameter(description: "Int Dictionary Parameter")
         var intDictionaryParameter: [String: Int]
@@ -61,7 +61,7 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
         let llmFunctionPair = try #require(llm.functions.first)
         
         // Validate parameter metadata
-        #expect(llmFunctionPair.key == LLMFunctionTestDictionary.name)
+        #expect(llmFunctionPair.key == llmFunctionPair.value.name)
         let llmFunction = llmFunctionPair.value
         #expect(try #require(llmFunction.parameterValueCollectors["intDictionaryParameter"]).isOptional == false)
         #expect(try #require(llmFunction.parameterValueCollectors["doubleDictionaryParameter"]).isOptional == false)
@@ -101,8 +101,8 @@ extension LLMOpenAIFunctionCallingParameterDSLTests {
         // Validate parameter injection
         let parameterData = try JSONEncoder().encode(ParametersDictionary.shared)
         
-        try llmFunction.injectParameters(from: parameterData)
-        let llmFunctionResponse = try await llmFunction.execute()
+        let arguments = try llmFunction.arguments(from: parameterData)
+        let llmFunctionResponse = try await llmFunction.execute(with: arguments)
         #expect(llmFunctionResponse == "Test completed")
     }
 }

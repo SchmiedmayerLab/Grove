@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI)
 import GeneratedOpenAIClient
 import Grove
 import GroveKeychainStorage
@@ -90,4 +91,5 @@ public struct LLMOpenAILikeAPITokenOnboardingStep<PlatformDefinition: LLMOpenAIL
             )
         }
 }
+#endif
 #endif

@@ -6,13 +6,14 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI)
 public import GroveChat
 import GroveViews
 public import SwiftUI
 
 /// Chat view that enables users to interact with an LLM based on an ``LLMSession``.
 ///
-/// The ``LLMChatView`` takes an ``LLMSession`` instance and an optional `ChatView/ChatExportFormat` as parameters within the ``LLMChatView/init(session:exportFormat:)``. The ``LLMSession`` is the executable version of the LLM containing context and state as defined by the ``LLMSchema``.
+/// The ``LLMChatView`` takes an ``LLMSession`` instance and an optional `ChatView/ChatExportFormat` as parameters within the ``LLMChatView/init(session:exportFormat:messagesVisibility:attachments:)``. The ``LLMSession`` is the executable version of the LLM containing context and state as defined by the ``LLMSchema``.
 ///
 /// The input can be either typed out via the iOS keyboard or provided as voice input and transcribed into written text.
 ///
@@ -60,6 +61,25 @@ public struct LLMChatView<Session: LLMSession>: View {
     }
     /// Defines the export format of the to-be-exported `GroveChat/Chat`
     private let exportFormat: ChatView.ChatExportFormat?
+    /// Which kinds of messages — tool calls, thinking phases, hidden messages — are surfaced to the user.
+    private let messagesVisibility: MessagesView.MessagesVisibility
+    /// What the user may attach to a message.
+    private let attachments: ChatAttachmentKinds
+
+    /// Whether the session is working on an answer, which is what puts the stop button in the composer.
+    ///
+    /// Running a tool counts: the turn is still in flight and stopping it is still what the user means.
+    @MainActor private var isGenerating: Bool {
+        llm.state == .generating || llm.state == .callingTools
+    }
+
+    /// The failure to show under the conversation, if the last turn ended in one.
+    @MainActor private var currentError: (any LLMError)? {
+        guard case .error(let error) = llm.state else {
+            return nil
+        }
+        return error
+    }
 
 
     public var body: some View {
@@ -67,9 +87,20 @@ public struct LLMChatView<Session: LLMSession>: View {
             self.$llm.context.chat,
             disableInput: self.inputDisabled,
             exportFormat: self.exportFormat,
-            messagePendingAnimation: .automatic
+            messagePendingAnimation: .automatic,
+            messagesVisibility: self.messagesVisibility
         )
-            .viewStateAlert(state: self.llm.state)
+            .chatGenerating(self.isGenerating) {
+                self.llm.cancel()
+            }
+            // Only claimed while the session is actually failing, so an app that reports its own failures through
+            // `chatError` keeps that state the rest of the time instead of having it silently overwritten.
+            .chatError(
+                self.currentError,
+                retry: self.currentError?.isRetriable == true ? { @MainActor @Sendable in self.retry() } : nil,
+                whileFailing: self.currentError != nil
+            )
+            .chatAttachments(self.attachments)
             .onChange(of: self.llm.context) { oldValue, newValue in
                 // Once the user enters a message in the chat, increase `messageTaskIdentifier` that triggers LLM inference
                 //
@@ -101,10 +132,10 @@ public struct LLMChatView<Session: LLMSession>: View {
                     }
 
                     for try await token in stream {
-                        self.llm.context.append(assistantOutput: token)
+                        self.llm.context.append(assistantOutputDelta: token, isComplete: false)
                     }
 
-                    self.llm.context.completeAssistantStreaming()
+                    self.llm.context.markAssistantOutputCompleted()
                 } catch is CancellationError {
                     // noop
                 } catch let error as any LLMError {
@@ -121,12 +152,32 @@ public struct LLMChatView<Session: LLMSession>: View {
     /// - Parameters:
     ///   - session: A `Binding` of a  ``LLMSession`` that contains the ready-to-use LLM to generate outputs based on user input.
     ///   - exportFormat: An optional `ChatView/ChatExportFormat` to enable the chat export functionality and define the format of the to-be-exported `GroveChat/Chat`.
+    ///   - messagesVisibility: Which kinds of messages — tool calls, thinking phases, hidden messages — are surfaced to the user.
+    ///   - attachments: What the user may attach to a message. Pass `[]` to take the attach button away.
     public init(
         session: Binding<Session>,
-        exportFormat: ChatView.ChatExportFormat? = nil
+        exportFormat: ChatView.ChatExportFormat? = nil,
+        messagesVisibility: MessagesView.MessagesVisibility = .default,
+        attachments: ChatAttachmentKinds = .photoLibrary
     ) {
         self._llm = session
         self.exportFormat = exportFormat
+        self.messagesVisibility = messagesVisibility
+        self.attachments = attachments
+    }
+
+
+    /// Runs the last user message again after a failure.
+    ///
+    /// The message is still the last thing in the context, so clearing the error and bumping the task identifier is
+    /// enough to ask for another answer to it.
+    @MainActor
+    private func retry() {
+        guard case .error = llm.state else {
+            return
+        }
+        llm.state = .ready
+        messageTaskIdentifier = (messageTaskIdentifier ?? 0) + 1
     }
 }
 
@@ -148,4 +199,5 @@ public struct LLMChatView<Session: LLMSession>: View {
             }
     }
 }
+#endif
 #endif

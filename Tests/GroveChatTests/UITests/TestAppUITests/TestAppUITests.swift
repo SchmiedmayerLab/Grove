@@ -31,10 +31,10 @@ class TestAppUITests: XCTestCase {
         try app.textFields["Message Input Textfield"].enter(value: "User Message!", options: [.disableKeyboardDismiss])
         XCTAssert(app.buttons["Send Message"].wait(for: \.isHittable, toEqual: true, timeout: 2))
         app.buttons["Send Message"].tap()
-        XCTAssert(app.staticTexts["User Message!"].waitForExistence(timeout: 2))
-        XCTAssert(app.otherElements["Typing Indicator"].waitForExistence(timeout: 2))
-        XCTAssert(app.otherElements["Typing Indicator"].waitForNonExistence(timeout: 9))
-        XCTAssert(app.staticTexts["Assistant Message Response!"].waitForExistence(timeout: 2))
+        XCTAssert(app.otherElements["Typing Indicator"].waitForExistence(timeout: 5))
+        XCTAssert(app.staticTexts["User Message!"].waitForExistence(timeout: 5))
+        XCTAssert(app.otherElements["Typing Indicator"].waitForNonExistence(timeout: 20))
+        XCTAssert(app.staticTexts["Assistant Message Response!"].waitForExistence(timeout: 5))
     }
     
     

@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI)
 public import SwiftUI
 
 
@@ -100,7 +101,7 @@ extension View {
     ///         VStack {
     ///             Button {
     ///                 Task { @MainActor in
-    ///                     llm.context.append(userInput: "Hello!")
+    ///                     llm.context.append(userMessage: "Hello!")
     ///
     ///                     for try await token in try await llm.generate() {
     ///                         responseText.append(token)
@@ -118,3 +119,4 @@ extension View {
     /// ```
     public typealias LLMSessionProvider<Schema> = _LLMSessionProvider<Schema> where Schema: LLMSchema
 }
+#endif

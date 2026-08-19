@@ -9,7 +9,6 @@
 // swiftlint:disable file_types_order
 
 public import Foundation
-public import GroveKeychainStorage
 public import GroveLLMOpenAI
 
 
@@ -129,6 +128,7 @@ public typealias LLMAnthropicSchema = LLMOpenAILikeSchema<AnthropicPlatformDefin
 public typealias LLMAnthropicSession = LLMOpenAILikeSession<AnthropicPlatformDefinition>
 
 
+#if canImport(SwiftUI)
 /// View to display an onboarding step for the user to enter an Anthropic API Key.
 ///
 /// - Warning: Ensure that the ``LLMAnthropicPlatform`` is specified within the Grove `Configuration` when using this view in the onboarding flow.
@@ -141,6 +141,11 @@ public typealias LLMAnthropicAPITokenOnboardingStep = LLMOpenAILikeAPITokenOnboa
 /// View to display an onboarding step for the user to select an Anthropic model.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public typealias LLMAnthropicModelOnboardingStep = LLMOpenAILikeModelOnboardingStep<AnthropicPlatformDefinition>
+#endif
+
+
+#if canImport(Security)
+public import GroveKeychainStorage
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -148,6 +153,7 @@ extension CredentialsTag {
     /// The canonical credentials tag for the Anthropic API key
     public static let anthropicKey = Self.for(AnthropicPlatformDefinition.self)
 }
+#endif
 
 
 // MARK: Models
@@ -156,17 +162,30 @@ extension CredentialsTag {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension AnthropicPlatformDefinition.ModelType {
     /// The default model to be used with Anthropic.
-    public static let `default`: Self = .opus4_6
+    public static let `default`: Self = .opus5
 
     public static let wellKnownModels: [Self] = [ // swiftlint:disable:this missing_docs
-        .opus4_6, .sonnet4_6, .haiku4_6
+        .opus5, .sonnet5, .haiku4_5,
+        .opus4_8, .opus4_7, .opus4_6, .sonnet4_6
     ]
 
+    /// Claude Opus 5
+    public static let opus5 = Self(rawValue: "claude-opus-5")
+    /// Claude Sonnet 5
+    public static let sonnet5 = Self(rawValue: "claude-sonnet-5")
+    /// Claude Haiku 4.5
+    public static let haiku4_5 = Self(rawValue: "claude-haiku-4-5")
+
+    /// Claude Opus 4.8
+    public static let opus4_8 = Self(rawValue: "claude-opus-4-8")
+    /// Claude Opus 4.7
+    public static let opus4_7 = Self(rawValue: "claude-opus-4-7")
     /// Claude Opus 4.6
     public static let opus4_6 = Self(rawValue: "claude-opus-4-6")
     /// Claude Sonnet 4.6
     public static let sonnet4_6 = Self(rawValue: "claude-sonnet-4-6")
-    /// Claude Haiku 4.5
-    public static let haiku4_6 = Self(rawValue: "claude-haiku-4-5")
+
+    @available(*, deprecated, renamed: "haiku4_5", message: "The model is Claude Haiku 4.5; the old name was a typo.")
+    public static let haiku4_6 = Self(rawValue: "claude-haiku-4-5") // swiftlint:disable:this missing_docs
 }
 // swiftlint:enable identifier_name

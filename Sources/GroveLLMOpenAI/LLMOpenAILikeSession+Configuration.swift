@@ -6,130 +6,105 @@
 // SPDX-License-Identifier: MIT
 //
 
+import Foundation
 import GeneratedOpenAIClient
 import GroveLLM
 import OpenAPIRuntime
 
 
+/// The incompatibility that would make a Chat Completions request silently lose user input, if any.
+@available(iOS 18, macOS 15, watchOS 11, *)
+func chatCompletionsCompatibilityError(in context: LLMContext) -> LLMOpenAIError? {
+    context.contains { $0._fileContent != nil } ? .fileAttachmentsRequireResponsesAPI : nil
+}
+
+
+/// Stops an incompatible request before the legacy API can discard its attachment.
+@available(iOS 18, macOS 15, watchOS 11, *)
+private func validateChatCompletionsCompatibility(of context: LLMContext) throws {
+    guard let compatibilityError = chatCompletionsCompatibilityError(in: context) else {
+        return
+    }
+    #if DEBUG
+    assertionFailure(
+        """
+        GroveLLMOpenAI: File attachments are not supported by the Chat Completions API. Configure the model to use \
+        the Responses API, and only fall back to Chat Completions when Responses is unavailable.
+        """
+    )
+    #endif
+    throw compatibilityError
+}
+
+
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMOpenAILikeSession {
-    /// Map the ``LLMOpenAISession/context`` to the OpenAI `[ChatQuery.ChatCompletionMessageParam]` representation.
-    private var openAIContext: [Components.Schemas.ChatCompletionRequestMessage] {
-        get async {
-            await context.compactMap { contextEntity in
-                getChatMessage(contextEntity)
-            }
+    /// Warns when a search was asked for on the one path that cannot serve it.
+    ///
+    /// Only the Responses API offers the hosted search tool. Saying so is the difference between a model that chose
+    /// not to search and a model that was never given the option — which look identical in the answer.
+    private func warnAboutUnsupportedWebSearch() {
+        guard schema.searchesTheWeb else {
+            return
         }
+        Self.logger.warning(
+            """
+            GroveLLMOpenAI: `searchesTheWeb` is set, but this model is being called through the Chat Completions \
+            API, which does not offer the hosted web search tool. The model will answer without searching and will \
+            cite nothing. Use a model that takes the Responses API, or set `apiMode` to `.fixed(.responses)`.
+            """
+        )
     }
 
-    /// Provides the ``LLMOpenAISession/context``, the `` LLMOpenAIParameters`` and ``LLMOpenAIModelParameters``, as well as the declared ``LLMFunction``s
-    /// in an OpenAI `Operations.createChatCompletion.Input` representation used for querying the OpenAI API.
-    var openAIChatQuery: Operations.createChatCompletion.Input {
-        get async throws {
-            let functions: [Components.Schemas.ChatCompletionTool] = try schema.functions.values.compactMap { function in
-                try Components.Schemas.ChatCompletionTool(
-                    _type: .function,
-                    function: Components.Schemas.FunctionObject(
-                        description: Swift.type(of: function).description,
-                        name: Swift.type(of: function).name,
-                        parameters: function.schema
-                    )
-                )
-            }
-            
-            let stop: Components.Schemas.CreateChatCompletionRequest.stopPayload? = if schema.modelParameters.stopSequence.isEmpty {
-                nil
-            } else {
-                Components.Schemas.CreateChatCompletionRequest.stopPayload.case2(schema.modelParameters.stopSequence)
-            }
-
-            return await Operations.createChatCompletion
-                .Input(
-                    body: .json(
-                        Components.Schemas.CreateChatCompletionRequest(
-                            messages: openAIContext,
-                            model: .init(value1: schema.parameters.modelType.rawValue),
-                            frequency_penalty: schema.modelParameters.frequencyPenalty,
-                            logit_bias: schema.modelParameters.logitBias.additionalProperties.isEmpty ? nil : schema
-                                .modelParameters
-                                .logitBias,
-                            max_completion_tokens: schema.modelParameters.maxOutputLength,
-                            n: schema.modelParameters.completionsPerOutput,
-                            presence_penalty: schema.modelParameters.presencePenalty,
-                            response_format: schema.modelParameters.responseFormat,
-                            seed: schema.modelParameters.seed.map { Int64($0) },
-                            stop: stop,
-                            stream: true,
-                            temperature: schema.modelParameters.temperature,
-                            top_p: schema.modelParameters.topP,
-                            tools: functions.isEmpty ? nil : functions,
-                            user: schema.modelParameters.user
+    /// Builds an `Operations.createChatCompletion.Input` for the Chat Completions API.
+    func openAIChatQuery() async throws -> Operations.createChatCompletion.Input {
+        let context = await context
+        try validateChatCompletionsCompatibility(of: context)
+        warnAboutUnsupportedWebSearch()
+        let functions: [Components.Schemas.CreateChatCompletionRequest.Value2Payload.toolsPayloadPayload] =
+            try schema.functions.values.compactMap { function in
+                .ChatCompletionTool(
+                    Components.Schemas.ChatCompletionTool(
+                        _type: .function,
+                        function: Components.Schemas.FunctionObject(
+                            description: function.description,
+                            name: function.name,
+                            parameters: try function.schema
                         )
                     )
                 )
-        }
-    }
-
-    private func getChatMessage( // swiftlint:disable:this function_body_length
-        _ contextEntity: LLMContextEntity
-    ) -> Components.Schemas.ChatCompletionRequestMessage? {
-        switch contextEntity.role {
-        case let .tool(id: functionID, name: _):
-            return Components.Schemas.ChatCompletionRequestMessage.ChatCompletionRequestToolMessage(.init(
-                role: .tool,
-                content: .case1(contextEntity.content),
-                tool_call_id: functionID
-            ))
-        case let .assistant(toolCalls: toolCalls):
-            // No function calls present -> regular assistant message
-            if toolCalls.isEmpty {
-                return Components.Schemas.ChatCompletionRequestMessage.ChatCompletionRequestAssistantMessage(.init(
-                    content: .case1(contextEntity.content),
-                    role: .assistant
-                ))
-            } else {
-                // Function calls present
-                return Components.Schemas.ChatCompletionRequestMessage.ChatCompletionRequestAssistantMessage(.init(
-                    role: .assistant,
-                    tool_calls: toolCalls.map { toolCall in
-                            .init(
-                                id: toolCall.id,
-                                _type: .function,
-                                function: .init(name: toolCall.name, arguments: toolCall.arguments)
-                            )
-                    }
-                ))
             }
-        case .system:
-            // No function calls present -> regular assistant message
-            guard let role = Components.Schemas.ChatCompletionRequestSystemMessage
-                .rolePayload(rawValue: contextEntity.role.openAIRepresentation.rawValue)
-            else {
-                Self.logger.error("Could not create ChatCompletionRequestSystemMessage payload")
-                return nil
-            }
-            return Components.Schemas.ChatCompletionRequestMessage.ChatCompletionRequestSystemMessage(
-                .init(
-                    content: .case1(contextEntity.content),
-                    role: role
+        let stop: Components.Schemas.StopConfiguration? = schema.modelParameters.stopSequence.isEmpty
+            ? nil
+            : .case2(schema.modelParameters.stopSequence)
+        return Operations.createChatCompletion.Input(
+            body: .json(
+                Components.Schemas.CreateChatCompletionRequest(
+                    value1: .init(
+                        value1: .init(
+                            temperature: schema.modelParameters.temperature,
+                            top_p: schema.modelParameters.topP
+                        ),
+                        value2: .init()
+                    ),
+                    value2: .init(
+                        messages: context.compactMap { $0.toChatMessage() },
+                        model: .init(value1: schema.parameters.modelType.rawValue),
+                        max_completion_tokens: schema.modelParameters.maxOutputLength,
+                        frequency_penalty: schema.modelParameters.frequencyPenalty,
+                        presence_penalty: schema.modelParameters.presencePenalty,
+                        response_format: schema.modelParameters.responseFormat,
+                        stream: true,
+                        stop: stop,
+                        logit_bias: schema.modelParameters.logitBias.additionalProperties.isEmpty
+                            ? nil
+                            : schema.modelParameters.logitBias,
+                        n: schema.modelParameters.completionsPerOutput,
+                        tools: functions.isEmpty ? nil : functions,
+                        tool_choice: nil
+                    )
                 )
             )
-        case .user:
-            if let imageContent = contextEntity._imageContent {
-                let imgPayload = Components.Schemas.ChatCompletionRequestMessageContentPartImage
-                    .image_urlPayload(url: .init("data:\(imageContent.contentType);base64,\(imageContent.base64Image)"), detail: .low)
-                let imgContent = Components.Schemas.ChatCompletionRequestMessageContentPartImage(
-                    _type: .image_url,
-                    image_url: imgPayload
-                )
-                return Components.Schemas.ChatCompletionRequestMessage
-                    .ChatCompletionRequestUserMessage(.init(content: .case2([
-                        .ChatCompletionRequestMessageContentPartImage(imgContent)
-                    ]), role: .user))
-            } else {
-                return Components.Schemas.ChatCompletionRequestMessage
-                    .ChatCompletionRequestUserMessage(.init(content: .case1(contextEntity.content), role: .user))
-            }
-        }
+        )
     }
 }

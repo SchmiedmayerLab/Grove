@@ -1,67 +1,89 @@
 {
-  "configurations" : [
+  "configurations": [
     {
-      "id" : "00000000-0000-0000-0000-000000000016",
-      "name" : "Configuration 1",
-      "options" : {
-
-      }
+      "id": "00000000-0000-0000-0000-000000000016",
+      "name": "Configuration 1",
+      "options": {}
     }
   ],
-  "defaultOptions" : {
-    "codeCoverage" : {
-      "targets" : [
+  "defaultOptions": {
+    "codeCoverage": {
+      "targets": [
+        {
+          "containerPath": "container:",
+          "identifier": "GroveLLM",
+          "name": "GroveLLM"
+        },
+        {
+          "containerPath": "container:",
+          "identifier": "GroveLLMLocal",
+          "name": "GroveLLMLocal"
+        },
+        {
+          "containerPath": "container:",
+          "identifier": "GroveLLMLocalDownload",
+          "name": "GroveLLMLocalDownload"
+        },
+        {
+          "containerPath": "container:",
+          "identifier": "GroveLLMOpenAI",
+          "name": "GroveLLMOpenAI"
+        },
+        {
+          "containerPath": "container:",
+          "identifier": "GroveLLMOpenAIRealtime",
+          "name": "GroveLLMOpenAIRealtime"
+        },
+        {
+          "containerPath": "container:",
+          "identifier": "GroveLLMAnthropic",
+          "name": "GroveLLMAnthropic"
+        },
+        {
+          "containerPath": "container:",
+          "identifier": "GroveLLMFoundationModels",
+          "name": "GroveLLMFoundationModels"
+        },
+        {
+          "containerPath": "container:",
+          "identifier": "GroveLLMGemini",
+          "name": "GroveLLMGemini"
+        },
+        {
+          "containerPath": "container:",
+          "identifier": "GeneratedOpenAIClient",
+          "name": "GeneratedOpenAIClient"
+        }
+      ]
+    },
+    "environmentVariableEntries": [
       {
-        "containerPath" : "container:",
-        "identifier" : "GroveLLM",
-        "name" : "GroveLLM"
+        "key": "GROVE_GATEWAY_URL",
+        "value": "$(GROVE_GATEWAY_URL)"
       },
       {
-        "containerPath" : "container:",
-        "identifier" : "GroveLLMLocal",
-        "name" : "GroveLLMLocal"
+        "key": "GROVE_GATEWAY_TOKEN",
+        "value": "$(GROVE_GATEWAY_TOKEN)"
       },
       {
-        "containerPath" : "container:",
-        "identifier" : "GroveLLMLocalDownload",
-        "name" : "GroveLLMLocalDownload"
-      },
-      {
-        "containerPath" : "container:",
-        "identifier" : "GroveLLMOpenAI",
-        "name" : "GroveLLMOpenAI"
-      },
-      {
-        "containerPath" : "container:",
-        "identifier" : "GroveLLMOpenAIRealtime",
-        "name" : "GroveLLMOpenAIRealtime"
-      },
-      {
-        "containerPath" : "container:",
-        "identifier" : "GroveLLMAnthropic",
-        "name" : "GroveLLMAnthropic"
-      },
-      {
-        "containerPath" : "container:",
-        "identifier" : "GroveLLMGemini",
-        "name" : "GroveLLMGemini"
-      },
-      {
-        "containerPath" : "container:",
-        "identifier" : "GeneratedOpenAIClient",
-        "name" : "GeneratedOpenAIClient"
+        "key": "OPENAI_API_TOKEN",
+        "value": "$(OPENAI_API_TOKEN)"
       }
-    ]
+    ],
+    "targetForVariableExpansion": {
+      "containerPath": "container:",
+      "identifier": "GroveLLMTests",
+      "name": "GroveLLMTests"
     }
   },
-  "testTargets" : [
-      {
-        "target" : {
-          "containerPath" : "container:",
-          "identifier" : "GroveLLMTests",
-          "name" : "GroveLLMTests"
-        }
+  "testTargets": [
+    {
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveLLMTests",
+        "name": "GroveLLMTests"
       }
+    }
   ],
-  "version" : 1
+  "version": 1
 }

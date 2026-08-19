@@ -20,7 +20,6 @@ private struct TestAppTestingSetup: ViewModifier {
     @Environment(LLMAnthropicPlatform.self) var anthropicPlatform
     @Environment(LLMGeminiPlatform.self) var geminiPlatform
     @AppStorage(StorageKeys.localOnboardingFlowComplete) private var completedLocalOnboardingFlow = false
-    @AppStorage(StorageKeys.fogOnboardingFlowComplete) private var completedFogOnboardingFlow = false
 
     
     func body(content: Content) -> some View {
@@ -31,9 +30,16 @@ private struct TestAppTestingSetup: ViewModifier {
                     try? anthropicPlatform.clearApiKeyCredentials(in: keychain)
                     try? geminiPlatform.clearApiKeyCredentials(in: keychain)
                 }
+                // A live UI test hands the token to the app rather than typing it through the interface, so it
+                // never reaches a screenshot. Seeding the keychain is what the onboarding would have done.
+                if let liveToken = FeatureFlags.liveAPIToken {
+                    try? keychain.store(
+                        Credentials(username: "\(OpenAIPlatformDefinition.platformName)_Token", password: liveToken),
+                        for: .for(OpenAIPlatformDefinition.self)
+                    )
+                }
                 if FeatureFlags.showOnboarding {
                     completedLocalOnboardingFlow = false
-                    completedFogOnboardingFlow = false
                 }
             }
     }

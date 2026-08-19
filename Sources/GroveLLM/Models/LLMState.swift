@@ -7,6 +7,9 @@
 //
 
 import Foundation
+#if !canImport(Darwin) // `LocalizedStringResource` is Darwin-only; GroveLocalization stands in elsewhere.
+import GroveLocalization
+#endif
 
 /// Describes possible states that the ``LLMSession`` can be in.
 ///

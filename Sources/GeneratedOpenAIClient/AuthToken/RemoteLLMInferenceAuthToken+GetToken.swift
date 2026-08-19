@@ -6,12 +6,14 @@
 // SPDX-License-Identifier: MIT
 //
 
-package import GroveKeychainStorage
+#if canImport(Security)
+import GroveKeychainStorage
+#endif
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension RemoteLLMInferenceAuthToken {
-    package func getToken(keychainStorage: KeychainStorage?) async throws -> String? {
+    package func getToken(keychainStorage: LLMCredentialStorage?) async throws -> String? {
         switch self {
         case .none:
             return nil
@@ -19,6 +21,7 @@ extension RemoteLLMInferenceAuthToken {
         case .constant(let string):
             return string
 
+        #if canImport(Security)
         case let .keychain(credentialsTag, username):  // extract the keychain token on every request
             let credential: Credentials?
 
@@ -36,6 +39,7 @@ extension RemoteLLMInferenceAuthToken {
             }
 
             return credentialToken
+        #endif
 
         case .closure(let tokenClosure):
             return await tokenClosure()

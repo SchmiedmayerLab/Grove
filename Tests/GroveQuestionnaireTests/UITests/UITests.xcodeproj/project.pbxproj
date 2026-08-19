@@ -15,6 +15,7 @@
 		C9934E7909B78B00EB920667 /* GroveViews in Frameworks */ = {isa = PBXBuildFile; productRef = A68833A65A9C2EC4D251D40B /* GroveViews */; };
 		D7DB1C9F4693F54BC436E817 /* XCTGroveQuestionnaire in Frameworks */ = {isa = PBXBuildFile; productRef = 166D93F9DE4982629D816031 /* XCTGroveQuestionnaire */; };
 		05D8CAA91017B528ED3846C2 /* XCTestExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = 316F78420EBCF50C9924F88F /* XCTestExtensions */; };
+		D631769A06ED9E8F978679C6 /* GroveFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = AFA386B6D3C6D297544D025A /* GroveFoundation */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -62,6 +63,7 @@
 			files = (
 				D7DB1C9F4693F54BC436E817 /* XCTGroveQuestionnaire in Frameworks */,
 				05D8CAA91017B528ED3846C2 /* XCTestExtensions in Frameworks */,
+				D631769A06ED9E8F978679C6 /* GroveFoundation in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -142,6 +144,7 @@
 			packageProductDependencies = (
 				166D93F9DE4982629D816031 /* XCTGroveQuestionnaire */,
 				316F78420EBCF50C9924F88F /* XCTestExtensions */,
+				AFA386B6D3C6D297544D025A /* GroveFoundation */,
 			);
 			productName = TestAppUITests;
 			productReference = 656490963002CEA900F1D55F /* TestAppUITests.xctest */;
@@ -547,6 +550,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 654293E43002D0F400AF6915 /* package */;
 			productName = XCTestExtensions;
+		};
+		AFA386B6D3C6D297544D025A /* GroveFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 654293E43002D0F400AF6915 /* package */;
+			productName = GroveFoundation;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

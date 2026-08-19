@@ -16,4 +16,10 @@ enum FeatureFlags: Sendable {
     static let resetSecureStorage = ProcessInfo.processInfo.arguments.contains("--resetSecureStorage")
     /// Always show the onboarding when the application is launched. Makes it easy to modify and test the onboarding flow without the need to manually remove the application or reset the simulator.
     static let showOnboarding = ProcessInfo.processInfo.arguments.contains("--showOnboarding")
+    /// An API token handed to the app by the test runner, so a UI test can reach a real provider without a secret
+    /// being typed through the interface.
+    static let liveAPIToken: String? = {
+        let token = ProcessInfo.processInfo.environment["OPENAI_API_TOKEN"]
+        return (token?.isEmpty ?? true) ? nil : token
+    }()
 }

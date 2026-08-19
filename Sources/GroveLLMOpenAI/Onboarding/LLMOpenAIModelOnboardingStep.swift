@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI)
 import Grove
 import GroveOnboarding
 public import SwiftUI
@@ -122,3 +123,4 @@ extension LLMOpenAILikeModelOnboardingStep {
         self.init(actionText, models: models, initial: initial, action: action)
     }
 }
+#endif

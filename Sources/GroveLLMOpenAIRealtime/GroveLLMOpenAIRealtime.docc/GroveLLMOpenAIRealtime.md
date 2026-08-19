@@ -109,7 +109,7 @@ struct LLMOpenAIRealtimeDemoView: View {
 
 The ``LLMOpenAIRealtimeSession`` maintains conversation history through its ``LLMOpenAIRealtimeSession/context`` property, but the way this context is populated differs based on your usage pattern.
 
-**Text-Based Inference**: When using ``LLMOpenAIRealtimeSession/generate()`` for text-based interactions, you must manually append user input to the context using `context.append(userInput:)` before calling `generate()`. The `generate()` function will then use this last appended message to trigger the model's response. The generated text output is both returned as an `AsyncThrowingStream<String, Error>` and automatically added to the context.
+**Text-Based Inference**: When using ``LLMOpenAIRealtimeSession/generate()`` for text-based interactions, you must manually append user input to the context using `context.append(userMessage:)` before calling `generate()`. The `generate()` function will then use this last appended message to trigger the model's response. The generated text output is both returned as an `AsyncThrowingStream<String, Error>` and automatically added to the context.
 
 **Audio-Based Inference**: When using audio input with transcription enabled (via ``LLMRealtimeTranscriptionSettings``), the ``LLMOpenAIRealtimeSession`` automatically manages the context for you. As the user speaks and the model responds, transcripts of both the user's speech and the assistant's responses are automatically appended to the ``LLMOpenAIRealtimeSession/context``. You don't need to manually populate the context in this mode, it serves as a read-only conversation history that updates in real-time.
 
@@ -240,7 +240,7 @@ Each voice has distinct characteristics:
 
 Like the standard OpenAI API, the Realtime API supports function calling to enable structured communication between the LLM and external tools. ``GroveLLMOpenAIRealtime`` provides the same declarative Domain Specific Language for function calling as `GroveLLMOpenAI`.
 
-For extensive documentation on function calling, refer to the [GroveLLMOpenAI Function Calling documentation](../../GroveLLMOpenAI/GroveLLMOpenAI.docc/FunctionCalling.md).
+For extensive documentation on function calling, refer to the [GroveLLMOpenAI Function Calling documentation](../../GroveLLMOpenAI/GroveLLMOpenAI.docc/ToolCalling.md).
 
 ### Session Management
 

@@ -35,6 +35,11 @@ let fhirModelsCondition: TargetDependencyCondition? = isLoweredDeploymentTargetE
     ? .when(platforms: [.iOS, .macOS, .macCatalyst, .visionOS, .tvOS, .linux])
     : nil
 
+/// The platforms that ship the SwiftUI-based layers. Linux gets the LLM core without them.
+let applePlatformsOnly: TargetDependencyCondition? = .when(
+    platforms: [.iOS, .macOS, .macCatalyst, .visionOS, .tvOS, .watchOS]
+)
+
 var defaultPlugins: [Target.PluginUsage] {
     enableSwiftLint ? [.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")] : []
 }
@@ -47,11 +52,18 @@ let defaultSwiftSettings: [SwiftSetting] = [
 let textualTrait = "Textual"
 let mlxTrait = "MLX"
 let researchKitTrait = "ResearchKit"
-let optionalPackageTraits = [textualTrait, mlxTrait, researchKitTrait]
+// MLX and ResearchKit stay opt-in: they pull in large dependencies a consumer may not want in its graph.
+let optionalPackageTraits = [mlxTrait, researchKitTrait]
 
-let defaultEnabledTraits: Set<String> = Context.environment["GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS"] == "1"
-    ? Set(optionalPackageTraits)
-    : []
+// Rich Markdown rendering is what the chat is expected to look like — tables, code blocks and all — so Textual is
+// on unless a consumer deliberately turns it off, rather than something every app has to remember to ask for.
+let defaultEnabledTraits: Set<String> = if isLoweredDeploymentTargetEnabled {
+    []
+} else if Context.environment["GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS"] == "1" {
+    Set(optionalPackageTraits + [textualTrait])
+} else {
+    [textualTrait]
+}
 // Compile/test builds can exclude DocC catalogs to avoid SwiftPM unhandled-file warnings.
 // Documentation builds keep them included so DocC can resolve articles and assets.
 let excludeDocCCatalogs = Context.environment["GROVE_EXCLUDE_DOCC_CATALOGS"] == "1"
@@ -230,6 +242,7 @@ var products: [Product] = [
     .library(name: "GroveLLMOpenAIRealtime", targets: ["GroveLLMOpenAIRealtime"]),
     .library(name: "GroveLLMAnthropic", targets: ["GroveLLMAnthropic"]),
     .library(name: "GroveLLMGemini", targets: ["GroveLLMGemini"]),
+    .library(name: "GroveLLMFoundationModels", targets: ["GroveLLMFoundationModels"]),
     // MARK: GroveLicense
     .library(name: "GroveLicense", targets: ["GroveLicense"]),
     // MARK: GroveLocation
@@ -642,6 +655,7 @@ var targets: [Target] = [
     .target(
         name: "GroveChat",
         dependencies: [
+            .target(name: "Grove"),
             .target(name: "GroveFoundation"),
             .target(name: "GroveSpeechRecognizer"),
             .target(name: "GroveSpeechSynthesizer"),
@@ -962,12 +976,6 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "ThreadLocalMacros")
         ],
-        exclude: [
-            "CONTRIBUTORS.md",
-            "LICENSE.md",
-            "LICENSES",
-            "README.md"
-        ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
@@ -1113,8 +1121,9 @@ var targets: [Target] = [
         name: "GroveLLM",
         dependencies: [
             .target(name: "Grove"),
-            .target(name: "GroveChat"),
-            .target(name: "GroveViews")
+            .target(name: "GroveLocalization"),
+            .target(name: "GroveChat", condition: applePlatformsOnly),
+            .target(name: "GroveViews", condition: applePlatformsOnly)
         ],
         exclude: targetExcludes("GroveLLM"),
         resources: [
@@ -1160,14 +1169,15 @@ var targets: [Target] = [
         name: "GroveLLMOpenAI",
         dependencies: [
             .target(name: "GroveLLM"),
+            .target(name: "GroveLocalization"),
             .target(name: "GeneratedOpenAIClient"),
             .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
             .product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession"),
             .target(name: "GroveFoundation"),
             .target(name: "Grove"),
-            .target(name: "GroveChat"),
-            .target(name: "GroveKeychainStorage"),
-            .target(name: "GroveOnboarding")
+            .target(name: "GroveChat", condition: applePlatformsOnly),
+            .target(name: "GroveKeychainStorage", condition: applePlatformsOnly),
+            .target(name: "GroveOnboarding", condition: applePlatformsOnly)
         ],
         exclude: targetExcludes("GroveLLMOpenAI"),
         resources: [
@@ -1201,7 +1211,7 @@ var targets: [Target] = [
         name: "GroveLLMAnthropic",
         dependencies: [
             .target(name: "GroveLLMOpenAI"),
-            .target(name: "GroveKeychainStorage")
+            .target(name: "GroveKeychainStorage", condition: applePlatformsOnly)
         ],
         exclude: targetExcludes("GroveLLMAnthropic"),
         swiftSettings: defaultSwiftSettings,
@@ -1211,9 +1221,21 @@ var targets: [Target] = [
         name: "GroveLLMGemini",
         dependencies: [
             .target(name: "GroveLLMOpenAI"),
-            .target(name: "GroveKeychainStorage")
+            .target(name: "GroveKeychainStorage", condition: applePlatformsOnly)
         ],
         exclude: targetExcludes("GroveLLMGemini"),
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .target(
+        name: "GroveLLMFoundationModels",
+        dependencies: [
+            .target(name: "GroveLLM")
+        ],
+        exclude: targetExcludes("GroveLLMFoundationModels"),
+        resources: [
+            .process("Resources")
+        ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
@@ -1221,8 +1243,9 @@ var targets: [Target] = [
         name: "GeneratedOpenAIClient",
         dependencies: [
             .target(name: "GroveLLM"),
-            .target(name: "GroveKeychainStorage"),
-            .target(name: "GroveOnboarding"),
+            .target(name: "GroveFoundation"),
+            .target(name: "GroveKeychainStorage", condition: applePlatformsOnly),
+            .target(name: "GroveOnboarding", condition: applePlatformsOnly),
             .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime")
         ],
         exclude: targetExcludes("GeneratedOpenAIClient", additional: [
@@ -1241,7 +1264,9 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "Grove"),
             .target(name: "GroveTesting"),
+            .target(name: "GroveChat"),
             .target(name: "GroveLLM"),
+            .target(name: "GroveLLMFoundationModels"),
             .target(name: "GroveLLMOpenAI")
         ],
         exclude: testTargetExcludes("GroveLLMTests", additional: ["UITests"]),

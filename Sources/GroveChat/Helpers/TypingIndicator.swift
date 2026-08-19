@@ -6,52 +6,34 @@
 // SPDX-License-Identifier: MIT
 //
 
-public import SwiftUI
+import SwiftUI
 
-/// Creates a typing indicator animation for pending messages.
-/// The animation consists of three dots that fade in and out in a sequential, wave-like pattern.
-/// It loops continuously as long as `isAnimating` is `true`.
+
+/// A typing indicator animation for pending messages.
 ///
-/// Usage:
-/// ```swift
-/// struct ChatView: View {
-///     var body: some View {
-///         VStack {
-///             MessageView(ChatEntity(role: .user, content: "User Message!"))
-///             TypingIndicator()
-///         }
-///     }
-/// }
-/// ```
+/// Three dots fade in and out in a sequential, wave-like pattern, looping for as long as the view is on screen.
 @available(iOS 18, macOS 15, watchOS 11, *)
-public struct TypingIndicator: View {
-    @State var isAnimating = false
-    
-    
-    public var body: some View {
-        HStack {
-            HStack(spacing: 3) {
-                ForEach(0..<3) { index in
-                    Circle()
-                        .opacity(isAnimating ? 1 : 0)
-                        .foregroundStyle(.tertiary)
-                        .animation(
-                            Animation
-                                .easeInOut(duration: 0.6)
-                                .repeatForever(autoreverses: true)
-                                .delay(0.2 * Double(index)),
-                            value: isAnimating
-                        )
-                        .frame(width: 10)
-                }
+struct TypingIndicator: View {
+    @State private var isAnimating = false
+
+    var body: some View {
+        HStack(spacing: 5) {
+            ForEach(0..<3) { index in
+                Circle()
+                    .frame(width: 8, height: 8)
+                    .foregroundStyle(.tertiary)
+                    .opacity(isAnimating ? 1 : 0.25)
+                    .animation(
+                        .easeInOut(duration: 0.6)
+                            .repeatForever(autoreverses: true)
+                            .delay(0.2 * Double(index)),
+                        value: isAnimating
+                    )
             }
-            .frame(width: 42, height: 12, alignment: .center)
-            .padding(.vertical, 4)
-            .chatMessageStyle(alignment: .leading)
-            .task {
-                isAnimating = true
-            }
-            Spacer(minLength: 32)
+        }
+        .padding(.vertical, 6)
+        .onAppear {
+            isAnimating = true
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("TYPING_INDICATOR", bundle: .module))
@@ -62,21 +44,10 @@ public struct TypingIndicator: View {
 #if DEBUG
 @available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
-    ScrollView {
-        VStack {
-            MessageView(ChatEntity(role: .user, content: "User Message!"))
-            MessageView(ChatEntity(role: .assistant, content: "Assistant Message!"))
-            MessageView(ChatEntity(role: .hidden(type: .unknown), content: "Hidden Message!"))
-            MessageView(
-                ChatEntity(
-                    role: .hidden(type: .unknown),
-                    content: "Hidden message! (visible)"
-                ),
-                hideMessages: .custom(hiddenMessageTypes: [])
-            )
-            TypingIndicator()
-        }
-        .padding()
+    VStack(alignment: .leading) {
+        PlainMessageView(ChatEntity(role: .assistant(.response), text: "Assistant Message!"))
+        TypingIndicator()
     }
+    .padding()
 }
 #endif
