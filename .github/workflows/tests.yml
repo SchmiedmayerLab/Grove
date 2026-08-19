@@ -33,7 +33,7 @@ jobs:
     name: Detect affected packages
     # Package.swift changes are compared through SwiftPM's evaluated manifest graph. A macOS runner
     # makes that graph include the dependencies guarded by `#if canImport(Darwin)` as well.
-    runs-on: macos-latest
+    runs-on: [self-hosted, macOS]
     outputs:
       matrix: ${{ steps.compute.outputs.matrix }}
       ui_matrix: ${{ steps.compute.outputs.ui_matrix }}
