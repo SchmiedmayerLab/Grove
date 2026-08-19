@@ -121,6 +121,18 @@ if warnings:
 PY
 }
 
+beautify() {
+  if ! command -v xcbeautify >/dev/null 2>&1; then
+    cat
+    return
+  fi
+  if [ -n "${GITHUB_ACTIONS:-}" ]; then
+    xcbeautify --renderer github-actions
+  else
+    xcbeautify
+  fi
+}
+
 targets=()
 while IFS= read -r target; do
   targets+=("$target")
@@ -143,8 +155,10 @@ if ! xcodebuild \
     -skipMacroValidation \
     IPHONEOS_DEPLOYMENT_TARGET="$DOC_DEPLOYMENT_TARGET" \
     docbuild \
-    >"$DOC_LOG_PATH" 2>&1; then
-  tail -n 200 "$DOC_LOG_PATH"
+    2>&1 \
+    | tee "$DOC_LOG_PATH" \
+    | beautify; then
+  echo "Documentation build failed. The complete raw log is available at $DOC_LOG_PATH." >&2
   exit 1
 fi
 
