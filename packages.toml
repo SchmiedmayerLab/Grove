@@ -163,8 +163,9 @@ uiTests = ["iOS", "iPadOS", "visionOS"]
 
 [GroveQuestionnaire]
 platforms = ["iOS", "macOS"]
-targets = ["GroveQuestionnaire", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveQuestionnaireLegacy", "XCTGroveQuestionnaire"]
-tests = ["GroveQuestionnaireTests"]
+targets = ["GroveQuestionnaire", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveQuestionnaireLegacy", "GroveQuestionnaireMacros", "GroveQuestionnaireMacrosImpl", "XCTGroveQuestionnaire"]
+tests = ["GroveQuestionnaireTests", "GroveQuestionnaireMacrosTests"]
+testPlatforms = { GroveQuestionnaireMacrosTests = ["macOS"] }
 uiTests = ["iOS", "iPadOS"]
 
 [GroveScheduler]

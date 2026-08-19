@@ -13,21 +13,21 @@ import SwiftUI
 
 /// A row in a single/multiple choice picker
 struct ChoiceRow<AccessoryIfSelected: View>: View {
-    @Environment(\.colorScheme) private var colorScheme
     /// The row's identifier; used for the view's UI testing accessibility identifier
     private var id: String
     private let title: String
     private let subtitle: String
     private let isSelected: Bool
+    private let isSeparated: Bool
     private let action: @MainActor () -> Void
     private let accessoryIfSelected: @MainActor () -> AccessoryIfSelected
-    
+
     var body: some View {
         Button {
             action()
         } label: {
             HStack {
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(markdown: title)
                     if !subtitle.isEmpty {
                         Text(markdown: subtitle)
@@ -35,14 +35,21 @@ struct ChoiceRow<AccessoryIfSelected: View>: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                .foregroundStyle(colorScheme.textLabelForegroundStyle)
-                Spacer()
+                Spacer(minLength: 8)
                 if isSelected {
                     accessoryIfSelected()
                 }
+                // Shape as well as colour, so the selection survives a colour-blind reading.
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
                     .accessibilityHidden(true)
             }
+            // The option is a row within its question's card rather than a row of the list, so it
+            // carries the height and the tappable width the list would have given it. The padding
+            // is what keeps the text off the rules once an accessibility size outgrows 44pt.
+            .padding(.vertical, 11)
+            .frame(minHeight: 44)
+            .contentShape(.rect)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel({ () -> Text in
                 if isSelected {
@@ -53,14 +60,28 @@ struct ChoiceRow<AccessoryIfSelected: View>: View {
             }())
             .accessibilityIdentifier("Choice:\(id)")
         }
+        // Every option of a question shares one row of the list. Under the automatic style that
+        // row is a single button: the options come out tinted like links, and a tap on one of
+        // them fires all of them, so choosing Yes immediately toggles No back off again.
+        .buttonStyle(.plain)
+        // Each row draws the rule above itself. Placed between the rows instead, as its own view,
+        // it is dropped when the card's contents are flattened into the list — which is how
+        // whole option lists came to be ruled inconsistently, and yes/no questions not at all.
+        .overlay(alignment: .top) {
+            if isSeparated {
+                Divider()
+                    .allowsHitTesting(false)
+            }
+        }
     }
-    
+
     /// Creates a `ChoiceRow`, which is a reusable view that represents a row in a single/multiple selection list.
     init(
         id: String,
         title: String,
         subtitle: String,
         isSelected: Bool,
+        isSeparated: Bool = false,
         action: @escaping @MainActor () -> Void,
         @ViewBuilder accessoryIfSelected: @escaping @MainActor () -> AccessoryIfSelected = { EmptyView() }
     ) {
@@ -68,6 +89,7 @@ struct ChoiceRow<AccessoryIfSelected: View>: View {
         self.title = title
         self.subtitle = subtitle
         self.isSelected = isSelected
+        self.isSeparated = isSeparated
         self.action = action
         self.accessoryIfSelected = accessoryIfSelected
     }
@@ -79,22 +101,20 @@ struct SimpleChoiceRow: View {
     private let id: String
     private let title: String
     private let subtitle: String
+    private let isSeparated: Bool
     @Binding private var isSelected: Bool
-    
+
     var body: some View {
-        ChoiceRow(id: id, title: title, subtitle: subtitle, isSelected: isSelected) {
+        ChoiceRow(id: id, title: title, subtitle: subtitle, isSelected: isSelected, isSeparated: isSeparated) {
             isSelected.toggle()
         }
     }
-    
-    init(id: String, title: String, subtitle: String, isSelected: Binding<Bool>) {
+
+    init(id: String, title: String, subtitle: String, isSelected: Binding<Bool>, isSeparated: Bool = false) {
         self.id = id
         self.title = title
         self.subtitle = subtitle
         self._isSelected = isSelected
-    }
-    
-    init(option: Questionnaire.Task.Kind.ChoiceConfig.Option, isSelected: Binding<Bool>) {
-        self.init(id: option.id, title: option.title, subtitle: option.subtitle, isSelected: isSelected)
+        self.isSeparated = isSeparated
     }
 }

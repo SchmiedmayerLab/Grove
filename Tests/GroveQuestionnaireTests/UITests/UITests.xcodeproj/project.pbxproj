@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		4F6673BAB4254EC73BE009FE /* FHIRQuestionnaires in Frameworks */ = {isa = PBXBuildFile; productRef = 33CAA9F756C7C7EF3504EFE9 /* FHIRQuestionnaires */; };
-		9E2E78F27C968BDC32B5E287 /* Grove in Frameworks */ = {isa = PBXBuildFile; productRef = F2C6AB3988E735AD50D9DECA /* Grove */; };
 		6E0903667843622146D8344A /* GroveQuestionnaire in Frameworks */ = {isa = PBXBuildFile; productRef = D20F719B91D5AAC472919A27 /* GroveQuestionnaire */; };
 		38C2115B1A80EA14D675D584 /* GroveQuestionnaireCatalog in Frameworks */ = {isa = PBXBuildFile; productRef = 0540167D8D9184DE7B41DD03 /* GroveQuestionnaireCatalog */; };
 		7349A35D9018D27F054C54FE /* GroveQuestionnaireFHIR in Frameworks */ = {isa = PBXBuildFile; productRef = EE4A67E502F476C5FE7CBDD7 /* GroveQuestionnaireFHIR */; };
@@ -51,7 +50,6 @@
 			isa = PBXFrameworksBuildPhase;
 			files = (
 				4F6673BAB4254EC73BE009FE /* FHIRQuestionnaires in Frameworks */,
-				9E2E78F27C968BDC32B5E287 /* Grove in Frameworks */,
 				6E0903667843622146D8344A /* GroveQuestionnaire in Frameworks */,
 				38C2115B1A80EA14D675D584 /* GroveQuestionnaireCatalog in Frameworks */,
 				7349A35D9018D27F054C54FE /* GroveQuestionnaireFHIR in Frameworks */,
@@ -114,7 +112,6 @@
 			name = TestApp;
 			packageProductDependencies = (
 				33CAA9F756C7C7EF3504EFE9 /* FHIRQuestionnaires */,
-				F2C6AB3988E735AD50D9DECA /* Grove */,
 				D20F719B91D5AAC472919A27 /* GroveQuestionnaire */,
 				0540167D8D9184DE7B41DD03 /* GroveQuestionnaireCatalog */,
 				EE4A67E502F476C5FE7CBDD7 /* GroveQuestionnaireFHIR */,
@@ -515,11 +512,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 654293E43002D0F400AF6915 /* package */;
 			productName = FHIRQuestionnaires;
-		};
-		F2C6AB3988E735AD50D9DECA /* Grove */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* package */;
-			productName = Grove;
 		};
 		D20F719B91D5AAC472919A27 /* GroveQuestionnaire */ = {
 			isa = XCSwiftPackageProductDependency;

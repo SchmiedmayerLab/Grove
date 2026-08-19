@@ -12,7 +12,7 @@ import SwiftUI
 struct ViewTitleConfig: Sendable {
     fileprivate let title: Text
     fileprivate let subtitle: Text?
-    
+
     init(title: some StringProtocol, subtitle: (some StringProtocol)? = String?.none) {
         self.title = Text(title)
         self.subtitle = subtitle.map { Text($0) }

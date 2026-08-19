@@ -65,12 +65,19 @@ public struct FHIRResource: Identifiable, Hashable, Sendable {
     
     /// The FHIR extension holding a resource's associated HealthKit HKSample identifier.
     ///
+    /// Clinical records arrive already carrying the originating institution's
+    /// `identifier` list, so the platform's record id rides in this extension rather
+    /// than joining it. Grove-authored Observations use `Observation.identifier`.
+    ///
     /// String-backed so that it — unlike the `FHIRExtensionURL`-typed ``FHIRExtensionURL/hkSampleId``,
     /// which derives from it — is usable below the iOS-18 availability floor.
     static let hkSampleIdentifier = FHIRCanonicalURL(
-        "https://grovealliance.org/fhir/core/StructureDefinition/healthKitSampleId",
+        "https://grovealliance.org/fhir/core/StructureDefinition/grove-source-record-id",
         superseding: SupersededFHIRURLs.healthKitSampleId
     )
+
+    /// The identifier system of HealthKit records.
+    public static let healthKitSampleIdSystem = "https://grovealliance.org/fhir/sid/healthkit-sample-id"
     
     /// The version-specific FHIR resource.
     public let versionedResource: VersionedFHIRResource
@@ -106,9 +113,9 @@ public struct FHIRResource: Identifiable, Hashable, Sendable {
         for spelling in Self.hkSampleIdentifier.allSpellings {
             let value: String? = switch versionedResource {
             case .r4(let resource):
-                (resource as? any ModelsR4.DomainResource)?.extensions(for: spelling).first?.value?.idString
+                (resource as? any ModelsR4.DomainResource)?.extensions(for: spelling).first?.recordIdValue
             case .dstu2(let resource):
-                (resource as? any ModelsDSTU2.DomainResource)?.extensions(for: spelling).first?.value?.idString
+                (resource as? any ModelsDSTU2.DomainResource)?.extensions(for: spelling).first?.recordIdValue
             }
             if let value {
                 return value
@@ -215,9 +222,12 @@ extension FHIRResource {
 }
 
 
-extension ModelsDSTU2.Extension.ValueX {
-    fileprivate var idString: String? {
-        switch self {
+extension ModelsR4.Extension {
+    /// The record id an extension carries, in the current `Identifier` shape or the retired bare-id one.
+    fileprivate var recordIdValue: String? {
+        switch value {
+        case .identifier(let identifier):
+            identifier.value?.value?.string
         case .id(let value):
             value.value?.string
         default:
@@ -226,9 +236,13 @@ extension ModelsDSTU2.Extension.ValueX {
     }
 }
 
-extension ModelsR4.Extension.ValueX {
-    fileprivate var idString: String? {
-        switch self {
+
+extension ModelsDSTU2.Extension {
+    /// The record id an extension carries, in the current `Identifier` shape or the retired bare-id one.
+    fileprivate var recordIdValue: String? {
+        switch value {
+        case .identifier(let identifier):
+            identifier.value?.value?.string
         case .id(let value):
             value.value?.string
         default:

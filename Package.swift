@@ -1382,9 +1382,22 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     // MARK: GroveQuestionnaire
+    .macro(
+        name: "GroveQuestionnaireMacrosImpl",
+        dependencies: [
+            .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+            .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+            .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+            .product(name: "SwiftDiagnostics", package: "swift-syntax"),
+            .target(name: "FHIRPathParser")
+        ],
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
     .target(
         name: "GroveQuestionnaire",
         dependencies: [
+            .target(name: "GroveQuestionnaireMacrosImpl"),
             .target(name: "GroveQuestionnaireLegacy", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
             .target(name: "GroveViews"),
             .product(name: "MarkdownUI", package: "swift-markdown-ui"),
@@ -1412,6 +1425,7 @@ var targets: [Target] = [
             .target(name: "GroveQuestionnaire"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions"),
+            .target(name: "FHIRPathParser"),
             .product(name: "Algorithms", package: "swift-algorithms"),
             .target(name: "GroveFoundation")
         ],
@@ -1451,6 +1465,18 @@ var targets: [Target] = [
         exclude: testTargetExcludes("GroveQuestionnaireTests", additional: ["UITests"]),
         resources: [
             .process("Resources")
+        ],
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .testTarget(
+        name: "GroveQuestionnaireMacrosTests",
+        dependencies: [
+            .target(name: "GroveQuestionnaireMacrosImpl"),
+            .target(name: "FHIRPathParser"),
+            .product(name: "SwiftParser", package: "swift-syntax"),
+            .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+            .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
         ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
@@ -1738,7 +1764,7 @@ var targets: [Target] = [
         exclude: testTargetExcludes("XCTestExtensionsTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
-    ),
+    )
 ]
 
 #if canImport(Darwin)
@@ -1925,7 +1951,7 @@ targets += [
         exclude: targetExcludes("Codegen", additional: ["HKTypeIdentifierDefs+Linux.swift.gyb"]),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
-    ),
+    )
 ]
 #endif
 

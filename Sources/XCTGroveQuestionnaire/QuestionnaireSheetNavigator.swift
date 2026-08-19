@@ -6,148 +6,493 @@
 // SPDX-License-Identifier: MIT
 //
 
+public import Foundation
 public import XCTest
-private import XCTestExtensions
 
 
-/// Allows controlling a QuestionnaireSheet within a UI test
+/// Answers a `QuestionnaireSheet` from a UI test.
+///
+/// A navigator is a handle on the running app rather than a snapshot of it: every member reads the
+/// questionnaire as it is at that moment, so one navigator lasts a whole run — across pages,
+/// follow-up sheets, and the completion page.
+///
+/// ```swift
+/// let questionnaire = QuestionnaireSheetNavigator(app)
+/// app.buttons["Answer the GAD-7"].tap()
+/// XCTAssert(questionnaire.waitUntilPresented())
+///
+/// questionnaire.question("q1").select("Several days")
+/// questionnaire.question("q2").select("Not at all")
+/// questionnaire.submit()
+/// questionnaire.finish()
+/// ```
+///
+/// Everything here is driven through the accessibility identifiers and labels the renderer
+/// publishes, so the same code works against any questionnaire, however it was authored.
+///
+/// ## Topics
+///
+/// ### Finding the Questionnaire
+/// - ``isPresented``
+/// - ``waitUntilPresented(timeout:)``
+/// - ``waitUntilDismissed(timeout:)``
+/// - ``section``
+///
+/// ### Reading the Page
+/// - ``navigationBar``
+/// - ``navigationBarShows(_:)``
+/// - ``waitUntilNavigationBarShows(_:timeout:)``
+/// - ``sectionIntro``
+/// - ``progressIndicator``
+/// - ``visibleText``
+/// - ``showsText(_:)``
+///
+/// ### The Questions
+/// - ``question(_:)``
+/// - ``Question``
+///
+/// ### The Primary Action
+/// - ``primaryAction``
+/// - ``Action``
+/// - ``offeredAction``
+/// - ``Readiness``
+/// - ``readiness``
+/// - ``isReadyToAdvance``
+/// - ``waitUntilReadiness(_:timeout:)``
+/// - ``waitUntilOffering(_:timeout:)``
+///
+/// ### Moving Through the Questionnaire
+/// - ``advance(timeout:file:line:)``
+/// - ``submit(timeout:file:line:)``
+/// - ``tapPrimaryAction()``
+/// - ``goBack(timeout:file:line:)``
+/// - ``scrollDown()``
+/// - ``scrollUp()``
+/// - ``scrollToPrimaryAction()``
+///
+/// ### Finishing
+/// - ``completionPage``
+/// - ``isAtCompletionPage``
+/// - ``waitUntilAtCompletionPage(timeout:)``
+/// - ``finish(timeout:file:line:)``
+///
+/// ### Leaving Early
+/// - ``closeButton``
+/// - ``ExitChoice``
+/// - ``isShowingExitConfirmation``
+/// - ``exitOption(_:)``
+/// - ``close(timeout:file:line:)``
+/// - ``close(choosing:timeout:file:line:)``
+/// - ``closeDiscardingAnswers(timeout:)``
 @MainActor
 public struct QuestionnaireSheetNavigator {
-    private let app: XCUIApplication
-    
-    /// Creates a new instance
+    /// What the primary action is currently offering to do.
+    ///
+    /// The renderer pins one button to the bottom of every page, and what it says is a fact
+    /// about where the page sits in the questionnaire.
+    public enum Action: String {
+        /// More pages follow this one.
+        case `continue` = "Continue"
+        /// The last page of a questionnaire whose answers are handed to the app.
+        case submit = "Submit"
+        /// The app has the answers and has not finished with them yet.
+        case submitting = "Submitting…"
+        /// The last page of a questionnaire that hands nothing off, and the completion page's own button.
+        case done = "Done"
+    }
+
+    /// What a page reports about the answers it is holding.
+    public enum Readiness: String {
+        /// Every question that has to be answered is answered, and every answer passes its rules.
+        case ready = "Ready"
+        /// Something on the page is missing or invalid.
+        case incomplete = "Incomplete"
+    }
+
+    /// What the participant can choose when they close a questionnaire that holds answers.
+    public enum ExitChoice: String {
+        /// Offered in place of discarding when every remaining question has been answered.
+        case submitAnswers = "Submit Answers"
+        /// Leaves, and throws the answers away.
+        case discardAnswers = "Discard Answers"
+        /// Stays on the page.
+        case keepAnswering = "Keep Answering"
+    }
+
+    /// How long the navigator waits for the app to catch up, unless a call says otherwise.
+    public static let defaultTimeout: TimeInterval = 10
+
+    /// How far the navigator scrolls one way before giving up on finding something.
+    private static let maximumScanSwipes = 12
+
+    /// The app the questionnaire is being answered in.
+    public let app: XCUIApplication
+
+    /// Creates a navigator for the questionnaire presented in `app`.
     public init(_ app: XCUIApplication) {
         self.app = app
     }
 }
 
 
+// MARK: Finding the Questionnaire
+
 extension QuestionnaireSheetNavigator {
-    /// Whether the "Continue" button is currently in an enabled state.
+    /// The scrolling content of the section on screen.
     ///
-    /// - Note: if the continue button isn't currently on screen; the behaviour is undefined
-    public var isContinueButtonEnabled: Bool {
-        if app.buttons["ContinueButton_canContinue=false"].exists {
-            false
-        } else {
-            app.buttons["ContinueButton_canContinue=true"].exists
-        }
+    /// A section is drawn as a `Form`, whose element type differs between OS versions, so this
+    /// deliberately matches any element type.
+    public var section: XCUIElement {
+        app.descendants(matching: .any).matching(identifier: "GroveQuestionnaireSection").firstMatch
     }
-    
-    /// Whether the app currently is at the active questionnaire's completion page.
-    public var isAtCompletionPage: Bool {
-        app.otherElements["GroveQuestionnaireCompletionPage"].exists
+
+    /// Whether any page of the questionnaire — a section, or the completion page — is on screen.
+    public var isPresented: Bool {
+        section.exists || completionPage.exists
     }
-    
-    /// Advances the questionnaire sheet to the next section.
-    public func goToNextSection() {
-        guard isContinueButtonEnabled else {
-            XCTFail("Cannot go to next section; Continue button is disabled")
-            return
-        }
-        app.buttons.matching(identifier: "Continue").allElementsBoundByIndex.last?.tap()
+
+    /// Waits until the questionnaire is on screen.
+    @discardableResult
+    public func waitUntilPresented(timeout: TimeInterval = Self.defaultTimeout) -> Bool {
+        section.waitForExistence(timeout: timeout) || completionPage.exists
     }
-    
-    /// Returns to the previous section.
-    public func returnToPreviousSection(failIfUnableToLocateButton: Bool = true) {
-        let buttons = app.otherElements["GroveQuestionnaireNavStack"]
-            .navigationBars
-            .buttons
-            .matching(identifier: "BackButton")
-            .allElementsBoundByIndex
-        
-        let button = buttons.last(where: \.isHittable)
-        guard let button else {
-            if failIfUnableToLocateButton {
-                XCTFail("Unable to find back button")
-            }
-            return
-        }
-        button.tap()
-    }
-    
-    /// Provides access to operations within the scope of a task
-    public func task(withId id: String) -> TaskProxy {
-        TaskProxy(navigator: self, taskId: id)
+
+    /// Waits until the questionnaire has gone, which is what a handed-off or discarded run looks like.
+    @discardableResult
+    public func waitUntilDismissed(timeout: TimeInterval = Self.defaultTimeout) -> Bool {
+        section.waitForNonExistence(timeout: timeout) && completionPage.waitForNonExistence(timeout: timeout)
     }
 }
 
+
+// MARK: Reading the Page
 
 extension QuestionnaireSheetNavigator {
-    /// Provides task-level operations
-    @MainActor
-    public struct TaskProxy {
-        private let navigator: QuestionnaireSheetNavigator
-        private let task: XCUIElementQuery
-        private var app: XCUIApplication {
-            navigator.app
+    /// The navigation bar of the page on screen.
+    ///
+    /// A questionnaire runs in a navigation stack of its own, and a follow-up question stacks a
+    /// second one on top, so the last bar is the one the participant can see.
+    public var navigationBar: XCUIElement {
+        app.navigationBars.allElementsBoundByIndex.last ?? app.navigationBars.firstMatch
+    }
+
+    /// The section's own text, above the questions, on every page whose section carries one.
+    public var sectionIntro: XCUIElement {
+        app.staticTexts["SectionIntro"]
+    }
+
+    /// The first "Question n of m" on the page, on the questionnaires that asked to be counted.
+    ///
+    /// Every question carries its own; ask ``Question/progressIndicator`` about a particular one.
+    public var progressIndicator: XCUIElement {
+        app.descendants(matching: .any).matching(identifier: "QuestionProgress").firstMatch
+    }
+
+    /// Everything the page currently says, top to bottom.
+    ///
+    /// Choice options are buttons rather than text, so they are not in here; ask the question
+    /// they belong to about those.
+    public var visibleText: [String] {
+        section.staticTexts.allElementsBoundByIndex.map(\.label)
+    }
+
+    /// Whether `text` appears anywhere on the page, above or below the fold.
+    public func showsText(_ text: String) -> Bool {
+        scan { section.staticTexts.matching(label: text).firstMatch.exists }
+    }
+
+    /// Scrolls the page looking for something, and stops the moment it is there.
+    ///
+    /// A `Form` builds only the rows around the fold, so anything further down the page than it
+    /// has been scrolled is not in the accessibility tree at all. Scanning is what tells a question
+    /// the questionnaire is not asking from one it has not built yet, and it leaves it on screen.
+    func scan(for isFound: () -> Bool) -> Bool {
+        guard !isFound() else {
+            return true
         }
-        
-        /// Determines whether any UI related to this task currently exists on-screen.
-        public var exists: Bool {
-            task.count > 0 // swiftlint:disable:this empty_count
+        if scroll(section.swipeUp, lookingFor: isFound) {
+            return true
         }
-        
-        fileprivate init(navigator: QuestionnaireSheetNavigator, taskId: String) {
-            self.navigator = navigator
-            self.task = navigator.app.otherElements.matching(identifier: "Task:\(taskId)")
-        }
-        
-        /// Determines whether a choice option with the specified title is currently selected.
-        ///
-        /// - Note: Only use this function is the task is in fact a choice task.
-        public func didSelectOption(withTitle title: String) -> Bool {
-            task.buttons["Option: \(title), Selected"].exists
-        }
-        
-        /// Selects the choice option with the specified title, unless it is already selected.
-        ///
-        /// - Note: Only use this function is the task is in fact a choice task; otherwise the behaviour is undefined and the function will likely fail
-        public func selectOption(withTitle title: String) {
-            if !didSelectOption(withTitle: title) {
-                task.buttons["Option: \(title), Not Selected"].tap()
+        // Swiping the section rather than the app: a swipe down that starts on the sheet itself
+        // drags the sheet away, and a page already at its foot never moves down — which is exactly
+        // when everything it is hiding is above.
+        return scroll(section.swipeDown, lookingFor: isFound)
+    }
+
+    /// Swipes one way until `isFound` holds or the page stops moving.
+    private func scroll(_ swipe: () -> Void, lookingFor isFound: () -> Bool) -> Bool {
+        var lastSeen = visibleText
+        for _ in 0..<Self.maximumScanSwipes {
+            swipe()
+            if isFound() {
+                return true
             }
-        }
-        
-        /// Deselects the choice option with the specified title, if it currently is selected.
-        ///
-        /// - Note: Only use this function is the task is in fact a choice task; otherwise the behaviour is undefined and the function will likely fail
-        public func deselectOption(withTitle title: String) {
-            if didSelectOption(withTitle: title) {
-                task.buttons["Option: \(title), Selected"].tap()
+            let seen = visibleText
+            guard seen != lastSeen else {
+                return false
             }
+            lastSeen = seen
         }
-        
-        /// Enters a numeric response value for the task
-        ///
-        /// - Note: Only use this function is the task is in fact a numeric question; otherwise the behaviour is undefined and the function will likely fail
-        public func enterValue(_ value: Double) throws {
-            try task.textFields.firstMatch.enter(
-                value: NumberFormatter.localizedString(from: NSNumber(value: value), number: .decimal)
-            )
-        }
+        return false
+    }
+
+    /// Whether the navigation bar carries `text`, as the page's title or as its subtitle.
+    ///
+    /// The renderer names a page by a short name (SDC `shortText`) alone: the sole group's if the
+    /// page has one, else the section's, else the questionnaire's own title. The questionnaire's
+    /// title is the subtitle wherever it is not already the name — and only the newest OS versions
+    /// draw a subtitle, so a test should not insist on seeing both.
+    public func navigationBarShows(_ text: String) -> Bool {
+        navigationBar.staticTexts.matching(label: text).firstMatch.exists
+    }
+
+    /// Waits for the navigation bar to carry `text`.
+    @discardableResult
+    public func waitUntilNavigationBarShows(_ text: String, timeout: TimeInterval = Self.defaultTimeout) -> Bool {
+        navigationBar.staticTexts.matching(label: text).firstMatch.waitForExistence(timeout: timeout)
+    }
+
+    /// Scrolls the page down by roughly one screen.
+    public func scrollDown() {
+        app.swipeUp()
+    }
+
+    /// Scrolls the page back up by roughly one screen.
+    public func scrollUp() {
+        app.swipeDown()
+    }
+
+    /// Scrolls until the page's action is on screen.
+    ///
+    /// The action is the last row of the form rather than chrome pinned over it, so on a long page
+    /// it is not in the accessibility tree until the list has realised that far.
+    @discardableResult
+    public func scrollToPrimaryAction() -> Bool {
+        scan { primaryAction.isHittable }
     }
 }
 
 
-extension QuestionnaireSheetNavigator.TaskProxy {
-    public enum FilePickerMenuOption: String {
-        case takePhoto = "Take Photo"
-        case selectPhoto = "Select Photo"
-        case selectFile = "Select File"
+// MARK: The Primary Action
+
+extension QuestionnaireSheetNavigator {
+    /// The one prominent button at the foot of the page on screen.
+    ///
+    /// Every page in the stack keeps its own, and a follow-up question stacks another sheet on
+    /// top of them all, so the last match is the one the participant can reach.
+    public var primaryAction: XCUIElement {
+        app.buttons.lastMatch(identifier: "PrimaryAction")
     }
-    
-    private func openFilePicker() {
-        task.buttons["FilePickerButton"].tap()
+
+    /// The primary action, brought onto the screen first.
+    ///
+    /// The action is the page's last row rather than chrome pinned over it, so an unscrolled page
+    /// would otherwise report no action at all rather than the one it has.
+    private var reachablePrimaryAction: XCUIElement {
+        scrollToPrimaryAction()
+        return primaryAction
     }
-    
-    /// Opens the task's file picker and selects the specified option.
-    public func selectFilePickerOption(_ option: FilePickerMenuOption) {
-        openFilePicker()
-        let button = app.buttons.matching(NSPredicate(format: "label = %@", option.rawValue)).element
-        // even though the button exists right from the beginning, its label sometimes is incorrect initially,
-        // so we need to wait a bit for it to appear properly
-        XCTAssert(button.waitForExistence(timeout: 2))
-        button.tap()
+
+    /// What the primary action is offering to do, read from what it says.
+    public var offeredAction: Action? {
+        Action(rawValue: reachablePrimaryAction.label)
+    }
+
+    /// What the page reports about the answers it is holding.
+    ///
+    /// The button stays enabled either way — it has to be, to be able to explain what is
+    /// missing — so readiness rides on the accessibility value rather than on `isEnabled`.
+    public var readiness: Readiness? {
+        (reachablePrimaryAction.value as? String).flatMap(Readiness.init(rawValue:))
+    }
+
+    /// Whether the page would move on if the primary action were tapped now.
+    public var isReadyToAdvance: Bool {
+        readiness == .ready
+    }
+
+    /// Waits until the page reports `readiness`.
+    @discardableResult
+    public func waitUntilReadiness(_ readiness: Readiness, timeout: TimeInterval = Self.defaultTimeout) -> Bool {
+        reachablePrimaryAction.wait(forValue: readiness.rawValue, timeout: timeout)
+    }
+
+    /// Waits until the primary action offers `action`.
+    @discardableResult
+    public func waitUntilOffering(_ action: Action, timeout: TimeInterval = Self.defaultTimeout) -> Bool {
+        reachablePrimaryAction.wait(for: \.label, toEqual: action.rawValue, timeout: timeout)
+    }
+}
+
+
+// MARK: Moving Through the Questionnaire
+
+extension QuestionnaireSheetNavigator {
+    /// Moves on to the next page, once the page reports itself ready.
+    ///
+    /// This is the same tap on every page: whether the button reads `Continue` or `Submit` is a
+    /// fact about the page, not about the tap.
+    public func advance(
+        timeout: TimeInterval = Self.defaultTimeout,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        guard waitUntilReadiness(.ready, timeout: timeout) else {
+            XCTFail("The page is not ready to advance; it reports '\(readiness?.rawValue ?? "nothing")'.", file: file, line: line)
+            return
+        }
+        reachablePrimaryAction.tap()
+    }
+
+    /// Hands the answers to the app, having checked that this really is the last page.
+    public func submit(
+        timeout: TimeInterval = Self.defaultTimeout,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        guard let action = offeredAction, action != .continue else {
+            XCTFail("The page still offers '\(primaryAction.label)', so it is not the last one.", file: file, line: line)
+            return
+        }
+        advance(timeout: timeout, file: file, line: line)
+    }
+
+    /// Taps the primary action whatever state the page is in.
+    ///
+    /// Tapping an unfinished page is how a test reaches the marks: the renderer answers the tap
+    /// by marking every question that blocks the page and bringing the first of them into view.
+    public func tapPrimaryAction() {
+        reachablePrimaryAction.tap()
+    }
+
+    /// Returns to the previous page.
+    ///
+    /// The completion page has no way back, and neither has a questionnaire in `sequential`
+    /// entry mode; both hide the button, and this says so rather than guessing.
+    public func goBack(
+        timeout: TimeInterval = Self.defaultTimeout,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let backButtons = app.navigationBars.buttons.matching(identifier: "BackButton")
+        _ = backButtons.firstMatch.waitForExistence(timeout: timeout)
+        let backButton = backButtons.allElementsBoundByIndex.last { $0.isHittable }
+        guard let backButton else {
+            XCTFail("The questionnaire offers no way back from this page.", file: file, line: line)
+            return
+        }
+        backButton.tap()
+    }
+}
+
+
+// MARK: Finishing
+
+extension QuestionnaireSheetNavigator {
+    /// The page a questionnaire ends on, when it was asked for one.
+    public var completionPage: XCUIElement {
+        app.otherElements["GroveQuestionnaireCompletionPage"]
+    }
+
+    /// Whether the completion page is the page on screen.
+    public var isAtCompletionPage: Bool {
+        completionPage.exists
+    }
+
+    /// Waits until the completion page is on screen.
+    @discardableResult
+    public func waitUntilAtCompletionPage(timeout: TimeInterval = Self.defaultTimeout) -> Bool {
+        completionPage.waitForExistence(timeout: timeout)
+    }
+
+    /// Taps `Done` on the completion page, which is what finally hands the answers over.
+    public func finish(
+        timeout: TimeInterval = Self.defaultTimeout,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        guard waitUntilAtCompletionPage(timeout: timeout) else {
+            XCTFail("The questionnaire is not at its completion page.", file: file, line: line)
+            return
+        }
+        reachablePrimaryAction.tap()
+    }
+}
+
+
+// MARK: Leaving Early
+
+extension QuestionnaireSheetNavigator {
+    /// The Close button of the page on screen.
+    public var closeButton: XCUIElement {
+        app.buttons.lastMatch(identifier: "CloseQuestionnaire")
+    }
+
+    /// Whether the confirmation the Close button puts in the way of losing answers is on screen.
+    ///
+    /// Keyed on Discard rather than Keep Answering: presented as a popover the confirmation
+    /// drops its cancel button, because tapping outside is what dismisses a popover.
+    public var isShowingExitConfirmation: Bool {
+        exitOption(.discardAnswers).exists
+    }
+
+    /// One of the choices the exit confirmation offers.
+    ///
+    /// ``ExitChoice/submitAnswers`` is only there when there is nothing left to answer, and
+    /// ``ExitChoice/keepAnswering`` only when the confirmation is not a popover — use
+    /// ``keepAnswering(timeout:)`` rather than tapping it directly.
+    public func exitOption(_ choice: ExitChoice) -> XCUIElement {
+        app.buttons.matching(label: choice.rawValue).firstMatch
+    }
+
+    /// Dismisses the exit confirmation, leaving the answers as they are.
+    public func keepAnswering(timeout: TimeInterval = 2) {
+        let option = exitOption(.keepAnswering)
+        if option.waitForExistence(timeout: timeout) {
+            option.tap()
+        } else {
+            // A popover has no cancel button; tapping away from it is the way back.
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.95)).tap()
+        }
+        _ = exitOption(.discardAnswers).waitForNonExistence(timeout: timeout)
+    }
+
+    /// Closes a questionnaire that has nothing to lose, which leaves without asking anything.
+    public func close(timeout: TimeInterval = 2, file: StaticString = #filePath, line: UInt = #line) {
+        closeButton.tap()
+        if exitOption(.keepAnswering).waitForExistence(timeout: timeout) {
+            XCTFail("The questionnaire asked before closing; use close(choosing:) to answer it.", file: file, line: line)
+        }
+    }
+
+    /// Closes the questionnaire, answering the confirmation with `choice`.
+    public func close(
+        choosing choice: ExitChoice,
+        timeout: TimeInterval = Self.defaultTimeout,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        closeButton.tap()
+        let option = exitOption(choice)
+        guard option.waitForExistence(timeout: timeout) else {
+            XCTFail("The exit confirmation does not offer '\(choice.rawValue)'.", file: file, line: line)
+            return
+        }
+        option.tap()
+    }
+
+    /// Closes the questionnaire, throwing away whatever has been entered.
+    ///
+    /// The renderer only asks when there is something to lose, so this answers the confirmation
+    /// when it appears and simply leaves when it does not — which is what a test that is only
+    /// passing through a questionnaire wants.
+    ///
+    /// - parameter timeout: How long to give the confirmation to appear before deciding there is none.
+    public func closeDiscardingAnswers(timeout: TimeInterval = 2) {
+        closeButton.tap()
+        let discard = exitOption(.discardAnswers)
+        if discard.waitForExistence(timeout: timeout) {
+            discard.tap()
+        }
     }
 }

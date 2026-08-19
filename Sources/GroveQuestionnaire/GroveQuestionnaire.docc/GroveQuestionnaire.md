@@ -10,16 +10,23 @@
 #
 -->
 
-Enables apps to display and collect responses from FHIR questionnaires.
+Declare questionnaires in Swift, present them, and collect FHIR-conformant responses.
 
 ## Overview
 
-The Grove Questionnaire package enables [FHIR Questionnaires](http://hl7.org/fhir/R4/questionnaire.html) to be displayed in your Grove application.
+A questionnaire your app defines is written in Swift: the questions, their branching, and
+their scoring are ordinary declarations the compiler checks. Questionnaires published by
+someone else arrive as [FHIR R4 Questionnaires](https://hl7.org/fhir/R4/questionnaire.html)
+and are imported instead.
+
+Both paths produce the same ``Questionnaire``, render through the same
+``QuestionnaireSheet``, and export the same conformant FHIR `Questionnaire` and
+`QuestionnaireResponse`.
 
 @Row {
     @Column {
         @Image(source: "Overview", alt: "Screenshot showing an FHIR Questionnaire rendered using the Questionnaire module."){
-            An FHIR Questionnaire is rendered using the ``QuestionnaireView``.
+            A questionnaire rendered by ``QuestionnaireSheet``.
         }
     }
 }
@@ -27,48 +34,169 @@ The Grove Questionnaire package enables [FHIR Questionnaires](http://hl7.org/fhi
 
 ## Setup
 
-You need to add the Grove Questionnaire Swift package to
+Add the Grove Questionnaire Swift package to
 [your app in Xcode](https://developer.apple.com/documentation/xcode/adding-package-dependencies-to-your-app) or
 [Swift package](https://developer.apple.com/documentation/xcode/creating-a-standalone-swift-package-with-xcode#Add-a-dependency-on-another-Swift-package).
 
 > Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial-Setup.md) and set up the core Grove infrastructure.
 
-## Example
 
-In the following example, we create a SwiftUI view with a button that displays a ``QuestionnaireSheet`` for answering the [GAD-7](https://en.wikipedia.org/wiki/Generalized_Anxiety_Disorder_7) questionnaire.
+## Authoring in Swift
+
+An instrument is an enum holding its questions and the questionnaire that places them.
+Here is the PHQ-2, scored and with a follow-up that only appears when it needs to:
 
 ```swift
 import GroveQuestionnaire
+
+
+enum Frequency: String, ScoredOption {
+    case notAtAll = "not-at-all"
+    case severalDays = "several-days"
+    case moreThanHalf = "more-than-half"
+    case nearlyEveryDay = "nearly-every-day"
+
+    static let system = URL(string: "https://example.org/fhir/CodeSystem/phq-scale")
+
+    var title: String {
+        switch self {
+        case .notAtAll: "Not at all"
+        case .severalDays: "Several days"
+        case .moreThanHalf: "More than half the days"
+        case .nearlyEveryDay: "Nearly every day"
+        }
+    }
+
+    var score: Decimal {
+        switch self {
+        case .notAtAll: 0
+        case .severalDays: 1
+        case .moreThanHalf: 2
+        case .nearlyEveryDay: 3
+        }
+    }
+}
+
+
+@Instrument
+enum PHQ2 {
+    static let interest = ChoiceQuestion<Frequency>("phq2-1", "Little interest or pleasure in doing things")
+        .prefix("1.")
+    static let mood = ChoiceQuestion<Frequency>("phq2-2", "Feeling down, depressed, or hopeless")
+        .prefix("2.")
+    static let total = NumberQuestion("phq2-total", "Score")
+        .calculated(.sumOfWeights(of: interest, mood))
+        .readOnly()
+        .hidden()
+        .optional()
+    static let followUp = TextQuestion("phq2-follow-up", "What has been troubling you?")
+        .enabledWhen(mood.selected(.nearlyEveryDay) || interest.selected(.nearlyEveryDay))
+        .optional()
+
+    static let questionnaire = Questionnaire(
+        url: URL(string: "https://example.org/fhir/Questionnaire/phq2")!,
+        version: "1.0.0",
+        title: "PHQ-2"
+    ) {
+        Section("phq2", title: "Over the last two weeks") {
+            Instruction("phq2-intro", "How often have you been bothered by the following problems?")
+            interest
+            mood
+            total
+            followUp
+        }
+    }
+}
+```
+
+Present it, and read the answers back through the same declarations that made them:
+
+```swift
+import GroveQuestionnaire
+import GroveQuestionnaireFHIR
 import SwiftUI
 
 
-struct GAS7QuestionnaireView: View {
-    @State var activeQuestionnaire: Questionnaire?
+struct DailyCheckIn: View {
+    @State private var isPresented = false
 
     var body: some View {
-        Button("Answer GAD-7") {
-            activeQuestionnaire = .gad7
+        Button("Answer the PHQ-2") {
+            isPresented = true
         }
-        .sheet(item: $activeQuestionnaire) { item in
-            QuestionnaireSheet(questionnaire: item) { result in
-                switch result {
-                case .completed(let responses):
-                    // ... save the response to your data store
-                case .cancelled:
-                    break
+        .sheet(isPresented: $isPresented) {
+            QuestionnaireSheet(try! PHQ2.questionnaire.withExpressionEngine()) { result in
+                guard case .completed(let responses) = result else {
+                    return
                 }
+                let score = responses[PHQ2.total]        // Double?
+                let mood = responses[PHQ2.mood]         // Frequency?
+                // ... store the responses
             }
         }
     }
 }
 ```
 
+`responses[PHQ2.mood]` is a `Frequency?`, not a string looked up by linkId, and
+`.selected(.nearlyEveryDay)` cannot name an option the scale does not have.
+<doc:AuthoringQuestionnaires> covers the full vocabulary: question kinds, groups,
+conditions, scoring, and what `@Instrument` rejects at build time.
+
+
+## Importing FHIR
+
+Import a FHIR questionnaire when the instrument is not yours to define: a licensed
+instrument distributed as a FHIR resource, or one a study server hands the app at runtime.
+
+```swift
+import GroveQuestionnaireFHIR
+import ModelsR4
+
+let resource = try JSONDecoder().decode(ModelsR4.Questionnaire.self, from: data)
+let questionnaire = try Questionnaire(resource).withExpressionEngine()
+```
+
+`withExpressionEngine()` enables SDC conditions, initial values, and calculated
+FHIRPath expressions. Install it before presenting any questionnaire that uses those
+features.
+
+The result is an ordinary ``Questionnaire``, so it renders the same way, and the collected
+answers export as a `QuestionnaireResponse`:
+
+```swift
+QuestionnaireSheet(questionnaire) { result in
+    guard case .completed(let responses) = result else {
+        return
+    }
+    do {
+        let fhirResponse = try ModelsR4.QuestionnaireResponse(responses, subject: participant)
+        // ... upload the response
+    } catch {
+        // ... report the failure
+    }
+}
+```
+
+If the app was written against a specific instrument, declare it in Swift anyway and check
+the imported resource against it once, before typed handles read from it. A questionnaire
+that drifted from the declaration otherwise surfaces as answers that are quietly always
+`nil`:
+
+```swift
+try questionnaire.checkDeclaration(of: PHQ2.self)
+```
+
 ## Topics
 
-### Questionnaire Definitions
+### Authoring
+- <doc:AuthoringQuestionnaires>
+- ``Instrument()``
 - ``Questionnaire``
-- ``QuestionnaireResponses``
 - <doc:QuestionKinds>
+
+### Responses
+- ``QuestionnaireResponses``
 
 ### UI
 - ``QuestionnaireSheet``

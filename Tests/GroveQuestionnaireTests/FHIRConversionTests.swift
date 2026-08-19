@@ -57,6 +57,19 @@ struct FHIRConversionTests {
             response.id = nil
             response.identifier = nil
             response.questionnaire = nil
+            // Grove enriches beyond the RKoF golden file: completionMode + item.text, and the
+            // profile it claims, which the golden file predates.
+            response.extension = nil
+            response.meta = nil
+            func strippingText(_ items: [QuestionnaireResponseItem]) -> [QuestionnaireResponseItem] {
+                items.map { item in
+                    var item = item
+                    item.text = nil
+                    item.item = item.item.map(strippingText)
+                    return item
+                }
+            }
+            response.item = response.item.map(strippingText)
         }
         fix(&fhirResponse)
         fix(&expected)
@@ -67,7 +80,12 @@ struct FHIRConversionTests {
     @Test
     func responseConversion() throws {
         let questionnaire = GroveQuestionnaire.Questionnaire(
-            metadata: .init(id: "", url: nil, title: "", explainer: ""),
+            metadata: .init(
+                id: "numeric-answer",
+                url: URL(string: "https://example.org/fhir/Questionnaire/numeric-answer"),
+                title: "",
+                explainer: ""
+            ),
             sections: [
                 .init(id: "s0", tasks: [
                     .init(id: "t0", title: "", kind: .numeric(.init(inputMode: .numberPad(.integer))))
@@ -105,16 +123,16 @@ struct FHIRConversionTests {
     }
     
     
-    // Reproduces the mismatch between option IDs (stored as bare `code`)
-    // and enableWhen coding conditions (stored as `"\(system):\(code)"`).
+    // Coding-based options and enableWhen conditions both use `system|code` tokens,
+    // so system-qualified matching stays intact end to end.
     @Test("Dependent task is enabled when the triggering choice option is selected")
-    func enableWhenCodingConditionEvaluatesCorrectly() throws { // swiftlint:disable:this function_body_length
+    func enableWhenCodingConditionEvaluatesCorrectly() throws {
         let system = "http://example.com/codesystem"
         let code = "LA6568-5"
         // Build a minimal FHIR questionnaire:
         //   item1 – choice question with one coding-based answer option
         //   item2 – boolean question, enabled only when q1 == the coding above
-        let fhirQuestionnaire: ModelsR4.Questionnaire = { // swiftlint:disable:this closure_body_length
+        let fhirQuestionnaire: ModelsR4.Questionnaire = {
             let answerOption = QuestionnaireItemAnswerOption(
                 value: .coding(Coding(
                     code: code.asFHIRStringPrimitive(),
@@ -163,13 +181,13 @@ struct FHIRConversionTests {
         let q1Task = try #require(section.tasks.first { $0.id == "q1" })
         let q2Task = try #require(section.tasks.first { $0.id == "q2" })
         
-        // The converted option id should be the bare code "LA6568-5"
+        // The converted option id carries the system: "system|code"
         guard case .choice(let choiceConfig) = q1Task.kind.variant else {
             Issue.record("Expected q1 to be a choice task")
             return
         }
         let optionId = try #require(choiceConfig.options.first?.id)
-        #expect(optionId == code, "Option ID should be the bare code '\(code)', got '\(optionId)'")
+        #expect(optionId == "\(system)|\(code)", "Option ID should be '\(system)|\(code)', got '\(optionId)'")
         
         // Simulate selecting that option in a response
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
@@ -178,15 +196,9 @@ struct FHIRConversionTests {
             value: .choice(.init(selectedOptions: [optionId]))
         )
         
-        // q2 should now be enabled — this assertion currently FAILS because the
-        // enableWhen condition stores ".SCMCOption(id: "http://example.com/codesystem:LA6568-5")"
-        // while the selected option ID is just "LA6568-5".
         #expect(
             responses.shouldEnable(task: q2Task),
-            """
-            q2 should be enabled after selecting option '\(optionId)', \
-            but the enableWhen condition uses id '\(system):\(code)' — mismatch!
-            """
+            "q2 should be enabled after selecting option '\(optionId)'"
         )
     }
 }

@@ -12,6 +12,73 @@ import GroveLegacyIdentifiers
 public import ModelsR4
 
 
+extension FHIRTypeWithExtensions {
+    /// The element's scoring weight: the `itemWeight` extension, falling back to the
+    /// retired `ordinalValue` spelling still carried by many published instruments.
+    public var itemWeight: Decimal? {
+        let urls: [FHIRPrimitive<FHIRURI>] = [
+            "http://hl7.org/fhir/StructureDefinition/itemWeight",
+            "http://hl7.org/fhir/StructureDefinition/ordinalValue"
+        ]
+        for url in urls {
+            if case let .decimal(value) = extensions(for: url).first?.value,
+               let decimal = value.value?.decimal {
+                return decimal
+            }
+        }
+        return nil
+    }
+
+    /// The `questionnaire-optionExclusive` flag on an answer option.
+    public var isExclusiveOption: Bool {
+        if case let .boolean(value) = extensions(
+            for: "http://hl7.org/fhir/StructureDefinition/questionnaire-optionExclusive"
+        ).first?.value {
+            value.value?.bool ?? false
+        } else {
+            false
+        }
+    }
+}
+
+
+extension FHIRPrimitive where PrimitiveType == FHIRString {
+    /// The string's best value for a locale, honoring `translation` extensions
+    /// carried on the primitive (the FHIR mechanism for multi-language resources).
+    public func localizedString(for locale: Locale = .autoupdatingCurrent) -> String? {
+        let translations = `extension`?.filter {
+            $0.url.value?.url.absoluteString == "http://hl7.org/fhir/StructureDefinition/translation"
+        } ?? []
+        // Not `locale.language.languageCode`: that needs iOS 16 / macOS 13, above the lowered
+        // deployment floor the package still builds against.
+        let language = locale.identifier.split { $0 == "-" || $0 == "_" }.first?.lowercased()
+        if !translations.isEmpty, let language {
+            for translation in translations {
+                guard case let .code(langCode)? = translation.extension?.first(where: { $0.url.value?.url.absoluteString == "lang" })?.value,
+                      let lang = langCode.value?.string.lowercased(),
+                      lang == language || lang.hasPrefix("\(language)-") else {
+                    continue
+                }
+                let content = translation.extension?.first { $0.url.value?.url.absoluteString == "content" }?.value
+                switch content {
+                case .string(let value):
+                    if let string = value.value?.string {
+                        return string
+                    }
+                case .markdown(let value):
+                    if let string = value.value?.string {
+                        return string
+                    }
+                default:
+                    break
+                }
+            }
+        }
+        return value?.string
+    }
+}
+
+
 extension QuestionnaireItem {
     /// Supported FHIR extensions for QuestionnaireItems
     private enum SupportedExtensions {
@@ -25,6 +92,10 @@ extension QuestionnaireItem {
         static let hidden = "http://hl7.org/fhir/StructureDefinition/questionnaire-hidden"
         static let entryFormat = "http://hl7.org/fhir/StructureDefinition/entryFormat"
         
+        // Read-only fallbacks. SDC's `targetConstraint` and `sdc-questionnaire-keyboard`
+        // are what Grove writes and what the guide describes; these spellings exist to
+        // keep questionnaires authored before that switch renderable, so the guide
+        // deliberately does not define them.
         static let validationMessage = FHIRCanonicalURL(
             "https://grovealliance.org/fhir/core/StructureDefinition/validationText",
             superseding: SupersededFHIRURLs.validationText
@@ -33,12 +104,12 @@ extension QuestionnaireItem {
             "https://grovealliance.org/fhir/core/StructureDefinition/iosKeyboardType",
             superseding: SupersededFHIRURLs.iosKeyboardType
         )
-        static let textContentType = FHIRCanonicalURL(
-            "https://grovealliance.org/fhir/core/StructureDefinition/iosTextContentType",
+        static let autocomplete = FHIRCanonicalURL(
+            "https://grovealliance.org/fhir/core/StructureDefinition/grove-autocomplete",
             superseding: SupersededFHIRURLs.iosTextContentType
         )
-        static let autocapitalizationType = FHIRCanonicalURL(
-            "https://grovealliance.org/fhir/core/StructureDefinition/iosAutocapitalizationType",
+        static let autocapitalize = FHIRCanonicalURL(
+            "https://grovealliance.org/fhir/core/StructureDefinition/grove-autocapitalize",
             superseding: SupersededFHIRURLs.iosAutocapitalizationType
         )
         
@@ -70,15 +141,23 @@ extension QuestionnaireItem {
     }
     
     /// The minimum value for a numerical answer.
+    ///
+    /// Reads the core `minValue` extension, falling back to SDC's unit-aware
+    /// `minQuantity` (whose unit is assumed to match the question's).
     /// - Returns: An optional `NSNumber` containing the minimum value allowed.
     public var minValue: NSNumber? {
         numericMinMaxValue(url: SupportedExtensions.minValue)
+            ?? numericMinMaxValue(url: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-minQuantity")
     }
-    
+
     /// The maximum value for a numerical answer.
+    ///
+    /// Reads the core `maxValue` extension, falling back to SDC's unit-aware
+    /// `maxQuantity` (whose unit is assumed to match the question's).
     /// - Returns: An optional `NSNumber` containing the maximum value allowed.
     public var maxValue: NSNumber? {
         numericMinMaxValue(url: SupportedExtensions.maxValue)
+            ?? numericMinMaxValue(url: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-maxQuantity")
     }
     
     /// The minimum value for a date answer.
@@ -118,11 +197,17 @@ extension QuestionnaireItem {
     /// The unit of a quantity answer type.
     /// - Returns: An optional `String` containing the unit (i.e. cm) if it was provided.
     public var unit: String? {
+        unitCoding?.code?.value?.string
+    }
+
+    /// The full `questionnaire-unit` coding of a quantity answer type, preserving
+    /// system and display alongside the code so answers can carry the coded unit.
+    public var unitCoding: Coding? {
         guard let unitExtension = getExtensionInQuestionnaireItem(url: SupportedExtensions.questionnaireUnit),
               case let .coding(coding) = unitExtension.value else {
             return nil
         }
-        return coding.code?.value?.string
+        return coding
     }
     
     /// The regular expression specified for validating a text input in a question.
@@ -151,14 +236,14 @@ extension QuestionnaireItem {
         extensions(for: SupportedExtensions.keyboardType).first?.value?.stringValue?.value?.string
     }
     
-    /// The item's preferred autocapitalization behaviour.
-    public var autocapitalizationTypeRawValue: String? {
-        extensions(for: SupportedExtensions.autocapitalizationType).first?.value?.stringValue?.value?.string
+    /// The item's autocapitalization behaviour, as a WHATWG `autocapitalize` value.
+    public var autocapitalizeRawValue: String? {
+        extensions(for: SupportedExtensions.autocapitalize).first?.value?.stringValue?.value?.string
     }
 
-    /// The item's preferred text content type.
-    public var textContentTypeRawValue: String? {
-        extensions(for: SupportedExtensions.textContentType).first?.value?.stringValue?.value?.string
+    /// The item's semantic content type, as a WHATWG `autocomplete` detail token.
+    public var autocompleteRawValue: String? {
+        extensions(for: SupportedExtensions.autocomplete).first?.value?.stringValue?.value?.string
     }
 
     

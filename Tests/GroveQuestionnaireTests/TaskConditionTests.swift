@@ -89,6 +89,43 @@ struct TaskConditionTests {
     }
     
     
+    /// FHIR's `enableWhen` places no ordering restriction on references: a question gated on a
+    /// *later* one is asked as soon as that answer arrives, and then owes an answer of its own.
+    @Test
+    func forwardReferencingConditionIsAskedAndBlocksTheSection() throws {
+        let section = Questionnaire.Section(id: "s0", tasks: [
+            .init(id: "t0A", title: "Section A", kind: .instructional("")),
+            .init(
+                id: "t1A",
+                title: "How much do you like green?",
+                kind: .choice(.init(options: [.init(id: "0", title: "A Lot")], allowsMultipleSelection: false)),
+                enabledCondition: .responseValueComparison(taskId: "t2A", operator: .equal, value: .SCMCOption(id: "green"))
+            ),
+            .init(
+                id: "t2A",
+                title: "What's your favourite Colour?",
+                kind: .choice(.init(
+                    options: [.init(id: "red", title: "Red"), .init(id: "green", title: "Green")],
+                    allowsMultipleSelection: false
+                ))
+            )
+        ])
+        let questionnaire = Questionnaire(metadata: .init(id: "", url: nil, title: "", explainer: ""), sections: [section])
+        let t1A = try #require(questionnaire.task(at: ["t1A"]))
+        let t2A = try #require(questionnaire.task(at: ["t2A"]))
+        let responses = QuestionnaireResponses(questionnaire: questionnaire)
+        #expect(!responses.shouldEnable(task: t1A))
+
+        responses.responses[t2A.id].value.choiceValue.select("green")
+        #expect(responses.shouldEnable(task: t1A))
+        #expect(!responses.isComplete(in: section))
+        #expect(responses.firstTaskPreventingCompletion(of: section) == t1A)
+
+        responses.responses[t1A.id].value.choiceValue.select("0")
+        #expect(responses.isComplete(in: section))
+    }
+
+
     @Test
     func responseExportSkipsDisabledTasks() throws {
         let questionnaire = Questionnaire(

@@ -27,23 +27,56 @@ extension QuestionnaireResponses {
     }
     
     
-    /// Determines whether the task should currently be enabled, based on its ``Questionnaire/Task/enabledCondition``.
+    /// Determines whether the task should currently be enabled, based on its ``Questionnaire/Task/enabledCondition``
+    /// and the conditions of the groups enclosing it.
     func shouldEnable(task: Questionnaire.Task) -> Bool {
-        evaluate(
-            task.enabledCondition,
-            for: task,
-            config: .init(limitToPreviousTasks: true, exposeParentScope: true)
-        )
+        shouldEnable(task: task, visited: [])
     }
-    
-    
+
+    /// - parameter visited: The task ids already on the evaluation stack; a task encountered
+    ///     twice forms a reference cycle and evaluates as disabled, terminating the recursion.
+    private func shouldEnable(task: Questionnaire.Task, visited: Set<Questionnaire.Task.ID>) -> Bool {
+        guard !visited.contains(task.id) else {
+            return false
+        }
+        let visited = visited.union([task.id])
+        // FHIR's enableWhen places no ordering restriction on references, so lookups
+        // consider the whole questionnaire, not only preceding tasks.
+        let config = TaskLookupConfig(limitToPreviousTasks: false, exposeParentScope: true)
+        // A grouped task is asked only while every group it sits in is enabled.
+        return task.groupPath.allSatisfy { evaluate($0.condition, for: task, visited: visited, config: config) }
+            && evaluate(task.enabledCondition, for: task, visited: visited, config: config)
+    }
+
+
     private func evaluate(
         _ condition: Questionnaire.Condition,
         for task: Questionnaire.Task,
+        visited: Set<Questionnaire.Task.ID>,
         config: TaskLookupConfig
     ) -> Bool {
         Self._evaluate(condition) {
-            resolveTaskId(targetTaskId: $0, currentTaskId: task.id, using: config)
+            guard let resolved = resolveTaskId(targetTaskId: $0, currentTaskId: task.id, using: config) else {
+                return nil
+            }
+            // FHIR: when evaluating enableWhen, the answers of an item that is itself
+            // currently disabled are treated as absent.
+            guard resolved.responses.shouldEnable(task: resolved.task, visited: visited) else {
+                return nil
+            }
+            return resolved
+        } evaluateExpression: { expression in
+            // SDC enableWhenExpression: an empty result disables the item. A failing one is
+            // an authoring defect, so it is recorded before the item disappears.
+            guard let engine = questionnaire.expressionEngine else {
+                return false
+            }
+            do {
+                return try engine.evaluateBoolean(expression, scope: .item(task.id), in: self) == .true
+            } catch {
+                recordExpressionFailure(expression, for: task.id, error: error)
+                return false
+            }
         }
     }
     
@@ -124,15 +157,18 @@ extension QuestionnaireResponses {
     /// - parameter resolveTaskId: A closure that maps a task is to its task. The function uses this to resolve tasks that are referenced by the condition.
     private static func _evaluate( // swiftlint:disable:this cyclomatic_complexity function_body_length
         _ condition: Questionnaire.Condition,
-        _ resolveTaskId: (Questionnaire.Task.ID) -> ResolvedTask?
+        _ resolveTaskId: (Questionnaire.Task.ID) -> ResolvedTask?,
+        evaluateExpression: (String) -> Bool
     ) -> Bool {
         switch condition {
         case .not(let inner):
-            return !_evaluate(inner, resolveTaskId)
+            return !_evaluate(inner, resolveTaskId, evaluateExpression: evaluateExpression)
         case .any(let inner):
-            return inner.contains { _evaluate($0, resolveTaskId) }
+            return inner.contains { _evaluate($0, resolveTaskId, evaluateExpression: evaluateExpression) }
         case .all(let inner):
-            return inner.allSatisfy { _evaluate($0, resolveTaskId) }
+            return inner.allSatisfy { _evaluate($0, resolveTaskId, evaluateExpression: evaluateExpression) }
+        case .expression(let expression):
+            return evaluateExpression(expression)
         case .hasResponse(let taskId):
             guard let resolved = resolveTaskId(taskId) else {
                 return false
@@ -160,31 +196,72 @@ extension QuestionnaireResponses {
                 switch `operator` {
                 case .equal:
                     return response == value
+                case .notEqual:
+                    return response != value
                 case .lessThan, .greaterThan, .lessThanOrEqual, .greaterThanOrEqual:
                     // not supported
                     return false
                 }
-            case .choice:
-                guard case let .SCMCOption(optionId) = value else {
-                    return false
+            case .choice(let config):
+                let response = responses[task.id].value.choiceValue
+                // Option ids created from FHIR codings are `system|code` tokens; a condition
+                // coding without a system matches on the bare code.
+                func matches(optionId: String, conditionId: String) -> Bool {
+                    optionId == conditionId || (!conditionId.contains("|") && optionId.hasSuffix("|\(conditionId)"))
                 }
-                switch `operator` {
-                case .equal:
-                    let response = responses[task.id].value.choiceValue
-                    // QUESTION can we have a "selection == the open choice option" condition (ie, does FHIR allow this?)?
-                    // Does FHIR allow the openChoice option in MC scenarios?
-                    return response.selectedOptions.contains(optionId)
-                case .lessThan, .greaterThan, .lessThanOrEqual, .greaterThanOrEqual:
-                    // not supported
+                switch value {
+                case let .SCMCOption(conditionId):
+                    switch `operator` {
+                    case .equal:
+                        return response.selectedOptions.contains { matches(optionId: $0, conditionId: conditionId) }
+                    case .notEqual:
+                        // FHIR: true if at least one answer differs; an unanswered question stays false.
+                        return response.selectedOptions.contains { !matches(optionId: $0, conditionId: conditionId) }
+                    case .lessThan, .greaterThan, .lessThanOrEqual, .greaterThanOrEqual:
+                        return false
+                    }
+                case .string(let expected):
+                    // String-valued answerOptions, plus the open-choice free-text answer.
+                    let selected: [String] = response.selectedOptions.compactMap { id in
+                        config.options.first { $0.id == id }.flatMap {
+                            if case .string(let string) = $0.answerValue { string } else { nil }
+                        }
+                    } + (response.freeTextOtherResponse.map { [$0] } ?? [])
+                    switch `operator` {
+                    case .equal:
+                        return selected.contains(expected)
+                    case .notEqual:
+                        return selected.contains { $0 != expected }
+                    case .lessThan, .greaterThan, .lessThanOrEqual, .greaterThanOrEqual:
+                        return false
+                    }
+                case .integer(let expected):
+                    let selected: [Int] = response.selectedOptions.compactMap { id in
+                        config.options.first { $0.id == id }.flatMap {
+                            if case .integer(let int) = $0.answerValue { int } else { nil }
+                        }
+                    }
+                    switch `operator` {
+                    case .equal:
+                        return selected.contains(expected)
+                    case .notEqual:
+                        return selected.contains { $0 != expected }
+                    case .lessThan, .greaterThan, .lessThanOrEqual, .greaterThanOrEqual:
+                        return false
+                    }
+                case .bool, .decimal, .date, .quantity:
                     return false
                 }
             case .freeText:
-                guard case let .string(value) = value else {
+                guard case let .string(value) = value,
+                      let response = responses[task.id].value.stringValue else {
                     return false
                 }
                 switch `operator` {
                 case .equal:
-                    return responses[task.id].value.stringValue == value
+                    return response == value
+                case .notEqual:
+                    return response != value
                 case .lessThan, .greaterThan, .lessThanOrEqual, .greaterThanOrEqual:
                     // not supported
                     return false
@@ -203,6 +280,8 @@ extension QuestionnaireResponses {
                     return switch `operator` {
                     case .equal:
                         response == expected
+                    case .notEqual:
+                        response != expected
                     case .greaterThan:
                         response > expected
                     case .greaterThanOrEqual:
@@ -218,6 +297,8 @@ extension QuestionnaireResponses {
                     return switch `operator` {
                     case .equal:
                         response == expected
+                    case .notEqual:
+                        response != expected
                     case .greaterThan:
                         response > expected
                     case .greaterThanOrEqual:
@@ -235,6 +316,8 @@ extension QuestionnaireResponses {
                     return switch `operator` {
                     case .equal:
                         response == expected
+                    case .notEqual:
+                        response != expected
                     case .greaterThan:
                         response > expected
                     case .greaterThanOrEqual:
@@ -245,8 +328,31 @@ extension QuestionnaireResponses {
                         response <= expected
                     }
                 }
-            case .numeric:
+            case .numeric(let config):
                 switch value {
+                case let .quantity(value, unitCode):
+                    // Same-unit magnitude comparison; a condition without a unit matches any.
+                    // A unit the participant chose (unitOption) takes precedence over the fixed unit.
+                    let taskUnit = responses[task.id].value.quantityValue?.unitCode
+                        ?? config.unitCode ?? (config.unit.isEmpty ? nil : config.unit)
+                    guard unitCode == nil || unitCode == taskUnit,
+                          let response = responses[task.id].value.numberValue else {
+                        return false
+                    }
+                    return switch `operator` {
+                    case .equal:
+                        response == value
+                    case .notEqual:
+                        response != value
+                    case .lessThan:
+                        response < value
+                    case .greaterThan:
+                        response > value
+                    case .lessThanOrEqual:
+                        response <= value
+                    case .greaterThanOrEqual:
+                        response >= value
+                    }
                 case .integer(let value):
                     guard let response = responses[task.id].value.numberValue.flatMap(Int.init(exactly:)) else {
                         return false
@@ -254,6 +360,8 @@ extension QuestionnaireResponses {
                     return switch `operator` {
                     case .equal:
                         response == value
+                    case .notEqual:
+                        response != value
                     case .lessThan:
                         response < value
                     case .greaterThan:
@@ -270,6 +378,8 @@ extension QuestionnaireResponses {
                     return switch `operator` {
                     case .equal:
                         response == value
+                    case .notEqual:
+                        response != value
                     case .lessThan:
                         response < value
                     case .greaterThan:

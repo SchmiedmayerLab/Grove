@@ -25,7 +25,9 @@ extension Questionnaire.Task.Kind {
 public struct AnnotateImageConfig: QuestionKindConfig {
     public enum InputImage: Hashable, Sendable {
         case namedInMainBundle(filename: String)
-        
+        /// The image travels with the questionnaire (SDC `itemMedia`).
+        case inlineData(Data)
+
 #if canImport(UIKit)
         public func image() -> UIImage? {
             switch self {
@@ -35,6 +37,8 @@ public struct AnnotateImageConfig: QuestionKindConfig {
                     print("unable to find '\(filename)' in main bundle")
                     return nil
                 }
+                return UIImage(data: data)
+            case .inlineData(let data):
                 return UIImage(data: data)
             }
         }

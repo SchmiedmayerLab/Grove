@@ -12,9 +12,10 @@ import SwiftUI
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct DatePickerRow: View {
     @Environment(\.calendar) private var cal
+    let label: String
     let config: Questionnaire.Task.Kind.DateTimeConfig
     @Binding var response: DateComponents?
-    
+
     var body: some View {
         let binding = Binding<Date> {
             if let response {
@@ -26,20 +27,56 @@ struct DatePickerRow: View {
         } set: { newValue in
             response = cal.dateComponents(config.style.components, from: newValue)
         }
-        DatePicker(label, selection: binding, displayedComponents: components)
-            .datePickerStyle(.compact)
+        // A picker always reads out something, so an untouched one shows today and looks answered
+        // while the page still counts it as missing. Until there is an answer the row offers to
+        // take one instead, the way a form asks for a date it does not have.
+        if response == nil {
+            Button {
+                response = cal.dateComponents(config.style.components, from: .now)
+            } label: {
+                LabeledContent {
+                    Text(placeholder)
+                        .foregroundStyle(.secondary)
+                } label: {
+                    Text(fieldLabel)
+                        .foregroundStyle(.primary)
+                }
+            }
+            .buttonStyle(.plain)
+            .frame(minHeight: 44)
+            .contentShape(.rect)
+            .accessibilityLabel(label)
+            .accessibilityValue(Text(placeholder))
+        } else {
+            DatePicker(fieldLabel, selection: binding, displayedComponents: components)
+                .datePickerStyle(.compact)
+                .frame(minHeight: 44)
+                .accessibilityLabel(label)
+        }
     }
-    
-    private var label: LocalizedStringResource {
+
+    /// What the row says before there is an answer.
+    private var placeholder: LocalizedStringResource {
         switch config.style {
         case .dateOnly:
-            LocalizedStringResource("Enter Date", bundle: .module)
+            LocalizedStringResource("Choose a date", bundle: .module)
         case .timeOnly:
-            LocalizedStringResource("Enter Time", bundle: .module)
+            LocalizedStringResource("Choose a time", bundle: .module)
         case .dateAndTime:
-            // Ideally we'd have "Enter Date and Time",
-            // but that's too long and will cause the date picker to get displayed below the label :/
-            LocalizedStringResource("Enter Date", bundle: .module)
+            LocalizedStringResource("Choose a date and time", bundle: .module)
+        }
+    }
+
+    /// What the row calls the control. Kept to a word or two: the question above already asks
+    /// for the date, and a sentence here pushes the picker onto a line of its own.
+    private var fieldLabel: LocalizedStringResource {
+        switch config.style {
+        case .dateOnly:
+            LocalizedStringResource("Date", bundle: .module)
+        case .timeOnly:
+            LocalizedStringResource("Time", bundle: .module)
+        case .dateAndTime:
+            LocalizedStringResource("Date & Time", bundle: .module)
         }
     }
     

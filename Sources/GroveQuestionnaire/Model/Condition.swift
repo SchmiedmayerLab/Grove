@@ -15,14 +15,12 @@ extension Questionnaire {
     /// Controls when a task or other questionnaire component should be enabled.
     ///
     /// Conditions allow establishing dependencies between ``Task``s within a ``Questionnaire``,
-    /// and can be used to conditionally ask additional questions, based on e.g. a user's response to some previous task.
+    /// and can be used to conditionally ask additional questions, based on e.g. a user's response to some other task.
     ///
-    /// A condition belonging to a task may only reference other tasks that precede that task within the questionnaire.
-    /// If a condition references a task that appears after the task to which it belongs, it always evaluates to `false`.
-    ///
-    /// Conditions referencing invalid ``Task``s always evaluate to `false`.
-    ///
-    /// Conditions are evaluated
+    /// A condition may reference any other task in the questionnaire, including tasks that appear
+    /// after the one it belongs to (matching FHIR's `enableWhen`, which places no ordering
+    /// restriction on references). A condition that references its own task, an unknown task, or a
+    /// task that is itself currently disabled evaluates as if the referenced response were absent.
     ///
     /// ## Topics
     ///
@@ -79,15 +77,25 @@ extension Questionnaire {
         /// - parameter operator: The comparison operation
         /// - parameter value: The value against which the task's response should be compared
         case responseValueComparison(taskId: Task.ID, operator: ComparisonOperator, value: Value)
+
+        /// A condition evaluated by the questionnaire's ``QuestionnaireExpressionEngine``
+        /// (SDC `enableWhenExpression`); disabled when no engine is available or the
+        /// expression evaluates to empty or fails.
+        case expression(String)
         
         
         /// Models https://hl7.org/fhir/valueset-questionnaire-enable-operator.html
         ///
-        /// - Note: This enum intentionally does not implement the `exists` and `!=` operations.
-        ///     Use ``Questionnaire/Condition/hasResponse(taskId:)``, and ``Questionnaire/Condition/not(_:)`` in combination with ``equal`` instead.
+        /// - Note: This enum intentionally does not implement the `exists` operation.
+        ///     Use ``Questionnaire/Condition/hasResponse(taskId:)`` instead.
         public enum ComparisonOperator: Hashable, Sendable {
-            /// True if whether at least one answer has a value that is equal to the enableWhen answer
+            /// True if at least one answer has a value that is equal to the enableWhen answer
             case equal
+            /// True if at least one answer has a value that is not equal to the enableWhen answer.
+            ///
+            /// Unlike `.not(.responseValueComparison(…, .equal, …))`, this evaluates to `false`
+            /// when the referenced question has no answer, matching FHIR's enableWhen semantics.
+            case notEqual
             /// True if at least one answer has a value that is less than the enableWhen answer
             case lessThan
             /// True if at least one answer has a value that is greater than the enableWhen answer
@@ -97,7 +105,7 @@ extension Questionnaire {
             /// True if at least one answer has a value that is greater or equal to the enableWhen answer
             case greaterThanOrEqual
         }
-        
+
         /// Value used in comparison conditions.
         public enum Value: Hashable, Sendable {
             case bool(Bool)
@@ -105,6 +113,14 @@ extension Questionnaire {
             case decimal(Double)
             case string(String)
             case date(DateComponents)
+            /// A quantity, compared against numeric responses whose unit matches `unitCode`
+            /// (a `nil` `unitCode` matches any unit).
+            case quantity(value: Double, unitCode: String?)
+            /// A choice option, identified by its ``Questionnaire/Task/Kind-swift.struct/ChoiceConfig/Option/id``.
+            ///
+            /// For options created from FHIR codings, the id is the `system|code` token
+            /// (or the bare code when the coding has no system), so matching honors the
+            /// coding's system per FHIR enableWhen semantics.
             case SCMCOption(id: String)
         }
         
@@ -169,6 +185,8 @@ extension Questionnaire.Condition: Hashable {
             lhs == rhs
         case let (.responseValueComparison(lhsTask, lhsOp, lhsVal), .responseValueComparison(rhsTask, rhsOp, rhsVal)):
             lhsTask == rhsTask && lhsOp == rhsOp && lhsVal == rhsVal
+        case let (.expression(lhs), .expression(rhs)):
+            lhs == rhs
         default:
             false
         }
@@ -196,6 +214,9 @@ extension Questionnaire.Condition: Hashable {
             hasher.combine(taskId)
             hasher.combine(`operator`)
             hasher.combine(value)
+        case .expression(let expression):
+            hasher.combine(6)
+            hasher.combine(expression)
         }
     }
 }
@@ -203,53 +224,65 @@ extension Questionnaire.Condition: Hashable {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension Questionnaire.Condition {
+    private static func simplifiedNegation(of condition: Self) -> Self {
+        switch condition {
+        case .not(let inner):
+            inner
+        case true:
+            false
+        case false:
+            true
+        default:
+            .not(condition)
+        }
+    }
+
+    private static func simplifiedDisjunction(of conditions: Set<Self>) -> Self {
+        let conditions: Set<Self> = conditions.compactMapIntoSet {
+            switch $0.simplified() {
+            case false: nil
+            case let cond: cond
+            }
+        }
+        if conditions.isEmpty {
+            return false
+        } else if conditions.contains(true) {
+            return true
+        } else {
+            return .any(conditions)
+        }
+    }
+
+    private static func simplifiedConjunction(of conditions: Set<Self>) -> Self {
+        let conditions: Set<Self> = conditions.compactMapIntoSet {
+            switch $0.simplified() {
+            case true: nil
+            case let cond: cond
+            }
+        }
+        if conditions.isEmpty {
+            return true
+        } else if conditions.contains(false) {
+            return false
+        } else {
+            return .all(conditions)
+        }
+    }
+
     mutating func simplify() {
         self = self.simplified()
     }
-    
-    func simplified() -> Self { // swiftlint:disable:this cyclomatic_complexity
+
+    package func simplified() -> Self {
         switch self {
         case .not(let inner):
-            switch inner.simplified() {
-            case .not(let inner):
-                return inner
-            case true:
-                return false
-            case false:
-                return true
-            case let inner:
-                return .not(inner)
-            }
+            Self.simplifiedNegation(of: inner.simplified())
         case .any(let inner):
-            let inner: Set<Self> = inner.compactMapIntoSet {
-                switch $0.simplified() {
-                case false: nil
-                case let cond: cond
-                }
-            }
-            if inner.isEmpty {
-                return false
-            } else if inner.contains(true) {
-                return true
-            } else {
-                return .any(inner)
-            }
+            Self.simplifiedDisjunction(of: inner)
         case .all(let inner):
-            let inner: Set<Self> = inner.compactMapIntoSet {
-                switch $0.simplified() {
-                case true: nil
-                case let cond: cond
-                }
-            }
-            if inner.isEmpty {
-                return true
-            } else if inner.contains(false) {
-                return false
-            } else {
-                return .all(inner)
-            }
-        case .hasResponse, .isMissingResponse, .responseValueComparison:
-            return self
+            Self.simplifiedConjunction(of: inner)
+        case .hasResponse, .isMissingResponse, .responseValueComparison, .expression:
+            self
         }
     }
 }

@@ -47,12 +47,12 @@ struct FilePicker: View {
                     .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
             }
-            .contentShape(Rectangle())
-            .frame(maxHeight: .infinity)
-            .padding()
+            // No padding of its own: the row is one of the question's card, and an inset here
+            // stepped it in from everything above it.
+            .frame(minHeight: 44)
+            .contentShape(.rect)
         }
         .accessibilityIdentifier("FilePickerButton")
-        .listRowInsets(EdgeInsets())
         .viewStateAlert(state: $viewState)
         // We need all of these modifiers placed here at the top level, since the buttons that trigger them are in the Menu,
         // and will disappear when tapped (bc the menu gets closed)

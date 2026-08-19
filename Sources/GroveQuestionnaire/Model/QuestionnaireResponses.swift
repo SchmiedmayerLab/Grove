@@ -8,6 +8,7 @@
 
 public import Foundation
 public import Observation
+private import OSLog
 
 
 /// Stores and manages responses to a questionnaire.
@@ -80,11 +81,24 @@ public final class QuestionnaireResponses: Identifiable {
                 if sanitized != responses {
                     _variant = .root(sanitized)
                 }
+                recalculateExpressions()
             case .view:
                 break
             }
         }
     }
+
+    /// Guards ``recalculateExpressions()`` against re-entrancy: storing a calculated
+    /// value mutates the responses, which triggers the observer again.
+    private var isRecalculating = false
+
+    /// The authored expressions that failed while these responses were collected.
+    ///
+    /// An expression that throws is a defect in the instrument, not something the
+    /// participant did: the evaluator refuses to guess, so the failure is kept here (and
+    /// logged) instead of being read as "the condition did not hold". Each expression is
+    /// recorded once. Not observed — conditions are evaluated while views render.
+    @ObservationIgnored public private(set) var expressionFailures: [ExpressionFailure] = []
     
     var pathFromRoot: ResponsesPath {
         switch _variant {
@@ -119,6 +133,13 @@ public final class QuestionnaireResponses: Identifiable {
         self.id = id
         self.questionnaire = questionnaire
         _variant = .root(Responses())
+        // FHIR initial[x] / initialSelected: seed declared starting values, which the
+        // user can still edit (and which satisfy required readOnly items).
+        for task in questionnaire.sections.lazy.flatMap(\.tasks) {
+            if let initialValue = task.initialValue {
+                responses[task.id] = .init(value: initialValue)
+            }
+        }
     }
     
     private init(parent: QuestionnaireResponses, pathFromParent: ResponsesPath) {
@@ -130,6 +151,83 @@ public final class QuestionnaireResponses: Identifiable {
     
     func view(appending path: ResponsesPath) -> Self {
         Self(parent: self, pathFromParent: path)
+    }
+
+    /// Recomputes every task with an SDC `calculatedExpression`, in document order,
+    /// so score items stay current as the participant answers.
+    private func recalculateExpressions() {
+        guard !isRecalculating else {
+            return
+        }
+        let calculatedTasks = questionnaire.sections.lazy.flatMap(\.tasks).filter { $0.calculatedExpression != nil }
+        guard calculatedTasks.contains(where: { _ in true }) else {
+            return
+        }
+        guard let engine = questionnaire.expressionEngine else {
+            // A questionnaire declared in Swift carries no engine until `withExpressionEngine()`
+            // attaches one. Saying so beats leaving every computed value empty, which reads as
+            // a scoring bug rather than a setup step.
+            Self.logger.warning(
+                "\(self.questionnaire.metadata.title, privacy: .public) has calculated expressions but no expression engine; call withExpressionEngine() on it before presenting it."
+            )
+            return
+        }
+        isRecalculating = true
+        defer {
+            isRecalculating = false
+        }
+        for task in calculatedTasks {
+            guard let expression = task.calculatedExpression else {
+                continue
+            }
+            do {
+                guard let value = try engine.evaluateValue(expression, for: task, in: self) else {
+                    continue
+                }
+                if responses[task.id].value != value {
+                    responses[task.id] = .init(value: value)
+                }
+            } catch {
+                recordExpressionFailure(expression, for: task.id, error: error)
+            }
+        }
+    }
+}
+
+
+// MARK: Expression Diagnostics
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension QuestionnaireResponses {
+    /// An authored expression that could not be evaluated against the collected responses.
+    public struct ExpressionFailure: Hashable, Sendable {
+        /// The item carrying the expression, if it was not questionnaire-level.
+        public let taskId: Questionnaire.Task.ID?
+        /// The expression as authored.
+        public let expression: String
+        /// What went wrong.
+        public let reason: String
+    }
+
+    private static let logger = Logger(subsystem: "org.grovealliance.questionnaire", category: "Expressions")
+
+    func recordExpressionFailure(_ expression: String, for taskId: Questionnaire.Task.ID?, error: some Error) {
+        switch _variant {
+        case .root:
+            guard !expressionFailures.contains(where: { $0.taskId == taskId && $0.expression == expression }) else {
+                return
+            }
+            let reason = String(describing: error)
+            expressionFailures.append(.init(taskId: taskId, expression: expression, reason: reason))
+            Self.logger.error(
+                """
+                Expression on '\(taskId ?? questionnaire.id, privacy: .public)' failed: \
+                \(expression, privacy: .public) — \(reason, privacy: .public)
+                """
+            )
+        case .view(let parent, pathFromParent: _):
+            parent.recordExpressionFailure(expression, for: taskId, error: error)
+        }
     }
 }
 
@@ -152,7 +250,8 @@ extension QuestionnaireResponses {
     func isMissingResponse(for task: Questionnaire.Task) -> Bool {
         // NOTE: on platforms without UIKit (eg macOS, which isn't officially supported yet), a required annotate-image
         // task can never satisfy this check; see the non-UIKit branch of `AnnotateImageQuestionKind.makeView(for:using:response:)` for more info.
-        !task.isOptional && shouldEnable(task: task) && !hasResponse(for: task)
+        // A hidden task is never shown, so it can never block completion.
+        !task.isOptional && !task.isHidden && shouldEnable(task: task) && !hasResponse(for: task)
     }
     
     func isMissingResponses(in section: Questionnaire.Section) -> Bool {
@@ -166,17 +265,17 @@ extension QuestionnaireResponses {
     /// This function returns `true` iff all currently enabled required tasks have responses, and none of these responses are invalid.
     func isComplete(in section: Questionnaire.Section) -> Bool {
         !isMissingResponses(in: section) && section.tasks.allSatisfy { task in
-            // either the task is disabled, or its response is valid.
-            !shouldEnable(task: task) || validateResponse(for: task).isOk
+            // either the task is hidden or disabled, or its response is valid.
+            task.isHidden || !shouldEnable(task: task) || validateResponse(for: task).isOk
         }
     }
-    
+
     /// Returns the first task in the section that currently prevents the section from being complete.
     ///
     /// For example, if a required task is missing a response or its response is invalid, it would get returned.
     func firstTaskPreventingCompletion(of section: Questionnaire.Section) -> Questionnaire.Task? {
         section.tasks.first { task in
-            isMissingResponse(for: task) || !validateResponse(for: task).isOk
+            !task.isHidden && (isMissingResponse(for: task) || !validateResponse(for: task).isOk)
         }
     }
     

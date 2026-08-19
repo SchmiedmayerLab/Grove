@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+private import Foundation
 public import GroveQuestionnaire
 
 
@@ -17,7 +18,7 @@ extension Questionnaire {
     public static let gad7 = Self(
         metadata: .init(
             id: "gad7",
-            url: nil,
+            url: URL(string: "https://grovealliance.org/fhir/Questionnaire/gad7"),
             title: "GAD-7 Anxiety",
             explainer: ""
         ),

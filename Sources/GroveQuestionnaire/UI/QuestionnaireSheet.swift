@@ -46,35 +46,47 @@ public import SwiftUI
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct QuestionnaireSheet: View {
     private let questionnaire: Questionnaire
+    /// The page the questionnaire opens on: a section whose questions are all hidden or disabled
+    /// has nothing to show, and a page showing nothing is never the right first impression.
+    ///
+    /// Settled once, when the sheet is created, so that answering a question can never swap the
+    /// page the navigation stack is rooted at out from under the participant.
+    private let firstSection: Questionnaire.Section?
     private let completionStepConfig: CompletionStepConfig
-    private let resultHandler: @MainActor (Result) async -> Void
-    
+    private let questionProgressConfig: QuestionProgressConfig
+    private let completionAction: CompletionAction
+    private let resultHandler: @MainActor (Result) async throws -> Void
+
     @State private var responses: QuestionnaireResponses
-    
+
     @_documentation(visibility: internal)
     public var body: some View {
         ManagedNavigationStack {
-            if let section = questionnaire.sections.first {
+            if let section = firstSection {
                 QuestionnaireSectionView(
                     questionnaire: questionnaire,
                     section: section,
-                    completionStepConfig: completionStepConfig
+                    completionStepConfig: completionStepConfig,
+                    questionProgressConfig: questionProgressConfig,
+                    completionAction: completionAction
                 ) { result in
                     responses.purgeResponsesToDisabledTasks()
-                    await resultHandler(result)
+                    try await resultHandler(result)
                 }
-                .interactiveDismissDisabled()
             } else {
                 ContentUnavailableView(
                     LocalizedStringResource("Questionnaire is Empty", bundle: .module),
-                    image: "exclamationmark.triangle"
+                    systemImage: "exclamationmark.triangle"
                 )
             }
         }
         .accessibilityIdentifier("GroveQuestionnaireNavStack")
+        // The sheet knows the shape its content wants; asking every app to say so again only
+        // gives them a way to get it wrong.
+        .presentationSizing(.page)
         .environment(responses)
     }
-    
+
     /// Creates a new `QuestionnaireSheet`
     ///
     /// - parameter questionnaire: The ``Questionnaire`` that should be answered.
@@ -82,17 +94,30 @@ public struct QuestionnaireSheet: View {
     ///     If set to `nil`, a new, empty object will implicitly be created and used.
     ///     Use this parameter to display or edit existing, previously-collected responses.
     /// - parameter completionStepConfig: Whether the questionnaire sheet should present a completion page once the user has finished the questionnaire.
+    ///     Most questionnaires do not need one, so there is none unless asked for.
+    /// - parameter questionProgressConfig: Whether the sheet tells the participant how far along they are.
+    /// - parameter completionAction: How the final button describes itself. Responses that are handed off to the app are submitted;
+    ///     use ``CompletionAction/done`` only if the participant is editing a record they can reopen.
     /// - parameter resultHandler: A closure that is invoked when the questionnaire is completed, or cancelled by the user.
-    ///     The sheet dismisses itself once this closure has returned.
+    ///     The sheet dismisses itself once this closure has returned. It may take as long as it needs — the sheet shows that it is
+    ///     working and refuses further input meanwhile — and an error it throws is reported to the participant, who stays in the
+    ///     questionnaire with their answers so they can try again.
     public init(
         _ questionnaire: Questionnaire,
         responses: QuestionnaireResponses? = nil,
-        completionStepConfig: CompletionStepConfig = .enable,
-        resultHandler: @escaping @MainActor (Result) async -> Void
+        completionStepConfig: CompletionStepConfig = .disable,
+        questionProgressConfig: QuestionProgressConfig = .disable,
+        completionAction: CompletionAction = .submit,
+        resultHandler: @escaping @MainActor (Result) async throws -> Void
     ) {
-        self.questionnaire = questionnaire.withConditionsSimplified()
+        let simplified = questionnaire.withConditionsSimplified()
+        let responses = responses ?? QuestionnaireResponses(questionnaire: questionnaire)
+        self.questionnaire = simplified
+        self.firstSection = simplified.sections.first { responses.rendersContent(in: $0) }
         self.completionStepConfig = completionStepConfig
-        self.responses = responses ?? QuestionnaireResponses(questionnaire: questionnaire)
+        self.questionProgressConfig = questionProgressConfig
+        self.completionAction = completionAction
+        self.responses = responses
         self.resultHandler = resultHandler
     }
 }

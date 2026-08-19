@@ -67,6 +67,23 @@ mkdir -p "$PACKAGE_CACHE_PATH"
 
 PACKAGES="FHIRModelsExtensions ResearchKitOnFHIR Grove GroveAccessGuard GroveAccount GroveBluetooth GroveChat GroveConsent GroveContact GroveDevices GroveFHIR GroveFileFormats GroveFirebase GroveFoundation GroveHealthKit GroveHealthKitFHIR GroveLLM GroveLicense GroveLocation GroveNetworking GroveNotifications GroveOnboarding GroveQuestionnaire GroveScheduler GroveSensorKit GroveSpeech GroveStorage GroveStudy GroveViews ThreadLocal XCTHealthKit RuntimeAssertions XCTestExtensions"
 
+test_targets_for() {
+  python3 - "$1" "$2" <<'PY'
+import sys
+import tomllib
+
+package, platform = sys.argv[1:]
+config = tomllib.load(open("packages.toml", "rb"))[package]
+platforms_by_target = config.get("testPlatforms", {})
+targets = config.get("linuxTargets") if platform == "Linux" else None
+print(" ".join(
+    target
+    for target in targets or config["tests"]
+    if platform in platforms_by_target.get(target, [platform])
+))
+PY
+}
+
 # package -> the platforms it was tested on upstream (the union CI matrix)
 platforms_for() { case "$1" in
     FHIRModelsExtensions) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
@@ -193,7 +210,7 @@ run() { # <package> <platform> [mode: "ui"]
     # A package whose test target is itself Apple-only names the source targets to check via
     # `linuxTargets` instead.
     local tts
-    tts="$(python3 -c "import tomllib; p = tomllib.load(open('packages.toml','rb'))['$1']; print(' '.join(p.get('linuxTargets') or p['tests']))")"
+    tts="$(test_targets_for "$1" "$2")"
     for tt in $tts; do
       echo "==> $1 on Linux: swift build --target $tt (compile-check)"
       swift build --target "$tt"
@@ -213,7 +230,7 @@ run() { # <package> <platform> [mode: "ui"]
   # The test-target list is the curated mapping in packages.toml — the same source the xctestplans are
   # generated from (and that the Linux path above uses) — not a re-parse of the generated test plan.
   local targets rc=0
-  targets="$(python3 -c "import tomllib; print(' '.join(tomllib.load(open('packages.toml','rb'))['$1']['tests']))")"
+  targets="$(test_targets_for "$1" "$2")"
   local result="${1}-${2}-Tests.xcresult"
   local parts=()
   for tt in $targets; do
