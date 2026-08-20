@@ -109,7 +109,9 @@ products = ["Algorithms"]
 [GroveLLM]
 app_products = ["Grove", "GroveChat", "GroveKeychainStorage", "GroveLLM", "GroveLLMAnthropic", "GroveLLMFoundationModels", "GroveLLMGemini", "GroveLLMLocal", "GroveLLMLocalDownload", "GroveLLMOpenAI", "GroveLLMOpenAIRealtime", "GroveOnboarding", "GroveViews"]
 test_products = ["XCTestExtensions"]
-traits = ["MLX"]
+# Declaring traits replaces the defaults, so Textual has to be named alongside MLX: the chat this
+# app drives is meant to render the way every consumer sees it.
+traits = ["MLX", "Textual"]
 [GroveLLM.app_settings]
 "INFOPLIST_KEY_NSMicrophoneUsageDescription" = "The Test Application uses the micophone to test the dication functionality."
 "INFOPLIST_KEY_NSSpeechRecognitionUsageDescription" = "Speech recognition necessary for transcribing voice input."

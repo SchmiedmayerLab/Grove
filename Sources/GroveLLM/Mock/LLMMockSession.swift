@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import Foundation
 public import Observation
 
 
@@ -68,8 +69,13 @@ public final class LLMMockSession: LLMSession, Sendable {
 
                 // Generate mock messages
                 let tokens = ["Mock ", "Message ", "from ", "GroveLLM!"]
+                // An instant stream lands the answer within the view's first frames, which is how a fast
+                // backend behaves and what the lazily-materialized-row regression test needs to provoke.
+                let tokenDelay: Duration = ProcessInfo.processInfo.arguments.contains("--instantMockStream")
+                    ? .milliseconds(5)
+                    : .milliseconds(500)
                 for token in tokens {
-                    try? await Task.sleep(for: .milliseconds(500))
+                    try? await Task.sleep(for: tokenDelay)
                     // Check for cancellation
                     if continuationObserver.isCancelled {
                         break
@@ -86,7 +92,11 @@ public final class LLMMockSession: LLMSession, Sendable {
 
                 continuationObserver.continuation.finish()
                 await MainActor.run {
-                    self.context.markAssistantOutputCompleted()
+                    // Only the writer of the context may close the message: when the consumer appends the
+                    // deltas itself, completing here races it and splits the answer in two.
+                    if self.schema.injectIntoContext {
+                        self.context.markAssistantOutputCompleted()
+                    }
                     self.state = .ready
                 }
             }

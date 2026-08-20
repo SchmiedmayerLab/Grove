@@ -170,7 +170,9 @@ public struct MessagesView: View {
     }
 
     private var messageStack: some View {
-        LazyVStack(spacing: 24) {
+        // A conversation is small enough to lay out eagerly, and a lazily materialized first row can
+        // miss its appear events entirely — leaving a streamed answer parsed but never rendered.
+        VStack(spacing: 24) {
             ForEach(visibleMessages) { message in
                 MessageView(message)
                     .id(message.id)
