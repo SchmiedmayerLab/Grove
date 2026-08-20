@@ -72,9 +72,14 @@ jobs:
           else
             echo "packages_changed=false" >> "$GITHUB_OUTPUT"
           fi
+          if grep -Fxq "Tests/UITestProjects.toml" changed.txt; then
+            echo "ui_test_projects_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ui_test_projects_changed=false" >> "$GITHUB_OUTPUT"
+          fi
           echo "Changed files:"; cat changed.txt
       - name: Evaluate package graphs
-        if: steps.changes.outputs.manifest_changed == 'true' || steps.changes.outputs.packages_changed == 'true'
+        if: steps.changes.outputs.manifest_changed == 'true' || steps.changes.outputs.packages_changed == 'true' || steps.changes.outputs.ui_test_projects_changed == 'true'
         env:
           BASE_SHA: ${{ steps.changes.outputs.base_sha }}
         run: |
@@ -83,6 +88,9 @@ jobs:
           git worktree add --detach "$BASE_WORKTREE" "$BASE_SHA"
           trap 'git worktree remove --force "$BASE_WORKTREE"; rmdir "$TEMP_DIRECTORY"' EXIT
           cp "$BASE_WORKTREE/packages.toml" "$RUNNER_TEMP/base-packages.toml"
+          if [ -f "$BASE_WORKTREE/Tests/UITestProjects.toml" ]; then
+            cp "$BASE_WORKTREE/Tests/UITestProjects.toml" "$RUNNER_TEMP/base-ui-test-projects.toml"
+          fi
           if [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
             swift package --package-path "$BASE_WORKTREE" dump-package > "$RUNNER_TEMP/base-package.json"
             swift package dump-package > "$RUNNER_TEMP/head-package.json"
@@ -101,6 +109,9 @@ jobs:
           fi
           if [ "${{ steps.changes.outputs.packages_changed }}" = "true" ] || [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
             ARGS+=(--base-packages "$RUNNER_TEMP/base-packages.toml")
+          fi
+          if [ "${{ steps.changes.outputs.ui_test_projects_changed }}" = "true" ] && [ -f "$RUNNER_TEMP/base-ui-test-projects.toml" ]; then
+            ARGS+=(--base-ui-test-projects "$RUNNER_TEMP/base-ui-test-projects.toml")
           fi
           python3 Scripts/affected-test-matrix.py "${ARGS[@]}" >> "$GITHUB_OUTPUT"
       - name: Dump matrix (debug)
