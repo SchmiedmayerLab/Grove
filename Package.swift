@@ -1395,6 +1395,7 @@ var targets: [Target] = [
     .target(
         name: "GroveQuestionnaireFHIR",
         dependencies: [
+            .target(name: "GroveFHIRContract"),
             .target(name: "GroveQuestionnaire"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions"),
@@ -1428,6 +1429,7 @@ var targets: [Target] = [
     .testTarget(
         name: "GroveQuestionnaireTests",
         dependencies: [
+            .target(name: "GroveFHIRContract"),
             .target(name: "GroveQuestionnaire"),
             .target(name: "GroveQuestionnaireCatalog"),
             .target(name: "GroveQuestionnaireFHIR"),

@@ -27,7 +27,10 @@ final class ResponsesStore {
     private(set) var entries: [Entry] = []
 
     func record(_ responses: QuestionnaireResponses, from source: String) throws {
-        entries.append(Entry(source: source, response: try QuestionnaireResponse(responses)))
+        entries.append(Entry(
+            source: source,
+            response: try QuestionnaireResponse(responses, authored: .now)
+        ))
     }
 
     func record(_ response: QuestionnaireResponse, from source: String) {

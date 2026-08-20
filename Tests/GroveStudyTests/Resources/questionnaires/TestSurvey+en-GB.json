@@ -5,9 +5,6 @@
   "status": "draft",
   "id": "66D6F5E6-242A-43CA-996C-D8907CFA9F16",
   "meta": {
-    "profile": [
-      "http://spezi.health/fhir/StructureDefinition/sdf-Questionnaire"
-    ],
     "tag": [
       {
         "system": "urn:ietf:bcp:47",

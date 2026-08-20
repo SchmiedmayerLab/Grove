@@ -9,9 +9,6 @@
   "status": "draft",
   "publisher": "RAND Corp",
   "meta": {
-    "profile": [
-      "https://grovealliance.org/fhir/core/StructureDefinition/sdf-Questionnaire"
-    ],
     "tag": [
       {
         "system": "urn:ietf:bcp:47",
@@ -48,7 +45,7 @@
   "purpose": "The RAND Medical Outcomes Social Support survey is a 4-item questionnaire that measures social support.",
   "copyright": "RAND Corp surveys are open-source and free to use.",
   "date": "2023-01-23T00:00:00-08:00",
-  "url": "https://grovealliance.org/fhir/core/Questionnaire/32f43c8e-93e9-4c70-97a0-e716f8030073",
+  "url": "https://example.org/fhir/Questionnaire/social-support",
   "item": [
     {
       "linkId": "dcea2683-9815-4505-b240-e75b502b29ef",
@@ -254,10 +251,6 @@
         {
           "url": "http://hl7.org/fhir/StructureDefinition/maxValue",
           "valueInteger": 120
-        },
-        {
-          "url": "https://grovealliance.org/fhir/core/StructureDefinition/validationText",
-          "valueString": "Please enter a valid age."
         }
       ],
       "required": false
@@ -313,10 +306,6 @@
         {
           "url": "http://hl7.org/fhir/StructureDefinition/regex",
           "valueString": "^(\\([0-9]{3}\\) |[0-9]{3}-)[0-9]{3}-[0-9]{4}$"
-        },
-        {
-          "url": "https://grovealliance.org/fhir/core/StructureDefinition/validationText",
-          "valueString": "Please enter a valid phone number."
         }
       ]
     },
@@ -339,10 +328,6 @@
         {
           "url": "http://hl7.org/fhir/StructureDefinition/regex",
           "valueString": "^(\\([0-9]{3}\\) |[0-9]{3}-)[0-9]{3}-[0-9]{4}$"
-        },
-        {
-          "url": "https://grovealliance.org/fhir/core/StructureDefinition/validationText",
-          "valueString": "Please enter a valid phone number."
         }
       ]
     },
@@ -354,10 +339,6 @@
         {
           "url": "http://hl7.org/fhir/StructureDefinition/regex",
           "valueString": ".*@.+"
-        },
-        {
-          "url": "https://grovealliance.org/fhir/core/StructureDefinition/validationText",
-          "valueString": "Please enter a valid email"
         },
         {
           "url": "http://hl7.org/fhir/StructureDefinition/minLength",

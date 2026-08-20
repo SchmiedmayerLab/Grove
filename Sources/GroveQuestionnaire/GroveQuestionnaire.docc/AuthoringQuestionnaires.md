@@ -254,7 +254,9 @@ calculated values or raw FHIRPath expressions:
 ```swift
 import GroveQuestionnaireFHIR
 
-let questionnaire = try Screener.questionnaire.withExpressionEngine()
+let questionnaire = try Screener.questionnaire.withExpressionEngine(
+    evaluationInstant: submittedAt
+)
 ```
 
 ### Reading the answers

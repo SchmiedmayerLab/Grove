@@ -20,6 +20,7 @@ struct FHIRRenderingBehaviorTests {
     private func makeQuestionnaire(items: [ModelsR4.QuestionnaireItem]) -> ModelsR4.Questionnaire {
         var questionnaire = ModelsR4.Questionnaire(status: FHIRPrimitive(PublicationStatus.active))
         questionnaire.url = "https://example.org/fhir/Questionnaire/rendering".asFHIRURIPrimitive()
+        questionnaire.version = "1.0.0".asFHIRStringPrimitive()
         questionnaire.item = items
         return questionnaire
     }
@@ -55,7 +56,7 @@ struct FHIRRenderingBehaviorTests {
             value: .string(FHIRPrimitive(ModelsR4.FHIRString("Smoke?")))
         )
         ]
-        let task = try firstTask(try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item])))
+        let task = try firstTask(try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), evaluationInstant: questionnaireResponseTestAuthoredAt))
         #expect(task.prefix == "2a.")
         #expect(task.shortTitle == "Smoke?")
     }
@@ -73,7 +74,7 @@ struct FHIRRenderingBehaviorTests {
         section.extension = [shortTextExtension("History")]
         section.item = [group]
 
-        let imported = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [section]))
+        let imported = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [section]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         #expect(imported.sections.first?.shortTitle == "History")
         let task = try firstTask(imported)
         #expect(task.groupPath.first?.shortTitle == "Habits")
@@ -100,7 +101,7 @@ struct FHIRRenderingBehaviorTests {
             value: .attachment(attachment)
         )
         ]
-        let task = try firstTask(try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item])))
+        let task = try firstTask(try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), evaluationInstant: questionnaireResponseTestAuthoredAt))
         #expect(task.media?.contentType == "image/png")
         #expect(task.media?.data == pixel)
         #expect(task.media?.altText == "Anatomical diagram of the shoulder")
@@ -117,7 +118,7 @@ struct FHIRRenderingBehaviorTests {
         ]
         var item = ModelsR4.QuestionnaireItem(linkId: "d1".asFHIRStringPrimitive(), type: .init(.display))
         item.text = text
-        let task = try firstTask(try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item])))
+        let task = try firstTask(try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), evaluationInstant: questionnaireResponseTestAuthoredAt))
         guard case .instructional(let rendered) = task.kind.variant else {
             Issue.record("Expected an instructional task")
             return
@@ -135,7 +136,7 @@ struct FHIRRenderingBehaviorTests {
             value: .uri("https://example.org/what-is-hypertension")
         )
         ]
-        let task = try firstTask(try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item])))
+        let task = try firstTask(try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), evaluationInstant: questionnaireResponseTestAuthoredAt))
         #expect(task.footer.contains("https://example.org/what-is-hypertension"))
     }
 
@@ -150,7 +151,7 @@ struct FHIRRenderingBehaviorTests {
             value: .boolean(FHIRPrimitive(FHIRBool(true)))
         )
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire, evaluationInstant: questionnaireResponseTestAuthoredAt)
         #expect(questionnaire.metadata.administrationWarnings.contains { $0.contains("style-sensitive") })
     }
 
@@ -164,7 +165,7 @@ struct FHIRRenderingBehaviorTests {
             value: .codeableConcept(CodeableConcept(coding: [Coding(code: "email".asFHIRStringPrimitive())]))
         )
         ]
-        let task = try firstTask(try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [email])))
+        let task = try firstTask(try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [email]), evaluationInstant: questionnaireResponseTestAuthoredAt))
         guard case .freeText(let config) = task.kind.variant else {
             Issue.record("Expected a free-text task")
             return
@@ -183,7 +184,7 @@ struct FHIRRenderingBehaviorTests {
             value: .code(FHIRPrimitive(ModelsR4.FHIRString("sequential")))
         )
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire, evaluationInstant: questionnaireResponseTestAuthoredAt)
         #expect(questionnaire.metadata.entryMode == .sequential)
     }
 
@@ -209,7 +210,7 @@ struct FHIRRenderingBehaviorTests {
                 ))
             )
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [weight]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [weight]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let task = try firstTask(questionnaire)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["weight"] = .init(value: .number(9_000))
@@ -231,7 +232,7 @@ struct FHIRRenderingBehaviorTests {
         let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [
             reviewNote,
             ModelsR4.QuestionnaireItem(linkId: "q1".asFHIRStringPrimitive(), text: "q1".asFHIRStringPrimitive(), type: .init(.boolean))
-        ]))
+        ]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let tasks = questionnaire.sections.flatMap(\.tasks)
         #expect(tasks.first { $0.id == "review-note" }?.isHidden == true)
         #expect(tasks.first { $0.id == "q1" }?.isHidden == false)

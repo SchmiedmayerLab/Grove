@@ -167,8 +167,8 @@ struct ObservationExtensionsTests {
     
     @Test
     func fhirExtension() throws {
-        let extension1Url = FHIRExtensionURL("https://grovealliance.org/fhir/core/StructureDefinition/testDef1")
-        let extension2Url = FHIRExtensionURL("https://grovealliance.org/fhir/core/StructureDefinition/testDef2")
+        let extension1Url = FHIRExtensionURL("https://example.org/fhir/StructureDefinition/test-def-1")
+        let extension2Url = FHIRExtensionURL("https://example.org/fhir/StructureDefinition/test-def-2")
         let extension1: (Int) -> Extension = { Extension(url: extension1Url, value: .integer($0.asFHIRIntegerPrimitive())) }
         let extension2: (Int) -> Extension = { Extension(url: extension2Url, value: .integer($0.asFHIRIntegerPrimitive())) }
         
@@ -209,7 +209,7 @@ struct ObservationExtensionsTests {
     
     @Test
     func voidExtensionBuilder() throws {
-        let url = FHIRExtensionURL("https://grovealliance.org/fhir/core/StructureDefinition/timeZone")
+        let url = FHIRExtensionURL("https://example.org/fhir/StructureDefinition/test-time-zone")
         let timeZone = try #require(TimeZone(identifier: "Europe/Berlin"))
         let trackTimeZone = FHIRExtensionBuilder { (resource: inout any FHIRTypeWithExtensions) in
             let ext = Extension(url: url, value: .string(timeZone.identifier.asFHIRStringPrimitive()))

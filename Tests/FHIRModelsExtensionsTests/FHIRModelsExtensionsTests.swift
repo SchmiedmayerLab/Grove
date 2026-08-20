@@ -15,6 +15,8 @@ import Testing
 
 @Suite
 struct FHIRToResearchKitTests {
+    private static let evaluationInstant = Date(timeIntervalSince1970: 1_700_000_000)
+
     /// - Note: "FHIR extensions" here meaning Swift extensions on FHIR types, not actual FHIR extensions.
     @Test
     func fhirExtensions() {
@@ -55,11 +57,9 @@ struct FHIRToResearchKitTests {
         #expect(sliderStepValue == 1)
     }
 
-    @Test("Validation message extension")
-    func testValidationMessageExtension() throws {
-        let testValidationMessage = Questionnaire.textValidationExample.item?.first?.validationMessage
-        let validationMessage = "Please enter a valid email address."
-        #expect(validationMessage == testValidationMessage)
+    @Test("A regex does not infer a retired validation-message extension")
+    func regexDoesNotInferValidationMessage() {
+        #expect(Questionnaire.textValidationExample.item?.first?.validationMessage == nil)
     }
 
     @Test("Unit extension")
@@ -91,14 +91,18 @@ struct FHIRToResearchKitTests {
 
     @Test
     func testMinDateValueExtension() throws {
-        let minDateValue = Questionnaire.dateTimeExample.item?.first?.minDateValue
+        let minDateValue = Questionnaire.dateTimeExample.item?.first?.minDateValue(
+            evaluationInstant: Self.evaluationInstant
+        )
         let unwrappedMinDateValue = try #require(minDateValue)
         #expect(unwrappedMinDateValue == DateComponents(year: 2001, month: 1, day: 1))
     }
 
     @Test
     func testMaxDateValueExtension() throws {
-        let maxDateValue = Questionnaire.dateTimeExample.item?.first?.maxDateValue
+        let maxDateValue = Questionnaire.dateTimeExample.item?.first?.maxDateValue(
+            evaluationInstant: Self.evaluationInstant
+        )
         let unwrappedMaxDateValue = try #require(maxDateValue)
         #expect(unwrappedMaxDateValue == DateComponents(year: 2024, month: 1, day: 1))
     }

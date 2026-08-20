@@ -5,9 +5,6 @@
   "status": "draft",
   "publisher": "Stanford University",
   "meta": {
-    "profile": [
-      "https://grovealliance.org/fhir/core/StructureDefinition/sdf-Questionnaire"
-    ],
     "tag": [
       {
         "system": "urn:ietf:bcp:47",
@@ -41,7 +38,7 @@
   "subjectType": [
     "Patient"
   ],
-  "url": "https://grovealliance.org/fhir/core/Questionnaire/ec52e3b0-6405-461f-ae79-7c531a5ec5f0",
+  "url": "https://example.org/fhir/Questionnaire/multiple-enable-when-example",
   "item": [
     {
       "linkId": "ae4bde24-8709-436d-8961-15d04d649d7c",

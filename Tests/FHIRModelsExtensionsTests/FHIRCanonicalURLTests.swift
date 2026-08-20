@@ -32,7 +32,7 @@ private struct ExtensionCarrier: FHIRTypeWithExtensions {
 @Suite
 struct FHIRCanonicalURLTests {
     private static let identifier = FHIRCanonicalURL(
-        "https://grovealliance.org/fhir/core/StructureDefinition/validationText"
+        "https://example.org/fhir/StructureDefinition/test-extension"
     )
 
     private func item(withExtensionsAt urls: [String]) -> ExtensionCarrier {

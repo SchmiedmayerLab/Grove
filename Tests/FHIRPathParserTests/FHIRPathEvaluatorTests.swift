@@ -14,7 +14,13 @@ import Testing
 
 @Suite
 struct FHIRPathEvaluatorTests {
-    private func evaluate(_ expression: String, context: FHIRPathEvaluationContext = .init()) throws -> [FHIRPathValue] {
+    private static let evaluationInstant = Date(timeIntervalSince1970: 1_700_000_000)
+
+    private func evaluate(_ expression: String) throws -> [FHIRPathValue] {
+        try evaluate(expression, context: .init(now: Self.evaluationInstant))
+    }
+
+    private func evaluate(_ expression: String, context: FHIRPathEvaluationContext) throws -> [FHIRPathValue] {
         try FHIRPathExpression.evaluate(expression: expression, context: context)
     }
 
@@ -65,7 +71,8 @@ struct FHIRPathEvaluatorTests {
         let node = try FHIRPathNode(jsonData: Data(json.utf8))
         return FHIRPathEvaluationContext(
             focus: [.object(node)],
-            constants: ["resource": [.object(node)]]
+            constants: ["resource": [.object(node)]],
+            now: Date(timeIntervalSince1970: 1_700_000_000)
         )
     }
 

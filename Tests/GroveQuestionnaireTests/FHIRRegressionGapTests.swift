@@ -22,6 +22,7 @@ struct FHIRRegressionGapTests {
     private func makeQuestionnaire(items: [ModelsR4.QuestionnaireItem]) -> ModelsR4.Questionnaire {
         var questionnaire = ModelsR4.Questionnaire(status: FHIRPrimitive(PublicationStatus.active))
         questionnaire.url = "https://example.org/fhir/Questionnaire/regression-gaps".asFHIRURIPrimitive()
+        questionnaire.version = "1.0.0".asFHIRStringPrimitive()
         questionnaire.item = items
         return questionnaire
     }
@@ -49,7 +50,7 @@ struct FHIRRegressionGapTests {
         whenUnanswered.enableWhen = [exists("source", false)]
         let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [
             booleanItem("source"), whenAnswered, whenUnanswered
-        ]))
+        ]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let tasks = questionnaire.sections.flatMap(\.tasks)
         let answered = try #require(tasks.first { $0.id == "when-answered" })
@@ -83,7 +84,7 @@ struct FHIRRegressionGapTests {
         )
         ]
         #expect(throws: GroveQuestionnaire.Questionnaire.FHIRConversionError.self) {
-            try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [booleanItem("q1"), item]))
+            try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [booleanItem("q1"), item]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         }
     }
 
@@ -113,7 +114,7 @@ struct FHIRRegressionGapTests {
         let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [
             integerItem("with-step", extensions: [control, step]),
             integerItem("without-step", extensions: [control])
-        ]))
+        ]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let tasks = questionnaire.sections.flatMap(\.tasks)
         guard case .numeric(let withStep) = try #require(tasks.first { $0.id == "with-step" }).kind.variant,
               case .numeric(let withoutStep) = try #require(tasks.first { $0.id == "without-step" }).kind.variant else {
@@ -135,11 +136,14 @@ struct FHIRRegressionGapTests {
         }
         var top = ModelsR4.QuestionnaireItem(linkId: "top".asFHIRStringPrimitive(), type: .init(.group))
         top.item = [group("left", item: booleanItem("q1")), group("right", item: booleanItem("q2"))]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [top]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [top]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["q1"] = .init(value: .bool(true))
         responses.responses["q2"] = .init(value: .bool(false))
-        let fhirResponse = try ModelsR4.QuestionnaireResponse(responses)
+        let fhirResponse = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
         let topItem = try #require(fhirResponse.item?.first { $0.linkId.value?.string == "top" })
         #expect(topItem.item?.map { $0.linkId.value?.string } == ["left", "right"])
         #expect(topItem.item?.first?.item?.first?.linkId.value?.string == "q1")
@@ -193,7 +197,7 @@ struct FHIRRegressionGapTests {
     // MARK: Answer-type details
 
     @Test
-    func decimalItemWithUnitEmitsCodedQuantity() throws {
+    func decimalItemDoesNotChangeItsAnswerTypeBecauseOfAUnitHint() throws {
         var decimal = ModelsR4.QuestionnaireItem(linkId: "weight".asFHIRStringPrimitive(), type: .init(.decimal))
         decimal.text = "weight".asFHIRStringPrimitive()
         decimal.extension = [
@@ -206,16 +210,18 @@ struct FHIRRegressionGapTests {
             ))
         )
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [decimal]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [decimal]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["weight"] = .init(value: .number(72.5))
-        let fhirResponse = try ModelsR4.QuestionnaireResponse(responses)
-        guard case let .quantity(quantity)? = fhirResponse.item?.first?.answer?.first?.value else {
-            Issue.record("Expected a quantity answer for a unit-bearing decimal item")
+        let fhirResponse = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
+        guard case let .decimal(value)? = fhirResponse.item?.first?.answer?.first?.value else {
+            Issue.record("Expected valueDecimal for a decimal Questionnaire item")
             return
         }
-        #expect(quantity.code?.value?.string == "kg")
-        #expect(quantity.system?.value?.url.absoluteString == "http://unitsofmeasure.org")
+        #expect(value.value?.decimal == 72.5)
     }
 
     @Test
@@ -225,7 +231,7 @@ struct FHIRRegressionGapTests {
         choice.answerOption = [1, 2, 3].map {
             QuestionnaireItemAnswerOption(value: .integer(FHIRPrimitive(FHIRInteger($0))))
         }
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let task = try #require(questionnaire.sections.flatMap(\.tasks).first)
         guard case .choice(let config) = task.kind.variant else {
             Issue.record("Expected a choice task")
@@ -234,7 +240,10 @@ struct FHIRRegressionGapTests {
         #expect(config.options.map(\.id) == ["integer|1", "integer|2", "integer|3"])
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["rating"] = .init(value: .choice(.init(selectedOptions: ["integer|3"])))
-        let fhirResponse = try ModelsR4.QuestionnaireResponse(responses)
+        let fhirResponse = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
         #expect(fhirResponse.item?.first?.answer?.first?.value == .integer(FHIRPrimitive(FHIRInteger(3))))
     }
 
@@ -247,7 +256,7 @@ struct FHIRRegressionGapTests {
         }
         let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [
             textItem("short", .string), textItem("long", .text), textItem("link", .url)
-        ]))
+        ]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let tasks = questionnaire.sections.flatMap(\.tasks)
         func freeTextConfig(_ linkId: String) -> GroveQuestionnaire.Questionnaire.Task.Kind.FreeTextConfig? {
             guard case .freeText(let config)? = tasks.first(where: { $0.id == linkId })?.kind.variant else {
@@ -273,7 +282,7 @@ struct FHIRRegressionGapTests {
 
     @Test
     func phq9ConvertsToTheExpectedStructure() throws {
-        let questionnaire = try GroveQuestionnaire.Questionnaire(ModelsR4.Questionnaire.phq9)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(ModelsR4.Questionnaire.phq9, evaluationInstant: questionnaireResponseTestAuthoredAt)
         let tasks = questionnaire.sections.flatMap(\.tasks)
         let choiceTasks = tasks.filter {
             if case .choice = $0.kind.variant { true } else { false }

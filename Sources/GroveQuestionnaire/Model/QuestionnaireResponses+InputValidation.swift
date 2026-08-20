@@ -138,6 +138,10 @@ extension QuestionnaireResponses {
             return .ok
         case .dateTime(let config):
             let cal = Calendar.current
+            // Time-only validation messages need a concrete date for localized formatting,
+            // but must not depend on the wall clock. The reference date is otherwise
+            // semantically irrelevant because the formatted value omits the date.
+            let timeFormattingReference = Date(timeIntervalSinceReferenceDate: 0)
             guard let response = responses[task.id].value.dateValue else {
                 return .ok
             }
@@ -150,7 +154,7 @@ extension QuestionnaireResponses {
                             bySettingHour: minValue.0,
                             minute: minValue.1,
                             second: minValue.2,
-                            of: .now
+                            of: timeFormattingReference
                         )?
                         .formatted(date: .omitted, time: .shortened)
                     return .invalid(
@@ -164,7 +168,7 @@ extension QuestionnaireResponses {
                             bySettingHour: maxValue.0,
                             minute: maxValue.1,
                             second: maxValue.2,
-                            of: .now
+                            of: timeFormattingReference
                         )?
                         .formatted(date: .omitted, time: .shortened)
                     return .invalid(

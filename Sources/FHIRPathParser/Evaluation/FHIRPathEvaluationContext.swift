@@ -22,7 +22,11 @@ public struct FHIRPathEvaluationContext: Sendable {
     /// The instant used for `now()`/`today()`/`timeOfDay()`, so evaluation is reproducible.
     public var now: Date
 
-    public init(focus: [FHIRPathValue] = [], constants: [String: [FHIRPathValue]] = [:], now: Date = Date()) {
+    public init(
+        focus: [FHIRPathValue] = [],
+        constants: [String: [FHIRPathValue]] = [:],
+        now: Date
+    ) {
         self.focus = focus
         self.constants = constants
         self.now = now
