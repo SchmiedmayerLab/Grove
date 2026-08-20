@@ -47,11 +47,32 @@ final class FirebaseStorageTests: XCTestCase {
 
 
 extension FirebaseStorageTests {
+    /// The emulator can accept a connection and then never answer it, so a request is given a short
+    /// patience and asked again on a fresh connection rather than hanging out the whole run.
+    private static let emulator: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 10
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        return URLSession(configuration: configuration)
+    }()
+
+    private static func send(_ request: URLRequest, attempts: Int = 3) async throws -> (Data, URLResponse) {
+        var lastError = URLError(.timedOut)
+        for _ in 0..<attempts {
+            do {
+                return try await emulator.data(for: request)
+            } catch let error as URLError where error.code == .timedOut {
+                lastError = error
+            }
+        }
+        throw lastError
+    }
+
     private static func getAllFiles() async throws -> [FirebaseStorageItem] {
         let documentsURL = try XCTUnwrap(
             URL(string: "http://localhost:9199/v0/b/STORAGE_BUCKET/o")
         )
-        let (data, response) = try await URLSession.shared.data(from: documentsURL)
+        let (data, response) = try await send(URLRequest(url: documentsURL))
 
         guard let urlResponse = response as? HTTPURLResponse,
               200...299 ~= urlResponse.statusCode else {
@@ -103,7 +124,7 @@ extension FirebaseStorageTests {
             var request = URLRequest(url: url)
             request.httpMethod = "DELETE"
 
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (_, response) = try await send(request)
 
             guard let urlResponse = response as? HTTPURLResponse,
                   200...299 ~= urlResponse.statusCode else {

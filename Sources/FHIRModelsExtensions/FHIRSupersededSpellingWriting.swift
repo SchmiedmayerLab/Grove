@@ -128,6 +128,12 @@ extension FHIRTypeWithExtensions {
         storage.reserveCapacity(storage.count + extensions.count)
         storage.append(contentsOf: extensions)
         `extension` = storage
+        // Nested extensions are mirrored with their complete tree when the enclosing resource
+        // receives them. Mirroring here as well leaves retired children in the canonical tree and
+        // duplicates those children when the top-level copy is created.
+        guard !(self is ModelsR4.Extension) else {
+            return
+        }
         // Under .canonicalOnly this is a guard check; the appended urls are what a dual-write has to
         // mirror, so doing it here covers every writer instead of every writer remembering to.
         let retired = extensions.compactMap { element -> FHIRCanonicalURL? in

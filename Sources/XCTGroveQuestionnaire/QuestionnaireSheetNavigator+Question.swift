@@ -93,14 +93,13 @@ extension QuestionnaireSheetNavigator {
             self.linkId = linkId
         }
 
-        /// Taps a control of this question, scrolling down to it if it is not on screen yet.
+        /// Taps a control of this question, bringing it onto the screen first.
         ///
-        /// The renderer scrolls a page to the question it is asking about, so this only has
-        /// work to do when a test reaches further down the page than the participant has.
-        fileprivate func tap(_ element: XCUIElement, attempts: Int = 6) {
-            for _ in 0..<attempts where !element.isHittable {
-                app.swipeUp()
-            }
+        /// The renderer scrolls a page to the question it is asking about, so this only has work
+        /// to do when a test reaches past where the participant is — in either direction: a page
+        /// builds a row shortly before it shows it, so reaching a control is not touching it.
+        fileprivate func tap(_ element: XCUIElement) {
+            navigator.scan { element.isHittable }
             element.tap()
         }
     }
