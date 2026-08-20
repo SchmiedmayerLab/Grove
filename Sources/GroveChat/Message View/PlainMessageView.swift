@@ -32,7 +32,8 @@ struct PlainMessageView: View {
             }
             if let text = message.content.text, !text.isEmpty {
                 MarkdownView(text: text)
-                    .frame(maxWidth: .infinity, alignment: message.content.hasAttachments ? .leading : .center)
+                    // A caption stretches to the width of what it captions; text on its own lets the bubble hug it.
+                    .frame(maxWidth: message.content.hasAttachments ? .infinity : nil, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, textTopPadding)
             }

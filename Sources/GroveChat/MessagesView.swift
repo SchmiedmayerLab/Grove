@@ -89,10 +89,36 @@ public struct MessagesView: View {
             self.toolCalls = toolCalls
             self.thinking = thinking
         }
+
+        /// Whether a message is kept out of the conversation.
+        ///
+        /// - Parameters:
+        ///   - message: The message about to be laid out.
+        ///   - namedAsHidden: Messages the caller named through `View/chatHiddenMessages(_:)`. Those are
+        ///     hidden whatever role they carry, because only the caller knows which of its own input is internal.
+        func hides(_ message: ChatEntity, namedAsHidden: Set<UUID> = []) -> Bool {
+            if namedAsHidden.contains(message.id) {
+                return true
+            }
+            return switch message.role {
+            case .user, .assistant(.response):
+                false
+            case .assistant(.toolCall), .assistant(.toolResponse):
+                toolCalls == .hidden
+            case .assistant(.thinking):
+                thinking == .hidden
+            case .hidden(let type):
+                switch hiddenMessages {
+                case .all:
+                    true
+                case .custom(let hiddenMessageTypes):
+                    hiddenMessageTypes.contains(type)
+                }
+            }
+        }
     }
 
 
-    private static let bottomAnchorIdentifier = "Bottom Anchor"
     /// How close (in points) to the bottom edge the user must be for the view to keep following new content.
     private static let followContentThreshold: CGFloat = 64
 
@@ -106,12 +132,16 @@ public struct MessagesView: View {
     /// While pinned, the view follows streaming content; once the user scrolls up to read, it stops yanking
     /// them back down and only resumes following when they return to the bottom or send a message themselves.
     @State private var isNearBottom = true
+    /// Whether the user is dragging the conversation, which is the only thing that stops it following.
+    @State private var isScrolling = false
+    @State private var scrollPosition = ScrollPosition()
+    @Environment(\.chatHiddenMessages) private var hiddenMessages
     @Environment(\.chatEmptyState) private var emptyState
     @Environment(\.chatErrorState) private var errorState
     @Environment(\.chatGeneration) private var generation
 
     private var visibleMessages: [ChatEntity] {
-        chat.filter { !shouldHide($0) }
+        chat.filter { !messagesVisibility.hides($0, namedAsHidden: hiddenMessages) }
     }
 
     private var shouldDisplayTypingIndicator: Bool {
@@ -150,9 +180,6 @@ public struct MessagesView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             ChatErrorView(state: errorState)
-            Color.clear
-                .frame(height: 1)
-                .id(Self.bottomAnchorIdentifier)
         }
     }
 
@@ -166,43 +193,57 @@ public struct MessagesView: View {
     }
 
     public var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                messageStack
-                    .padding(.horizontal)
-                    .padding(.top, insets.top)
-                    .padding(.bottom, insets.bottom)
-                    .scrollTargetLayout()
-            }
-            .overlay {
-                emptyStateView
-            }
-            #if !os(visionOS)
-            .scrollDismissesKeyboard(.interactively)
-            #endif
-            .defaultScrollAnchor(.bottom)
-            .onScrollGeometryChange(for: Bool.self) { geometry in
-                geometry.contentSize.height + geometry.contentInsets.bottom - geometry.visibleRect.maxY < Self.followContentThreshold
-            } action: { _, newValue in
+        conversation
+    }
+
+    /// The conversation itself, plus everything that decides where it is scrolled to.
+    private var conversation: some View {
+        ScrollView {
+            messageStack
+                .padding(.horizontal)
+                .padding(.top, insets.top)
+                .padding(.bottom, insets.bottom)
+                .scrollTargetLayout()
+        }
+        .overlay {
+            emptyStateView
+        }
+        #if !os(visionOS)
+        .scrollDismissesKeyboard(.interactively)
+        #endif
+        // A short conversation reads from the top; a longer one opens at its newest message. Growth is
+        // followed explicitly below, so scrolling up to read is not undone by the next token.
+        .defaultScrollAnchor(.top, for: .alignment)
+        .defaultScrollAnchor(.bottom, for: .initialOffset)
+        .scrollPosition($scrollPosition)
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentSize.height + geometry.contentInsets.bottom - geometry.visibleRect.maxY < Self.followContentThreshold
+        } action: { _, newValue in
+            // An answer streaming in grows the content faster than a scroll can follow it, which would
+            // otherwise read as the user having scrolled away and stop the view following at all.
+            if newValue || isScrolling {
                 isNearBottom = newValue
             }
-            .onChange(of: chat) { oldValue, newValue in
-                if newValue.count > oldValue.count && newValue.last?.role == .user {
-                    // The user just sent a message; always bring it into view.
-                    scrollToBottom(proxy)
-                } else if isNearBottom {
-                    // Follow streaming content only while the user hasn't scrolled away to read.
-                    scrollToBottom(proxy, animated: newValue.count != oldValue.count)
-                }
-            }
-            #if os(iOS)
-            .onReceive(keyboardWillShowPublisher) { _ in
-                if isNearBottom {
-                    scrollToBottom(proxy)
-                }
-            }
-            #endif
         }
+        .onScrollPhaseChange { _, newPhase in
+            isScrolling = newPhase.isScrolling
+        }
+        .onChange(of: chat) { oldValue, newValue in
+            if newValue.count > oldValue.count && newValue.last?.role == .user {
+                // The user just sent a message; always bring it into view.
+                scrollToBottom()
+            } else if isNearBottom {
+                // Follow streaming content only while the user hasn't scrolled away to read.
+                scrollToBottom(animated: newValue.count != oldValue.count)
+            }
+        }
+        #if os(iOS)
+        .onReceive(keyboardWillShowPublisher) { _ in
+            if isNearBottom {
+                scrollToBottom()
+            }
+        }
+        #endif
     }
 
     #if os(iOS)
@@ -252,31 +293,18 @@ public struct MessagesView: View {
         self.init(.constant(chat), insets: insets, messagesVisibility: messagesVisibility, typingIndicator: typingIndicator)
     }
 
-    private func scrollToBottom(_ proxy: ScrollViewProxy, animated: Bool = true) {
-        if animated {
-            withAnimation(.smooth(duration: 0.3)) {
-                proxy.scrollTo(Self.bottomAnchorIdentifier, anchor: .bottom)
-            }
-        } else {
-            proxy.scrollTo(Self.bottomAnchorIdentifier, anchor: .bottom)
+    /// Scrolls to the foot of the conversation, where a drag would come to rest.
+    ///
+    /// Scrolling to the edge rather than to a view of our own at the end of the stack: an anchor view is
+    /// positioned without regard for the scroll view's content insets, so following an answer left the
+    /// conversation somewhere a participant could not have dragged it to.
+    private func scrollToBottom(animated: Bool = true) {
+        guard animated else {
+            scrollPosition.scrollTo(edge: .bottom)
+            return
         }
-    }
-
-    private func shouldHide(_ message: ChatEntity) -> Bool {
-        switch message.role {
-        case .user, .assistant(.response):
-            false
-        case .assistant(.toolCall), .assistant(.toolResponse):
-            messagesVisibility.toolCalls == .hidden
-        case .assistant(.thinking):
-            messagesVisibility.thinking == .hidden
-        case .hidden(let type):
-            switch messagesVisibility.hiddenMessages {
-            case .all:
-                true
-            case .custom(let hiddenMessageTypes):
-                hiddenMessageTypes.contains(type)
-            }
+        withAnimation(.smooth(duration: 0.3)) {
+            scrollPosition.scrollTo(edge: .bottom)
         }
     }
 }

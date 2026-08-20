@@ -42,6 +42,8 @@ struct ChoiceRow<AccessoryIfSelected: View>: View {
                 // Shape as well as colour, so the selection survives a colour-blind reading.
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                    // The mark is the whole confirmation an answer gets, so it is worth seeing arrive.
+                    .contentTransition(.symbolEffect(.replace))
                     .accessibilityHidden(true)
             }
             // The option is a row within its question's card rather than a row of the list, so it

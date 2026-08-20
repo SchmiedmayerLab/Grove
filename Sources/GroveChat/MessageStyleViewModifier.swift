@@ -24,6 +24,7 @@ struct MessageStyleModifier: ViewModifier {
 
     @Environment(\.chatAccentColor) private var chatAccentColor
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.layoutDirection) private var layoutDirection
 
     private var palette: ChatPalette {
         ChatPalette(accent: chatAccentColor, colorScheme: colorScheme)
@@ -42,10 +43,15 @@ struct MessageStyleModifier: ViewModifier {
         case .trailing:
             content
                 .padding(Self.padding)
+                // The tail reaches past the text, so the inset it needs comes out of the trailing padding.
+                .padding(.trailing, ChatBubbleShape.tailWidth)
                 .foregroundStyle(palette.userBubbleLabel)
                 .background(
                     backgroundColorUserChat ?? palette.userBubble,
-                    in: .rect(cornerRadius: Self.cornerRadius, style: .continuous)
+                    in: ChatBubbleShape(
+                        cornerRadius: Self.cornerRadius,
+                        tailEdge: layoutDirection == .rightToLeft ? .leading : .trailing
+                    )
                 )
         }
     }
