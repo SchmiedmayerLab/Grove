@@ -57,12 +57,12 @@ def package_dump(targets, products=None, dependencies=None, **values):
     }
 
 
-def run_selector(*changed_paths):
+def run_selector(*changed_paths, extra_arguments=()):
     with tempfile.NamedTemporaryFile(mode="w") as changed_file:
         changed_file.write("\n".join(changed_paths) + "\n")
         changed_file.flush()
         original_argv = sys.argv
-        sys.argv = [str(SCRIPT), changed_file.name]
+        sys.argv = [str(SCRIPT), changed_file.name, *extra_arguments]
         output = io.StringIO()
         try:
             with contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
@@ -184,6 +184,46 @@ class InfrastructureSelectionTests(unittest.TestCase):
 
         self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
         self.assertEqual(result["has_fhir_conformance"], "false")
+
+
+class UITestProjectsSelectionTests(unittest.TestCase):
+    """The UI-test project manifest is diffed per table, so a targeted change stays targeted."""
+
+    HEAD = pathlib.Path(MODULE.ROOT) / MODULE.UI_TEST_PROJECTS_PATH
+
+    def run_with_base(self, base_content):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as base_file:
+            base_file.write(base_content)
+            base_file.flush()
+            return run_selector(
+                MODULE.UI_TEST_PROJECTS_PATH,
+                extra_arguments=("--base-ui-test-projects", base_file.name),
+            )
+
+    def test_without_a_base_version_stays_conservative(self):
+        result = run_selector(MODULE.UI_TEST_PROJECTS_PATH)
+
+        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+
+    def test_a_changed_table_affects_only_its_package(self):
+        base = self.HEAD.read_text().replace("[GroveLLM]", "[GroveLLM]\nremoved_marker = true", 1)
+        self.assertNotEqual(base, self.HEAD.read_text())
+
+        result = self.run_with_base(base)
+
+        self.assertEqual(result["affected"], "GroveLLM")
+
+    def test_an_untouched_manifest_affects_nothing(self):
+        result = self.run_with_base(self.HEAD.read_text())
+
+        self.assertEqual(result["affected"], "(none)")
+
+    def test_an_unclassified_table_stays_conservative(self):
+        base = self.HEAD.read_text() + '\n[NotAPackage]\napp_products = ["Grove"]\n'
+
+        result = self.run_with_base(base)
+
+        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
 
 
 if __name__ == "__main__":
