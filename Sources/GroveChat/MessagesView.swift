@@ -9,6 +9,7 @@
 #if os(iOS)
 private import Combine
 #endif
+private import GroveFoundation
 public import SwiftUI
 
 
@@ -170,11 +171,14 @@ public struct MessagesView: View {
     }
 
     private var messageStack: some View {
+        let messages = visibleMessages
         // A conversation is small enough to lay out eagerly, and a lazily materialized first row can
         // miss its appear events entirely — leaving a streamed answer parsed but never rendered.
-        VStack(spacing: 24) {
-            ForEach(visibleMessages) { message in
-                MessageView(message)
+        return VStack(spacing: 24) {
+            ForEach(Array(messages.enumerated()), id: \.element.id) { index, message in
+                // Only the last message of a sender's run carries the bubble's tail, the way Messages
+                // marks where a turn ends.
+                MessageView(message, endsSenderRun: messages[safe: index + 1]?.role != message.role)
                     .id(message.id)
             }
             if shouldDisplayTypingIndicator {

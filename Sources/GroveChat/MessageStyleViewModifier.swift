@@ -16,10 +16,11 @@ import SwiftUI
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct MessageStyleModifier: ViewModifier {
     /// The bubble's inset, which content that fills it edge to edge — an image — has to cancel out.
-    static let padding = EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
-    static let cornerRadius: CGFloat = 22
+    static let padding = EdgeInsets(top: 7, leading: 12, bottom: 7, trailing: 12)
+    static let cornerRadius: CGFloat = 18
 
     private let chatAlignment: ChatEntity.Alignment
+    private let drawsTail: Bool
     private let backgroundColorUserChat: Color?
 
     @Environment(\.chatAccentColor) private var chatAccentColor
@@ -30,8 +31,9 @@ struct MessageStyleModifier: ViewModifier {
         ChatPalette(accent: chatAccentColor, colorScheme: colorScheme)
     }
 
-    init(chatAlignment: ChatEntity.Alignment, backgroundColorUserChat: Color?) {
+    init(chatAlignment: ChatEntity.Alignment, drawsTail: Bool, backgroundColorUserChat: Color?) {
         self.chatAlignment = chatAlignment
+        self.drawsTail = drawsTail
         self.backgroundColorUserChat = backgroundColorUserChat
     }
 
@@ -43,14 +45,13 @@ struct MessageStyleModifier: ViewModifier {
         case .trailing:
             content
                 .padding(Self.padding)
-                // The tail reaches past the text, so the inset it needs comes out of the trailing padding.
-                .padding(.trailing, ChatBubbleShape.tailWidth)
                 .foregroundStyle(palette.userBubbleLabel)
                 .background(
                     backgroundColorUserChat ?? palette.userBubble,
                     in: ChatBubbleShape(
                         cornerRadius: Self.cornerRadius,
-                        tailEdge: layoutDirection == .rightToLeft ? .leading : .trailing
+                        tailEdge: layoutDirection == .rightToLeft ? .leading : .trailing,
+                        drawsTail: drawsTail
                     )
                 )
         }
@@ -79,8 +80,15 @@ extension View {
     ///     }
     /// }
     /// ```
+    ///
+    /// - Parameter tail: Whether the bubble carries the sender's tail. Messages keeps it on the last
+    ///     message of a sender's run only, so consecutive bubbles read as one turn.
     @available(iOS 18, macOS 15, watchOS 11, *)
-    func chatMessageStyle(alignment: ChatEntity.Alignment, backgroundColorUserChat: Color? = nil) -> some View {
-        modifier(MessageStyleModifier(chatAlignment: alignment, backgroundColorUserChat: backgroundColorUserChat))
+    func chatMessageStyle(
+        alignment: ChatEntity.Alignment,
+        tail: Bool = true,
+        backgroundColorUserChat: Color? = nil
+    ) -> some View {
+        modifier(MessageStyleModifier(chatAlignment: alignment, drawsTail: tail, backgroundColorUserChat: backgroundColorUserChat))
     }
 }
