@@ -8,38 +8,19 @@
 
 import FHIRModelsExtensions
 private import Foundation
-import GroveLegacyIdentifiers
 public import GroveQuestionnaire
 public import ModelsR4
 private import PencilKit
 private import struct SwiftUI.Color
 
 
-/// The identifiers an annotate-image item is written with, and every spelling they superseded.
-///
-/// The canonicals are the ones the Grove implementation guide publishes. The pre-Grove spellings
-/// filed extensions under `CodeSystem` and carried path separators a FHIR identifier may not
-/// contain; both are corrected here, and every spelling still reads.
+/// The identifiers the current Grove implementation guide publishes for annotate-image items.
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension AnnotateImageQuestionKind {
     private static let base = "https://grovealliance.org/fhir/core"
 
-    fileprivate static let itemControlSystem = FHIRCanonicalURL(
-        "\(base)/CodeSystem/grove-questionnaire-item-control",
-        superseding: ["\(base)/CodeSystem/questionnaire-item-control"] + SupersededFHIRURLs.questionnaireItemControlSystem
-    )
-    /// The base image's pre-`itemMedia` spelling: a filename in the app's main bundle.
-    ///
-    /// The guide defines no such extension — the image travels with the questionnaire as an
-    /// SDC `itemMedia` attachment — so this is read, never written.
-    fileprivate static let inputImage = FHIRCanonicalURL(
-        "\(base)/StructureDefinition/annotateImageInputImage",
-        superseding: SupersededFHIRURLs.annotateImageInputImage
-    )
-    fileprivate static let region = FHIRCanonicalURL(
-        "\(base)/StructureDefinition/grove-annotate-image-region",
-        superseding: ["\(base)/StructureDefinition/annotateImageRegion"] + SupersededFHIRURLs.annotateImageRegion
-    )
+    fileprivate static let itemControlSystem = FHIRCanonicalURL("\(base)/CodeSystem/grove-questionnaire-item-control")
+    fileprivate static let region = FHIRCanonicalURL("\(base)/StructureDefinition/grove-annotate-image-region")
 }
 
 
@@ -52,7 +33,7 @@ extension AnnotateImageQuestionKind: QuestionKindDefinitionWithFHIRDecodingSuppo
         guard itemControlExts.count == 1,
               let itemControlExt = itemControlExts.first,
               let itemControlCoding = itemControlExt.value?.codeableConceptValue?.coding?.first,
-              Self.itemControlSystem.allSpellings.contains(itemControlCoding.system?.value?.url.absoluteString ?? ""),
+              Self.itemControlSystem.canonical == itemControlCoding.system?.value?.url.absoluteString,
               itemControlCoding.code == "annotate-image" else {
             return nil
         }
@@ -105,8 +86,7 @@ extension AnnotateImageQuestionKind: QuestionKindDefinitionWithFHIRDecodingSuppo
 
     /// The image the participant annotates.
     ///
-    /// The guide carries it inline as an SDC `itemMedia` attachment; the pre-Grove encoding
-    /// named a file in the app's main bundle, which still reads.
+    /// The guide carries it inline as an SDC `itemMedia` attachment.
     private static func baseImage(
         of item: QuestionnaireItem
     ) throws(GroveQuestionnaire.Questionnaire.FHIRConversionError) -> AnnotateImageConfig.InputImage {
@@ -118,12 +98,7 @@ extension AnnotateImageQuestionKind: QuestionKindDefinitionWithFHIRDecodingSuppo
             }
             return .inlineData(data)
         }
-        let legacyExts = item.extensions(for: Self.inputImage)
-        let filename: String? = legacyExts.first?.value?.stringValue
-        guard let filename, legacyExts.count == 1 else {
-            throw .other("An annotate-image question must carry its base image in an itemMedia attachment")
-        }
-        return .namedInMainBundle(filename: filename)
+        throw .other("An annotate-image question must carry its base image in an itemMedia attachment")
     }
 }
 

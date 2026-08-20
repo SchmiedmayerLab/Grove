@@ -8,7 +8,6 @@
 
 private import FHIRPathParser
 public import Foundation
-import GroveLegacyIdentifiers
 public import ModelsR4
 
 
@@ -92,25 +91,17 @@ extension QuestionnaireItem {
         static let hidden = "http://hl7.org/fhir/StructureDefinition/questionnaire-hidden"
         static let entryFormat = "http://hl7.org/fhir/StructureDefinition/entryFormat"
         
-        // Read-only fallbacks. SDC's `targetConstraint` and `sdc-questionnaire-keyboard`
-        // are what Grove writes and what the guide describes; these spellings exist to
-        // keep questionnaires authored before that switch renderable, so the guide
-        // deliberately does not define them.
         static let validationMessage = FHIRCanonicalURL(
-            "https://grovealliance.org/fhir/core/StructureDefinition/validationText",
-            superseding: SupersededFHIRURLs.validationText
+            "https://grovealliance.org/fhir/core/StructureDefinition/validationText"
         )
         static let keyboardType = FHIRCanonicalURL(
-            "https://grovealliance.org/fhir/core/StructureDefinition/iosKeyboardType",
-            superseding: SupersededFHIRURLs.iosKeyboardType
+            "https://grovealliance.org/fhir/core/StructureDefinition/iosKeyboardType"
         )
         static let autocomplete = FHIRCanonicalURL(
-            "https://grovealliance.org/fhir/core/StructureDefinition/grove-autocomplete",
-            superseding: SupersededFHIRURLs.iosTextContentType
+            "https://grovealliance.org/fhir/core/StructureDefinition/grove-autocomplete"
         )
         static let autocapitalize = FHIRCanonicalURL(
-            "https://grovealliance.org/fhir/core/StructureDefinition/grove-autocapitalize",
-            superseding: SupersededFHIRURLs.iosAutocapitalizationType
+            "https://grovealliance.org/fhir/core/StructureDefinition/grove-autocapitalize"
         )
         
         static let dateMaxValue = "http://ehelse.no/fhir/StructureDefinition/sdf-maxvalue"

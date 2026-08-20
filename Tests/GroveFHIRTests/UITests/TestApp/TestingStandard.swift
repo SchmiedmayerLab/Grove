@@ -8,8 +8,6 @@
 
 import os
 import Grove
-import GroveFHIR
-import GroveHealthKitFHIR
 import GroveHealthKit
 
 
@@ -21,11 +19,9 @@ actor TestingStandard: Standard, HealthKitConstraint, EnvironmentAccessible {
     ]
     
     
-    @Dependency(FHIRStore.self) private var fhirStore
     @Dependency(HealthKit.self) private var healthKit
     
     private let logger = Logger()
-    private var useHealthKitResources = true
     private var samples: [HKSample] = []
     
     
@@ -55,33 +51,15 @@ actor TestingStandard: Standard, HealthKitConstraint, EnvironmentAccessible {
     
     func handleNewSamples<Sample>(_ addedSamples: some Collection<Sample>, ofType sampleType: SampleType<Sample>) async {
         samples.append(contentsOf: addedSamples.lazy.map { $0 as HKSample })
-        if useHealthKitResources {
-            for sample in addedSamples {
-                do {
-                    try await fhirStore.add(sample, using: healthKit)
-                } catch {
-                    logger.error("Cloud not transform HealthKit sample with id: \(sample.id)")
-                }
-            }
-        }
     }
     
     func handleDeletedObjects<Sample>(_ deletedObjects: some Collection<HKDeletedObject>, ofType sampleType: SampleType<Sample>) async {
         for object in deletedObjects {
             samples.removeAll { $0.id == object.uuid }
-            if useHealthKitResources {
-                await fhirStore.remove(object)
-            }
         }
     }
     
     func fetchRecordsFromHealthKit() async {
-        guard useHealthKitResources else {
-            return
-        }
-        
-        await fhirStore.removeAllResources()
-        
         let healthKit = self.healthKit
         await withTaskGroup { taskGroup in
             for recordType in Self.recordTypes {
@@ -103,16 +81,6 @@ actor TestingStandard: Standard, HealthKitConstraint, EnvironmentAccessible {
     }
     
     private func addRecords(_ records: [HKClinicalRecord]) async {
-        await withTaskGroup { sampleTaskGroup in
-            for newHealthKitSample in records {
-                sampleTaskGroup.addTask { [self] in
-                    do {
-                        try await fhirStore.add(newHealthKitSample, using: healthKit, loadHealthKitAttachments: true)
-                    } catch {
-                        logger.error("Could not transform sample \(newHealthKitSample.id) to FHIR resource: \(error)")
-                    }
-                }
-            }
-        }
+        samples.append(contentsOf: records)
     }
 }

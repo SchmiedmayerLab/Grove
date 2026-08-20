@@ -18,8 +18,6 @@ import os
 /// - Migrating on first launch after an update — expected, exactly once. A notice.
 /// - The same legacy path on a later launch — the migration regressed. An error, and a trap in debug
 ///   builds, because it means data is being read from somewhere nothing writes to any more.
-/// - A superseded URL in a third-party FHIR resource — permanently expected, and not reported at all.
-///   Those go through the supersession mechanism, never through here.
 public enum LegacyIdentifierReport {
     /// How to treat an encounter with a legacy identifier.
     public enum Expectation: Sendable {

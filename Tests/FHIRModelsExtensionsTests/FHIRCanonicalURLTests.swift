@@ -8,7 +8,6 @@
 
 @testable import FHIRModelsExtensions
 import Foundation
-import GroveLegacyIdentifiers
 import ModelsR4
 import Testing
 
@@ -29,14 +28,11 @@ private struct ExtensionCarrier: FHIRTypeWithExtensions {
 }
 
 
-/// Canonical URLs identify extensions inside resources this project does not own — questionnaires
-/// authored elsewhere, observations already in a research database — so a superseded spelling has to
-/// keep resolving indefinitely.
+/// Canonical URLs are exact identifiers. Grove v0.2 does not alias retired spellings.
 @Suite
 struct FHIRCanonicalURLTests {
     private static let identifier = FHIRCanonicalURL(
-        "https://grovealliance.org/fhir/core/StructureDefinition/validationText",
-        superseding: SupersededFHIRURLs.validationText
+        "https://grovealliance.org/fhir/core/StructureDefinition/validationText"
     )
 
     private func item(withExtensionsAt urls: [String]) -> ExtensionCarrier {
@@ -53,20 +49,12 @@ struct FHIRCanonicalURLTests {
         #expect(value(of: found) == [Self.identifier.canonical])
     }
 
-    @Test("every superseded spelling still resolves", arguments: SupersededFHIRURLs.validationText)
-    func findsEachSupersededSpelling(_ spelling: String) {
-        let found = item(withExtensionsAt: [spelling]).extensions(for: Self.identifier)
-        #expect(value(of: found) == [spelling])
-    }
-
-    /// A resource carrying both was written by a newer version; the superseded copy is a compatibility
-    /// duplicate and must not be preferred, nor merged in alongside.
     @Test
-    func theCanonicalSpellingWinsWhenBothArePresent() throws {
-        let legacy = try #require(SupersededFHIRURLs.validationText.first)
-        let found = item(withExtensionsAt: [legacy, Self.identifier.canonical]).extensions(for: Self.identifier)
+    func doesNotResolveANearMatch() {
+        let nearMatch = Self.identifier.canonical + "-old"
+        let found = item(withExtensionsAt: [nearMatch]).extensions(for: Self.identifier)
 
-        #expect(value(of: found) == [Self.identifier.canonical])
+        #expect(found.isEmpty)
     }
 
     @Test
@@ -75,12 +63,8 @@ struct FHIRCanonicalURLTests {
         #expect(found.isEmpty)
     }
 
-    /// The two pre-Grove spellings of the validation message predate each other, so both have to be
-    /// carried — dropping the older one would break questionnaires written before it was superseded.
     @Test
-    func carriesEverySpellingEverPublished() {
-        #expect(Self.identifier.allSpellings.count == SupersededFHIRURLs.validationText.count + 1)
-        #expect(Self.identifier.allSpellings.first == Self.identifier.canonical)
-        #expect(Set(SupersededFHIRURLs.validationText).isSubset(of: Set(Self.identifier.allSpellings)))
+    func preservesTheExactCanonical() {
+        #expect(Self.identifier.description == Self.identifier.canonical)
     }
 }

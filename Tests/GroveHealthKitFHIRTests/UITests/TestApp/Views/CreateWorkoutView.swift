@@ -1,85 +1,21 @@
 //
 // This source file is part of the Grove open-source project
 //
-// SPDX-FileCopyrightText: 2023 Stanford University and the project authors (see CONTRIBUTORS.md)
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
-import HealthKit
-import GroveHealthKitFHIR
-import ModelsR4
 import SwiftUI
 
+
 struct CreateWorkoutView: View {
-    @Environment(HealthKitManager.self) private var manager
-
-    @State private var json = ""
-    @State private var showingSheet = false
-
     var body: some View {
-        Form {
-            Section {
-                Button("Create Sample Workout") {
-                    Swift::Task {
-                        await createWorkout()
-                        showingSheet.toggle()
-                    }
-                }
-            }
-        }
-        .sheet(isPresented: $showingSheet) {
-            JSONView(json: $json)
-        }
-            .navigationBarTitle("Create Workout")
-    }
-
-    /// Uses `HKWorkoutBuilder` to build an `HKWorkout`
-    private func buildWorkout(
-        startDate: Date,
-        endDate: Date,
-        activityType: HKWorkoutActivityType
-    ) async throws -> HKWorkout {
-        guard let healthStore = self.manager.healthStore else {
-            throw HKError(.errorHealthDataUnavailable)
-        }
-        let configuration = HKWorkoutConfiguration()
-        configuration.activityType = activityType
-        configuration.locationType = .indoor
-        let workoutBuilder = HKWorkoutBuilder(
-            healthStore: healthStore,
-            configuration: configuration,
-            device: nil
+        ContentUnavailableView(
+            "No v0.2 Workout Profile",
+            systemImage: "figure.run",
+            description: Text("Workout is listed as no-published-contract in the authoritative HealthKit coverage matrix.")
         )
-        try await workoutBuilder.beginCollection(at: startDate)
-        try await workoutBuilder.endCollection(at: endDate)
-        if let workout = try await workoutBuilder.finishWorkout() {
-            return workout
-        } else {
-            throw HKError(.errorHealthDataUnavailable)
-        }
-    }
-
-    private func createWorkout() async {
-        do {
-            try await manager.requestWorkoutAuthorization()
-
-            /// Use `HKWorkoutBuilder` to create the workout
-            let workout = try await buildWorkout(
-                startDate: Date(),
-                endDate: Date().addingTimeInterval(3600),
-                activityType: .running
-            )
-
-            let observation = try workout.resource()
-
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-            let data = try encoder.encode(observation)
-            self.json = String(decoding: data, as: UTF8.self)
-        } catch {
-            print(error)
-        }
+        .navigationTitle("Workout")
     }
 }

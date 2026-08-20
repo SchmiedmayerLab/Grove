@@ -41,7 +41,7 @@ struct FHIRConversionCustomTasksTests {
             static func parse(_ item: QuestionnaireItem) throws(GroveQuestionnaire.Questionnaire.FHIRConversionError) -> Config? {
                 guard let itemControlExt = item.extensions(for: "http://hl7.org/fhir/StructureDefinition/questionnaire-itemControl").first,
                       let itemControlCoding = itemControlExt.value?.codeableConceptValue?.coding?.first,
-                      itemControlCoding.system == "http://spezi.stanford.edu/fhir/CodeSystem/custom-task/item-control",
+                      itemControlCoding.system == "https://grovealliance.org/fhir/questionnaire/CodeSystem/test-custom-item-control",
                       itemControlCoding.code == "rank-options" else {
                     return nil
                 }
@@ -73,7 +73,7 @@ struct FHIRConversionCustomTasksTests {
               "status": "draft",
               "meta": {
                 "profile": [
-                  "http://spezi.health/fhir/StructureDefinition/sdf-Questionnaire"
+                  "https://grovealliance.org/fhir/questionnaire/StructureDefinition/grove-questionnaire"
                 ],
                 "tag": [
                   {
@@ -143,7 +143,7 @@ struct FHIRConversionCustomTasksTests {
                       "valueCodeableConcept": {
                         "coding": [
                           {
-                            "system": "http://spezi.stanford.edu/fhir/CodeSystem/custom-task/item-control",
+                            "system": "https://grovealliance.org/fhir/questionnaire/CodeSystem/test-custom-item-control",
                             "code": "rank-options"
                           }
                         ]
@@ -200,7 +200,7 @@ struct FHIRConversionCustomTasksTests {
               "status": "draft",
               "meta": {
                 "profile": [
-                  "http://spezi.health/fhir/StructureDefinition/sdf-Questionnaire"
+                  "https://grovealliance.org/fhir/questionnaire/StructureDefinition/grove-questionnaire"
                 ],
                 "tag": [
                   {
@@ -221,18 +221,21 @@ struct FHIRConversionCustomTasksTests {
                       "valueCodeableConcept": {
                         "coding": [
                           {
-                            "system": "http://spezi.stanford.edu/fhir/CodeSystem/questionnaire-item-control",
+                            "system": "https://grovealliance.org/fhir/core/CodeSystem/grove-questionnaire-item-control",
                             "code": "annotate-image"
                           }
                         ]
                       }
                     },
                     {
-                      "url": "http://spezi.stanford.edu/fhir/CodeSystem/questionnaire-item-control/annotate-image/input-image",
-                      "valueString": "bodymap.png"
+                      "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-itemMedia",
+                      "valueAttachment": {
+                        "contentType": "image/png",
+                        "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+                      }
                     },
                     {
-                      "url": "http://spezi.stanford.edu/fhir/CodeSystem/questionnaire-item-control/annotate-image/region",
+                      "url": "https://grovealliance.org/fhir/core/StructureDefinition/grove-annotate-image-region",
                       "extension": [
                         {
                           "url": "label",
@@ -245,7 +248,7 @@ struct FHIRConversionCustomTasksTests {
                       ]
                     },
                     {
-                      "url": "http://spezi.stanford.edu/fhir/CodeSystem/questionnaire-item-control/annotate-image/region",
+                      "url": "https://grovealliance.org/fhir/core/StructureDefinition/grove-annotate-image-region",
                       "extension": [
                         {
                           "url": "label",
@@ -269,11 +272,12 @@ struct FHIRConversionCustomTasksTests {
         #expect(questionnaire.sections.count == 1)
         #expect(questionnaire.sections[0].tasks.count == 1)
         let task = try #require(questionnaire.sections.first?.tasks.first)
+        let imageData = try #require(Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="))
         #expect(task == .init(
             id: "pain-leg",
             title: "In each leg, where do you feel pain?",
             kind: .annotateImage(AnnotateImageConfig(
-                inputImage: .namedInMainBundle(filename: "bodymap.png"),
+                inputImage: .inlineData(imageData),
                 regions: [
                     .init(name: "Pain", color: .red),
                     .init(name: "Stiffness", color: .blue)

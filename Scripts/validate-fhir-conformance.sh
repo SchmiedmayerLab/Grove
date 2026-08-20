@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # This source file is part of the Grove open-source project
 #
@@ -7,52 +7,104 @@
 # SPDX-License-Identifier: MIT
 #
 
-# Validates resources Grove actually produces against the profiles Grove publishes.
+# Emits the selected Swift producer's R4 resources and validates them against the exact
+# adapter-inclusive grove-fhir v0.2 package stack. No resources are uploaded.
 #
-# The unit tests check the converter and the IG Publisher checks the guide's hand-written
-# examples; neither crosses the gap between them. This does: it runs the conformance
-# fixture target, which writes one resource per shape into .build/conformance-fixtures,
-# then puts those bytes through the HL7 validator with both implementation guide packages
-# loaded.
-#
-# Usage: Scripts/validate-fhir-conformance.sh
-#
-# With nothing installed, this clones the grove-fhir guides into .fhir, downloads the
-# validator the guides pin, and builds the two packages there — a first run therefore needs
-# git, java, node, and ruby, and takes the better part of an hour. Set FHIR_VALIDATOR,
-# GROVE_IG_CORE, and GROVE_IG_PLATFORMS to skip all of that and point at what you already
-# have; grove-fhir's own cross-repository job does exactly that.
+# Usage: Scripts/validate-fhir-conformance.sh [healthkit|questionnaire|sensor|all]
 
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-# The fixture tests derive this from their own #filePath, because xcodebuild does not forward
-# the shell's environment into the test process.
-OUT="$(pwd)/.build/conformance-fixtures"
+COMPONENT="${1:-${GROVE_FHIR_COMPONENT:-healthkit}}"
 GUIDES="${GROVE_FHIR_GUIDES:-$(pwd)/.fhir/grove-fhir}"
-VALIDATOR="${FHIR_VALIDATOR:-$GUIDES/.build/fhir-tools/validator_cli.jar}"
-CORE_PACKAGE="${GROVE_IG_CORE:-$GUIDES/ig/output/package.tgz}"
-PLATFORMS_PACKAGE="${GROVE_IG_PLATFORMS:-$GUIDES/platforms/output/package.tgz}"
+GROVE_FHIR_REF="${GROVE_FHIR_REF:-feature/fhir-v020-adapters}"
 
-if [ ! -d "$GUIDES" ]; then
-    echo "==> cloning the guides into ${GUIDES#"$(pwd)/"}"
-    git clone --depth 1 "${GROVE_FHIR_REMOTE:-https://github.com/SchmiedmayerLab/grove-fhir.git}" "$GUIDES"
+if [ "$COMPONENT" = "all" ]; then
+    for component in healthkit questionnaire sensor; do
+        "$0" "$component"
+    done
+    exit 0
 fi
 
+case "$COMPONENT" in
+    healthkit)
+        TEST_PACKAGE="GroveHealthKitFHIR"
+        GUIDE_NAMES=(mobile sensor healthkit)
+        PACKAGE_NAMES=(mobile sensor healthkit)
+        PACKAGE_IDS=(
+            org.grovealliance.fhir.mobile
+            org.grovealliance.fhir.sensor
+            org.grovealliance.fhir.healthkit
+        )
+        ;;
+    questionnaire)
+        TEST_PACKAGE="GroveQuestionnaire"
+        GUIDE_NAMES=(questionnaire)
+        PACKAGE_NAMES=(questionnaire)
+        PACKAGE_IDS=(org.grovealliance.fhir.questionnaire)
+        ;;
+    sensor)
+        TEST_PACKAGE="GroveSensorKit"
+        GUIDE_NAMES=(mobile sensor sensorkit)
+        PACKAGE_NAMES=(mobile sensor sensorkit)
+        PACKAGE_IDS=(
+            org.grovealliance.fhir.mobile
+            org.grovealliance.fhir.sensor
+            org.grovealliance.fhir.sensorkit
+        )
+        ;;
+    *)
+        echo "error: unsupported FHIR conformance component '$COMPONENT'" >&2
+        exit 2
+        ;;
+esac
+
+OUT="$(pwd)/.build/conformance-fixtures/$COMPONENT"
+
+if [ ! -d "$GUIDES" ]; then
+    echo "==> cloning grove-fhir ref $GROVE_FHIR_REF"
+    git clone --depth 1 --branch "$GROVE_FHIR_REF" \
+        "${GROVE_FHIR_REMOTE:-https://github.com/SchmiedmayerLab/grove-fhir.git}" "$GUIDES"
+fi
+
+echo "==> grove-fhir contract"
+git -C "$GUIDES" rev-parse HEAD
+python3 Scripts/generate-grove-fhir-swift-contract.py \
+    --catalog-directory "$GUIDES/catalog" \
+    --check
+if [ "$COMPONENT" = "healthkit" ]; then
+    python3 Scripts/generate-grove-fhir-semantic-vector-fixtures.py \
+        --corpus "$GUIDES/Conformance/corpora/mobile-semantics/corpus.json" \
+        --check
+fi
+
+VALIDATOR="${FHIR_VALIDATOR:-$GUIDES/.build/fhir-tools/validator_cli.jar}"
 if [ ! -f "$VALIDATOR" ]; then
-    echo "==> downloading the validator the guides pin"
+    echo "==> downloading the validator pinned by grove-fhir"
     (cd "$GUIDES" && ./Scripts/download-fhir-tools.sh .build/fhir-tools)
 fi
 
-if [ ! -e "$CORE_PACKAGE" ] || [ ! -e "$PLATFORMS_PACKAGE" ]; then
-    echo "==> building the guides (the IG Publisher takes a while)"
-    (cd "$GUIDES" && npm ci && ./Scripts/build-guides.sh platforms ig)
+package_arguments=()
+missing_package=false
+for index in "${!PACKAGE_NAMES[@]}"; do
+    package_name="${PACKAGE_NAMES[$index]}"
+    package_path="$GUIDES/$package_name/output/package.tgz"
+    package_arguments+=(--package "$package_name=$package_path")
+    if [ ! -f "$package_path" ]; then
+        missing_package=true
+    fi
+done
+if [ "$missing_package" = true ]; then
+    echo "==> building ${GUIDE_NAMES[*]} implementation guides"
+    (cd "$GUIDES" && npm ci && ./Scripts/build-guides.sh "${GUIDE_NAMES[@]}")
 fi
 
+mkdir -p "$OUT"
+find "$OUT" -type f -delete
 
-echo "==> emitting resources from the converter"
-./Scripts/run-package-tests.sh GroveQuestionnaire macOS >/dev/null
+echo "==> emitting $COMPONENT resources from Swift"
+./Scripts/run-package-tests.sh "$TEST_PACKAGE" macOS >/dev/null
 
 count=$(find "$OUT" -name '*.json' | wc -l | tr -d ' ')
 if [ "$count" -eq 0 ]; then
@@ -61,16 +113,25 @@ if [ "$count" -eq 0 ]; then
 fi
 echo "    $count resources"
 
-echo "==> validating against the published profiles"
-java -jar "$VALIDATOR" -version 4.0.1 \
-    -ig "$CORE_PACKAGE" -ig "$PLATFORMS_PACKAGE" \
-    "$OUT"/*.json 2>&1 | tee "$OUT/validation.txt"
+manifest_package_arguments=()
+for index in "${!PACKAGE_NAMES[@]}"; do
+    manifest_package_arguments+=(
+        --package "${PACKAGE_NAMES[$index]}=${PACKAGE_IDS[$index]}"
+    )
+done
 
-if grep -q '\*FAILURE\*' "$OUT/validation.txt"; then
-    echo
-    echo "FAILED — Grove produced resources that violate the profiles Grove publishes:"
-    grep -E '^\s*Error @' "$OUT/validation.txt" | sed 's/, validating against.*//' | sort -u
-    exit 1
-fi
+MANIFEST="$OUT/grove-fhir-producer.json"
+python3 Scripts/generate-grove-fhir-producer-manifest.py \
+    --resources "$OUT" \
+    --output "$MANIFEST" \
+    --producer-revision "$(git rev-parse HEAD)" \
+    --semantic-vector-corpus "$GUIDES/Conformance/corpora/mobile-semantics/corpus.json" \
+    "${manifest_package_arguments[@]}"
 
-echo "OK — every produced resource conforms to its declared profile."
+echo "==> validating $COMPONENT resources against grove-fhir v0.2"
+python3 "$GUIDES/Scripts/validate-producer.py" \
+    --manifest "$MANIFEST" \
+    --validator "$VALIDATOR" \
+    "${package_arguments[@]}"
+
+echo "OK — all $COMPONENT resources conform to their declared R4 profiles."

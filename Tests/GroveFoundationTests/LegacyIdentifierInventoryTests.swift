@@ -63,22 +63,4 @@ struct LegacyIdentifierInventoryTests {
             #expect(identifier == identifier.trimmingCharacters(in: .whitespacesAndNewlines))
         }
     }
-
-    /// Superseded FHIR URLs outlive every device migration — they sit in resources this project does
-    /// not own — so they must never be folded into `Transitional/` and deleted with it.
-    @Test
-    func publishedURLsAreAbsoluteAndDistinctFromTheTransitionalSet() {
-        let published = SupersededFHIRURLs.validationText
-            + SupersededFHIRURLs.iosKeyboardType
-            + SupersededFHIRURLs.iosTextContentType
-            + SupersededFHIRURLs.iosAutocapitalizationType
-            + SupersededFHIRURLs.sourceDevice
-            + SupersededFHIRURLs.healthKitSampleId
-
-        #expect(!published.isEmpty)
-        for url in published {
-            #expect(url.hasPrefix("http://") || url.hasPrefix("https://"), "'\(url)' is not absolute")
-            #expect(!Self.transitional.contains(url))
-        }
-    }
 }

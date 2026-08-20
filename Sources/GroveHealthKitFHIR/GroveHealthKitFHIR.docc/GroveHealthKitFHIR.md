@@ -10,236 +10,146 @@ SPDX-License-Identifier: MIT
 
 -->
 
-Adds FHIR integrations and compatibility to HealthKit.
-
+Convert already-fetched HealthKit records into auditable HL7 FHIR R4 exchange graphs.
 
 ## Overview
 
-You use the GroveHealthKitFHIR module to convert HealthKit samples into FHIR R4 resources.
+``HealthKitFHIRConverter`` is a closed, profile-aware adapter for the Grove FHIR 0.2.0
+implementation guides. It consumes an `HKSample`; it does not request HealthKit
+authorization, query samples, manage anchors, store FHIR, or upload data.
+ECG conversion uses the dedicated ``HealthKitECGRecord`` input so the caller supplies the
+already-enumerated voltage measurements and any already-queried correlated symptoms.
 
-```swift
-let sample: HKQuantitySample = // ... a heart rate sample fetched from HealthKit
-let resource = try sample.resource()
-```
-
-This resource will be of Observation type, and have the following JSON structure:
-```json
-{
-  "issued" : "2026-02-15T16:12:42.361982941+01:00",
-  "status" : "final",
-  "extension" : [
-    {
-      "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice",
-      "extension" : [
-        {
-          "valueString" : "Apple Watch",
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice/name"
-        },
-        {
-          "valueString" : "Apple Inc.",
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice/manufacturer"
-        },
-        {
-          "valueString" : "Watch",
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice/model"
-        },
-        {
-          "valueString" : "Watch7,12",
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice/hardwareVersion"
-        },
-        {
-          "valueString" : "26.2.1",
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice/softwareVersion"
-        }
-      ]
-    },
-    {
-      "extension" : [
-        {
-          "extension" : [
-            {
-              "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/source/name",
-              "valueString" : "Lukas' Apple Watch"
-            },
-            {
-              "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/source/bundleIdentifier",
-              "valueString" : "com.apple.health.B83FE7C9-B62D-44D9-92A8-5CB2AE037A06"
-            }
-          ],
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/source"
-        },
-        {
-          "valueString" : "26",
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/version"
-        },
-        {
-          "valueString" : "Watch7,12",
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/productType"
-        },
-        {
-          "valueString" : "26.2.1",
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision/OSVersion"
-        }
-      ],
-      "url" : "https://grovealliance.org/fhir/core/StructureDefinition/sourceRevision"
-    },
-    {
-      "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata",
-      "extension" : [
-        {
-          "valueDecimal" : 1,
-          "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata/HKMetadataKeyHeartRateMotionContext"
-        }
-      ]
-    }
-  ],
-  "valueQuantity" : {
-    "code" : "/min",
-    "value" : 87,
-    "system" : "http://unitsofmeasure.org",
-    "unit" : "beats/minute"
-  },
-  "resourceType" : "Observation",
-  "code" : {
-    "coding" : [
-      {
-        "code" : "8867-4",
-        "display" : "Heart rate",
-        "system" : "http://loinc.org"
-      },
-      {
-        "code" : "HKQuantityTypeIdentifierHeartRate",
-        "display" : "Heart Rate",
-        "system" : "http://developer.apple.com/documentation/healthkit"
-      }
-    ]
-  },
-  "effectiveDateTime" : "2026-02-15T14:59:21.786418914+01:00",
-  "id" : "00A0FDCB-4D90-4F17-AA5A-703CAC9A85DF",
-  "identifier" : [
-    {
-      "id" : "00A0FDCB-4D90-4F17-AA5A-703CAC9A85DF"
-    }
-  ]
-}
-```
-
-
-GroveHealthKitFHIR supports:
-- Extensions to convert data from Apple HealthKit to HL7® FHIR® R4.
-- Customizable mappings between HealthKit data types and standardized codes (e.g., LOINC)
-
-## HealthKit Extensions
-
-The GroveHealthKitFHIR module provides extensions that convert supported HealthKit samples to FHIR resources using [FHIRModels](https://github.com/apple/FHIRModels) encapsulated in a [ResourceProxy](https://github.com/apple/FHIRModels/blob/main/HowTo/Instantiation.md#1-use-resourceproxy).
-
-```swift
-let sample: HKSample = // ...
-let resource = try sample.resource()
-```
-
-### Observations
-
-`HKQuantitySample`, `HKCategorySample`, `HKCorrelationSample`, and `HKElectrocardiogram` will be converted into FHIR [Observation](https://hl7.org/fhir/R4/observation.html) resources encapsulated in a [ResourceProxy](https://github.com/apple/FHIRModels/blob/main/HowTo/Instantiation.md#1-use-resourceproxy).
-
-```swift
-let sample: HKQuantitySample = // ...
-let observation = try sample.resource().get(if: Observation.self)
-```
-
-Codes and units can be customized by passing in a custom `SampleTypesFHIRMapping` instance to the `resource(withMapping:)` method.
-
-```swift
-let sample: HKQuantitySample = // ...
-let sampleMapping: SampleTypesFHIRMapping = // ...
-let observation = try sample.resource(withMapping: sampleMapping).get(if: Observation.self)
-```
-
-### Clinical Records
-
-`HKClinicalRecord` will be converted to FHIR resources based on the type of its underlying data. Only records encoded in FHIR R4 are supported at this time.
-
-```swift
-let allergyRecord: HKClinicalRecord = // ...
-let allergyIntolerance = try allergyRecord.resource().get(if: AllergyIntolerance.self)
-```
-
-## Example
-
-In the following example, we will query the HealthKit store for step count data, convert the resulting samples to FHIR observations, and encode them into JSON.
+One successful conversion returns a ``HealthKitFHIRConversion`` containing the normalized
+`Observation`, recording and application `Device` resources when applicable, conversion
+`Provenance`, and a FHIR `Bundle` of type `collection`. Internal references use deterministic
+`urn:uuid` full URLs derived from complete business identifiers. Source UUIDs are business
+identifiers—not `Resource.id` values. A logical id is emitted only when a caller supplies a
+repository-assigned ``GroveFHIRRepositoryID``.
 
 ```swift
 import GroveHealthKitFHIR
+import HealthKit
+import ModelsR4
 
-// Initialize an HKHealthStore instance and request permissions with it
-// ...
-
-let date = ISO8601DateFormatter().date(from: "1885-11-11T00:00:00-08:00") ?? .now
-let sample = HKQuantitySample(
-    type: HKQuantityType(.heartRate),
-    quantity: HKQuantity(unit: HKUnit.count().unitDivided(by: .minute()), doubleValue: 42.0),
-    start: date,
-    end: date
+let sample: HKQuantitySample = // a sample already fetched from HealthKit
+let now = Date.now
+let context = HealthKitFHIRConversionContext(
+    subject: Reference(reference: "Patient/example"),
+    converter: HealthKitFHIRApplication(
+        name: "Example Study",
+        bundleIdentifier: "org.grovealliance.example-study",
+        version: "2.0.0 (42)"
+    ),
+    graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
+    issuedAt: now,
+    recordedAt: now
 )
 
-// Convert the results to FHIR observations
-let observation: Observation?
-do {
-    try observation = sample.resource().get(if: Observation.self)
-} catch {
-    // Handle any mapping errors here.
-    // ...
-}
-
-// Encode FHIR observations as JSON
-let encoder = JSONEncoder()
-encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
-
-guard let observation, 
-      let data = try? encoder.encode(observation) else {
-    // Handle any encoding errors here.
-    // ...
-}
-
-// Print the resulting JSON
-let json = String(decoding: data, as: UTF8.self)
-print(json)
+let conversion = try HealthKitFHIRConverter().convert(sample, context: context)
+let bundle = conversion.bundle
 ```
 
-The following example generates the following FHIR observation:
+Every admitted Observation claims exactly the profile set published for its source type. Most
+measurements claim a shared Mobile profile plus the HealthKit adapter profile; BMI claims the
+authoritative R4 BMI profile plus the adapter profile. Profiles that build on an authoritative
+standard inherit that constraint through the shared profile. Values, UCUM units, effective
+datatype, codes, devices, provenance, time zone, and the small metadata allowlist are normalized
+rather than copied through an open mapping dictionary. The exact HealthKit source-type coding is
+retained after the primary normative coding.
 
-```json
-{
-  "code" : {
-    "coding" : [
-      {
-        "code" : "8867-4",
-        "display" : "Heart rate",
-        "system" : "http://loinc.org"
-      }
-    ]
-  },
-  "effectiveDateTime" : "1885-11-11T00:00:00-08:00",
-  "identifier" : [
-    {
-      "id" : "8BA093D9-B99B-4A3C-8C9E-98C86F49F5D8"
-    }
-  ],
-  "issued" : "2023-01-01T00:00:00-08:00",
-  "resourceType" : "Observation",
-  "status" : "final",
-  "valueQuantity" : {
-    "code": "/min",
-    "unit": "beats/minute",
-    "system": "http://unitsofmeasure.org",
-    "value" : 42
-  }
+### Implementation matrix
+
+| HealthKit input | v0.2 Swift status | FHIR result |
+|---|---|---|
+| Active energy burned | Supported | Grove Mobile Active Energy |
+| Basal body temperature | Supported | Grove Mobile Basal Body Temperature |
+| Blood pressure correlation | Supported | Grove Mobile Blood Pressure with systolic and diastolic components |
+| Body height, body temperature, body weight | Supported | Corresponding standards-backed Grove Mobile profiles |
+| BMI | Supported | Authoritative R4 BMI profile plus the HealthKit adapter profile |
+| Walking/running, cycling, swimming, wheelchair, and other admitted distance quantities | Supported | Grove Mobile Distance |
+| Heart rate, oxygen saturation, respiratory rate | Supported | Corresponding standards-backed Grove Mobile profiles |
+| Sleep analysis interval | Supported | Grove Mobile Sleep Stage; shared Grove coding precedes the exact HealthKit sleep-analysis coding |
+| Step count interval | Supported | Grove Mobile Step Count |
+| Blood glucose quantity | Deferred, fails closed | HealthKit does not state the specimen needed to select whole-blood, capillary, serum/plasma, or interstitial glucose |
+| Sleep-duration session aggregate | Deferred | Requires an explicit aggregation of stage intervals; it is not a direct sample mapping |
+| Electrocardiogram | Supported through the dedicated evidence API | Sensor ECG plus HealthKit ECG; exact classification, symptom status and evidence, source period, count, optional rate/frequency/algorithm, and complete uniform Lead-I waveform |
+| Every other known quantity, category, correlation, clinical record, and other `HKSample` shape | No published contract | No v0.2 conformance claim is made; provider FHIR in clinical records is not rewritten or re-profiled |
+
+``HealthKitFHIRCatalog/entries`` is the complete, machine-consumable matrix for the current
+SDK (209 rows in the 0.2 conformance inventory). It includes every HealthKit sample type
+known to Grove, its status, applicable candidate measurement profiles, and any unmet
+requirement. The converter fails closed when a row is not
+`supported`; no legacy canonical, provider sample-type code, or best-effort Observation is
+emitted.
+
+### Explicit provenance and identity
+
+The caller supplies the Patient reference, converter application identity, a deployment-owned
+graph identifier namespace, and conversion times. Literal Patient and ResearchStudy references
+must be exact relative FHIR references or HTTP(S) URLs ending at the typed resource id; query,
+fragment, history, trailing, and extra path components fail closed. Identifier-only references
+require a complete system and value plus the exact resource type. Duplicate ResearchStudy
+references are rejected.
+
+Every conversion `Provenance` directly claims only the HealthKit conversion-provenance profile,
+targets the emitted HealthKit Observation, and carries the exact HealthKit object identifier as
+its sole source entity.
+
+Source application/device attribution is omitted unless the caller explicitly classifies
+`HKSourceRevision`; the adapter never guesses from names or identifier shapes. A local
+`HKDevice.localIdentifier` is disclosed only with an explicit deployment-owned namespace. A
+UDI is omitted by default and is independent from that local namespace; the caller must select
+``HealthKitFHIRUDIDisclosurePolicy/authorizedUDI`` only after establishing both
+necessity and authorization. Model, manufacturer, and typed software/hardware/firmware versions
+are preserved when HealthKit supplies them.
+
+When an ECG reports symptoms, the caller must supply every associated `HKCategorySample` and
+select ``HealthKitFHIRSourceDisclosurePolicy/authorized``. Each emitted symptom retains its
+UUID, period, type, severity, and complete `HKSourceRevision`, including source name, bundle
+identifier, optional source/product versions, and operating-system version. These fields are
+linkable, so the privacy gate is independent of UDI and local-device identifier authorization.
+Without authorization, conversion fails closed; required evidence is never silently omitted.
+
+HealthKit's object UUID becomes the Observation's complete business identifier using the
+published HealthKit NamingSystem. The exchange Bundle and derived graph nodes use the caller's
+namespace. ``GroveFHIRExchangeIdentity`` implements the frozen RFC 8785/JCS plus UUIDv5
+algorithm used by every Grove producer.
+
+### Batch conversion
+
+Batch conversion does not silently drop unsupported or invalid records:
+
+```swift
+let samples: [HKSample] = // already fetched
+let result = HealthKitFHIRConverter().convert(samples, context: context)
+
+for conversion in result.conversions {
+    send(conversion.bundle)
+}
+for failure in result.failures {
+    record(failure.sourceUUID, failure.reason)
 }
 ```
 
 ## Topics
 
-### Mapping HealthKit Samples into FHIR Observations
-- ``HealthKit/HKSample/resource(withMapping:issuedDate:extensions:)``
-- ``HealthKit/HKSampleType/fhirResourceType``
-- ``HealthKit/HKElectrocardiogram/observation(symptoms:voltageMeasurements:withMapping:issuedDate:extensions:)``
+### Conversion
+
+- ``HealthKitFHIRConverter``
+- ``HealthKitFHIRConversionContext``
+- ``HealthKitFHIRUDIDisclosurePolicy``
+- ``HealthKitFHIRSourceDisclosurePolicy``
+- ``HealthKitECGRecord``
+- ``HealthKitFHIRConversion``
+- ``HealthKitFHIRBatchResult``
+- ``HealthKitFHIRRecordFailure``
+
+### Coverage and identity
+
+- ``HealthKitFHIRCatalog``
+- ``HealthKitFHIRCatalogEntry``
+- ``HealthKitFHIRImplementationStatus``
+- ``GroveFHIRExchangeIdentity``
+- ``GroveFHIRBusinessIdentifier``
+- ``GroveFHIRRepositoryID``

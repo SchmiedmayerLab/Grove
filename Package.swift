@@ -223,6 +223,7 @@ var products: [Product] = [
     .library(name: "GroveDevicesUI", targets: ["GroveDevicesUI"]),
     .library(name: "GroveOmron", targets: ["GroveOmron"]),
     // MARK: GroveFHIR
+    .library(name: "GroveFHIRContract", targets: ["GroveFHIRContract"]),
     .library(name: "GroveFHIR", targets: ["GroveFHIR"]),
     .library(name: "GroveFHIRMockPatients", targets: ["GroveFHIRMockPatients"]),
     // MARK: GroveFileFormats
@@ -313,7 +314,6 @@ var targets: [Target] = [
     .target(
         name: "FHIRModelsExtensions",
         dependencies: [
-            .target(name: "GroveLegacyIdentifiers"),
             .target(name: "FHIRPathParser"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .product(name: "ModelsDSTU2", package: "FHIRModels", condition: fhirModelsCondition)
@@ -345,7 +345,6 @@ var targets: [Target] = [
     .testTarget(
         name: "FHIRModelsExtensionsTests",
         dependencies: [
-            .target(name: "GroveLegacyIdentifiers"),
             .target(name: "FHIRModelsExtensions"),
             .target(name: "FHIRQuestionnaires")
         ],
@@ -361,34 +360,12 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     // MARK: GroveHealthKitFHIR
-    .macro(
-        name: "GroveHealthKitFHIRMacrosImpl",
-        dependencies: [
-            .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-            .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-            .product(name: "SwiftDiagnostics", package: "swift-syntax"),
-            .product(name: "Algorithms", package: "swift-algorithms")
-        ],
-        swiftSettings: defaultSwiftSettings,
-        plugins: [] + defaultPlugins
-    ),
-    .target(
-        name: "GroveHealthKitFHIRMacros",
-        dependencies: [
-            .target(name: "GroveHealthKitFHIRMacrosImpl")
-        ],
-        swiftSettings: defaultSwiftSettings,
-        plugins: [] + defaultPlugins
-    ),
     .target(
         name: "GroveHealthKitFHIR",
         dependencies: [
-            .target(name: "GroveHealthKitFHIRMacros"),
+            .target(name: "GroveFHIRContract"),
             .target(name: "GroveHealthKit"),
-            .target(name: "GroveFoundation"),
-            .target(name: "GroveFHIR"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
-            .product(name: "ModelsDSTU2", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions")
         ],
         exclude: targetExcludes("GroveHealthKitFHIR"),
@@ -398,22 +375,10 @@ var targets: [Target] = [
     .testTarget(
         name: "GroveHealthKitFHIRTests",
         dependencies: [
-            .target(name: "GroveHealthKitFHIR"),
-            .target(name: "GroveFoundation")
+            .target(name: "GroveFHIRContract"),
+            .target(name: "GroveHealthKitFHIR")
         ],
         exclude: testTargetExcludes("GroveHealthKitFHIRTests", additional: ["UITests"]),
-        swiftSettings: defaultSwiftSettings,
-        plugins: [] + defaultPlugins
-    ),
-    .testTarget(
-        name: "GroveHealthKitFHIRMacrosTests",
-        dependencies: [
-            .target(name: "GroveHealthKitFHIRMacros"),
-            .target(name: "GroveHealthKitFHIRMacrosImpl"),
-            .target(name: "FHIRModelsExtensions"),
-            .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-            .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
-        ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
@@ -817,6 +782,15 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     // MARK: GroveFHIR
+    .target(
+        name: "GroveFHIRContract",
+        dependencies: [
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
+        ],
+        exclude: targetExcludes("GroveFHIRContract"),
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
     .target(
         name: "GroveFHIR",
         dependencies: [
@@ -1421,7 +1395,6 @@ var targets: [Target] = [
     .target(
         name: "GroveQuestionnaireFHIR",
         dependencies: [
-            .target(name: "GroveLegacyIdentifiers"),
             .target(name: "GroveQuestionnaire"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions"),

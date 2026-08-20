@@ -7,8 +7,9 @@
 //
 
 import Foundation
-import HealthKit
 import GroveHealthKitFHIR
+import HealthKit
+import ModelsR4
 import SwiftUI
 
 
@@ -51,7 +52,7 @@ struct ExportDataView: View {
             runAsync {
                 try await healthStore.requestAuthorization(
                     toShare: [],
-                    read: [HKQuantityType(.activeEnergyBurned), HKQuantityType(.stepCount), HKQuantityType(.appleExerciseTime)]
+                    read: [HKQuantityType(.stepCount)]
                 )
             }
         }
@@ -59,11 +60,29 @@ struct ExportDataView: View {
         Button("Query Samples") {
             runAsync {
                 let fetchStartTS = CACurrentMediaTime()
-                let samples = try await healthStore.query(.init(.appleExerciseTime))
+                let samples = try await healthStore.query(.init(.stepCount))
                 let fetchEndTS = CACurrentMediaTime()
                 print("did fetch samples (#=\(samples.count)) (took \(fetchEndTS - fetchStartTS) sec)")
                 let mapResourcesStartTS = CACurrentMediaTime()
-                _ = try samples.mapIntoResourceProxies()
+                let now = Date.now
+                let context = HealthKitFHIRConversionContext(
+                    subject: Reference(reference: "Patient/example"),
+                    converter: HealthKitFHIRApplication(
+                        name: "Grove HealthKit FHIR Test App",
+                        bundleIdentifier: "org.grovealliance.healthkit-fhir-test-app",
+                        version: "0.2.0"
+                    ),
+                    graphIdentifierSystem: "https://grovealliance.org/fhir/testing/identifiers/ui-graph",
+                    issuedAt: now,
+                    recordedAt: now
+                )
+                let result = HealthKitFHIRConverter().convert(
+                    samples.map { $0 as HKSample },
+                    context: context
+                )
+                if let failure = result.failures.first {
+                    throw failure
+                }
                 let mapResourcesEndTS = CACurrentMediaTime()
                 print("did turn into resources (took \(mapResourcesEndTS - mapResourcesStartTS) sec)")
                 await MainActor.run {
