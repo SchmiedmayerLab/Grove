@@ -180,6 +180,11 @@ targets = ["GroveSensorKit"]
 tests = ["GroveSensorKitTests"]
 uiTests = ["iOS"]
 
+[GroveSensorKitFHIR]
+platforms = ["iOS", "macOS"]
+targets = ["GroveSensorKitFHIR"]
+tests = ["GroveSensorKitFHIRTests"]
+
 [GroveSpeech]
 platforms = ["iOS", "macOS", "visionOS"]
 targets = ["GroveSpeech", "GroveSpeechRecognizer", "GroveSpeechSynthesizer"]

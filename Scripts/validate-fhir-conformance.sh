@@ -45,7 +45,7 @@ case "$COMPONENT" in
         PACKAGE_IDS=(org.grovealliance.fhir.questionnaire)
         ;;
     sensor)
-        TEST_PACKAGE="GroveSensorKit"
+        TEST_PACKAGE="GroveSensorKitFHIR"
         GUIDE_NAMES=(mobile sensor sensorkit)
         PACKAGE_NAMES=(mobile sensor sensorkit)
         PACKAGE_IDS=(
@@ -76,6 +76,12 @@ python3 Scripts/generate-grove-fhir-swift-contract.py \
 if [ "$COMPONENT" = "healthkit" ]; then
     python3 Scripts/generate-grove-fhir-semantic-vector-fixtures.py \
         --corpus "$GUIDES/Conformance/corpora/mobile-semantics/corpus.json" \
+        --check
+fi
+if [ "$COMPONENT" = "sensor" ]; then
+    python3 Scripts/generate-grove-sensor-swift-contract.py \
+        --sensor-catalog "$GUIDES/catalog/sensor-catalog.json" \
+        --sensorkit-catalog "$GUIDES/catalog/sensorkit-adapter.json" \
         --check
 fi
 

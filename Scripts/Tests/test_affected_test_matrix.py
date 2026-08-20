@@ -243,6 +243,17 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
             MODULE.ALL_FHIR_COMPONENTS,
         )
 
+    def test_sensor_development_scope_runs_only_source_and_fhir_packages(self):
+        result = run_selector(
+            "Package.swift",
+            ".github/workflows/tests.yml",
+            extra_arguments=("--development-scope", "sensor"),
+        )
+
+        self.assertEqual(set(result["affected"].split(",")), {"GroveSensorKit", "GroveSensorKitFHIR"})
+        self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(result["has_ui_jobs"], "false")
+
 
 class InfrastructureSelectionTests(unittest.TestCase):
     def test_documentation_content_does_not_run_package_tests(self):
