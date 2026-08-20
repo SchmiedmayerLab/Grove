@@ -2397,12 +2397,18 @@ struct HKQuantitySampleTests {
         )
         do {
             let extensions = try #require(observation2.extension)
+            let absoluteTimeRangeStart = ModelsR4.FHIRPrimitive(
+                ModelsR4.FHIRURI(stringLiteral: RetiredFHIRCanonicalURLs.absoluteTimeRangeStart.canonical)
+            )
+            let absoluteTimeRangeEnd = ModelsR4.FHIRPrimitive(
+                ModelsR4.FHIRURI(stringLiteral: RetiredFHIRCanonicalURLs.absoluteTimeRangeEnd.canonical)
+            )
             #expect(extensions.count == 3)
             #expect(Set(extensions.map(\.url)) == [
-                FHIRExtensionURL.sourceRevision.r4, FHIRExtensionURL.absoluteTimeRangeStart.r4, FHIRExtensionURL.absoluteTimeRangeEnd.r4
+                FHIRExtensionURL.sourceRevision.r4, absoluteTimeRangeStart, absoluteTimeRangeEnd
             ])
-            #expect(extensions.contains(Extension(url: FHIRExtensionURL.absoluteTimeRangeStart.r4, value: .decimal(0.asFHIRDecimalPrimitive()))))
-            #expect(extensions.contains(Extension(url: FHIRExtensionURL.absoluteTimeRangeEnd.r4, value: .decimal(900.asFHIRDecimalPrimitive()))))
+            #expect(extensions.contains(Extension(url: absoluteTimeRangeStart, value: .decimal(0.asFHIRDecimalPrimitive()))))
+            #expect(extensions.contains(Extension(url: absoluteTimeRangeEnd, value: .decimal(900.asFHIRDecimalPrimitive()))))
         }
     }
     

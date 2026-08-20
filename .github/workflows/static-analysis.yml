@@ -14,9 +14,10 @@ on:
       - main
   pull_request:
   workflow_dispatch:
+  workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: static-analysis-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -35,7 +36,7 @@ jobs:
     name: Documentation Target Consistency
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Verify .spi.yml documents every library product
         run: python3 Scripts/check-documentation-targets.py
 
@@ -54,9 +55,9 @@ jobs:
 
   periphery:
     name: Dead Code Analysis
-    runs-on: macOS-26
+    runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Periphery
         run: brew install periphery
       - name: Periphery
@@ -64,7 +65,7 @@ jobs:
 
   documentation:
     name: Documentation
-    runs-on: macOS-26
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
       - name: Build DocC Documentation

@@ -14,9 +14,15 @@ on:
       - main
   pull_request:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      run_all:
+        description: Run every unit, UI, and FHIR conformance check.
+        type: boolean
+        default: false
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: tests-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -25,38 +31,87 @@ permissions:
 jobs:
   detect:
     name: Detect affected packages
-    runs-on: ubuntu-latest
+    # Package.swift changes are compared through SwiftPM's evaluated manifest graph. A macOS runner
+    # makes that graph include the dependencies guarded by `#if canImport(Darwin)` as well.
+    runs-on: [self-hosted, macOS]
     outputs:
       matrix: ${{ steps.compute.outputs.matrix }}
       ui_matrix: ${{ steps.compute.outputs.ui_matrix }}
       has_jobs: ${{ steps.compute.outputs.has_jobs }}
       has_ui_jobs: ${{ steps.compute.outputs.has_ui_jobs }}
+      has_fhir_conformance: ${{ steps.compute.outputs.has_fhir_conformance }}
       affected: ${{ steps.compute.outputs.affected }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # need history to diff against the base / previous commit
       - name: Determine changed files
+        id: changes
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          BASE_SHA=""
+          if [ "${{ inputs.run_all }}" = "true" ]; then
+            echo "__ALL__" > changed.txt
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
             git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
-            git diff --name-only "origin/${{ github.base_ref }}...HEAD" > changed.txt
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            git diff --name-only "$BASE_SHA...HEAD" > changed.txt
           elif [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
-            git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" > changed.txt
+            BASE_SHA="${{ github.event.before }}"
+            git diff --name-only "$BASE_SHA" "${{ github.sha }}" > changed.txt
           else
             echo "__ALL__" > changed.txt   # first push / unknown base -> test everything
           fi
+          echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          if grep -Fxq "Package.swift" changed.txt; then
+            echo "manifest_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "manifest_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+          if grep -Fxq "packages.toml" changed.txt; then
+            echo "packages_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "packages_changed=false" >> "$GITHUB_OUTPUT"
+          fi
           echo "Changed files:"; cat changed.txt
+      - name: Evaluate package graphs
+        if: steps.changes.outputs.manifest_changed == 'true' || steps.changes.outputs.packages_changed == 'true'
+        env:
+          BASE_SHA: ${{ steps.changes.outputs.base_sha }}
+        run: |
+          TEMP_DIRECTORY="$(mktemp -d)"
+          BASE_WORKTREE="$TEMP_DIRECTORY/base"
+          git worktree add --detach "$BASE_WORKTREE" "$BASE_SHA"
+          trap 'git worktree remove --force "$BASE_WORKTREE"; rmdir "$TEMP_DIRECTORY"' EXIT
+          cp "$BASE_WORKTREE/packages.toml" "$RUNNER_TEMP/base-packages.toml"
+          if [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
+            swift package --package-path "$BASE_WORKTREE" dump-package > "$RUNNER_TEMP/base-package.json"
+            swift package dump-package > "$RUNNER_TEMP/head-package.json"
+          fi
+      - name: Test affected-package selection
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python3 -m unittest discover -s Scripts/Tests -p 'test_*.py'
       - name: Compute test matrix
         id: compute
-        run: python3 Scripts/affected-test-matrix.py changed.txt >> "$GITHUB_OUTPUT"
+        run: |
+          ARGS=(changed.txt)
+          if [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
+            ARGS+=(--base-package-dump "$RUNNER_TEMP/base-package.json")
+            ARGS+=(--head-package-dump "$RUNNER_TEMP/head-package.json")
+          fi
+          if [ "${{ steps.changes.outputs.packages_changed }}" = "true" ] || [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
+            ARGS+=(--base-packages "$RUNNER_TEMP/base-packages.toml")
+          fi
+          python3 Scripts/affected-test-matrix.py "${ARGS[@]}" >> "$GITHUB_OUTPUT"
       - name: Dump matrix (debug)
         env:
           AFFECTED: ${{ steps.compute.outputs.affected }}
+          HAS_FHIR_CONFORMANCE: ${{ steps.compute.outputs.has_fhir_conformance }}
           HAS_JOBS: ${{ steps.compute.outputs.has_jobs }}
           MATRIX: ${{ steps.compute.outputs.matrix }}
         run: |
           echo "has_jobs = $HAS_JOBS"
+          echo "has_fhir_conformance = $HAS_FHIR_CONFORMANCE"
           echo "affected = $AFFECTED"
           JOBS=$(printf '%s' "$MATRIX" | python3 -c 'import json,sys; print(len(json.load(sys.stdin).get("include",[])))' 2>/dev/null || echo "?")
           echo "scheduled jobs = $JOBS"
@@ -82,11 +137,11 @@ jobs:
     needs: detect
     if: needs.detect.outputs.has_jobs == 'true'
     # Runner per job: Linux -> GitHub-hosted ubuntu; otherwise self-hosted iff packages.toml's
-    # self-hosted-ci routed unit tests there (matrix.selfHosted), else GitHub-hosted macOS-26. The
+    # self-hosted-ci routed unit tests there (matrix.selfHosted), else GitHub-hosted macos-latest. The
     # self-hosted label set (matrix.selfHostedLabels) is the base ["self-hosted","macOS"] plus any
     # per-package `extra_runner_labels` from packages.toml (e.g. "python3.11+"), computed by
     # Scripts/affected-test-matrix.py.
-    runs-on: ${{ matrix.platform == 'Linux' && 'ubuntu-latest' || (matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macOS-26"]')) }}
+    runs-on: ${{ matrix.platform == 'Linux' && 'ubuntu-latest' || (matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macos-latest"]')) }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
@@ -110,7 +165,7 @@ jobs:
     if: needs.detect.outputs.has_ui_jobs == 'true'
     # UI tests run on the self-hosted runner by default (packages.toml self-hosted-ci defaults to
     # ["ui"]); a package can move its UI tests to GitHub-hosted by dropping "ui" from that list.
-    runs-on: ${{ matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macOS-26"]') }}
+    runs-on: ${{ matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macos-latest"]') }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.detect.outputs.ui_matrix) }}
@@ -125,15 +180,67 @@ jobs:
           name: ${{ matrix.package }}-${{ matrix.platform }}-UITests.xcresult
           path: ${{ matrix.package }}-${{ matrix.platform }}-UITests.xcresult
 
+  fhir-conformance:
+    name: FHIR Output Conformance
+    needs: detect
+    if: needs.detect.outputs.has_fhir_conformance == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: SchmiedmayerLab/grove-fhir
+          path: .fhir/grove-fhir
+      - name: Restore built implementation guides
+        id: guide-cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.fhir
+            .fhir/grove-fhir/.build/fhir-tools
+            .fhir/grove-fhir/ig/output/package.tgz
+            .fhir/grove-fhir/platforms/output/package.tgz
+          key: grove-fhir-validation-${{ runner.os }}-${{ hashFiles('.fhir/grove-fhir/Gemfile.lock', '.fhir/grove-fhir/package-lock.json', '.fhir/grove-fhir/Scripts/**', '.fhir/grove-fhir/ig/**', '.fhir/grove-fhir/platforms/**') }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: .fhir/grove-fhir/package-lock.json
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: false
+      - name: Build active implementation guides
+        if: steps.guide-cache.outputs.cache-hit != 'true'
+        working-directory: .fhir/grove-fhir
+        run: |
+          npm ci
+          ./Scripts/build-guides.sh platforms ig
+      - name: Validate resources emitted by Grove
+        run: ./Scripts/validate-fhir-conformance.sh
+      - name: Upload emitted fixtures and validation report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: grove-conformance-fixtures
+          if-no-files-found: warn
+          retention-days: 14
+          path: .build/conformance-fixtures
+
   # Single gate to use as the required status check in branch protection.
-  # Does no work itself; it just aggregates the result of all `test` matrix jobs.
+  # Does no work itself; it aggregates the unit, UI, and FHIR conformance jobs.
   # `if: always()` is required so it still runs (and reports pass/fail) when `test`
   # failed or was skipped — otherwise the gate would be skipped and a skipped required
   # check never satisfies branch protection.
   all-tests-pass:
     name: All tests pass
     if: always()
-    needs: [detect, test, test-ui]
+    needs: [detect, test, test-ui, fhir-conformance]
     runs-on: ubuntu-latest
     steps:
       - name: Verify test results
@@ -141,14 +248,15 @@ jobs:
           echo "detect  = ${{ needs.detect.result }}"
           echo "test    = ${{ needs.test.result }}"
           echo "test-ui = ${{ needs.test-ui.result }}"
+          echo "fhir    = ${{ needs.fhir-conformance.result }}"
           if [ "${{ needs.detect.result }}" != "success" ]; then
             echo "::error::The 'detect' job did not succeed — cannot determine which tests to run."
             exit 1
           fi
-          for r in "${{ needs.test.result }}" "${{ needs.test-ui.result }}"; do
+          for r in "${{ needs.test.result }}" "${{ needs.test-ui.result }}" "${{ needs.fhir-conformance.result }}"; do
             case "$r" in
               success|skipped) ;;
               *) echo "::error::One or more test jobs did not pass (result: $r)."; exit 1 ;;
             esac
           done
-          echo "All required unit + UI tests passed (or no packages were affected)."
+          echo "All required unit, UI, and FHIR conformance tests passed (or were not affected)."

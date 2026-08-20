@@ -20,9 +20,10 @@ on:
       - main
   pull_request:
   workflow_dispatch:
+  workflow_call:
 
 concurrency:
-  group: ${{github.workflow}}-${{github.ref}}
+  group: deployment-floor-${{github.ref}}
   cancel-in-progress: true
 
 permissions:
@@ -31,7 +32,7 @@ permissions:
 jobs:
   build-floor:
     name: ${{matrix.name}}
-    runs-on: macOS-26
+    runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:

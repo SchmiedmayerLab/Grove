@@ -28,13 +28,19 @@
 # Usage:
 #   affected-test-matrix.py <changed-files.txt>     # one path per line; or the literal __ALL__
 #   git diff --name-only A B | affected-test-matrix.py
+# For a Package.swift change, the workflow additionally supplies SwiftPM `dump-package` JSON for
+# the base and head revisions. Without those graphs, manifest changes conservatively run everything.
 #
 # Emits (to stdout, GITHUB_OUTPUT format):
 #   matrix={"include":[{"package":"GroveAccount","platform":"macOS","selfHosted":false,"selfHostedLabels":"[...]"}, ...]}  # unit
 #   ui_matrix={"include":[{"package":"GroveViews","platform":"iOS","selfHosted":true,"selfHostedLabels":"[...]"}, ...]}    # UI
 #   has_jobs=true|false
 #   has_ui_jobs=true|false
+#   has_fhir_conformance=true|false
 #   affected=GroveAccount,GroveViews
+import argparse
+import json
+import os
 import sys
 
 # tomllib needs Python 3.11+; checking the version (rather than try-importing) also lets Pylance
@@ -42,27 +48,69 @@ import sys
 if sys.version_info < (3, 11):
     sys.exit("error: this script requires Python 3.11+ (uses tomllib)")
 
-import json, os, tomllib
+import tomllib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-with open(os.path.join(ROOT, "packages.toml"), "rb") as f:
-    PKGS = tomllib.load(f)
+
+
+def load_toml(path):
+    with open(path, "rb") as file:
+        return tomllib.load(file)
+
+
+PKGS = load_toml(os.path.join(ROOT, "packages.toml"))
 
 # dir (directly under Sources/ or Tests/) -> logical package, derived from each package's
 # `targets` + `tests`. A change under Tests/<X>/UITests/... still routes via its <X> test dir.
-DIR2PKG = {}
-for _pkg, _info in PKGS.items():
-    for _d in _info.get("targets", []) + _info.get("tests", []):
-        DIR2PKG[_d] = _pkg
+def directory_to_package(packages):
+    result = {}
+    for package, info in packages.items():
+        for directory in info.get("targets", []) + info.get("tests", []):
+            result[directory] = package
+    return result
 
-# Any change to these means "run everything" (shared manifest / test infra / CI / lint / pkg defs).
+
+DIR2PKG = directory_to_package(PKGS)
+
+# Any change to these means "run everything" (shared test infrastructure, CI, or lint configuration).
 # The legacy-identifier vault is in here because it belongs to no single package: every string in it
 # names data already on a user's device, and fourteen targets read it.
 GLOBAL_PREFIXES = (
-    "Package.swift", "Package@", "Package.resolved", "packages.toml",
-    ".swiftlint.yml", ".github/", "Scripts/", "Tests/TestPlans/", "Tests/UITestProjects.toml", ".swiftpm/",
+    "Package@", "Package.resolved",
+    "Tests/UITestProjects.toml", ".swiftpm/",
     "Sources/GroveLegacyIdentifiers/",
 )
+
+FULL_TEST_PATHS = {
+    # value: whether the shared change can also affect the FHIR conformance job
+    ".github/workflows/tests.yml": True,
+    "Scripts/run-package-tests.sh": False,
+}
+
+# These scripts have their own static-analysis or deployment-floor checks. Editing them cannot alter
+# a package's unit/UI behavior, so they should not fan out into the package test matrix.
+NON_TEST_SCRIPT_PATHS = {
+    "Scripts/affected-test-matrix.py",
+    "Scripts/build-documentation.sh",
+    "Scripts/build-floor.sh",
+    "Scripts/check-documentation-targets.py",
+    "Scripts/ci-dryrun.sh",
+    "Scripts/cleanup-generated-artifacts.sh",
+    "Scripts/generate-ui-test-projects.py",
+    "Scripts/run-periphery.sh",
+}
+
+FHIR_VALIDATION_PATH = "Scripts/validate-fhir-conformance.sh"
+# The end-to-end validator is expensive, so its CI job runs only when one of these FHIR-producing or
+# FHIR-consuming packages is affected (or when its orchestration script changes directly).
+FHIR_PACKAGES = {
+    "FHIRModelsExtensions",
+    "ResearchKitOnFHIR",
+    "GroveFHIR",
+    "GroveHealthKitFHIR",
+    "GroveQuestionnaire",
+    "GroveSensorKit",
+}
 
 # TEMPORARY: limit UNIT-test scheduling to these platforms (macCatalyst/visionOS/tvOS excluded for
 # now — remove from this tuple to restore). Linux runs on GitHub-hosted ubuntu.
@@ -72,23 +120,271 @@ CI_PLATFORMS = ("iOS", "macOS", "watchOS", "Linux")
 # `uiTests`) is iOS/iPadOS/visionOS; iPadOS + visionOS are disabled for now — add them back here to re-enable.
 UI_PLATFORMS = ("iOS",)
 
-def read_changed():
-    src = open(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1] != "-" else sys.stdin
-    return [ln.strip() for ln in src if ln.strip()]
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("changed_files", nargs="?", default="-")
+    parser.add_argument("--base-package-dump")
+    parser.add_argument("--head-package-dump")
+    parser.add_argument("--base-packages")
+    return parser.parse_args()
+
+
+def read_changed(path):
+    if path == "-":
+        return [line.strip() for line in sys.stdin if line.strip()]
+    with open(path) as file:
+        return [line.strip() for line in file if line.strip()]
+
+
+def load_json(path):
+    with open(path) as file:
+        return json.load(file)
+
+
+def normalized_identity(value):
+    return "".join(character for character in value.lower() if character.isalnum())
+
+
+def package_dependency_identity(dependency):
+    for kind in ("sourceControl", "registry", "fileSystem"):
+        entries = dependency.get(kind)
+        if not entries:
+            continue
+        identity = entries[0].get("identity") if isinstance(entries[0], dict) else None
+        if identity:
+            return normalized_identity(identity)
+    return None
+
+
+def target_dependencies(target):
+    dependencies = set()
+    for dependency in target.get("dependencies", []):
+        value = dependency.get("target") or dependency.get("byName")
+        if value:
+            dependencies.add(value[0])
+    return dependencies
+
+
+def external_package_dependencies(target):
+    dependencies = set()
+    for dependency in target.get("dependencies", []):
+        value = dependency.get("product")
+        if value and len(value) > 1 and value[1]:
+            dependencies.add(normalized_identity(value[1]))
+    return dependencies
+
+
+def keyed(items):
+    return {item["name"]: item for item in items}
+
+
+def changed_keys(base, head):
+    return {
+        key
+        for key in set(base) | set(head)
+        if base.get(key) != head.get(key)
+    }
+
+
+class UnclassifiedTargetsError(ValueError):
+    pass
+
+
+def package_for_target(target_name, targets, directory_maps):
+    target = targets.get(target_name, {})
+    path = target.get("path", "")
+    directory = None
+    parts = path.split("/")
+    if len(parts) >= 2 and parts[0] in ("Sources", "Tests"):
+        directory = parts[1]
+    candidates = [directory, target_name]
+    for directory_map in directory_maps:
+        for candidate in candidates:
+            if candidate and candidate in directory_map:
+                return directory_map[candidate]
+    return None
+
+
+def affected_by_manifest(base_dump, head_dump, base_packages):
+    ignored_keys = {"dependencies", "packageKind", "products", "targets"}
+    base_global = {key: value for key, value in base_dump.items() if key not in ignored_keys}
+    head_global = {key: value for key, value in head_dump.items() if key not in ignored_keys}
+    if base_global != head_global:
+        return None
+
+    base_targets = keyed(base_dump.get("targets", []))
+    head_targets = keyed(head_dump.get("targets", []))
+    changed_targets = changed_keys(base_targets, head_targets)
+
+    base_products = keyed(base_dump.get("products", []))
+    head_products = keyed(head_dump.get("products", []))
+    for product_name in changed_keys(base_products, head_products):
+        for product in (base_products.get(product_name), head_products.get(product_name)):
+            if product:
+                changed_targets.update(product.get("targets", []))
+
+    def dependencies_by_identity(dump):
+        result = {}
+        unknown = []
+        for dependency in dump.get("dependencies", []):
+            identity = package_dependency_identity(dependency)
+            if identity:
+                result[identity] = dependency
+            else:
+                unknown.append(dependency)
+        return result, unknown
+
+    base_dependencies, base_unknown_dependencies = dependencies_by_identity(base_dump)
+    head_dependencies, head_unknown_dependencies = dependencies_by_identity(head_dump)
+    if base_unknown_dependencies != head_unknown_dependencies:
+        return None
+    changed_dependencies = changed_keys(base_dependencies, head_dependencies)
+    if changed_dependencies:
+        for name, target in {**base_targets, **head_targets}.items():
+            if external_package_dependencies(target) & changed_dependencies:
+                changed_targets.add(name)
+
+    reverse_dependencies = {}
+    for targets in (base_targets, head_targets):
+        for name, target in targets.items():
+            for dependency in target_dependencies(target):
+                reverse_dependencies.setdefault(dependency, set()).add(name)
+
+    affected_targets = set(changed_targets)
+    pending = list(changed_targets)
+    while pending:
+        dependency = pending.pop()
+        for dependent in reverse_dependencies.get(dependency, set()):
+            if dependent not in affected_targets:
+                affected_targets.add(dependent)
+                pending.append(dependent)
+
+    directory_maps = [DIR2PKG, directory_to_package(base_packages)]
+    all_targets = {**base_targets, **head_targets}
+    affected_packages = set()
+    unclassified_targets = set()
+    for target in affected_targets:
+        package = package_for_target(target, all_targets, directory_maps)
+        if package in PKGS:
+            affected_packages.add(package)
+        else:
+            unclassified_targets.add(target)
+
+    # A pre-existing unclassified helper may legitimately force the conservative full suite, but a
+    # brand-new target must first be assigned to a logical package in packages.toml. Otherwise it
+    # could silently disappear from the package-level test matrix.
+    new_targets = set(head_targets) - set(base_targets)
+    new_unclassified_targets = unclassified_targets & new_targets
+    if new_unclassified_targets:
+        names = ", ".join(sorted(new_unclassified_targets))
+        raise UnclassifiedTargetsError(
+            f"new Package.swift target(s) are not classified in packages.toml: {names}"
+        )
+    if unclassified_targets:
+        return None
+    return affected_packages
+
+
+def affected_by_package_configuration(base_packages):
+    changed_packages = {
+        package
+        for package in set(base_packages) | set(PKGS)
+        if base_packages.get(package) != PKGS.get(package)
+    }
+    if any(package not in PKGS for package in changed_packages):
+        return None
+    return changed_packages
+
 
 def main():
-    changed = read_changed()
+    args = parse_args()
+    changed = read_changed(args.changed_files)
     run_all = False
+    run_fhir_conformance = False
     affected = set()
     for path in changed:
-        if path == "__ALL__" or path.startswith(GLOBAL_PREFIXES):
+        if path == FHIR_VALIDATION_PATH:
+            affected.update(FHIR_PACKAGES & set(PKGS))
+            run_fhir_conformance = True
+            continue
+        if path in FULL_TEST_PATHS:
             run_all = True
-            break
+            run_fhir_conformance |= FULL_TEST_PATHS[path]
+            continue
+        if path in NON_TEST_SCRIPT_PATHS or path.startswith("Scripts/Tests/"):
+            continue
+        if path.startswith("Scripts/"):
+            # Unknown scripts stay conservative until their scope is classified above.
+            run_all = True
+            continue
+        if path.startswith(".github/actions/"):
+            # Local actions are shared test infrastructure, so changing one can affect every job.
+            run_all = True
+            continue
+        if path.startswith(".github/"):
+            # Workflow-specific checks validate their own configuration; only shared local actions
+            # and the Tests workflow itself can alter how package tests build or run.
+            continue
+        if path == "__ALL__":
+            run_all = True
+            run_fhir_conformance = True
+            continue
+        if path.startswith(GLOBAL_PREFIXES):
+            run_all = True
+            if path.startswith(("Package@", "Package.resolved", ".swiftpm/", "Sources/GroveLegacyIdentifiers/")):
+                run_fhir_conformance = True
+            continue
+        if path == "Package.swift":
+            if not args.base_package_dump or not args.head_package_dump:
+                run_all = True
+                run_fhir_conformance = True
+                continue
+            try:
+                manifest_affected = affected_by_manifest(
+                    load_json(args.base_package_dump),
+                    load_json(args.head_package_dump),
+                    load_toml(args.base_packages) if args.base_packages else PKGS,
+                )
+            except UnclassifiedTargetsError as error:
+                sys.exit(f"error: {error}")
+            if manifest_affected is None:
+                run_all = True
+                run_fhir_conformance = True
+                continue
+            affected.update(manifest_affected)
+            run_fhir_conformance |= bool(manifest_affected & FHIR_PACKAGES)
+            continue
+        if path == "packages.toml":
+            if not args.base_packages:
+                run_all = True
+                run_fhir_conformance = True
+                continue
+            configuration_affected = affected_by_package_configuration(load_toml(args.base_packages))
+            if configuration_affected is None:
+                run_all = True
+                run_fhir_conformance = True
+                continue
+            affected.update(configuration_affected)
+            run_fhir_conformance |= bool(configuration_affected & FHIR_PACKAGES)
+            continue
+        if path.startswith("Tests/TestPlans/"):
+            package = os.path.splitext(os.path.basename(path))[0]
+            if package in PKGS:
+                affected.add(package)
+                run_fhir_conformance |= package in FHIR_PACKAGES
+            else:
+                # The _All-<platform> plans cover multiple packages. Keep this conservative until
+                # the matrix supports a platform-only all-packages selection.
+                run_all = True
+            continue
         parts = path.split("/")
         if len(parts) >= 2 and parts[0] in ("Sources", "Tests"):
+            if parts[0] == "Sources" and any(part.endswith(".docc") for part in parts):
+                continue
             pkg = DIR2PKG.get(parts[1])
             if pkg:
                 affected.add(pkg)
+                run_fhir_conformance |= pkg in FHIR_PACKAGES
         # files elsewhere (root docs, etc.) affect no package
 
     if run_all:
@@ -121,12 +417,13 @@ def main():
         f'ui_matrix={json.dumps({"include": ui})}',
         f'has_jobs={"true" if unit else "false"}',
         f'has_ui_jobs={"true" if ui else "false"}',
+        f'has_fhir_conformance={"true" if run_fhir_conformance else "false"}',
         f'affected={",".join(sorted(affected)) if affected else "(none)"}',
     ]
     sys.stdout.write("\n".join(lines) + "\n")
     sys.stderr.write(
         f"[affected-test-matrix] run_all={run_all} affected={sorted(affected)} "
-        f"unit_jobs={len(unit)} ui_jobs={len(ui)}\n"
+        f"unit_jobs={len(unit)} ui_jobs={len(ui)} fhir_conformance={run_fhir_conformance}\n"
     )
 
 if __name__ == "__main__":

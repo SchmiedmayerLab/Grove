@@ -77,6 +77,7 @@ struct ZoomableImageAnnotationView: UIViewRepresentable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ZoomableImageAnnotationView {
     final class AnnotationCanvasView: PKCanvasView {
         var layoutHandler: ((AnnotationCanvasView) -> Void)?
@@ -238,6 +239,7 @@ extension ZoomableImageAnnotationView {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ZoomableImageAnnotationView {
     fileprivate var imageSizeInPixels: CGSize {
         image.size.applying(.identity.scaledBy(x: image.scale, y: image.scale))

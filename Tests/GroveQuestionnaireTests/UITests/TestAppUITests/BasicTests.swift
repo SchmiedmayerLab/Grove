@@ -67,6 +67,23 @@ final class BasicTests: TestAppUITests, @unchecked Sendable {
     }
 
 
+    /// Looking for something a page does not have leaves the page as it was.
+    ///
+    /// A scan walks a page to its foot and back, and dragging a page that has nowhere left to go
+    /// is the sheet's own dismissal gesture — so a search that comes up empty must not be what
+    /// ends the run.
+    @MainActor
+    func testScanningForSomethingThePageDoesNotHave() {
+        launchAppAndStartExample("Patient Health Questionnaire-9", in: .modelValues)
+        XCTAssert(questionnaire.question("H1/T1/Q1").waitUntilAsked())
+        XCTAssert(questionnaire.scrollToPrimaryAction())
+
+        XCTAssertFalse(questionnaire.showsText("Nothing on this page"))
+        XCTAssert(questionnaire.section.exists)
+        XCTAssert(questionnaire.question("H1/T1/Q1").element.exists)
+    }
+
+
     /// Nothing on the Glasgow Coma Score is required, so the page is ready before it is answered.
     @MainActor
     func testOptionalQuestionsNeverBlockAPage() {

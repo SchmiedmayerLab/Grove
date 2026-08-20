@@ -67,7 +67,6 @@ public import XCTest
 /// - ``tapPrimaryAction()``
 /// - ``goBack(timeout:file:line:)``
 /// - ``scrollDown()``
-/// - ``scrollUp()``
 /// - ``scrollToPrimaryAction()``
 ///
 /// ### Finishing
@@ -121,9 +120,6 @@ public struct QuestionnaireSheetNavigator {
 
     /// How long the navigator waits for the app to catch up, unless a call says otherwise.
     public static let defaultTimeout: TimeInterval = 10
-
-    /// How far the navigator scrolls one way before giving up on finding something.
-    private static let maximumScanSwipes = 12
 
     /// The app the questionnaire is being answered in.
     public let app: XCUIApplication
@@ -201,41 +197,6 @@ extension QuestionnaireSheetNavigator {
         scan { section.staticTexts.matching(label: text).firstMatch.exists }
     }
 
-    /// Scrolls the page looking for something, and stops the moment it is there.
-    ///
-    /// A `Form` builds only the rows around the fold, so anything further down the page than it
-    /// has been scrolled is not in the accessibility tree at all. Scanning is what tells a question
-    /// the questionnaire is not asking from one it has not built yet, and it leaves it on screen.
-    func scan(for isFound: () -> Bool) -> Bool {
-        guard !isFound() else {
-            return true
-        }
-        if scroll(section.swipeUp, lookingFor: isFound) {
-            return true
-        }
-        // Swiping the section rather than the app: a swipe down that starts on the sheet itself
-        // drags the sheet away, and a page already at its foot never moves down — which is exactly
-        // when everything it is hiding is above.
-        return scroll(section.swipeDown, lookingFor: isFound)
-    }
-
-    /// Swipes one way until `isFound` holds or the page stops moving.
-    private func scroll(_ swipe: () -> Void, lookingFor isFound: () -> Bool) -> Bool {
-        var lastSeen = visibleText
-        for _ in 0..<Self.maximumScanSwipes {
-            swipe()
-            if isFound() {
-                return true
-            }
-            let seen = visibleText
-            guard seen != lastSeen else {
-                return false
-            }
-            lastSeen = seen
-        }
-        return false
-    }
-
     /// Whether the navigation bar carries `text`, as the page's title or as its subtitle.
     ///
     /// The renderer names a page by a short name (SDC `shortText`) alone: the sole group's if the
@@ -253,13 +214,11 @@ extension QuestionnaireSheetNavigator {
     }
 
     /// Scrolls the page down by roughly one screen.
+    ///
+    /// There is no counterpart: dragging a page down that has nowhere left to go takes the sheet
+    /// with it, so scrolling back up belongs to the scan, which knows where to stop.
     public func scrollDown() {
         app.swipeUp()
-    }
-
-    /// Scrolls the page back up by roughly one screen.
-    public func scrollUp() {
-        app.swipeDown()
     }
 
     /// Scrolls until the page's action is on screen.

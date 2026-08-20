@@ -21,11 +21,17 @@ extension FHIRExtensionBuilderProtocol where Self == FHIRExtensionBuilder<HKSamp
         .init { (sample: HKSample, resource) in
             let timeRangeExtensions = [
                 Extension(
-                    url: .absoluteTimeRangeStart,
+                    url: FHIRExtensionURL(
+                        RetiredFHIRCanonicalURLs.absoluteTimeRangeStart.canonical,
+                        superseding: RetiredFHIRCanonicalURLs.absoluteTimeRangeStart.superseded
+                    ),
                     value: .decimal(sample.startDate.timeIntervalSince1970.asFHIRDecimalPrimitive())
                 ),
                 Extension(
-                    url: .absoluteTimeRangeEnd,
+                    url: FHIRExtensionURL(
+                        RetiredFHIRCanonicalURLs.absoluteTimeRangeEnd.canonical,
+                        superseding: RetiredFHIRCanonicalURLs.absoluteTimeRangeEnd.superseded
+                    ),
                     value: .decimal(sample.endDate.timeIntervalSince1970.asFHIRDecimalPrimitive())
                 )
             ]

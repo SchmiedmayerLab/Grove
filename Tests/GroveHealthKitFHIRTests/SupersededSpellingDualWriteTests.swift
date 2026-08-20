@@ -68,13 +68,17 @@ struct SupersededSpellingDualWriteTests {
     /// Opting in has to reach every identifier the conversion writes, not just the ones a call site
     /// happened to list — that is the whole point of hooking the shared append.
     @Test
-    func optingInMirrorsEveryIdentifierTheConversionWrites() throws {
+    func optingInMirrorsEveryReproducibleIdentifierTheConversionWrites() throws {
         try withPolicy(.canonicalAndSuperseded) {
             let urls = spellings(try stepCountObservation())
             for identifier in [FHIRExtensionURL.sourceRevision, .metadata] {
                 #expect(urls.contains(identifier.url.absoluteString), "\(identifier.url) lost its canonical spelling")
                 for retired in identifier.superseded {
-                    #expect(urls.contains(retired.absoluteString), "\(retired) was not mirrored on opt-in")
+                    if SupersededFHIRURLs.notReproducibleByDualWrite.contains(retired.absoluteString) {
+                        #expect(!urls.contains(retired.absoluteString), "\(retired) must not be reproduced with a changed payload")
+                    } else {
+                        #expect(urls.contains(retired.absoluteString), "\(retired) was not mirrored on opt-in")
+                    }
                 }
             }
         }
