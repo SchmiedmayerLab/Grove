@@ -95,7 +95,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                     {
                         "sourceTypeIdentifier": "HKDataTypeIdentifierElectrocardiogram",
                         "title": "ECG",
-                        "swiftImplementationStatus": "supported",
+                        "status": "supported",
                         "measurementIDs": ["electrocardiogram"],
                         "profiles": [
                             "https://grovealliance.org/fhir/sensor/StructureDefinition/"
@@ -108,7 +108,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                     {
                         "sourceTypeIdentifier": "HKQuantityTypeIdentifierBodyMassIndex",
                         "title": "BMI",
-                        "swiftImplementationStatus": "supported",
+                        "status": "supported",
                         "measurementIDs": ["body-mass-index"],
                         "profiles": [
                             "http://hl7.org/fhir/StructureDefinition/bmi",
