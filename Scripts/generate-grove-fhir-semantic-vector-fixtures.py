@@ -70,35 +70,22 @@ def effective(value: dict) -> str:
 
 
 def result(value: dict) -> str:
+    # Only the fields the conformance tests actually compare are rendered; the corpus keeps the
+    # full semantic detail, and the emitted resources are validated against the guide directly.
     result_type = value.get("type")
     if result_type == "Quantity":
-        return (
-            ".quantity(value: " + number(value["value"])
-            + ", system: " + string(value["system"])
-            + ", code: " + string(value["code"])
-            + ", unit: " + string(value["unit"]) + ")"
-        )
+        return ".quantity(value: " + number(value["value"]) + ")"
     if result_type == "CodeableConcept":
-        return (
-            ".codeableConcept(system: " + string(value["system"])
-            + ", code: " + string(value["code"]) + ")"
-        )
+        return ".codeableConcept(code: " + string(value["code"]) + ")"
     if result_type == "components":
         components = value.get("components")
         if not isinstance(components, list) or not components:
             raise ValueError("component semantic vector must have components")
-        rendered = []
-        for component in components:
-            rendered.append(
-                "                .init("
-                + "id: " + string(component["id"])
-                + ", system: " + string(component["system"])
-                + ", code: " + string(component["code"])
-                + ", value: " + number(component["value"])
-                + ", quantitySystem: " + string(component["quantitySystem"])
-                + ", quantityCode: " + string(component["quantityCode"])
-                + ", unit: " + string(component["unit"]) + ")"
-            )
+        rendered = [
+            "                .init(id: " + string(component["id"])
+            + ", value: " + number(component["value"]) + ")"
+            for component in components
+        ]
         return ".components([\n" + ",\n".join(rendered) + "\n            ])"
     raise ValueError(f"unsupported semantic-vector result: {value!r}")
 
@@ -115,24 +102,16 @@ def generate(path: Path) -> str:
         "",
         "    struct Component: Sendable {",
         "        let id: String",
-        "        let system: String",
-        "        let code: String",
         "        let value: Double",
-        "        let quantitySystem: String",
-        "        let quantityCode: String",
-        "        let unit: String",
         "    }",
         "",
         "    enum Result: Sendable {",
-        "        case quantity(value: Double, system: String, code: String, unit: String)",
+        "        case quantity(value: Double)",
         "        case components([Component])",
-        "        case codeableConcept(system: String, code: String)",
+        "        case codeableConcept(code: String)",
         "    }",
         "",
         "    let id: String",
-        "    let profile: String",
-        "    let codeSystem: String",
-        "    let code: String",
         "    let effective: Effective",
         "    let result: Result",
         "}",
@@ -145,9 +124,6 @@ def generate(path: Path) -> str:
         lines.extend([
             "        MobileSemanticVectorFixture(",
             f"            id: {string(vector['id'])},",
-            f"            profile: {string(vector['profile'])},",
-            f"            codeSystem: {string(vector['code']['system'])},",
-            f"            code: {string(vector['code']['code'])},",
             f"            effective: {effective(vector['effective'])},",
             f"            result: {result(vector['result'])}",
             "        )," if index < len(vectors) - 1 else "        )",

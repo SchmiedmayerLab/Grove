@@ -10,9 +10,7 @@
 		6B6BCCBC94B41734F800926C /* Grove in Frameworks */ = {isa = PBXBuildFile; productRef = 9A85532EA115E02E9971B1C7 /* Grove */; };
 		12CBB08E315AC85A47F84C30 /* GroveFHIR in Frameworks */ = {isa = PBXBuildFile; productRef = C1B3BDE831B2E5E2FF46AF84 /* GroveFHIR */; };
 		C441CBB560DEBAE314798805 /* GroveFHIRMockPatients in Frameworks */ = {isa = PBXBuildFile; productRef = 01AEA178F03B59AE441014F4 /* GroveFHIRMockPatients */; };
-		2D4156718C9E8FE54B082AA9 /* GroveHealthKit in Frameworks */ = {isa = PBXBuildFile; productRef = 18E857BCF3F8877F9B67740D /* GroveHealthKit */; };
 		E04A9FEABBD0B916490E0D26 /* GroveViews in Frameworks */ = {isa = PBXBuildFile; productRef = AE5F0CF1A49B5847FD5A18C0 /* GroveViews */; };
-		943B3E236BEE6DB32612495B /* GroveHealthKitFHIR in Frameworks */ = {isa = PBXBuildFile; productRef = 529AACF07ECB7CF7339A3431 /* GroveHealthKitFHIR */; };
 		574E67CF7C37914B68A53E8A /* XCTestExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = A859F250D144A01374D3E800 /* XCTestExtensions */; };
 /* End PBXBuildFile section */
 
@@ -51,9 +49,7 @@
 				6B6BCCBC94B41734F800926C /* Grove in Frameworks */,
 				12CBB08E315AC85A47F84C30 /* GroveFHIR in Frameworks */,
 				C441CBB560DEBAE314798805 /* GroveFHIRMockPatients in Frameworks */,
-				2D4156718C9E8FE54B082AA9 /* GroveHealthKit in Frameworks */,
 				E04A9FEABBD0B916490E0D26 /* GroveViews in Frameworks */,
-				943B3E236BEE6DB32612495B /* GroveHealthKitFHIR in Frameworks */,
 			);
 		};
 		656490933002CEA900F1D55F /* Frameworks */ = {
@@ -112,9 +108,7 @@
 				9A85532EA115E02E9971B1C7 /* Grove */,
 				C1B3BDE831B2E5E2FF46AF84 /* GroveFHIR */,
 				01AEA178F03B59AE441014F4 /* GroveFHIRMockPatients */,
-				18E857BCF3F8877F9B67740D /* GroveHealthKit */,
 				AE5F0CF1A49B5847FD5A18C0 /* GroveViews */,
-				529AACF07ECB7CF7339A3431 /* GroveHealthKitFHIR */,
 			);
 			productName = TestApp;
 			productReference = 000000000000000000000120 /* TestApp.app */;
@@ -356,10 +350,6 @@
 		000000000000000111000000 /* Debug configuration for PBXNativeTarget "TestApp" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "TestApp/TestApp.entitlements";
-				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "The Test App uses the health data to test the Grove FHIR Package.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "The TestApp accesses your HealthKit data to run the tests.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "The Test App uses the health data to test the Grove FHIR Package.";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovefhir.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -394,10 +384,6 @@
 		000000000000000112000000 /* Release configuration for PBXNativeTarget "TestApp" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "TestApp/TestApp.entitlements";
-				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "The Test App uses the health data to test the Grove FHIR Package.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "The TestApp accesses your HealthKit data to run the tests.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "The Test App uses the health data to test the Grove FHIR Package.";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.grovealliance.grovefhir.testapp";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -525,20 +511,10 @@
 			package = 654293E43002D0F400AF6915 /* package */;
 			productName = GroveFHIRMockPatients;
 		};
-		18E857BCF3F8877F9B67740D /* GroveHealthKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* package */;
-			productName = GroveHealthKit;
-		};
 		AE5F0CF1A49B5847FD5A18C0 /* GroveViews */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 654293E43002D0F400AF6915 /* package */;
 			productName = GroveViews;
-		};
-		529AACF07ECB7CF7339A3431 /* GroveHealthKitFHIR */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 654293E43002D0F400AF6915 /* package */;
-			productName = GroveHealthKitFHIR;
 		};
 		A859F250D144A01374D3E800 /* XCTestExtensions */ = {
 			isa = XCSwiftPackageProductDependency;
