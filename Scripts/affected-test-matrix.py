@@ -128,7 +128,8 @@ FHIR_PACKAGES = {
 FHIR_COMPONENT_PACKAGES = {
     "healthkit": {"GroveHealthKitFHIR"},
     "questionnaire": {"GroveQuestionnaire", "ResearchKitOnFHIR"},
-    "sensor": {"GroveSensorKit", "GroveSensorKitFHIR"},
+    # The sensor component joins with the SensorKit producer PR, which carries its fixture
+    # writer; scheduling it before then validates a producer this branch does not have.
 }
 ALL_FHIR_COMPONENTS = set(FHIR_COMPONENT_PACKAGES)
 
