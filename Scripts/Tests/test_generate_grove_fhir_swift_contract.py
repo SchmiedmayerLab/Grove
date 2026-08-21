@@ -68,13 +68,11 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                     "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
                     "healthkit-conversion-provenance"
                 ),
-                "swiftProducer": {
-                    "numericCanonicalization": {
-                        "effectivePrecision": "millisecond",
-                        "effectiveRounding": "half-even",
-                        "scalarQuantityDecimal": "shortest-round-trip",
-                        "sensorAndEcgTiming": "excluded",
-                    }
+                "producerCanonicalization": {
+                    "effectivePrecision": "millisecond",
+                    "effectiveRounding": "half-even",
+                    "scalarQuantityDecimal": "shortest-round-trip",
+                    "sensorAndEcgTiming": "excluded",
                 },
                 "sensorAdapterClaims": {
                     "electrocardiogram": {
