@@ -19,8 +19,8 @@ private import struct SwiftUI.Color
 extension AnnotateImageQuestionKind {
     private static let base = "https://grovealliance.org/fhir/core"
 
-    fileprivate static let itemControlSystem = FHIRCanonicalURL("\(base)/CodeSystem/grove-questionnaire-item-control")
-    fileprivate static let region = FHIRCanonicalURL("\(base)/StructureDefinition/grove-annotate-image-region")
+    fileprivate static let itemControlSystem = "\(base)/CodeSystem/grove-questionnaire-item-control"
+    fileprivate static let region = "\(base)/StructureDefinition/grove-annotate-image-region"
 }
 
 
@@ -33,7 +33,7 @@ extension AnnotateImageQuestionKind: QuestionKindDefinitionWithFHIRDecodingSuppo
         guard itemControlExts.count == 1,
               let itemControlExt = itemControlExts.first,
               let itemControlCoding = itemControlExt.value?.codeableConceptValue?.coding?.first,
-              Self.itemControlSystem.canonical == itemControlCoding.system?.value?.url.absoluteString,
+              Self.itemControlSystem == itemControlCoding.system?.value?.url.absoluteString,
               itemControlCoding.code == "annotate-image" else {
             return nil
         }

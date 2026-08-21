@@ -862,14 +862,15 @@ extension HealthKitFHIRConverter {
                 value: raw.stringValue
             )
         }
-        observation.append(component: ObservationComponent(
+        let component = ObservationComponent(
             code: CodeableConcept(coding: [Coding(
                 code: HKMetadataKeyHeartRateMotionContext.asFHIRStringPrimitive(),
                 display: "Heart Rate Motion Context".asFHIRStringPrimitive(),
                 system: GroveFHIRCanonical.healthKitMetadataKey
             )]),
             value: .codeableConcept(CodeableConcept(coding: [coding]))
-        ))
+        )
+        observation.component = (observation.component ?? []) + [component]
     }
 
     static func applyRecordingMethod(to observation: inout Observation, sample: HKSample) {
