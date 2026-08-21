@@ -11,9 +11,8 @@ import Foundation
 
 /// The relationship between one SensorKit source token and Grove's implementation.
 public enum SensorKitFHIRCatalogScope: String, CaseIterable, Sendable {
-    case groveImplemented = "grove-implemented"
-    case currentStableAddition = "current-stable-addition"
-    case betaAddition = "beta-addition"
+    case catalogBaseline = "catalog-baseline"
+    case stableAddition = "stable-addition"
 }
 
 

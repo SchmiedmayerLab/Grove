@@ -22,9 +22,8 @@ struct SensorKitFHIRCatalogTests {
         #expect(catalog.fhirVersion == "4.0.1")
         #expect(tokens == tokens.sorted())
         #expect(Set(tokens).count == 24)
-        #expect(catalog.entries.count { $0.scope == .groveImplemented } == 20)
-        #expect(catalog.entries.count { $0.scope == .currentStableAddition } == 2)
-        #expect(catalog.entries.count { $0.scope == .betaAddition } == 2)
+        #expect(catalog.entries.count { $0.scope == .catalogBaseline } == 20)
+        #expect(catalog.entries.count { $0.scope == .stableAddition } == 2)
     }
 
     @Test
@@ -75,10 +74,10 @@ struct SensorKitFHIRCatalogTests {
             "SRSensor.electrocardiogram": .electrocardiogram,
             "SRSensor.rotationRate": .sampledData
         ])
-        #expect(catalog.entries.filter { $0.scope != .groveImplemented }.allSatisfy {
+        #expect(catalog.entries.filter { $0.scope != .catalogBaseline }.allSatisfy {
             $0.status == .deferred && $0.rawProfiles.isEmpty
         })
-        #expect(catalog.entries.filter { $0.scope == .groveImplemented }.allSatisfy {
+        #expect(catalog.entries.filter { $0.scope == .catalogBaseline }.allSatisfy {
             !$0.rawProfiles.isEmpty
         })
         #expect(catalog.entries.filter { $0.status == .providerSpecific }.map(\.sourceToken) == [
