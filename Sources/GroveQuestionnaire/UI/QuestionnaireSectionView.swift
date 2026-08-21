@@ -271,7 +271,7 @@ struct QuestionnaireSectionView<Header: View>: View {
         guard let task else {
             return
         }
-        withAnimation(reduceMotion ? nil : .snappy) {
+        withAnimation(reduceMotion ? nil : SelectionFeedback.scroll) {
             scrollViewProxy.scrollTo(task, anchor: .top)
         }
         taskToRevisit = nil
@@ -412,7 +412,7 @@ extension QuestionnaireSectionView {
         // The marks resize every card the page has to travel past, and a list resizes a pass later
         // than it is asked to: a scroll in between is carried out in that one frame, dropping the
         // participant at the question rather than taking them there.
-        withAnimation(reduceMotion ? nil : .snappy) {
+        withAnimation(reduceMotion ? nil : SelectionFeedback.scroll) {
             indicateBlockingTasks = true
         } completion: {
             taskToRevisit = problematicTask.id

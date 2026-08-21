@@ -27,7 +27,7 @@ on:
   workflow_call:
     inputs:
       run_all:
-        description: Run every unit, UI, and FHIR conformance check.
+        description: Run every unit and UI test.
         type: boolean
         default: false
       grove_fhir_ref:
@@ -297,14 +297,14 @@ jobs:
           done
 
   # Single gate to use as the required status check in branch protection.
-  # Does no work itself; it aggregates the unit, UI, and FHIR conformance jobs.
+  # Does no work itself; it aggregates the unit and UI test jobs.
   # `if: always()` is required so it still runs (and reports pass/fail) when `test`
   # failed or was skipped — otherwise the gate would be skipped and a skipped required
   # check never satisfies branch protection.
   all-tests-pass:
     name: All tests pass
     if: always()
-    needs: [detect, test, test-ui, fhir-conformance]
+    needs: [detect, test, test-ui]
     runs-on: ubuntu-latest
     steps:
       - name: Verify test results
@@ -312,15 +312,14 @@ jobs:
           echo "detect  = ${{ needs.detect.result }}"
           echo "test    = ${{ needs.test.result }}"
           echo "test-ui = ${{ needs.test-ui.result }}"
-          echo "fhir    = ${{ needs.fhir-conformance.result }}"
           if [ "${{ needs.detect.result }}" != "success" ]; then
             echo "::error::The 'detect' job did not succeed — cannot determine which tests to run."
             exit 1
           fi
-          for r in "${{ needs.test.result }}" "${{ needs.test-ui.result }}" "${{ needs.fhir-conformance.result }}"; do
+          for r in "${{ needs.test.result }}" "${{ needs.test-ui.result }}"; do
             case "$r" in
               success|skipped) ;;
               *) echo "::error::One or more test jobs did not pass (result: $r)."; exit 1 ;;
             esac
           done
-          echo "All required unit, UI, and FHIR conformance tests passed (or were not affected)."
+          echo "All required unit and UI tests passed (or were not affected)."

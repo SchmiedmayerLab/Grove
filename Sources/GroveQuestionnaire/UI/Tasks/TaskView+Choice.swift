@@ -31,6 +31,8 @@ extension TaskView {
             }
         }
 
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
         let task: Questionnaire.Task
         let config: Questionnaire.Task.Kind.ChoiceConfig
         @Binding var response: QuestionnaireResponses.Response
@@ -99,18 +101,8 @@ extension TaskView {
                     isSelected: response.value.choiceValue.didSelectFreeTextOtherOption,
                     isSeparated: hasRowsAboveOtherOption
                 ) {
-                    if config.allowsMultipleSelection {
-                        response.value.choiceValue.didSelectFreeTextOtherOption.toggle()
-                    } else {
-                        let oldSelectionState = response.value.choiceValue.didSelectFreeTextOtherOption
-                        if oldSelectionState {
-                            // we just deselected this option
-                            response.value.choiceValue = .init(selectedOptions: [])
-                        } else {
-                            // we just selected it
-                            response.value.choiceValue = .init(selectedOptions: [], freeTextOtherResponse: "")
-                        }
-                    }
+                    // Never advances the page: answering this option means typing into the field it reveals.
+                    SelectionFeedback.record(reduceMotion: reduceMotion, selectOtherOption, thenAdvance: nil)
                 } accessoryIfSelected: {
                     TextField(text: $response.value.choiceValue.freeTextOtherResponse.withDefault(""), prompt: Text(verbatim: "…")) {
                         Text(verbatim: "")
@@ -156,6 +148,19 @@ extension TaskView {
                 }
             }
         }
+
+        /// Toggles the free-text `Other` option, which in a single-choice question replaces the answer.
+        private func selectOtherOption() {
+            guard !config.allowsMultipleSelection else {
+                response.value.choiceValue.didSelectFreeTextOtherOption.toggle()
+                return
+            }
+            response.value.choiceValue = if response.value.choiceValue.didSelectFreeTextOtherOption {
+                .init(selectedOptions: [])
+            } else {
+                .init(selectedOptions: [], freeTextOtherResponse: "")
+            }
+        }
     }
 }
 
@@ -166,7 +171,8 @@ extension TaskView.ChoiceAnswering {
     private struct Row: View {
         @Environment(QuestionnaireResponses.self) private var responses
         @Environment(\.scrollToNextTask) private var scrollToNextTask
-        
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
         let task: Questionnaire.Task
         let config: Questionnaire.Task.Kind.ChoiceConfig
         let option: Questionnaire.Task.Kind.ChoiceConfig.Option
@@ -182,35 +188,13 @@ extension TaskView.ChoiceAnswering {
                 isSelected: response.value.choiceValue.didSelect(option.id),
                 isSeparated: isSeparated
             ) {
-                let oldSelectionState = response.value.choiceValue.didSelect(option.id)
-                if !config.allowsMultipleSelection {
-                    if oldSelectionState {
-                        // was selected before; we're now deselecting
-                        response = .init(value: .choice(.init(selectedOptions: [])))
-                    } else {
-                        // was not selected before; we're now selecting
-                        response = .init(value: .choice(.init(selectedOptions: [option.id])))
-                    }
-                } else {
-                    if oldSelectionState {
-                        response.value.choiceValue.deselect(option.id)
-                        response.nestedResponses[.choiceOption(option.id)] = nil
-                    } else {
-                        response.value.choiceValue.select(option.id, in: config)
-                    }
-                }
-                // we need this bc the condition of the nested task needs to be evaluated in the correct context.
-                let innerResponses = responses.view(
-                    appending: QuestionnaireResponses.ResponsePath(taskId: task.id).appending(choiceOption: option.id)
+                let wasSelected = response.value.choiceValue.didSelect(option.id)
+                SelectionFeedback.record(
+                    reduceMotion: reduceMotion,
+                    { apply(wasSelected: wasSelected) },
+                    // Deselecting leaves the participant where they are, so there is nothing to move on to.
+                    thenAdvance: wasSelected ? nil : { continueAfterSelecting() }
                 )
-                if !oldSelectionState, config.followUpTasks.contains(where: { innerResponses.shouldEnable(task: $0) }) {
-                    // the option wasn't selected before, but is now, and also we have some follow up tasks.
-                    isShowingFollowUpQuestionsSheet = true
-                }
-                if !isShowingFollowUpQuestionsSheet, !config.allowsMultipleSelection, !oldSelectionState {
-                    // if we just selected an option in a single-choice question, and there are no follow-up questions, we scroll to the next task.
-                    scrollToNextTask()
-                }
             }
             .sheet(isPresented: $isShowingFollowUpQuestionsSheet) {
                 ManagedNavigationStack {
@@ -249,6 +233,34 @@ extension TaskView.ChoiceAnswering {
                         appending: QuestionnaireResponses.ResponsePath(taskId: task.id).appending(choiceOption: option.id)
                     )
                 )
+            }
+        }
+
+        /// Records the tap: a single-choice question keeps only the option just picked.
+        private func apply(wasSelected: Bool) {
+            guard config.allowsMultipleSelection else {
+                response = .init(value: .choice(.init(selectedOptions: wasSelected ? [] : [option.id])))
+                return
+            }
+            if wasSelected {
+                response.value.choiceValue.deselect(option.id)
+                response.nestedResponses[.choiceOption(option.id)] = nil
+            } else {
+                response.value.choiceValue.select(option.id, in: config)
+            }
+        }
+
+        /// Asks the option's own questions, or moves on to the next one, now that the answer is confirmed.
+        private func continueAfterSelecting() {
+            // Read here rather than before the answer was applied: a nested task's condition has to be
+            // evaluated against the selection it depends on.
+            let innerResponses = responses.view(
+                appending: QuestionnaireResponses.ResponsePath(taskId: task.id).appending(choiceOption: option.id)
+            )
+            if config.followUpTasks.contains(where: { innerResponses.shouldEnable(task: $0) }) {
+                isShowingFollowUpQuestionsSheet = true
+            } else if !config.allowsMultipleSelection {
+                scrollToNextTask()
             }
         }
     }
