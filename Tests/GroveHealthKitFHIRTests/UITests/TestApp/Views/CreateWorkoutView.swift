@@ -14,7 +14,7 @@ struct CreateWorkoutView: View {
         ContentUnavailableView(
             "No v0.2 Workout Profile",
             systemImage: "figure.run",
-            description: Text("Workout is listed as no-published-contract in the authoritative HealthKit coverage matrix.")
+            description: Text("Workout is listed as deferred in the authoritative HealthKit coverage matrix.")
         )
         .navigationTitle("Workout")
     }
