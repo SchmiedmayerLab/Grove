@@ -575,7 +575,7 @@ extension HealthKitFHIRConverter {
         contract: HealthKitFHIRObservationContract
     ) throws {
         switch binding {
-        case let .quantity(_, unit, display):
+        case let .quantity(_, unit):
             guard let quantitySample = sample as? HKQuantitySample,
                   let quantityContract = contract.quantity else {
                 throw GroveHealthKitFHIRError.invalidValue
@@ -583,7 +583,6 @@ extension HealthKitFHIRConverter {
             let value = quantitySample.quantity.doubleValue(for: unit)
             observation.value = .quantity(try fhirQuantity(
                 value: value,
-                display: display,
                 contract: quantityContract
             ))
         case .percent:
@@ -594,7 +593,6 @@ extension HealthKitFHIRConverter {
             let value = quantitySample.quantity.doubleValue(for: .percent()) * 100
             observation.value = .quantity(try fhirQuantity(
                 value: value,
-                display: "%",
                 contract: quantityContract
             ))
         case .bloodPressure:
@@ -701,13 +699,12 @@ extension HealthKitFHIRConverter {
 
     private static func fhirQuantity(
         value: Double,
-        display: String,
-        contract: HealthKitFHIRQuantityContract
+        contract: GroveFHIRQuantityContract
     ) throws -> Quantity {
         Quantity(
             code: contract.code.asFHIRStringPrimitive(),
             system: FHIRPrimitive(FHIRURI(stringLiteral: contract.system)),
-            unit: display.asFHIRStringPrimitive(),
+            unit: contract.unit.asFHIRStringPrimitive(),
             value: try HealthKitFHIRMobileCanonicalization.scalarDecimal(value)
         )
     }
@@ -735,7 +732,6 @@ extension HealthKitFHIRConverter {
                 )]),
                 value: .quantity(try fhirQuantity(
                     value: sample.quantity.doubleValue(for: .millimeterOfMercury()),
-                    display: "mmHg",
                     contract: component.quantity
                 ))
             )

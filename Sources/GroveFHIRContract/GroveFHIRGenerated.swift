@@ -13,10 +13,8 @@
 public import ModelsR4
 
 
-/// Version of the grove-fhir package closure used to generate these constants.
+/// Canonical root of the grove-fhir package closure used to generate these constants.
 public enum GroveFHIRContractVersion {
-    public static let fhir = "4.0.1"
-    public static let package = "0.2.0"
     public static let canonicalRoot = "https://grovealliance.org/fhir"
 }
 
@@ -83,16 +81,6 @@ public enum GroveFHIRProfile {
 }
 
 
-/// Producer coverage states defined by the v0.2 measurement catalog.
-public enum GroveFHIRAdapterCoverage: String, CaseIterable, Sendable {
-    case supported = "supported"
-    case mappedStandard = "mapped-standard"
-    case providerSpecific = "provider-specific"
-    case deferred = "deferred"
-    case intentionallyUnsupported = "intentionally-unsupported"
-}
-
-
 /// Effective datatype fixed by a shared mobile measurement profile.
 public enum GroveFHIRMeasurementEffective: String, Sendable {
     case dateTime
@@ -104,6 +92,13 @@ public enum GroveFHIRMeasurementEffective: String, Sendable {
 public struct GroveFHIRQuantityContract: Hashable, Sendable {
     public let system: String
     public let code: String
+    public let unit: String
+
+    public init(system: String, code: String, unit: String) {
+        self.system = system
+        self.code = code
+        self.unit = unit
+    }
 }
 
 
@@ -111,6 +106,11 @@ public struct GroveFHIRQuantityContract: Hashable, Sendable {
 public struct GroveFHIRCodingContract: Hashable, Sendable {
     public let system: String
     public let code: String
+
+    public init(system: String, code: String) {
+        self.system = system
+        self.code = code
+    }
 }
 
 
@@ -127,15 +127,12 @@ public struct GroveFHIRComponentContract: Hashable, Sendable {
 public struct GroveFHIRMeasurementContract: Sendable {
     public let id: String
     public let profile: FHIRPrimitive<Canonical>
-    public let standardProfile: FHIRPrimitive<Canonical>?
     public let code: GroveFHIRCodingContract
     public let quantity: GroveFHIRQuantityContract?
     public let components: [GroveFHIRComponentContract]
-    public let valueSet: String?
     public let resultCodeSystem: String?
     public let allowedValues: [String]
     public let effective: GroveFHIRMeasurementEffective
-    public let coverage: [String: GroveFHIRAdapterCoverage]
 }
 
 
@@ -144,277 +141,147 @@ public enum GroveFHIRMeasurementCatalog {
     public static let activeEnergy = GroveFHIRMeasurementContract(
         id: "active-energy",
         profile: GroveFHIRProfile.groveMobileActiveEnergy,
-        standardProfile: nil,
         code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "active-energy-burned"),
-        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "kcal"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "kcal", unit: "kcal"),
         components: [],
-        valueSet: nil,
         resultCodeSystem: nil,
         allowedValues: [],
-        effective: .period,
-        coverage: [
-            "google-health-api": .supported,
-            "health-connect": .supported,
-            "healthkit": .supported,
-            "oura": .supported,
-            "sensorkit": .intentionallyUnsupported,
-            "withings": .supported,
-        ]
+        effective: .period
     )
 
     public static let basalBodyTemperature = GroveFHIRMeasurementContract(
         id: "basal-body-temperature",
         profile: GroveFHIRProfile.groveMobileBasalBodyTemperature,
-        standardProfile: nil,
         code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "basal-body-temperature"),
-        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "Cel"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "Cel", unit: "Cel"),
         components: [],
-        valueSet: nil,
         resultCodeSystem: nil,
         allowedValues: [],
-        effective: .dateTime,
-        coverage: [
-            "google-health-api": .intentionallyUnsupported,
-            "health-connect": .supported,
-            "healthkit": .supported,
-            "oura": .intentionallyUnsupported,
-            "sensorkit": .intentionallyUnsupported,
-            "withings": .intentionallyUnsupported,
-        ]
+        effective: .dateTime
     )
 
     public static let bloodPressure = GroveFHIRMeasurementContract(
         id: "blood-pressure",
         profile: GroveFHIRProfile.groveMobileBloodPressure,
-        standardProfile: "http://hl7.org/fhir/StructureDefinition/bp",
         code: GroveFHIRCodingContract(system: "http://loinc.org", code: "85354-9"),
         quantity: nil,
         components: [
-            GroveFHIRComponentContract(id: "systolic", system: "http://loinc.org", code: "8480-6", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mm[Hg]")),
-            GroveFHIRComponentContract(id: "diastolic", system: "http://loinc.org", code: "8462-4", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mm[Hg]")),
+            GroveFHIRComponentContract(id: "systolic", system: "http://loinc.org", code: "8480-6", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mm[Hg]", unit: "mmHg")),
+            GroveFHIRComponentContract(id: "diastolic", system: "http://loinc.org", code: "8462-4", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mm[Hg]", unit: "mmHg")),
         ],
-        valueSet: nil,
         resultCodeSystem: nil,
         allowedValues: [],
-        effective: .dateTime,
-        coverage: [
-            "google-health-api": .intentionallyUnsupported,
-            "health-connect": .supported,
-            "healthkit": .supported,
-            "oura": .intentionallyUnsupported,
-            "sensorkit": .intentionallyUnsupported,
-            "withings": .supported,
-        ]
+        effective: .dateTime
     )
 
     public static let bodyHeight = GroveFHIRMeasurementContract(
         id: "body-height",
         profile: GroveFHIRProfile.groveMobileBodyHeight,
-        standardProfile: "http://hl7.org/fhir/StructureDefinition/bodyheight",
         code: GroveFHIRCodingContract(system: "http://loinc.org", code: "8302-2"),
-        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "cm"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "cm", unit: "cm"),
         components: [],
-        valueSet: nil,
         resultCodeSystem: nil,
         allowedValues: [],
-        effective: .dateTime,
-        coverage: [
-            "google-health-api": .supported,
-            "health-connect": .supported,
-            "healthkit": .supported,
-            "oura": .intentionallyUnsupported,
-            "sensorkit": .intentionallyUnsupported,
-            "withings": .supported,
-        ]
+        effective: .dateTime
     )
 
     public static let bodyTemperature = GroveFHIRMeasurementContract(
         id: "body-temperature",
         profile: GroveFHIRProfile.groveMobileBodyTemperature,
-        standardProfile: "http://hl7.org/fhir/StructureDefinition/bodytemp",
         code: GroveFHIRCodingContract(system: "http://loinc.org", code: "8310-5"),
-        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "Cel"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "Cel", unit: "Cel"),
         components: [],
-        valueSet: nil,
         resultCodeSystem: nil,
         allowedValues: [],
-        effective: .dateTime,
-        coverage: [
-            "google-health-api": .supported,
-            "health-connect": .supported,
-            "healthkit": .supported,
-            "oura": .intentionallyUnsupported,
-            "sensorkit": .deferred,
-            "withings": .supported,
-        ]
+        effective: .dateTime
     )
 
     public static let bodyWeight = GroveFHIRMeasurementContract(
         id: "body-weight",
         profile: GroveFHIRProfile.groveMobileBodyWeight,
-        standardProfile: "http://hl7.org/fhir/StructureDefinition/bodyweight",
         code: GroveFHIRCodingContract(system: "http://loinc.org", code: "29463-7"),
-        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "kg"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "kg", unit: "kg"),
         components: [],
-        valueSet: nil,
         resultCodeSystem: nil,
         allowedValues: [],
-        effective: .dateTime,
-        coverage: [
-            "google-health-api": .supported,
-            "health-connect": .supported,
-            "healthkit": .supported,
-            "oura": .intentionallyUnsupported,
-            "sensorkit": .intentionallyUnsupported,
-            "withings": .supported,
-        ]
+        effective: .dateTime
     )
 
     public static let distance = GroveFHIRMeasurementContract(
         id: "distance",
         profile: GroveFHIRProfile.groveMobileDistance,
-        standardProfile: nil,
         code: GroveFHIRCodingContract(system: "http://loinc.org", code: "103208-5"),
-        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m", unit: "m"),
         components: [],
-        valueSet: nil,
         resultCodeSystem: nil,
         allowedValues: [],
-        effective: .period,
-        coverage: [
-            "google-health-api": .supported,
-            "health-connect": .supported,
-            "healthkit": .supported,
-            "oura": .supported,
-            "sensorkit": .mappedStandard,
-            "withings": .supported,
-        ]
+        effective: .period
     )
 
     public static let heartRate = GroveFHIRMeasurementContract(
         id: "heart-rate",
         profile: GroveFHIRProfile.groveMobileHeartRate,
-        standardProfile: "http://hl7.org/fhir/StructureDefinition/heartrate",
         code: GroveFHIRCodingContract(system: "http://loinc.org", code: "8867-4"),
-        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "beats/minute"),
         components: [],
-        valueSet: nil,
         resultCodeSystem: nil,
         allowedValues: [],
-        effective: .dateTime,
-        coverage: [
-            "google-health-api": .mappedStandard,
-            "health-connect": .supported,
-            "healthkit": .supported,
-            "oura": .mappedStandard,
-            "sensorkit": .mappedStandard,
-            "withings": .supported,
-        ]
+        effective: .dateTime
     )
 
     public static let oxygenSaturation = GroveFHIRMeasurementContract(
         id: "oxygen-saturation",
         profile: GroveFHIRProfile.groveMobileOxygenSaturation,
-        standardProfile: "http://hl7.org/fhir/StructureDefinition/oxygensat",
         code: GroveFHIRCodingContract(system: "http://loinc.org", code: "2708-6"),
-        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "%"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "%", unit: "%"),
         components: [],
-        valueSet: nil,
         resultCodeSystem: nil,
         allowedValues: [],
-        effective: .dateTime,
-        coverage: [
-            "google-health-api": .deferred,
-            "health-connect": .supported,
-            "healthkit": .supported,
-            "oura": .deferred,
-            "sensorkit": .intentionallyUnsupported,
-            "withings": .supported,
-        ]
+        effective: .dateTime
     )
 
     public static let respiratoryRate = GroveFHIRMeasurementContract(
         id: "respiratory-rate",
         profile: GroveFHIRProfile.groveMobileRespiratoryRate,
-        standardProfile: "http://hl7.org/fhir/StructureDefinition/resprate",
         code: GroveFHIRCodingContract(system: "http://loinc.org", code: "9279-1"),
-        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "breaths/minute"),
         components: [],
-        valueSet: nil,
         resultCodeSystem: nil,
         allowedValues: [],
-        effective: .dateTime,
-        coverage: [
-            "google-health-api": .deferred,
-            "health-connect": .supported,
-            "healthkit": .supported,
-            "oura": .deferred,
-            "sensorkit": .intentionallyUnsupported,
-            "withings": .deferred,
-        ]
+        effective: .dateTime
     )
 
     public static let sleepDuration = GroveFHIRMeasurementContract(
         id: "sleep-duration",
         profile: GroveFHIRProfile.groveMobileSleepDuration,
-        standardProfile: nil,
         code: GroveFHIRCodingContract(system: "http://loinc.org", code: "93832-4"),
-        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "h"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "h", unit: "h"),
         components: [],
-        valueSet: nil,
         resultCodeSystem: nil,
         allowedValues: [],
-        effective: .period,
-        coverage: [
-            "google-health-api": .supported,
-            "health-connect": .supported,
-            "healthkit": .deferred,
-            "oura": .supported,
-            "sensorkit": .deferred,
-            "withings": .deferred,
-        ]
+        effective: .period
     )
 
     public static let sleepStage = GroveFHIRMeasurementContract(
         id: "sleep-stage",
         profile: GroveFHIRProfile.groveMobileSleepStage,
-        standardProfile: nil,
         code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "sleep-stage"),
         quantity: nil,
         components: [],
-        valueSet: "https://grovealliance.org/fhir/mobile/ValueSet/grove-sleep-stage",
         resultCodeSystem: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-sleep-stage",
         allowedValues: ["awake", "in-bed", "out-of-bed", "asleep-unspecified", "light", "deep", "rem", "unknown"],
-        effective: .period,
-        coverage: [
-            "google-health-api": .deferred,
-            "health-connect": .supported,
-            "healthkit": .supported,
-            "oura": .deferred,
-            "sensorkit": .deferred,
-            "withings": .deferred,
-        ]
+        effective: .period
     )
 
     public static let stepCount = GroveFHIRMeasurementContract(
         id: "step-count",
         profile: GroveFHIRProfile.groveMobileStepCount,
-        standardProfile: nil,
         code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "step-count-total"),
-        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{steps}"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{steps}", unit: "steps"),
         components: [],
-        valueSet: nil,
         resultCodeSystem: nil,
         allowedValues: [],
-        effective: .period,
-        coverage: [
-            "google-health-api": .supported,
-            "health-connect": .supported,
-            "healthkit": .supported,
-            "oura": .supported,
-            "sensorkit": .mappedStandard,
-            "withings": .supported,
-        ]
+        effective: .period
     )
 
     public static let all: [GroveFHIRMeasurementContract] = [
@@ -456,21 +323,17 @@ public struct GroveFHIRHealthKitCatalogRow: Sendable {
 /// Machine-generated HealthKit producer contract and complete source inventory.
 public enum GroveFHIRHealthKitCatalog {
     public static let sourceTypeCodeSystem: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-source-type"
-    public static let conversionProvenanceProfile: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-conversion-provenance"
+    public static let conversionProvenanceProfile: FHIRPrimitive<Canonical> = GroveFHIRProfile.healthkitConversionProvenance
     public static let electrocardiogramSourceTypeIdentifier = "HKDataTypeIdentifierElectrocardiogram"
     public static let electrocardiogramProfiles: [FHIRPrimitive<Canonical>] = [
-        "https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-ecg-observation",
-        "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-ecg-observation",
+        GroveFHIRProfile.groveSensorEcgObservation,
+        GroveFHIRProfile.healthkitEcgObservation,
     ]
     public static let bodyMassIndexProfiles: [FHIRPrimitive<Canonical>] = [
         "http://hl7.org/fhir/StructureDefinition/bmi",
-        "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-observation",
+        GroveFHIRProfile.healthkitObservation,
     ]
     public static let electrocardiogramCorrelatedSymptomExtension: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-ecg-correlated-symptom"
-    public static let mobileEffectivePrecision = "millisecond"
-    public static let mobileEffectiveRounding = "half-even"
-    public static let scalarQuantityDecimal = "shortest-round-trip"
-    public static let sensorAndECGTiming = "excluded"
 
     public static let rows: [GroveFHIRHealthKitCatalogRow] = [
         GroveFHIRHealthKitCatalogRow(
@@ -965,7 +828,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKCategoryTypeIdentifierSleepAnalysis",
             title: "Sleep Analysis",
             measurementIDs: ["sleep-stage"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-sleep-stage"],
+            profiles: [GroveFHIRProfile.groveMobileSleepStage],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1149,7 +1012,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKCorrelationTypeIdentifierBloodPressure",
             title: "Blood Pressure",
             measurementIDs: ["blood-pressure"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-blood-pressure"],
+            profiles: [GroveFHIRProfile.groveMobileBloodPressure],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1173,7 +1036,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKDataTypeIdentifierElectrocardiogram",
             title: "ECG",
             measurementIDs: ["electrocardiogram"],
-            profiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-ecg-observation", "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-ecg-observation"],
+            profiles: [GroveFHIRProfile.groveSensorEcgObservation, GroveFHIRProfile.healthkitEcgObservation],
             implementationStatus: .supported,
             requirement: "The caller supplies the HKElectrocardiogram, every voltage measurement with its exact timeSinceSampleStart, and each associated HKCategorySample when symptomsStatus is present. The adapter preserves symptom UUID/timing/type/severity and complete HKSourceRevision fields, classification, average heart rate, sampling frequency, reported count, Apple ECG algorithm-version metadata when present, source and waveform intervals, lead, offsets, and voltages without fetching or resampling. Explicit caller authorization for linkable symptom-source disclosure is required; otherwise conversion fails closed."
         ),
@@ -1221,7 +1084,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierActiveEnergyBurned",
             title: "Active Energy Burned",
             measurementIDs: ["active-energy"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-active-energy"],
+            profiles: [GroveFHIRProfile.groveMobileActiveEnergy],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1285,7 +1148,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierBasalBodyTemperature",
             title: "Basal Body Temperature",
             measurementIDs: ["basal-body-temperature"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-basal-body-temperature"],
+            profiles: [GroveFHIRProfile.groveMobileBasalBodyTemperature],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1341,7 +1204,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierBodyMass",
             title: "Body Mass",
             measurementIDs: ["body-weight"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-body-weight"],
+            profiles: [GroveFHIRProfile.groveMobileBodyWeight],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1349,7 +1212,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierBodyMassIndex",
             title: "BMI",
             measurementIDs: ["body-mass-index"],
-            profiles: ["http://hl7.org/fhir/StructureDefinition/bmi", "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-observation"],
+            profiles: ["http://hl7.org/fhir/StructureDefinition/bmi", GroveFHIRProfile.healthkitObservation],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1357,7 +1220,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierBodyTemperature",
             title: "Body Temperature",
             measurementIDs: ["body-temperature"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-body-temperature"],
+            profiles: [GroveFHIRProfile.groveMobileBodyTemperature],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1717,7 +1580,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDistanceCrossCountrySkiing",
             title: "Cross-Country Skiing Distance",
             measurementIDs: ["distance"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-distance"],
+            profiles: [GroveFHIRProfile.groveMobileDistance],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1725,7 +1588,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDistanceCycling",
             title: "Cycling Distance",
             measurementIDs: ["distance"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-distance"],
+            profiles: [GroveFHIRProfile.groveMobileDistance],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1733,7 +1596,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDistanceDownhillSnowSports",
             title: "Downhill Snow Sports Distance",
             measurementIDs: ["distance"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-distance"],
+            profiles: [GroveFHIRProfile.groveMobileDistance],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1741,7 +1604,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDistancePaddleSports",
             title: "Paddle Sports Distance",
             measurementIDs: ["distance"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-distance"],
+            profiles: [GroveFHIRProfile.groveMobileDistance],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1749,7 +1612,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDistanceRowing",
             title: "Rowing Distance",
             measurementIDs: ["distance"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-distance"],
+            profiles: [GroveFHIRProfile.groveMobileDistance],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1757,7 +1620,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDistanceSkatingSports",
             title: "Skating Sports Distance",
             measurementIDs: ["distance"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-distance"],
+            profiles: [GroveFHIRProfile.groveMobileDistance],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1765,7 +1628,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDistanceSwimming",
             title: "Swimming Distance",
             measurementIDs: ["distance"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-distance"],
+            profiles: [GroveFHIRProfile.groveMobileDistance],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1773,7 +1636,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDistanceWalkingRunning",
             title: "Distance Walking/Running",
             measurementIDs: ["distance"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-distance"],
+            profiles: [GroveFHIRProfile.groveMobileDistance],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1781,7 +1644,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDistanceWheelchair",
             title: "Wheelchair Distance",
             measurementIDs: ["distance"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-distance"],
+            profiles: [GroveFHIRProfile.groveMobileDistance],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1853,7 +1716,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierHeartRate",
             title: "Heart Rate",
             measurementIDs: ["heart-rate"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-heart-rate"],
+            profiles: [GroveFHIRProfile.groveMobileHeartRate],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1877,7 +1740,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierHeight",
             title: "Height",
             measurementIDs: ["body-height"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-body-height"],
+            profiles: [GroveFHIRProfile.groveMobileBodyHeight],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1933,7 +1796,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierOxygenSaturation",
             title: "Oxygen Saturation",
             measurementIDs: ["oxygen-saturation"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-oxygen-saturation"],
+            profiles: [GroveFHIRProfile.groveMobileOxygenSaturation],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -1981,7 +1844,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierRespiratoryRate",
             title: "Respiratory Rate",
             measurementIDs: ["respiratory-rate"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-respiratory-rate"],
+            profiles: [GroveFHIRProfile.groveMobileRespiratoryRate],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -2069,7 +1932,7 @@ public enum GroveFHIRHealthKitCatalog {
             sourceTypeIdentifier: "HKQuantityTypeIdentifierStepCount",
             title: "Step Count",
             measurementIDs: ["step-count"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-step-count"],
+            profiles: [GroveFHIRProfile.groveMobileStepCount],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -2224,24 +2087,18 @@ public enum GroveFHIRHealthKitCatalog {
 /// Exact direct profile-claim rules generated from profile-claims.json.
 public enum GroveFHIRProfileClaims {
     public static let observationAdapterCardinality = 2
-    public static let inheritedProfilesAreNotDeclared = true
 
     public static let observationAdapterProfiles: [FHIRPrimitive<Canonical>] = [
-        "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-observation",
-        "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-ecg-observation",
-        "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-observation",
-        "https://grovealliance.org/fhir/connected-health/StructureDefinition/connected-health-observation",
-        "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-observation",
-        "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-ecg-observation",
-    ]
-
-    public static let sharedSensorProfiles: [FHIRPrimitive<Canonical>] = [
-        "https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-ecg-observation",
-        "https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-sampled-data-observation",
+        GroveFHIRProfile.healthkitObservation,
+        GroveFHIRProfile.healthkitEcgObservation,
+        GroveFHIRProfile.healthConnectObservation,
+        GroveFHIRProfile.connectedHealthObservation,
+        GroveFHIRProfile.sensorkitObservation,
+        GroveFHIRProfile.sensorkitEcgObservation,
     ]
 
     public static let forbiddenExplicitProfiles: [FHIRPrimitive<Canonical>] = [
-        "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-observation",
+        GroveFHIRProfile.groveMobileObservation,
         "http://hl7.org/fhir/StructureDefinition/bp",
         "http://hl7.org/fhir/StructureDefinition/bodyheight",
         "http://hl7.org/fhir/StructureDefinition/bodytemp",
@@ -2263,8 +2120,6 @@ public enum GroveFHIRProfileClaims {
 
 /// Frozen exchange-graph values generated from exchange-identity.json.
 public enum GroveFHIRExchangeContract {
-    public static let bundleProfile: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-exchange-bundle"
     public static let entryIdentifierExtension: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-exchange-entry-identifier"
-    public static let fullURLAlgorithm = "uuid-v5-jcs-identifier-v1"
     public static let fullURLNamespace = "a9a39cf1-c944-5d15-a3c2-c395969ea101"
 }
