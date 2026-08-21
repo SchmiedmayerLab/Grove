@@ -46,7 +46,7 @@ let pair = try GroveQuestionnaireFHIRBuilder().pair(
 ```
 
 `Questionnaire.id` and `QuestionnaireResponse.id` are omitted unless a repository has
-already assigned them and the caller supplies a ``GroveFHIRContract/GroveFHIRRepositoryID``.
+already assigned them and the caller supplies a `GroveFHIRRepositoryID`.
 Use ``GroveQuestionnaireFHIRPairValidator`` when accepting a pair. Its offline preflight
 enforces the exact canonical and business identifier, hierarchy, answer datatypes,
 enablement and required-item state, inline and resolved ValueSet membership, length and
@@ -73,13 +73,13 @@ than being silently omitted.
 
 ### Conversion
 
-- ``GroveQuestionnaire/Questionnaire/init(_:using:)``
+- ``GroveQuestionnaire/Questionnaire/init(_:evaluationInstant:using:)``
 - ``ModelsR4/Questionnaire/init(_:repositoryID:)``
 - ``ModelsR4/QuestionnaireResponse/init(_:subject:author:source:status:identifier:repositoryID:authored:)``
 - ``GroveQuestionnaireFHIRBuilder``
 - ``GroveQuestionnaireFHIRPair``
 - ``GroveQuestionnaireFHIRPairValidator``
-- ``GroveQuestionnaire/Questionnaire/withExpressionEngine(launchContext:)``
+- ``GroveQuestionnaire/Questionnaire/withExpressionEngine(evaluationInstant:launchContext:)``
 
 ### Custom Question Kinds
 
