@@ -73,8 +73,7 @@ extension Scheduler {
                 if outcome == .relocated {
                     LegacyIdentifierReport.encountered(
                         LegacyStorage.schedulerStore,
-                        in: "GroveScheduler",
-                        .duringMigration
+                        in: "GroveScheduler"
                     )
                     break
                 }

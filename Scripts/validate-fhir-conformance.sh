@@ -18,7 +18,7 @@ cd "$(dirname "$0")/.."
 
 COMPONENT="${1:-${GROVE_FHIR_COMPONENT:-healthkit}}"
 GUIDES="${GROVE_FHIR_GUIDES:-$(pwd)/.fhir/grove-fhir}"
-GROVE_FHIR_REF="${GROVE_FHIR_REF:-feature/fhir-v020-adapters}"
+GROVE_FHIR_REF="${GROVE_FHIR_REF:-6001474255641193c25686ff404ef6cbcc2cc3b1}"
 
 if [ "$COMPONENT" = "all" ]; then
     for component in healthkit questionnaire sensor; do
@@ -27,33 +27,11 @@ if [ "$COMPONENT" = "all" ]; then
     exit 0
 fi
 
+# One guide list per component; package names and ids derive from it below.
 case "$COMPONENT" in
-    healthkit)
-        TEST_PACKAGE="GroveHealthKitFHIR"
-        GUIDE_NAMES=(mobile sensor healthkit)
-        PACKAGE_NAMES=(mobile sensor healthkit)
-        PACKAGE_IDS=(
-            org.grovealliance.fhir.mobile
-            org.grovealliance.fhir.sensor
-            org.grovealliance.fhir.healthkit
-        )
-        ;;
-    questionnaire)
-        TEST_PACKAGE="GroveQuestionnaire"
-        GUIDE_NAMES=(questionnaire)
-        PACKAGE_NAMES=(questionnaire)
-        PACKAGE_IDS=(org.grovealliance.fhir.questionnaire)
-        ;;
-    sensor)
-        TEST_PACKAGE="GroveSensorKitFHIR"
-        GUIDE_NAMES=(mobile sensor sensorkit)
-        PACKAGE_NAMES=(mobile sensor sensorkit)
-        PACKAGE_IDS=(
-            org.grovealliance.fhir.mobile
-            org.grovealliance.fhir.sensor
-            org.grovealliance.fhir.sensorkit
-        )
-        ;;
+    healthkit)     TEST_PACKAGE="GroveHealthKitFHIR"; GUIDE_NAMES=(mobile sensor healthkit) ;;
+    questionnaire) TEST_PACKAGE="GroveQuestionnaire"; GUIDE_NAMES=(questionnaire) ;;
+    sensor)        TEST_PACKAGE="GroveSensorKitFHIR"; GUIDE_NAMES=(mobile sensor sensorkit) ;;
     *)
         echo "error: unsupported FHIR conformance component '$COMPONENT'" >&2
         exit 2
@@ -92,11 +70,12 @@ if [ ! -f "$VALIDATOR" ]; then
 fi
 
 package_arguments=()
+manifest_package_arguments=()
 missing_package=false
-for index in "${!PACKAGE_NAMES[@]}"; do
-    package_name="${PACKAGE_NAMES[$index]}"
-    package_path="$GUIDES/$package_name/output/package.tgz"
-    package_arguments+=(--package "$package_name=$package_path")
+for guide in "${GUIDE_NAMES[@]}"; do
+    package_path="$GUIDES/$guide/output/package.tgz"
+    package_arguments+=(--package "$guide=$package_path")
+    manifest_package_arguments+=(--package "$guide=org.grovealliance.fhir.$guide")
     if [ ! -f "$package_path" ]; then
         missing_package=true
     fi
@@ -118,13 +97,6 @@ if [ "$count" -eq 0 ]; then
     exit 1
 fi
 echo "    $count resources"
-
-manifest_package_arguments=()
-for index in "${!PACKAGE_NAMES[@]}"; do
-    manifest_package_arguments+=(
-        --package "${PACKAGE_NAMES[$index]}=${PACKAGE_IDS[$index]}"
-    )
-done
 
 MANIFEST="$OUT/grove-fhir-producer.json"
 python3 Scripts/generate-grove-fhir-producer-manifest.py \

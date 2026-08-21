@@ -73,8 +73,7 @@ struct ExportDataView: View {
                         version: "0.2.0"
                     ),
                     graphIdentifierSystem: "https://grovealliance.org/fhir/testing/identifiers/ui-graph",
-                    issuedAt: now,
-                    recordedAt: now
+                    conversionInstant: now
                 )
                 let result = HealthKitFHIRConverter().convert(
                     samples.map { $0 as HKSample },

@@ -22,12 +22,9 @@ public enum GroveFHIRCanonical {
 
     // MARK: Mobile
 
-    public static let exchangeEntryIdentifier = GroveFHIRExchangeContract.entryIdentifierExtension
     public static let recordingMethod = uri("/mobile/StructureDefinition/grove-recording-method")
     public static let recordingMethodCodeSystem = uri("/mobile/CodeSystem/grove-recording-method")
-    public static let mobileMeasurementCodeSystem = uri("/mobile/CodeSystem/grove-mobile-measurement")
     public static let sleepStageCodeSystem = uri("/mobile/CodeSystem/grove-sleep-stage")
-    public static let sleepStageValueSet = canonical("/mobile/ValueSet/grove-sleep-stage")
 
     // MARK: HealthKit
 
@@ -38,16 +35,10 @@ public enum GroveFHIRCanonical {
         FHIRPrimitive(FHIRURI(stringLiteral: healthKitObjectIdentifierSystem))
     public static let appleBundleIdentifier: FHIRPrimitive<FHIRURI> =
         FHIRPrimitive(FHIRURI(stringLiteral: appleBundleIdentifierSystem))
-    public static let healthKitSourceDeviceIdentifier: FHIRPrimitive<FHIRURI> =
-        FHIRPrimitive(FHIRURI(stringLiteral: healthKitSourceDeviceIdentifierSystem))
     public static let healthKitMetadataKey = uri("/healthkit/CodeSystem/healthkit-metadata-key")
     public static let healthKitSourceType = GroveFHIRHealthKitCatalog.sourceTypeCodeSystem
     public static let healthKitHeartRateMotionContext = uri("/healthkit/CodeSystem/healthkit-heart-rate-motion-context")
     public static let healthKitSleepAnalysis = uri("/healthkit/CodeSystem/healthkit-sleep-analysis")
-    public static let healthKitECGClassification = uri("/healthkit/CodeSystem/healthkit-ecg-classification")
-    public static let healthKitECGSymptomsStatus = uri("/healthkit/CodeSystem/healthkit-ecg-symptoms-status")
-    public static let healthKitSymptomSeverity = uri("/healthkit/CodeSystem/healthkit-symptom-severity")
-    public static let healthKitECGAlgorithmVersion = uri("/healthkit/CodeSystem/healthkit-ecg-algorithm-version")
     public static let healthKitECGClassificationExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-classification")
     public static let healthKitECGSymptomsStatusExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-symptoms-status")
     public static let healthKitECGAverageHeartRateExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-average-heart-rate")

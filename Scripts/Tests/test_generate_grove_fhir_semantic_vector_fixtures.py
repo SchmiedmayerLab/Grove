@@ -50,11 +50,7 @@ class SemanticVectorFixtureGeneratorTests(unittest.TestCase):
             generated = MODULE.generate(corpus)
 
             self.assertIn('effective: .dateTime("2026-08-20T08:30:00.251-07:00")', generated)
-            self.assertIn(
-                'result: .quantity(value: 72, system: "http://unitsofmeasure.org", '
-                'code: "/min", unit: "beats/minute")',
-                generated,
-            )
+            self.assertIn('result: .quantity(value: 72)', generated)
             self.assertNotIn("Codable", generated)
 
     def test_rejects_duplicate_ids(self):

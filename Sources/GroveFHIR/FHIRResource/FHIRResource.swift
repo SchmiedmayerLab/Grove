@@ -45,23 +45,19 @@ public struct FHIRResource: Identifiable, Hashable, Sendable {
         }
     }
     
-    public struct ID: Hashable, Codable, Sendable {
-        @_spi(Testing) public let fhirResourceId: String
-    }
-    
     /// The version-specific FHIR resource.
     public let versionedResource: VersionedFHIRResource
     /// Human-readable name or description of the resource.
     public let displayName: String
     
     
-    public var id: ID {
+    public var id: String {
         guard let fhirId else {
             preconditionFailure(
                 "A stable identifier must be present when wrapping content in a FHIRResource. The identifier might have been changed."
             )
         }
-        return ID(fhirResourceId: fhirId)
+        return fhirId
     }
     
     /// The `id` of the underlying FHIR `Resource`.
