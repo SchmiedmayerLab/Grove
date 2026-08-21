@@ -71,9 +71,13 @@ public struct GroveFHIRBusinessIdentifier: Hashable, Sendable {
 public struct GroveFHIRRepositoryID: Hashable, Sendable {
     public let rawValue: String
 
+    // Spelled out rather than matched with `Regex`, which needs iOS 16/macOS 13 and would lift
+    // this module above the package deployment floor.
+    private static let allowedCharacters = Set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-.")
+
     public init(_ rawValue: String) throws {
-        let pattern = try Regex(#"^[A-Za-z0-9\-.]{1,64}$"#)
-        guard rawValue.wholeMatch(of: pattern) != nil else {
+        guard (1...64).contains(rawValue.count),
+              rawValue.allSatisfy(Self.allowedCharacters.contains) else {
             throw GroveFHIRExchangeIdentityError.invalidRepositoryID(rawValue)
         }
         self.rawValue = rawValue
