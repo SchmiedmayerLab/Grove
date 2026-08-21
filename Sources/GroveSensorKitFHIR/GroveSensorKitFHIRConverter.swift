@@ -201,7 +201,6 @@ extension GroveSensorKitFHIRRecord {
 
 extension GroveSensorKitFHIRConverter {
     struct OutputNode {
-        let discriminator: String
         let identifier: GroveFHIRBusinessIdentifier
         let fullURL: String
     }
@@ -339,7 +338,6 @@ extension GroveSensorKitFHIRConverter {
             discriminator: discriminator
         )
         return OutputNode(
-            discriminator: discriminator,
             identifier: identifier,
             fullURL: try GroveFHIRExchangeIdentity.fullURL(for: identifier)
         )

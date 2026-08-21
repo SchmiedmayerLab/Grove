@@ -17,10 +17,10 @@ import ModelsR4
 
 
 extension GroveSensorKitFHIRConverter {
-    private static let ucum: FHIRPrimitive<FHIRURI> = "http://unitsofmeasure.org"
-    private static let lifecycle: FHIRPrimitive<FHIRURI> =
+    static let ucum: FHIRPrimitive<FHIRURI> = "http://unitsofmeasure.org"
+    static let lifecycle: FHIRPrimitive<FHIRURI> =
         "http://terminology.hl7.org/CodeSystem/iso-21089-lifecycle"
-    private static let participantType: FHIRPrimitive<FHIRURI> =
+    static let participantType: FHIRPrimitive<FHIRURI> =
         "http://terminology.hl7.org/CodeSystem/provenance-participant-type"
 
     static func buildObservations(

@@ -96,12 +96,12 @@ extension GroveSensorKitFHIRConverter {
         Provenance(
             activity: CodeableConcept(coding: [Coding(
                 code: "transform".asFHIRStringPrimitive(),
-                system: "http://terminology.hl7.org/CodeSystem/iso-21089-lifecycle".asFHIRURIPrimitive()
+                system: lifecycle
             )]),
             agent: [ProvenanceAgent(
                 type: CodeableConcept(coding: [Coding(
                     code: "assembler".asFHIRStringPrimitive(),
-                    system: "http://terminology.hl7.org/CodeSystem/provenance-participant-type".asFHIRURIPrimitive()
+                    system: participantType
                 )]),
                 who: reference(converterURL)
             )],
@@ -320,7 +320,7 @@ extension GroveSensorKitFHIRConverter {
     static func quantity(value: Decimal, code: String, unit: String?) -> Quantity {
         Quantity(
             code: code.asFHIRStringPrimitive(),
-            system: "http://unitsofmeasure.org".asFHIRURIPrimitive(),
+            system: ucum,
             unit: unit?.asFHIRStringPrimitive(),
             value: FHIRPrimitive(FHIRDecimal(value))
         )

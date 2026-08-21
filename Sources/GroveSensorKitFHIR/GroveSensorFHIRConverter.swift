@@ -223,7 +223,7 @@ extension GroveSensorFHIRConverter {
         _ record: GroveSensorFHIRRecord,
         context: GroveSensorFHIRConversionContext
     ) throws -> GroveSensorFHIRConversion {
-        try validate(context: context, record: record)
+        try validate(context: context)
         let bundleIdentity = try derivedIdentity(
             role: "exchange-bundle",
             record: record.identifier,
@@ -325,10 +325,7 @@ extension GroveSensorFHIRConverter {
         )
     }
 
-    private static func validate(
-        context: GroveSensorFHIRConversionContext,
-        record: GroveSensorFHIRRecord
-    ) throws {
+    private static func validate(context: GroveSensorFHIRConversionContext) throws {
         guard !context.converter.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw GroveSensorFHIRConversionError.invalidConverterApplication("name")
         }
