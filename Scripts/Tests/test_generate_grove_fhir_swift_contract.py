@@ -118,6 +118,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                 ],
             },
             "exchange-identity.json": {
+                "version": "0.2.0",
                 "profile": (
                     "https://grovealliance.org/fhir/mobile/StructureDefinition/"
                     "grove-mobile-exchange-bundle"
