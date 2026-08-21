@@ -438,7 +438,6 @@ public enum GroveFHIRMeasurementCatalog {
 /// Swift producer states generated from the authoritative HealthKit adapter inventory.
 public enum GroveFHIRHealthKitImplementationStatus: String, CaseIterable, Sendable {
     case deferred = "deferred"
-    case noPublishedContract = "no-published-contract"
     case supported = "supported"
 }
 
@@ -479,7 +478,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Abdominal Cramps",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -487,7 +486,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Acne",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -495,7 +494,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Appetite Changes",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -503,7 +502,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Apple Stand Hour",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -511,23 +510,23 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Apple Walking Steadiness Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierAudioExposureEvent",
-            title: "Environmental Audio Exposure Event",
+            title: "Audio Exposure Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            implementationStatus: .deferred,
+            requirement: "Apple renames this constant to HKCategoryTypeIdentifierEnvironmentalAudioExposureEvent while keeping its identifier. Version 0.2.0 publishes no admitted output contract."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierBladderIncontinence",
             title: "Bladder Incontinence",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -535,7 +534,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Bleeding After Pregnancy",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -543,7 +542,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Bleeding During Pregnancy",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -551,7 +550,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Bloating",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -559,7 +558,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Breast Pain",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -567,7 +566,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Cervical Mucus Quality",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -575,7 +574,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Chest Tightness/Pain",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -583,7 +582,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Chills",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -591,7 +590,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Constipation",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -599,7 +598,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Contraceptive",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -607,7 +606,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Coughing",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -615,7 +614,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Diarrhea",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -623,7 +622,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dizziness",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -631,7 +630,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dry Skin",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -639,7 +638,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Fainting",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -647,7 +646,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Fatigue",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -655,7 +654,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Fever",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -663,7 +662,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Generalized Body Ache",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -671,7 +670,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Hair Loss",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -679,7 +678,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Handwashing Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -687,7 +686,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Headache",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -695,7 +694,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Headphone Audio Exposure Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -703,7 +702,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Heartburn",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -711,7 +710,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "High Heart Rate Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -719,15 +718,23 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Hot Flashes",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+        ),
+        GroveFHIRHealthKitCatalogRow(
+            sourceTypeIdentifier: "HKCategoryTypeIdentifierHypertensionEvent",
+            title: "Hypertension Event",
+            measurementIDs: [],
+            profiles: [],
+            implementationStatus: .deferred,
+            requirement: "No shared or adapter-specific v0.2.0 output contract is published for this platform source type."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierInfrequentMenstrualCycles",
             title: "Infrequent Menstrual Cycles",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -735,7 +742,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Intermenstrual Bleeding",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -743,7 +750,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Irregular Heart Rhythm Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -751,7 +758,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Irregular Menstrual Cycles",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -759,7 +766,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Lactation",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -767,7 +774,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Loss of Smell",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -775,7 +782,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Loss of Taste",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -783,7 +790,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Low Cardio Fitness Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -791,7 +798,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Low Heart Rate Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -799,7 +806,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Lower Back Pain",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -807,7 +814,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Memory Lapse",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -815,7 +822,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Menstrual Flow",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -823,7 +830,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Mindful Session",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -831,7 +838,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Mood Changes",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -839,7 +846,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Nausea",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -847,7 +854,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Night Sweats",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -855,7 +862,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Ovulation Test Result",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -863,7 +870,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Pelvic Pain",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -871,7 +878,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Persistent Intermenstrual Bleeding",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -879,7 +886,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Pregnancy",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -887,7 +894,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Pregnancy Test Result",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -895,7 +902,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Progesterone Test Result",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -903,7 +910,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Prolonged Menstrual Periods",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -911,7 +918,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Rapid/Pounding/Fluttering Heartbeat",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -919,7 +926,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Runny Nose",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -927,7 +934,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Sexual Activity",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -935,7 +942,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Shortness of Breath",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -943,7 +950,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Sinus Congestion",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -951,7 +958,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Skipped Heartbeat",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -963,19 +970,11 @@ public enum GroveFHIRHealthKitCatalog {
             requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
-            sourceTypeIdentifier: "HKCategoryTypeIdentifierSleepAnalysis#session-aggregate",
-            title: "Sleep Duration Session Aggregate",
-            measurementIDs: ["sleep-duration"],
-            profiles: ["https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-sleep-duration"],
-            implementationStatus: .deferred,
-            requirement: "Requires an explicit session aggregation contract; individual samples map to sleep stage."
-        ),
-        GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierSleepApneaEvent",
             title: "Sleep Apnea Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -983,7 +982,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Sleep Changes",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -991,7 +990,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Sore Throat",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -999,7 +998,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Toothbrushing Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1007,7 +1006,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Vaginal Dryness",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1015,7 +1014,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Vomiting",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1023,15 +1022,63 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Wheezing",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+        ),
+        GroveFHIRHealthKitCatalogRow(
+            sourceTypeIdentifier: "HKCharacteristicTypeIdentifierActivityMoveMode",
+            title: "Activity Move Mode",
+            measurementIDs: [],
+            profiles: [],
+            implementationStatus: .deferred,
+            requirement: "A HealthKit characteristic describes the subject rather than a measurement. Version 0.2.0 publishes no admitted output contract for characteristics."
+        ),
+        GroveFHIRHealthKitCatalogRow(
+            sourceTypeIdentifier: "HKCharacteristicTypeIdentifierBiologicalSex",
+            title: "Biological Sex",
+            measurementIDs: [],
+            profiles: [],
+            implementationStatus: .deferred,
+            requirement: "A HealthKit characteristic describes the subject rather than a measurement. Version 0.2.0 publishes no admitted output contract for characteristics."
+        ),
+        GroveFHIRHealthKitCatalogRow(
+            sourceTypeIdentifier: "HKCharacteristicTypeIdentifierBloodType",
+            title: "Blood Type",
+            measurementIDs: [],
+            profiles: [],
+            implementationStatus: .deferred,
+            requirement: "A HealthKit characteristic describes the subject rather than a measurement. Version 0.2.0 publishes no admitted output contract for characteristics."
+        ),
+        GroveFHIRHealthKitCatalogRow(
+            sourceTypeIdentifier: "HKCharacteristicTypeIdentifierDateOfBirth",
+            title: "Date of Birth",
+            measurementIDs: [],
+            profiles: [],
+            implementationStatus: .deferred,
+            requirement: "A HealthKit characteristic describes the subject rather than a measurement. Version 0.2.0 publishes no admitted output contract for characteristics."
+        ),
+        GroveFHIRHealthKitCatalogRow(
+            sourceTypeIdentifier: "HKCharacteristicTypeIdentifierFitzpatrickSkinType",
+            title: "Fitzpatrick Skin Type",
+            measurementIDs: [],
+            profiles: [],
+            implementationStatus: .deferred,
+            requirement: "A HealthKit characteristic describes the subject rather than a measurement. Version 0.2.0 publishes no admitted output contract for characteristics."
+        ),
+        GroveFHIRHealthKitCatalogRow(
+            sourceTypeIdentifier: "HKCharacteristicTypeIdentifierWheelchairUse",
+            title: "Wheelchair Use",
+            measurementIDs: [],
+            profiles: [],
+            implementationStatus: .deferred,
+            requirement: "A HealthKit characteristic describes the subject rather than a measurement. Version 0.2.0 publishes no admitted output contract for characteristics."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKClinicalTypeIdentifierAllergyRecord",
             title: "Allergy Record",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1039,7 +1086,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Clinical Note Record",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1047,7 +1094,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Condition Record",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1055,7 +1102,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Coverage Record",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1063,7 +1110,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Immunization Record",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1071,7 +1118,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Lab Result Record",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1079,7 +1126,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Medication Record",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1087,7 +1134,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Procedure Record",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1095,7 +1142,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Vital Sign Record",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1111,7 +1158,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Food",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1119,7 +1166,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Audiogram",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or HealthKit-adapter v0.2 output contract is published for this sample type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1143,8 +1190,32 @@ public enum GroveFHIRHealthKitCatalog {
             title: "State of Mind",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or HealthKit-adapter v0.2 output contract is published for this sample type."
+        ),
+        GroveFHIRHealthKitCatalogRow(
+            sourceTypeIdentifier: "HKDataTypeUserAnnotatedMedicationConcept",
+            title: "User Annotated Medication Concept",
+            measurementIDs: [],
+            profiles: [],
+            implementationStatus: .deferred,
+            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+        ),
+        GroveFHIRHealthKitCatalogRow(
+            sourceTypeIdentifier: "HKDocumentTypeIdentifierCDA",
+            title: "CDA Document",
+            measurementIDs: [],
+            profiles: [],
+            implementationStatus: .deferred,
+            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+        ),
+        GroveFHIRHealthKitCatalogRow(
+            sourceTypeIdentifier: "HKMedicationDoseEventTypeIdentifierMedicationDoseEvent",
+            title: "Medication Dose Event",
+            measurementIDs: [],
+            profiles: [],
+            implementationStatus: .deferred,
+            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierActiveEnergyBurned",
@@ -1159,7 +1230,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Apple Exercise Time",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1167,7 +1238,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Apple Move Time",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1175,7 +1246,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Apple Sleeping Breathing Disturbances",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1183,7 +1254,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Apple Sleeping Wrist Temperature",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1191,7 +1262,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Apple Stand Time",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1199,7 +1270,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Apple Walking Steadiness",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1207,7 +1278,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "AFib Burden",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1223,7 +1294,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Basal Energy Burned",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1231,7 +1302,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Blood Alcohol Content",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1247,7 +1318,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Blood Pressure (Diastolic)",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1255,7 +1326,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Blood Pressure (Systolic)",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1263,7 +1334,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Body Fat Percentage",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1295,7 +1366,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Cross Country Skiing Speed",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1303,7 +1374,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Cycling Cadence",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1311,7 +1382,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Cycling Functional Threshold Power",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1319,7 +1390,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Cycling Power",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1327,7 +1398,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Cycling Speed",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1335,7 +1406,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Biotin Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1343,7 +1414,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Caffeine Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1351,7 +1422,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Calcium Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1359,7 +1430,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Carbohydrates Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1367,7 +1438,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Chloride Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1375,7 +1446,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Cholesterol Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1383,7 +1454,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Chromium Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1391,7 +1462,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Copper Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1399,7 +1470,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Energy Consumed",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1407,7 +1478,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Monounsaturated Fat Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1415,7 +1486,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Polyunsaturated Fat Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1423,7 +1494,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Saturated Fat Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1431,7 +1502,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Total Fat Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1439,7 +1510,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Fiber Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1447,7 +1518,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Folate Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1455,7 +1526,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Iodine Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1463,7 +1534,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Iron Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1471,7 +1542,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Magnesium Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1479,7 +1550,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Manganese Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1487,7 +1558,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Molybdenum Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1495,7 +1566,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Niacin Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1503,7 +1574,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Pantothenic Acid Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1511,7 +1582,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Phosphorus Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1519,7 +1590,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Potassium Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1527,7 +1598,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Protein Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1535,7 +1606,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Riboflavin Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1543,7 +1614,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Selenium Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1551,7 +1622,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Sodium Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1559,7 +1630,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Sugar Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1567,7 +1638,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Thiamin Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1575,7 +1646,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Vitamin A Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1583,7 +1654,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Vitamin B12 Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1591,7 +1662,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Vitamin B6 Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1599,7 +1670,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Vitamin C Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1607,7 +1678,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Vitamin D Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1615,7 +1686,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Vitamin E Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1623,7 +1694,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Vitamin K Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1631,7 +1702,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Water Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1639,7 +1710,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Dietary Zinc Intake",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1719,7 +1790,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Electrodermal Activity",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1727,7 +1798,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Environmental Audio Exposure",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1735,7 +1806,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Environmental Sound Reduction",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1743,7 +1814,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Estimated Workout Effort",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1751,7 +1822,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Flights Climbed",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1759,7 +1830,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Forced Expiratory Volume (1 sec)",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1767,7 +1838,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Forced Vital Capacity",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1775,7 +1846,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Headphone Audio Exposure",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1791,7 +1862,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Heart Rate Recovery (1 min)",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1799,7 +1870,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Heart Rate Variability SDNN",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1815,7 +1886,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Inhaler Usage",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1823,7 +1894,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Insulin Delivery",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1831,7 +1902,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Lean Body Mass",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1839,7 +1910,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "NikeFuel",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1847,7 +1918,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Number of Alcoholic Beverages",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1855,7 +1926,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Number of Times Fallen",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1871,7 +1942,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Paddle Sports Speed",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1879,7 +1950,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Peak Expiratory Flow Rate",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1887,7 +1958,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Peripheral Perfusion Index",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1895,7 +1966,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Physical Effort",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1903,7 +1974,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Wheelchair Push Count",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1919,7 +1990,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Resting Heart Rate",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1927,7 +1998,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Rowing Speed",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1935,7 +2006,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Ground Contact Time",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1943,7 +2014,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Running Power",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1951,7 +2022,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Running Speed",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1959,7 +2030,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Running Stride Length",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1967,7 +2038,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Running Vertical Oscillation",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1975,7 +2046,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "6 Minute Walk Test Distance",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1983,7 +2054,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Stair Ascent Speed",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -1991,7 +2062,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Stair Descent Speed",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2007,7 +2078,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Swimming Stroke Count",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2015,7 +2086,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Time in Daylight",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2023,7 +2094,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "UV Exposure",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2031,7 +2102,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Underwater Depth",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2039,7 +2110,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "VO2Max",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2047,7 +2118,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Waist Circumference",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2055,7 +2126,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Walking Asymmetry Percentage",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2063,7 +2134,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Walking Double Support Percentage",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2071,7 +2142,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Walking Heart Rate Average",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2079,7 +2150,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Walking Speed",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2087,7 +2158,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Walking Step Length",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2095,7 +2166,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Water Temperature",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2103,7 +2174,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Workout Effort",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2111,7 +2182,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "GAD-7",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or HealthKit-adapter v0.2 output contract is published for this sample type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2119,7 +2190,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "PHQ-9",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or HealthKit-adapter v0.2 output contract is published for this sample type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2127,7 +2198,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Vision Prescription",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or HealthKit-adapter v0.2 output contract is published for this sample type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2135,7 +2206,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Workout Route",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or HealthKit-adapter v0.2 output contract is published for this sample type."
         ),
         GroveFHIRHealthKitCatalogRow(
@@ -2143,7 +2214,7 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Workout",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .noPublishedContract,
+            implementationStatus: .deferred,
             requirement: "No shared or HealthKit-adapter v0.2 output contract is published for this sample type."
         ),
     ]
