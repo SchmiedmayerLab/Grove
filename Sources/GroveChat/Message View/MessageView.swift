@@ -20,6 +20,8 @@ struct MessageView: View {
     private static let minHorizontalOpposingEdgeInset: Double = 48
 
     private let message: ChatEntity
+    /// Whether the message closes its sender's run, which is what earns its bubble the tail.
+    private let endsSenderRun: Bool
 
     /// Images want the room, so they give up most of the inset — an assistant image runs the full content width,
     /// the way ChatGPT lays generated images out, and a user's photo fills a correspondingly wider bubble.
@@ -39,7 +41,7 @@ struct MessageView: View {
                 switch message.role {
                 case .user:
                     PlainMessageView(message, insideBubble: true)
-                        .chatMessageStyle(alignment: .trailing)
+                        .chatMessageStyle(alignment: .trailing, tail: endsSenderRun)
                 case .assistant(.response), .hidden:
                     AssistantMessageView(message)
                 case .assistant(.thinking):
@@ -54,8 +56,9 @@ struct MessageView: View {
         }
     }
 
-    init(_ message: ChatEntity) {
+    init(_ message: ChatEntity, endsSenderRun: Bool = true) {
         self.message = message
+        self.endsSenderRun = endsSenderRun
     }
 }
 

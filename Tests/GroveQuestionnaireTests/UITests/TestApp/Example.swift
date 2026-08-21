@@ -103,9 +103,19 @@ extension View {
 
 
 private struct QuestionnaireRunner: ViewModifier {
+    /// Stands in for whatever an app does with the answers and cannot always do.
+    private struct SubmissionFailure: LocalizedError {
+        var errorDescription: String? { "The answers could not be saved." }
+    }
+
     @Environment(ResponsesStore.self) private var responsesStore
 
     @Binding var example: Example?
+
+    /// Whether this launch fails every submission, so a test can see what a failed one looks like.
+    private var failsSubmission: Bool {
+        ProcessInfo.processInfo.arguments.contains("--failSubmission")
+    }
 
     func body(content: Content) -> some View {
         content
@@ -119,6 +129,9 @@ private struct QuestionnaireRunner: ViewModifier {
                     if case .completed(let responses) = result {
                         // Throwing here is what a failed submit looks like: the renderer reports it
                         // and the participant keeps their answers, so the sheet stays open.
+                        guard !failsSubmission else {
+                            throw SubmissionFailure()
+                        }
                         try responsesStore.record(responses, from: running.title)
                     }
                     example = nil
