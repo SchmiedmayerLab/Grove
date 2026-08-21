@@ -18,11 +18,27 @@ import SwiftUI
 /// test, and it was once missing altogether — the composer drew a stop button that nothing could activate — so it is
 /// exercised from here instead.
 struct LLMMockChatTestView: View {
+    /// The identity of the internal opening input, so the chat can keep it out of the conversation.
+    private static let starterID = UUID()
+
     @LLMSessionProvider<LLMMockSchema> private var llm: LLMMockSession
+
+    /// Mirrors an app that primes the model with an input the participant never wrote: the answer streams
+    /// in as the first visible message of an otherwise empty conversation.
+    private var startsWithHiddenInput: Bool {
+        ProcessInfo.processInfo.arguments.contains("--hiddenStarter")
+    }
 
     var body: some View {
         LLMChatView(session: $llm, attachments: [.photoLibrary, .files])
             .navigationTitle("LLM Mock Chat")
+            .chatHiddenMessages(startsWithHiddenInput ? [Self.starterID] : [])
+            .onAppear {
+                guard startsWithHiddenInput, llm.context.isEmpty else {
+                    return
+                }
+                llm.context.append(userMessage: "Follow the instructions to begin.", id: Self.starterID)
+            }
             .toolbar {
                 // The mock never fails on its own, and the failure banner is part of what this view exists to
                 // cover, so the test puts the session into either failure state directly.

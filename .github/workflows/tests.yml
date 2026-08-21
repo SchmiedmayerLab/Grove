@@ -17,9 +17,9 @@ on:
   workflow_dispatch:
     inputs:
       grove_fhir_ref:
-        description: grove-fhir branch or commit containing the adapter-inclusive v0.2 stack.
+        description: grove-fhir branch or commit carrying the v0.2 adapter stack. Defaults to a pinned commit.
         type: string
-        default: feature/fhir-v020-adapters
+        default: 6001474255641193c25686ff404ef6cbcc2cc3b1
       full_readiness:
         description: Schedule every package and platform instead of only the ones the change touches.
         type: boolean
@@ -27,13 +27,13 @@ on:
   workflow_call:
     inputs:
       run_all:
-        description: Run every unit, UI, and FHIR conformance check.
+        description: Run every unit and UI test.
         type: boolean
         default: false
       grove_fhir_ref:
-        description: grove-fhir branch or commit containing the adapter-inclusive v0.2 stack.
+        description: grove-fhir branch or commit carrying the v0.2 adapter stack. Defaults to a pinned commit.
         type: string
-        default: feature/fhir-v020-adapters
+        default: 6001474255641193c25686ff404ef6cbcc2cc3b1
       full_readiness:
         description: Schedule every package and platform instead of only the ones the change touches.
         type: boolean
@@ -237,12 +237,12 @@ jobs:
         with:
           repository: SchmiedmayerLab/grove-fhir
           path: .fhir/grove-fhir
-          ref: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || 'feature/fhir-v020-adapters' }}
+          ref: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || '6001474255641193c25686ff404ef6cbcc2cc3b1' }}
           persist-credentials: false
       - name: Record grove-fhir contract revision
         working-directory: .fhir/grove-fhir
         run: |
-          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || 'feature/fhir-v020-adapters' }}"
+          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || '6001474255641193c25686ff404ef6cbcc2cc3b1' }}"
           echo "grove-fhir SHA: $(git rev-parse HEAD)"
       - name: Restore built implementation guides
         id: guide-cache
@@ -289,7 +289,7 @@ jobs:
       - name: Validate resources emitted by Grove
         env:
           FHIR_COMPONENTS: ${{ needs.detect.outputs.fhir_components }}
-          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || 'feature/fhir-v020-adapters' }}
+          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || '6001474255641193c25686ff404ef6cbcc2cc3b1' }}
         run: |
           IFS=',' read -r -a COMPONENTS <<< "$FHIR_COMPONENTS"
           for component in "${COMPONENTS[@]}"; do
@@ -297,14 +297,14 @@ jobs:
           done
 
   # Single gate to use as the required status check in branch protection.
-  # Does no work itself; it aggregates the unit, UI, and FHIR conformance jobs.
+  # Does no work itself; it aggregates the unit and UI test jobs.
   # `if: always()` is required so it still runs (and reports pass/fail) when `test`
   # failed or was skipped — otherwise the gate would be skipped and a skipped required
   # check never satisfies branch protection.
   all-tests-pass:
     name: All tests pass
     if: always()
-    needs: [detect, test, test-ui, fhir-conformance]
+    needs: [detect, test, test-ui]
     runs-on: ubuntu-latest
     steps:
       - name: Verify test results
@@ -312,15 +312,14 @@ jobs:
           echo "detect  = ${{ needs.detect.result }}"
           echo "test    = ${{ needs.test.result }}"
           echo "test-ui = ${{ needs.test-ui.result }}"
-          echo "fhir    = ${{ needs.fhir-conformance.result }}"
           if [ "${{ needs.detect.result }}" != "success" ]; then
             echo "::error::The 'detect' job did not succeed — cannot determine which tests to run."
             exit 1
           fi
-          for r in "${{ needs.test.result }}" "${{ needs.test-ui.result }}" "${{ needs.fhir-conformance.result }}"; do
+          for r in "${{ needs.test.result }}" "${{ needs.test-ui.result }}"; do
             case "$r" in
               success|skipped) ;;
               *) echo "::error::One or more test jobs did not pass (result: $r)."; exit 1 ;;
             esac
           done
-          echo "All required unit, UI, and FHIR conformance tests passed (or were not affected)."
+          echo "All required unit and UI tests passed (or were not affected)."

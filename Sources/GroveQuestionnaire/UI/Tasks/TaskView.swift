@@ -20,6 +20,7 @@ struct QuestionPosition: Hashable, Sendable {
 struct TaskView<Footer: View>: View {
     @Environment(QuestionnaireResponses.self) private var allResponses
     @Environment(\.scrollToNextTask) private var scrollToNextTask
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let task: Questionnaire.Task
     @Binding var response: QuestionnaireResponses.Response
@@ -178,10 +179,11 @@ struct TaskView<Footer: View>: View {
         Binding {
             response.value.boolValue == answer
         } set: { isSelected in
-            response.value.boolValue = isSelected ? answer : nil
-            if isSelected {
-                scrollToNextTask()
-            }
+            SelectionFeedback.record(
+                reduceMotion: reduceMotion,
+                { response.value.boolValue = isSelected ? answer : nil },
+                thenAdvance: isSelected ? scrollToNextTask : nil
+            )
         }
     }
 }
