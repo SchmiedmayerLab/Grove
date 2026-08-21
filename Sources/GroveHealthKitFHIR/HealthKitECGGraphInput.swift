@@ -18,6 +18,7 @@ struct HealthKitECGGraphContext: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct HealthKitECGObservationInput: Sendable {
     let source: HealthKitECGSourceEvidence
     let waveform: HealthKitECGValidatedWaveform
@@ -28,6 +29,7 @@ struct HealthKitECGObservationInput: Sendable {
 
 /// Exact scalar and interval evidence extracted synchronously from the caller-supplied ECG.
 /// Keeping projection separate from retrieval makes the FHIR builder deterministic and testable.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct HealthKitECGSourceEvidence: Sendable {
     let sourceTypeIdentifier: String
     let startDate: Date
