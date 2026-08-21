@@ -53,39 +53,6 @@ extension HealthKitFHIRConverter {
             context: context
         )
     }
-
-    /// Converts every ECG record and preserves a typed failure for every rejected record.
-    public func convertECGs<S: Sequence>(
-        _ records: S,
-        context: HealthKitFHIRConversionContext
-    ) -> HealthKitFHIRBatchResult where S.Element == HealthKitECGRecord {
-        var conversions: [HealthKitFHIRConversion] = []
-        var failures: [HealthKitFHIRRecordFailure] = []
-        for record in records {
-            do {
-                conversions.append(try convert(record, context: context))
-            } catch let error as GroveHealthKitFHIRError {
-                failures.append(failure(for: record, reason: error))
-            } catch {
-                failures.append(failure(
-                    for: record,
-                    reason: .unexpectedConversionFailure(String(describing: error))
-                ))
-            }
-        }
-        return HealthKitFHIRBatchResult(conversions: conversions, failures: failures)
-    }
-
-    private func failure(
-        for record: HealthKitECGRecord,
-        reason: GroveHealthKitFHIRError
-    ) -> HealthKitFHIRRecordFailure {
-        HealthKitFHIRRecordFailure(
-            sourceUUID: record.electrocardiogram.uuid,
-            sourceTypeIdentifier: record.electrocardiogram.sampleType.identifier,
-            reason: reason
-        )
-    }
 }
 
 #endif

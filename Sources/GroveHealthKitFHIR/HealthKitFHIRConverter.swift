@@ -632,25 +632,15 @@ extension HealthKitFHIRConverter {
         recordingDeviceURL: String?,
         converterURL: String
     ) {
-        applyRecordingMethod(to: &observation, sample: sample)
-        if let recordingDeviceURL {
-            observation.device = Reference(reference: recordingDeviceURL.asFHIRStringPrimitive())
-        }
-        if context.converterWasGateway {
-            observation.append(
-                extension: Extension(
-                    url: GroveFHIRCanonical.gatewayDevice,
-                    value: .reference(Reference(reference: converterURL.asFHIRStringPrimitive()))
-                ),
-                behaviour: .replace
-            )
-        }
-        for study in context.researchStudies {
-            observation.append(extension: Extension(
-                url: GroveFHIRCanonical.researchStudy,
-                value: .reference(study)
-            ))
-        }
+        applyGraphContext(
+            to: &observation,
+            context: context,
+            graphContext: HealthKitECGGraphContext(
+                recordingDeviceURL: recordingDeviceURL,
+                converterURL: converterURL
+            ),
+            wasUserEntered: (sample.metadata?[HKMetadataKeyWasUserEntered] as? Bool) == true
+        )
     }
 
     private static func applyEffective(
@@ -658,18 +648,7 @@ extension HealthKitFHIRConverter {
         sample: HKSample,
         contract: HealthKitFHIRObservationContract
     ) throws {
-        let timeZone: TimeZone
-        if let identifier = sample.metadata?[HKMetadataKeyTimeZone] as? String {
-            guard let declared = TimeZone(identifier: identifier) else {
-                throw GroveHealthKitFHIRError.unsupportedMetadataValue(
-                    key: HKMetadataKeyTimeZone,
-                    value: identifier
-                )
-            }
-            timeZone = declared
-        } else {
-            timeZone = .gmt
-        }
+        let timeZone = try healthKitTimeZone(for: sample)
         switch contract.effective {
         case .dateTime:
             observation.effective = .dateTime(FHIRPrimitive(try HealthKitFHIRMobileCanonicalization.effectiveDateTime(
