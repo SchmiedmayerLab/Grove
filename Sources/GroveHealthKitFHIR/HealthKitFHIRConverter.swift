@@ -873,12 +873,6 @@ extension HealthKitFHIRConverter {
         observation.component = (observation.component ?? []) + [component]
     }
 
-    static func applyRecordingMethod(to observation: inout Observation, sample: HKSample) {
-        guard (sample.metadata?[HKMetadataKeyWasUserEntered] as? Bool) == true else {
-            return
-        }
-        applyManualRecordingMethod(to: &observation)
-    }
 
     static func applyManualRecordingMethod(to observation: inout Observation) {
         observation.append(
