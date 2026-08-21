@@ -17,7 +17,7 @@ struct FHIRPathEvaluatorTests {
     private static let evaluationInstant = Date(timeIntervalSince1970: 1_700_000_000)
 
     private func evaluate(_ expression: String) throws -> [FHIRPathValue] {
-        try evaluate(expression, context: .init(now: Self.evaluationInstant))
+        try evaluate(expression, context: .init(evaluationInstant: Self.evaluationInstant))
     }
 
     private func evaluate(_ expression: String, context: FHIRPathEvaluationContext) throws -> [FHIRPathValue] {
@@ -72,7 +72,7 @@ struct FHIRPathEvaluatorTests {
         return FHIRPathEvaluationContext(
             focus: [.object(node)],
             constants: ["resource": [.object(node)]],
-            now: Date(timeIntervalSince1970: 1_700_000_000)
+            evaluationInstant: Date(timeIntervalSince1970: 1_700_000_000)
         )
     }
 
@@ -177,7 +177,7 @@ struct FHIRPathEvaluatorTests {
         #expect(try evaluate("@2020-01-31 + 1 month") == [.date(DateComponents(year: 2020, month: 2, day: 29))])
         #expect(try evaluate("@2026-08-14 - 18 years") == [.date(DateComponents(year: 2008, month: 8, day: 14))])
         let fixed = try #require(Calendar.current.date(from: DateComponents(year: 2026, month: 8, day: 14, hour: 12)))
-        let context = FHIRPathEvaluationContext(now: fixed)
+        let context = FHIRPathEvaluationContext(evaluationInstant: fixed)
         #expect(try evaluate("today()", context: context) == [.date(DateComponents(year: 2026, month: 8, day: 14))])
         #expect(try evaluate("today() - 18 years < @2010-01-01", context: context) == [.boolean(true)])
     }

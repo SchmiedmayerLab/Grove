@@ -225,14 +225,14 @@ final class DateExpressionEvaluation: FHIRPathBaseVisitor<Result<DateEvaluationV
 
         // see https://build.fhir.org/ig/HL7/FHIRPath/#current-date-and-time-functions
         switch identifierToken.getText() {
-        case "today", "evaluationInstant":
+        case "today", "now":
             if let paramList = function.paramList() {
                 return .failure(paramList.start, .invalidFunctionParameters(expected: 0, received: (paramList.getChildCount() / 2) + 1))
             }
             let date: Date
             if identifierToken.getText() == "today" { // yields a Date
                 date = cal.startOfDay(for: evaluationInstant)
-            } else { // "evaluationInstant" yields a DateTime
+            } else { // "now" yields a DateTime
                 date = evaluationInstant
             }
             return .success(.date(date))
