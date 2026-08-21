@@ -20,6 +20,10 @@ on:
         description: grove-fhir branch or commit containing the adapter-inclusive v0.2 stack.
         type: string
         default: feature/fhir-v020-adapters
+      full_readiness:
+        description: Schedule every package and platform instead of only the ones the change touches.
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       run_all:
@@ -30,6 +34,10 @@ on:
         description: grove-fhir branch or commit containing the adapter-inclusive v0.2 stack.
         type: string
         default: feature/fhir-v020-adapters
+      full_readiness:
+        description: Schedule every package and platform instead of only the ones the change touches.
+        type: boolean
+        default: false
 
 concurrency:
   group: tests-${{ github.ref }}
@@ -117,7 +125,10 @@ jobs:
             DEVELOPMENT_SCOPE="$(sed -n '1p' .github/GROVE_FHIR_DEVELOPMENT_SCOPE)"
             ARGS+=(--development-scope "$DEVELOPMENT_SCOPE")
             echo "::warning::Temporary Grove FHIR development scope '$DEVELOPMENT_SCOPE' is active. Remove .github/GROVE_FHIR_DEVELOPMENT_SCOPE and run the full readiness workflow before merge."
-          elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ inputs.run_all }}" != "true" ]; then
+          # Self-hosted runner capacity is the constraint, so a ready pull request stays scoped to what it
+          # changes. Set the FULL_READINESS_ON_PULL_REQUESTS variable once capacity allows the wider matrix.
+          elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ inputs.run_all }}" != "true" ] \
+              && [ "${{ inputs.full_readiness || vars.FULL_READINESS_ON_PULL_REQUESTS }}" = "true" ]; then
             ARGS+=(--full-readiness)
           fi
           python3 Scripts/affected-test-matrix.py "${ARGS[@]}" >> "$GITHUB_OUTPUT"
