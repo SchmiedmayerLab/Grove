@@ -1169,16 +1169,16 @@ extension GroveQuestionnaireFHIRPairRules {
 
 
 private struct CodingIdentity: Equatable {
+    // periphery:ignore - read by the synthesized Equatable; `codingKey` values are only ever compared
     let system: String?
+    // periphery:ignore - read by the synthesized Equatable; `codingKey` values are only ever compared
     let code: String
 }
 
 
 private struct QuantityIdentity: Equatable {
     let value: Decimal
-    // periphery:ignore - read by the synthesized Equatable; unit identity is what makes the comparison sound
     let system: String
-    // periphery:ignore - read by the synthesized Equatable; unit identity is what makes the comparison sound
     let code: String
 }
 
