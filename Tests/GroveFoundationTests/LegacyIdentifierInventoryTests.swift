@@ -48,7 +48,7 @@ struct LegacyIdentifierInventoryTests {
         (LegacyStorageKeyPrefix.bulkExportSessions, "edu.stanford.spezi.HealthKit.BulkExport"),
         (LegacyStorageKeyPrefix.accountDetailsCache, "edu.stanford.spezi.details-cache"),
         (LegacyStudyTaskIdentifiers.componentTaskPrefix, "edu.stanford.spezi.SpeziStudy.studyComponentTask."),
-        (LegacyStudyTaskIdentifiers.categoryPrefix, "edu.stanford.spezi.SpeziStudy.task."),
+        (LegacyStudyTaskIdentifiers.categoryPrefix, "edu.stanford.spezi.SpeziStudy.task.")
     ]
 
     @Test

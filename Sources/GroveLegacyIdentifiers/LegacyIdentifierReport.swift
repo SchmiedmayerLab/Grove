@@ -10,6 +10,7 @@
 import os
 #endif
 
+/// Logs migrations' encounters with pre-Grove identifiers.
 public enum LegacyIdentifierReport {
     #if canImport(os)
     private static let logger = Logger(subsystem: "org.grovealliance.legacyIdentifiers", category: "Migration")
