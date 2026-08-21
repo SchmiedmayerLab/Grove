@@ -533,7 +533,21 @@ struct HealthKitFHIRConverterTests {
             "HKClinicalTypeIdentifierVitalSignRecord"
         ])
         expectedIdentifierList.append(contentsOf: SampleType<HKQuantitySample>.otherSampleTypes.map { $0.id })
-        expectedIdentifierList.append("\(HKCategoryTypeIdentifier.sleepAnalysis.rawValue)#session-aggregate")
+        // The frozen catalog also inventories platform identifiers that are not sample types:
+        // characteristics, documents, medication concepts, and the hypertension event. The
+        // sleep-duration aggregate moved out of the rows into the catalog's derivedAggregates.
+        expectedIdentifierList.append(contentsOf: [
+            "HKCategoryTypeIdentifierHypertensionEvent",
+            "HKCharacteristicTypeIdentifierActivityMoveMode",
+            "HKCharacteristicTypeIdentifierBiologicalSex",
+            "HKCharacteristicTypeIdentifierBloodType",
+            "HKCharacteristicTypeIdentifierDateOfBirth",
+            "HKCharacteristicTypeIdentifierFitzpatrickSkinType",
+            "HKCharacteristicTypeIdentifierWheelchairUse",
+            "HKDataTypeUserAnnotatedMedicationConcept",
+            "HKDocumentTypeIdentifierCDA",
+            "HKMedicationDoseEventTypeIdentifierMedicationDoseEvent"
+        ])
         let expectedIdentifiers = Set(expectedIdentifierList)
 
         #expect(sourceIdentifiers.count == Set(sourceIdentifiers).count)

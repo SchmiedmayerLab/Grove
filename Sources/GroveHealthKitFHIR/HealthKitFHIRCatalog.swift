@@ -101,8 +101,9 @@ public struct HealthKitFHIRCatalogEntry: Sendable {
 /// This catalog alone determines whether the public API may claim a Grove v0.2 profile.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public enum HealthKitFHIRCatalog {
-    /// Every HealthKit sample type known to Grove plus the explicit sleep-duration aggregate.
-    /// HealthKit characteristics are not samples and are outside this converter's input type.
+    /// Every platform identifier in the frozen HealthKit inventory, including characteristics
+    /// and other non-sample identifiers that are outside this converter's input type. The
+    /// sleep-duration aggregate lives in the catalog's derivedAggregates, not in these rows.
     /// A consumer can render this directly as the implementation coverage matrix.
     public static let entries: [HealthKitFHIRCatalogEntry] = GroveFHIRHealthKitCatalog.rows.map { row in
         HealthKitFHIRCatalogEntry(
