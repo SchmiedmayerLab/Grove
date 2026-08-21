@@ -36,7 +36,7 @@ extension HealthKitFHIRConverter {
         }
     }
 
-    /// Convenience form of ``convert(_:context:)`` that keeps each evidence family
+    /// Convenience form of ``convert(_:context:)-(HealthKitECGRecord,_)`` that keeps each evidence family
     /// explicit at the call site.
     public func convert(
         _ electrocardiogram: HKElectrocardiogram,
