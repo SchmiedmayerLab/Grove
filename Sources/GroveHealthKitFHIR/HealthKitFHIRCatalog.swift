@@ -207,6 +207,7 @@ public enum HealthKitFHIRCatalog {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 enum HealthKitFHIRBinding: Sendable, Equatable {
     case quantity(GroveFHIRMeasurementKey, unit: HKUnit, display: String)
     case percent(GroveFHIRMeasurementKey)

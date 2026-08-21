@@ -10,7 +10,6 @@ public import Foundation
 
 
 /// A fail-closed reason why caller-supplied HealthKit ECG evidence was rejected.
-@available(iOS 18, macOS 15, watchOS 11, *)
 public enum HealthKitECGEvidenceFailure: Error, Equatable, Sendable {
     case invalidSourcePeriod
     case invalidReportedVoltageCount(Int)
@@ -39,7 +38,6 @@ public enum HealthKitECGEvidenceFailure: Error, Equatable, Sendable {
 
 
 /// A fail-closed error from the R4 HealthKit conversion facade.
-@available(iOS 18, macOS 15, watchOS 11, *)
 public enum GroveHealthKitFHIRError: Error, Equatable, Sendable {
     /// A source shape did not match its selected, published mapping.
     case invalidValue
