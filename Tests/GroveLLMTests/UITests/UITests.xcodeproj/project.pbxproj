@@ -529,6 +529,7 @@
 			relativePath = ../../..;
 			traits = (
 				MLX,
+				Textual,
 			);
 		};
 /* End XCLocalSwiftPackageReference section */

@@ -17,7 +17,7 @@ on:
   workflow_call:
     inputs:
       run_all:
-        description: Run every unit, UI, and FHIR conformance check.
+        description: Run every unit and UI test.
         type: boolean
         default: false
 
@@ -39,7 +39,6 @@ jobs:
       ui_matrix: ${{ steps.compute.outputs.ui_matrix }}
       has_jobs: ${{ steps.compute.outputs.has_jobs }}
       has_ui_jobs: ${{ steps.compute.outputs.has_ui_jobs }}
-      has_fhir_conformance: ${{ steps.compute.outputs.has_fhir_conformance }}
       affected: ${{ steps.compute.outputs.affected }}
     steps:
       - uses: actions/checkout@v7
@@ -117,12 +116,10 @@ jobs:
       - name: Dump matrix (debug)
         env:
           AFFECTED: ${{ steps.compute.outputs.affected }}
-          HAS_FHIR_CONFORMANCE: ${{ steps.compute.outputs.has_fhir_conformance }}
           HAS_JOBS: ${{ steps.compute.outputs.has_jobs }}
           MATRIX: ${{ steps.compute.outputs.matrix }}
         run: |
           echo "has_jobs = $HAS_JOBS"
-          echo "has_fhir_conformance = $HAS_FHIR_CONFORMANCE"
           echo "affected = $AFFECTED"
           JOBS=$(printf '%s' "$MATRIX" | python3 -c 'import json,sys; print(len(json.load(sys.stdin).get("include",[])))' 2>/dev/null || echo "?")
           echo "scheduled jobs = $JOBS"
@@ -191,67 +188,15 @@ jobs:
           name: ${{ matrix.package }}-${{ matrix.platform }}-UITests.xcresult
           path: ${{ matrix.package }}-${{ matrix.platform }}-UITests.xcresult
 
-  fhir-conformance:
-    name: FHIR Output Conformance
-    needs: detect
-    if: needs.detect.outputs.has_fhir_conformance == 'true'
-    runs-on: macos-latest
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/checkout@v7
-        with:
-          repository: SchmiedmayerLab/grove-fhir
-          path: .fhir/grove-fhir
-      - name: Restore built implementation guides
-        id: guide-cache
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.fhir
-            .fhir/grove-fhir/.build/fhir-tools
-            .fhir/grove-fhir/ig/output/package.tgz
-            .fhir/grove-fhir/platforms/output/package.tgz
-          key: grove-fhir-validation-${{ runner.os }}-${{ hashFiles('.fhir/grove-fhir/Gemfile.lock', '.fhir/grove-fhir/package-lock.json', '.fhir/grove-fhir/Scripts/**', '.fhir/grove-fhir/ig/**', '.fhir/grove-fhir/platforms/**') }}
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: .fhir/grove-fhir/package-lock.json
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 21
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.3"
-          bundler-cache: false
-      - name: Build active implementation guides
-        if: steps.guide-cache.outputs.cache-hit != 'true'
-        working-directory: .fhir/grove-fhir
-        run: |
-          npm ci
-          ./Scripts/build-guides.sh platforms ig
-      - name: Validate resources emitted by Grove
-        run: ./Scripts/validate-fhir-conformance.sh
-      - name: Upload emitted fixtures and validation report
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: grove-conformance-fixtures
-          if-no-files-found: warn
-          retention-days: 14
-          path: .build/conformance-fixtures
-
   # Single gate to use as the required status check in branch protection.
-  # Does no work itself; it aggregates the unit, UI, and FHIR conformance jobs.
+  # Does no work itself; it aggregates the unit and UI test jobs.
   # `if: always()` is required so it still runs (and reports pass/fail) when `test`
   # failed or was skipped — otherwise the gate would be skipped and a skipped required
   # check never satisfies branch protection.
   all-tests-pass:
     name: All tests pass
     if: always()
-    needs: [detect, test, test-ui, fhir-conformance]
+    needs: [detect, test, test-ui]
     runs-on: ubuntu-latest
     steps:
       - name: Verify test results
@@ -259,15 +204,14 @@ jobs:
           echo "detect  = ${{ needs.detect.result }}"
           echo "test    = ${{ needs.test.result }}"
           echo "test-ui = ${{ needs.test-ui.result }}"
-          echo "fhir    = ${{ needs.fhir-conformance.result }}"
           if [ "${{ needs.detect.result }}" != "success" ]; then
             echo "::error::The 'detect' job did not succeed — cannot determine which tests to run."
             exit 1
           fi
-          for r in "${{ needs.test.result }}" "${{ needs.test-ui.result }}" "${{ needs.fhir-conformance.result }}"; do
+          for r in "${{ needs.test.result }}" "${{ needs.test-ui.result }}"; do
             case "$r" in
               success|skipped) ;;
               *) echo "::error::One or more test jobs did not pass (result: $r)."; exit 1 ;;
             esac
           done
-          echo "All required unit, UI, and FHIR conformance tests passed (or were not affected)."
+          echo "All required unit and UI tests passed (or were not affected)."

@@ -32,11 +32,20 @@ struct PlainMessageView: View {
             }
             if let text = message.content.text, !text.isEmpty {
                 MarkdownView(text: text)
-                    .frame(maxWidth: .infinity, alignment: message.content.hasAttachments ? .leading : .center)
+                    .frame(maxWidth: hugsText ? nil : .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, textTopPadding)
             }
         }
+    }
+
+    /// Whether the text is sized to itself rather than to the space it is given.
+    ///
+    /// Only a bubble hugs its text. Anything else has to take the width it is offered and wrap into it: a
+    /// caption stretches to the width of what it captions, and a message without a bubble is the column
+    /// the conversation reads down, so text sized to itself would have nothing to wrap against.
+    private var hugsText: Bool {
+        insideBubble && !message.content.hasAttachments
     }
 
     /// A caption needs clearing from whatever it sits under; text on its own needs nothing.
