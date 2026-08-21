@@ -69,6 +69,8 @@ extension ModelsR4.QuestionnaireResponse {
     ///     exporting a partially answered draft.
     /// - parameter identifier: A business identifier for the response. By default,
     ///     Grove uses the questionnaire canonical as its system and the response UUID as its value.
+    /// - parameter repositoryID: A repository-assigned logical id for the resource. Leave it `nil`
+    ///     unless the caller already holds an id assignment from the receiving repository.
     /// - parameter authored: The stored instant at which the response was authored.
     ///     It is deliberately required so an exported resource never depends on a hidden clock.
     public init(
