@@ -14,9 +14,9 @@
 #
 # The logical sub-packages are defined in the repo-root packages.toml:
 #   platforms      = the platforms its unit tests run on (development selection may apply the
-#                    temporary CI_PLATFORMS limit; full readiness always schedules every platform)
+#                    CI_PLATFORMS limit, which every run obeys)
 #   uiTests        = the platforms its UI tests run on, straight from the UITests project's Xcode
-#                    config (development selection may apply UI_PLATFORMS; full readiness does not)
+#                    config, narrowed by the UI_PLATFORMS limit, which every run obeys)
 #   self-hosted-ci = which test kinds run on the self-hosted runner (vs GitHub-hosted): a subset of
 #                    ["unit", "ui"]. Optional; default ["ui"] (= today's behavior). Linux unit jobs
 #                    always run on GitHub-hosted ubuntu regardless (the self-hosted runner is macOS).
@@ -483,7 +483,6 @@ def main():
     if run_all or args.full_readiness:
         affected = set(PKGS.keys())
 
-    full_platform_matrix = run_all or args.full_readiness
     unit, ui = [], []
     for pkg in sorted(affected):
         info = PKGS[pkg]
@@ -495,13 +494,13 @@ def main():
         # emitted as a JSON string the workflow's `runs-on` reads via fromJson(matrix.selfHostedLabels).
         self_hosted_labels = json.dumps(["self-hosted", "macOS"] + list(info.get("extra_runner_labels", [])))
         for platform in info["platforms"]:
-            if full_platform_matrix or platform in CI_PLATFORMS:
+            if platform in CI_PLATFORMS:
                 # Linux unit jobs always use GitHub-hosted ubuntu (the self-hosted runner is macOS).
                 unit.append({"package": pkg, "platform": platform,
                              "selfHosted": ("unit" in self_hosted) and platform != "Linux",
                              "selfHostedLabels": self_hosted_labels})
         for platform in [] if development_scoped else info.get("uiTests", []):  # UI tests: per-project platforms from packages.toml
-            if not full_platform_matrix and platform not in UI_PLATFORMS:
+            if platform not in UI_PLATFORMS:
                 continue
             ui.append({"package": pkg, "platform": platform, "selfHosted": "ui" in self_hosted,
                        "selfHostedLabels": self_hosted_labels})

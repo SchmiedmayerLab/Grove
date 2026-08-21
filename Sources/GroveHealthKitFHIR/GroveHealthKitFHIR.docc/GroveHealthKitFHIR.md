@@ -25,7 +25,7 @@ One successful conversion returns a ``HealthKitFHIRConversion`` containing the n
 `Provenance`, and a FHIR `Bundle` of type `collection`. Internal references use deterministic
 `urn:uuid` full URLs derived from complete business identifiers. Source UUIDs are business
 identifiers—not `Resource.id` values. A logical id is emitted only when a caller supplies a
-repository-assigned ``GroveFHIRRepositoryID``.
+repository-assigned `GroveFHIRRepositoryID`.
 
 ```swift
 import GroveHealthKitFHIR
@@ -113,7 +113,7 @@ Without authorization, conversion fails closed; required evidence is never silen
 
 HealthKit's object UUID becomes the Observation's complete business identifier using the
 published HealthKit NamingSystem. The exchange Bundle and derived graph nodes use the caller's
-namespace. ``GroveFHIRExchangeIdentity`` implements the frozen RFC 8785/JCS plus UUIDv5
+namespace. `GroveFHIRExchangeIdentity` implements the frozen RFC 8785/JCS plus UUIDv5
 algorithm used by every Grove producer.
 
 ### Batch conversion
@@ -150,6 +150,3 @@ for failure in result.failures {
 - ``HealthKitFHIRCatalog``
 - ``HealthKitFHIRCatalogEntry``
 - ``HealthKitFHIRImplementationStatus``
-- ``GroveFHIRExchangeIdentity``
-- ``GroveFHIRBusinessIdentifier``
-- ``GroveFHIRRepositoryID``
