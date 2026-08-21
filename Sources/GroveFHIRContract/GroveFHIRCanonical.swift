@@ -60,9 +60,6 @@ public enum GroveFHIRCanonical {
     public static let versionAlgorithmCodeSystem: FHIRPrimitive<FHIRURI> =
         "http://hl7.org/fhir/version-algorithm"
 
-    private static func canonical(_ suffix: String) -> FHIRPrimitive<Canonical> {
-        FHIRPrimitive(Canonical(stringLiteral: "\(root)\(suffix)"))
-    }
 
     private static func uri(_ suffix: String) -> FHIRPrimitive<FHIRURI> {
         FHIRPrimitive(FHIRURI(stringLiteral: "\(root)\(suffix)"))
