@@ -79,9 +79,13 @@ DIR2PKG = directory_to_package(PKGS)
 # names data already on a user's device, and fourteen targets read it.
 GLOBAL_PREFIXES = (
     "Package@", "Package.resolved",
-    "Tests/UITestProjects.toml", ".swiftpm/",
+    ".swiftpm/",
     "Sources/GroveLegacyIdentifiers/",
 )
+
+# Declares one UI-test project per top-level table, keyed by logical package, so a change here can
+# be diffed per table instead of fanning out into every package's tests.
+UI_TEST_PROJECTS_PATH = "Tests/UITestProjects.toml"
 
 FULL_TEST_PATHS = {
     # value: whether the shared change can also affect the FHIR conformance job
@@ -152,6 +156,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("changed_files", nargs="?", default="-")
     parser.add_argument("--base-package-dump")
+    parser.add_argument("--base-ui-test-projects")
     parser.add_argument("--head-package-dump")
     parser.add_argument("--base-packages")
     parser.add_argument("--development-scope", choices=sorted(DEVELOPMENT_SCOPES))
@@ -319,6 +324,18 @@ def affected_by_manifest(base_dump, head_dump, base_packages):
     return affected_packages
 
 
+def affected_by_ui_test_projects(base_projects):
+    head_projects = load_toml(os.path.join(ROOT, UI_TEST_PROJECTS_PATH))
+    changed_projects = {
+        project
+        for project in set(base_projects) | set(head_projects)
+        if base_projects.get(project) != head_projects.get(project)
+    }
+    if any(project not in PKGS for project in changed_projects):
+        return None
+    return changed_projects
+
+
 def affected_by_package_configuration(base_packages):
     changed_packages = {
         package
@@ -407,6 +424,17 @@ def main():
             affected.update(manifest_affected)
             run_fhir_conformance |= bool(manifest_affected & FHIR_PACKAGES)
             fhir_components.update(fhir_components_for_packages(manifest_affected))
+            continue
+        if path == UI_TEST_PROJECTS_PATH:
+            if not args.base_ui_test_projects:
+                run_all = True
+                continue
+            projects_affected = affected_by_ui_test_projects(load_toml(args.base_ui_test_projects))
+            if projects_affected is None:
+                run_all = True
+                continue
+            affected.update(projects_affected)
+            run_fhir_conformance |= bool(projects_affected & FHIR_PACKAGES)
             continue
         if path == "packages.toml":
             if not args.base_packages:
