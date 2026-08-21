@@ -139,8 +139,7 @@ struct ConformanceFixtureTests {
             ),
             graphIdentifierSystem: "https://grovealliance.org/fhir/testing/identifiers/conformance-graph",
             converterWasGateway: true,
-            issuedAt: contextTime,
-            recordedAt: contextTime
+            conversionInstant: contextTime
         )
         let converter = HealthKitFHIRConverter()
         var fixtures: [String: ModelsR4.Bundle] = [:]
@@ -273,8 +272,7 @@ struct ConformanceFixtureTests {
             subject: Self.subject,
             converter: context.converter,
             graphIdentifierSystem: context.graphIdentifierSystem,
-            issuedAt: contextTime,
-            recordedAt: contextTime
+            conversionInstant: contextTime
         )
         let ecgSource = HealthKitECGSourceEvidence(
             sourceTypeIdentifier: GroveFHIRHealthKitCatalog.electrocardiogramSourceTypeIdentifier,

@@ -174,8 +174,7 @@ struct HealthKitFHIRConverterTests {
                 version: "2.0.0 (42)"
             ),
             graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-            issuedAt: timestamp,
-            recordedAt: timestamp
+            conversionInstant: timestamp
         )
     }
 
@@ -313,8 +312,7 @@ struct HealthKitFHIRConverterTests {
             converter: context.converter,
             graphIdentifierSystem: context.graphIdentifierSystem,
             converterWasGateway: true,
-            issuedAt: timestamp,
-            recordedAt: timestamp
+            conversionInstant: timestamp
         )
         let first = try converter.convert(sample, context: attributedContext)
         let second = try converter.convert(sample, context: attributedContext)
@@ -378,8 +376,7 @@ struct HealthKitFHIRConverterTests {
             subject: context.subject,
             converter: context.converter,
             graphIdentifierSystem: context.graphIdentifierSystem,
-            issuedAt: timestamp,
-            recordedAt: timestamp,
+            conversionInstant: timestamp,
             recordingDeviceIdentifierSystem: "https://study.example.org/fhir/identifiers/recording-device",
             repositoryIDs: HealthKitFHIRRepositoryIDs(
                 bundle: try GroveFHIRRepositoryID("bundle-1"),
@@ -422,8 +419,7 @@ struct HealthKitFHIRConverterTests {
             subject: context.subject,
             converter: context.converter,
             graphIdentifierSystem: context.graphIdentifierSystem,
-            issuedAt: timestamp,
-            recordedAt: timestamp,
+            conversionInstant: timestamp,
             udiDisclosurePolicy: .authorizedUDI
         )
         let conversion = try converter.convert(sample, context: authorizedContext)
@@ -575,8 +571,7 @@ struct HealthKitFHIRConverterTests {
             subject: Reference(),
             converter: context.converter,
             graphIdentifierSystem: context.graphIdentifierSystem,
-            issuedAt: context.issuedAt,
-            recordedAt: context.recordedAt
+            conversionInstant: context.conversionInstant
         )
         #expect(throws: GroveHealthKitFHIRError.invalidReference(
             field: "subject",
@@ -589,8 +584,7 @@ struct HealthKitFHIRConverterTests {
             subject: Reference(reference: "Observation/not-a-patient"),
             converter: context.converter,
             graphIdentifierSystem: context.graphIdentifierSystem,
-            issuedAt: context.issuedAt,
-            recordedAt: context.recordedAt
+            conversionInstant: context.conversionInstant
         )
         #expect(throws: GroveHealthKitFHIRError.invalidReference(
             field: "subject",
@@ -626,8 +620,7 @@ struct HealthKitFHIRConverterTests {
             subject: Reference(reference: literal.asFHIRStringPrimitive()),
             converter: context.converter,
             graphIdentifierSystem: context.graphIdentifierSystem,
-            issuedAt: context.issuedAt,
-            recordedAt: context.recordedAt
+            conversionInstant: context.conversionInstant
         )
 
         #expect(throws: GroveHealthKitFHIRError.invalidReference(
@@ -652,8 +645,7 @@ struct HealthKitFHIRConverterTests {
             subject: Reference(reference: literal.asFHIRStringPrimitive()),
             converter: context.converter,
             graphIdentifierSystem: context.graphIdentifierSystem,
-            issuedAt: context.issuedAt,
-            recordedAt: context.recordedAt
+            conversionInstant: context.conversionInstant
         )
 
         let conversion = try converter.convert(sample, context: validContext)
@@ -674,8 +666,7 @@ struct HealthKitFHIRConverterTests {
             subject: validReference,
             converter: context.converter,
             graphIdentifierSystem: context.graphIdentifierSystem,
-            issuedAt: context.issuedAt,
-            recordedAt: context.recordedAt
+            conversionInstant: context.conversionInstant
         )
         _ = try converter.convert(sample, context: validContext)
 
@@ -686,8 +677,7 @@ struct HealthKitFHIRConverterTests {
             ),
             converter: context.converter,
             graphIdentifierSystem: context.graphIdentifierSystem,
-            issuedAt: context.issuedAt,
-            recordedAt: context.recordedAt
+            conversionInstant: context.conversionInstant
         )
         #expect(throws: GroveHealthKitFHIRError.invalidReference(
             field: "subject",
@@ -700,8 +690,7 @@ struct HealthKitFHIRConverterTests {
             subject: Reference(identifier: validReference.identifier),
             converter: context.converter,
             graphIdentifierSystem: context.graphIdentifierSystem,
-            issuedAt: context.issuedAt,
-            recordedAt: context.recordedAt
+            conversionInstant: context.conversionInstant
         )
         #expect(throws: GroveHealthKitFHIRError.invalidReference(
             field: "subject",
@@ -718,8 +707,7 @@ struct HealthKitFHIRConverterTests {
             ),
             converter: context.converter,
             graphIdentifierSystem: context.graphIdentifierSystem,
-            issuedAt: context.issuedAt,
-            recordedAt: context.recordedAt
+            conversionInstant: context.conversionInstant
         )
         #expect(throws: GroveHealthKitFHIRError.invalidReference(
             field: "subject",
@@ -736,8 +724,7 @@ struct HealthKitFHIRConverterTests {
             subject: context.subject,
             converter: context.converter,
             graphIdentifierSystem: context.graphIdentifierSystem,
-            issuedAt: context.issuedAt,
-            recordedAt: context.recordedAt,
+            conversionInstant: context.conversionInstant,
             researchStudies: [
                 Reference(reference: "ResearchStudy/study-1"),
                 Reference(reference: "ResearchStudy/study-1")
