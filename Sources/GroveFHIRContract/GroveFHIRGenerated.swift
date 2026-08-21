@@ -74,10 +74,10 @@ public enum GroveFHIRProfile {
     public static let healthConnectSpecimen: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-specimen"
     public static let healthConnectWholeBloodGlucose: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-whole-blood-glucose"
 
-    // MARK: connected-health
-    public static let connectedHealthConversionProvenance: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/connected-health/StructureDefinition/connected-health-conversion-provenance"
-    public static let connectedHealthObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/connected-health/StructureDefinition/connected-health-observation"
-    public static let connectedHealthRecordingDocument: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/connected-health/StructureDefinition/connected-health-recording-document"
+    // MARK: providers
+    public static let providerConversionProvenance: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/providers/StructureDefinition/provider-conversion-provenance"
+    public static let providerObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/providers/StructureDefinition/provider-observation"
+    public static let providerRecordingDocument: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/providers/StructureDefinition/provider-recording-document"
 }
 
 
@@ -2092,7 +2092,7 @@ public enum GroveFHIRProfileClaims {
         GroveFHIRProfile.healthkitObservation,
         GroveFHIRProfile.healthkitEcgObservation,
         GroveFHIRProfile.healthConnectObservation,
-        GroveFHIRProfile.connectedHealthObservation,
+        GroveFHIRProfile.providerObservation,
         GroveFHIRProfile.sensorkitObservation,
         GroveFHIRProfile.sensorkitEcgObservation,
     ]
