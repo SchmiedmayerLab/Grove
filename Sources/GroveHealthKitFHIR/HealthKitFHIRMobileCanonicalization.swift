@@ -16,10 +16,6 @@ import ModelsR4
 ///
 /// Sensor and ECG timing use their separate exact Decimal contracts and never call this helper.
 enum HealthKitFHIRMobileCanonicalization {
-    static let effectivePrecision = "millisecond"
-    static let effectiveRounding = "to-nearest-or-even"
-    static let scalarDecimalRepresentation = "shortest-round-trip"
-
     /// Produces a stable FHIR decimal without exposing Foundation's expanded IEEE-754 artifact.
     static func scalarDecimal(_ value: Double) throws -> FHIRPrimitive<FHIRDecimal> {
         guard value.isFinite,
