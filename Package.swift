@@ -316,8 +316,7 @@ var targets: [Target] = [
         name: "FHIRModelsExtensions",
         dependencies: [
             .target(name: "FHIRPathParser"),
-            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
-            .product(name: "ModelsDSTU2", package: "FHIRModels", condition: fhirModelsCondition)
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
         ],
         exclude: targetExcludes("FHIRModelsExtensions", additional: ["FHIR+ExtensionUtils.swift.gyb"]),
         swiftSettings: defaultSwiftSettings,

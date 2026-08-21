@@ -91,18 +91,10 @@ extension QuestionnaireItem {
         static let hidden = "http://hl7.org/fhir/StructureDefinition/questionnaire-hidden"
         static let entryFormat = "http://hl7.org/fhir/StructureDefinition/entryFormat"
         
-        static let validationMessage = FHIRCanonicalURL(
-            "https://grovealliance.org/fhir/core/StructureDefinition/validationText"
-        )
-        static let keyboardType = FHIRCanonicalURL(
-            "https://grovealliance.org/fhir/core/StructureDefinition/iosKeyboardType"
-        )
-        static let autocomplete = FHIRCanonicalURL(
-            "https://grovealliance.org/fhir/core/StructureDefinition/grove-autocomplete"
-        )
-        static let autocapitalize = FHIRCanonicalURL(
-            "https://grovealliance.org/fhir/core/StructureDefinition/grove-autocapitalize"
-        )
+        static let validationMessage = "https://grovealliance.org/fhir/core/StructureDefinition/validationText"
+        static let keyboardType = "https://grovealliance.org/fhir/core/StructureDefinition/iosKeyboardType"
+        static let autocomplete = "https://grovealliance.org/fhir/core/StructureDefinition/grove-autocomplete"
+        static let autocapitalize = "https://grovealliance.org/fhir/core/StructureDefinition/grove-autocapitalize"
         
         static let dateMaxValue = "http://ehelse.no/fhir/StructureDefinition/sdf-maxvalue"
         static let dateMinValue = "http://ehelse.no/fhir/StructureDefinition/sdf-minvalue"

@@ -31,17 +31,6 @@ extension FHIRTypeWithExtensions {
     public func extensions(for url: FHIRPrimitive<FHIRURI>) -> [Extension] {
         `extension`.map { $0.filter { $0.url == url } } ?? []
     }
-
-    /// Retrieves all FHIR Extensions for the specified url.
-    @available(iOS 18, macOS 15, watchOS 11, *)
-    public func extensions(for url: FHIRExtensionURL) -> [Extension] {
-        extensions(for: url.r4)
-    }
-
-    /// Retrieves all FHIR Extensions for a canonical url.
-    public func extensions(for url: FHIRCanonicalURL) -> [Extension] {
-        `extension`?.filter { $0.url.value?.url.absoluteString == url.canonical } ?? []
-    }
 }
 
 
@@ -66,15 +55,6 @@ extension FHIRTypeWithExtensions {
         return element
     }
 
-    /// Removes the first extension that matches the specified url.
-    ///
-    /// - returns: the removed extension element, if any.
-    @available(iOS 18, macOS 15, watchOS 11, *)
-    @inlinable @discardableResult
-    public mutating func removeFirstExtension(withUrl url: FHIRExtensionURL) -> Extension? {
-        removeFirstExtension(withUrl: url.r4)
-    }
-
     /// Removes all extension that matches the specified url.
     ///
     /// - returns: the removed extension elements, if any.
@@ -87,15 +67,6 @@ extension FHIRTypeWithExtensions {
         elements.removeAll { $0.url == url }
         `extension` = elements.isEmpty ? nil : elements
         return removedElements
-    }
-
-    /// Removes all extensions that match the specified url.
-    ///
-    /// - returns: the removed extension elements, if any.
-    @available(iOS 18, macOS 15, watchOS 11, *)
-    @discardableResult
-    public mutating func removeAllExtensions(withUrl url: FHIRExtensionURL) -> [Extension]? {
-        removeAllExtensions(withUrl: url.r4)
     }
 }
 
