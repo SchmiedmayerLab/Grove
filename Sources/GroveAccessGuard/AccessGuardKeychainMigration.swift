@@ -91,7 +91,7 @@ enum AccessGuardKeychainMigration {
             return true
         }
 
-        LegacyIdentifierReport.encountered(LegacyKeychain.accessGuardService, in: "GroveAccessGuard", .duringMigration)
+        LegacyIdentifierReport.encountered(LegacyKeychain.accessGuardService, in: "GroveAccessGuard")
 
         for credentials in existing where !alreadyMigrated.contains(credentials.username) {
             do {

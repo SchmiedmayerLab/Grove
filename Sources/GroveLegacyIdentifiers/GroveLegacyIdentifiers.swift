@@ -23,6 +23,11 @@
 /// - ``LegacyStorage``
 /// - ``LegacyKeychain``
 /// - ``LegacyNotifications``
+/// - ``LegacyPreferenceKey``
+/// - ``LegacyStorageKeyPrefix``
+/// - ``LegacyStudyTaskIdentifiers``
+/// - ``FrozenKeyTags``
+///
 /// ### Diagnostics
 /// - ``LegacyIdentifierReport``
 public enum GroveLegacyIdentifiers {}

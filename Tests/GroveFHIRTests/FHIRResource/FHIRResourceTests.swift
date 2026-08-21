@@ -7,7 +7,7 @@
 //
 
 import Foundation
-@testable @_spi(Testing) import GroveFHIR
+@testable import GroveFHIR
 import ModelsDSTU2
 import ModelsR4
 import Testing
@@ -39,7 +39,7 @@ struct FHIRResourceTests {
             displayName: "Test Observation"
         )
         
-        #expect(resource.id.fhirResourceId == "observation-id")
+        #expect(resource.id == "observation-id")
         #expect(resource.displayName == "Test Observation")
         #expect(resource.resourceType == "Observation")
     }
@@ -53,7 +53,7 @@ struct FHIRResourceTests {
             displayName: "Test Observation"
         )
         
-        #expect(resource.id.fhirResourceId == "observation-id")
+        #expect(resource.id == "observation-id")
         #expect(resource.displayName == "Test Observation")
         #expect(resource.resourceType == "Observation")
     }
