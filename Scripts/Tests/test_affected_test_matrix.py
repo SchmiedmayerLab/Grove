@@ -189,7 +189,7 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
                 extra_arguments=("--development-scope", "healthkit", "--full-readiness"),
             )
 
-    def test_healthkit_ready_pr_runs_full_matrix_with_only_applicable_ig(self):
+    def test_healthkit_ready_pr_runs_every_package_within_the_platform_limits(self):
         result = run_selector(
             "Sources/GroveHealthKitFHIR/HealthKitFHIRConverter.swift",
             ".github/workflows/tests.yml",
@@ -208,9 +208,13 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
             (job["package"], job["platform"])
             for job in json.loads(result["ui_matrix"])["include"]
         }
-        self.assertIn(("Grove", "macCatalyst"), unit_jobs)
-        self.assertIn(("Grove", "visionOS"), unit_jobs)
-        self.assertIn(("GroveViews", "iPadOS"), ui_jobs)
+        self.assertIn(("Grove", "iOS"), unit_jobs)
+        self.assertIn(("GroveViews", "iOS"), ui_jobs)
+        # Full readiness widens the package set, never the platform set: CI_PLATFORMS and
+        # UI_PLATFORMS bound every run, so the dormant platforms stay unscheduled.
+        self.assertNotIn(("Grove", "macCatalyst"), unit_jobs)
+        self.assertNotIn(("Grove", "visionOS"), unit_jobs)
+        self.assertNotIn(("GroveViews", "iPadOS"), ui_jobs)
 
     def test_questionnaire_ready_pr_runs_only_questionnaire_ig(self):
         result = run_selector(
