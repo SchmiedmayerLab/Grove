@@ -18,7 +18,7 @@ cd "$(dirname "$0")/.."
 
 COMPONENT="${1:-${GROVE_FHIR_COMPONENT:-healthkit}}"
 GUIDES="${GROVE_FHIR_GUIDES:-$(pwd)/.fhir/grove-fhir}"
-GROVE_FHIR_REF="${GROVE_FHIR_REF:-6001474255641193c25686ff404ef6cbcc2cc3b1}"
+GROVE_FHIR_REF="${GROVE_FHIR_REF:-d650eab4737da95133421361bf1a242c9d277c38}"
 
 if [ "$COMPONENT" = "all" ]; then
     for component in healthkit questionnaire sensor; do
