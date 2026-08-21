@@ -226,7 +226,7 @@ def generate(catalog_directory: Path) -> str:
         "/// Swift producer states generated from the authoritative HealthKit adapter inventory.",
         "public enum GroveFHIRHealthKitImplementationStatus: String, CaseIterable, Sendable {",
     ])
-    healthkit_statuses = sorted({row["swiftImplementationStatus"] for row in healthkit_catalog["rows"]})
+    healthkit_statuses = sorted({row["status"] for row in healthkit_catalog["rows"]})
     for status in healthkit_statuses:
         lines.append(f"    case {swift_name(status)} = {swift_string(status)}")
     lines.extend([
@@ -248,7 +248,7 @@ def generate(catalog_directory: Path) -> str:
         "public enum GroveFHIRHealthKitCatalog {",
     ])
     source_type_coding = healthkit_catalog["sourceTypeCoding"]
-    swift_producer = healthkit_catalog["swiftProducer"]["numericCanonicalization"]
+    swift_producer = healthkit_catalog["producerCanonicalization"]
     ecg_claim = healthkit_catalog["sensorAdapterClaims"]["electrocardiogram"]
     correlated_symptom = ecg_claim["correlatedSymptomEvidence"]
     if len(ecg_claim["profiles"]) != profile_claims["observationAdapterClaim"]["cardinality"]:
@@ -326,7 +326,7 @@ def generate(catalog_directory: Path) -> str:
             lines.append("            profiles: [],")
         lines.extend([
             "            implementationStatus: ."
-            f"{swift_name(row['swiftImplementationStatus'])},",
+            f"{swift_name(row['status'])},",
             "            requirement: "
             f"{swift_string(row['requirement']) if row.get('requirement') is not None else 'nil'}",
             "        ),",
