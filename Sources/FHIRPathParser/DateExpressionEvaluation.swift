@@ -17,11 +17,11 @@ enum DateEvaluationValue {
 
 
 final class DateExpressionEvaluation: FHIRPathBaseVisitor<Result<DateEvaluationValue, Error>> {
-    private let now: Date
+    private let evaluationInstant: Date
     private let cal = Calendar.current
 
     init(evaluationInstant: Date) {
-        self.now = evaluationInstant
+        self.evaluationInstant = evaluationInstant
         super.init()
     }
 
@@ -225,19 +225,19 @@ final class DateExpressionEvaluation: FHIRPathBaseVisitor<Result<DateEvaluationV
 
         // see https://build.fhir.org/ig/HL7/FHIRPath/#current-date-and-time-functions
         switch identifierToken.getText() {
-        case "today", "now":
+        case "today", "evaluationInstant":
             if let paramList = function.paramList() {
                 return .failure(paramList.start, .invalidFunctionParameters(expected: 0, received: (paramList.getChildCount() / 2) + 1))
             }
             let date: Date
             if identifierToken.getText() == "today" { // yields a Date
-                date = cal.startOfDay(for: now)
-            } else { // "now" yields a DateTime
-                date = now
+                date = cal.startOfDay(for: evaluationInstant)
+            } else { // "evaluationInstant" yields a DateTime
+                date = evaluationInstant
             }
             return .success(.date(date))
         case "timeOfDay":
-            return .success(.components(cal.dateComponents([.hour, .minute, .second], from: now)))
+            return .success(.components(cal.dateComponents([.hour, .minute, .second], from: evaluationInstant)))
         default:
             return .failure(identifierToken.getSymbol(), .unknownIdentifier(identifier: identifierToken.getText()))
         }

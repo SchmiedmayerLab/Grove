@@ -71,8 +71,9 @@ extension ModelsR4.QuestionnaireResponse {
     ///     Grove uses the questionnaire canonical as its system and the response UUID as its value.
     /// - parameter repositoryID: A repository-assigned logical id for the resource. Leave it `nil`
     ///     unless the caller already holds an id assignment from the receiving repository.
-    /// - parameter authored: The stored instant at which the response was authored.
-    ///     It is deliberately required so an exported resource never depends on a hidden clock.
+    /// - parameter authored: The instant at which the response was authored. Defaults to the
+    ///     wall clock, which fits the common export-on-completion flow; pass the stored instant
+    ///     when exporting later.
     public init(
         _ other: GroveQuestionnaire.QuestionnaireResponses,
         subject: Reference? = nil,
@@ -81,7 +82,7 @@ extension ModelsR4.QuestionnaireResponse {
         status: QuestionnaireResponseStatus = .completed,
         identifier: Identifier? = nil,
         repositoryID: GroveFHIRRepositoryID? = nil,
-        authored: Date
+        authored: Date = .now
     ) throws {
         try self.init(
             other,

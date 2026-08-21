@@ -24,7 +24,7 @@ extension ORKNavigableOrderedTask {
     public convenience init(
         title: String? = nil,
         questionnaire: Questionnaire,
-        evaluationInstant: Date,
+        evaluationInstant: Date = .now,
         completionStep: ORKCompletionStep? = nil
     ) throws {
         guard questionnaire.item?.isEmpty == false else {

@@ -214,7 +214,7 @@ extension QuestionnaireItem {
     /// the caller-supplied instant.
     /// - Parameter evaluationInstant: The explicit instant used by clock-sensitive expressions.
     /// - Returns: An optional `DateComponents` containing the minimum date allowed.
-    public func minDateValue(evaluationInstant: Date) -> DateComponents? {
+    public func minDateValue(evaluationInstant: Date = .now) -> DateComponents? {
         dateMinMaxValue(urls: [SupportedExtensions.minValue], evaluationInstant: evaluationInstant)
     }
 
@@ -222,7 +222,7 @@ extension QuestionnaireItem {
     /// the caller-supplied instant.
     /// - Parameter evaluationInstant: The explicit instant used by clock-sensitive expressions.
     /// - Returns: An optional `DateComponents` containing the maximum date allowed.
-    public func maxDateValue(evaluationInstant: Date) -> DateComponents? {
+    public func maxDateValue(evaluationInstant: Date = .now) -> DateComponents? {
         dateMinMaxValue(urls: [SupportedExtensions.maxValue], evaluationInstant: evaluationInstant)
     }
     

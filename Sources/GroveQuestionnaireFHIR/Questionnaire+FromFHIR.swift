@@ -84,12 +84,13 @@ extension GroveQuestionnaire.Questionnaire {
     /// Creates a Grove `Questionnaire` from a FHIR R4 `Questionnaire`.
     ///
     /// - parameter other: A FHIR R4 Questionnaire
-    /// - parameter evaluationInstant: The explicit instant used for publication-lifecycle
-    ///   warnings and every clock-sensitive FHIRPath expression.
+    /// - parameter evaluationInstant: The instant used for publication-lifecycle warnings and
+    ///   every clock-sensitive FHIRPath expression. Defaults to the wall clock; pass a fixed
+    ///   instant to make a conversion reproducible.
     /// - parameter options: Additional options to control the conversion process. Use this to specify e.g. custom question kinds.
     public init(
         _ other: ModelsR4.Questionnaire,
-        evaluationInstant: Date,
+        evaluationInstant: Date = .now,
         using options: FHIRConversionOptions = .init()
     ) throws(FHIRConversionError) {
         let metadata = try Self.metadata(of: other, evaluationInstant: evaluationInstant, using: options)

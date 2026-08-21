@@ -34,7 +34,7 @@ extension GroveQuestionnaire.Questionnaire {
     ///   `timeOfDay()` for every evaluation performed by the returned questionnaire.
     /// - parameter launchContext: Resources the SDC `launchContext` expressions may read.
     public func withExpressionEngine(
-        evaluationInstant: Date,
+        evaluationInstant: Date = .now,
         launchContext: [String: ResourceProxy] = [:]
     ) throws -> Self {
         var copy = self

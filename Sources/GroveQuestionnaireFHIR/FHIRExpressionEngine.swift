@@ -142,7 +142,7 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
         var context = FHIRPathEvaluationContext(
             focus: qrNode.map { [.object($0)] } ?? [],
             constants: constants,
-            now: evaluationInstant
+            evaluationInstant: evaluationInstant
         )
         // `variable`s may reference earlier variables and the response; each is visible
         // only to the item that declares it and that item's descendants.

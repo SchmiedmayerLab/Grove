@@ -27,6 +27,17 @@ public struct GroveQuestionnaireFHIRBuilder: Sendable {
     }
 
     /// Creates a profiled QuestionnaireResponse with a complete business identifier.
+    ///
+    /// Use this when the response travels alone -- for example when the receiving system already
+    /// holds the Questionnaire. When both resources travel together, prefer ``pair(from:subject:author:responseSource:status:identifier:questionnaireRepositoryID:responseRepositoryID:valueSets:authored:)``,
+    /// which also cross-validates the two against the published pair rules.
+    ///
+    /// ```swift
+    /// let response = try GroveQuestionnaireFHIRBuilder().response(
+    ///     from: responses,
+    ///     subject: Reference(reference: "Patient/example")
+    /// )
+    /// ```
     public func response(
         from source: GroveQuestionnaire.QuestionnaireResponses,
         subject: Reference? = nil,
@@ -35,7 +46,7 @@ public struct GroveQuestionnaireFHIRBuilder: Sendable {
         status: QuestionnaireResponseStatus = .completed,
         identifier: Identifier? = nil,
         repositoryID: GroveFHIRRepositoryID? = nil,
-        authored: Date
+        authored: Date = .now
     ) throws -> ModelsR4.QuestionnaireResponse {
         try ModelsR4.QuestionnaireResponse(
             source,
@@ -49,7 +60,21 @@ public struct GroveQuestionnaireFHIRBuilder: Sendable {
         )
     }
 
-    /// Creates and validates an exact Questionnaire/QuestionnaireResponse pair.
+    /// Creates an exact Questionnaire/QuestionnaireResponse pair and validates them against each other.
+    ///
+    /// Unlike calling ``questionnaire(from:repositoryID:)`` and
+    /// ``response(from:subject:author:source:status:identifier:repositoryID:authored:)`` separately,
+    /// the pair is checked against the published pair rules -- every answer's linkId, type, and
+    /// enable-when relationship must line up -- so an inconsistent export fails here instead of at
+    /// the receiving system.
+    ///
+    /// ```swift
+    /// let pair = try GroveQuestionnaireFHIRBuilder().pair(
+    ///     from: responses,
+    ///     subject: Reference(reference: "Patient/example")
+    /// )
+    /// send(pair.questionnaire, pair.response)
+    /// ```
     public func pair(
         from source: GroveQuestionnaire.QuestionnaireResponses,
         subject: Reference? = nil,
@@ -60,7 +85,7 @@ public struct GroveQuestionnaireFHIRBuilder: Sendable {
         questionnaireRepositoryID: GroveFHIRRepositoryID? = nil,
         responseRepositoryID: GroveFHIRRepositoryID? = nil,
         valueSets: [ModelsR4.ValueSet] = [],
-        authored: Date
+        authored: Date = .now
     ) throws -> GroveQuestionnaireFHIRPair {
         let questionnaire = try questionnaire(
             from: source.questionnaire,

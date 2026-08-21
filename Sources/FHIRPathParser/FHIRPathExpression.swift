@@ -47,7 +47,7 @@ public enum FHIRPathExpression {
     ///     provided expression doesn't follow the FHIRPath grammar.
     public static func evaluate<Value: _FHIRPathValue>(
         expression: String,
-        evaluationInstant: Date,
+        evaluationInstant: Date = .now,
         as value: Value.Type = Value.self
     ) throws -> Value {
         // Routed through the locked parse: ANTLR's shared caches are not thread-safe.
