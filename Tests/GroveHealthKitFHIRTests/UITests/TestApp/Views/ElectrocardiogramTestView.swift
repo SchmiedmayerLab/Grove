@@ -14,7 +14,7 @@ struct ElectrocardiogramTestView: View {
         ContentUnavailableView(
             "Handled by Grove Sensor FHIR",
             systemImage: "waveform.path.ecg",
-            description: Text("ECG voltage series use the Sensor ECG/raw graph rather than the point-measurement HealthKit facade.")
+            description: Text("ECG conversion needs caller-supplied voltage and symptom evidence; it is exercised by the unit-test evidence fixtures rather than an interactive read.")
         )
         .navigationTitle("Electrocardiogram")
     }

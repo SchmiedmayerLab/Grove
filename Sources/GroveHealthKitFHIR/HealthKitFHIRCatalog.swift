@@ -208,16 +208,16 @@ public enum HealthKitFHIRCatalog {
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
-enum HealthKitFHIRBinding: Sendable, Equatable {
-    case quantity(GroveFHIRMeasurementKey, unit: HKUnit, display: String)
-    case percent(GroveFHIRMeasurementKey)
+enum HealthKitFHIRBinding: Sendable {
+    case quantity(HealthKitFHIRObservationContract, unit: HKUnit, display: String)
+    case percent(HealthKitFHIRObservationContract)
     case bloodPressure
     case sleepStage
 
     var contract: HealthKitFHIRObservationContract {
         switch self {
-        case .quantity(let key, _, _), .percent(let key):
-            key.contract
+        case .quantity(let contract, _, _), .percent(let contract):
+            contract
         case .bloodPressure:
             HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.bloodPressure)
         case .sleepStage:
@@ -227,39 +227,18 @@ enum HealthKitFHIRBinding: Sendable, Equatable {
 }
 
 
-/// Local stable keys avoid comparing generated contract structs by identity.
-enum GroveFHIRMeasurementKey: Sendable, Equatable {
-    case activeEnergy
-    case basalBodyTemperature
-    case bodyWeight
-    case bodyHeight
-    case bodyMassIndex
-    case bodyTemperature
-    case respiratoryRate
-    case oxygenSaturation
-    case heartRate
-    case stepCount
-    case distance
-
-    var contract: HealthKitFHIRObservationContract {
-        switch self {
-        case .activeEnergy: HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.activeEnergy)
-        case .basalBodyTemperature:
-            HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.basalBodyTemperature)
-        case .bodyWeight: HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.bodyWeight)
-        case .bodyHeight: HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.bodyHeight)
-        case .bodyMassIndex: .bodyMassIndex
-        case .bodyTemperature:
-            HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.bodyTemperature)
-        case .respiratoryRate:
-            HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.respiratoryRate)
-        case .oxygenSaturation:
-            HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.oxygenSaturation)
-        case .heartRate: HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.heartRate)
-        case .stepCount: HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.stepCount)
-        case .distance: HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.distance)
-        }
-    }
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitFHIRObservationContract {
+    static let activeEnergy = Self(shared: GroveFHIRMeasurementCatalog.activeEnergy)
+    static let basalBodyTemperature = Self(shared: GroveFHIRMeasurementCatalog.basalBodyTemperature)
+    static let bodyWeight = Self(shared: GroveFHIRMeasurementCatalog.bodyWeight)
+    static let bodyHeight = Self(shared: GroveFHIRMeasurementCatalog.bodyHeight)
+    static let bodyTemperature = Self(shared: GroveFHIRMeasurementCatalog.bodyTemperature)
+    static let respiratoryRate = Self(shared: GroveFHIRMeasurementCatalog.respiratoryRate)
+    static let oxygenSaturation = Self(shared: GroveFHIRMeasurementCatalog.oxygenSaturation)
+    static let heartRate = Self(shared: GroveFHIRMeasurementCatalog.heartRate)
+    static let stepCount = Self(shared: GroveFHIRMeasurementCatalog.stepCount)
+    static let distance = Self(shared: GroveFHIRMeasurementCatalog.distance)
 }
 
 // swiftlint:enable file_types_order

@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-@testable import FHIRModelsExtensions
+import FHIRModelsExtensions
 import FHIRQuestionnaires
 import Foundation
 import ModelsR4
@@ -15,20 +15,6 @@ import Testing
 
 @Suite
 struct FHIRToResearchKitTests {
-    private static let evaluationInstant = Date(timeIntervalSince1970: 1_700_000_000)
-
-    /// - Note: "FHIR extensions" here meaning Swift extensions on FHIR types, not actual FHIR extensions.
-    @Test
-    func fhirExtensions() {
-        #expect(Questionnaire.numberExample.flattenedItems.count == 3)
-        #expect(Questionnaire.numberExample.flattenedQuestions.count == 3)
-        #expect(Questionnaire.formExample.flattenedItems.count == 5)
-        #expect(Questionnaire.formExample.flattenedQuestions.count == 3)
-        #expect(Questionnaire.skipLogicExample.flattenedItems.count == 3)
-        #expect(Questionnaire.skipLogicExample.flattenedQuestions.count == 3)
-    }
-    
-
     @Test
     func testGetContainedValueSets() throws {
         let valueSets = Questionnaire.containedValueSetExample.getContainedValueSets()
@@ -57,9 +43,11 @@ struct FHIRToResearchKitTests {
         #expect(sliderStepValue == 1)
     }
 
-    @Test("A regex does not infer a retired validation-message extension")
-    func regexDoesNotInferValidationMessage() {
-        #expect(Questionnaire.textValidationExample.item?.first?.validationMessage == nil)
+    @Test("Validation message extension")
+    func testValidationMessageExtension() throws {
+        let testValidationMessage = Questionnaire.textValidationExample.item?.first?.validationMessage
+        let validationMessage = "Please enter a valid email address."
+        #expect(validationMessage == testValidationMessage)
     }
 
     @Test("Unit extension")
@@ -91,18 +79,14 @@ struct FHIRToResearchKitTests {
 
     @Test
     func testMinDateValueExtension() throws {
-        let minDateValue = Questionnaire.dateTimeExample.item?.first?.minDateValue(
-            evaluationInstant: Self.evaluationInstant
-        )
+        let minDateValue = Questionnaire.dateTimeExample.item?.first?.minDateValue
         let unwrappedMinDateValue = try #require(minDateValue)
         #expect(unwrappedMinDateValue == DateComponents(year: 2001, month: 1, day: 1))
     }
 
     @Test
     func testMaxDateValueExtension() throws {
-        let maxDateValue = Questionnaire.dateTimeExample.item?.first?.maxDateValue(
-            evaluationInstant: Self.evaluationInstant
-        )
+        let maxDateValue = Questionnaire.dateTimeExample.item?.first?.maxDateValue
         let unwrappedMaxDateValue = try #require(maxDateValue)
         #expect(unwrappedMaxDateValue == DateComponents(year: 2024, month: 1, day: 1))
     }

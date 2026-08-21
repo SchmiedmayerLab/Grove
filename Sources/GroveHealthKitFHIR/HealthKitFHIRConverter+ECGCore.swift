@@ -245,7 +245,7 @@ extension HealthKitFHIRConverter {
         return extensions
     }
 
-    private static func applyGraphContext(
+    static func applyGraphContext(
         to observation: inout Observation,
         context: HealthKitFHIRConversionContext,
         graphContext: HealthKitECGGraphContext,
