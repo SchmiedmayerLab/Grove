@@ -62,8 +62,7 @@ struct ReadDataView<Sample: _HKSampleWithSampleType>: View {
                 version: "0.2.0"
             ),
             graphIdentifierSystem: "https://grovealliance.org/fhir/testing/identifiers/ui-graph",
-            issuedAt: now,
-            recordedAt: now
+            conversionInstant: now
         )
         let bundles = try samples.map { sample in
             guard let healthKitSample = sample as? HKSample else {

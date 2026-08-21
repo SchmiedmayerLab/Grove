@@ -140,7 +140,7 @@ extension HealthKitFHIRConverter {
         )
         observation.meta = Meta(profile: GroveFHIRHealthKitCatalog.electrocardiogramProfiles)
         observation.subject = context.subject
-        observation.issued = FHIRPrimitive(try Instant(date: context.issuedAt))
+        observation.issued = FHIRPrimitive(try Instant(date: context.conversionInstant))
         observation.effective = .period(effectivePeriod)
         observation.component = [voltageComponent(waveform)]
         return observation

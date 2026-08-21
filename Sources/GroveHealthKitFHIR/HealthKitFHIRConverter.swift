@@ -21,6 +21,22 @@ public import ModelsR4
 
 /// Product identity of the application performing a HealthKit-to-FHIR conversion.
 public struct HealthKitFHIRApplication: Hashable, Sendable {
+    /// The identity of the running application, read from its main bundle.
+    ///
+    /// Requires a bundle identifier, so it is unavailable in bare test runners; pass explicit
+    /// values there instead.
+    public static var main: HealthKitFHIRApplication {
+        let bundle = Bundle.main
+        guard let identifier = bundle.bundleIdentifier else {
+            preconditionFailure("Bundle.main carries no bundle identifier; supply an explicit HealthKitFHIRApplication.")
+        }
+        let info = bundle.infoDictionary ?? [:]
+        let name = (info["CFBundleDisplayName"] ?? info["CFBundleName"]) as? String ?? identifier
+        let version = info["CFBundleShortVersionString"] as? String ?? "0"
+        let build = (info["CFBundleVersion"] as? String).map { " (\($0))" } ?? ""
+        return HealthKitFHIRApplication(name: name, bundleIdentifier: identifier, version: version + build)
+    }
+
     public let name: String
     public let bundleIdentifier: String
     public let version: String
@@ -110,13 +126,24 @@ public struct HealthKitFHIRRepositoryIDs: Hashable, Sendable {
 public struct HealthKitFHIRConversionContext: Sendable {
     public let subject: Reference
     public let converter: HealthKitFHIRApplication
-    /// Deployment-owned namespace for derived Bundle, Provenance, and otherwise
-    /// unidentified graph-node business identifiers.
+    /// Deployment-owned identifier namespace for graph nodes that have no natural identity.
+    ///
+    /// A sample's Observation is identified by its HealthKit object UUID, but the Bundle, the
+    /// conversion Provenance, and derived Device resources exist only because of this export.
+    /// Their business identifiers are minted deterministically inside this namespace, so the
+    /// same conversion always produces the same graph and re-sends deduplicate on the server.
+    /// Use one stable URL you own per deployment, for example
+    /// `https://mystudy.example.org/fhir/identifiers/mobile-graph`.
     public let graphIdentifierSystem: String
     public let sourceActor: HealthKitFHIRSourceActor
     public let converterWasGateway: Bool
-    public let issuedAt: Date
-    public let recordedAt: Date
+    /// The instant of this conversion event.
+    ///
+    /// Written to `Observation.issued`, `Provenance.occurred`/`recorded`, and `Bundle.timestamp`;
+    /// each sample's own measurement time always comes from the sample and lands in
+    /// `Observation.effective`. Defaults to the wall clock; pass a fixed instant to make a
+    /// conversion reproducible.
+    public let conversionInstant: Date
     /// Deployment-owned namespace that authorizes disclosure of an opaque, local
     /// `HKDevice.localIdentifier`. It does not authorize UDI disclosure.
     public let recordingDeviceIdentifierSystem: String?
@@ -135,8 +162,7 @@ public struct HealthKitFHIRConversionContext: Sendable {
         graphIdentifierSystem: String,
         sourceActor: HealthKitFHIRSourceActor = .omit,
         converterWasGateway: Bool = false,
-        issuedAt: Date,
-        recordedAt: Date,
+        conversionInstant: Date = .now,
         recordingDeviceIdentifierSystem: String? = nil,
         udiDisclosurePolicy: HealthKitFHIRUDIDisclosurePolicy = .omit,
         sourceRevisionDisclosurePolicy: HealthKitFHIRSourceDisclosurePolicy = .omit,
@@ -148,8 +174,7 @@ public struct HealthKitFHIRConversionContext: Sendable {
         self.graphIdentifierSystem = graphIdentifierSystem
         self.sourceActor = sourceActor
         self.converterWasGateway = converterWasGateway
-        self.issuedAt = issuedAt
-        self.recordedAt = recordedAt
+        self.conversionInstant = conversionInstant
         self.recordingDeviceIdentifierSystem = recordingDeviceIdentifierSystem
         self.udiDisclosurePolicy = udiDisclosurePolicy
         self.sourceRevisionDisclosurePolicy = sourceRevisionDisclosurePolicy
@@ -395,7 +420,7 @@ extension HealthKitFHIRConverter {
             targetURL: observationURL,
             converterURL: converterURL,
             sourceAuthorURL: sourceAuthorURL,
-            recordedAt: context.recordedAt
+            recordedAt: context.conversionInstant
         )
         provenance.id = context.repositoryIDs.provenance?.primitive
 
@@ -431,7 +456,7 @@ extension HealthKitFHIRConverter {
             entry: entries,
             identifier: bundleIdentity.fhirIdentifier,
             meta: Meta(profile: [GroveFHIRProfile.groveMobileExchangeBundle]),
-            timestamp: FHIRPrimitive(try Instant(date: context.recordedAt)),
+            timestamp: FHIRPrimitive(try Instant(date: context.conversionInstant)),
             type: FHIRPrimitive(.collection)
         )
         bundle.id = context.repositoryIDs.bundle?.primitive
@@ -553,7 +578,7 @@ extension HealthKitFHIRConverter {
         )
         observation.meta = Meta(profile: contract.profiles)
         observation.subject = context.subject
-        observation.issued = FHIRPrimitive(try Instant(date: context.issuedAt))
+        observation.issued = FHIRPrimitive(try Instant(date: context.conversionInstant))
         observation.category = category(for: contract.id).map { [CodeableConcept(coding: [$0])] }
         try applyEffective(to: &observation, sample: sample, contract: contract)
         try applyResult(to: &observation, sample: sample, binding: binding, contract: contract)
@@ -575,7 +600,7 @@ extension HealthKitFHIRConverter {
         contract: HealthKitFHIRObservationContract
     ) throws {
         switch binding {
-        case let .quantity(_, unit, display):
+        case let .quantity(_, unit):
             guard let quantitySample = sample as? HKQuantitySample,
                   let quantityContract = contract.quantity else {
                 throw GroveHealthKitFHIRError.invalidValue
@@ -583,7 +608,6 @@ extension HealthKitFHIRConverter {
             let value = quantitySample.quantity.doubleValue(for: unit)
             observation.value = .quantity(try fhirQuantity(
                 value: value,
-                display: display,
                 contract: quantityContract
             ))
         case .percent:
@@ -594,7 +618,6 @@ extension HealthKitFHIRConverter {
             let value = quantitySample.quantity.doubleValue(for: .percent()) * 100
             observation.value = .quantity(try fhirQuantity(
                 value: value,
-                display: "%",
                 contract: quantityContract
             ))
         case .bloodPressure:
@@ -701,13 +724,12 @@ extension HealthKitFHIRConverter {
 
     private static func fhirQuantity(
         value: Double,
-        display: String,
-        contract: HealthKitFHIRQuantityContract
+        contract: GroveFHIRQuantityContract
     ) throws -> Quantity {
         Quantity(
             code: contract.code.asFHIRStringPrimitive(),
             system: FHIRPrimitive(FHIRURI(stringLiteral: contract.system)),
-            unit: display.asFHIRStringPrimitive(),
+            unit: contract.unit.asFHIRStringPrimitive(),
             value: try HealthKitFHIRMobileCanonicalization.scalarDecimal(value)
         )
     }
@@ -735,7 +757,6 @@ extension HealthKitFHIRConverter {
                 )]),
                 value: .quantity(try fhirQuantity(
                     value: sample.quantity.doubleValue(for: .millimeterOfMercury()),
-                    display: "mmHg",
                     contract: component.quantity
                 ))
             )

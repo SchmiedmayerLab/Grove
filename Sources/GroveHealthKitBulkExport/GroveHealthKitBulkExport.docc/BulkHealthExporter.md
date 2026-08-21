@@ -55,17 +55,10 @@ struct FirebaseUploader: BulkHealthExporter.BatchProcessor {
             guard let sample = sample as? HKSample else {
                 throw GroveHealthKitFHIRError.invalidValue
             }
-            let now = Date.now
             let context = HealthKitFHIRConversionContext(
                 subject: subject,
-                converter: HealthKitFHIRApplication(
-                    name: "Example Study",
-                    bundleIdentifier: "org.grovealliance.example-study",
-                    version: "0.2.0"
-                ),
-                graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-                issuedAt: now,
-                recordedAt: now
+                converter: .main,
+                graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph"
             )
             let document = db.collection("healthData").document(sample.uuid.uuidString) 
             try batch.setData(from: converter.convert(sample, context: context).bundle, for: document)
@@ -110,17 +103,10 @@ struct FHIREncodedJSONExporter: BatchProcessor {
     let subject: Reference
 
     func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) throws -> URL {
-        let now = Date.now
         let context = HealthKitFHIRConversionContext(
             subject: subject,
-            converter: HealthKitFHIRApplication(
-                name: "Example Study",
-                bundleIdentifier: "org.grovealliance.example-study",
-                version: "0.2.0"
-            ),
-            graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-            issuedAt: now,
-            recordedAt: now
+            converter: .main,
+            graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph"
         )
         let healthKitSamples = try samples.map { sample -> HKSample in
             guard let sample = sample as? HKSample else {

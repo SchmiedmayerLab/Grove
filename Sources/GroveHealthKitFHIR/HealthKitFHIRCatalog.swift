@@ -27,44 +27,25 @@ public struct HealthKitFHIRMeasurementContract: Sendable {
 }
 
 
-struct HealthKitFHIRCodingContract: Sendable {
-    let system: String
-    let code: String
-}
-
-
-struct HealthKitFHIRQuantityContract: Sendable {
-    let system: String
-    let code: String
-}
-
-
-struct HealthKitFHIRComponentContract: Sendable {
-    let id: String
-    let system: String
-    let code: String
-    let quantity: HealthKitFHIRQuantityContract
-}
-
-
 struct HealthKitFHIRObservationContract: Sendable {
     static let bodyMassIndex = HealthKitFHIRObservationContract(
         measurement: HealthKitFHIRMeasurementContract(
             id: "body-mass-index",
             profiles: GroveFHIRHealthKitCatalog.bodyMassIndexProfiles
         ),
-        code: HealthKitFHIRCodingContract(system: "http://loinc.org", code: "39156-5"),
-        quantity: HealthKitFHIRQuantityContract(
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "39156-5"),
+        quantity: GroveFHIRQuantityContract(
             system: "http://unitsofmeasure.org",
-            code: "kg/m2"
+            code: "kg/m2",
+            unit: "kg/m2"
         ),
         effective: .dateTime
     )
 
     let measurement: HealthKitFHIRMeasurementContract
-    let code: HealthKitFHIRCodingContract
-    let quantity: HealthKitFHIRQuantityContract?
-    let components: [HealthKitFHIRComponentContract]
+    let code: GroveFHIRCodingContract
+    let quantity: GroveFHIRQuantityContract?
+    let components: [GroveFHIRComponentContract]
     let resultCodeSystem: String?
     let effective: GroveFHIRMeasurementEffective
 
@@ -79,30 +60,18 @@ struct HealthKitFHIRObservationContract: Sendable {
                 adapter: GroveFHIRProfile.healthkitObservation
             )
         )
-        self.code = HealthKitFHIRCodingContract(system: shared.code.system, code: shared.code.code)
-        self.quantity = shared.quantity.map {
-            HealthKitFHIRQuantityContract(system: $0.system, code: $0.code)
-        }
-        self.components = shared.components.map {
-            HealthKitFHIRComponentContract(
-                id: $0.id,
-                system: $0.system,
-                code: $0.code,
-                quantity: HealthKitFHIRQuantityContract(
-                    system: $0.quantity.system,
-                    code: $0.quantity.code
-                )
-            )
-        }
+        self.code = shared.code
+        self.quantity = shared.quantity
+        self.components = shared.components
         self.resultCodeSystem = shared.resultCodeSystem
         self.effective = shared.effective
     }
 
     private init(
         measurement: HealthKitFHIRMeasurementContract,
-        code: HealthKitFHIRCodingContract,
-        quantity: HealthKitFHIRQuantityContract?,
-        components: [HealthKitFHIRComponentContract] = [],
+        code: GroveFHIRCodingContract,
+        quantity: GroveFHIRQuantityContract?,
+        components: [GroveFHIRComponentContract] = [],
         resultCodeSystem: String? = nil,
         effective: GroveFHIRMeasurementEffective
     ) {
@@ -171,25 +140,25 @@ public enum HealthKitFHIRCatalog {
     private static func quantityBinding(for identifier: String) -> HealthKitFHIRBinding? {
         switch HKQuantityTypeIdentifier(rawValue: identifier) {
         case .activeEnergyBurned:
-            return .quantity(.activeEnergy, unit: .kilocalorie(), display: "kcal")
+            return .quantity(.activeEnergy, unit: .kilocalorie())
         case .basalBodyTemperature:
-            return .quantity(.basalBodyTemperature, unit: .degreeCelsius(), display: "Cel")
+            return .quantity(.basalBodyTemperature, unit: .degreeCelsius())
         case .bodyMass:
-            return .quantity(.bodyWeight, unit: .gramUnit(with: .kilo), display: "kg")
+            return .quantity(.bodyWeight, unit: .gramUnit(with: .kilo))
         case .height:
-            return .quantity(.bodyHeight, unit: .meterUnit(with: .centi), display: "cm")
+            return .quantity(.bodyHeight, unit: .meterUnit(with: .centi))
         case .bodyMassIndex:
-            return .quantity(.bodyMassIndex, unit: .count(), display: "kg/m2")
+            return .quantity(.bodyMassIndex, unit: .count())
         case .bodyTemperature:
-            return .quantity(.bodyTemperature, unit: .degreeCelsius(), display: "Cel")
+            return .quantity(.bodyTemperature, unit: .degreeCelsius())
         case .respiratoryRate:
-            return .quantity(.respiratoryRate, unit: .count().unitDivided(by: .minute()), display: "breaths/minute")
+            return .quantity(.respiratoryRate, unit: .count().unitDivided(by: .minute()))
         case .oxygenSaturation:
             return .percent(.oxygenSaturation)
         case .heartRate:
-            return .quantity(.heartRate, unit: .count().unitDivided(by: .minute()), display: "beats/minute")
+            return .quantity(.heartRate, unit: .count().unitDivided(by: .minute()))
         case .stepCount:
-            return .quantity(.stepCount, unit: .count(), display: "steps")
+            return .quantity(.stepCount, unit: .count())
         case .distanceWalkingRunning,
              .distanceCycling,
              .distanceSwimming,
@@ -199,7 +168,7 @@ public enum HealthKitFHIRCatalog {
              .distancePaddleSports,
              .distanceRowing,
              .distanceSkatingSports:
-            return .quantity(.distance, unit: .meter(), display: "m")
+            return .quantity(.distance, unit: .meter())
         default:
             return nil
         }
@@ -209,14 +178,14 @@ public enum HealthKitFHIRCatalog {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 enum HealthKitFHIRBinding: Sendable {
-    case quantity(HealthKitFHIRObservationContract, unit: HKUnit, display: String)
+    case quantity(HealthKitFHIRObservationContract, unit: HKUnit)
     case percent(HealthKitFHIRObservationContract)
     case bloodPressure
     case sleepStage
 
     var contract: HealthKitFHIRObservationContract {
         switch self {
-        case .quantity(let contract, _, _), .percent(let contract):
+        case .quantity(let contract, _), .percent(let contract):
             contract
         case .bloodPressure:
             HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.bloodPressure)

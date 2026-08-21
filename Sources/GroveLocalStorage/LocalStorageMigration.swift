@@ -74,7 +74,7 @@ extension LocalStorage {
                 fileManager: fileManager
             )
             if outcome == .relocated {
-                LegacyIdentifierReport.encountered(LegacyStorage.localStorageDirectory, in: "GroveLocalStorage", .duringMigration)
+                LegacyIdentifierReport.encountered(LegacyStorage.localStorageDirectory, in: "GroveLocalStorage")
             }
             return true
         } catch {
@@ -96,7 +96,7 @@ extension LocalStorage {
                 in: directory,
                 fileManager: fileManager
             ) { legacyPrefix in
-                LegacyIdentifierReport.encountered(legacyPrefix, in: "GroveLocalStorage", .duringMigration)
+                LegacyIdentifierReport.encountered(legacyPrefix, in: "GroveLocalStorage")
             }
         } catch {
             logger.error("Unable to rename a LocalStorage entry: \(error)")

@@ -36,7 +36,7 @@ representation.
 > Tip: After producing an `HKSample`, pass it to the profile-aware
     [`HealthKitFHIRConverter`](../../GroveHealthKitFHIR/GroveHealthKitFHIR.docc/GroveHealthKitFHIR.md).
     It returns a complete HL7 FHIR R4 collection graph with Observation, Device, and Provenance
-    resources when the sample has a published v0.2 contract.
+    resources when the sample has a published conversion contract.
 
 ## Topics
 

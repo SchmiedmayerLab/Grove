@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-@testable @_spi(Testing) import GroveFHIR
+@testable import GroveFHIR
 import ModelsR4
 import Observation
 import Testing
@@ -96,7 +96,7 @@ struct FHIRStoreObservationChangesTests {
                 observationsExpectation()
             }
             
-            store.removeResource(withId: resource.id.fhirResourceId)
+            store.removeResource(withId: resource.id)
             
             #expect(store.procedures.isEmpty)
             #expect(store.observations.isEmpty)

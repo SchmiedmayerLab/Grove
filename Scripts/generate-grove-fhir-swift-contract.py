@@ -72,12 +72,21 @@ def generate(catalog_directory: Path) -> str:
     if len(versions) != 1:
         raise ValueError("package, measurement, and profile-claim catalogs have different versions")
 
+    # Canonical URL -> generated GroveFHIRProfile member, so rows and claims reference the
+    # constants this file already defines instead of repeating the literal.
+    profile_members = {
+        f"{package['canonical']}/StructureDefinition/{profile}": f"GroveFHIRProfile.{swift_name(profile)}"
+        for package in package_graph["packages"]
+        for profile in package["profiles"]
+    }
+
+    def profile_reference(canonical: str) -> str:
+        return profile_members.get(canonical, swift_string(canonical))
+
     lines = [HEADER]
     lines.extend([
-        "/// Version of the grove-fhir package closure used to generate these constants.",
+        "/// Canonical root of the grove-fhir package closure used to generate these constants.",
         "public enum GroveFHIRContractVersion {",
-        f"    public static let fhir = {swift_string(package_graph['fhirVersion'])}",
-        f"    public static let package = {swift_string(package_graph['version'])}",
         f"    public static let canonicalRoot = {swift_string(package_graph['canonicalRoot'])}",
         "}",
         "",
@@ -97,15 +106,6 @@ def generate(catalog_directory: Path) -> str:
         lines.pop()
     lines.extend(["}", "", ""])
 
-    status_values = measurement_catalog["statusVocabulary"]
-    lines.extend([
-        "/// Producer coverage states defined by the v0.2 measurement catalog.",
-        "public enum GroveFHIRAdapterCoverage: String, CaseIterable, Sendable {",
-    ])
-    for status in status_values:
-        lines.append(f"    case {swift_name(status)} = {swift_string(status)}")
-    lines.extend(["}", "", ""])
-
     lines.extend([
         "/// Effective datatype fixed by a shared mobile measurement profile.",
         "public enum GroveFHIRMeasurementEffective: String, Sendable {",
@@ -118,6 +118,13 @@ def generate(catalog_directory: Path) -> str:
         "public struct GroveFHIRQuantityContract: Hashable, Sendable {",
         "    public let system: String",
         "    public let code: String",
+        "    public let unit: String",
+        "",
+        "    public init(system: String, code: String, unit: String) {",
+        "        self.system = system",
+        "        self.code = code",
+        "        self.unit = unit",
+        "    }",
         "}",
         "",
         "",
@@ -125,6 +132,11 @@ def generate(catalog_directory: Path) -> str:
         "public struct GroveFHIRCodingContract: Hashable, Sendable {",
         "    public let system: String",
         "    public let code: String",
+        "",
+        "    public init(system: String, code: String) {",
+        "        self.system = system",
+        "        self.code = code",
+        "    }",
         "}",
         "",
         "",
@@ -141,15 +153,12 @@ def generate(catalog_directory: Path) -> str:
         "public struct GroveFHIRMeasurementContract: Sendable {",
         "    public let id: String",
         "    public let profile: FHIRPrimitive<Canonical>",
-        "    public let standardProfile: FHIRPrimitive<Canonical>?",
         "    public let code: GroveFHIRCodingContract",
         "    public let quantity: GroveFHIRQuantityContract?",
         "    public let components: [GroveFHIRComponentContract]",
-        "    public let valueSet: String?",
         "    public let resultCodeSystem: String?",
         "    public let allowedValues: [String]",
         "    public let effective: GroveFHIRMeasurementEffective",
-        "    public let coverage: [String: GroveFHIRAdapterCoverage]",
         "}",
         "",
         "",
@@ -163,10 +172,6 @@ def generate(catalog_directory: Path) -> str:
         )
         lines.append(f"        id: {swift_string(measurement['id'])},")
         lines.append(f"        profile: GroveFHIRProfile.{swift_name(measurement['profile'])},")
-        parent = measurement.get("standardProfile", measurement.get("standardParent"))
-        lines.append(
-            f"        standardProfile: {swift_string(parent) if parent else 'nil'},"
-        )
         lines.append(
             "        code: GroveFHIRCodingContract("
             f"system: {swift_string(measurement['code']['system'])}, "
@@ -177,7 +182,8 @@ def generate(catalog_directory: Path) -> str:
             lines.append(
                 "        quantity: GroveFHIRQuantityContract("
                 f"system: {swift_string(quantity['system'])}, "
-                f"code: {swift_string(quantity['code'])}),"
+                f"code: {swift_string(quantity['code'])}, "
+                f"unit: {swift_string(quantity['unit'])}),"
             )
         else:
             lines.append("        quantity: nil,")
@@ -192,13 +198,12 @@ def generate(catalog_directory: Path) -> str:
                     f"code: {swift_string(component['code'])}, "
                     "quantity: GroveFHIRQuantityContract("
                     f"system: {swift_string(component['quantity']['system'])}, "
-                    f"code: {swift_string(component['quantity']['code'])})),"
+                    f"code: {swift_string(component['quantity']['code'])}, "
+                    f"unit: {swift_string(component['quantity']['unit'])})),"
                 )
             lines.append("        ],")
         else:
             lines.append("        components: [],")
-        value_set = measurement.get("valueSet")
-        lines.append(f"        valueSet: {swift_string(value_set) if value_set else 'nil'},")
         result_code_system = measurement.get("resultCodeSystem")
         lines.append(
             f"        resultCodeSystem: {swift_string(result_code_system) if result_code_system else 'nil'},"
@@ -210,11 +215,8 @@ def generate(catalog_directory: Path) -> str:
         else:
             lines.append("        allowedValues: [],")
         effective = "dateTime" if measurement["effective"] == "dateTime" else "period"
-        lines.append(f"        effective: .{effective},")
-        lines.append("        coverage: [")
-        for adapter, status in sorted(measurement["coverage"].items()):
-            lines.append(f"            {swift_string(adapter)}: .{swift_name(status)},")
-        lines.extend(["        ]", "    )", ""])
+        lines.append(f"        effective: .{effective}")
+        lines.extend(["    )", ""])
     lines.append("    public static let all: [GroveFHIRMeasurementContract] = [")
     for measurement in measurements:
         lines.append(f"        {swift_name(measurement['id'])},")
@@ -248,7 +250,6 @@ def generate(catalog_directory: Path) -> str:
         "public enum GroveFHIRHealthKitCatalog {",
     ])
     source_type_coding = healthkit_catalog["sourceTypeCoding"]
-    swift_producer = healthkit_catalog["producerCanonicalization"]
     ecg_claim = healthkit_catalog["sensorAdapterClaims"]["electrocardiogram"]
     correlated_symptom = ecg_claim["correlatedSymptomEvidence"]
     if len(ecg_claim["profiles"]) != profile_claims["observationAdapterClaim"]["cardinality"]:
@@ -267,31 +268,23 @@ def generate(catalog_directory: Path) -> str:
         "    public static let sourceTypeCodeSystem: FHIRPrimitive<FHIRURI> = "
         f"{swift_string(source_type_coding['system'])}",
         "    public static let conversionProvenanceProfile: FHIRPrimitive<Canonical> = "
-        f"{swift_string(healthkit_catalog['conversionProvenanceProfile'])}",
+        f"{profile_reference(healthkit_catalog['conversionProvenanceProfile'])}",
         "    public static let electrocardiogramSourceTypeIdentifier = "
         f"{swift_string(ecg_claim['sourceTypeIdentifier'])}",
         "    public static let electrocardiogramProfiles: [FHIRPrimitive<Canonical>] = [",
     ])
     for profile in ecg_claim["profiles"]:
-        lines.append(f"        {swift_string(profile)},")
+        lines.append(f"        {profile_reference(profile)},")
     lines.extend([
         "    ]",
         "    public static let bodyMassIndexProfiles: [FHIRPrimitive<Canonical>] = [",
     ])
     for profile in body_mass_index_profiles:
-        lines.append(f"        {swift_string(profile)},")
+        lines.append(f"        {profile_reference(profile)},")
     lines.extend([
         "    ]",
         "    public static let electrocardiogramCorrelatedSymptomExtension: FHIRPrimitive<FHIRURI> = "
         f"{swift_string(correlated_symptom['url'])}",
-        "    public static let mobileEffectivePrecision = "
-        f"{swift_string(swift_producer['effectivePrecision'])}",
-        "    public static let mobileEffectiveRounding = "
-        f"{swift_string(swift_producer['effectiveRounding'])}",
-        "    public static let scalarQuantityDecimal = "
-        f"{swift_string(swift_producer['scalarQuantityDecimal'])}",
-        "    public static let sensorAndECGTiming = "
-        f"{swift_string(swift_producer['sensorAndEcgTiming'])}",
         "",
         "    public static let rows: [GroveFHIRHealthKitCatalogRow] = [",
     ])
@@ -320,7 +313,7 @@ def generate(catalog_directory: Path) -> str:
             lines.append("            measurementIDs: [],")
         profiles = row["profiles"]
         if profiles:
-            rendered_profiles = ", ".join(swift_string(value) for value in profiles)
+            rendered_profiles = ", ".join(profile_reference(value) for value in profiles)
             lines.append(f"            profiles: [{rendered_profiles}],")
         else:
             lines.append("            profiles: [],")
@@ -339,27 +332,18 @@ def generate(catalog_directory: Path) -> str:
         "/// Exact direct profile-claim rules generated from profile-claims.json.",
         "public enum GroveFHIRProfileClaims {",
         f"    public static let observationAdapterCardinality = {profile_claims['observationAdapterClaim']['cardinality']}",
-        "    public static let inheritedProfilesAreNotDeclared = "
-        f"{str(profile_claims['observationAdapterClaim']['inheritedProfilesAreNotDeclared']).lower()}",
         "",
         "    public static let observationAdapterProfiles: [FHIRPrimitive<Canonical>] = [",
     ])
     for profile in profile_claims["observationAdapterClaim"]["adapterProfiles"]:
-        lines.append(f"        {swift_string(profile)},")
-    lines.extend([
-        "    ]",
-        "",
-        "    public static let sharedSensorProfiles: [FHIRPrimitive<Canonical>] = [",
-    ])
-    for profile in profile_claims["observationAdapterClaim"]["sharedSensorProfiles"]:
-        lines.append(f"        {swift_string(profile)},")
+        lines.append(f"        {profile_reference(profile)},")
     lines.extend([
         "    ]",
         "",
         "    public static let forbiddenExplicitProfiles: [FHIRPrimitive<Canonical>] = [",
     ])
     for profile in profile_claims["observationAdapterClaim"]["forbiddenExplicitProfiles"]:
-        lines.append(f"        {swift_string(profile)},")
+        lines.append(f"        {profile_reference(profile)},")
     lines.extend([
         "    ]",
         "",
@@ -375,9 +359,7 @@ def generate(catalog_directory: Path) -> str:
         "",
         "/// Frozen exchange-graph values generated from exchange-identity.json.",
         "public enum GroveFHIRExchangeContract {",
-        f"    public static let bundleProfile: FHIRPrimitive<Canonical> = {swift_string(identity['profile'])}",
         f"    public static let entryIdentifierExtension: FHIRPrimitive<FHIRURI> = {swift_string(identity['entryIdentifierExtension'])}",
-        f"    public static let fullURLAlgorithm = {swift_string(identity['fullUrlAlgorithm']['name'])}",
         f"    public static let fullURLNamespace = {swift_string(identity['fullUrlAlgorithm']['namespace'])}",
         "}",
         "",

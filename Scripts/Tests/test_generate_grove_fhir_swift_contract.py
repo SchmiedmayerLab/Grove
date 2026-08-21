@@ -145,7 +145,11 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         self.assertIn("HKQuantityTypeIdentifierBodyMassIndex", generated)
         self.assertIn("public static let bodyMassIndexProfiles", generated)
         self.assertIn("public static let electrocardiogramProfiles", generated)
-        self.assertIn("public static let mobileEffectiveRounding = \"half-even\"", generated)
+        self.assertIn("public static let electrocardiogramCorrelatedSymptomExtension", generated)
+        # Generated rows reference the profile constants this file defines rather than literals.
+        self.assertIn("GroveFHIRProfile.healthkitEcgObservation],", generated)
+        # A quantity contract carries the catalog's canonical unit display.
+        self.assertIn("unit:", generated)
 
     def test_rejects_unsorted_healthkit_inventory(self):
         catalogs = self.catalogs()

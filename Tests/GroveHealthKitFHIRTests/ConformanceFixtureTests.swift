@@ -122,7 +122,7 @@ struct ConformanceFixtureTests {
         }
 
         func normalizedQuantity(_ fixture: MobileSemanticVectorFixture) throws -> Double {
-            guard case .quantity(let value, _, _, _) = fixture.result else {
+            guard case .quantity(let value) = fixture.result else {
                 throw FixtureError.unexpectedResult(fixture.id)
             }
             return value
@@ -139,8 +139,7 @@ struct ConformanceFixtureTests {
             ),
             graphIdentifierSystem: "https://grovealliance.org/fhir/testing/identifiers/conformance-graph",
             converterWasGateway: true,
-            issuedAt: contextTime,
-            recordedAt: contextTime
+            conversionInstant: contextTime
         )
         let converter = HealthKitFHIRConverter()
         var fixtures: [String: ModelsR4.Bundle] = [:]
@@ -223,7 +222,7 @@ struct ConformanceFixtureTests {
         try addQuantityVector("step-count", type: .stepCount, unit: .count())
 
         let sleepStage = try vector("sleep-stage")
-        guard case .codeableConcept(_, let sleepStageCode) = sleepStage.result,
+        guard case .codeableConcept(let sleepStageCode) = sleepStage.result,
               sleepStageCode == "light" else {
             throw FixtureError.unexpectedResult(sleepStage.id)
         }
@@ -273,8 +272,7 @@ struct ConformanceFixtureTests {
             subject: Self.subject,
             converter: context.converter,
             graphIdentifierSystem: context.graphIdentifierSystem,
-            issuedAt: contextTime,
-            recordedAt: contextTime
+            conversionInstant: contextTime
         )
         let ecgSource = HealthKitECGSourceEvidence(
             sourceTypeIdentifier: GroveFHIRHealthKitCatalog.electrocardiogramSourceTypeIdentifier,
