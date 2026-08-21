@@ -68,6 +68,7 @@ def generate(catalog_directory: Path) -> str:
         measurement_catalog["version"],
         profile_claims["version"],
         healthkit_catalog["version"],
+        identity["version"],
     }
     if len(versions) != 1:
         raise ValueError("package, measurement, and profile-claim catalogs have different versions")
