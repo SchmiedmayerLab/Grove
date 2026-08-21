@@ -12,11 +12,14 @@ import SwiftUI
 
 
 struct ChatTestView: View {
-    @State private var chat: Chat = ProcessInfo.processInfo.arguments.contains("--emptyChat") ? [] : [
-        ChatEntity(role: .hidden(type: .unknown), text: "Hidden Message!"),
-        ChatEntity(role: .user, content: .images([.image(ChatTestView.generatedImage())], text: "What do you make of this?")),
-        ChatEntity(role: .assistant(.response), text: "**Assistant** Message!")
-    ]
+    /// A user turn an app primes the model with, which the participant is not meant to read.
+    private static let internalInput = ChatEntity(role: .user, text: "Follow the instructions to begin.")
+    /// Whether this launch seeds ``internalInput`` and asks the chat to keep it out of the conversation.
+    private static var hidesInternalInput: Bool {
+        ProcessInfo.processInfo.arguments.contains("--hideInternalInput")
+    }
+
+    @State private var chat: Chat = ChatTestView.initialChat
     @State private var muted = true
     @State private var isGenerating = false
     @State private var lastError: (any Error)?
@@ -30,6 +33,7 @@ struct ChatTestView: View {
             messagePendingAnimation: .automatic
         )
             .chatMessageActions(.all)
+            .chatHiddenMessages(Self.hidesInternalInput ? [Self.internalInput.id] : [])
             .chatEmptyState(
                 "Ask Me Anything",
                 description: "Try “think”, “weather”, “draw”, “fib”, or “fail”."
@@ -180,6 +184,21 @@ struct ChatTestView: View {
     }
 
     /// Stands in for an image the assistant produced, without shipping an asset with the test app.
+    /// What the conversation starts with: the fixture the rendering tests read, plus — when a test asks
+    /// for it — a user turn the app primed the model with rather than one the participant wrote.
+    private static var initialChat: Chat {
+        guard !ProcessInfo.processInfo.arguments.contains("--emptyChat") else {
+            return []
+        }
+        var chat: Chat = [ChatEntity(role: .hidden(type: .unknown), text: "Hidden Message!")]
+        if hidesInternalInput {
+            chat.append(internalInput)
+        }
+        chat.append(ChatEntity(role: .user, content: .images([.image(generatedImage())], text: "What do you make of this?")))
+        chat.append(ChatEntity(role: .assistant(.response), text: "**Assistant** Message!"))
+        return chat
+    }
+
     private static func generatedImage() -> PlatformImage {
         UIGraphicsImageRenderer(size: CGSize(width: 1024, height: 640)).image { context in
             let gradient = CGGradient(

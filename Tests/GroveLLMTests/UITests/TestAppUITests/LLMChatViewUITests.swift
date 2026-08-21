@@ -85,8 +85,40 @@ final class LLMChatViewUITests: TestAppTestCase {
         XCTAssertFalse(app.buttons["Take Photo"].exists, "The camera was not among the configured kinds.")
     }
 
-    private func openMockChat() throws {
+    /// Asserts the whole answer under one label on purpose: a completion racing the delta consumer once
+    /// split a streamed message in two, which a joined-labels assertion would have hidden.
+    func testTheStreamedAnswerIsShown() throws {
+        try openMockChat()
+        try send("Hello")
+
+        XCTAssert(
+            app.staticTexts["Mock Message from GroveLLM!"].waitForExistence(timeout: 20),
+            "The streamed answer should be rendered as one message, reachable through accessibility."
+        )
+    }
+
+    /// The instant stream lands the answer within the conversation's first frames — the timing under which
+    /// a lazily materialized first row once missed its appear events and rendered as nothing.
+    func testAnOpeningAnswerToAHiddenInputIsShown() throws {
+        try openMockChat(extraArguments: ["--hiddenStarter", "--instantMockStream"])
+
+        XCTAssert(
+            app.staticTexts["Mock Message from GroveLLM!"].waitForExistence(timeout: 20),
+            "The answer to the hidden opening input should be the conversation's first visible message."
+        )
+        XCTAssertFalse(
+            app.staticTexts["Follow the instructions to begin."].exists,
+            "The internal opening input is not the participant's message."
+        )
+    }
+
+    private func openMockChat(extraArguments: [String] = []) throws {
         launch(enableMockMode: true, showOnboarding: false, clearAPIKeysFromKeychain: false)
+        if !extraArguments.isEmpty {
+            app.terminate()
+            app.launchArguments += extraArguments
+            app.launch()
+        }
         let entry = app.collectionViews.buttons["LLMMock Chat"].firstMatch
         XCTAssert(entry.waitForExistence(timeout: 10), "The mock chat has to be reachable from the test app.")
         entry.tap()

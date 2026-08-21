@@ -39,10 +39,7 @@ struct ChoiceRow<AccessoryIfSelected: View>: View {
                 if isSelected {
                     accessoryIfSelected()
                 }
-                // Shape as well as colour, so the selection survives a colour-blind reading.
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
-                    .accessibilityHidden(true)
+                selectionMark
             }
             // The option is a row within its question's card rather than a row of the list, so it
             // carries the height and the tappable width the list would have given it. The padding
@@ -72,6 +69,19 @@ struct ChoiceRow<AccessoryIfSelected: View>: View {
                 Divider()
                     .allowsHitTesting(false)
             }
+        }
+    }
+
+    /// Shape as well as colour, so the selection survives a colour-blind reading.
+    @ViewBuilder private var selectionMark: some View {
+        let mark = Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+            .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+            .accessibilityHidden(true)
+        if #available(iOS 17, macOS 14, watchOS 10, *) {
+            // The mark is the whole confirmation an answer gets, so it is worth seeing arrive.
+            mark.contentTransition(.symbolEffect(.replace))
+        } else {
+            mark
         }
     }
 

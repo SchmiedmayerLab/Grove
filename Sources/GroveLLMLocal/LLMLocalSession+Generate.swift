@@ -208,7 +208,11 @@ extension LLMLocalSession {
         
         continuationObserver.continuation.finish()
         await MainActor.run {
-            self.context.markAssistantOutputCompleted()
+            // Only the writer of the context may close the message: when the consumer appends the
+            // deltas itself, completing here races it and splits the answer in two.
+            if self.schema.injectIntoContext {
+                self.context.markAssistantOutputCompleted()
+            }
             self.state = .ready
         }
     }

@@ -11,11 +11,14 @@ public import SwiftUI
 
 /// The colors the chat uses, derived from the app's accent color.
 ///
-/// The accent never appears at full saturation: it is folded into a gray, so that a chat picks up the app's
-/// identity without the conversation itself turning into a block of brand color.
+/// Controls carry the accent as the app set it. The conversation does not: a message's fill folds the accent
+/// into a gray, so a chat picks up the app's identity without turning into a block of brand color.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct ChatPalette {
     /// The accent used for the chat's controls — the send button, most visibly.
+    ///
+    /// Carried at full strength, unlike ``userBubble``: the send button is the one place a chat should look
+    /// like the app it lives in.
     let accent: Color
     /// The color that reads on top of ``accent``.
     let onAccent: Color
@@ -30,16 +33,15 @@ struct ChatPalette {
     }
 
     init(accent: Color, colorScheme: ColorScheme) {
+        self.accent = accent
+        // White on a filled accent, the way a tinted control reads everywhere else in the system.
+        self.onAccent = .white
         switch colorScheme {
         case .dark:
-            self.accent = Color(white: 0.94).mix(with: accent, by: 0.28)
-            self.onAccent = Color(white: 0.08)
             // A darker bubble swallows the tint, so dark mode takes more of the accent than light mode to land
             // at the same perceived amount of colour.
             self.userBubble = Color(white: 0.24).mix(with: accent, by: 0.2)
         default:
-            self.accent = Color(white: 0.14).mix(with: accent, by: 0.32)
-            self.onAccent = Color(white: 0.98)
             self.userBubble = Color(white: 0.92).mix(with: accent, by: 0.10)
         }
     }
