@@ -379,10 +379,10 @@ extension GroveQuestionnaireFHIRPairRules {
     }
 
     private static func validExpressionName(_ name: String) -> Bool {
-        guard let expression = try? Regex(#"^[A-Za-z][A-Za-z0-9_]*$"#) else {
+        guard let first = name.first, first.isASCII, first.isLetter else {
             return false
         }
-        return name.wholeMatch(of: expression) != nil
+        return name.dropFirst().allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "_") }
     }
 
     private static func validateTargetConstraintShape(
