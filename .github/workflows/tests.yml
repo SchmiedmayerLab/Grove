@@ -109,9 +109,11 @@ jobs:
           if [ -f "$BASE_WORKTREE/Tests/UITestProjects.toml" ]; then
             cp "$BASE_WORKTREE/Tests/UITestProjects.toml" "$RUNNER_TEMP/base-ui-test-projects.toml"
           fi
+          # The head graph resolves every source change to the packages that consume it, so it is
+          # produced for all runs, not only when the manifest itself changed.
+          swift package dump-package > "$RUNNER_TEMP/head-package.json"
           if [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
             swift package --package-path "$BASE_WORKTREE" dump-package > "$RUNNER_TEMP/base-package.json"
-            swift package dump-package > "$RUNNER_TEMP/head-package.json"
           fi
       - name: Test affected-package selection
         env:
@@ -120,10 +122,9 @@ jobs:
       - name: Compute test matrix
         id: compute
         run: |
-          ARGS=(changed.txt)
+          ARGS=(changed.txt --head-package-dump "$RUNNER_TEMP/head-package.json")
           if [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
             ARGS+=(--base-package-dump "$RUNNER_TEMP/base-package.json")
-            ARGS+=(--head-package-dump "$RUNNER_TEMP/head-package.json")
           fi
           if [ "${{ steps.changes.outputs.packages_changed }}" = "true" ] || [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
             ARGS+=(--base-packages "$RUNNER_TEMP/base-packages.toml")

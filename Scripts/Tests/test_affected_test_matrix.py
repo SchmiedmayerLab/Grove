@@ -189,6 +189,34 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
                 extra_arguments=("--development-scope", "healthkit", "--full-readiness"),
             )
 
+    def test_shared_target_schedules_its_consumers_and_no_more(self):
+        """A target every package does not consume must not schedule every package."""
+        dump = {
+            "targets": [
+                {"name": "Vault", "dependencies": []},
+                {"name": "GroveViews", "dependencies": [{"target": ["Vault"]}]},
+                {"name": "GroveChat", "dependencies": [{"target": ["GroveViews"]}]},
+                {"name": "GroveBluetooth", "dependencies": []},
+            ]
+        }
+        packages = MODULE.packages_for_target("Vault", dump)
+        self.assertIn("GroveViews", packages)
+        self.assertIn("GroveChat", packages)
+        self.assertNotIn("GroveBluetooth", packages)
+
+    def test_unresolvable_consumer_refuses_to_answer(self):
+        """An unmapped consumer means the answer would under-schedule, so callers stay broad."""
+        dump = {
+            "targets": [
+                {"name": "Vault", "dependencies": []},
+                {"name": "SomeUnmappedTarget", "dependencies": [{"target": ["Vault"]}]},
+            ]
+        }
+        self.assertIsNone(MODULE.packages_for_target("Vault", dump))
+
+    def test_target_absent_from_the_graph_refuses_to_answer(self):
+        self.assertIsNone(MODULE.packages_for_target("NotInGraph", {"targets": []}))
+
     def test_healthkit_ready_pr_runs_every_package_within_the_platform_limits(self):
         result = run_selector(
             "Sources/GroveHealthKitFHIR/HealthKitFHIRConverter.swift",

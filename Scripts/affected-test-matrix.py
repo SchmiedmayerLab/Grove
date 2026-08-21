@@ -75,12 +75,9 @@ def directory_to_package(packages):
 DIR2PKG = directory_to_package(PKGS)
 
 # Any change to these means "run everything" (shared test infrastructure, CI, or lint configuration).
-# The legacy-identifier vault is in here because it belongs to no single package: every string in it
-# names data already on a user's device, and fourteen targets read it.
 GLOBAL_PREFIXES = (
     "Package@", "Package.resolved",
     ".swiftpm/",
-    "Sources/GroveLegacyIdentifiers/",
 )
 
 # Declares one UI-test project per top-level table, keyed by logical package, so a change here can
@@ -202,6 +199,41 @@ def target_dependencies(target):
         if value:
             dependencies.add(value[0])
     return dependencies
+
+
+
+def packages_for_target(target_name, head_dump):
+    """The changed target's package plus every package that consumes it, transitively.
+
+    Source changes are resolved through the manifest graph rather than through the directory
+    name alone, so a shared target schedules exactly its consumers -- no more, no less. Returns
+    None when the graph cannot answer completely, so the caller stays conservative instead of
+    silently under-scheduling.
+    """
+    targets = {target["name"]: target for target in head_dump.get("targets", [])}
+    if target_name not in targets:
+        return None
+    reverse = {}
+    for name, target in targets.items():
+        for dependency in target_dependencies(target):
+            reverse.setdefault(dependency, set()).add(name)
+    reached, pending = {target_name}, [target_name]
+    while pending:
+        current = pending.pop()
+        for dependent in reverse.get(current, set()):
+            if dependent not in reached:
+                reached.add(dependent)
+                pending.append(dependent)
+    # Every *consumer* must map to a package; an unmapped one would mean an incomplete answer.
+    # The changed target itself may legitimately belong to no package (a shared vault target),
+    # which is precisely the case this resolution exists to handle.
+    consumers = reached - {target_name}
+    if any(name not in DIR2PKG for name in consumers):
+        return None
+    packages = {DIR2PKG[name] for name in consumers}
+    if target_name in DIR2PKG:
+        packages.add(DIR2PKG[target_name])
+    return packages or None
 
 
 def external_package_dependencies(target):
@@ -366,6 +398,8 @@ def main():
     affected = set(DEVELOPMENT_SCOPES.get(args.development_scope, set())) & set(PKGS)
     fhir_components = {args.development_scope} if development_scoped else set()
     shared_fhir_change = False
+    # The manifest graph resolves source changes to the packages that actually consume them.
+    head_dump = load_json(args.head_package_dump) if args.head_package_dump else None
     for path in [] if development_scoped else changed:
         if path in FHIR_VALIDATION_PATHS:
             affected.update(FHIR_PACKAGES & set(PKGS))
@@ -467,11 +501,21 @@ def main():
         if len(parts) >= 2 and parts[0] in ("Sources", "Tests"):
             if parts[0] == "Sources" and any(part.endswith(".docc") for part in parts):
                 continue
-            pkg = DIR2PKG.get(parts[1])
-            if pkg:
-                affected.add(pkg)
-                run_fhir_conformance |= pkg in FHIR_PACKAGES
-                fhir_components.update(fhir_components_for_packages({pkg}))
+            # Resolve through the manifest graph so a shared target schedules its consumers and
+            # nothing else. Without a graph, fall back to the directory's own package.
+            packages = packages_for_target(parts[1], head_dump) if head_dump else None
+            if packages is None:
+                owner = DIR2PKG.get(parts[1])
+                if owner is None:
+                    # A directory no package claims and no graph to place it: stay conservative.
+                    run_all = True
+                    run_fhir_conformance = True
+                    shared_fhir_change = True
+                    continue
+                packages = {owner}
+            affected.update(packages)
+            run_fhir_conformance |= bool(packages & FHIR_PACKAGES)
+            fhir_components.update(fhir_components_for_packages(packages))
         # files elsewhere (root docs, etc.) affect no package
 
     if run_fhir_conformance and not fhir_components:
