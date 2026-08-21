@@ -17,9 +17,9 @@ on:
   workflow_dispatch:
     inputs:
       grove_fhir_ref:
-        description: grove-fhir branch or commit containing the adapter-inclusive v0.2 stack.
+        description: grove-fhir branch or commit carrying the v0.2 adapter stack. Defaults to a pinned commit.
         type: string
-        default: feature/fhir-v020-adapters
+        default: 6001474255641193c25686ff404ef6cbcc2cc3b1
       full_readiness:
         description: Schedule every package and platform instead of only the ones the change touches.
         type: boolean
@@ -31,9 +31,9 @@ on:
         type: boolean
         default: false
       grove_fhir_ref:
-        description: grove-fhir branch or commit containing the adapter-inclusive v0.2 stack.
+        description: grove-fhir branch or commit carrying the v0.2 adapter stack. Defaults to a pinned commit.
         type: string
-        default: feature/fhir-v020-adapters
+        default: 6001474255641193c25686ff404ef6cbcc2cc3b1
       full_readiness:
         description: Schedule every package and platform instead of only the ones the change touches.
         type: boolean
@@ -237,12 +237,12 @@ jobs:
         with:
           repository: SchmiedmayerLab/grove-fhir
           path: .fhir/grove-fhir
-          ref: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || 'feature/fhir-v020-adapters' }}
+          ref: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || '6001474255641193c25686ff404ef6cbcc2cc3b1' }}
           persist-credentials: false
       - name: Record grove-fhir contract revision
         working-directory: .fhir/grove-fhir
         run: |
-          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || 'feature/fhir-v020-adapters' }}"
+          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || '6001474255641193c25686ff404ef6cbcc2cc3b1' }}"
           echo "grove-fhir SHA: $(git rev-parse HEAD)"
       - name: Restore built implementation guides
         id: guide-cache
@@ -289,7 +289,7 @@ jobs:
       - name: Validate resources emitted by Grove
         env:
           FHIR_COMPONENTS: ${{ needs.detect.outputs.fhir_components }}
-          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || 'feature/fhir-v020-adapters' }}
+          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || '6001474255641193c25686ff404ef6cbcc2cc3b1' }}
         run: |
           IFS=',' read -r -a COMPONENTS <<< "$FHIR_COMPONENTS"
           for component in "${COMPONENTS[@]}"; do
