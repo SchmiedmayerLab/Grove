@@ -55,8 +55,11 @@ class TestAppUITests: XCTestCase {
         app.launch()
 
         app.buttons["Mapping Completeness"].tap()
-        // The view renders the frozen catalog grouped by status; a known supported row proves
-        // the catalog loaded and the UI reflects it.
-        XCTAssertTrue(app.staticTexts["Step Count"].waitForExistence(timeout: 5))
+        // The catalog renders grouped by status, and the first group is the one the enum orders
+        // first. Only the visible rows of a 218-row List exist in the accessibility tree, so this
+        // asserts the first section rather than a row further down; the catalog's completeness is
+        // proven exhaustively by the unit-test matrix instead.
+        XCTAssertTrue(app.staticTexts["deferred"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Biological Sex"].waitForExistence(timeout: 5))
     }
 }
