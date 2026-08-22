@@ -236,6 +236,69 @@ struct HealthKitFHIRCategoryConversionTests {
         #expect(testCase.measurement.allowedValues.contains(testCase.sharedCode))
     }
 
+    @Test(
+        "Menstrual flow carries HealthKit's mandatory cycle-start metadata as a coded component",
+        arguments: [(true, "cycle-start", "Cycle start"), (false, "not-cycle-start", "Not cycle start")]
+    )
+    func menstrualCycleStart(cycleStart: Bool, code: String, display: String) throws {
+        let sample = categorySample(
+            .menstrualFlow,
+            value: HKCategoryValueVaginalBleeding.light.rawValue,
+            metadata: [HKMetadataKeyMenstrualCycleStart: cycleStart]
+        )
+        let observation = try converter.convert(sample, context: context).observation
+        let component = try #require(observation.component?.first)
+        let componentValue: CodeableConcept = try #require({
+            guard case .codeableConcept(let concept) = component.value else {
+                return nil
+            }
+            return concept
+        }())
+
+        #expect(observation.component?.count == 1)
+        #expect(component.code.coding?.count == 1)
+        #expect(
+            component.code.coding?.first?.system?.value?.url.absoluteString
+                == "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement"
+        )
+        #expect(component.code.coding?.first?.code?.value?.string == "menstrual-cycle-start")
+        #expect(
+            componentValue.coding?.first?.system?.value?.url.absoluteString
+                == "https://grovealliance.org/fhir/mobile/CodeSystem/grove-menstrual-cycle-start"
+        )
+        #expect(componentValue.coding?.first?.code?.value?.string == code)
+        #expect(componentValue.coding?.first?.display?.value?.string == display)
+    }
+
+    // HealthKit rejects a menstrual-flow sample without cycle-start metadata at construction, so the
+    // converter's own guard is reachable only below the sample surface.
+    @Test("Menstrual flow without HealthKit's mandatory cycle-start metadata fails closed")
+    func menstrualCycleStartIsRequired() throws {
+        let contract = HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.menstruationFlow)
+        let sampleType = HKCategoryTypeIdentifier.menstrualFlow.rawValue
+
+        #expect(throws: GroveHealthKitFHIRError.missingRequiredMetadata(
+            sampleType: sampleType,
+            key: HKMetadataKeyMenstrualCycleStart
+        )) {
+            try HealthKitFHIRConverter.menstrualCycleStartComponent(
+                metadata: [:],
+                sampleType: sampleType,
+                contract: contract
+            )
+        }
+        #expect(throws: GroveHealthKitFHIRError.unsupportedMetadataValue(
+            key: HKMetadataKeyMenstrualCycleStart,
+            value: "yes"
+        )) {
+            try HealthKitFHIRConverter.menstrualCycleStartComponent(
+                metadata: [HKMetadataKeyMenstrualCycleStart: "yes"],
+                sampleType: sampleType,
+                contract: contract
+            )
+        }
+    }
+
     @Test("Interval flags emit their one fixed result code")
     func fixedResultCodes() throws {
         let pregnancy = try converter.convert(

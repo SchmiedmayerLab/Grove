@@ -610,6 +610,7 @@ extension HealthKitFHIRConverter {
         try applyResult(to: &observation, sample: sample, binding: binding, contract: contract)
         try applyHeartRateMotionContext(to: &observation, sample: sample)
         try applyInsulinDeliveryReason(to: &observation, sample: sample)
+        try applyMenstrualCycleStart(to: &observation, sample: sample, contract: contract)
         applyObservationGraphContext(
             to: &observation,
             sample: sample,
@@ -1009,6 +1010,70 @@ extension HealthKitFHIRConverter {
             value: .codeableConcept(CodeableConcept(coding: [coding]))
         )
         observation.component = (observation.component ?? []) + [component]
+    }
+
+    private static func applyMenstrualCycleStart(
+        to observation: inout Observation,
+        sample: HKSample,
+        contract: HealthKitFHIRObservationContract
+    ) throws {
+        guard sample.sampleType.identifier == HKCategoryTypeIdentifier.menstrualFlow.rawValue else {
+            return
+        }
+        let component = try menstrualCycleStartComponent(
+            metadata: sample.metadata ?? [:],
+            sampleType: sample.sampleType.identifier,
+            contract: contract
+        )
+        observation.component = (observation.component ?? []) + [component]
+    }
+
+    /// HealthKit makes cycle-start metadata mandatory on every menstrual-flow sample, so its absence fails closed.
+    ///
+    /// HealthKit rejects a sample without the key at construction, so only this guard can prove the
+    /// converter never silently drops it.
+    static func menstrualCycleStartComponent(
+        metadata: [String: Any],
+        sampleType: String,
+        contract: HealthKitFHIRObservationContract
+    ) throws -> ObservationComponent {
+        guard let contractComponent = contract.components.first(where: { $0.id == "cycleStart" }),
+              let resultCodeSystem = contractComponent.resultCodeSystem else {
+            throw GroveHealthKitFHIRError.missingRequiredComponent(
+                sampleType: sampleType,
+                component: "cycleStart"
+            )
+        }
+        let cycleStart: Bool
+        switch metadata[HKMetadataKeyMenstrualCycleStart] {
+        case nil:
+            throw GroveHealthKitFHIRError.missingRequiredMetadata(
+                sampleType: sampleType,
+                key: HKMetadataKeyMenstrualCycleStart
+            )
+        case let value as Bool:
+            cycleStart = value
+        case let other?:
+            throw GroveHealthKitFHIRError.unsupportedMetadataValue(
+                key: HKMetadataKeyMenstrualCycleStart,
+                value: String(describing: other)
+            )
+        }
+        let code = cycleStart ? "cycle-start" : "not-cycle-start"
+        guard let resultCode = contractComponent.resultCodes.first(where: { $0.code == code }) else {
+            throw GroveHealthKitFHIRError.missingNormativeCode(contract.id)
+        }
+        return ObservationComponent(
+            code: CodeableConcept(coding: [Coding(
+                code: contractComponent.code.asFHIRStringPrimitive(),
+                system: FHIRPrimitive(FHIRURI(stringLiteral: contractComponent.system))
+            )]),
+            value: .codeableConcept(CodeableConcept(coding: [Coding(
+                code: resultCode.code.asFHIRStringPrimitive(),
+                display: resultCode.display.asFHIRStringPrimitive(),
+                system: FHIRPrimitive(FHIRURI(stringLiteral: resultCodeSystem))
+            )]))
+        )
     }
 
 
