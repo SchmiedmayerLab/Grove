@@ -94,7 +94,7 @@ struct ExportDataView: View {
     
     private func runAsync(_ operation: @Sendable @escaping () async throws -> Void) {
         precondition(viewState.isIdle)
-        Task {
+        Swift::Task {
             viewState = .processing
             do {
                 try await operation()
