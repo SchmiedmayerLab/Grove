@@ -57,7 +57,7 @@ struct HealthKitFHIRCategoryConversionTests {
             measurement: GroveFHIRHealthKitMeasurementCatalog.appleStandHour,
             sharedCode: "stood",
             sourceCode: "stood",
-            sourceSystem: GroveFHIRCanonical.healthKitCategoryValueAppleStandHour
+            sourceSystem: GroveFHIRCanonical.healthKitAppleStandHourValue
         ),
         AbsorptionCase(
             identifier: .appetiteChanges,
@@ -65,7 +65,7 @@ struct HealthKitFHIRCategoryConversionTests {
             measurement: GroveFHIRHealthKitMeasurementCatalog.symptomAppetiteChanges,
             sharedCode: "decreased",
             sourceCode: "decreased",
-            sourceSystem: GroveFHIRCanonical.healthKitCategoryValueAppetiteChanges
+            sourceSystem: GroveFHIRCanonical.healthKitAppetiteChanges
         ),
         AbsorptionCase(
             identifier: .appetiteChanges,
@@ -73,7 +73,7 @@ struct HealthKitFHIRCategoryConversionTests {
             measurement: GroveFHIRHealthKitMeasurementCatalog.symptomAppetiteChanges,
             sharedCode: "change-unspecified",
             sourceCode: "unspecified",
-            sourceSystem: GroveFHIRCanonical.healthKitCategoryValueAppetiteChanges
+            sourceSystem: GroveFHIRCanonical.healthKitAppetiteChanges
         ),
         AbsorptionCase(
             identifier: .cervicalMucusQuality,
@@ -81,7 +81,7 @@ struct HealthKitFHIRCategoryConversionTests {
             measurement: GroveFHIRMeasurementCatalog.cervicalMucusQuality,
             sharedCode: "egg-white",
             sourceCode: "eggWhite",
-            sourceSystem: GroveFHIRCanonical.healthKitCategoryValueCervicalMucusQuality
+            sourceSystem: GroveFHIRCanonical.healthKitCervicalMucusQuality
         ),
         AbsorptionCase(
             identifier: .contraceptive,
@@ -89,7 +89,7 @@ struct HealthKitFHIRCategoryConversionTests {
             measurement: GroveFHIRHealthKitMeasurementCatalog.contraceptiveUse,
             sharedCode: "intrauterine-device",
             sourceCode: "intrauterineDevice",
-            sourceSystem: GroveFHIRCanonical.healthKitCategoryValueContraceptive
+            sourceSystem: GroveFHIRCanonical.healthKitContraceptive
         ),
         AbsorptionCase(
             identifier: .menstrualFlow,
@@ -97,7 +97,7 @@ struct HealthKitFHIRCategoryConversionTests {
             measurement: GroveFHIRMeasurementCatalog.menstruationFlow,
             sharedCode: "heavy",
             sourceCode: "heavy",
-            sourceSystem: GroveFHIRCanonical.healthKitCategoryValueVaginalBleeding,
+            sourceSystem: GroveFHIRCanonical.healthKitVaginalBleeding,
             requiredMetadata: [HKMetadataKeyMenstrualCycleStart: true]
         ),
         AbsorptionCase(
@@ -106,7 +106,7 @@ struct HealthKitFHIRCategoryConversionTests {
             measurement: GroveFHIRHealthKitMeasurementCatalog.bleedingAfterPregnancy,
             sharedCode: "none",
             sourceCode: "none",
-            sourceSystem: GroveFHIRCanonical.healthKitCategoryValueVaginalBleeding
+            sourceSystem: GroveFHIRCanonical.healthKitVaginalBleeding
         ),
         // The HealthKit estrogen-surge case widens to high-fertility; the exact token is retained.
         AbsorptionCase(
@@ -115,7 +115,7 @@ struct HealthKitFHIRCategoryConversionTests {
             measurement: GroveFHIRMeasurementCatalog.ovulationTestResult,
             sharedCode: "high-fertility",
             sourceCode: "estrogenSurge",
-            sourceSystem: GroveFHIRCanonical.healthKitCategoryValueOvulationTestResult
+            sourceSystem: GroveFHIRCanonical.healthKitOvulationTestResult
         ),
         AbsorptionCase(
             identifier: .pregnancyTestResult,
@@ -123,7 +123,7 @@ struct HealthKitFHIRCategoryConversionTests {
             measurement: GroveFHIRHealthKitMeasurementCatalog.pregnancyTestResult,
             sharedCode: "positive",
             sourceCode: "positive",
-            sourceSystem: GroveFHIRCanonical.healthKitCategoryValuePregnancyTestResult
+            sourceSystem: GroveFHIRCanonical.healthKitTestResult
         ),
         AbsorptionCase(
             identifier: .progesteroneTestResult,
@@ -131,7 +131,7 @@ struct HealthKitFHIRCategoryConversionTests {
             measurement: GroveFHIRHealthKitMeasurementCatalog.progesteroneTestResult,
             sharedCode: "indeterminate",
             sourceCode: "indeterminate",
-            sourceSystem: GroveFHIRCanonical.healthKitCategoryValueProgesteroneTestResult
+            sourceSystem: GroveFHIRCanonical.healthKitTestResult
         )
     ]
 
@@ -207,7 +207,7 @@ struct HealthKitFHIRCategoryConversionTests {
         ).observation
 
         #expect(try codings(present)[0].code?.value?.string == "present")
-        #expect(try codings(present)[1].system == GroveFHIRCanonical.healthKitCategoryValuePresence)
+        #expect(try codings(present)[1].system == GroveFHIRCanonical.healthKitPresence)
         #expect(try codings(present)[1].code?.value?.string == "present")
         #expect(try codings(notPresent)[0].code?.value?.string == "not-present")
         #expect(try codings(notPresent)[1].code?.value?.string == "notPresent")

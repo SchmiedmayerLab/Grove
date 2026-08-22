@@ -121,7 +121,7 @@ extension HealthKitFHIRConverter {
             Coding(
                 code: grade.sourceCode.asFHIRStringPrimitive(),
                 display: grade.sourceDisplay.asFHIRStringPrimitive(),
-                system: GroveFHIRCanonical.healthKitCategoryValuePresence
+                system: GroveFHIRCanonical.healthKitPresence
             )
         ])
     }
@@ -227,21 +227,19 @@ extension HealthKitFHIRConverter {
     ) -> FHIRPrimitive<FHIRURI> {
         switch absorption {
         case .appetiteChanges:
-            GroveFHIRCanonical.healthKitCategoryValueAppetiteChanges
+            GroveFHIRCanonical.healthKitAppetiteChanges
         case .appleStandHour:
-            GroveFHIRCanonical.healthKitCategoryValueAppleStandHour
+            GroveFHIRCanonical.healthKitAppleStandHourValue
         case .cervicalMucusQuality:
-            GroveFHIRCanonical.healthKitCategoryValueCervicalMucusQuality
+            GroveFHIRCanonical.healthKitCervicalMucusQuality
         case .contraceptive:
-            GroveFHIRCanonical.healthKitCategoryValueContraceptive
+            GroveFHIRCanonical.healthKitContraceptive
         case .ovulationTestResult:
-            GroveFHIRCanonical.healthKitCategoryValueOvulationTestResult
-        case .pregnancyTestResult:
-            GroveFHIRCanonical.healthKitCategoryValuePregnancyTestResult
-        case .progesteroneTestResult:
-            GroveFHIRCanonical.healthKitCategoryValueProgesteroneTestResult
+            GroveFHIRCanonical.healthKitOvulationTestResult
+        case .pregnancyTestResult, .progesteroneTestResult:
+            GroveFHIRCanonical.healthKitTestResult
         case .vaginalBleeding:
-            GroveFHIRCanonical.healthKitCategoryValueVaginalBleeding
+            GroveFHIRCanonical.healthKitVaginalBleeding
         }
     }
 
