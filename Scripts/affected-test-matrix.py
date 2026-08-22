@@ -108,6 +108,7 @@ FHIR_VALIDATION_PATHS = {
     "Scripts/generate-grove-fhir-producer-manifest.py",
     "Scripts/generate-grove-fhir-semantic-vector-fixtures.py",
     "Scripts/generate-grove-fhir-swift-contract.py",
+    "Scripts/generate-grove-sensor-swift-contract.py",
     "Scripts/validate-fhir-conformance.sh",
 }
 # The end-to-end validator is expensive, so its CI job runs only when one of these FHIR-producing or
@@ -128,8 +129,7 @@ FHIR_PACKAGES = {
 FHIR_COMPONENT_PACKAGES = {
     "healthkit": {"GroveHealthKitFHIR"},
     "questionnaire": {"GroveQuestionnaire", "ResearchKitOnFHIR"},
-    # The sensor component joins with the SensorKit producer PR, which carries its fixture
-    # writer; scheduling it before then validates a producer this branch does not have.
+    "sensor": {"GroveSensorKit", "GroveSensorKitFHIR"},
 }
 ALL_FHIR_COMPONENTS = set(FHIR_COMPONENT_PACKAGES)
 

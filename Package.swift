@@ -271,6 +271,7 @@ var products: [Product] = [
     .library(name: "GroveScheduler", targets: ["GroveScheduler"]),
     // MARK: GroveSensorKit
     .library(name: "GroveSensorKit", targets: ["GroveSensorKit"]),
+    .library(name: "GroveSensorKitFHIR", targets: ["GroveSensorKitFHIR"]),
     // MARK: GroveSpeech
     .library(name: "GroveSpeechRecognizer", targets: ["GroveSpeechRecognizer"]),
     .library(name: "GroveSpeechSynthesizer", targets: ["GroveSpeechSynthesizer"]),
@@ -1491,12 +1492,37 @@ var targets: [Target] = [
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
+    .target(
+        name: "GroveSensorKitFHIR",
+        dependencies: [
+            .target(name: "FHIRModelsExtensions"),
+            .target(name: "GroveFHIRContract"),
+            .target(name: "GroveSensorKit", condition: .when(platforms: [.iOS])),
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
+            .target(name: "GroveFoundation")
+        ],
+        exclude: targetExcludes("GroveSensorKitFHIR"),
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
     .testTarget(
         name: "GroveSensorKitTests",
         dependencies: [
             .target(name: "GroveSensorKit")
         ],
         exclude: testTargetExcludes("GroveSensorKitTests", additional: ["UITests"]),
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .testTarget(
+        name: "GroveSensorKitFHIRTests",
+        dependencies: [
+            .target(name: "GroveSensorKitFHIR"),
+            .target(name: "GroveFHIRContract"),
+            .target(name: "GroveSensorKit", condition: .when(platforms: [.iOS])),
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
+        ],
+        exclude: testTargetExcludes("GroveSensorKitFHIRTests"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),

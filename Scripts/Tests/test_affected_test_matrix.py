@@ -255,7 +255,7 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
         self.assertEqual(result["fhir_components"], "questionnaire")
         self.assertEqual(result["has_fhir_conformance"], "true")
 
-    def test_sensor_changes_schedule_no_conformance_before_the_sensor_producer_lands(self):
+    def test_sensor_ready_pr_runs_only_sensor_ig(self):
         result = run_selector(
             "Sources/GroveSensorKit/SensorKit.swift",
             "Scripts/validate-fhir-conformance.sh",
@@ -263,8 +263,8 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
         )
 
         self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
-        # The SensorKit producer PR restores the sensor component together with its fixture writer.
-        self.assertNotIn("sensor", result["fhir_components"])
+        self.assertEqual(result["fhir_components"], "sensor")
+        self.assertEqual(result["has_fhir_conformance"], "true")
 
     def test_explicit_all_selects_every_implementation_conformance_lane(self):
         result = run_selector("__ALL__")
@@ -274,6 +274,17 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
             set(result["fhir_components"].split(",")),
             MODULE.ALL_FHIR_COMPONENTS,
         )
+
+    def test_sensor_development_scope_runs_only_source_and_fhir_packages(self):
+        result = run_selector(
+            "Package.swift",
+            ".github/workflows/tests.yml",
+            extra_arguments=("--development-scope", "sensor"),
+        )
+
+        self.assertEqual(set(result["affected"].split(",")), {"GroveSensorKit", "GroveSensorKitFHIR"})
+        self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(result["has_ui_jobs"], "false")
 
 
 class InfrastructureSelectionTests(unittest.TestCase):

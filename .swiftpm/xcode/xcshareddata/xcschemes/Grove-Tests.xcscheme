@@ -89,6 +89,9 @@
             reference = "container:Tests/TestPlans/GroveSensorKit.xctestplan">
          </TestPlanReference>
          <TestPlanReference
+            reference = "container:Tests/TestPlans/GroveSensorKitFHIR.xctestplan">
+         </TestPlanReference>
+         <TestPlanReference
             reference = "container:Tests/TestPlans/GroveSpeech.xctestplan">
          </TestPlanReference>
          <TestPlanReference
