@@ -49,6 +49,113 @@ def swift_string(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
+def component_result_code_system(component: dict) -> str | None:
+    """The guide names a component's result CodeSystem with the last segment of its bound ValueSet."""
+    value_set = component.get("valueSet")
+    if not component.get("resultCodes") or not value_set:
+        return None
+    if "/ValueSet/" not in value_set:
+        raise ValueError(f"component valueSet is not a Grove canonical: {value_set!r}")
+    return value_set.replace("/ValueSet/", "/CodeSystem/")
+
+
+def measurement_lines(measurement: dict) -> list[str]:
+    lines = [
+        f"    public static let {swift_name(measurement['id'])} = GroveFHIRMeasurementContract(",
+        f"        id: {swift_string(measurement['id'])},",
+        f"        profile: GroveFHIRProfile.{swift_name(measurement['profile'])},",
+    ]
+    code = measurement["code"]
+    display = f", display: {swift_string(code['display'])}" if code.get("display") else ""
+    lines.append(
+        "        code: GroveFHIRCodingContract("
+        f"system: {swift_string(code['system'])}, "
+        f"code: {swift_string(code['code'])}{display}),"
+    )
+    quantity = measurement.get("quantity")
+    if quantity:
+        lines.append(
+            "        quantity: GroveFHIRQuantityContract("
+            f"system: {swift_string(quantity['system'])}, "
+            f"code: {swift_string(quantity['code'])}, "
+            f"unit: {swift_string(quantity['unit'])}),"
+        )
+    else:
+        lines.append("        quantity: nil,")
+    components = measurement.get("components", [])
+    if components:
+        lines.append("        components: [")
+        for component in components:
+            quantity = component.get("quantity")
+            rendered_quantity = (
+                "GroveFHIRQuantityContract("
+                f"system: {swift_string(quantity['system'])}, "
+                f"code: {swift_string(quantity['code'])}, "
+                f"unit: {swift_string(quantity['unit'])})"
+            ) if quantity else "nil"
+            rendered_result_codes = ", ".join(
+                "GroveFHIRResultCodeContract("
+                f"code: {swift_string(result_code['code'])}, "
+                f"display: {swift_string(result_code['display'])})"
+                for result_code in component.get("resultCodes", [])
+            )
+            result_code_system = component_result_code_system(component)
+            lines.append(
+                "            GroveFHIRComponentContract("
+                f"id: {swift_string(component['id'])}, "
+                f"system: {swift_string(component['system'])}, "
+                f"code: {swift_string(component['code'])}, "
+                f"quantity: {rendered_quantity}, "
+                f"resultCodeSystem: "
+                f"{swift_string(result_code_system) if result_code_system else 'nil'}, "
+                f"resultCodes: [{rendered_result_codes}]),"
+            )
+        lines.append("        ],")
+    else:
+        lines.append("        components: [],")
+    result_code_system = measurement.get("resultCodeSystem")
+    lines.append(
+        f"        resultCodeSystem: {swift_string(result_code_system) if result_code_system else 'nil'},"
+    )
+    allowed_values = measurement.get("allowedValues", [])
+    if allowed_values:
+        values = ", ".join(swift_string(value) for value in allowed_values)
+        lines.append(f"        allowedValues: [{values}],")
+    else:
+        lines.append("        allowedValues: [],")
+    result_codes = measurement.get("resultCodes", [])
+    if result_codes:
+        lines.append("        resultCodes: [")
+        for result_code in result_codes:
+            lines.append(
+                "            GroveFHIRResultCodeContract("
+                f"code: {swift_string(result_code['code'])}, "
+                f"display: {swift_string(result_code['display'])}),"
+            )
+        lines.append("        ],")
+    else:
+        lines.append("        resultCodes: [],")
+    method = measurement.get("method")
+    if method:
+        lines.append(
+            "        method: GroveFHIRMethodContract("
+            f"code: {swift_string(method['code'])}, "
+            f"display: {swift_string(method['display'])}),"
+        )
+    else:
+        lines.append("        method: nil,")
+    method_choice = measurement.get("methodChoice", [])
+    if method_choice:
+        values = ", ".join(swift_string(value) for value in method_choice)
+        lines.append(f"        methodChoice: [{values}],")
+    else:
+        lines.append("        methodChoice: [],")
+    effective = "dateTime" if measurement["effective"] == "dateTime" else "period"
+    lines.append(f"        effective: .{effective}")
+    lines.extend(["    )", ""])
+    return lines
+
+
 def load_catalog(path: Path) -> dict:
     with path.open(encoding="utf-8") as file:
         value = json.load(file)
@@ -133,10 +240,12 @@ def generate(catalog_directory: Path) -> str:
         "public struct GroveFHIRCodingContract: Hashable, Sendable {",
         "    public let system: String",
         "    public let code: String",
+        "    public let display: String?",
         "",
-        "    public init(system: String, code: String) {",
+        "    public init(system: String, code: String, display: String? = nil) {",
         "        self.system = system",
         "        self.code = code",
+        "        self.display = display",
         "    }",
         "}",
         "",
@@ -146,7 +255,23 @@ def generate(catalog_directory: Path) -> str:
         "    public let id: String",
         "    public let system: String",
         "    public let code: String",
-        "    public let quantity: GroveFHIRQuantityContract",
+        "    public let quantity: GroveFHIRQuantityContract?",
+        "    public let resultCodeSystem: String?",
+        "    public let resultCodes: [GroveFHIRResultCodeContract]",
+        "}",
+        "",
+        "",
+        "/// One fixed aggregation-method coding asserted by a windowed measurement profile.",
+        "public struct GroveFHIRMethodContract: Hashable, Sendable {",
+        "    public let code: String",
+        "    public let display: String",
+        "}",
+        "",
+        "",
+        "/// One admitted coded result from a measurement's closed result value set.",
+        "public struct GroveFHIRResultCodeContract: Hashable, Sendable {",
+        "    public let code: String",
+        "    public let display: String",
         "}",
         "",
         "",
@@ -159,73 +284,44 @@ def generate(catalog_directory: Path) -> str:
         "    public let components: [GroveFHIRComponentContract]",
         "    public let resultCodeSystem: String?",
         "    public let allowedValues: [String]",
+        "    public let resultCodes: [GroveFHIRResultCodeContract]",
+        "    public let method: GroveFHIRMethodContract?",
+        "    public let methodChoice: [String]",
         "    public let effective: GroveFHIRMeasurementEffective",
         "}",
         "",
         "",
-        "/// Machine-generated source of truth for the shared mobile measurement matrix.",
-        "public enum GroveFHIRMeasurementCatalog {",
     ])
     measurements = measurement_catalog["measurements"]
-    for measurement in measurements:
-        lines.append(
-            f"    public static let {swift_name(measurement['id'])} = GroveFHIRMeasurementContract("
-        )
-        lines.append(f"        id: {swift_string(measurement['id'])},")
-        lines.append(f"        profile: GroveFHIRProfile.{swift_name(measurement['profile'])},")
-        lines.append(
-            "        code: GroveFHIRCodingContract("
-            f"system: {swift_string(measurement['code']['system'])}, "
-            f"code: {swift_string(measurement['code']['code'])}),"
-        )
-        quantity = measurement.get("quantity")
-        if quantity:
-            lines.append(
-                "        quantity: GroveFHIRQuantityContract("
-                f"system: {swift_string(quantity['system'])}, "
-                f"code: {swift_string(quantity['code'])}, "
-                f"unit: {swift_string(quantity['unit'])}),"
-            )
-        else:
-            lines.append("        quantity: nil,")
-        components = measurement.get("components", [])
-        if components:
-            lines.append("        components: [")
-            for component in components:
-                lines.append(
-                    "            GroveFHIRComponentContract("
-                    f"id: {swift_string(component['id'])}, "
-                    f"system: {swift_string(component['system'])}, "
-                    f"code: {swift_string(component['code'])}, "
-                    "quantity: GroveFHIRQuantityContract("
-                    f"system: {swift_string(component['quantity']['system'])}, "
-                    f"code: {swift_string(component['quantity']['code'])}, "
-                    f"unit: {swift_string(component['quantity']['unit'])})),"
-                )
-            lines.append("        ],")
-        else:
-            lines.append("        components: [],")
-        result_code_system = measurement.get("resultCodeSystem")
-        lines.append(
-            f"        resultCodeSystem: {swift_string(result_code_system) if result_code_system else 'nil'},"
-        )
-        allowed_values = measurement.get("allowedValues", [])
-        if allowed_values:
-            values = ", ".join(swift_string(value) for value in allowed_values)
-            lines.append(f"        allowedValues: [{values}],")
-        else:
-            lines.append("        allowedValues: [],")
-        effective = "dateTime" if measurement["effective"] == "dateTime" else "period"
-        lines.append(f"        effective: .{effective}")
-        lines.extend(["    )", ""])
-    lines.append("    public static let all: [GroveFHIRMeasurementContract] = [")
-    for measurement in measurements:
-        lines.append(f"        {swift_name(measurement['id'])},")
+    owner_catalogs = [
+        (
+            "GroveFHIRMeasurementCatalog",
+            "Machine-generated source of truth for the shared mobile measurement matrix.",
+            [m for m in measurements if m.get("owner", "mobile") == "mobile"],
+        ),
+        (
+            "GroveFHIRHealthKitMeasurementCatalog",
+            "Machine-generated HealthKit-exclusive measurement contracts owned by the HealthKit adapter.",
+            [m for m in measurements if m.get("owner") == "healthkit"],
+        ),
+    ]
+    for catalog_name, documentation, owned_measurements in owner_catalogs:
+        lines.extend([
+            f"/// {documentation}",
+            f"public enum {catalog_name} {{",
+        ])
+        for measurement in owned_measurements:
+            lines.extend(measurement_lines(measurement))
+        lines.append("    public static let all: [GroveFHIRMeasurementContract] = [")
+        for measurement in owned_measurements:
+            lines.append(f"        {swift_name(measurement['id'])},")
+        lines.extend([
+            "    ]",
+            "}",
+            "",
+            "",
+        ])
     lines.extend([
-        "    ]",
-        "}",
-        "",
-        "",
         "/// Swift producer states generated from the authoritative HealthKit adapter inventory.",
         "public enum GroveFHIRHealthKitImplementationStatus: String, CaseIterable, Sendable {",
     ])
@@ -297,9 +393,9 @@ def generate(catalog_directory: Path) -> str:
         raise ValueError("HealthKit adapter sourceTypeIdentifier values must be unique")
     for row in healthkit_rows:
         measurement_ids = row["measurementIDs"]
-        if len(measurement_ids) > 1:
+        if len(measurement_ids) > 1 and len(row["profiles"]) != len(measurement_ids):
             raise ValueError(
-                "Swift HealthKit rows currently require at most one measurement contract: "
+                "Multi-measurement HealthKit rows must pair one profile per measurement: "
                 f"{row['sourceTypeIdentifier']}"
             )
         lines.extend([

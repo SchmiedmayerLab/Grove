@@ -159,12 +159,59 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "must be sorted"):
             self.generate(catalogs)
 
-    def test_rejects_ambiguous_multi_measurement_healthkit_row(self):
+    def test_rejects_unpaired_multi_measurement_healthkit_row(self):
+        catalogs = self.catalogs()
+        catalogs["healthkit-adapter.json"]["rows"][0]["measurementIDs"] = ["one", "two", "three"]
+
+        with self.assertRaisesRegex(ValueError, "one profile per measurement"):
+            self.generate(catalogs)
+
+    def test_generates_paired_multi_measurement_healthkit_row(self):
         catalogs = self.catalogs()
         catalogs["healthkit-adapter.json"]["rows"][0]["measurementIDs"] = ["one", "two"]
 
-        with self.assertRaisesRegex(ValueError, "at most one measurement"):
-            self.generate(catalogs)
+        self.assertIn('measurementIDs: ["one", "two"],', self.generate(catalogs))
+
+    def test_splits_measurement_catalog_by_owner(self):
+        catalogs = self.catalogs()
+        catalogs["package-graph.json"]["packages"][0]["profiles"].append("grove-mobile-heart-rate")
+        catalogs["package-graph.json"]["packages"][1]["profiles"].append("healthkit-symptom-headache")
+        catalogs["measurement-catalog.json"]["measurements"] = [
+            {
+                "id": "heart-rate",
+                "profile": "grove-mobile-heart-rate",
+                "code": {"system": "http://loinc.org", "code": "8867-4"},
+                "quantity": {"system": "u", "code": "/min", "unit": "beats/minute"},
+                "effective": "dateTime",
+            },
+            {
+                "id": "symptom-headache",
+                "owner": "healthkit",
+                "profile": "healthkit-symptom-headache",
+                "code": {"system": "s", "code": "symptom-headache", "display": "Headache"},
+                "quantity": None,
+                "resultCodeSystem": "r",
+                "allowedValues": ["not-present", "present"],
+                "effective": "Period",
+            },
+            {
+                "id": "step-cadence",
+                "owner": "health-connect",
+                "profile": "grove-mobile-heart-rate",
+                "code": {"system": "s", "code": "step-cadence"},
+                "quantity": None,
+                "effective": "dateTime",
+            },
+        ]
+        generated = self.generate(catalogs)
+
+        mobile = generated.index("public enum GroveFHIRMeasurementCatalog {")
+        healthkit = generated.index("public enum GroveFHIRHealthKitMeasurementCatalog {")
+        self.assertLess(mobile, healthkit)
+        self.assertLess(generated.index("let heartRate = GroveFHIRMeasurementContract("), healthkit)
+        self.assertGreater(generated.index("let symptomHeadache = GroveFHIRMeasurementContract("), healthkit)
+        self.assertIn('display: "Headache"', generated)
+        self.assertNotIn("stepCadence", generated)
 
 
 if __name__ == "__main__":

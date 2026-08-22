@@ -65,6 +65,17 @@ public enum GroveHealthKitFHIRError: Error, Equatable, Sendable {
     case unsupportedSampleValue(sampleType: String, value: Int)
     /// A typed, allowlisted HealthKit metadata field contained a value outside its published value set.
     case unsupportedMetadataValue(key: String, value: String)
+    /// A metadata field the selected contract requires was absent from the sample.
+    case missingRequiredMetadata(sampleType: String, key: String)
+    /// The frozen catalog intentionally rejects this source type for the stated catalog reason.
+    case intentionallyUnsupported(sampleType: String, reason: String)
+    /// The source is admitted only as a platform-exclusive DocumentReference envelope, which
+    /// this Observation converter never emits.
+    case platformExclusiveDocument(sampleType: String)
+    /// The catalog admits this source, but this converter version does not yet emit its graph.
+    case notYetConvertible(sampleType: String)
+    /// A panel component sample converts only inside its admitting correlation.
+    case componentSampleRequiresCorrelation(sampleType: String)
     /// A business identifier, deterministic fullUrl, or repository id was invalid.
     case invalidExchangeIdentity(String)
     /// An unexpected non-domain error occurred while converting one record in a batch.
