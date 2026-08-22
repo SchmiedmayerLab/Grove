@@ -133,13 +133,14 @@ extension LLMOpenAILikeSession {
         guard !input.isEmpty || previousResponseId != nil else {
             throw LLMOpenAIError.invalidRequest
         }
+        let modelParameters = schema.modelParameters.accepted(by: schema.parameters.modelType)
         return Operations.createResponse.Input(
             body: .json(
                 Components.Schemas.CreateResponse(
                     value1: .init(
                         value1: .init(
-                            temperature: schema.modelParameters.temperature,
-                            top_p: schema.modelParameters.topP
+                            temperature: modelParameters.temperature,
+                            top_p: modelParameters.topP
                         ),
                         value2: .init()
                     ),
@@ -147,14 +148,14 @@ extension LLMOpenAILikeSession {
                         previous_response_id: previousResponseId,
                         model: .init(value1: .init(value1: schema.parameters.modelType.rawValue)),
                         reasoning: reasoning,
-                        text: schema.modelParameters.responsesTextFormat.map { .init(format: $0) },
+                        text: modelParameters.responsesTextFormat.map { .init(format: $0) },
                         tools: tools.isEmpty ? nil : .init(tools)
                     ),
                     value3: .init(
                         input: .case2(input),
                         instructions: instructions.isEmpty ? nil : instructions,
                         stream: stream,
-                        max_output_tokens: schema.modelParameters.maxOutputLength
+                        max_output_tokens: modelParameters.maxOutputLength
                     )
                 )
             )

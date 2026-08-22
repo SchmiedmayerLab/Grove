@@ -201,5 +201,12 @@ extension GeminiPlatformDefinition.ModelType {
     public static let gemini2_5_flash = Self(rawValue: "gemini-2.5-flash")
     /// Gemini 2.5 Flash Lite
     public static let gemini2_5_flash_lite = Self(rawValue: "gemini-2.5-flash-lite")
+
+    public var supportsSamplingControls: Bool { // swiftlint:disable:this missing_docs
+        // Google deprecated the sampling controls with the 3.5 Flash-Lite and 3.6 generation, in favour of a
+        // reasoning effort. They are ignored there rather than rejected, and Google has said later models will
+        // reject them, so nothing is gained by continuing to send them.
+        ![Self.gemini3_7_flash, .gemini3_6_flash, .gemini3_5_flash_lite].contains(self)
+    }
 }
 // swiftlint:enable identifier_name

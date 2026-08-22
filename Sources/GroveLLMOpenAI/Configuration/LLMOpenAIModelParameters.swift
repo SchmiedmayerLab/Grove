@@ -65,6 +65,34 @@ public struct LLMOpenAIModelParameters: Sendable {
     let logitBias: Components.Schemas.CreateChatCompletionRequest.Value2Payload.logit_biasPayload
     
     
+    /// Creates parameters from the values another instance already holds.
+    ///
+    /// The public initializer takes a ``ResponseFormat``, which the two stored representations of it cannot be
+    /// turned back into, so deriving one set of parameters from another needs them as they are stored.
+    init(
+        responseFormat: Components.Schemas.CreateChatCompletionRequest.Value2Payload.response_formatPayload?,
+        responsesTextFormat: Components.Schemas.TextResponseFormatConfiguration?,
+        temperature: Double?,
+        topP: Double?,
+        completionsPerOutput: Int?,
+        stopSequence: [String],
+        maxOutputLength: Int?,
+        presencePenalty: Double?,
+        frequencyPenalty: Double?,
+        logitBias: Components.Schemas.CreateChatCompletionRequest.Value2Payload.logit_biasPayload
+    ) {
+        self.responseFormat = responseFormat
+        self.responsesTextFormat = responsesTextFormat
+        self.temperature = temperature
+        self.topP = topP
+        self.completionsPerOutput = completionsPerOutput
+        self.stopSequence = stopSequence
+        self.maxOutputLength = maxOutputLength
+        self.presencePenalty = presencePenalty
+        self.frequencyPenalty = frequencyPenalty
+        self.logitBias = logitBias
+    }
+
     /// Initializes ``LLMOpenAIModelParameters`` for OpenAI model configuration.
     ///
     /// - Parameters:
