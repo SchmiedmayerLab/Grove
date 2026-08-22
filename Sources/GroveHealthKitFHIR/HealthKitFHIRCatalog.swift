@@ -47,6 +47,7 @@ struct HealthKitFHIRObservationContract: Sendable {
     let quantity: GroveFHIRQuantityContract?
     let components: [GroveFHIRComponentContract]
     let resultCodeSystem: String?
+    let method: GroveFHIRMethodContract?
     let effective: GroveFHIRMeasurementEffective
 
     var id: String { measurement.id }
@@ -64,6 +65,7 @@ struct HealthKitFHIRObservationContract: Sendable {
         self.quantity = shared.quantity
         self.components = shared.components
         self.resultCodeSystem = shared.resultCodeSystem
+        self.method = shared.method
         self.effective = shared.effective
     }
 
@@ -73,6 +75,7 @@ struct HealthKitFHIRObservationContract: Sendable {
         quantity: GroveFHIRQuantityContract?,
         components: [GroveFHIRComponentContract] = [],
         resultCodeSystem: String? = nil,
+        method: GroveFHIRMethodContract? = nil,
         effective: GroveFHIRMeasurementEffective
     ) {
         self.measurement = measurement
@@ -80,6 +83,7 @@ struct HealthKitFHIRObservationContract: Sendable {
         self.quantity = quantity
         self.components = components
         self.resultCodeSystem = resultCodeSystem
+        self.method = method
         self.effective = effective
     }
 }
@@ -109,69 +113,63 @@ public enum HealthKitFHIRCatalog {
         HealthKitFHIRCatalogEntry(
             sourceTypeIdentifier: row.sourceTypeIdentifier,
             title: row.title,
-            measurements: row.measurementIDs.map { id in
-                HealthKitFHIRMeasurementContract(id: id, profiles: row.profiles)
-            },
+            measurements: measurements(for: row),
             implementationStatus: row.implementationStatus,
             requirement: row.requirement
         )
     }
 
     static func entry(for sample: HKSample) -> HealthKitFHIRCatalogEntry? {
-        entries.first { $0.sourceTypeIdentifier == sample.sampleType.identifier }
+        entry(forSourceTypeIdentifier: sample.sampleType.identifier)
+    }
+
+    static func entry(forSourceTypeIdentifier identifier: String) -> HealthKitFHIRCatalogEntry? {
+        entries.first { $0.sourceTypeIdentifier == identifier }
     }
 
     static func binding(for sample: HKSample) -> HealthKitFHIRBinding? {
-        if let quantity = sample as? HKQuantitySample {
-            return quantityBinding(for: quantity.quantityType.identifier)
-        }
-        if sample is HKCorrelation,
-           sample.sampleType.identifier == HKCorrelationTypeIdentifier.bloodPressure.rawValue {
-            return .bloodPressure
-        }
-        if sample is HKCategorySample,
-           sample.sampleType.identifier == HKCategoryTypeIdentifier.sleepAnalysis.rawValue {
-            return .sleepStage
-        }
-        return nil
+        binding(forSourceTypeIdentifier: sample.sampleType.identifier)
     }
 
-    // A closed source-type dispatch is intentionally spelled as a single exhaustive switch.
-    // swiftlint:disable:next cyclomatic_complexity
-    private static func quantityBinding(for identifier: String) -> HealthKitFHIRBinding? {
-        switch HKQuantityTypeIdentifier(rawValue: identifier) {
-        case .activeEnergyBurned:
-            return .quantity(.activeEnergy, unit: .kilocalorie())
-        case .basalBodyTemperature:
-            return .quantity(.basalBodyTemperature, unit: .degreeCelsius())
-        case .bodyMass:
-            return .quantity(.bodyWeight, unit: .gramUnit(with: .kilo))
-        case .height:
-            return .quantity(.bodyHeight, unit: .meterUnit(with: .centi))
-        case .bodyMassIndex:
-            return .quantity(.bodyMassIndex, unit: .count())
-        case .bodyTemperature:
-            return .quantity(.bodyTemperature, unit: .degreeCelsius())
-        case .respiratoryRate:
-            return .quantity(.respiratoryRate, unit: .count().unitDivided(by: .minute()))
-        case .oxygenSaturation:
-            return .percent(.oxygenSaturation)
-        case .heartRate:
-            return .quantity(.heartRate, unit: .count().unitDivided(by: .minute()))
-        case .stepCount:
-            return .quantity(.stepCount, unit: .count())
-        case .distanceWalkingRunning,
-             .distanceCycling,
-             .distanceSwimming,
-             .distanceWheelchair,
-             .distanceDownhillSnowSports,
-             .distanceCrossCountrySkiing,
-             .distancePaddleSports,
-             .distanceRowing,
-             .distanceSkatingSports:
-            return .quantity(.distance, unit: .meter())
+    static func binding(forSourceTypeIdentifier identifier: String) -> HealthKitFHIRBinding? {
+        if identifier == HKCorrelationTypeIdentifier.bloodPressure.rawValue {
+            return .bloodPressure
+        }
+        return quantityBinding(for: identifier)
+            ?? categoryBinding(for: identifier)
+            ?? assessmentBinding(for: identifier)
+    }
+
+    /// A multi-measurement row pairs each measurement with its own semantic profile; the
+    /// remaining rows carry exactly the complete profile list of their one measurement.
+    private static func measurements(for row: GroveFHIRHealthKitCatalogRow) -> [HealthKitFHIRMeasurementContract] {
+        if row.measurementIDs.count > 1, row.measurementIDs.count == row.profiles.count {
+            return zip(row.measurementIDs, row.profiles).map { id, profile in
+                HealthKitFHIRMeasurementContract(id: id, profiles: [profile])
+            }
+        }
+        return row.measurementIDs.map { id in
+            HealthKitFHIRMeasurementContract(id: id, profiles: row.profiles)
+        }
+    }
+
+    private static func categoryBinding(for identifier: String) -> HealthKitFHIRBinding? {
+        switch HKCategoryTypeIdentifier(rawValue: identifier) {
+        case .sleepAnalysis:
+            .sleepStage
         default:
-            return nil
+            nil
+        }
+    }
+
+    private static func assessmentBinding(for identifier: String) -> HealthKitFHIRBinding? {
+        switch HKScoredAssessmentTypeIdentifier(rawValue: identifier) {
+        case .GAD7:
+            .assessmentScore(GroveFHIRHealthKitMeasurementCatalog.gad7Assessment)
+        case .PHQ9:
+            .assessmentScore(GroveFHIRHealthKitMeasurementCatalog.phq9Assessment)
+        default:
+            nil
         }
     }
 }
@@ -181,12 +179,17 @@ public enum HealthKitFHIRCatalog {
 enum HealthKitFHIRBinding: Sendable {
     case quantity(HealthKitFHIRObservationContract, unit: HKUnit)
     case percent(HealthKitFHIRObservationContract)
+    case sessionRate(HealthKitFHIRObservationContract)
+    case assessmentScore(HealthKitFHIRObservationContract)
     case bloodPressure
     case sleepStage
 
     var contract: HealthKitFHIRObservationContract {
         switch self {
-        case .quantity(let contract, _), .percent(let contract):
+        case .quantity(let contract, _),
+             .percent(let contract),
+             .sessionRate(let contract),
+             .assessmentScore(let contract):
             contract
         case .bloodPressure:
             HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.bloodPressure)
@@ -194,21 +197,22 @@ enum HealthKitFHIRBinding: Sendable {
             HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.sleepStage)
         }
     }
-}
 
+    static func quantity(_ shared: GroveFHIRMeasurementContract, unit: HKUnit) -> Self {
+        .quantity(HealthKitFHIRObservationContract(shared: shared), unit: unit)
+    }
 
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension HealthKitFHIRObservationContract {
-    static let activeEnergy = Self(shared: GroveFHIRMeasurementCatalog.activeEnergy)
-    static let basalBodyTemperature = Self(shared: GroveFHIRMeasurementCatalog.basalBodyTemperature)
-    static let bodyWeight = Self(shared: GroveFHIRMeasurementCatalog.bodyWeight)
-    static let bodyHeight = Self(shared: GroveFHIRMeasurementCatalog.bodyHeight)
-    static let bodyTemperature = Self(shared: GroveFHIRMeasurementCatalog.bodyTemperature)
-    static let respiratoryRate = Self(shared: GroveFHIRMeasurementCatalog.respiratoryRate)
-    static let oxygenSaturation = Self(shared: GroveFHIRMeasurementCatalog.oxygenSaturation)
-    static let heartRate = Self(shared: GroveFHIRMeasurementCatalog.heartRate)
-    static let stepCount = Self(shared: GroveFHIRMeasurementCatalog.stepCount)
-    static let distance = Self(shared: GroveFHIRMeasurementCatalog.distance)
+    static func percent(_ shared: GroveFHIRMeasurementContract) -> Self {
+        .percent(HealthKitFHIRObservationContract(shared: shared))
+    }
+
+    static func sessionRate(_ shared: GroveFHIRMeasurementContract) -> Self {
+        .sessionRate(HealthKitFHIRObservationContract(shared: shared))
+    }
+
+    static func assessmentScore(_ shared: GroveFHIRMeasurementContract) -> Self {
+        .assessmentScore(HealthKitFHIRObservationContract(shared: shared))
+    }
 }
 
 // swiftlint:enable file_types_order

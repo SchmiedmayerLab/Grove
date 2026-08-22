@@ -65,6 +65,8 @@ public enum GroveHealthKitFHIRError: Error, Equatable, Sendable {
     case unsupportedSampleValue(sampleType: String, value: Int)
     /// A typed, allowlisted HealthKit metadata field contained a value outside its published value set.
     case unsupportedMetadataValue(key: String, value: String)
+    /// A metadata field the selected contract requires was absent from the sample.
+    case missingRequiredMetadata(sampleType: String, key: String)
     /// A business identifier, deterministic fullUrl, or repository id was invalid.
     case invalidExchangeIdentity(String)
     /// An unexpected non-domain error occurred while converting one record in a batch.

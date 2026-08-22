@@ -25,6 +25,7 @@ public enum GroveFHIRCanonical {
     public static let recordingMethod = uri("/mobile/StructureDefinition/grove-recording-method")
     public static let recordingMethodCodeSystem = uri("/mobile/CodeSystem/grove-recording-method")
     public static let sleepStageCodeSystem = uri("/mobile/CodeSystem/grove-sleep-stage")
+    public static let aggregationMethodCodeSystem = uri("/mobile/CodeSystem/grove-aggregation-method")
 
     // MARK: HealthKit
 
@@ -38,6 +39,7 @@ public enum GroveFHIRCanonical {
     public static let healthKitMetadataKey = uri("/healthkit/CodeSystem/healthkit-metadata-key")
     public static let healthKitSourceType = GroveFHIRHealthKitCatalog.sourceTypeCodeSystem
     public static let healthKitHeartRateMotionContext = uri("/healthkit/CodeSystem/healthkit-heart-rate-motion-context")
+    public static let healthKitInsulinDeliveryReason = uri("/healthkit/CodeSystem/healthkit-insulin-delivery-reason")
     public static let healthKitSleepAnalysis = uri("/healthkit/CodeSystem/healthkit-sleep-analysis")
     public static let healthKitECGClassificationExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-classification")
     public static let healthKitECGSymptomsStatusExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-symptoms-status")

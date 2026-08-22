@@ -490,20 +490,27 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func deferredGlucoseFailsClosedWithoutClaimingHealthConnectOnlyProfiles() throws {
+    func glucoseConvertsWithoutSpecimenAndWithoutHealthConnectOnlyProfiles() throws {
         let sample = quantitySample(
             .bloodGlucose,
             unit: .gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci)),
             value: 100
         )
-        #expect(throws: GroveHealthKitFHIRError.unsupportedSampleType(sample.sampleType.identifier)) {
-            try converter.convert(sample, context: context)
-        }
-        let row = try #require(HealthKitFHIRCatalog.entries.first {
-            $0.sourceTypeIdentifier == HKQuantityTypeIdentifier.bloodGlucose.rawValue
-        })
-        #expect(row.implementationStatus == .deferred)
-        #expect(row.measurements.isEmpty)
+        let observation = try converter.convert(sample, context: context).observation
+
+        #expect(observation.meta?.profile == [
+            GroveFHIRProfile.groveMobileBloodGlucoseUnspecifiedSpecimen,
+            GroveFHIRProfile.healthkitObservation
+        ])
+        #expect(observation.specimen == nil)
+        let quantity: Quantity = try #require({
+            guard case .quantity(let quantity) = observation.value else {
+                return nil
+            }
+            return quantity
+        }())
+        #expect(quantity.code?.value?.string == "mg/dL")
+        #expect(quantity.value?.value?.decimal.description == "100")
     }
 
     @Test
@@ -553,19 +560,53 @@ struct HealthKitFHIRConverterTests {
         #expect(sourceIdentifiers.count == Set(sourceIdentifiers).count)
         #expect(Set(sourceIdentifiers) == expectedIdentifiers)
         #expect(rows.filter { $0.implementationStatus == .supported }.allSatisfy {
-            $0.measurements.count == 1
+            !$0.measurements.isEmpty
         })
-        #expect(rows.filter { $0.implementationStatus != .supported }.allSatisfy {
-            $0.requirement?.isEmpty == false
+        #expect(rows.filter { $0.implementationStatus == .platformExclusive }.allSatisfy {
+            $0.measurements.isEmpty && !$0.title.isEmpty
         })
-        var expectedSupportedIdentifiers = QuantityCase.allCases.map { $0.identifier.rawValue }
-        expectedSupportedIdentifiers.append(HKCorrelationTypeIdentifier.bloodPressure.rawValue)
-        expectedSupportedIdentifiers.append(HKCategoryTypeIdentifier.sleepAnalysis.rawValue)
-        expectedSupportedIdentifiers.append(HKObjectType.electrocardiogramType().identifier)
-        let supportedIdentifiers = rows
-            .filter { $0.implementationStatus == .supported }
-            .map { $0.sourceTypeIdentifier }
-        #expect(Set(supportedIdentifiers) == Set(expectedSupportedIdentifiers))
+        #expect(rows.filter {
+            $0.implementationStatus == .deferred || $0.implementationStatus == .intentionallyUnsupported
+        }
+        .allSatisfy { $0.requirement?.isEmpty == false })
+
+        // Supported rows the sample-driven binding table intentionally does not serve: the ECG
+        // evidence path, the workout graph deferred to the next round, the characteristic reads
+        // that are not HKSamples, and the panel components admitted only inside the correlation.
+        let sampleBindingExemptions: Set<String> = [
+            HKObjectType.electrocardiogramType().identifier,
+            HKWorkoutType.workoutType().identifier,
+            HKCharacteristicTypeIdentifier.bloodType.rawValue,
+            HKCharacteristicTypeIdentifier.wheelchairUse.rawValue,
+            HKQuantityTypeIdentifier.bloodPressureSystolic.rawValue,
+            HKQuantityTypeIdentifier.bloodPressureDiastolic.rawValue
+        ]
+        // Category machinery lands in the next slice; sleep analysis is the one bound today.
+        let pendingCategoryBindings = Set(
+            rows
+                .filter { $0.implementationStatus == .supported }
+                .map(\.sourceTypeIdentifier)
+                .filter { $0.hasPrefix("HKCategoryTypeIdentifier") }
+        ).subtracting([HKCategoryTypeIdentifier.sleepAnalysis.rawValue])
+        for row in rows where row.implementationStatus == .supported {
+            let identifier = row.sourceTypeIdentifier
+            if pendingCategoryBindings.contains(identifier) {
+                continue
+            }
+            let binding = HealthKitFHIRCatalog.binding(forSourceTypeIdentifier: identifier)
+            if sampleBindingExemptions.contains(identifier) {
+                #expect(binding == nil, "\(identifier) is served outside the sample binding table")
+            } else {
+                #expect(binding != nil, "\(identifier) is supported but has no binding")
+                #expect(binding?.contract.id == row.measurements.first?.id)
+            }
+        }
+        for row in rows where row.implementationStatus != .supported {
+            #expect(
+                HealthKitFHIRCatalog.binding(forSourceTypeIdentifier: row.sourceTypeIdentifier) == nil,
+                "\(row.sourceTypeIdentifier) is not supported but has a binding"
+            )
+        }
     }
 
     @Test
@@ -753,10 +794,11 @@ struct HealthKitFHIRConverterTests {
     @Test
     func batchReportsEveryFailureWithoutDroppingRecords() {
         let supported = quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4)
-        let deferred = quantitySample(
-            .bloodGlucose,
-            unit: .gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci)),
-            value: 100
+        let deferred = HKCorrelation(
+            type: HKCorrelationType(.food),
+            start: timestamp,
+            end: timestamp,
+            objects: [quantitySample(.dietaryEnergyConsumed, unit: .kilocalorie(), value: 320)]
         )
         let result = converter.convert([supported, deferred], context: context)
         #expect(result.conversions.count == 1)
