@@ -160,6 +160,16 @@ public struct HealthKitFHIRConversionContext: Sendable {
     /// Deployment-owned namespace that authorizes disclosure of an opaque, local
     /// `HKDevice.localIdentifier`. It does not authorize UDI disclosure.
     public let recordingDeviceIdentifierSystem: String?
+    /// Opaque deployment-owned scope that lets one physical recorder deduplicate across samples.
+    ///
+    /// Without it every sample carries its own recording `Device`, so one watch is stored once
+    /// per reading. Supplying a stable scope switches the recorder to the published
+    /// ``GroveFHIRRecordingDeviceIdentity`` digest, which yields one Device per recorder
+    /// configuration instead. The scope is hashed into the identifier and never serialized.
+    ///
+    /// Fix it once per deployment and keep it: changing it re-mints every recording Device, so
+    /// graphs exported before the change no longer deduplicate against later ones.
+    public let deviceIdentityScope: String?
     /// Explicit UDI disclosure policy. The default omits the UDI even when HealthKit
     /// supplies one.
     public let udiDisclosurePolicy: HealthKitFHIRUDIDisclosurePolicy
@@ -185,6 +195,7 @@ public struct HealthKitFHIRConversionContext: Sendable {
         converterWasGateway: Bool = false,
         conversionInstant: Date = .now,
         recordingDeviceIdentifierSystem: String? = nil,
+        deviceIdentityScope: String? = nil,
         udiDisclosurePolicy: HealthKitFHIRUDIDisclosurePolicy = .omit,
         sourceRevisionDisclosurePolicy: HealthKitFHIRSourceDisclosurePolicy = .omit,
         researchStudies: [Reference] = [],
@@ -197,6 +208,7 @@ public struct HealthKitFHIRConversionContext: Sendable {
         self.converterWasGateway = converterWasGateway
         self.conversionInstant = conversionInstant
         self.recordingDeviceIdentifierSystem = recordingDeviceIdentifierSystem
+        self.deviceIdentityScope = deviceIdentityScope
         self.udiDisclosurePolicy = udiDisclosurePolicy
         self.sourceRevisionDisclosurePolicy = sourceRevisionDisclosurePolicy
         self.researchStudies = researchStudies
@@ -1186,12 +1198,48 @@ extension HealthKitFHIRConverter {
            let udi = healthKitDevice.udiDeviceIdentifier?.nonEmpty {
             device.udiCarrier = [DeviceUdiCarrier(deviceIdentifier: udi.asFHIRStringPrimitive())]
         }
-        let identity = try localIdentity ?? derivedIdentity(
-            context: context,
-            sourceUUID: sourceUUID,
-            role: "recording-device"
-        )
+        // Published precedence: an authorized local identifier, then the deduplicating digest a
+        // device-identity scope unlocks, then the per-sample identity that asserts no shared
+        // device at all.
+        let identity: GroveFHIRBusinessIdentifier
+        if let localIdentity {
+            identity = localIdentity
+        } else if let value = deduplicatingIdentity(for: healthKitDevice, context: context) {
+            identity = try GroveFHIRBusinessIdentifier(
+                system: context.graphIdentifierSystem,
+                value: value
+            )
+        } else {
+            identity = try derivedIdentity(
+                context: context,
+                sourceUUID: sourceUUID,
+                role: "recording-device"
+            )
+        }
         return IdentifiedDevice(resource: device, identity: identity)
+    }
+
+    /// The published recording-device digest, or `nil` when the deployment has not opted in or
+    /// the platform states too little to identify a recorder.
+    private static func deduplicatingIdentity(
+        for healthKitDevice: HKDevice,
+        context: HealthKitFHIRConversionContext
+    ) -> String? {
+        guard let scope = context.deviceIdentityScope else {
+            return nil
+        }
+        return GroveFHIRRecordingDeviceIdentity.value(
+            scope: scope,
+            adapter: "healthkit",
+            recorder: GroveFHIRRecordingDeviceIdentity.Recorder(
+                manufacturer: healthKitDevice.manufacturer?.nonEmpty,
+                model: healthKitDevice.model?.nonEmpty,
+                hardwareVersion: healthKitDevice.hardwareVersion?.nonEmpty,
+                firmwareVersion: healthKitDevice.firmwareVersion?.nonEmpty,
+                softwareVersion: healthKitDevice.softwareVersion?.nonEmpty,
+                localIdentifier: healthKitDevice.localIdentifier?.nonEmpty
+            )
+        )
     }
 
     private static func sourceAuthor(
