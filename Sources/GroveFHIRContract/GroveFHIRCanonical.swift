@@ -41,6 +41,24 @@ public enum GroveFHIRCanonical {
     public static let healthKitHeartRateMotionContext = uri("/healthkit/CodeSystem/healthkit-heart-rate-motion-context")
     public static let healthKitInsulinDeliveryReason = uri("/healthkit/CodeSystem/healthkit-insulin-delivery-reason")
     public static let healthKitSleepAnalysis = uri("/healthkit/CodeSystem/healthkit-sleep-analysis")
+    public static let healthKitSymptomSeverity = uri("/healthkit/CodeSystem/healthkit-symptom-severity")
+    public static let healthKitCategoryValuePresence = uri("/healthkit/CodeSystem/healthkit-category-value-presence")
+    public static let healthKitCategoryValueAppetiteChanges =
+        uri("/healthkit/CodeSystem/healthkit-category-value-appetite-changes")
+    public static let healthKitCategoryValueAppleStandHour =
+        uri("/healthkit/CodeSystem/healthkit-category-value-apple-stand-hour")
+    public static let healthKitCategoryValueCervicalMucusQuality =
+        uri("/healthkit/CodeSystem/healthkit-category-value-cervical-mucus-quality")
+    public static let healthKitCategoryValueContraceptive =
+        uri("/healthkit/CodeSystem/healthkit-category-value-contraceptive")
+    public static let healthKitCategoryValueOvulationTestResult =
+        uri("/healthkit/CodeSystem/healthkit-category-value-ovulation-test-result")
+    public static let healthKitCategoryValuePregnancyTestResult =
+        uri("/healthkit/CodeSystem/healthkit-category-value-pregnancy-test-result")
+    public static let healthKitCategoryValueProgesteroneTestResult =
+        uri("/healthkit/CodeSystem/healthkit-category-value-progesterone-test-result")
+    public static let healthKitCategoryValueVaginalBleeding =
+        uri("/healthkit/CodeSystem/healthkit-category-value-vaginal-bleeding")
     public static let healthKitECGClassificationExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-classification")
     public static let healthKitECGSymptomsStatusExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-symptoms-status")
     public static let healthKitECGAverageHeartRateExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-average-heart-rate")

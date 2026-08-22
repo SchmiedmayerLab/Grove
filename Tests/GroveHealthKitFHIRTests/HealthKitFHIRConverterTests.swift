@@ -581,18 +581,8 @@ struct HealthKitFHIRConverterTests {
             HKQuantityTypeIdentifier.bloodPressureSystolic.rawValue,
             HKQuantityTypeIdentifier.bloodPressureDiastolic.rawValue
         ]
-        // Category machinery lands in the next slice; sleep analysis is the one bound today.
-        let pendingCategoryBindings = Set(
-            rows
-                .filter { $0.implementationStatus == .supported }
-                .map(\.sourceTypeIdentifier)
-                .filter { $0.hasPrefix("HKCategoryTypeIdentifier") }
-        ).subtracting([HKCategoryTypeIdentifier.sleepAnalysis.rawValue])
         for row in rows where row.implementationStatus == .supported {
             let identifier = row.sourceTypeIdentifier
-            if pendingCategoryBindings.contains(identifier) {
-                continue
-            }
             let binding = HealthKitFHIRCatalog.binding(forSourceTypeIdentifier: identifier)
             if sampleBindingExemptions.contains(identifier) {
                 #expect(binding == nil, "\(identifier) is served outside the sample binding table")

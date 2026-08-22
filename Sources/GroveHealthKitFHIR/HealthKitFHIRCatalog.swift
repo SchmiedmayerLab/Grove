@@ -47,6 +47,7 @@ struct HealthKitFHIRObservationContract: Sendable {
     let quantity: GroveFHIRQuantityContract?
     let components: [GroveFHIRComponentContract]
     let resultCodeSystem: String?
+    let measurementResultCodes: [GroveFHIRResultCodeContract]
     let method: GroveFHIRMethodContract?
     let effective: GroveFHIRMeasurementEffective
 
@@ -65,6 +66,7 @@ struct HealthKitFHIRObservationContract: Sendable {
         self.quantity = shared.quantity
         self.components = shared.components
         self.resultCodeSystem = shared.resultCodeSystem
+        self.measurementResultCodes = shared.resultCodes
         self.method = shared.method
         self.effective = shared.effective
     }
@@ -75,7 +77,6 @@ struct HealthKitFHIRObservationContract: Sendable {
         quantity: GroveFHIRQuantityContract?,
         components: [GroveFHIRComponentContract] = [],
         resultCodeSystem: String? = nil,
-        method: GroveFHIRMethodContract? = nil,
         effective: GroveFHIRMeasurementEffective
     ) {
         self.measurement = measurement
@@ -83,7 +84,8 @@ struct HealthKitFHIRObservationContract: Sendable {
         self.quantity = quantity
         self.components = components
         self.resultCodeSystem = resultCodeSystem
-        self.method = method
+        self.measurementResultCodes = []
+        self.method = nil
         self.effective = effective
     }
 }
@@ -153,15 +155,6 @@ public enum HealthKitFHIRCatalog {
         }
     }
 
-    private static func categoryBinding(for identifier: String) -> HealthKitFHIRBinding? {
-        switch HKCategoryTypeIdentifier(rawValue: identifier) {
-        case .sleepAnalysis:
-            .sleepStage
-        default:
-            nil
-        }
-    }
-
     private static func assessmentBinding(for identifier: String) -> HealthKitFHIRBinding? {
         switch HKScoredAssessmentTypeIdentifier(rawValue: identifier) {
         case .GAD7:
@@ -175,12 +168,31 @@ public enum HealthKitFHIRCatalog {
 }
 
 
+/// The closed HealthKit category-value enumeration one coded binding absorbs.
+enum HealthKitFHIRCategoryValueAbsorption: Sendable {
+    case appetiteChanges
+    case appleStandHour
+    case cervicalMucusQuality
+    case contraceptive
+    case ovulationTestResult
+    case pregnancyTestResult
+    case progesteroneTestResult
+    case vaginalBleeding
+}
+
+
 @available(iOS 18, macOS 15, watchOS 11, *)
 enum HealthKitFHIRBinding: Sendable {
     case quantity(HealthKitFHIRObservationContract, unit: HKUnit)
     case percent(HealthKitFHIRObservationContract)
     case sessionRate(HealthKitFHIRObservationContract)
+    case sessionDuration(HealthKitFHIRObservationContract)
     case assessmentScore(HealthKitFHIRObservationContract)
+    case severity(HealthKitFHIRObservationContract)
+    case presence(HealthKitFHIRObservationContract)
+    case categoryValue(HealthKitFHIRObservationContract, absorption: HealthKitFHIRCategoryValueAbsorption)
+    case fixedCode(HealthKitFHIRObservationContract)
+    case sexualActivity
     case bloodPressure
     case sleepStage
 
@@ -189,8 +201,15 @@ enum HealthKitFHIRBinding: Sendable {
         case .quantity(let contract, _),
              .percent(let contract),
              .sessionRate(let contract),
-             .assessmentScore(let contract):
+             .sessionDuration(let contract),
+             .assessmentScore(let contract),
+             .severity(let contract),
+             .presence(let contract),
+             .categoryValue(let contract, _),
+             .fixedCode(let contract):
             contract
+        case .sexualActivity:
+            HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.sexualActivity)
         case .bloodPressure:
             HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.bloodPressure)
         case .sleepStage:
@@ -210,8 +229,31 @@ enum HealthKitFHIRBinding: Sendable {
         .sessionRate(HealthKitFHIRObservationContract(shared: shared))
     }
 
+    static func sessionDuration(_ shared: GroveFHIRMeasurementContract) -> Self {
+        .sessionDuration(HealthKitFHIRObservationContract(shared: shared))
+    }
+
     static func assessmentScore(_ shared: GroveFHIRMeasurementContract) -> Self {
         .assessmentScore(HealthKitFHIRObservationContract(shared: shared))
+    }
+
+    static func severity(_ shared: GroveFHIRMeasurementContract) -> Self {
+        .severity(HealthKitFHIRObservationContract(shared: shared))
+    }
+
+    static func presence(_ shared: GroveFHIRMeasurementContract) -> Self {
+        .presence(HealthKitFHIRObservationContract(shared: shared))
+    }
+
+    static func categoryValue(
+        _ shared: GroveFHIRMeasurementContract,
+        absorption: HealthKitFHIRCategoryValueAbsorption
+    ) -> Self {
+        .categoryValue(HealthKitFHIRObservationContract(shared: shared), absorption: absorption)
+    }
+
+    static func fixedCode(_ shared: GroveFHIRMeasurementContract) -> Self {
+        .fixedCode(HealthKitFHIRObservationContract(shared: shared))
     }
 }
 
