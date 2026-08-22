@@ -12,7 +12,7 @@ import SwiftUI
 struct CreateWorkoutView: View {
     var body: some View {
         ContentUnavailableView(
-            "No v0.2 Workout Profile",
+            "No Workout Profile",
             systemImage: "figure.run",
             description: Text("Workout is listed as deferred in the authoritative HealthKit coverage matrix.")
         )

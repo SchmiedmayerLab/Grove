@@ -6,7 +6,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""Generate Swift R4 contract constants from the grove-fhir v0.3 catalogs."""
+"""Generate Swift R4 contract constants from the grove-fhir catalogs."""
 
 from __future__ import annotations
 

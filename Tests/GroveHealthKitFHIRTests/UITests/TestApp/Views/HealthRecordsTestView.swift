@@ -14,7 +14,7 @@ struct HealthRecordsTestView: View {
         ContentUnavailableView(
             "Clinical Records Are Not Re-mapped",
             systemImage: "doc.text.magnifyingglass",
-            description: Text("GroveHealthKitFHIR v0.2 converts admitted mobile measurements. It does not reinterpret embedded Health Records or DSTU2 resources.")
+            description: Text("GroveHealthKitFHIR converts admitted mobile measurements. It does not reinterpret embedded Health Records or DSTU2 resources.")
         )
         .navigationTitle("Health Records")
     }
