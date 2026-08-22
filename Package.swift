@@ -1858,7 +1858,11 @@ targets += [
             .target(name: "GroveAccount"),
             .target(name: "GroveLocalStorage"),
             .target(name: "GroveKeychainStorage"),
-            .product(name: "FirebaseAuth", package: "firebase-ios-sdk")
+            .product(
+                name: "FirebaseAuth",
+                package: "firebase-ios-sdk",
+                condition: .when(platforms: [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS])
+            )
         ],
         exclude: targetExcludes("GroveFirebaseAccount"),
         resources: [
@@ -1871,7 +1875,11 @@ targets += [
         name: "GroveFirebaseConfiguration",
         dependencies: [
             .target(name: "Grove"),
-            .product(name: "FirebaseFirestore", package: "firebase-ios-sdk")
+            .product(
+                name: "FirebaseFirestore",
+                package: "firebase-ios-sdk",
+                condition: .when(platforms: [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS])
+            )
         ],
         exclude: targetExcludes("GroveFirebaseConfiguration"),
         swiftSettings: defaultSwiftSettings,
@@ -1882,7 +1890,11 @@ targets += [
         dependencies: [
             .target(name: "GroveFirebaseConfiguration"),
             .target(name: "Grove"),
-            .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
+            .product(
+                name: "FirebaseFirestore",
+                package: "firebase-ios-sdk",
+                condition: .when(platforms: [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS])
+            ),
             .product(name: "Atomics", package: "swift-atomics")
         ],
         exclude: targetExcludes("GroveFirestore"),
@@ -1897,7 +1909,11 @@ targets += [
         dependencies: [
             .target(name: "GroveFirebaseConfiguration"),
             .target(name: "Grove"),
-            .product(name: "FirebaseStorage", package: "firebase-ios-sdk")
+            .product(
+                name: "FirebaseStorage",
+                package: "firebase-ios-sdk",
+                condition: .when(platforms: [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS])
+            )
         ],
         exclude: targetExcludes("GroveFirebaseStorage"),
         swiftSettings: defaultSwiftSettings,
@@ -1906,7 +1922,11 @@ targets += [
     .target(
         name: "GroveFirebaseAccountStorage",
         dependencies: [
-            .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
+            .product(
+                name: "FirebaseFirestore",
+                package: "firebase-ios-sdk",
+                condition: .when(platforms: [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS])
+            ),
             .target(name: "Grove"),
             .target(name: "GroveAccount"),
             .target(name: "GroveFirestore")
