@@ -25,10 +25,12 @@ struct HealthKitFHIRConverterTests {
     enum QuantityCase: String, CaseIterable, CustomTestStringConvertible, Sendable {
         case activeEnergy
         case basalBodyTemperature
+        case bodyFatPercentage
         case bodyHeight
         case bodyMassIndex
         case bodyTemperature
         case bodyWeight
+        case dietaryEnergy
         case distanceCrossCountrySkiing
         case distanceCycling
         case distanceDownhillSnowSports
@@ -39,9 +41,12 @@ struct HealthKitFHIRConverterTests {
         case distanceWalkingRunning
         case distanceWheelchair
         case heartRate
+        case heartRateVariabilitySDNN
         case oxygenSaturation
         case respiratoryRate
         case stepCount
+        case vo2Max
+        case walkingSpeed
 
         var testDescription: String { rawValue }
 
@@ -49,10 +54,12 @@ struct HealthKitFHIRConverterTests {
             switch self {
             case .activeEnergy: .activeEnergyBurned
             case .basalBodyTemperature: .basalBodyTemperature
+            case .bodyFatPercentage: .bodyFatPercentage
             case .bodyHeight: .height
             case .bodyMassIndex: .bodyMassIndex
             case .bodyTemperature: .bodyTemperature
             case .bodyWeight: .bodyMass
+            case .dietaryEnergy: .dietaryEnergyConsumed
             case .distanceCrossCountrySkiing: .distanceCrossCountrySkiing
             case .distanceCycling: .distanceCycling
             case .distanceDownhillSnowSports: .distanceDownhillSnowSports
@@ -63,15 +70,18 @@ struct HealthKitFHIRConverterTests {
             case .distanceWalkingRunning: .distanceWalkingRunning
             case .distanceWheelchair: .distanceWheelchair
             case .heartRate: .heartRate
+            case .heartRateVariabilitySDNN: .heartRateVariabilitySDNN
             case .oxygenSaturation: .oxygenSaturation
             case .respiratoryRate: .respiratoryRate
             case .stepCount: .stepCount
+            case .vo2Max: .vo2Max
+            case .walkingSpeed: .walkingSpeed
             }
         }
 
         var sourceUnit: HKUnit {
             switch self {
-            case .activeEnergy: .kilocalorie()
+            case .activeEnergy, .dietaryEnergy: .kilocalorie()
             case .basalBodyTemperature, .bodyTemperature: .degreeCelsius()
             case .bodyHeight: .meterUnit(with: .centi)
             case .bodyMassIndex: .count()
@@ -81,8 +91,12 @@ struct HealthKitFHIRConverterTests {
                  .distanceSwimming, .distanceWalkingRunning, .distanceWheelchair:
                 .meter()
             case .heartRate, .respiratoryRate: .count().unitDivided(by: .minute())
-            case .oxygenSaturation: .percent()
+            case .heartRateVariabilitySDNN: .secondUnit(with: .milli)
+            case .bodyFatPercentage, .oxygenSaturation: .percent()
             case .stepCount: .count()
+            case .vo2Max:
+                .literUnit(with: .milli).unitDivided(by: .gramUnit(with: .kilo)).unitDivided(by: .minute())
+            case .walkingSpeed: .meter().unitDivided(by: .second())
             }
         }
 
@@ -90,41 +104,47 @@ struct HealthKitFHIRConverterTests {
             switch self {
             case .activeEnergy: 120
             case .basalBodyTemperature: 36.5
+            case .bodyFatPercentage: 0.223
             case .bodyHeight: 176
             case .bodyMassIndex: 22.1
             case .bodyTemperature: 37.1
             case .bodyWeight: 68.4
+            case .dietaryEnergy: 540
             case .distanceCrossCountrySkiing, .distanceCycling, .distanceDownhillSnowSports,
                  .distancePaddleSports, .distanceRowing, .distanceSkatingSports,
                  .distanceSwimming, .distanceWalkingRunning, .distanceWheelchair:
                 842
             case .heartRate: 72
+            case .heartRateVariabilitySDNN: 48
             case .oxygenSaturation: 0.975
             case .respiratoryRate: 15
             case .stepCount: 431
+            case .vo2Max: 42.5
+            case .walkingSpeed: 1.35
             }
         }
 
         var contract: HealthKitFHIRObservationContract {
             switch self {
-            case .activeEnergy: HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.activeEnergy)
-            case .basalBodyTemperature:
-                HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.basalBodyTemperature)
-            case .bodyHeight: HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.bodyHeight)
+            case .activeEnergy: .init(shared: GroveFHIRMeasurementCatalog.activeEnergy)
+            case .basalBodyTemperature: .init(shared: GroveFHIRMeasurementCatalog.basalBodyTemperature)
+            case .bodyFatPercentage: .init(shared: GroveFHIRMeasurementCatalog.bodyFatPercentage)
+            case .bodyHeight: .init(shared: GroveFHIRMeasurementCatalog.bodyHeight)
             case .bodyMassIndex: .bodyMassIndex
-            case .bodyTemperature:
-                HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.bodyTemperature)
-            case .bodyWeight: HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.bodyWeight)
+            case .bodyTemperature: .init(shared: GroveFHIRMeasurementCatalog.bodyTemperature)
+            case .bodyWeight: .init(shared: GroveFHIRMeasurementCatalog.bodyWeight)
+            case .dietaryEnergy: .init(shared: GroveFHIRMeasurementCatalog.dietaryEnergy)
             case .distanceCrossCountrySkiing, .distanceCycling, .distanceDownhillSnowSports,
                  .distancePaddleSports, .distanceRowing, .distanceSkatingSports,
                  .distanceSwimming, .distanceWalkingRunning, .distanceWheelchair:
-                HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.distance)
-            case .heartRate: HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.heartRate)
-            case .oxygenSaturation:
-                HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.oxygenSaturation)
-            case .respiratoryRate:
-                HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.respiratoryRate)
-            case .stepCount: HealthKitFHIRObservationContract(shared: GroveFHIRMeasurementCatalog.stepCount)
+                .init(shared: GroveFHIRMeasurementCatalog.distance)
+            case .heartRate: .init(shared: GroveFHIRMeasurementCatalog.heartRate)
+            case .heartRateVariabilitySDNN: .init(shared: GroveFHIRMeasurementCatalog.heartRateVariabilitySdnn)
+            case .oxygenSaturation: .init(shared: GroveFHIRMeasurementCatalog.oxygenSaturation)
+            case .respiratoryRate: .init(shared: GroveFHIRMeasurementCatalog.respiratoryRate)
+            case .stepCount: .init(shared: GroveFHIRMeasurementCatalog.stepCount)
+            case .vo2Max: .init(shared: GroveFHIRMeasurementCatalog.vo2Max)
+            case .walkingSpeed: .init(shared: GroveFHIRHealthKitMeasurementCatalog.walkingSpeed)
             }
         }
     }
@@ -230,6 +250,9 @@ struct HealthKitFHIRConverterTests {
         #expect(conversion.observation.effective?.isPeriod == (testCase.contract.effective == .period))
         if testCase == .oxygenSaturation {
             #expect(quantity.value?.value?.decimal.description == "97.5")
+        }
+        if testCase == .bodyFatPercentage {
+            #expect(quantity.value?.value?.decimal.description == "22.3")
         }
     }
 

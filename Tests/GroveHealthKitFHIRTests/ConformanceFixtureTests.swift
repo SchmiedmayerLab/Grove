@@ -185,7 +185,25 @@ struct ConformanceFixtureTests {
 
         try addQuantityVector("active-energy", type: .activeEnergyBurned, unit: .kilocalorie())
         try addQuantityVector("basal-body-temperature", type: .basalBodyTemperature, unit: .degreeCelsius())
+        try addQuantityVector("basal-energy", type: .basalEnergyBurned, unit: .kilocalorie())
+        try addQuantityVector(
+            "blood-glucose-unspecified-specimen",
+            type: .bloodGlucose,
+            unit: .gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci))
+        )
+        try addQuantityVector(
+            "body-fat-percentage",
+            type: .bodyFatPercentage,
+            unit: .percent(),
+            sourceValue: { $0 / 100 }
+        )
         try addQuantityVector("body-height", type: .height, unit: .meterUnit(with: .centi))
+        try addQuantityVector("dietary-energy", type: .dietaryEnergyConsumed, unit: .kilocalorie())
+        try addQuantityVector(
+            "resting-heart-rate",
+            type: .restingHeartRate,
+            unit: .count().unitDivided(by: .minute())
+        )
         try add("body-mass-index", quantity(
             .bodyMassIndex,
             .count(),
@@ -220,6 +238,100 @@ struct ConformanceFixtureTests {
             unit: .count().unitDivided(by: .minute())
         )
         try addQuantityVector("step-count", type: .stepCount, unit: .count())
+
+        func category(
+            _ type: HKCategoryTypeIdentifier,
+            _ value: Int,
+            effective: MobileSemanticVectorFixture.Effective,
+            metadata: [String: Any] = [:]
+        ) throws -> HKCategorySample {
+            let period = try dates(effective)
+            var sourceMetadata = metadata
+            sourceMetadata[HKMetadataKeyTimeZone] = Self.sourceTimeZoneIdentifier
+            return HKCategorySample(
+                type: HKCategoryType(type),
+                value: value,
+                start: period.start,
+                end: period.end,
+                device: Self.device,
+                metadata: sourceMetadata
+            )
+        }
+
+        func addCodedVector(
+            _ id: String,
+            type: HKCategoryTypeIdentifier,
+            value: Int,
+            expecting code: String,
+            metadata: [String: Any] = [:]
+        ) throws {
+            let fixture = try vector(id)
+            guard case .codeableConcept(let vectorCode) = fixture.result, vectorCode == code else {
+                throw FixtureError.unexpectedResult(fixture.id)
+            }
+            try add(id, category(type, value, effective: fixture.effective, metadata: metadata))
+        }
+
+        try addCodedVector(
+            "cervical-mucus-quality",
+            type: .cervicalMucusQuality,
+            value: HKCategoryValueCervicalMucusQuality.dry.rawValue,
+            expecting: "dry"
+        )
+        try addCodedVector(
+            "intermenstrual-bleeding",
+            type: .intermenstrualBleeding,
+            value: HKCategoryValue.notApplicable.rawValue,
+            expecting: "present"
+        )
+        try addCodedVector(
+            "menstruation-flow",
+            type: .menstrualFlow,
+            value: HKCategoryValueVaginalBleeding.unspecified.rawValue,
+            expecting: "unspecified",
+            metadata: [HKMetadataKeyMenstrualCycleStart: true]
+        )
+        try addCodedVector(
+            "ovulation-test-result",
+            type: .ovulationTestResult,
+            value: HKCategoryValueOvulationTestResult.negative.rawValue,
+            expecting: "negative"
+        )
+        try addCodedVector(
+            "sexual-activity",
+            type: .sexualActivity,
+            value: HKCategoryValue.notApplicable.rawValue,
+            expecting: "protected",
+            metadata: [HKMetadataKeySexualActivityProtectionUsed: true]
+        )
+
+        let mindfulness = try vector("mindfulness-session")
+        try add("mindfulness-session", category(
+            .mindfulSession,
+            HKCategoryValue.notApplicable.rawValue,
+            effective: mindfulness.effective
+        ))
+
+        // The graded-symptom and stand-hour families own no Mobile vector, so their fixtures state
+        // their own exact source facts for the guide validator.
+        let symptomStart = try instant("2026-08-20T09:00:00-07:00")
+        try add("symptom-headache", HKCategorySample(
+            type: HKCategoryType(.headache),
+            value: HKCategoryValueSeverity.moderate.rawValue,
+            start: symptomStart,
+            end: symptomStart.addingTimeInterval(3_600),
+            device: Self.device,
+            metadata: [HKMetadataKeyTimeZone: Self.sourceTimeZoneIdentifier]
+        ))
+        let standHourStart = try instant("2026-08-20T10:00:00-07:00")
+        try add("apple-stand-hour", HKCategorySample(
+            type: HKCategoryType(.appleStandHour),
+            value: HKCategoryValueAppleStandHour.stood.rawValue,
+            start: standHourStart,
+            end: standHourStart.addingTimeInterval(3_600),
+            device: Self.device,
+            metadata: [HKMetadataKeyTimeZone: Self.sourceTimeZoneIdentifier]
+        ))
 
         let sleepStage = try vector("sleep-stage")
         guard case .codeableConcept(let sleepStageCode) = sleepStage.result,
@@ -339,19 +451,30 @@ struct ConformanceFixtureTests {
         try encoder.encode(ecgConversion.bundle).write(
             to: directory.appendingPathComponent("electrocardiogram.json")
         )
-        #expect(fixtures.count == 13)
+        #expect(fixtures.count == 26)
         let emittedVectorIDs = Set(fixtures.keys).intersection(Set(MobileSemanticVectorFixtures.all.map(\.id)))
         #expect(emittedVectorIDs == Set([
             "active-energy",
             "basal-body-temperature",
+            "basal-energy",
+            "blood-glucose-unspecified-specimen",
             "blood-pressure",
+            "body-fat-percentage",
             "body-height",
             "body-temperature",
             "body-weight",
+            "cervical-mucus-quality",
+            "dietary-energy",
             "distance",
             "heart-rate",
+            "intermenstrual-bleeding",
+            "menstruation-flow",
+            "mindfulness-session",
+            "ovulation-test-result",
             "oxygen-saturation",
             "respiratory-rate",
+            "resting-heart-rate",
+            "sexual-activity",
             "sleep-stage",
             "step-count"
         ]))
