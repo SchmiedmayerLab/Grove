@@ -204,10 +204,10 @@ extension QuestionnaireItem {
         return coding.code?.value?.string
     }
 
-    /// No Grove 0.2 extension assigns UIKit-specific autocapitalization behavior.
+    /// No Grove extension assigns UIKit-specific autocapitalization behavior.
     public var autocapitalizeRawValue: String? { nil }
 
-    /// No Grove 0.2 extension assigns UIKit-specific text-content behavior.
+    /// No Grove extension assigns UIKit-specific text-content behavior.
     public var autocompleteRawValue: String? { nil }
 
     /// The minimum value for a date answer, resolving relative FHIRPath values at

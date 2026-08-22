@@ -10,7 +10,7 @@ import Foundation
 import GroveFoundation
 
 
-/// Contract-level failures raised before Grove emits a v0.2 Questionnaire resource or pair.
+/// Contract-level failures raised before Grove emits a Questionnaire resource or pair.
 public enum GroveQuestionnaireFHIRContractError: Error, Equatable, Sendable {
     case missingQuestionnaireURL
     case missingQuestionnaireVersion
@@ -22,7 +22,7 @@ public enum GroveQuestionnaireFHIRContractError: Error, Equatable, Sendable {
 }
 
 
-/// Shared fixed values and validation helpers for the Grove Questionnaire 0.2 contract.
+/// Shared fixed values and validation helpers for the Grove Questionnaire contract.
 public enum GroveQuestionnaireFHIRContract {
     /// Semantic Versioning 2.0.0, matching the `qg-version-1` IG invariant.
     public static func isSemanticVersion(_ value: String) -> Bool {

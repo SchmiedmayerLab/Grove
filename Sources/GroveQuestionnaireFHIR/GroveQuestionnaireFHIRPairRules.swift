@@ -218,7 +218,7 @@ extension GroveQuestionnaireFHIRPairRules {
             issues.append(.init(
                 code: code,
                 path: path,
-                message: "Expected exactly the Grove 0.2 profile claim."
+                message: "Expected exactly the Grove profile claim."
             ))
             return
         }

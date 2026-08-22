@@ -12,7 +12,7 @@ public import GroveQuestionnaire
 public import ModelsR4
 
 
-/// The normative, profile-aware construction surface for Grove Questionnaire 0.2.
+/// The normative, profile-aware construction surface for Grove Questionnaire.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct GroveQuestionnaireFHIRBuilder: Sendable {
     /// Creates a stateless Questionnaire exchange builder.

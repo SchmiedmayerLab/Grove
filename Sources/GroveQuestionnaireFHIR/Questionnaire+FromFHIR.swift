@@ -681,7 +681,7 @@ extension ModelsR4.QuestionnaireItem {
             case .none:
                 break
             }
-            // The v0.2 conversion surface maps only the standards-defined SDC keyboard hint.
+            // The conversion surface maps only the standards-defined SDC keyboard hint.
             var keyboard: GroveQuestionnaire.Questionnaire.Task.Kind.FreeTextConfig.KeyboardHint?
             switch extensions(for: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-keyboard").first?.value {
             case .coding(let coding):
