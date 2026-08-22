@@ -18,7 +18,7 @@ on:
       grove_fhir_ref:
         description: grove-fhir branch or commit carrying the v0.2 adapter stack. Defaults to a pinned commit.
         type: string
-        default: bdc8569186e60c7283548ca584b6c5583b28f45e
+        default: 69f26f1ea4ef16ab19e46cbfec6a98b66f1bdf6b
       full_readiness:
         description: Schedule every package and platform instead of only the ones the change touches.
         type: boolean
@@ -32,7 +32,7 @@ on:
       grove_fhir_ref:
         description: grove-fhir branch or commit carrying the v0.2 adapter stack. Defaults to a pinned commit.
         type: string
-        default: bdc8569186e60c7283548ca584b6c5583b28f45e
+        default: 69f26f1ea4ef16ab19e46cbfec6a98b66f1bdf6b
       full_readiness:
         description: Schedule every package and platform instead of only the ones the change touches.
         type: boolean
@@ -237,12 +237,12 @@ jobs:
         with:
           repository: SchmiedmayerLab/grove-fhir
           path: .fhir/grove-fhir
-          ref: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || 'bdc8569186e60c7283548ca584b6c5583b28f45e' }}
+          ref: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || '69f26f1ea4ef16ab19e46cbfec6a98b66f1bdf6b' }}
           persist-credentials: false
       - name: Record grove-fhir contract revision
         working-directory: .fhir/grove-fhir
         run: |
-          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || 'bdc8569186e60c7283548ca584b6c5583b28f45e' }}"
+          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || '69f26f1ea4ef16ab19e46cbfec6a98b66f1bdf6b' }}"
           echo "grove-fhir SHA: $(git rev-parse HEAD)"
       - name: Restore built implementation guides
         id: guide-cache
@@ -289,7 +289,7 @@ jobs:
       - name: Validate resources emitted by Grove
         env:
           FHIR_COMPONENTS: ${{ needs.detect.outputs.fhir_components }}
-          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || 'bdc8569186e60c7283548ca584b6c5583b28f45e' }}
+          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || '69f26f1ea4ef16ab19e46cbfec6a98b66f1bdf6b' }}
         run: |
           IFS=',' read -r -a COMPONENTS <<< "$FHIR_COMPONENTS"
           for component in "${COMPONENTS[@]}"; do

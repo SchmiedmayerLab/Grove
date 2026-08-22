@@ -1368,7 +1368,7 @@ public enum GroveFHIRMeasurementCatalog {
     public static let restingHeartRate = GroveFHIRMeasurementContract(
         id: "resting-heart-rate",
         profile: GroveFHIRProfile.groveMobileRestingHeartRate,
-        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "40443-4", display: "Heart rate --resting"),
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "resting-heart-rate", display: "Resting heart rate"),
         quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "beats/minute"),
         components: [],
         resultCodeSystem: nil,
