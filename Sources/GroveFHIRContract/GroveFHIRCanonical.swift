@@ -25,6 +25,7 @@ public enum GroveFHIRCanonical {
     public static let recordingMethod = uri("/mobile/StructureDefinition/grove-recording-method")
     public static let recordingMethodCodeSystem = uri("/mobile/CodeSystem/grove-recording-method")
     public static let sleepStageCodeSystem = uri("/mobile/CodeSystem/grove-sleep-stage")
+    public static let aggregationMethodCodeSystem = uri("/mobile/CodeSystem/grove-aggregation-method")
 
     // MARK: HealthKit
 
@@ -38,7 +39,18 @@ public enum GroveFHIRCanonical {
     public static let healthKitMetadataKey = uri("/healthkit/CodeSystem/healthkit-metadata-key")
     public static let healthKitSourceType = GroveFHIRHealthKitCatalog.sourceTypeCodeSystem
     public static let healthKitHeartRateMotionContext = uri("/healthkit/CodeSystem/healthkit-heart-rate-motion-context")
+    public static let healthKitInsulinDeliveryReason = uri("/healthkit/CodeSystem/healthkit-insulin-delivery-reason")
     public static let healthKitSleepAnalysis = uri("/healthkit/CodeSystem/healthkit-sleep-analysis")
+    public static let healthKitSymptomSeverity = uri("/healthkit/CodeSystem/healthkit-symptom-severity")
+    public static let healthKitPresence = uri("/healthkit/CodeSystem/healthkit-presence")
+    public static let healthKitAppetiteChanges = uri("/healthkit/CodeSystem/healthkit-appetite-changes")
+    public static let healthKitAppleStandHourValue = uri("/healthkit/CodeSystem/healthkit-apple-stand-hour-value")
+    public static let healthKitCervicalMucusQuality = uri("/healthkit/CodeSystem/healthkit-cervical-mucus-quality")
+    public static let healthKitContraceptive = uri("/healthkit/CodeSystem/healthkit-contraceptive")
+    public static let healthKitOvulationTestResult = uri("/healthkit/CodeSystem/healthkit-ovulation-test-result")
+    /// Shared by the pregnancy and progesterone test-result cases the guide retains in one system.
+    public static let healthKitTestResult = uri("/healthkit/CodeSystem/healthkit-test-result")
+    public static let healthKitVaginalBleeding = uri("/healthkit/CodeSystem/healthkit-vaginal-bleeding")
     public static let healthKitECGClassificationExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-classification")
     public static let healthKitECGSymptomsStatusExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-symptoms-status")
     public static let healthKitECGAverageHeartRateExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-average-heart-rate")

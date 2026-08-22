@@ -299,9 +299,8 @@ extension HealthKitFHIRConverter {
         "http://terminology.hl7.org/CodeSystem/iso-21089-lifecycle"
     private static let observationCategory: FHIRPrimitive<FHIRURI> =
         "http://terminology.hl7.org/CodeSystem/observation-category"
+    /// Displays for the measurements whose generated contract carries no code display.
     private static let measurementDisplays = [
-        "active-energy": "Active energy burned",
-        "basal-body-temperature": "Basal body temperature",
         "blood-pressure": "Blood pressure panel with all children optional",
         "body-height": "Body height",
         "body-mass-index": "Body mass index (BMI) [Ratio]",
@@ -310,9 +309,7 @@ extension HealthKitFHIRConverter {
         "distance": "Distance traveled",
         "heart-rate": "Heart rate",
         "oxygen-saturation": "Oxygen saturation in Arterial blood",
-        "respiratory-rate": "Respiratory rate",
-        "sleep-stage": "Sleep stage",
-        "step-count": "Step count total"
+        "respiratory-rate": "Respiratory rate"
     ]
 
     private static func convertSample(
@@ -324,7 +321,7 @@ extension HealthKitFHIRConverter {
             throw GroveHealthKitFHIRError.missingECGEvidence
         }
         guard let binding = HealthKitFHIRCatalog.binding(for: sample) else {
-            throw GroveHealthKitFHIRError.unsupportedSampleType(sample.sampleType.identifier)
+            throw unconvertibleSampleError(forSourceTypeIdentifier: sample.sampleType.identifier)
         }
         return try assembleGraph(for: sample, context: context) { recordingDeviceURL, converterURL in
             try observation(
@@ -480,6 +477,28 @@ extension HealthKitFHIRConverter {
         )
     }
 
+    /// The catalog-driven reason a sample without a binding fails closed.
+    static func unconvertibleSampleError(
+        forSourceTypeIdentifier identifier: String
+    ) -> GroveHealthKitFHIRError {
+        guard let entry = HealthKitFHIRCatalog.entry(forSourceTypeIdentifier: identifier) else {
+            return .unsupportedSampleType(identifier)
+        }
+        switch entry.implementationStatus {
+        case .intentionallyUnsupported:
+            return .intentionallyUnsupported(sampleType: identifier, reason: entry.requirement ?? "")
+        case .platformExclusive:
+            return .platformExclusiveDocument(sampleType: identifier)
+        case .supported where identifier == HKWorkoutType.workoutType().identifier:
+            return .notYetConvertible(sampleType: identifier)
+        case .supported where identifier == HKQuantityTypeIdentifier.bloodPressureSystolic.rawValue
+            || identifier == HKQuantityTypeIdentifier.bloodPressureDiastolic.rawValue:
+            return .componentSampleRequiresCorrelation(sampleType: identifier)
+        case .supported, .deferred:
+            return .unsupportedSampleType(identifier)
+        }
+    }
+
     static func validate(context: HealthKitFHIRConversionContext) throws {
         guard !context.converter.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw GroveHealthKitFHIRError.invalidConverterApplication("name")
@@ -565,7 +584,7 @@ extension HealthKitFHIRConverter {
             code: CodeableConcept(coding: [
                 Coding(
                     code: contract.code.code.asFHIRStringPrimitive(),
-                    display: measurementDisplay(contract.id).asFHIRStringPrimitive(),
+                    display: measurementDisplay(contract).asFHIRStringPrimitive(),
                     system: FHIRPrimitive(FHIRURI(stringLiteral: contract.code.system))
                 ),
                 Coding(
@@ -580,9 +599,18 @@ extension HealthKitFHIRConverter {
         observation.subject = context.subject
         observation.issued = FHIRPrimitive(try Instant(date: context.conversionInstant))
         observation.category = category(for: contract.id).map { [CodeableConcept(coding: [$0])] }
+        observation.method = contract.method.map { method in
+            CodeableConcept(coding: [Coding(
+                code: method.code.asFHIRStringPrimitive(),
+                display: method.display.asFHIRStringPrimitive(),
+                system: GroveFHIRCanonical.aggregationMethodCodeSystem
+            )])
+        }
         try applyEffective(to: &observation, sample: sample, contract: contract)
         try applyResult(to: &observation, sample: sample, binding: binding, contract: contract)
         try applyHeartRateMotionContext(to: &observation, sample: sample)
+        try applyInsulinDeliveryReason(to: &observation, sample: sample)
+        try applyMenstrualCycleStart(to: &observation, sample: sample, contract: contract)
         applyObservationGraphContext(
             to: &observation,
             sample: sample,
@@ -599,53 +627,126 @@ extension HealthKitFHIRConverter {
         binding: HealthKitFHIRBinding,
         contract: HealthKitFHIRObservationContract
     ) throws {
-        switch binding {
-        case let .quantity(_, unit):
-            guard let quantitySample = sample as? HKQuantitySample,
-                  let quantityContract = contract.quantity else {
-                throw GroveHealthKitFHIRError.invalidValue
-            }
-            let value = quantitySample.quantity.doubleValue(for: unit)
-            observation.value = .quantity(try fhirQuantity(
-                value: value,
-                contract: quantityContract
-            ))
-        case .percent:
-            guard let quantitySample = sample as? HKQuantitySample,
-                  let quantityContract = contract.quantity else {
-                throw GroveHealthKitFHIRError.invalidValue
-            }
-            let value = quantitySample.quantity.doubleValue(for: .percent()) * 100
-            observation.value = .quantity(try fhirQuantity(
-                value: value,
-                contract: quantityContract
-            ))
-        case .bloodPressure:
+        if case .bloodPressure = binding {
             guard let correlation = sample as? HKCorrelation else {
                 throw GroveHealthKitFHIRError.invalidValue
             }
             observation.component = try bloodPressureComponents(correlation, contract: contract)
-        case .sleepStage:
-            guard let categorySample = sample as? HKCategorySample else {
-                throw GroveHealthKitFHIRError.invalidValue
-            }
-            guard let resultCodeSystem = contract.resultCodeSystem else {
-                throw GroveHealthKitFHIRError.missingNormativeCode(contract.id)
-            }
-            let stage = try sleepStage(categorySample.value, sampleType: sample.sampleType.identifier)
-            observation.value = .codeableConcept(CodeableConcept(coding: [
-                Coding(
-                    code: stage.sharedCode.asFHIRStringPrimitive(),
-                    display: stage.sharedDisplay.asFHIRStringPrimitive(),
-                    system: FHIRPrimitive(FHIRURI(stringLiteral: resultCodeSystem))
-                ),
-                Coding(
-                    code: stage.sourceCode.asFHIRStringPrimitive(),
-                    display: stage.sourceDisplay.asFHIRStringPrimitive(),
-                    system: GroveFHIRCanonical.healthKitSleepAnalysis
-                )
-            ]))
+            return
         }
+        observation.value = try result(for: binding, sample: sample, contract: contract)
+    }
+
+    // The closed binding dispatch is intentionally spelled as a single exhaustive switch.
+    // swiftlint:disable:next cyclomatic_complexity
+    private static func result(
+        for binding: HealthKitFHIRBinding,
+        sample: HKSample,
+        contract: HealthKitFHIRObservationContract
+    ) throws -> Observation.ValueX {
+        switch binding {
+        case let .quantity(_, unit):
+            .quantity(try fhirQuantity(
+                value: try quantitySample(sample).quantity.doubleValue(for: unit),
+                contract: quantityContract(contract)
+            ))
+        case .percent:
+            .quantity(try fhirQuantity(
+                value: try quantitySample(sample).quantity.doubleValue(for: .percent()) * 100,
+                contract: quantityContract(contract)
+            ))
+        case .sessionRate:
+            .quantity(try sessionRateValue(sample, contract: contract))
+        case .sessionDuration:
+            .quantity(try sessionDurationValue(sample, contract: contract))
+        case .assessmentScore:
+            .quantity(try assessmentScoreValue(sample, contract: contract))
+        case .sleepStage:
+            .codeableConcept(try sleepStageValue(sample, contract: contract))
+        case .severity:
+            .codeableConcept(try severityValue(sample, contract: contract))
+        case .presence:
+            .codeableConcept(try presenceValue(sample, contract: contract))
+        case let .categoryValue(_, absorption):
+            .codeableConcept(try absorbedCategoryValue(sample, absorption: absorption, contract: contract))
+        case .fixedCode:
+            .codeableConcept(try fixedCodeValue(sample, contract: contract))
+        case .sexualActivity:
+            .codeableConcept(try sexualActivityValue(sample, contract: contract))
+        case .bloodPressure:
+            throw GroveHealthKitFHIRError.invalidValue
+        }
+    }
+
+    private static func sessionRateValue(
+        _ sample: HKSample,
+        contract: HealthKitFHIRObservationContract
+    ) throws -> Quantity {
+        let quantitySample = try quantitySample(sample)
+        let hours = quantitySample.endDate.timeIntervalSince(quantitySample.startDate) / 3_600
+        return try fhirQuantity(
+            value: quantitySample.quantity.doubleValue(for: .count()) / hours,
+            contract: quantityContract(contract)
+        )
+    }
+
+    private static func assessmentScoreValue(
+        _ sample: HKSample,
+        contract: HealthKitFHIRObservationContract
+    ) throws -> Quantity {
+        guard let assessment = sample as? HKScoredAssessment else {
+            throw GroveHealthKitFHIRError.invalidValue
+        }
+        return try fhirQuantity(value: Double(assessment.score), contract: quantityContract(contract))
+    }
+
+    private static func sleepStageValue(
+        _ sample: HKSample,
+        contract: HealthKitFHIRObservationContract
+    ) throws -> CodeableConcept {
+        let stage = try sleepStage(try categorySample(sample).value, sampleType: sample.sampleType.identifier)
+        return CodeableConcept(coding: [
+            Coding(
+                code: stage.sharedCode.asFHIRStringPrimitive(),
+                display: stage.sharedDisplay.asFHIRStringPrimitive(),
+                system: FHIRPrimitive(FHIRURI(stringLiteral: try resultCodeSystem(contract)))
+            ),
+            Coding(
+                code: stage.sourceCode.asFHIRStringPrimitive(),
+                display: stage.sourceDisplay.asFHIRStringPrimitive(),
+                system: GroveFHIRCanonical.healthKitSleepAnalysis
+            )
+        ])
+    }
+
+    static func quantitySample(_ sample: HKSample) throws -> HKQuantitySample {
+        guard let quantitySample = sample as? HKQuantitySample else {
+            throw GroveHealthKitFHIRError.invalidValue
+        }
+        return quantitySample
+    }
+
+    static func categorySample(_ sample: HKSample) throws -> HKCategorySample {
+        guard let categorySample = sample as? HKCategorySample else {
+            throw GroveHealthKitFHIRError.invalidValue
+        }
+        return categorySample
+    }
+
+    static func quantityContract(
+        _ contract: HealthKitFHIRObservationContract
+    ) throws -> GroveFHIRQuantityContract {
+        guard let quantity = contract.quantity else {
+            throw GroveHealthKitFHIRError.invalidValue
+        }
+        return quantity
+    }
+
+    static func resultCodeSystem(_ contract: HealthKitFHIRObservationContract) throws -> String {
+        guard let resultCodeSystem = contract.resultCodeSystem else {
+            throw GroveHealthKitFHIRError.missingNormativeCode(contract.id)
+        }
+        return resultCodeSystem
     }
 
     private static func applyObservationGraphContext(
@@ -722,7 +823,7 @@ extension HealthKitFHIRConverter {
         }
     }
 
-    private static func fhirQuantity(
+    static func fhirQuantity(
         value: Double,
         contract: GroveFHIRQuantityContract
     ) throws -> Quantity {
@@ -750,6 +851,9 @@ extension HealthKitFHIRConverter {
                     component: component.id
                 )
             }
+            guard let componentQuantity = component.quantity else {
+                throw GroveHealthKitFHIRError.invalidValue
+            }
             return ObservationComponent(
                 code: CodeableConcept(coding: [Coding(
                     code: component.code.asFHIRStringPrimitive(),
@@ -757,7 +861,7 @@ extension HealthKitFHIRConverter {
                 )]),
                 value: .quantity(try fhirQuantity(
                     value: sample.quantity.doubleValue(for: .millimeterOfMercury()),
-                    contract: component.quantity
+                    contract: componentQuantity
                 ))
             )
         }
@@ -818,8 +922,8 @@ extension HealthKitFHIRConverter {
         }
     }
 
-    private static func measurementDisplay(_ id: String) -> String {
-        measurementDisplays[id, default: id]
+    private static func measurementDisplay(_ contract: HealthKitFHIRObservationContract) -> String {
+        contract.code.display ?? measurementDisplays[contract.id, default: contract.id]
     }
 
     private static func category(for id: String) -> Coding? {
@@ -871,6 +975,105 @@ extension HealthKitFHIRConverter {
             value: .codeableConcept(CodeableConcept(coding: [coding]))
         )
         observation.component = (observation.component ?? []) + [component]
+    }
+
+    private static func applyInsulinDeliveryReason(
+        to observation: inout Observation,
+        sample: HKSample
+    ) throws {
+        guard sample.sampleType.identifier == HKQuantityTypeIdentifier.insulinDelivery.rawValue else {
+            return
+        }
+        guard let raw = sample.metadata?[HKMetadataKeyInsulinDeliveryReason] as? NSNumber else {
+            throw GroveHealthKitFHIRError.missingRequiredMetadata(
+                sampleType: sample.sampleType.identifier,
+                key: HKMetadataKeyInsulinDeliveryReason
+            )
+        }
+        let coding: Coding = switch raw.intValue {
+        case HKInsulinDeliveryReason.basal.rawValue:
+            Coding(code: "basal", display: "Basal", system: GroveFHIRCanonical.healthKitInsulinDeliveryReason)
+        case HKInsulinDeliveryReason.bolus.rawValue:
+            Coding(code: "bolus", display: "Bolus", system: GroveFHIRCanonical.healthKitInsulinDeliveryReason)
+        default:
+            throw GroveHealthKitFHIRError.unsupportedMetadataValue(
+                key: HKMetadataKeyInsulinDeliveryReason,
+                value: raw.stringValue
+            )
+        }
+        let component = ObservationComponent(
+            code: CodeableConcept(coding: [Coding(
+                code: HKMetadataKeyInsulinDeliveryReason.asFHIRStringPrimitive(),
+                display: "Insulin Delivery Reason".asFHIRStringPrimitive(),
+                system: GroveFHIRCanonical.healthKitMetadataKey
+            )]),
+            value: .codeableConcept(CodeableConcept(coding: [coding]))
+        )
+        observation.component = (observation.component ?? []) + [component]
+    }
+
+    private static func applyMenstrualCycleStart(
+        to observation: inout Observation,
+        sample: HKSample,
+        contract: HealthKitFHIRObservationContract
+    ) throws {
+        guard sample.sampleType.identifier == HKCategoryTypeIdentifier.menstrualFlow.rawValue else {
+            return
+        }
+        let component = try menstrualCycleStartComponent(
+            metadata: sample.metadata ?? [:],
+            sampleType: sample.sampleType.identifier,
+            contract: contract
+        )
+        observation.component = (observation.component ?? []) + [component]
+    }
+
+    /// HealthKit makes cycle-start metadata mandatory on every menstrual-flow sample, so its absence fails closed.
+    ///
+    /// HealthKit rejects a sample without the key at construction, so only this guard can prove the
+    /// converter never silently drops it.
+    static func menstrualCycleStartComponent(
+        metadata: [String: Any],
+        sampleType: String,
+        contract: HealthKitFHIRObservationContract
+    ) throws -> ObservationComponent {
+        guard let contractComponent = contract.components.first(where: { $0.id == "cycleStart" }),
+              let resultCodeSystem = contractComponent.resultCodeSystem else {
+            throw GroveHealthKitFHIRError.missingRequiredComponent(
+                sampleType: sampleType,
+                component: "cycleStart"
+            )
+        }
+        let cycleStart: Bool
+        switch metadata[HKMetadataKeyMenstrualCycleStart] {
+        case nil:
+            throw GroveHealthKitFHIRError.missingRequiredMetadata(
+                sampleType: sampleType,
+                key: HKMetadataKeyMenstrualCycleStart
+            )
+        case let value as Bool:
+            cycleStart = value
+        case let other?:
+            throw GroveHealthKitFHIRError.unsupportedMetadataValue(
+                key: HKMetadataKeyMenstrualCycleStart,
+                value: String(describing: other)
+            )
+        }
+        let code = cycleStart ? "cycle-start" : "not-cycle-start"
+        guard let resultCode = contractComponent.resultCodes.first(where: { $0.code == code }) else {
+            throw GroveHealthKitFHIRError.missingNormativeCode(contract.id)
+        }
+        return ObservationComponent(
+            code: CodeableConcept(coding: [Coding(
+                code: contractComponent.code.asFHIRStringPrimitive(),
+                system: FHIRPrimitive(FHIRURI(stringLiteral: contractComponent.system))
+            )]),
+            value: .codeableConcept(CodeableConcept(coding: [Coding(
+                code: resultCode.code.asFHIRStringPrimitive(),
+                display: resultCode.display.asFHIRStringPrimitive(),
+                system: FHIRPrimitive(FHIRURI(stringLiteral: resultCodeSystem))
+            )]))
+        )
     }
 
 

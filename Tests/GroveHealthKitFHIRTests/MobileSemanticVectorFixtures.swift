@@ -44,12 +44,27 @@ enum MobileSemanticVectorFixtures {
             result: .quantity(value: 36.52)
         ),
         MobileSemanticVectorFixture(
+            id: "basal-energy",
+            effective: .period(start: "2026-08-20T08:00:00-07:00", end: "2026-08-20T09:00:00-07:00"),
+            result: .quantity(value: 68.4)
+        ),
+        MobileSemanticVectorFixture(
+            id: "blood-glucose-unspecified-specimen",
+            effective: .dateTime("2026-08-20T07:45:00.120-07:00"),
+            result: .quantity(value: 104)
+        ),
+        MobileSemanticVectorFixture(
             id: "blood-pressure",
             effective: .dateTime("2026-08-20T08:10:00-07:00"),
             result: .components([
                 .init(id: "systolic", value: 118),
                 .init(id: "diastolic", value: 76)
             ])
+        ),
+        MobileSemanticVectorFixture(
+            id: "body-fat-percentage",
+            effective: .dateTime("2026-08-21T07:12:04.000-07:00"),
+            result: .quantity(value: 23.5)
         ),
         MobileSemanticVectorFixture(
             id: "body-height",
@@ -62,9 +77,224 @@ enum MobileSemanticVectorFixtures {
             result: .quantity(value: 37.1)
         ),
         MobileSemanticVectorFixture(
+            id: "body-water-mass",
+            effective: .dateTime("2026-08-21T07:12:04.000-07:00"),
+            result: .quantity(value: 38.2)
+        ),
+        MobileSemanticVectorFixture(
             id: "body-weight",
             effective: .dateTime("2026-08-20T08:25:00-07:00"),
             result: .quantity(value: 68.4)
+        ),
+        MobileSemanticVectorFixture(
+            id: "bone-mass",
+            effective: .dateTime("2026-08-21T07:12:04.000-07:00"),
+            result: .quantity(value: 3.1)
+        ),
+        MobileSemanticVectorFixture(
+            id: "cervical-mucus-quality",
+            effective: .dateTime("2026-08-20T07:20:00-07:00"),
+            result: .codeableConcept(code: "dry")
+        ),
+        MobileSemanticVectorFixture(
+            id: "cycling-cadence",
+            effective: .dateTime("2026-08-20T08:30:00.251-07:00"),
+            result: .quantity(value: 85)
+        ),
+        MobileSemanticVectorFixture(
+            id: "deep-sleep-duration",
+            effective: .period(start: "2026-08-19T22:40:00-07:00", end: "2026-08-20T06:55:00-07:00"),
+            result: .quantity(value: 92)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-biotin",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 45)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-caffeine",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-calcium",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-carbohydrates",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 24.5)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-chloride",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-cholesterol",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-chromium",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 45)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-copper",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 45)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-energy",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 640)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-fat-monounsaturated",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 24.5)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-fat-polyunsaturated",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 24.5)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-fat-saturated",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 24.5)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-fat-total",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 24.5)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-fiber",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 24.5)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-folate",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 45)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-iodine",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 45)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-iron",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-magnesium",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-manganese",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-molybdenum",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 45)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-niacin",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-pantothenic-acid",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-phosphorus",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-potassium",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-protein",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 24.5)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-riboflavin",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-selenium",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 45)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-sodium",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-sugar",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 24.5)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-thiamin",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-vitamin-a",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 45)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-vitamin-b12",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 45)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-vitamin-b6",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-vitamin-c",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-vitamin-d",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 45)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-vitamin-e",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-vitamin-k",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 45)
+        ),
+        MobileSemanticVectorFixture(
+            id: "dietary-zinc",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 320)
         ),
         MobileSemanticVectorFixture(
             id: "distance",
@@ -72,9 +302,64 @@ enum MobileSemanticVectorFixtures {
             result: .quantity(value: 4820.5)
         ),
         MobileSemanticVectorFixture(
+            id: "electrodermal-activity",
+            effective: .dateTime("2026-08-20T10:02:30-07:00"),
+            result: .quantity(value: 2.4)
+        ),
+        MobileSemanticVectorFixture(
+            id: "flights-climbed",
+            effective: .period(start: "2026-08-20T08:00:00-07:00", end: "2026-08-20T09:00:00-07:00"),
+            result: .quantity(value: 6)
+        ),
+        MobileSemanticVectorFixture(
+            id: "fluid-intake",
+            effective: .period(start: "2026-08-20T12:15:00-07:00", end: "2026-08-20T12:45:00-07:00"),
+            result: .quantity(value: 350)
+        ),
+        MobileSemanticVectorFixture(
             id: "heart-rate",
             effective: .dateTime("2026-08-20T08:30:00.251-07:00"),
             result: .quantity(value: 72)
+        ),
+        MobileSemanticVectorFixture(
+            id: "heart-rate-variability-rmssd",
+            effective: .dateTime("2026-08-20T06:58:12.500-07:00"),
+            result: .quantity(value: 38)
+        ),
+        MobileSemanticVectorFixture(
+            id: "heart-rate-variability-sdnn",
+            effective: .dateTime("2026-08-20T03:12:44.000-07:00"),
+            result: .quantity(value: 54)
+        ),
+        MobileSemanticVectorFixture(
+            id: "intermenstrual-bleeding",
+            effective: .dateTime("2026-08-20T07:20:00-07:00"),
+            result: .codeableConcept(code: "present")
+        ),
+        MobileSemanticVectorFixture(
+            id: "lean-body-mass",
+            effective: .dateTime("2026-08-21T07:12:04.000-07:00"),
+            result: .quantity(value: 55.3)
+        ),
+        MobileSemanticVectorFixture(
+            id: "light-sleep-duration",
+            effective: .period(start: "2026-08-19T22:40:00-07:00", end: "2026-08-20T06:55:00-07:00"),
+            result: .quantity(value: 214)
+        ),
+        MobileSemanticVectorFixture(
+            id: "menstruation-flow",
+            effective: .dateTime("2026-08-20T07:20:00-07:00"),
+            result: .codeableConcept(code: "unspecified")
+        ),
+        MobileSemanticVectorFixture(
+            id: "mindfulness-session",
+            effective: .period(start: "2026-08-20T07:00:00-07:00", end: "2026-08-20T07:10:00-07:00"),
+            result: .quantity(value: 10)
+        ),
+        MobileSemanticVectorFixture(
+            id: "ovulation-test-result",
+            effective: .dateTime("2026-08-20T07:20:00-07:00"),
+            result: .codeableConcept(code: "negative")
         ),
         MobileSemanticVectorFixture(
             id: "oxygen-saturation",
@@ -82,9 +367,49 @@ enum MobileSemanticVectorFixtures {
             result: .quantity(value: 98)
         ),
         MobileSemanticVectorFixture(
+            id: "oxygen-saturation-daily-average",
+            effective: .period(start: "2026-08-19T22:40:00-07:00", end: "2026-08-20T06:55:00-07:00"),
+            result: .quantity(value: 96.5)
+        ),
+        MobileSemanticVectorFixture(
+            id: "power",
+            effective: .dateTime("2026-08-20T08:30:00.251-07:00"),
+            result: .quantity(value: 220)
+        ),
+        MobileSemanticVectorFixture(
+            id: "rem-sleep-duration",
+            effective: .period(start: "2026-08-19T22:40:00-07:00", end: "2026-08-20T06:55:00-07:00"),
+            result: .quantity(value: 104)
+        ),
+        MobileSemanticVectorFixture(
             id: "respiratory-rate",
             effective: .dateTime("2026-08-20T08:40:00-07:00"),
             result: .quantity(value: 15)
+        ),
+        MobileSemanticVectorFixture(
+            id: "respiratory-rate-average",
+            effective: .period(start: "2026-08-19T22:40:00-07:00", end: "2026-08-20T06:55:00-07:00"),
+            result: .quantity(value: 14.8)
+        ),
+        MobileSemanticVectorFixture(
+            id: "resting-heart-rate",
+            effective: .period(start: "2026-08-19T22:40:00-07:00", end: "2026-08-20T06:55:00-07:00"),
+            result: .quantity(value: 58)
+        ),
+        MobileSemanticVectorFixture(
+            id: "sexual-activity",
+            effective: .dateTime("2026-08-20T07:20:00-07:00"),
+            result: .codeableConcept(code: "protected")
+        ),
+        MobileSemanticVectorFixture(
+            id: "skin-temperature",
+            effective: .dateTime("2026-08-21T03:41:12.000-07:00"),
+            result: .quantity(value: 34.9)
+        ),
+        MobileSemanticVectorFixture(
+            id: "sleep-awake-duration",
+            effective: .period(start: "2026-08-19T22:40:00-07:00", end: "2026-08-20T06:55:00-07:00"),
+            result: .quantity(value: 31)
         ),
         MobileSemanticVectorFixture(
             id: "sleep-duration",
@@ -92,14 +417,44 @@ enum MobileSemanticVectorFixtures {
             result: .quantity(value: 7.5)
         ),
         MobileSemanticVectorFixture(
+            id: "sleep-heart-rate",
+            effective: .period(start: "2026-08-19T22:40:00-07:00", end: "2026-08-20T06:55:00-07:00"),
+            result: .quantity(value: 52)
+        ),
+        MobileSemanticVectorFixture(
             id: "sleep-stage",
             effective: .period(start: "2026-08-20T00:10:00-07:00", end: "2026-08-20T00:42:00-07:00"),
             result: .codeableConcept(code: "light")
         ),
         MobileSemanticVectorFixture(
+            id: "speed",
+            effective: .dateTime("2026-08-20T08:30:00.251-07:00"),
+            result: .quantity(value: 3.2)
+        ),
+        MobileSemanticVectorFixture(
             id: "step-count",
             effective: .period(start: "2026-08-20T08:00:00-07:00", end: "2026-08-20T09:00:00-07:00"),
             result: .quantity(value: 1042)
+        ),
+        MobileSemanticVectorFixture(
+            id: "vo2-max",
+            effective: .dateTime("2026-08-20T09:15:00-07:00"),
+            result: .quantity(value: 41.2)
+        ),
+        MobileSemanticVectorFixture(
+            id: "wheelchair-push-count",
+            effective: .period(start: "2026-08-20T08:00:00-07:00", end: "2026-08-20T09:00:00-07:00"),
+            result: .quantity(value: 412)
+        ),
+        MobileSemanticVectorFixture(
+            id: "workout",
+            effective: .period(start: "2026-08-20T17:00:00-07:00", end: "2026-08-20T17:45:00-07:00"),
+            result: .codeableConcept(code: "running")
+        ),
+        MobileSemanticVectorFixture(
+            id: "workout-segment",
+            effective: .period(start: "2026-08-20T17:00:00-07:00", end: "2026-08-20T17:45:00-07:00"),
+            result: .codeableConcept(code: "lap")
         )
     ]
 }
