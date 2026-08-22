@@ -21,41 +21,9 @@ struct SensorKitFHIRCatalogTests {
         #expect(catalog.version == "0.2.0")
         #expect(catalog.fhirVersion == "4.0.1")
         #expect(tokens == tokens.sorted())
-        #expect(Set(tokens).count == 24)
+        #expect(Set(tokens).count == 22)
         #expect(catalog.entries.count { $0.scope == .catalogBaseline } == 20)
         #expect(catalog.entries.count { $0.scope == .stableAddition } == 2)
-    }
-
-    @Test
-    func implementedGroveSourcesArePinnedExactly() {
-        let catalog = SensorKitFHIRCatalog.current
-        let actual = Dictionary(uniqueKeysWithValues: catalog.entries.compactMap { entry in
-            entry.groveSensor.map { (entry.sourceToken, $0) }
-        })
-        let expected = [
-            "SRSensor.accelerometer": "Sensor.accelerometer",
-            "SRSensor.ambientLightSensor": "Sensor.ambientLight",
-            "SRSensor.ambientPressure": "Sensor.ambientPressure",
-            "SRSensor.deviceUsageReport": "Sensor.deviceUsage",
-            "SRSensor.electrocardiogram": "Sensor.ecg",
-            "SRSensor.faceMetrics": "Sensor.faceMetrics",
-            "SRSensor.heartRate": "Sensor.heartRate",
-            "SRSensor.keyboardMetrics": "Sensor.keyboardMetrics",
-            "SRSensor.mediaEvents": "Sensor.mediaEvents",
-            "SRSensor.messagesUsageReport": "Sensor.messagesUsage",
-            "SRSensor.odometer": "Sensor.odometer",
-            "SRSensor.onWristState": "Sensor.onWrist",
-            "SRSensor.pedometerData": "Sensor.pedometer",
-            "SRSensor.phoneUsageReport": "Sensor.phoneUsage",
-            "SRSensor.photoplethysmogram": "Sensor.ppg",
-            "SRSensor.rotationRate": "Sensor.rotationRate",
-            "SRSensor.siriSpeechMetrics": "Sensor.siriSpeechMetrics",
-            "SRSensor.telephonySpeechMetrics": "Sensor.telephonySpeechMetrics",
-            "SRSensor.visits": "Sensor.visits",
-            "SRSensor.wristTemperature": "Sensor.wristTemperature"
-        ]
-
-        #expect(actual == expected)
     }
 
     @Test
@@ -80,7 +48,7 @@ struct SensorKitFHIRCatalogTests {
         #expect(catalog.entries.filter { $0.scope == .catalogBaseline }.allSatisfy {
             !$0.rawProfiles.isEmpty
         })
-        #expect(catalog.entries.filter { $0.status == .providerSpecific }.map(\.sourceToken) == [
+        #expect(catalog.entries.filter { $0.status == .platformExclusive }.map(\.sourceToken) == [
             "SRSensor.deviceUsageReport",
             "SRSensor.onWristState",
             "SRSensor.visits"

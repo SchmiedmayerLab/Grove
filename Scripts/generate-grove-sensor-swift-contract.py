@@ -122,7 +122,7 @@ def validate_adapter(adapter: dict[str, Any], assertions: list[str]) -> list[dic
     for entry in entries:
         if entry.get("status") not in vocabulary:
             raise ValueError(f"unknown SensorKit status for {entry.get('sourceToken')}")
-        if entry.get("status") in {"supported", "provider-specific"} and structured_contract(entry) is None:
+        if entry.get("status") in {"supported", "platform-exclusive"} and structured_contract(entry) is None:
             raise ValueError(f"structured SensorKit row has no known contract: {entry['sourceToken']}")
     return entries
 
@@ -224,7 +224,8 @@ def generate(sensor_path: Path, adapter_path: Path) -> str:
     status_cases = {
         "supported": "supported",
         "mapped-standard": "mappedStandard",
-        "provider-specific": "providerSpecific",
+        "platform-exclusive": "platformExclusive",
+        "unmodeled": "unmodeled",
         "deferred": "deferred",
         "intentionally-unsupported": "intentionallyUnsupported",
     }
@@ -236,7 +237,6 @@ def generate(sensor_path: Path, adapter_path: Path) -> str:
             "            SensorKitFHIRCatalogEntry(",
             f"                sourceToken: {swift_string(entry['sourceToken'])},",
             f"                sourceTypeCode: {swift_string(entry['sourceTypeCode'])},",
-            f"                groveSensor: {swift_string(entry['groveSensor']) if entry.get('groveSensor') else 'nil'},",
             f"                minimumIOS: {swift_string(entry['minimumIOS'])},",
             f"                scope: .{swift_name(entry['scope'])},",
             f"                status: .{status_cases[entry['status']]},",

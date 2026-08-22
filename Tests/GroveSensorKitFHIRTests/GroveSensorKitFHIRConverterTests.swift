@@ -237,11 +237,25 @@ struct GroveSensorKitFHIRConverterTests {
     func deferredPlatformAdditionCannotClaimRawSupport() throws {
         let record = GroveSensorKitRawRecord(
             sourceRecordID: try Self.sourceID,
+            sourceToken: "SRSensor.sleepSessions",
+            nativeRecording: try Self.native()
+        )
+        #expect(throws: GroveSensorKitFHIRConversionError.invalidRecord(
+            .sourceTypeHasNoRawContract("SRSensor.sleepSessions")
+        )) {
+            try GroveSensorKitFHIRConverter().convert(.raw(record), context: Self.context)
+        }
+    }
+
+    @Test
+    func unknownSourceTokenIsNotAdmitted() throws {
+        let record = GroveSensorKitRawRecord(
+            sourceRecordID: try Self.sourceID,
             sourceToken: "SRSensor.headphoneMotion",
             nativeRecording: try Self.native()
         )
         #expect(throws: GroveSensorKitFHIRConversionError.invalidRecord(
-            .sourceTypeHasNoRawContract("SRSensor.headphoneMotion")
+            .sourceTypeNotAdmitted("SRSensor.headphoneMotion")
         )) {
             try GroveSensorKitFHIRConverter().convert(.raw(record), context: Self.context)
         }

@@ -281,7 +281,7 @@ public enum GroveSensorKitVisitLocationCategory: String, CaseIterable, Sendable 
 }
 
 
-/// A provider-specific SensorKit visit projection. The private location identifier is not emitted.
+/// A platform-exclusive SensorKit visit projection. The private location identifier is not emitted.
 public struct GroveSensorKitVisitRecord: Sendable {
     public let sourceRecordID: GroveSensorKitSourceRecordID
     public let locationCategory: GroveSensorKitVisitLocationCategory

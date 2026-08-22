@@ -20,7 +20,8 @@ public enum SensorKitFHIRCatalogScope: String, CaseIterable, Sendable {
 public enum SensorKitFHIRImplementationStatus: String, CaseIterable, Sendable {
     case supported
     case mappedStandard = "mapped-standard"
-    case providerSpecific = "provider-specific"
+    case platformExclusive = "platform-exclusive"
+    case unmodeled
     case deferred
     case intentionallyUnsupported = "intentionally-unsupported"
 }
@@ -40,7 +41,6 @@ public enum SensorKitFHIRStructuredContract: String, CaseIterable, Sendable {
 public struct SensorKitFHIRCatalogEntry: Equatable, Sendable {
     public let sourceToken: String
     public let sourceTypeCode: String
-    public let groveSensor: String?
     public let minimumIOS: String
     public let scope: SensorKitFHIRCatalogScope
     public let status: SensorKitFHIRImplementationStatus

@@ -51,7 +51,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.accelerometer",
                 sourceTypeCode: "accelerometer",
-                groveSensor: nil,
                 minimumIOS: "14.0",
                 scope: .catalogBaseline,
                 status: .mappedStandard,
@@ -63,7 +62,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.acousticSettings",
                 sourceTypeCode: "acoustic-settings",
-                groveSensor: nil,
                 minimumIOS: "26.0",
                 scope: .stableAddition,
                 status: .deferred,
@@ -75,7 +73,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.ambientLightSensor",
                 sourceTypeCode: "ambient-light",
-                groveSensor: nil,
                 minimumIOS: "14.0",
                 scope: .catalogBaseline,
                 status: .mappedStandard,
@@ -87,7 +84,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.ambientPressure",
                 sourceTypeCode: "ambient-pressure",
-                groveSensor: nil,
                 minimumIOS: "15.4",
                 scope: .catalogBaseline,
                 status: .mappedStandard,
@@ -99,10 +95,9 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.deviceUsageReport",
                 sourceTypeCode: "device-usage",
-                groveSensor: nil,
                 minimumIOS: "14.0",
                 scope: .catalogBaseline,
-                status: .providerSpecific,
+                status: .platformExclusive,
                 structuredContract: .deviceUsage,
                 structuredProfiles: ["https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-device-usage-observation"],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
@@ -111,7 +106,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.electrocardiogram",
                 sourceTypeCode: "ecg",
-                groveSensor: nil,
                 minimumIOS: "17.4",
                 scope: .catalogBaseline,
                 status: .supported,
@@ -123,7 +117,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.faceMetrics",
                 sourceTypeCode: "face-metrics",
-                groveSensor: nil,
                 minimumIOS: "17.0",
                 scope: .catalogBaseline,
                 status: .mappedStandard,
@@ -135,7 +128,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.heartRate",
                 sourceTypeCode: "heart-rate",
-                groveSensor: nil,
                 minimumIOS: "17.0",
                 scope: .catalogBaseline,
                 status: .mappedStandard,
@@ -147,7 +139,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.keyboardMetrics",
                 sourceTypeCode: "keyboard-metrics",
-                groveSensor: nil,
                 minimumIOS: "14.0",
                 scope: .catalogBaseline,
                 status: .mappedStandard,
@@ -159,7 +150,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.mediaEvents",
                 sourceTypeCode: "media-events",
-                groveSensor: nil,
                 minimumIOS: "16.4",
                 scope: .catalogBaseline,
                 status: .mappedStandard,
@@ -171,7 +161,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.messagesUsageReport",
                 sourceTypeCode: "messages-usage",
-                groveSensor: nil,
                 minimumIOS: "14.0",
                 scope: .catalogBaseline,
                 status: .mappedStandard,
@@ -183,7 +172,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.odometer",
                 sourceTypeCode: "odometer",
-                groveSensor: nil,
                 minimumIOS: "17.0",
                 scope: .catalogBaseline,
                 status: .mappedStandard,
@@ -195,10 +183,9 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.onWristState",
                 sourceTypeCode: "on-wrist",
-                groveSensor: nil,
                 minimumIOS: "14.0",
                 scope: .catalogBaseline,
-                status: .providerSpecific,
+                status: .platformExclusive,
                 structuredContract: .onWrist,
                 structuredProfiles: ["https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-on-wrist-observation"],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
@@ -207,7 +194,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.pedometerData",
                 sourceTypeCode: "pedometer",
-                groveSensor: nil,
                 minimumIOS: "14.0",
                 scope: .catalogBaseline,
                 status: .mappedStandard,
@@ -219,7 +205,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.phoneUsageReport",
                 sourceTypeCode: "phone-usage",
-                groveSensor: nil,
                 minimumIOS: "14.0",
                 scope: .catalogBaseline,
                 status: .mappedStandard,
@@ -231,7 +216,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.photoplethysmogram",
                 sourceTypeCode: "ppg",
-                groveSensor: nil,
                 minimumIOS: "17.4",
                 scope: .catalogBaseline,
                 status: .mappedStandard,
@@ -243,7 +227,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.rotationRate",
                 sourceTypeCode: "rotation-rate",
-                groveSensor: nil,
                 minimumIOS: "14.0",
                 scope: .catalogBaseline,
                 status: .supported,
@@ -255,7 +238,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.siriSpeechMetrics",
                 sourceTypeCode: "siri-speech-metrics",
-                groveSensor: nil,
                 minimumIOS: "15.0",
                 scope: .catalogBaseline,
                 status: .mappedStandard,
@@ -267,7 +249,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.sleepSessions",
                 sourceTypeCode: "sleep-sessions",
-                groveSensor: nil,
                 minimumIOS: "26.0",
                 scope: .stableAddition,
                 status: .deferred,
@@ -279,7 +260,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.telephonySpeechMetrics",
                 sourceTypeCode: "telephony-speech-metrics",
-                groveSensor: nil,
                 minimumIOS: "15.0",
                 scope: .catalogBaseline,
                 status: .mappedStandard,
@@ -291,10 +271,9 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.visits",
                 sourceTypeCode: "visits",
-                groveSensor: nil,
                 minimumIOS: "14.0",
                 scope: .catalogBaseline,
-                status: .providerSpecific,
+                status: .platformExclusive,
                 structuredContract: .visit,
                 structuredProfiles: ["https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-visit-observation"],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
@@ -303,7 +282,6 @@ enum GroveSensorKitGenerated {
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.wristTemperature",
                 sourceTypeCode: "wrist-temperature",
-                groveSensor: nil,
                 minimumIOS: "17.0",
                 scope: .catalogBaseline,
                 status: .mappedStandard,
