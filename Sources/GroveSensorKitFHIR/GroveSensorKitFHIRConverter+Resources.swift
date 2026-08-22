@@ -123,7 +123,7 @@ extension GroveSensorKitFHIRConverter {
             author: authors,
             content: [DocumentReferenceContent(
                 attachment: try attachment(native),
-                format: native.format
+                format: try recordingFormat(native.format, entry: entry)
             )],
             context: related.isEmpty ? nil : DocumentReferenceContext(related: related),
             date: FHIRPrimitive(try exactInstant(context.recordedAt, timeZone: context.sourceTimeZone)),

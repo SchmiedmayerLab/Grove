@@ -56,11 +56,13 @@ struct GroveSensorKitFHIRConverterTests {
     }
 
     private static func native(
-        admission: GroveSensorRawPayloadAdmission = .verifiedSanitizedInput
+        admission: GroveSensorRawPayloadAdmission = .verifiedSanitizedInput,
+        format: String = "native-json-1"
     ) throws -> GroveSensorKitNativeRecording {
         try GroveSensorKitNativeRecording(
             title: "Exact SensorKit native record",
             contentType: "application/json",
+            format: format,
             payload: .inline(Data(#"{"flags":[0,2,1,0]}"#.utf8)),
             admission: admission
         )
@@ -152,6 +154,9 @@ struct GroveSensorKitFHIRConverterTests {
             FHIRPrimitive(Canonical(stringLiteral: GroveSensorKitContract.sensorRecordingDocumentProfile)),
             FHIRPrimitive(Canonical(stringLiteral: GroveSensorKitContract.recordingDocumentProfile))
         ])
+        let format = try #require(document.content.first?.format)
+        #expect(format.system?.value?.url.absoluteString == GroveSensorKitContract.recordingFormatCodeSystem)
+        #expect(format.code?.value?.string == "native-json-1")
         #expect(observation.derivedFrom?.first?.reference?.value?.string == entries[1].fullUrl?.value?.url.absoluteString)
         #expect(conversion.provenance.target.count == 2)
         #expect(conversion.provenance.meta?.profile == [FHIRPrimitive(Canonical(
@@ -219,8 +224,8 @@ struct GroveSensorKitFHIRConverterTests {
     func rawAdmissionIsConsumedButNeverSerialized(_ admission: GroveSensorRawPayloadAdmission) throws {
         let record = GroveSensorKitRawRecord(
             sourceRecordID: try Self.sourceID,
-            sourceToken: "SRSensor.photoplethysmogram",
-            nativeRecording: try Self.native(admission: admission)
+            sourceToken: "SRSensor.heartRate",
+            nativeRecording: try Self.native(admission: admission, format: "grove-csv-1")
         )
         let conversion = try GroveSensorKitFHIRConverter().convert(.raw(record), context: Self.context)
         let json = try #require(String(data: JSONEncoder().encode(conversion.bundle), encoding: .utf8))
@@ -229,8 +234,22 @@ struct GroveSensorKitFHIRConverterTests {
             #expect(!json.contains(value.rawValue))
         }
         #expect(conversion.observations.isEmpty)
-        #expect(conversion.recordingDocument != nil)
+        #expect(conversion.recordingDocument?.content.first?.format?.code?.value?.string == "grove-csv-1")
         #expect(conversion.provenance.target.count == 1)
+    }
+
+    @Test
+    func unregisteredRecordingFormatFailsClosed() throws {
+        let record = GroveSensorKitRawRecord(
+            sourceRecordID: try Self.sourceID,
+            sourceToken: "SRSensor.heartRate",
+            nativeRecording: try Self.native(format: "native-json-1")
+        )
+        #expect(throws: GroveSensorKitFHIRConversionError.invalidRecord(
+            .recordingFormatNotAdmitted("native-json-1")
+        )) {
+            try GroveSensorKitFHIRConverter().convert(.raw(record), context: Self.context)
+        }
     }
 
     @Test

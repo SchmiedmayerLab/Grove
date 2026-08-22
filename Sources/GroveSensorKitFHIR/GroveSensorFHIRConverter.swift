@@ -468,7 +468,10 @@ extension GroveSensorFHIRConverter {
             author: authors,
             content: [DocumentReferenceContent(
                 attachment: try attachment(record),
-                format: record.format
+                format: Coding(
+                    code: record.format.asFHIRStringPrimitive(),
+                    system: GroveSensorKitContract.recordingFormatCodeSystem.asFHIRURIPrimitive()
+                )
             )],
             context: related.isEmpty ? nil : DocumentReferenceContext(related: related),
             date: FHIRPrimitive(try Instant(date: context.recordedAt)),

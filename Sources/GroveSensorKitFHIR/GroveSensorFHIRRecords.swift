@@ -29,6 +29,7 @@ public enum GroveSensorFHIRRecordError: Error, Equatable, Sendable {
     case duplicateECGLead(system: String, code: String)
     case invalidAttachmentTitle
     case invalidContentType
+    case invalidRecordingFormat
     case emptyPayload
     case invalidSidecarPath(String)
     case payloadTooLarge(byteCount: Int)
@@ -299,8 +300,8 @@ public struct GroveSensorRecordingDocument: Sendable {
     public let type: GroveSensorFHIRCode
     public let title: String
     public let contentType: String
+    public let format: String
     public let payload: Payload
-    public let format: Coding?
     public let related: [GroveFHIRBusinessIdentifier]
 
     let adapterProfile: FHIRPrimitive<Canonical>?
@@ -311,9 +312,9 @@ public struct GroveSensorRecordingDocument: Sendable {
         type: GroveSensorFHIRCode,
         title: String,
         contentType: String,
+        format: String,
         payload: Payload,
         rawPayloadAdmission: GroveSensorRawPayloadAdmission?,
-        format: Coding? = nil,
         related: [GroveFHIRBusinessIdentifier] = []
     ) throws {
         try self.init(
@@ -322,9 +323,9 @@ public struct GroveSensorRecordingDocument: Sendable {
             type: type,
             title: title,
             contentType: contentType,
+            format: format,
             payload: payload,
             rawPayloadAdmission: rawPayloadAdmission,
-            format: format,
             related: related,
             adapterProfile: nil
         )
@@ -336,9 +337,9 @@ public struct GroveSensorRecordingDocument: Sendable {
         type: GroveSensorFHIRCode,
         title: String,
         contentType: String,
+        format: String,
         payload: Payload,
         rawPayloadAdmission: GroveSensorRawPayloadAdmission?,
-        format: Coding?,
         related: [GroveFHIRBusinessIdentifier],
         adapterProfile: FHIRPrimitive<Canonical>?
     ) throws {
@@ -350,6 +351,9 @@ public struct GroveSensorRecordingDocument: Sendable {
         }
         guard Self.isValidContentType(contentType) else {
             throw GroveSensorFHIRRecordError.invalidContentType
+        }
+        guard !format.isEmpty else {
+            throw GroveSensorFHIRRecordError.invalidRecordingFormat
         }
         let bytes: Data
         switch payload {
@@ -372,8 +376,8 @@ public struct GroveSensorRecordingDocument: Sendable {
         self.type = type
         self.title = title
         self.contentType = contentType
-        self.payload = payload
         self.format = format
+        self.payload = payload
         self.related = related
         self.adapterProfile = adapterProfile
     }

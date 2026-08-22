@@ -272,6 +272,16 @@ extension GroveSensorKitFHIRConverter {
         )
     }
 
+    static func recordingFormat(_ code: String, entry: SensorKitFHIRCatalogEntry) throws -> Coding {
+        guard entry.rawFormats.contains(code) else {
+            throw GroveSensorKitFHIRRecordError.recordingFormatNotAdmitted(code)
+        }
+        return Coding(
+            code: code.asFHIRStringPrimitive(),
+            system: GroveSensorKitContract.recordingFormatCodeSystem.asFHIRURIPrimitive()
+        )
+    }
+
     static func attachment(_ recording: GroveSensorKitNativeRecording) throws -> Attachment {
         guard let size = Int32(exactly: recording.bytes.count) else {
             throw GroveSensorKitFHIRConversionError.payloadTooLarge(

@@ -12,7 +12,6 @@
 
 public import Foundation
 public import GroveFHIRContract
-public import ModelsR4
 
 
 /// Fail-closed validation errors for SensorKit adapter inputs.
@@ -32,6 +31,8 @@ public enum GroveSensorKitFHIRRecordError: Error, Equatable, Sendable {
     case invalidVisitPeriod
     case invalidAttachmentTitle
     case invalidContentType
+    case invalidRecordingFormat
+    case recordingFormatNotAdmitted(String)
     case emptyPayload
     case invalidSidecarPath(String)
     case missingProviderValue(String)
@@ -74,21 +75,24 @@ public struct GroveSensorKitNativeRecording: Sendable {
 
     public let title: String
     public let contentType: String
+    public let format: String
     public let payload: Payload
-    public let format: Coding?
 
     public init(
         title: String,
         contentType: String,
+        format: String,
         payload: Payload,
-        admission: GroveSensorRawPayloadAdmission,
-        format: Coding? = nil
+        admission: GroveSensorRawPayloadAdmission
     ) throws {
         guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw GroveSensorKitFHIRRecordError.invalidAttachmentTitle
         }
         guard Self.isValidContentType(contentType) else {
             throw GroveSensorKitFHIRRecordError.invalidContentType
+        }
+        guard !format.isEmpty else {
+            throw GroveSensorKitFHIRRecordError.invalidRecordingFormat
         }
         let bytes: Data
         switch payload {
@@ -104,8 +108,8 @@ public struct GroveSensorKitNativeRecording: Sendable {
         _ = admission // Producer preflight only: deliberately never retained or serialized.
         self.title = title
         self.contentType = contentType
-        self.payload = payload
         self.format = format
+        self.payload = payload
     }
 
     var bytes: Data {

@@ -34,6 +34,7 @@ struct SensorConformanceFixtureTests {
         try GroveSensorKitNativeRecording(
             title: title,
             contentType: "application/json",
+            format: "native-json-1",
             payload: .inline(Data(#"{"source":"SensorKit","complete":true}"#.utf8)),
             admission: .verifiedSanitizedInput
         )
@@ -119,8 +120,14 @@ struct SensorConformanceFixtureTests {
         )
         let raw = GroveSensorKitRawRecord(
             sourceRecordID: try Self.sourceID("248b854a-8d64-4308-9ee0-d220e7d747d3"),
-            sourceToken: "SRSensor.photoplethysmogram",
-            nativeRecording: try Self.nativeRecording(title: "Exact SensorKit PPG record")
+            sourceToken: "SRSensor.heartRate",
+            nativeRecording: try GroveSensorKitNativeRecording(
+                title: "Exact SensorKit heart rate batch",
+                contentType: "text/csv",
+                format: "grove-csv-1",
+                payload: .inline(Data("timestamp,value,confidence,device\n1787009400,72,3,Watch\n".utf8)),
+                admission: .verifiedSanitizedInput
+            )
         )
         let fixtures = [
             "rotation-rate": try converter.convert(.rotationRate(rotation), context: context).bundle,

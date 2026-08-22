@@ -88,6 +88,7 @@ struct GroveSensorFHIRConverterTests {
             ),
             title: "Ambient light SensorKit batch",
             contentType: "application/vnd.grove.sensorkit+json",
+            format: "native-json-1",
             payload: .sidecar(path: "payloads/ambient-light/session-1.json", bytes: Data("[]".utf8)),
             rawPayloadAdmission: rawPayloadAdmission
         )
@@ -195,6 +196,9 @@ struct GroveSensorFHIRConverterTests {
         #expect(attachment.contentType?.value?.string == "application/vnd.grove.sensorkit+json")
         #expect(attachment.size?.value?.integer == 2)
         #expect(attachment.hash != nil)
+        let format = try #require(document.content.first?.format)
+        #expect(format.system?.value?.url.absoluteString == GroveSensorKitContract.recordingFormatCodeSystem)
+        #expect(format.code?.value?.string == "native-json-1")
         #expect(conversion.provenance?.meta?.profile == [FHIRPrimitive(Canonical(
             stringLiteral: GroveSensorKitContract.sensorConversionProvenanceProfile
         ))])
@@ -296,7 +300,20 @@ struct GroveSensorFHIRConverterTests {
                 type: code,
                 title: "Invalid",
                 contentType: "application/json",
+                format: "native-json-1",
                 payload: .sidecar(path: "../outside.json", bytes: Data("{}".utf8)),
+                rawPayloadAdmission: .callerAuthorizedOpaquePayload
+            )
+        }
+        #expect(throws: GroveSensorFHIRRecordError.invalidRecordingFormat) {
+            try GroveSensorRecordingDocument(
+                identifier: identifier,
+                sourceTypeIdentifier: "SRSensor.ambientLightSensor",
+                type: code,
+                title: "Unnamed payload format",
+                contentType: "application/json",
+                format: "",
+                payload: .inline(Data("{}".utf8)),
                 rawPayloadAdmission: .callerAuthorizedOpaquePayload
             )
         }
@@ -307,6 +324,7 @@ struct GroveSensorFHIRConverterTests {
                 type: code,
                 title: "Unreviewed native payload",
                 contentType: "application/json",
+                format: "native-json-1",
                 payload: .inline(Data("{}".utf8)),
                 rawPayloadAdmission: nil
             )
