@@ -7,6 +7,7 @@
 //
 
 public import Foundation
+internal import GroveFHIRContract
 
 
 /// A fail-closed reason why caller-supplied HealthKit ECG evidence was rejected.
@@ -80,4 +81,20 @@ public enum GroveHealthKitFHIRError: Error, Equatable, Sendable {
     case invalidExchangeIdentity(String)
     /// An unexpected non-domain error occurred while converting one record in a batch.
     case unexpectedConversionFailure(String)
+}
+
+
+extension GroveHealthKitFHIRError {
+    /// Narrows any conversion failure to this published domain, so the converter's typed
+    /// throws stay exhaustive even when a dependency raises its own error.
+    init(conversionFailure error: any Error) {
+        switch error {
+        case let error as GroveHealthKitFHIRError:
+            self = error
+        case let error as GroveFHIRExchangeIdentityError:
+            self = .invalidExchangeIdentity(String(describing: error))
+        default:
+            self = .unexpectedConversionFailure(String(describing: error))
+        }
+    }
 }

@@ -16,7 +16,7 @@ public import ModelsR4
 // swiftlint:disable file_types_order
 
 
-/// Implementation state of one HealthKit input in the v0.2 Swift producer.
+/// Implementation state of one HealthKit input in the Swift producer.
 public typealias HealthKitFHIRImplementationStatus = GroveFHIRHealthKitImplementationStatus
 
 
@@ -91,7 +91,7 @@ struct HealthKitFHIRObservationContract: Sendable {
 }
 
 
-/// One authoritative row in the HealthKit-to-v0.2 implementation matrix.
+/// One authoritative row in the HealthKit implementation matrix.
 public struct HealthKitFHIRCatalogEntry: Sendable {
     public let sourceTypeIdentifier: String
     public let title: String
@@ -104,7 +104,7 @@ public struct HealthKitFHIRCatalogEntry: Sendable {
 
 /// Closed, fail-closed catalog used by ``HealthKitFHIRConverter``.
 ///
-/// This catalog alone determines whether the public API may claim a Grove v0.2 profile.
+/// This catalog alone determines whether the public API may claim a Grove profile.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public enum HealthKitFHIRCatalog {
     /// Every platform identifier in the frozen HealthKit inventory, including characteristics
@@ -121,12 +121,18 @@ public enum HealthKitFHIRCatalog {
         )
     }
 
+    /// Bulk export converts tens of thousands of samples, so the row lookup is a hashed
+    /// index rather than a scan over every platform identifier.
+    private static let entriesBySourceTypeIdentifier = Dictionary(
+        uniqueKeysWithValues: entries.map { ($0.sourceTypeIdentifier, $0) }
+    )
+
     static func entry(for sample: HKSample) -> HealthKitFHIRCatalogEntry? {
         entry(forSourceTypeIdentifier: sample.sampleType.identifier)
     }
 
     static func entry(forSourceTypeIdentifier identifier: String) -> HealthKitFHIRCatalogEntry? {
-        entries.first { $0.sourceTypeIdentifier == identifier }
+        entriesBySourceTypeIdentifier[identifier]
     }
 
     static func binding(for sample: HKSample) -> HealthKitFHIRBinding? {

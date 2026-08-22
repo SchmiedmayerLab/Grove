@@ -3820,7 +3820,7 @@ public enum GroveFHIRHealthKitCatalog {
             measurementIDs: [],
             profiles: [],
             implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            requirement: "No shared or adapter-specific output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKDataTypeIdentifierAudiogram",
@@ -3828,7 +3828,7 @@ public enum GroveFHIRHealthKitCatalog {
             measurementIDs: [],
             profiles: [],
             implementationStatus: .deferred,
-            requirement: "No shared or HealthKit-adapter v0.2 output contract is published for this sample type."
+            requirement: "No shared or HealthKit-adapter output contract is published for this sample type."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKDataTypeIdentifierElectrocardiogram",
@@ -3852,7 +3852,7 @@ public enum GroveFHIRHealthKitCatalog {
             measurementIDs: [],
             profiles: [],
             implementationStatus: .deferred,
-            requirement: "No shared or HealthKit-adapter v0.2 output contract is published for this sample type."
+            requirement: "No shared or HealthKit-adapter output contract is published for this sample type."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKDataTypeUserAnnotatedMedicationConcept",
@@ -3860,7 +3860,7 @@ public enum GroveFHIRHealthKitCatalog {
             measurementIDs: [],
             profiles: [],
             implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            requirement: "No shared or adapter-specific output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKDocumentTypeIdentifierCDA",
@@ -3868,7 +3868,7 @@ public enum GroveFHIRHealthKitCatalog {
             measurementIDs: [],
             profiles: [],
             implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            requirement: "No shared or adapter-specific output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKMedicationDoseEventTypeIdentifierMedicationDoseEvent",
@@ -3876,7 +3876,7 @@ public enum GroveFHIRHealthKitCatalog {
             measurementIDs: [],
             profiles: [],
             implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            requirement: "No shared or adapter-specific output contract is published for this type."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierActiveEnergyBurned",
@@ -4868,7 +4868,7 @@ public enum GroveFHIRHealthKitCatalog {
             measurementIDs: [],
             profiles: [],
             implementationStatus: .deferred,
-            requirement: "No shared or HealthKit-adapter v0.2 output contract is published for this sample type."
+            requirement: "No shared or HealthKit-adapter output contract is published for this sample type."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKWorkoutTypeIdentifier",
