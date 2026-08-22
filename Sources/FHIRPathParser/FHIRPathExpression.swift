@@ -13,6 +13,14 @@ import Foundation
 /// A type can be evaluated from a FHIRPath expression.
 public protocol _FHIRPathValue { // swiftlint:disable:this type_name
     /// Evaluate the expression for the given type
+    ///
+    /// The instant is an input rather than a read of the clock so that every clock-sensitive
+    /// expression in one form agrees: a questionnaire whose `minValue` is `today()` and whose
+    /// `maxValue` is `today() + 3 months` must not straddle midnight between the two
+    /// evaluations. It also makes evaluation reproducible in a test.
+    /// Callers normally use ``FHIRPathExpression/evaluate(expression:evaluationInstant:as:)``,
+    /// which defaults it to the wall clock.
+    ///
     /// - Parameter expression: The expression to evalaute.
     /// - Parameter evaluationInstant: The explicit instant used by clock-sensitive functions.
     /// - Returns: The resulting value
