@@ -22,7 +22,7 @@ struct QuestionnaireConformanceFixtureTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appendingPathComponent(".build/conformance-fixtures")
+            .appendingPathComponent(".build/conformance-fixtures/questionnaire")
     }
 
     @Test

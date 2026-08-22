@@ -9,6 +9,7 @@
 import contextlib
 import importlib.util
 import io
+import json
 import pathlib
 import sys
 import tempfile
@@ -94,14 +95,14 @@ class AffectedManifestTests(unittest.TestCase):
         head = package_dump(
             [
                 target("GroveHealthKitFHIR"),
-                target("GroveHealthKitFHIRMacros", ["GroveHealthKitFHIR"]),
+                target("GroveFHIRContract"),
             ],
-            products=[{"name": "GroveHealthKitFHIRMacros", "targets": ["GroveHealthKitFHIRMacros"]}],
+            products=[{"name": "GroveFHIRContract", "targets": ["GroveFHIRContract"]}],
         )
 
         affected = MODULE.affected_by_manifest(base, head, MODULE.PKGS)
 
-        self.assertEqual(affected, {"GroveHealthKitFHIR"})
+        self.assertEqual(affected, {"GroveFHIR"})
 
     def test_new_unclassified_target_fails_instead_of_silently_disappearing(self):
         base = package_dump([])
@@ -140,13 +141,139 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
         result = run_selector("Scripts/validate-fhir-conformance.sh")
 
         self.assertEqual(result["has_fhir_conformance"], "true")
-        self.assertEqual(set(result["affected"].split(",")), MODULE.FHIR_PACKAGES)
+        self.assertEqual(
+            set(result["fhir_components"].split(",")),
+            MODULE.ALL_FHIR_COMPONENTS,
+        )
+        self.assertEqual(
+            set(result["affected"].split(",")),
+            MODULE.FHIR_PACKAGES & set(MODULE.PKGS),
+        )
+
+    def test_producer_manifest_generator_runs_fhir_conformance(self):
+        result = run_selector("Scripts/generate-grove-fhir-producer-manifest.py")
+
+        self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(
+            set(result["fhir_components"].split(",")),
+            MODULE.ALL_FHIR_COMPONENTS,
+        )
+        self.assertEqual(
+            set(result["affected"].split(",")),
+            MODULE.FHIR_PACKAGES & set(MODULE.PKGS),
+        )
 
     def test_unrelated_script_runs_full_matrix_without_conformance(self):
         result = run_selector("Scripts/run-package-tests.sh")
 
         self.assertEqual(result["has_fhir_conformance"], "false")
+        self.assertEqual(result["fhir_components"], "(none)")
         self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+
+    def test_healthkit_development_scope_suppresses_manifest_fanout_and_ui(self):
+        result = run_selector(
+            "Package.swift",
+            ".github/workflows/tests.yml",
+            extra_arguments=("--development-scope", "healthkit"),
+        )
+
+        self.assertEqual(result["affected"], "GroveHealthKitFHIR")
+        self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(result["fhir_components"], "healthkit")
+        self.assertEqual(result["has_ui_jobs"], "false")
+
+    def test_development_scope_cannot_masquerade_as_full_readiness(self):
+        with self.assertRaisesRegex(SystemExit, "cannot be combined"):
+            run_selector(
+                "Sources/GroveHealthKitFHIR/HealthKitFHIRConverter.swift",
+                extra_arguments=("--development-scope", "healthkit", "--full-readiness"),
+            )
+
+    def test_shared_target_schedules_its_consumers_and_no_more(self):
+        """A target every package does not consume must not schedule every package."""
+        dump = {
+            "targets": [
+                {"name": "Vault", "dependencies": []},
+                {"name": "GroveViews", "dependencies": [{"target": ["Vault"]}]},
+                {"name": "GroveChat", "dependencies": [{"target": ["GroveViews"]}]},
+                {"name": "GroveBluetooth", "dependencies": []},
+            ]
+        }
+        packages = MODULE.packages_for_target("Vault", dump)
+        self.assertIn("GroveViews", packages)
+        self.assertIn("GroveChat", packages)
+        self.assertNotIn("GroveBluetooth", packages)
+
+    def test_unresolvable_consumer_refuses_to_answer(self):
+        """An unmapped consumer means the answer would under-schedule, so callers stay broad."""
+        dump = {
+            "targets": [
+                {"name": "Vault", "dependencies": []},
+                {"name": "SomeUnmappedTarget", "dependencies": [{"target": ["Vault"]}]},
+            ]
+        }
+        self.assertIsNone(MODULE.packages_for_target("Vault", dump))
+
+    def test_target_absent_from_the_graph_refuses_to_answer(self):
+        self.assertIsNone(MODULE.packages_for_target("NotInGraph", {"targets": []}))
+
+    def test_healthkit_ready_pr_runs_every_package_within_the_platform_limits(self):
+        result = run_selector(
+            "Sources/GroveHealthKitFHIR/HealthKitFHIRConverter.swift",
+            ".github/workflows/tests.yml",
+            extra_arguments=("--full-readiness",),
+        )
+
+        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+        self.assertEqual(result["fhir_components"], "healthkit")
+        self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(result["has_ui_jobs"], "true")
+        unit_jobs = {
+            (job["package"], job["platform"])
+            for job in json.loads(result["matrix"])["include"]
+        }
+        ui_jobs = {
+            (job["package"], job["platform"])
+            for job in json.loads(result["ui_matrix"])["include"]
+        }
+        self.assertIn(("Grove", "iOS"), unit_jobs)
+        self.assertIn(("GroveViews", "iOS"), ui_jobs)
+        # Full readiness widens the package set, never the platform set: CI_PLATFORMS and
+        # UI_PLATFORMS bound every run, so the dormant platforms stay unscheduled.
+        self.assertNotIn(("Grove", "macCatalyst"), unit_jobs)
+        self.assertNotIn(("Grove", "visionOS"), unit_jobs)
+        self.assertNotIn(("GroveViews", "iPadOS"), ui_jobs)
+
+    def test_questionnaire_ready_pr_runs_only_questionnaire_ig(self):
+        result = run_selector(
+            "Sources/GroveQuestionnaire/Model/Questionnaire.swift",
+            "Scripts/validate-fhir-conformance.sh",
+            extra_arguments=("--full-readiness",),
+        )
+
+        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+        self.assertEqual(result["fhir_components"], "questionnaire")
+        self.assertEqual(result["has_fhir_conformance"], "true")
+
+    def test_sensor_changes_schedule_no_conformance_before_the_sensor_producer_lands(self):
+        result = run_selector(
+            "Sources/GroveSensorKit/SensorKit.swift",
+            "Scripts/validate-fhir-conformance.sh",
+            extra_arguments=("--full-readiness",),
+        )
+
+        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+        # The SensorKit producer PR restores the sensor component together with its fixture writer.
+        self.assertNotIn("sensor", result["fhir_components"])
+
+    def test_explicit_all_selects_every_implementation_conformance_lane(self):
+        result = run_selector("__ALL__")
+
+        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+        self.assertEqual(
+            set(result["fhir_components"].split(",")),
+            MODULE.ALL_FHIR_COMPONENTS,
+        )
 
 
 class InfrastructureSelectionTests(unittest.TestCase):
@@ -168,6 +295,10 @@ class InfrastructureSelectionTests(unittest.TestCase):
 
         self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
         self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(
+            set(result["fhir_components"].split(",")),
+            MODULE.ALL_FHIR_COMPONENTS,
+        )
 
     def test_shared_local_action_runs_every_package(self):
         result = run_selector(".github/actions/setup/action.yml")

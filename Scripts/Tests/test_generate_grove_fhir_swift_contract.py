@@ -1,0 +1,218 @@
+#!/usr/bin/env python3
+#
+# This source file is part of the Grove open-source project
+#
+# SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+#
+# SPDX-License-Identifier: MIT
+
+import importlib.util
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+
+SCRIPT = Path(__file__).parents[1] / "generate-grove-fhir-swift-contract.py"
+SPEC = importlib.util.spec_from_file_location("generate_grove_fhir_swift_contract", SCRIPT)
+assert SPEC and SPEC.loader
+MODULE = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(MODULE)
+
+
+class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
+    def catalogs(self) -> dict[str, dict]:
+        base = {"fhirVersion": "4.0.1", "version": "0.3.0"}
+        return {
+            "package-graph.json": {
+                **base,
+                "canonicalRoot": "https://grovealliance.org/fhir",
+                "packages": [
+                    {
+                        "source": "mobile",
+                        "canonical": "https://grovealliance.org/fhir/mobile",
+                        "profiles": ["grove-mobile-exchange-bundle"],
+                    },
+                    {
+                        "source": "healthkit",
+                        "canonical": "https://grovealliance.org/fhir/healthkit",
+                        "profiles": ["healthkit-conversion-provenance", "healthkit-ecg-observation"],
+                    },
+                ],
+            },
+            "measurement-catalog.json": {
+                **base,
+                "statusVocabulary": ["supported", "deferred"],
+                "measurements": [],
+            },
+            "profile-claims.json": {
+                **base,
+                "observationAdapterClaim": {
+                    "cardinality": 2,
+                    "inheritedProfilesAreNotDeclared": True,
+                    "adapterProfiles": [
+                        "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-ecg-observation"
+                    ],
+                    "sharedSensorProfiles": [
+                        "https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-ecg-observation"
+                    ],
+                    "forbiddenExplicitProfiles": [],
+                },
+            },
+            "healthkit-adapter.json": {
+                **base,
+                "sourceTypeCoding": {
+                    "system": "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-source-type"
+                },
+                "conversionProvenanceProfile": (
+                    "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                    "healthkit-conversion-provenance"
+                ),
+                "producerCanonicalization": {
+                    "effectivePrecision": "millisecond",
+                    "effectiveRounding": "half-even",
+                    "scalarQuantityDecimal": "shortest-round-trip",
+                    "sensorAndEcgTiming": "excluded",
+                },
+                "sensorAdapterClaims": {
+                    "electrocardiogram": {
+                        "sourceTypeIdentifier": "HKDataTypeIdentifierElectrocardiogram",
+                        "profiles": [
+                            "https://grovealliance.org/fhir/sensor/StructureDefinition/"
+                            "grove-sensor-ecg-observation",
+                            "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                            "healthkit-ecg-observation",
+                        ],
+                        "correlatedSymptomEvidence": {
+                            "url": "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                            "healthkit-ecg-correlated-symptom"
+                        },
+                    }
+                },
+                "rows": [
+                    {
+                        "sourceTypeIdentifier": "HKDataTypeIdentifierElectrocardiogram",
+                        "title": "ECG",
+                        "status": "supported",
+                        "measurementIDs": ["electrocardiogram"],
+                        "profiles": [
+                            "https://grovealliance.org/fhir/sensor/StructureDefinition/"
+                            "grove-sensor-ecg-observation",
+                            "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                            "healthkit-ecg-observation",
+                        ],
+                        "requirement": "Caller supplies complete evidence.",
+                    },
+                    {
+                        "sourceTypeIdentifier": "HKQuantityTypeIdentifierBodyMassIndex",
+                        "title": "BMI",
+                        "status": "supported",
+                        "measurementIDs": ["body-mass-index"],
+                        "profiles": [
+                            "http://hl7.org/fhir/StructureDefinition/bmi",
+                            "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                            "healthkit-observation",
+                        ],
+                        "requirement": None,
+                    },
+                ],
+            },
+            "exchange-identity.json": {
+                "version": "0.3.0",
+                "profile": (
+                    "https://grovealliance.org/fhir/mobile/StructureDefinition/"
+                    "grove-mobile-exchange-bundle"
+                ),
+                "entryIdentifierExtension": (
+                    "https://grovealliance.org/fhir/mobile/StructureDefinition/"
+                    "grove-exchange-entry-identifier"
+                ),
+                "fullUrlAlgorithm": {"name": "uuid-v5-jcs-identifier-v1", "namespace": "test"},
+            },
+        }
+
+    def generate(self, catalogs: dict[str, dict]) -> str:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name, value in catalogs.items():
+                (root / name).write_text(json.dumps(value), encoding="utf-8")
+            return MODULE.generate(root)
+
+    def test_generates_exact_healthkit_inventory_and_adapter_contract(self):
+        generated = self.generate(self.catalogs())
+
+        self.assertIn("public enum GroveFHIRHealthKitCatalog", generated)
+        self.assertIn("HKDataTypeIdentifierElectrocardiogram", generated)
+        self.assertIn("HKQuantityTypeIdentifierBodyMassIndex", generated)
+        self.assertIn("public static let bodyMassIndexProfiles", generated)
+        self.assertIn("public static let electrocardiogramProfiles", generated)
+        self.assertIn("public static let electrocardiogramCorrelatedSymptomExtension", generated)
+        # Generated rows reference the profile constants this file defines rather than literals.
+        self.assertIn("GroveFHIRProfile.healthkitEcgObservation],", generated)
+        # A quantity contract carries the catalog's canonical unit display.
+        self.assertIn("unit:", generated)
+
+    def test_rejects_unsorted_healthkit_inventory(self):
+        catalogs = self.catalogs()
+        catalogs["healthkit-adapter.json"]["rows"].reverse()
+
+        with self.assertRaisesRegex(ValueError, "must be sorted"):
+            self.generate(catalogs)
+
+    def test_rejects_unpaired_multi_measurement_healthkit_row(self):
+        catalogs = self.catalogs()
+        catalogs["healthkit-adapter.json"]["rows"][0]["measurementIDs"] = ["one", "two", "three"]
+
+        with self.assertRaisesRegex(ValueError, "one profile per measurement"):
+            self.generate(catalogs)
+
+    def test_generates_paired_multi_measurement_healthkit_row(self):
+        catalogs = self.catalogs()
+        catalogs["healthkit-adapter.json"]["rows"][0]["measurementIDs"] = ["one", "two"]
+
+        self.assertIn('measurementIDs: ["one", "two"],', self.generate(catalogs))
+
+    def test_splits_measurement_catalog_by_owner(self):
+        catalogs = self.catalogs()
+        catalogs["package-graph.json"]["packages"][0]["profiles"].append("grove-mobile-heart-rate")
+        catalogs["package-graph.json"]["packages"][1]["profiles"].append("healthkit-symptom-headache")
+        catalogs["measurement-catalog.json"]["measurements"] = [
+            {
+                "id": "heart-rate",
+                "profile": "grove-mobile-heart-rate",
+                "code": {"system": "http://loinc.org", "code": "8867-4"},
+                "quantity": {"system": "u", "code": "/min", "unit": "beats/minute"},
+                "effective": "dateTime",
+            },
+            {
+                "id": "symptom-headache",
+                "owner": "healthkit",
+                "profile": "healthkit-symptom-headache",
+                "code": {"system": "s", "code": "symptom-headache", "display": "Headache"},
+                "quantity": None,
+                "resultCodeSystem": "r",
+                "allowedValues": ["not-present", "present"],
+                "effective": "Period",
+            },
+            {
+                "id": "step-cadence",
+                "owner": "health-connect",
+                "profile": "grove-mobile-heart-rate",
+                "code": {"system": "s", "code": "step-cadence"},
+                "quantity": None,
+                "effective": "dateTime",
+            },
+        ]
+        generated = self.generate(catalogs)
+
+        mobile = generated.index("public enum GroveFHIRMeasurementCatalog {")
+        healthkit = generated.index("public enum GroveFHIRHealthKitMeasurementCatalog {")
+        self.assertLess(mobile, healthkit)
+        self.assertLess(generated.index("let heartRate = GroveFHIRMeasurementContract("), healthkit)
+        self.assertGreater(generated.index("let symptomHeadache = GroveFHIRMeasurementContract("), healthkit)
+        self.assertIn('display: "Headache"', generated)
+        self.assertNotIn("stepCadence", generated)
+
+
+if __name__ == "__main__":
+    unittest.main()

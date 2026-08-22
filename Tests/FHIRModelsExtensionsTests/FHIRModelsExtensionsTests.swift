@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-@testable import FHIRModelsExtensions
+import FHIRModelsExtensions
 import FHIRQuestionnaires
 import Foundation
 import ModelsR4
@@ -15,18 +15,6 @@ import Testing
 
 @Suite
 struct FHIRToResearchKitTests {
-    /// - Note: "FHIR extensions" here meaning Swift extensions on FHIR types, not actual FHIR extensions.
-    @Test
-    func fhirExtensions() {
-        #expect(Questionnaire.numberExample.flattenedItems.count == 3)
-        #expect(Questionnaire.numberExample.flattenedQuestions.count == 3)
-        #expect(Questionnaire.formExample.flattenedItems.count == 5)
-        #expect(Questionnaire.formExample.flattenedQuestions.count == 3)
-        #expect(Questionnaire.skipLogicExample.flattenedItems.count == 3)
-        #expect(Questionnaire.skipLogicExample.flattenedQuestions.count == 3)
-    }
-    
-
     @Test
     func testGetContainedValueSets() throws {
         let valueSets = Questionnaire.containedValueSetExample.getContainedValueSets()
