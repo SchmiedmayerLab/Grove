@@ -25,27 +25,27 @@ import HealthKit
 import ModelsR4
 
 let sample: HKQuantitySample = // a sample already fetched from HealthKit
-let context = HealthKitFHIRConversionContext(
-    subject: Reference(reference: "Patient/example"),
-    converter: .main,
-    graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph"
-)
-
-let conversion = try HealthKitFHIRConverter().convert(sample, context: context)
+let conversion = try HealthKitFHIRConverter().convert(sample, for: Reference(reference: "Patient/example"))
 upload(conversion.bundle)
 ```
 
-Three inputs cannot be derived and identify every conversion:
+Only the subject has no local answer — nothing on the device knows who the receiving system thinks the data is about.
+The converting application's identity and the identifier namespace for derived resources are read from the app's own bundle, and the conversion instant defaults to the wall clock.
 
-- `subject`: who the data is about, as the receiving system knows them.
-- `converter`: the identity of the converting application; ``HealthKitFHIRApplication/main`` reads it from the app's own bundle.
-- `graphIdentifierSystem`: a deployment-owned identifier namespace for the graph nodes that exist only because of this export — the Bundle, the conversion `Provenance`, and derived `Device` resources.
-  Identifiers are minted deterministically inside it, so converting the same sample twice yields the same graph and re-sends deduplicate on the server.
+Pass a ``HealthKitFHIRConversionContext`` to set a study reference, a disclosure policy, a server-owned identifier namespace, or a fixed instant:
 
-Each sample's measurement time comes from the sample itself and lands in `Observation.effective`.
-The context's ``HealthKitFHIRConversionContext/conversionInstant`` stamps the export event (`Observation.issued`, `Provenance`, `Bundle.timestamp`) and defaults to the wall clock.
+```swift
+let context = HealthKitFHIRConversionContext(
+    subject: Reference(reference: "Patient/example"),
+    graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph"
+)
+let conversion = try HealthKitFHIRConverter().convert(sample, context: context)
+```
+
+<doc:ConfiguringAConversion> explains what each input means, including the FHIR background behind the subject reference and the identifier namespace.
 
 One successful conversion returns a ``HealthKitFHIRConversion`` containing the normalized `Observation`, recording and application `Device` resources when applicable, conversion `Provenance`, and a FHIR `Bundle` of type `collection`.
+<doc:TheConversionGraph> shows each of these resources as emitted JSON and explains why a measurement travels with a device and an audit record.
 Internal references use deterministic `urn:uuid` full URLs derived from complete business identifiers.
 Source UUIDs are business identifiers — not `Resource.id` values; a logical id is emitted only when a caller supplies a repository-assigned `GroveFHIRRepositoryID`.
 
@@ -78,7 +78,13 @@ The exact HealthKit source-type coding is retained after the primary normative c
 
 ``HealthKitFHIRCatalog/entries`` is the complete machine-consumable matrix generated from the frozen adapter catalog: every HealthKit sample type known to Grove, its status, candidate measurement profiles, and any unmet requirement.
 The converter fails closed when a row is not `supported`; no legacy canonical, provider sample-type code, or best-effort Observation is emitted.
-Deferred rows state their reason — blood glucose, for example, defers because HealthKit does not state the specimen needed to select whole-blood, capillary, serum/plasma, or interstitial glucose.
+
+Every measurement HealthKit can express has a representation, including the ones where the platform withholds a clinical detail.
+Blood glucose is the worked example: FHIR distinguishes whole-blood, capillary, serum/plasma, and interstitial glucose, and a consumer meter or CGM reaching HealthKit does not say which it sampled.
+Rather than guess a specimen or refuse the reading, Grove publishes a distinct *unspecified specimen* measurement, so the value is exchanged completely and honestly, and a consumer can tell it apart from a specimen-qualified laboratory result.
+A source that does know its specimen — a Health Connect record, for example — selects the specimen-qualified profile instead.
+
+The rows that remain unconverted are the ones with nothing to convert: platform identifiers that are not samples, and records Grove passes through rather than reinterprets.
 
 ### Explicit provenance and identity
 
@@ -94,6 +100,11 @@ The exchange Bundle and derived graph nodes use the caller's namespace.
 `GroveFHIRExchangeIdentity` implements the frozen RFC 8785/JCS plus UUIDv5 algorithm used by every Grove producer.
 
 ## Topics
+
+### Essentials
+
+- <doc:ConfiguringAConversion>
+- <doc:TheConversionGraph>
 
 ### Conversion
 

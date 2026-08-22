@@ -55,13 +55,8 @@ struct FirebaseUploader: BulkHealthExporter.BatchProcessor {
             guard let sample = sample as? HKSample else {
                 throw GroveHealthKitFHIRError.invalidValue
             }
-            let context = HealthKitFHIRConversionContext(
-                subject: subject,
-                converter: .main,
-                graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph"
-            )
-            let document = db.collection("healthData").document(sample.uuid.uuidString) 
-            try batch.setData(from: converter.convert(sample, context: context).bundle, for: document)
+            let document = db.collection("healthData").document(sample.uuid.uuidString)
+            try batch.setData(from: converter.convert(sample, for: subject).bundle, for: document)
         }
         try await batch.commit()
     }
@@ -103,11 +98,7 @@ struct FHIREncodedJSONExporter: BatchProcessor {
     let subject: Reference
 
     func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) throws -> URL {
-        let context = HealthKitFHIRConversionContext(
-            subject: subject,
-            converter: .main,
-            graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph"
-        )
+        let context = HealthKitFHIRConversionContext(subject: subject)
         let healthKitSamples = try samples.map { sample -> HKSample in
             guard let sample = sample as? HKSample else {
                 throw GroveHealthKitFHIRError.invalidValue
