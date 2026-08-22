@@ -129,13 +129,84 @@ struct SensorConformanceFixtureTests {
                 admission: .verifiedSanitizedInput
             )
         )
+        let messagesUsage = GroveSensorKitMessagesUsageRecord(
+            sourceRecordID: try Self.sourceID("0dbb1f47-46eb-42ec-b6b7-402e33d3e463"),
+            timestamp: timestamp,
+            durationSeconds: 3_600,
+            totalIncomingMessages: 12,
+            totalOutgoingMessages: 8,
+            totalUniqueContacts: 3,
+            nativeRecording: try Self.nativeRecording(title: "Exact SensorKit messages usage report")
+        )
+        let phoneUsage = GroveSensorKitPhoneUsageRecord(
+            sourceRecordID: try Self.sourceID("d51c855c-9d40-4900-83a2-3547872b0a86"),
+            timestamp: timestamp,
+            durationSeconds: 3_600,
+            totalIncomingCalls: 2,
+            totalOutgoingCalls: 5,
+            totalPhoneCallDurationSeconds: 42.5,
+            totalUniqueContacts: 4
+        )
+        let keyboardMetrics = GroveSensorKitKeyboardMetricsRecord(
+            sourceRecordID: try Self.sourceID("f4a4d31e-40fc-4c9c-a582-ecf077aa8674"),
+            timestamp: timestamp,
+            durationSeconds: 3_600,
+            totalTypingDurationSeconds: 125.5,
+            totalWords: 240,
+            totalAlteredWords: 12,
+            totalTaps: 1_050,
+            totalDeletes: 33,
+            totalEmojis: 7,
+            totalAutocorrections: 19,
+            totalPauses: 41,
+            totalTypingEpisodes: 6,
+            typingSpeed: 3.5,
+            nativeRecording: try Self.nativeRecording(title: "Exact SensorKit keyboard metrics report")
+        )
+        let sleepSession = GroveSensorKitSleepSessionRecord(
+            sourceRecordID: try Self.sourceID("cd44465f-cb2a-4e5c-a2e3-1d59ee36ba75"),
+            session: DateInterval(start: timestamp.addingTimeInterval(-28_800), end: timestamp)
+        )
+        let accelerometer = GroveSensorKitAccelerometerRecord(
+            sourceRecordID: try Self.sourceID("41a1d817-6b0b-4b90-a0b7-3e0969395d24"),
+            coverage: DateInterval(start: timestamp, duration: 60),
+            sampleCount: 18_000,
+            batchCount: 3,
+            nativeRecording: try GroveSensorKitNativeRecording(
+                title: "Exact SensorKit accelerometer batch",
+                contentType: "text/csv",
+                format: "grove-csv-1",
+                payload: .inline(Data("timestamp,identifier,x,y,z,device\n1787009400,1,0.1,0.2,0.3,Watch\n".utf8)),
+                admission: .verifiedSanitizedInput
+            )
+        )
+        let ppg = GroveSensorKitPPGRecord(
+            sourceRecordID: try Self.sourceID("74b04bf3-e2ad-421c-8b98-84582f22cd7a"),
+            coverage: DateInterval(start: timestamp, duration: 30),
+            recordCount: 2,
+            opticalSampleCount: 512,
+            accelerometerSampleCount: 256,
+            nativeRecording: try GroveSensorKitNativeRecording(
+                title: "Exact SensorKit PPG batch",
+                contentType: "application/octet-stream",
+                format: "grove-ppg-1",
+                payload: .inline(Data([0x02, 0x41, 0xDA, 0x9E, 0x9F, 0x8C, 0xE3, 0x60, 0x00])),
+                admission: .callerAuthorizedOpaquePayload
+            )
+        )
         let fixtures = [
             "rotation-rate": try converter.convert(.rotationRate(rotation), context: context).bundle,
             "ecg-hybrid": try converter.convert(.electrocardiogram(ecg), context: context).bundle,
             "on-wrist": try converter.convert(.onWrist(onWrist), context: context).bundle,
             "device-usage-hybrid": try converter.convert(.deviceUsage(deviceUsage), context: context).bundle,
             "visit": try converter.convert(.visit(visit), context: context).bundle,
-            "raw-recording": try converter.convert(.raw(raw), context: context).bundle
+            "raw-recording": try converter.convert(.raw(raw), context: context).bundle,
+            "messages-usage-hybrid": try converter.convert(.messagesUsage(messagesUsage), context: context).bundle,
+            "phone-usage": try converter.convert(.phoneUsage(phoneUsage), context: context).bundle,
+            "keyboard-metrics-hybrid": try converter.convert(.keyboardMetrics(keyboardMetrics), context: context).bundle,
+            "sleep-session": try converter.convert(.sleepSession(sleepSession), context: context).bundle,
+            "accelerometer-summary-hybrid": try converter.convert(.accelerometer(accelerometer), context: context).bundle,
+            "ppg-summary-hybrid": try converter.convert(.ppg(ppg), context: context).bundle
         ]
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
@@ -144,6 +215,6 @@ struct SensorConformanceFixtureTests {
         for (name, bundle) in fixtures {
             try encoder.encode(bundle).write(to: Self.fixtureDirectory.appendingPathComponent("\(name).json"))
         }
-        #expect(fixtures.count == 6)
+        #expect(fixtures.count == 12)
     }
 }

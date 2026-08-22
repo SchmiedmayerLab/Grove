@@ -171,6 +171,12 @@ extension GroveSensorKitFHIRRecord {
         case .onWrist(let record): record.sourceRecordID
         case .deviceUsage(let record): record.sourceRecordID
         case .visit(let record): record.sourceRecordID
+        case .messagesUsage(let record): record.sourceRecordID
+        case .phoneUsage(let record): record.sourceRecordID
+        case .keyboardMetrics(let record): record.sourceRecordID
+        case .sleepSession(let record): record.sourceRecordID
+        case .accelerometer(let record): record.sourceRecordID
+        case .ppg(let record): record.sourceRecordID
         case .raw(let record): record.sourceRecordID
         }
     }
@@ -182,6 +188,12 @@ extension GroveSensorKitFHIRRecord {
         case .onWrist: "SRSensor.onWristState"
         case .deviceUsage: "SRSensor.deviceUsageReport"
         case .visit: "SRSensor.visits"
+        case .messagesUsage: "SRSensor.messagesUsageReport"
+        case .phoneUsage: "SRSensor.phoneUsageReport"
+        case .keyboardMetrics: "SRSensor.keyboardMetrics"
+        case .sleepSession: "SRSensor.sleepSessions"
+        case .accelerometer: "SRSensor.accelerometer"
+        case .ppg: "SRSensor.photoplethysmogram"
         case .raw(let record): record.sourceToken
         }
     }
@@ -193,7 +205,29 @@ extension GroveSensorKitFHIRRecord {
         case .onWrist: ("on-wrist", nil)
         case .deviceUsage: ("device-usage-summary", "native-recording")
         case .visit: ("visit-summary", nil)
+        case .messagesUsage(let record):
+            ("messages-usage-summary", record.nativeRecording.map { _ in "native-recording" })
+        case .phoneUsage(let record):
+            ("phone-usage-summary", record.nativeRecording.map { _ in "native-recording" })
+        case .keyboardMetrics: ("keyboard-metrics-summary", "native-recording")
+        case .sleepSession: ("sleep-session", nil)
+        case .accelerometer: ("accelerometer-recording-summary", "native-recording")
+        case .ppg: ("ppg-recording-summary", "native-recording")
         case .raw: (nil, "native-recording")
+        }
+    }
+
+    var nativeRecording: GroveSensorKitNativeRecording? {
+        switch self {
+        case .rotationRate, .onWrist, .visit, .sleepSession: nil
+        case .electrocardiogram(let record): record.nativeRecording
+        case .deviceUsage(let record): record.nativeRecording
+        case .messagesUsage(let record): record.nativeRecording
+        case .phoneUsage(let record): record.nativeRecording
+        case .keyboardMetrics(let record): record.nativeRecording
+        case .accelerometer(let record): record.nativeRecording
+        case .ppg(let record): record.nativeRecording
+        case .raw(let record): record.nativeRecording
         }
     }
 }

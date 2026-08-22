@@ -28,6 +28,9 @@ public enum GroveSensorKitFHIRRecordError: Error, Equatable, Sendable {
     case invalidCurrentStatePeriod
     case invalidDeviceUsagePeriod
     case invalidDeviceUsageCount(field: String, value: Int)
+    case invalidReportDuration(field: String)
+    case invalidReportCount(field: String, value: Int)
+    case invalidTypingSpeed(Double)
     case invalidVisitPeriod
     case invalidAttachmentTitle
     case invalidContentType
@@ -334,5 +337,11 @@ public enum GroveSensorKitFHIRRecord: Sendable {
     case onWrist(GroveSensorKitOnWristRecord)
     case deviceUsage(GroveSensorKitDeviceUsageRecord)
     case visit(GroveSensorKitVisitRecord)
+    case messagesUsage(GroveSensorKitMessagesUsageRecord)
+    case phoneUsage(GroveSensorKitPhoneUsageRecord)
+    case keyboardMetrics(GroveSensorKitKeyboardMetricsRecord)
+    case sleepSession(GroveSensorKitSleepSessionRecord)
+    case accelerometer(GroveSensorKitAccelerometerRecord)
+    case ppg(GroveSensorKitPPGRecord)
     case raw(GroveSensorKitRawRecord)
 }

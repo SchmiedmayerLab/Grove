@@ -90,6 +90,16 @@ extension GroveSensorKitFHIRConverter {
                 recordingDeviceURL: recordingDeviceURL,
                 converterURL: converterURL
             )
+        case .messagesUsage, .phoneUsage, .keyboardMetrics, .sleepSession, .accelerometer, .ppg:
+            observation = try summaryObservation(
+                record,
+                sourceIdentifier: sourceIdentifier,
+                outputIdentifier: outputNode.identifier,
+                rawURL: rawURL,
+                context: context,
+                recordingDeviceURL: recordingDeviceURL,
+                converterURL: converterURL
+            )
         case .raw:
             return []
         }
@@ -105,15 +115,8 @@ extension GroveSensorKitFHIRConverter {
         recordingDeviceURL: String?,
         converterURL: String
     ) throws -> DocumentReference? {
-        guard let outputNode else {
+        guard let outputNode, let native = record.nativeRecording else {
             return nil
-        }
-        let native: GroveSensorKitNativeRecording
-        switch record {
-        case .electrocardiogram(let record): native = record.nativeRecording
-        case .deviceUsage(let record): native = record.nativeRecording
-        case .raw(let record): native = record.nativeRecording
-        case .rotationRate, .onWrist, .visit: return nil
         }
         let entry = try catalogEntry(sourceToken: record.sourceToken)
         var authors = recordingDeviceURL.map { [reference($0)] } ?? []

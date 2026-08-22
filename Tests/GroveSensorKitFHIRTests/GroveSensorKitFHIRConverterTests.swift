@@ -74,7 +74,13 @@ struct GroveSensorKitFHIRConverterTests {
         ("on-wrist", "b1b6d7c7-b185-50ea-8426-241fd27f02dc"),
         ("device-usage-summary", "db96cf40-07cd-57c5-9b00-db0be8090ffc"),
         ("ecg-waveform", "5d856ae1-3d82-5056-b21a-5700476b122a"),
-        ("visit-summary", "f632b780-1a6f-541d-8c73-ff1e76ce4204")
+        ("visit-summary", "f632b780-1a6f-541d-8c73-ff1e76ce4204"),
+        ("messages-usage-summary", "4e40f7f3-3328-55ac-a4e9-c001db429ae8"),
+        ("phone-usage-summary", "8c3100f5-2dff-5cbd-a0e9-22c1e813fe0f"),
+        ("keyboard-metrics-summary", "7624eaa1-44a0-5374-b40f-9bd7078df3fa"),
+        ("sleep-session", "67449c45-a0d7-5aa8-ba59-96be3c4c52e4"),
+        ("accelerometer-recording-summary", "c503c596-3df1-5430-81c0-d4bad76f1033"),
+        ("ppg-recording-summary", "8a67dbdf-8085-5d15-a739-6e363db3d0e6")
     ])
     func outputIdentityMatchesCatalogVector(testCase: (String, String)) throws {
         let identifier = try GroveSensorKitOutputIdentity.businessIdentifier(
@@ -253,7 +259,7 @@ struct GroveSensorKitFHIRConverterTests {
     }
 
     @Test
-    func deferredPlatformAdditionCannotClaimRawSupport() throws {
+    func structuredOnlyStreamCannotClaimRawSupport() throws {
         let record = GroveSensorKitRawRecord(
             sourceRecordID: try Self.sourceID,
             sourceToken: "SRSensor.sleepSessions",
