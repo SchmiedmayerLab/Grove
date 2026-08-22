@@ -51,7 +51,7 @@ class SensorSwiftContractTests(unittest.TestCase):
         adapter = pathlib.Path(directory) / "sensorkit-adapter.json"
         adapter.write_text(json.dumps({
             "schemaVersion": 1,
-            "version": "0.2.0",
+            "version": "0.3.0",
             "fhirVersion": "4.0.1",
             "packageId": "org.grovealliance.fhir.sensorkit",
             "canonical": "https://example.org/sensorkit",

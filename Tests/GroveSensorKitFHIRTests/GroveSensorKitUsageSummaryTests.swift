@@ -32,10 +32,10 @@ struct GroveSensorKitUsageSummaryTests {
                 converter: GroveSensorFHIRApplication(
                     identifier: try GroveFHIRBusinessIdentifier(
                         system: "https://study.example.org/fhir/identifiers/application",
-                        value: "sensor-conformance|0.2.0"
+                        value: "sensor-conformance|0.3.0"
                     ),
                     name: "Sensor Conformance",
-                    version: "0.2.0"
+                    version: "0.3.0"
                 ),
                 graphIdentifierSystem: "https://study.example.org/fhir/identifiers/sensor-graph",
                 sourceTimeZone: try #require(TimeZone(identifier: "America/Los_Angeles")),

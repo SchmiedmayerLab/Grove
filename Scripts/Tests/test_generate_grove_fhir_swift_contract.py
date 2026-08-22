@@ -22,7 +22,7 @@ SPEC.loader.exec_module(MODULE)
 
 class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
     def catalogs(self) -> dict[str, dict]:
-        base = {"fhirVersion": "4.0.1", "version": "0.2.0"}
+        base = {"fhirVersion": "4.0.1", "version": "0.3.0"}
         return {
             "package-graph.json": {
                 **base,
@@ -118,7 +118,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                 ],
             },
             "exchange-identity.json": {
-                "version": "0.2.0",
+                "version": "0.3.0",
                 "profile": (
                     "https://grovealliance.org/fhir/mobile/StructureDefinition/"
                     "grove-mobile-exchange-bundle"

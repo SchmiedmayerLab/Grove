@@ -6,7 +6,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""Generate Swift Sensor/SensorKit producer contracts from grove-fhir v0.2 catalogs."""
+"""Generate Swift Sensor/SensorKit producer contracts from grove-fhir v0.3 catalogs."""
 
 from __future__ import annotations
 
@@ -238,7 +238,7 @@ def generate(sensor_path: Path, adapter_path: Path) -> str:
         "recordingFormatCodeSystem": f"{sensor_canonical}/CodeSystem/grove-recording-format",
         "defaultRawOutputDiscriminator": claims["recordingDocument"]["defaultOutputDiscriminator"],
     }
-    lines.append("/// Generated canonical and identity constants for the SensorKit v0.2 producer.")
+    lines.append("/// Generated canonical and identity constants for the SensorKit v0.3 producer.")
     lines.append("public enum GroveSensorKitContract {")
     for name, value in constants.items():
         lines.append(f"    public static let {name} = {swift_string(value)}")

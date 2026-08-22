@@ -18,7 +18,7 @@ struct SensorKitFHIRCatalogTests {
         let tokens = catalog.entries.map(\.sourceToken)
 
         #expect(catalog.schemaVersion == 1)
-        #expect(catalog.version == "0.2.0")
+        #expect(catalog.version == "0.3.0")
         #expect(catalog.fhirVersion == "4.0.1")
         #expect(tokens == tokens.sorted())
         #expect(Set(tokens).count == 22)

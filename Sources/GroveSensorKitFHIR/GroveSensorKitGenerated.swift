@@ -20,7 +20,7 @@ public enum GroveSensorRawPayloadAdmission: String, CaseIterable, Hashable, Send
 }
 
 
-/// Generated canonical and identity constants for the SensorKit v0.2 producer.
+/// Generated canonical and identity constants for the SensorKit v0.3 producer.
 public enum GroveSensorKitContract {
     public static let canonicalRoot = "https://grovealliance.org/fhir/sensorkit"
     public static let sourceRecordIdentifierSystem = "https://grovealliance.org/fhir/sensorkit/NamingSystem/sensorkit-record-id"
@@ -46,7 +46,7 @@ public enum GroveSensorKitContract {
 enum GroveSensorKitGenerated {
     static let catalog = SensorKitFHIRCatalog(
         schemaVersion: 1,
-        version: "0.2.0",
+        version: "0.3.0",
         fhirVersion: "4.0.1",
         entries: [
             SensorKitFHIRCatalogEntry(
@@ -71,7 +71,7 @@ enum GroveSensorKitGenerated {
                 structuredProfiles: [],
                 rawProfiles: [],
                 rawFormats: [],
-                requirement: "Version 0.2.0 publishes no reviewed output contract for this stable platform symbol."
+                requirement: "Version 0.3.0 publishes no reviewed output contract for this stable platform symbol."
             ),
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.ambientLightSensor",
@@ -83,7 +83,7 @@ enum GroveSensorKitGenerated {
                 structuredProfiles: [],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
                 rawFormats: ["grove-csv-1"],
-                requirement: "The source contains heterogeneous light fields for which version 0.2.0 does not publish a lossless component profile."
+                requirement: "The source contains heterogeneous light fields for which version 0.3.0 does not publish a lossless component profile."
             ),
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.ambientPressure",
@@ -131,7 +131,7 @@ enum GroveSensorKitGenerated {
                 structuredProfiles: [],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
                 rawFormats: ["native-json-1"],
-                requirement: "Version 0.2.0 publishes no reviewed structured profile for the heterogeneous face metrics."
+                requirement: "Version 0.3.0 publishes no reviewed structured profile for the heterogeneous face metrics."
             ),
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.heartRate",
@@ -167,7 +167,7 @@ enum GroveSensorKitGenerated {
                 structuredProfiles: [],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
                 rawFormats: ["native-json-1"],
-                requirement: "Media interactions do not have a reviewed source-neutral clinical Observation representation in version 0.2.0."
+                requirement: "Media interactions do not have a reviewed source-neutral clinical Observation representation in version 0.3.0."
             ),
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.messagesUsageReport",
@@ -263,7 +263,7 @@ enum GroveSensorKitGenerated {
                 structuredProfiles: [],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
                 rawFormats: ["native-json-1"],
-                requirement: "Speech metrics have no reviewed source-neutral clinical Observation representation in version 0.2.0."
+                requirement: "Speech metrics have no reviewed source-neutral clinical Observation representation in version 0.3.0."
             ),
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.sleepSessions",
@@ -287,7 +287,7 @@ enum GroveSensorKitGenerated {
                 structuredProfiles: [],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
                 rawFormats: ["native-json-1"],
-                requirement: "Speech metrics have no reviewed source-neutral clinical Observation representation in version 0.2.0."
+                requirement: "Speech metrics have no reviewed source-neutral clinical Observation representation in version 0.3.0."
             ),
             SensorKitFHIRCatalogEntry(
                 sourceToken: "SRSensor.visits",

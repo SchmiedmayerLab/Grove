@@ -28,10 +28,10 @@ struct GroveSensorFHIRConverterTests {
                 converter: GroveSensorFHIRApplication(
                     identifier: try GroveFHIRBusinessIdentifier(
                         system: "https://study.example.org/fhir/identifiers/application",
-                        value: "org.grovealliance.conformance-fixture|0.2.0"
+                        value: "org.grovealliance.conformance-fixture|0.3.0"
                     ),
                     name: "Grove Conformance Fixture",
-                    version: "0.2.0"
+                    version: "0.3.0"
                 ),
                 graphIdentifierSystem: "https://study.example.org/fhir/identifiers/sensor-graph",
                 recordingDevice: GroveSensorFHIRRecordingDevice(

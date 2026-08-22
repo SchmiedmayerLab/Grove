@@ -16,7 +16,7 @@ public enum SensorKitFHIRCatalogScope: String, CaseIterable, Sendable {
 }
 
 
-/// The authoritative v0.2 status of one SensorKit stream.
+/// The authoritative v0.3 status of one SensorKit stream.
 public enum SensorKitFHIRImplementationStatus: String, CaseIterable, Sendable {
     case supported
     case mappedStandard = "mapped-standard"
@@ -43,7 +43,7 @@ public enum SensorKitFHIRStructuredContract: String, CaseIterable, Sendable {
 }
 
 
-/// One generated row in Grove's complete SensorKit v0.2 source inventory.
+/// One generated row in Grove's complete SensorKit v0.3 source inventory.
 public struct SensorKitFHIRCatalogEntry: Equatable, Sendable {
     public let sourceToken: String
     public let sourceTypeCode: String
@@ -60,7 +60,7 @@ public struct SensorKitFHIRCatalogEntry: Equatable, Sendable {
 
 /// The exact machine-generated SensorKit source inventory consumed by this producer.
 public struct SensorKitFHIRCatalog: Equatable, Sendable {
-    /// The catalog generated from grove-fhir's adapter-inclusive v0.2 branch.
+    /// The catalog generated from grove-fhir's adapter-inclusive v0.3 branch.
     public static let current = GroveSensorKitGenerated.catalog
 
     public let schemaVersion: Int

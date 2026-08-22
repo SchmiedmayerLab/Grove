@@ -88,7 +88,7 @@ def parse_packages(values: list[str]) -> list[dict[str, str]]:
             raise ManifestError("package aliases and identifiers must be unique")
         aliases.add(alias)
         identifiers.add(identifier)
-        packages.append({"alias": alias, "packageId": identifier, "version": "0.2.0"})
+        packages.append({"alias": alias, "packageId": identifier, "version": "0.3.0"})
     if not packages:
         raise ManifestError("at least one --package is required")
     return packages
@@ -193,7 +193,7 @@ def create_manifest(
     if not entries:
         raise ManifestError(f"no emitted JSON resources found in {resources_directory}")
 
-    producer = {"name": "Grove Swift", "version": "0.2.0"}
+    producer = {"name": "Grove Swift", "version": "0.3.0"}
     if revision:
         producer["revision"] = revision
     return {

@@ -20,7 +20,7 @@ business identifiers, deterministic `urn:uuid` entry URLs, explicit Device roles
 conversion Provenance. `Resource.id` remains absent unless the caller supplies a
 repository-assigned id.
 
-The structured v0.2 mappings are rotation-rate SampledData, a hybrid ECG waveform plus
+The structured v0.3 mappings are rotation-rate SampledData, a hybrid ECG waveform plus
 its linked native recording, on-wrist state, device-usage summary plus its linked native
 recording, and visit summary. Other catalog-admitted Grove SensorKit streams use an exact
 native RecordingDocument. ``SensorKitFHIRCatalog`` is generated from the IG and records
