@@ -262,6 +262,15 @@ extension OpenAIPlatformDefinition.ModelType {
         Self.chatCompletionModelIds.contains(rawValue) ? .chatCompletions : .responses
     }
 
+    public var supportsSamplingControls: Bool {
+        // The reasoning models answer a sampling control with a `400` instead of applying it. `gpt-5-chat-latest`
+        // is the non-reasoning chat variant and keeps them.
+        guard rawValue != Self.gpt5_chat.rawValue else {
+            return true
+        }
+        return !["o1", "o3", "o4", "gpt-5"].contains { rawValue.hasPrefix($0) }
+    }
+
     public var supportsReasoningSummary: Bool {
         guard apiMode == .responses else {
             return false

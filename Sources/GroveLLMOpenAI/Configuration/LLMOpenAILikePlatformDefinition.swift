@@ -99,6 +99,14 @@ public protocol LLMOpenAILikePlatformModelType: Hashable, RawRepresentable<Strin
     /// and propagates the resulting summaries into the `LLMContext`. Defaults to `false`.
     var supportsReasoningSummary: Bool { get }
 
+    /// Whether this model accepts the sampling controls of the completions APIs.
+    ///
+    /// A model that has moved past them rejects `temperature`, `top_p` and the penalties with a `400` rather than
+    /// ignoring them, so a caller that sets one fails every request. Reasoning models were the first to do this and
+    /// the other vendors have followed, model by model rather than family by family — which is why each platform
+    /// answers for its own models instead of the answer being inferred from the identifier. Defaults to `true`.
+    var supportsSamplingControls: Bool { get }
+
     /// Creates a `ModelType` from a raw string value
     init(rawValue: String)
 }
@@ -116,6 +124,10 @@ extension LLMOpenAILikePlatformModelType {
 
     public var supportsReasoningSummary: Bool { // swiftlint:disable:this missing_docs
         false
+    }
+
+    public var supportsSamplingControls: Bool { // swiftlint:disable:this missing_docs
+        true
     }
 
     public init(stringLiteral value: String) { // swiftlint:disable:this missing_docs

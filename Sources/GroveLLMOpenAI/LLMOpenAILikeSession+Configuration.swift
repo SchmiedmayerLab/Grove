@@ -74,32 +74,33 @@ extension LLMOpenAILikeSession {
                     )
                 )
             }
-        let stop: Components.Schemas.StopConfiguration? = schema.modelParameters.stopSequence.isEmpty
+        let modelParameters = schema.modelParameters.accepted(by: schema.parameters.modelType)
+        let stop: Components.Schemas.StopConfiguration? = modelParameters.stopSequence.isEmpty
             ? nil
-            : .case2(schema.modelParameters.stopSequence)
+            : .case2(modelParameters.stopSequence)
         return Operations.createChatCompletion.Input(
             body: .json(
                 Components.Schemas.CreateChatCompletionRequest(
                     value1: .init(
                         value1: .init(
-                            temperature: schema.modelParameters.temperature,
-                            top_p: schema.modelParameters.topP
+                            temperature: modelParameters.temperature,
+                            top_p: modelParameters.topP
                         ),
                         value2: .init()
                     ),
                     value2: .init(
                         messages: context.compactMap { $0.toChatMessage() },
                         model: .init(value1: schema.parameters.modelType.rawValue),
-                        max_completion_tokens: schema.modelParameters.maxOutputLength,
-                        frequency_penalty: schema.modelParameters.frequencyPenalty,
-                        presence_penalty: schema.modelParameters.presencePenalty,
-                        response_format: schema.modelParameters.responseFormat,
+                        max_completion_tokens: modelParameters.maxOutputLength,
+                        frequency_penalty: modelParameters.frequencyPenalty,
+                        presence_penalty: modelParameters.presencePenalty,
+                        response_format: modelParameters.responseFormat,
                         stream: true,
                         stop: stop,
-                        logit_bias: schema.modelParameters.logitBias.additionalProperties.isEmpty
+                        logit_bias: modelParameters.logitBias.additionalProperties.isEmpty
                             ? nil
-                            : schema.modelParameters.logitBias,
-                        n: schema.modelParameters.completionsPerOutput,
+                            : modelParameters.logitBias,
+                        n: modelParameters.completionsPerOutput,
                         tools: functions.isEmpty ? nil : functions,
                         tool_choice: nil
                     )

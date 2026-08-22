@@ -187,5 +187,11 @@ extension AnthropicPlatformDefinition.ModelType {
 
     @available(*, deprecated, renamed: "haiku4_5", message: "The model is Claude Haiku 4.5; the old name was a typo.")
     public static let haiku4_6 = Self(rawValue: "claude-haiku-4-5") // swiftlint:disable:this missing_docs
+
+    public var supportsSamplingControls: Bool { // swiftlint:disable:this missing_docs
+        // Anthropic stopped accepting non-default sampling from Opus 4.7 onwards, and the current Sonnet and Haiku
+        // generations followed; asking for one is a `400`. Steer these models through the prompt instead.
+        ![Self.opus5, .sonnet5, .opus4_8, .opus4_7].contains(self)
+    }
 }
 // swiftlint:enable identifier_name
