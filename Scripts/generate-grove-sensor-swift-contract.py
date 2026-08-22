@@ -85,6 +85,12 @@ def structured_contract(entry: dict[str, Any]) -> str | None:
         "device-usage": "deviceUsage",
         "on-wrist": "onWrist",
         "visits": "visit",
+        "messages-usage": "messagesUsage",
+        "phone-usage": "phoneUsage",
+        "keyboard-metrics": "keyboardMetrics",
+        "sleep-sessions": "sleepSession",
+        "accelerometer": "accelerometer",
+        "ppg": "ppg",
     }.get(entry["sourceTypeCode"])
 
 
@@ -98,6 +104,24 @@ def structured_profiles(entry: dict[str, Any]) -> list[str]:
         if isinstance(value, str):
             profiles.append(value)
     return profiles
+
+
+def raw_admitted(entry: dict[str, Any]) -> bool:
+    raw = entry.get("raw")
+    return isinstance(raw, dict) and raw.get("status") == "mapped-standard"
+
+
+def raw_formats(entry: dict[str, Any]) -> list[str]:
+    if not raw_admitted(entry):
+        return []
+    formats = entry["raw"].get("formats")
+    if not isinstance(formats, list) or not formats or not all(
+        isinstance(value, str) and value for value in formats
+    ):
+        raise ValueError(f"admitted raw row must declare registry formats: {entry['sourceToken']}")
+    if len(formats) != len(set(formats)):
+        raise ValueError(f"raw registry formats must be unique: {entry['sourceToken']}")
+    return formats
 
 
 def validate_adapter(adapter: dict[str, Any], assertions: list[str]) -> list[dict[str, Any]]:
@@ -124,6 +148,7 @@ def validate_adapter(adapter: dict[str, Any], assertions: list[str]) -> list[dic
             raise ValueError(f"unknown SensorKit status for {entry.get('sourceToken')}")
         if entry.get("status") in {"supported", "platform-exclusive"} and structured_contract(entry) is None:
             raise ValueError(f"structured SensorKit row has no known contract: {entry['sourceToken']}")
+        raw_formats(entry)
     return entries
 
 
@@ -162,6 +187,9 @@ def generate(sensor_path: Path, adapter_path: Path) -> str:
     validate_identity_vectors(adapter)
 
     canonical = adapter["canonical"]
+    sensor_canonical = sensor.get("canonical")
+    if not isinstance(sensor_canonical, str) or not sensor_canonical:
+        raise ValueError("sensor catalog has no canonical")
     claims = adapter["profileClaims"]
     source_system = adapter["identity"]["sourceRecord"]["system"]
     output = adapter["identity"]["output"]
@@ -207,6 +235,7 @@ def generate(sensor_path: Path, adapter_path: Path) -> str:
         "conversionProvenanceProfile": claims["conversionProvenance"]["profile"],
         "sensorRecordingDocumentProfile": claims["recordingDocument"]["sourceNeutralProfile"],
         "sensorConversionProvenanceProfile": sensor_profiles["conversion-provenance"],
+        "recordingFormatCodeSystem": f"{sensor_canonical}/CodeSystem/grove-recording-format",
         "defaultRawOutputDiscriminator": claims["recordingDocument"]["defaultOutputDiscriminator"],
     }
     lines.append("/// Generated canonical and identity constants for the SensorKit v0.2 producer.")
@@ -231,7 +260,7 @@ def generate(sensor_path: Path, adapter_path: Path) -> str:
     }
     for entry in entries:
         profiles = structured_profiles(entry)
-        raw = raw_profiles if isinstance(entry.get("raw"), dict) and entry["raw"].get("status") == "mapped-standard" else []
+        raw = raw_profiles if raw_admitted(entry) else []
         contract = structured_contract(entry)
         lines.extend([
             "            SensorKitFHIRCatalogEntry(",
@@ -243,6 +272,7 @@ def generate(sensor_path: Path, adapter_path: Path) -> str:
             f"                structuredContract: {'.' + contract if contract else 'nil'},",
             "                structuredProfiles: [" + ", ".join(swift_string(value) for value in profiles) + "],",
             "                rawProfiles: [" + ", ".join(swift_string(value) for value in raw) + "],",
+            "                rawFormats: [" + ", ".join(swift_string(value) for value in raw_formats(entry)) + "],",
             f"                requirement: {swift_string(requirement(entry)) if requirement(entry) else 'nil'}",
             "            ),",
         ])

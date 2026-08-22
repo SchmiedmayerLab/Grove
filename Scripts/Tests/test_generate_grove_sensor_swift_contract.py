@@ -28,6 +28,7 @@ class SensorSwiftContractTests(unittest.TestCase):
         sensor = pathlib.Path(directory) / "sensor-catalog.json"
         sensor.write_text(json.dumps({
             "fhirVersion": "4.0.1",
+            "canonical": "https://example.org/sensor",
             "contracts": [
                 {
                     "id": "recording-document",
@@ -89,7 +90,7 @@ class SensorSwiftContractTests(unittest.TestCase):
                 "scope": "grove-implemented",
                 "status": "mapped-standard",
                 "structured": {"status": "deferred", "reason": "not lossless"},
-                "raw": {"status": "mapped-standard"},
+                "raw": {"status": "mapped-standard", "formats": ["grove-csv-1"]},
             }],
         }))
         return sensor, adapter
@@ -106,7 +107,28 @@ class SensorSwiftContractTests(unittest.TestCase):
             self.assertIn("sourceToken: \"SRSensor.accelerometer\"", generated)
             self.assertIn("status: .mappedStandard", generated)
             self.assertIn("sensorConversionProvenanceProfile", generated)
+            self.assertIn("rawFormats: [\"grove-csv-1\"]", generated)
+            self.assertIn(
+                "recordingFormatCodeSystem = "
+                "\"https://example.org/sensor/CodeSystem/grove-recording-format\"",
+                generated,
+            )
             self.assertNotIn("Codable", generated.split("public enum", 1)[1].split("{", 1)[0])
+
+    def test_rejects_admitted_raw_row_without_registry_formats(self):
+        with tempfile.TemporaryDirectory() as directory:
+            rows = [{
+                "sourceToken": "SRSensor.accelerometer",
+                "sourceTypeCode": "accelerometer",
+                "minimumIOS": "14.0",
+                "scope": "grove-implemented",
+                "status": "mapped-standard",
+                "structured": {"status": "deferred", "reason": "not lossless"},
+                "raw": {"status": "mapped-standard"},
+            }]
+            sensor, adapter = self.write_catalogs(directory, entries=rows)
+            with self.assertRaisesRegex(ValueError, "must declare registry formats"):
+                MODULE.generate(sensor, adapter)
 
     def test_rejects_duplicate_assertions(self):
         with tempfile.TemporaryDirectory() as directory:

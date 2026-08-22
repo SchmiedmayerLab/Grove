@@ -34,6 +34,12 @@ public enum SensorKitFHIRStructuredContract: String, CaseIterable, Sendable {
     case deviceUsage = "device-usage"
     case onWrist = "on-wrist"
     case visit = "visit"
+    case messagesUsage = "messages-usage"
+    case phoneUsage = "phone-usage"
+    case keyboardMetrics = "keyboard-metrics"
+    case sleepSession = "sleep-sessions"
+    case accelerometer
+    case ppg
 }
 
 
@@ -47,6 +53,7 @@ public struct SensorKitFHIRCatalogEntry: Equatable, Sendable {
     public let structuredContract: SensorKitFHIRStructuredContract?
     public let structuredProfiles: [String]
     public let rawProfiles: [String]
+    public let rawFormats: [String]
     public let requirement: String?
 }
 
