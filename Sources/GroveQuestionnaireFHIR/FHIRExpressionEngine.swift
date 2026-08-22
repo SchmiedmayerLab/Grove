@@ -57,13 +57,21 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
     private let variables: [Variable]
     /// App-supplied launch-context resources, keyed by their declared name.
     private let launchContext: [String: FHIRPathNode]
+    /// The caller-supplied instant used by all clock-sensitive FHIRPath functions.
+    private let evaluationInstant: Date
     /// The last encoded response, so a form-wide recalculation encodes it once.
     private let responseCache = ResponseCache()
 
-    init(questionnaire: ModelsR4.Questionnaire, variables: [Variable], launchContext: [String: FHIRPathNode]) throws {
+    init(
+        questionnaire: ModelsR4.Questionnaire,
+        variables: [Variable],
+        launchContext: [String: FHIRPathNode],
+        evaluationInstant: Date
+    ) throws {
         self.questionnaireNode = try FHIRPathNode.encoding(questionnaire)
         self.variables = variables
         self.launchContext = launchContext
+        self.evaluationInstant = evaluationInstant
     }
 
     public func evaluateBoolean(
@@ -131,7 +139,11 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
             constants["resource"] = [.object(qrNode)]
             constants["context"] = [.object(qrNode)]
         }
-        var context = FHIRPathEvaluationContext(focus: qrNode.map { [.object($0)] } ?? [], constants: constants)
+        var context = FHIRPathEvaluationContext(
+            focus: qrNode.map { [.object($0)] } ?? [],
+            constants: constants,
+            evaluationInstant: evaluationInstant
+        )
         // `variable`s may reference earlier variables and the response; each is visible
         // only to the item that declares it and that item's descendants.
         for variable in variables where variable.isVisible(to: scope.taskId) {

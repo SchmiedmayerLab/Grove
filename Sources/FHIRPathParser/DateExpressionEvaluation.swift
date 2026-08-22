@@ -17,8 +17,13 @@ enum DateEvaluationValue {
 
 
 final class DateExpressionEvaluation: FHIRPathBaseVisitor<Result<DateEvaluationValue, Error>> {
-    private lazy var now = Date.now // ensure today is consistent across tokens
+    private let evaluationInstant: Date
     private let cal = Calendar.current
+
+    init(evaluationInstant: Date) {
+        self.evaluationInstant = evaluationInstant
+        super.init()
+    }
 
     override func visitPolarityExpression(_ ctx: FHIRPathParser.PolarityExpressionContext) -> Result<DateEvaluationValue, Error>? {
         guard let `operator` = ctx.getToken(at: 0),
@@ -226,13 +231,13 @@ final class DateExpressionEvaluation: FHIRPathBaseVisitor<Result<DateEvaluationV
             }
             let date: Date
             if identifierToken.getText() == "today" { // yields a Date
-                date = cal.startOfDay(for: now)
+                date = cal.startOfDay(for: evaluationInstant)
             } else { // "now" yields a DateTime
-                date = now
+                date = evaluationInstant
             }
             return .success(.date(date))
         case "timeOfDay":
-            return .success(.components(cal.dateComponents([.hour, .minute, .second], from: now)))
+            return .success(.components(cal.dateComponents([.hour, .minute, .second], from: evaluationInstant)))
         default:
             return .failure(identifierToken.getSymbol(), .unknownIdentifier(identifier: identifierToken.getText()))
         }

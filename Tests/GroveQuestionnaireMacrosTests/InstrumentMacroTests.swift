@@ -28,7 +28,7 @@ extension InstrumentMacroTests {
                 static let mood = BooleanQuestion("mood", "Feeling well?")
                 static let detail = TextQuestion("detail", "Tell us more")
                     .enabledWhen(mood.isFalse)
-                static let questionnaire = Questionnaire(url: url, title: "Clean") {
+                static let questionnaire = Questionnaire(url: url, version: "1.0.0", title: "Clean") {
                     Section("page") {
                         intro
                         mood
@@ -50,7 +50,7 @@ extension InstrumentMacroTests {
             enum Duplicated {
                 static let first = BooleanQuestion("q", "First?")
                 static let second = BooleanQuestion("q", "Second?")
-                static let questionnaire = Questionnaire(url: url, title: "D") {
+                static let questionnaire = Questionnaire(url: url, version: "1.0.0", title: "D") {
                     Section("page") {
                         first
                         second
@@ -71,7 +71,7 @@ extension InstrumentMacroTests {
             @Instrument
             enum Collide {
                 static let mood = BooleanQuestion("page", "Feeling well?")
-                static let questionnaire = Questionnaire(url: url, title: "C") {
+                static let questionnaire = Questionnaire(url: url, version: "1.0.0", title: "C") {
                     Section("page") {
                         mood
                     }
@@ -94,7 +94,7 @@ extension InstrumentMacroTests {
                 static let sleep = ChoiceQuestion<Frequency>("sleep", "Trouble sleeping?")
                 static let mood = BooleanQuestion("mood", "Feeling well?")
                     .enabledWhen(sleep.answered)
-                static let questionnaire = Questionnaire(url: url, title: "F") {
+                static let questionnaire = Questionnaire(url: url, version: "1.0.0", title: "F") {
                     Section("page") {
                         mood
                     }
@@ -115,7 +115,7 @@ extension InstrumentMacroTests {
             @Instrument
             enum Twice {
                 static let mood = BooleanQuestion("mood", "Feeling well?")
-                static let questionnaire = Questionnaire(url: url, title: "T") {
+                static let questionnaire = Questionnaire(url: url, version: "1.0.0", title: "T") {
                     Section("one") {
                         mood
                     }
@@ -139,7 +139,7 @@ extension InstrumentMacroTests {
             enum Loop {
                 static let mood = BooleanQuestion("mood", "Feeling well?")
                     .enabledWhen(mood.isTrue)
-                static let questionnaire = Questionnaire(url: url, title: "L") {
+                static let questionnaire = Questionnaire(url: url, version: "1.0.0", title: "L") {
                     Section("page") {
                         mood
                     }
@@ -160,7 +160,7 @@ extension InstrumentMacroTests {
                     .enabledWhen(detail.answered)
                 static let detail = TextQuestion("detail", "More?")
                     .enabledWhen(mood.isTrue)
-                static let questionnaire = Questionnaire(url: url, title: "M") {
+                static let questionnaire = Questionnaire(url: url, version: "1.0.0", title: "M") {
                     Section("page") {
                         mood
                         detail
@@ -195,7 +195,7 @@ extension InstrumentMacroTests {
             enum Broken {
                 static let mood = BooleanQuestion("mood", "Feeling well?")
                     .constraint("1 + )", message: "nope")
-                static let questionnaire = Questionnaire(url: url, title: "B") {
+                static let questionnaire = Questionnaire(url: url, version: "1.0.0", title: "B") {
                     Section("page") {
                         mood
                     }
@@ -216,7 +216,7 @@ extension InstrumentMacroTests {
                 static let mood = BooleanQuestion("mood", "Feeling well?")
                 static let total = NumberQuestion("total", "Total")
                     .calculated(.raw("%resource.descendants().where(linkId='moood').answer.count()"))
-                static let questionnaire = Questionnaire(url: url, title: "S") {
+                static let questionnaire = Questionnaire(url: url, version: "1.0.0", title: "S") {
                     Section("page") {
                         mood
                         total
@@ -237,7 +237,7 @@ extension InstrumentMacroTests {
             enum Looped {
                 static let mood = BooleanQuestion("mood", "Feeling well?")
                 static let unplaced = TextQuestion("unplaced", "Never shown")
-                static let questionnaire = Questionnaire(url: url, title: "L") {
+                static let questionnaire = Questionnaire(url: url, version: "1.0.0", title: "L") {
                     Section("page") {
                         for index in 0..<3 {
                             BooleanQuestion("q\\(index)", "Question?")
@@ -258,7 +258,7 @@ extension InstrumentMacroTests {
             @Instrument
             enum Computed {
                 static let mood = BooleanQuestion(moodID, "Feeling well?")
-                static let questionnaire = Questionnaire(url: url, title: "C") {
+                static let questionnaire = Questionnaire(url: url, version: "1.0.0", title: "C") {
                     Section("page") {
                         mood
                     }
@@ -282,7 +282,7 @@ extension InstrumentMacroTests {
             enum Borrowing {
                 static let mood = BooleanQuestion("mood", "Feeling well?")
                     .enabledWhen(GAD7.worry.isTrue)
-                static let questionnaire = Questionnaire(url: url, title: "B") {
+                static let questionnaire = Questionnaire(url: url, version: "1.0.0", title: "B") {
                     Section("page") {
                         mood
                     }
@@ -305,7 +305,7 @@ extension InstrumentMacroTests {
                 static let mood = ChoiceQuestion<Frequency>("mood", "How often?")
                 static let detail = TextQuestion("detail", "More?")
                     .enabledWhen(mood.selected(Frequency.nearlyEveryDay))
-                static let questionnaire = Questionnaire(url: url, title: "O") {
+                static let questionnaire = Questionnaire(url: url, version: "1.0.0", title: "O") {
                     Section("page") {
                         mood
                         detail

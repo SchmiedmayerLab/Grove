@@ -21,6 +21,7 @@ struct FHIRChoiceFeatureTests {
     private func makeQuestionnaire(items: [ModelsR4.QuestionnaireItem]) -> ModelsR4.Questionnaire {
         var questionnaire = ModelsR4.Questionnaire(status: FHIRPrimitive(PublicationStatus.active))
         questionnaire.url = "https://example.org/fhir/Questionnaire/choice-features".asFHIRURIPrimitive()
+        questionnaire.version = "1.0.0".asFHIRStringPrimitive()
         questionnaire.item = items
         return questionnaire
     }
@@ -66,7 +67,7 @@ struct FHIRChoiceFeatureTests {
         autocomplete.answerOption = [option("x")]
         autocomplete.extension = [itemControl("autocomplete")]
 
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [dropDown, autocomplete]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [dropDown, autocomplete]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         #expect(try choiceConfig(of: questionnaire, taskId: "c1").presentation == .dropDown)
         #expect(try choiceConfig(of: questionnaire, taskId: "c2").presentation == .autocomplete)
     }
@@ -82,7 +83,7 @@ struct FHIRChoiceFeatureTests {
             value: .code(FHIRPrimitive(ModelsR4.FHIRString("horizontal")))
         )
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         #expect(try choiceConfig(of: questionnaire).orientation == .horizontal)
     }
 
@@ -100,7 +101,7 @@ struct FHIRChoiceFeatureTests {
             value: .integer(FHIRPrimitive(FHIRInteger(2)))
         )
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         #expect(try choiceConfig(of: questionnaire).maxSelections == 2)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let task = try #require(questionnaire.sections.flatMap(\.tasks).first)
@@ -134,7 +135,7 @@ struct FHIRChoiceFeatureTests {
             value: .string(FHIRPrimitive(ModelsR4.FHIRString("Something else")))
         )
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let config = try choiceConfig(of: questionnaire)
         #expect(config.freeTextOtherOptionLabel == "Something else")
         #expect(config.options.first?.title == "A. listed")
@@ -164,6 +165,7 @@ struct FHIRChoiceFeatureTests {
 
         let questionnaire = try GroveQuestionnaire.Questionnaire(
             makeQuestionnaire(items: [choice]),
+            evaluationInstant: questionnaireResponseTestAuthoredAt,
             using: .init(resolveValueSet: { url in
                 url.absoluteString == "https://example.org/fhir/ValueSet/external" ? valueSet : nil
             })
@@ -174,7 +176,7 @@ struct FHIRChoiceFeatureTests {
 
         // Without a resolver the conversion fails loudly instead of dropping options.
         #expect(throws: GroveQuestionnaire.Questionnaire.FHIRConversionError.self) {
-            try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]))
+            try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         }
     }
 
@@ -195,7 +197,7 @@ struct FHIRChoiceFeatureTests {
         var weight = ModelsR4.QuestionnaireItem(linkId: "weight".asFHIRStringPrimitive(), type: .init(.quantity))
         weight.text = "weight".asFHIRStringPrimitive()
         weight.extension = [unitOption("kg", "kilograms"), unitOption("[lb_av]", "pounds")]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [weight]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [weight]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let task = try #require(questionnaire.sections.flatMap(\.tasks).first)
         guard case .numeric(let config) = task.kind.variant else {
             Issue.record("Expected a numeric task")
@@ -205,7 +207,10 @@ struct FHIRChoiceFeatureTests {
 
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["weight"] = .init(value: .quantity(150, unitCode: "[lb_av]"))
-        let fhirResponse = try ModelsR4.QuestionnaireResponse(responses)
+        let fhirResponse = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
         guard case let .quantity(quantity)? = fhirResponse.item?.first?.answer?.first?.value else {
             Issue.record("Expected a quantity answer")
             return
@@ -225,7 +230,7 @@ struct FHIRChoiceFeatureTests {
         var question = ModelsR4.QuestionnaireItem(linkId: "q1".asFHIRStringPrimitive(), type: .init(.integer))
         question.text = "Drinks per week?".asFHIRStringPrimitive()
         question.item = [help]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [question]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [question]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let tasks = questionnaire.sections.flatMap(\.tasks)
         #expect(tasks.count == 1, "the help item must not become its own task")
         #expect(tasks.first?.footer.contains("alcoholic beverage") == true)

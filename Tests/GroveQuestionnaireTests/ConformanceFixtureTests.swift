@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import GroveFHIRContract
 @testable import GroveQuestionnaire
 @testable import GroveQuestionnaireFHIR
 import ModelsR4
@@ -60,14 +61,16 @@ struct QuestionnaireConformanceFixtureTests {
         responses.responses["well"] = .init(value: .bool(true))
         responses.responses["temperature"] = .init(value: .quantity(36.8, unitCode: "Cel"))
 
+        let pair = try GroveQuestionnaireFHIRBuilder().pair(
+            from: responses,
+            subject: Reference(reference: "Patient/example"),
+            authored: Date(timeIntervalSince1970: 1_700_000_000)
+        )
         let fixtures: [String: ResourceProxy] = [
-            "questionnaire": ResourceProxy(with: try ModelsR4.Questionnaire(questionnaire)),
-            "questionnaire-response": ResourceProxy(with: try ModelsR4.QuestionnaireResponse(
-                responses,
-                subject: Reference(reference: "Patient/example"),
-                authored: Date(timeIntervalSince1970: 1_700_000_000)
-            ))
+            "questionnaire": ResourceProxy(with: pair.questionnaire),
+            "questionnaire-response": ResourceProxy(with: pair.response)
         ]
+        #expect(fixtures.count == 2)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
         try FileManager.default.createDirectory(at: Self.fixtureDirectory, withIntermediateDirectories: true)

@@ -19,13 +19,19 @@ public struct FHIRPathEvaluationContext: Sendable {
     /// Callers typically provide `resource` (the QuestionnaireResponse under
     /// construction), `questionnaire`, and `context`, plus any SDC `variable`s.
     public var constants: [String: [FHIRPathValue]]
-    /// The instant used for `now()`/`today()`/`timeOfDay()`, so evaluation is reproducible.
-    public var now: Date
+    /// The instant used for `now()`/`today()`/`timeOfDay()`.
+    ///
+    /// Defaults to the wall clock; pass a fixed instant to make an evaluation reproducible.
+    public var evaluationInstant: Date
 
-    public init(focus: [FHIRPathValue] = [], constants: [String: [FHIRPathValue]] = [:], now: Date = Date()) {
+    public init(
+        focus: [FHIRPathValue] = [],
+        constants: [String: [FHIRPathValue]] = [:],
+        evaluationInstant: Date = Date()
+    ) {
         self.focus = focus
         self.constants = constants
-        self.now = now
+        self.evaluationInstant = evaluationInstant
         self.constants["ucum"] = [.string("http://unitsofmeasure.org")]
         if let resource = constants["resource"], self.constants["context"] == nil {
             self.constants["context"] = resource

@@ -5,9 +5,6 @@
   "status": "draft",
   "publisher": "Stanford University",
   "meta": {
-    "profile": [
-      "https://grovealliance.org/fhir/core/StructureDefinition/sdf-Questionnaire"
-    ],
     "tag": [
       {
         "system": "urn:ietf:bcp:47",
@@ -41,7 +38,7 @@
   "subjectType": [
     "Patient"
   ],
-  "url": "https://grovealliance.org/fhir/core/Questionnaire/71272809-d6e9-4329-880c-efdad485e558",
+  "url": "https://example.org/fhir/Questionnaire/71272809-d6e9-4329-880c-efdad485e558",
   "item": [
     {
       "linkId": "1f5037a1-7b82-402a-fcbe-e6d977b0418a",

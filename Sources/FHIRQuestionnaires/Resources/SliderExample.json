@@ -5,7 +5,7 @@
   "title": "Slider Example",
   "status": "draft",
   "publisher": "Stanford University",
-  "url": "https://grovealliance.org/fhir/core/Questionnaire/sliderexample",
+  "url": "https://example.org/fhir/Questionnaire/slider-example",
   "item": [
     {
       "linkId": "1",

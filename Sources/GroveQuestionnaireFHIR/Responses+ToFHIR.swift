@@ -8,6 +8,7 @@
 
 private import CryptoKit
 public import Foundation
+public import GroveFHIRContract
 public import GroveQuestionnaire
 public import ModelsR4
 
@@ -40,6 +41,19 @@ extension GroveQuestionnaire.QuestionnaireResponses {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ModelsR4.QuestionnaireResponse {
+    private static var electronicCompletionMode: Extension {
+        Extension(
+            url: "http://hl7.org/fhir/StructureDefinition/questionnaireresponse-completionMode",
+            value: .codeableConcept(CodeableConcept(coding: [
+                Coding(
+                    code: "ELECTRONIC".asFHIRStringPrimitive(),
+                    display: "electronic data".asFHIRStringPrimitive(),
+                    system: "http://terminology.hl7.org/CodeSystem/v3-ParticipationMode".asFHIRURIPrimitive()
+                )
+            ]))
+        )
+    }
+
     /// Creates a FHIR R4 `QuestionnaireResponse` from a Grove `QuestionnaireResponses`.
     ///
     /// The generated response mirrors the questionnaire's structure: answers within FHIR
@@ -55,8 +69,11 @@ extension ModelsR4.QuestionnaireResponse {
     ///     exporting a partially answered draft.
     /// - parameter identifier: A business identifier for the response. By default,
     ///     Grove uses the questionnaire canonical as its system and the response UUID as its value.
-    /// - parameter authored: When the response was authored. Pass a stored timestamp
-    ///     when repeated exports must be byte-stable.
+    /// - parameter repositoryID: A repository-assigned logical id for the resource. Leave it `nil`
+    ///     unless the caller already holds an id assignment from the receiving repository.
+    /// - parameter authored: The instant at which the response was authored. Defaults to the
+    ///     wall clock, which fits the common export-on-completion flow; pass the stored instant
+    ///     when exporting later.
     public init(
         _ other: GroveQuestionnaire.QuestionnaireResponses,
         subject: Reference? = nil,
@@ -64,6 +81,7 @@ extension ModelsR4.QuestionnaireResponse {
         source: Reference? = nil,
         status: QuestionnaireResponseStatus = .completed,
         identifier: Identifier? = nil,
+        repositoryID: GroveFHIRRepositoryID? = nil,
         authored: Date = .now
     ) throws {
         try self.init(
@@ -73,18 +91,27 @@ extension ModelsR4.QuestionnaireResponse {
             source: source,
             status: status,
             identifier: identifier,
+            repositoryID: repositoryID,
             authored: authored,
             droppingUnconvertibleAnswers: false
         )
     }
 
-    /// A best-effort snapshot of the answers so far, for expression evaluation.
+    /// A best-effort, non-exportable snapshot of the answers so far, for expression evaluation.
     ///
     /// An answer that cannot be expressed in FHIR yet — a half-entered number in an
     /// integer item, say — is left out rather than failing the conversion, which would
-    /// take every expression in the form down with it.
+    /// take every expression in the form down with it. This internal snapshot deliberately omits
+    /// `authored`; expression evaluation must not read the wall clock or masquerade as an export.
     init(evaluating responses: GroveQuestionnaire.QuestionnaireResponses) throws {
-        try self.init(responses, status: .inProgress, identifier: nil, authored: .now, droppingUnconvertibleAnswers: true)
+        try self.init(
+            responses,
+            status: .inProgress,
+            identifier: nil,
+            repositoryID: nil,
+            authored: nil,
+            droppingUnconvertibleAnswers: true
+        )
     }
 
     private init(
@@ -94,49 +121,50 @@ extension ModelsR4.QuestionnaireResponse {
         source: Reference? = nil,
         status: QuestionnaireResponseStatus,
         identifier: Identifier?,
-        authored: Date,
+        repositoryID: GroveFHIRRepositoryID?,
+        authored: Date?,
         droppingUnconvertibleAnswers: Bool
     ) throws {
         self.init(status: .init(status))
-        // Self-declare the profile so validators and profile-aware stores pick up
-        // the contract without out-of-band knowledge.
-        self.meta = Meta(profile: [
-            FHIRPrimitive(Canonical(
-            "https://grovealliance.org/fhir/core/StructureDefinition/grove-questionnaire-response"
-        ))
-        ])
-        self.id = other.id.uuidString.asFHIRStringPrimitive()
-        self.identifier = identifier ?? Identifier(
-            system: other.questionnaire.metadata.url?.asFHIRURIPrimitive(),
-            value: other.id.uuidString.asFHIRStringPrimitive()
-        )
-        self.authored = try FHIRPrimitive(DateTime(date: authored))
+        if !droppingUnconvertibleAnswers {
+            self.meta = Meta(profile: [GroveFHIRProfile.groveQuestionnaireResponse])
+            self.id = repositoryID?.primitive
+        }
+        if let authored {
+            self.authored = try FHIRPrimitive(DateTime(date: authored))
+        }
         self.subject = subject
         self.author = author
         self.source = source
-        // questionnaireresponse-completionMode: this renderer only captures
-        // electronically. The bound value set draws from v3 ParticipationMode.
-        self.extension = [
-            Extension(
-            url: "http://hl7.org/fhir/StructureDefinition/questionnaireresponse-completionMode",
-            value: .codeableConcept(CodeableConcept(coding: [
-                Coding(
-                code: "ELECTRONIC".asFHIRStringPrimitive(),
-                display: "electronic data".asFHIRStringPrimitive(),
-                system: "http://terminology.hl7.org/CodeSystem/v3-ParticipationMode".asFHIRURIPrimitive()
+        if !droppingUnconvertibleAnswers {
+            self.extension = [Self.electronicCompletionMode]
+            guard let url = other.questionnaire.metadata.url else {
+                throw GroveQuestionnaireFHIRContractError.missingQuestionnaireURL
+            }
+            guard let version = other.questionnaire.metadata.version else {
+                throw GroveQuestionnaireFHIRContractError.missingQuestionnaireVersion
+            }
+            guard GroveQuestionnaireFHIRContract.isSemanticVersion(version) else {
+                throw GroveQuestionnaireFHIRContractError.invalidQuestionnaireVersion(version)
+            }
+            let canonical = "\(url.absoluteString)|\(version)"
+            guard !url.absoluteString.contains("|"),
+                  !url.absoluteString.contains("#"),
+                  !version.contains("|"),
+                  !version.contains("#") else {
+                throw GroveQuestionnaireFHIRContractError.invalidQuestionnaireCanonical(canonical)
+            }
+            self.questionnaire = FHIRPrimitive(Canonical(stringLiteral: canonical))
+            let responseIdentifier = identifier ?? Identifier(
+                system: url.asFHIRURIPrimitive(),
+                value: other.id.uuidString.lowercased().asFHIRStringPrimitive()
             )
-            ]))
-        )
-        ]
-        if let url = other.questionnaire.metadata.url {
-            // Pin the canonical to the questionnaire's business version when known.
-            self.questionnaire = FHIRPrimitive(Canonical(url, version: other.questionnaire.metadata.version))
-        } else if !droppingUnconvertibleAnswers {
-            // Nothing else names the instrument, so a response without it cannot be read
-            // back. The evaluation snapshot never leaves the renderer and may go without.
-            throw FHIRResponseConversionError(
-                "Questionnaire '\(other.questionnaire.metadata.id)' has no url; its responses cannot reference the instrument they answer"
-            )
+            do {
+                _ = try GroveFHIRBusinessIdentifier(responseIdentifier)
+            } catch {
+                throw GroveQuestionnaireFHIRContractError.incompleteResponseIdentifier
+            }
+            self.identifier = responseIdentifier
         }
         let items = try Self.items(for: other, droppingUnconvertibleAnswers: droppingUnconvertibleAnswers)
         // An empty `item` array is invalid FHIR JSON; omit the element instead.

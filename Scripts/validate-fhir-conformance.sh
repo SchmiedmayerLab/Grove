@@ -16,6 +16,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+./Scripts/check-fhir-canonical-hygiene.sh
+
 COMPONENT="${1:-${GROVE_FHIR_COMPONENT:-healthkit}}"
 GUIDES="${GROVE_FHIR_GUIDES:-$(pwd)/.fhir/grove-fhir}"
 GROVE_FHIR_REF="${GROVE_FHIR_REF:-ccde2c33001a5b70eb943dd5cde30936ba32d725}"
@@ -105,5 +107,12 @@ python3 "$GUIDES/Scripts/validate-producer.py" \
     --manifest "$MANIFEST" \
     --validator "$VALIDATOR" \
     "${package_arguments[@]}"
+
+if [ "$COMPONENT" = "questionnaire" ]; then
+    echo "==> validating the exact Questionnaire/Response pair"
+    python3 "$GUIDES/Scripts/validate-questionnaire.py" \
+        --questionnaire "$OUT/questionnaire.json" \
+        --response "$OUT/questionnaire-response.json"
+fi
 
 echo "OK — all $COMPONENT resources conform to their declared R4 profiles."

@@ -100,7 +100,7 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.NumericTaskConfig {
         using context: FHIRExportContext
     ) -> [Extension] {
         var extensions: [Extension] = []
-        if let maxDecimalPlaces {
+        if valueKind == .decimal, let maxDecimalPlaces {
             extensions.append(Extension(
                 url: "http://hl7.org/fhir/StructureDefinition/maxDecimalPlaces",
                 value: .integer(FHIRPrimitive(FHIRInteger(Int32(clamping: maxDecimalPlaces))))

@@ -23,6 +23,7 @@ struct FHIRConformanceTests {
     private func makeQuestionnaire(items: [ModelsR4.QuestionnaireItem]) -> ModelsR4.Questionnaire {
         var questionnaire = ModelsR4.Questionnaire(status: FHIRPrimitive(PublicationStatus.active))
         questionnaire.url = "https://example.org/fhir/Questionnaire/conformance".asFHIRURIPrimitive()
+        questionnaire.version = "1.0.0".asFHIRStringPrimitive()
         questionnaire.item = items
         return questionnaire
     }
@@ -70,7 +71,7 @@ struct FHIRConformanceTests {
         let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [
             booleanItem("q1"),
             booleanItem("q2", required: true)
-        ]))
+        ]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let tasks = questionnaire.sections.flatMap(\.tasks)
         #expect(tasks.first { $0.id == "q1" }?.isOptional == true)
         #expect(tasks.first { $0.id == "q2" }?.isOptional == false)
@@ -88,7 +89,7 @@ struct FHIRConformanceTests {
         let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [
             booleanItem("q1"),
             booleanItem("q2", enableWhen: [enableWhen])
-        ]))
+        ]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let target = try #require(questionnaire.sections.flatMap(\.tasks).first { $0.id == "q2" })
         // Unanswered source: != must NOT enable the target.
@@ -129,7 +130,7 @@ struct FHIRConformanceTests {
         let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [
             choice,
             booleanItem("q2", enableWhen: [enableWhen])
-        ]))
+        ]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let target = try #require(questionnaire.sections.flatMap(\.tasks).first { $0.id == "q2" })
         // Selecting the same code from system A must NOT satisfy a system-B condition.
@@ -152,7 +153,7 @@ struct FHIRConformanceTests {
         let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [
             booleanItem("early", enableWhen: [enableWhen]),
             booleanItem("later")
-        ]))
+        ]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let early = try #require(questionnaire.sections.flatMap(\.tasks).first { $0.id == "early" })
         #expect(!responses.shouldEnable(task: early))
@@ -181,7 +182,7 @@ struct FHIRConformanceTests {
                 question: "q2".asFHIRStringPrimitive()
             )
             ])
-        ]))
+        ]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let target = try #require(questionnaire.sections.flatMap(\.tasks).first { $0.id == "q3" })
         // Answer target while it is enabled...
@@ -210,7 +211,7 @@ struct FHIRConformanceTests {
                 ]))
             )
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let task = try #require(questionnaire.sections.flatMap(\.tasks).first)
         guard case .freeText = task.kind.variant else {
             Issue.record("Expected fallback to the standard free-text widget, got \(task.kind.variant)")
@@ -224,10 +225,13 @@ struct FHIRConformanceTests {
     func integerItemEmitsValueInteger() throws {
         var item = ModelsR4.QuestionnaireItem(linkId: "count".asFHIRStringPrimitive(), type: .init(.integer))
         item.text = "how many".asFHIRStringPrimitive()
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["count"] = .init(value: .number(3))
-        let exported = try ModelsR4.QuestionnaireResponse(responses)
+        let exported = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
         let answer = try #require(exported.item?.first?.answer?.first)
         guard case .integer(let value) = try #require(answer.value) else {
             Issue.record("Expected valueInteger, got \(String(describing: answer.value))")
@@ -240,10 +244,13 @@ struct FHIRConformanceTests {
     func urlItemEmitsValueUri() throws {
         var item = ModelsR4.QuestionnaireItem(linkId: "website".asFHIRStringPrimitive(), type: .init(.url))
         item.text = "your website".asFHIRStringPrimitive()
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["website"] = .init(value: .string("https://example.org"))
-        let exported = try ModelsR4.QuestionnaireResponse(responses)
+        let exported = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
         let answer = try #require(exported.item?.first?.answer?.first)
         guard case .uri = try #require(answer.value) else {
             Issue.record("Expected valueUri, got \(String(describing: answer.value))")
@@ -267,10 +274,13 @@ struct FHIRConformanceTests {
             ))
         )
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["weight"] = .init(value: .number(72.5))
-        let exported = try ModelsR4.QuestionnaireResponse(responses)
+        let exported = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
         let answer = try #require(exported.item?.first?.answer?.first)
         guard case .quantity(let quantity) = try #require(answer.value) else {
             Issue.record("Expected valueQuantity, got \(String(describing: answer.value))")
@@ -290,11 +300,14 @@ struct FHIRConformanceTests {
         nestedGroup.item = [inner]
         var topGroup = ModelsR4.QuestionnaireItem(linkId: "top-group".asFHIRStringPrimitive(), type: .init(.group))
         topGroup.item = [booleanItem("outer-q"), nestedGroup]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [topGroup]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [topGroup]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["outer-q"] = .init(value: .bool(true))
         responses.responses["inner-q"] = .init(value: .bool(false))
-        let exported = try ModelsR4.QuestionnaireResponse(responses)
+        let exported = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
         // top-group wraps everything; nested-group wraps inner-q.
         let top = try #require(exported.item?.first)
         #expect(top.linkId.value?.string == "top-group")
@@ -310,11 +323,14 @@ struct FHIRConformanceTests {
         let child = booleanItem("child-q")
         var parent = booleanItem("parent-q")
         parent.item = [child]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [parent]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [parent]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["parent-q"] = .init(value: .bool(true))
         responses.responses["child-q"] = .init(value: .bool(false))
-        let exported = try ModelsR4.QuestionnaireResponse(responses)
+        let exported = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
         let parentItem = try #require(exported.item?.first)
         #expect(parentItem.linkId.value?.string == "parent-q")
         // The child's answer lives beneath the parent's answer, mirroring the questionnaire.
@@ -327,7 +343,7 @@ struct FHIRConformanceTests {
         let child = booleanItem("child-q")
         var parent = booleanItem("parent-q")
         parent.item = [child]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [parent]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [parent]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let childTask = try #require(questionnaire.sections.flatMap(\.tasks).first { $0.id == "child-q" })
         // FHIR: a question nested beneath a question is only asked once the parent is answered.
@@ -344,7 +360,7 @@ struct FHIRConformanceTests {
             try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [
                 booleanItem("dup"),
                 booleanItem("dup")
-            ]))
+            ]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         }
     }
 
@@ -352,9 +368,12 @@ struct FHIRConformanceTests {
 
     @Test
     func emptyResponseOmitsItemArray() throws {
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [booleanItem("q1")]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [booleanItem("q1")]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
-        let exported = try ModelsR4.QuestionnaireResponse(responses)
+        let exported = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
         #expect(exported.item == nil)
     }
 
@@ -364,10 +383,13 @@ struct FHIRConformanceTests {
     func responsePinsQuestionnaireVersion() throws {
         var fhirQuestionnaire = makeQuestionnaire(items: [booleanItem("q1")])
         fhirQuestionnaire.version = "2.1.0".asFHIRStringPrimitive()
-        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire, evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["q1"] = .init(value: .bool(true))
-        let exported = try ModelsR4.QuestionnaireResponse(responses)
+        let exported = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
         #expect(exported.questionnaire?.value?.version == "2.1.0")
         #expect(exported.questionnaire?.value?.url.absoluteString == "https://example.org/fhir/Questionnaire/conformance")
     }
@@ -378,7 +400,7 @@ struct FHIRConformanceTests {
     func readOnlyIsParsed() throws {
         var item = booleanItem("locked")
         item.readOnly = FHIRPrimitive(FHIRBool(true))
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         #expect(questionnaire.sections.flatMap(\.tasks).first?.isReadOnly == true)
     }
 
@@ -388,6 +410,7 @@ struct FHIRConformanceTests {
     func displayItemsOmitElementsFHIRForbids() throws {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: URL(string: "https://example.org/fhir/Questionnaire/display")!,
+            version: "1.0.0",
             title: "Display"
         ) {
             Section("s1", title: "Section") {
@@ -419,6 +442,7 @@ struct FHIRConformanceTests {
         ]).initialValue("bad")
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: URL(string: "https://example.org/fhir/Questionnaire/preselect")!,
+            version: "1.0.0",
             title: "Preselect"
         ) {
             Section("s1") { mood }
@@ -430,7 +454,7 @@ struct FHIRConformanceTests {
         #expect(exported.answerOption?.first?.initialSelected == nil)
         #expect(exported.answerOption?.last?.initialSelected?.value?.bool == true)
         // The reader takes the pre-selection back off the answerOption.
-        let reimported = try GroveQuestionnaire.Questionnaire(fhir)
+        let reimported = try GroveQuestionnaire.Questionnaire(fhir, evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: reimported)
         #expect(responses.responses["mood"].value.choiceValue.selectedOptions == ["https://example.org/opts|bad"])
     }
@@ -441,6 +465,7 @@ struct FHIRConformanceTests {
     func targetConstraintCarriesAKey() throws {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: URL(string: "https://example.org/fhir/Questionnaire/constraints")!,
+            version: "1.0.0",
             title: "Constraints"
         ) {
             Section("s1") {
@@ -456,7 +481,7 @@ struct FHIRConformanceTests {
             return
         }
         #expect(value.value?.string == "email-1")
-        let reimported = try GroveQuestionnaire.Questionnaire(fhir)
+        let reimported = try GroveQuestionnaire.Questionnaire(fhir, evaluationInstant: questionnaireResponseTestAuthoredAt)
         #expect(reimported.sections.flatMap(\.tasks).first?.constraints.first?.key == "email-1")
     }
 
@@ -469,6 +494,7 @@ struct FHIRConformanceTests {
             metadata: .init(
                 id: "units",
                 url: URL(string: "https://example.org/fhir/Questionnaire/units"),
+                version: "1.0.0",
                 title: "Units",
                 explainer: ""
             ),
@@ -524,6 +550,7 @@ struct FHIRConformanceTests {
     func keyboardHintIsACoding() throws {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: URL(string: "https://example.org/fhir/Questionnaire/keyboard")!,
+            version: "1.0.0",
             title: "Keyboard"
         ) {
             Section("s1") {
@@ -539,7 +566,7 @@ struct FHIRConformanceTests {
         }
         #expect(coding.code?.value?.string == "email")
         #expect(coding.system?.value?.url.absoluteString == "http://hl7.org/fhir/uv/sdc/CodeSystem/keyboardType")
-        let reimported = try GroveQuestionnaire.Questionnaire(fhir)
+        let reimported = try GroveQuestionnaire.Questionnaire(fhir, evaluationInstant: questionnaireResponseTestAuthoredAt)
         guard case .freeText(let config) = try #require(reimported.sections.flatMap(\.tasks).first).kind.variant else {
             Issue.record("Expected a free-text task")
             return
@@ -560,7 +587,7 @@ struct FHIRConformanceTests {
         )
         ]
         scored.definition = "https://example.org/StructureDefinition/phq9#item".asFHIRURIPrimitive()
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [scored]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [scored]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let task = try #require(questionnaire.sections.flatMap(\.tasks).first)
         #expect(task.codes == [
             .init(
@@ -584,7 +611,7 @@ struct FHIRConformanceTests {
         var parent = booleanItem("outer-q")
         parent.item = [booleanItem("child-q")]
         let top = groupItem("top-group", [parent, groupItem("nested-group", [booleanItem("inner-q")])])
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [top]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [top]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let exported = try ModelsR4.Questionnaire(questionnaire)
         let exportedTop = try #require(exported.item?.first)
         #expect(exportedTop.linkId.value?.string == "top-group")
@@ -597,7 +624,7 @@ struct FHIRConformanceTests {
     func synthesizedWrapperGroupsAreNotReExported() throws {
         let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [
             booleanItem("q1"), booleanItem("q2")
-        ]))
+        ]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         #expect(questionnaire.sections.first?.fhirGroupId == nil, "the section wraps ungrouped items")
         let exported = try ModelsR4.Questionnaire(questionnaire)
         #expect(exported.item?.map { $0.linkId.value?.string } == ["q1", "q2"])
@@ -610,6 +637,7 @@ struct FHIRConformanceTests {
             metadata: .init(
                 id: "follow-ups",
                 url: URL(string: "https://example.org/fhir/Questionnaire/follow-ups"),
+                version: "1.0.0",
                 title: "Follow-ups",
                 explainer: ""
             ),
@@ -644,10 +672,13 @@ struct FHIRConformanceTests {
             .init(value: .string("Vanilla".asFHIRStringPrimitive())),
             .init(value: .string("Chocolate".asFHIRStringPrimitive()))
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["flavor"] = .init(value: .choice(.init(selectedOptions: ["string|Vanilla"])))
-        let exported = try ModelsR4.QuestionnaireResponse(responses)
+        let exported = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
         let answer = try #require(exported.item?.first?.answer?.first)
         guard case .string(let value) = try #require(answer.value) else {
             Issue.record("Expected valueString, got \(String(describing: answer.value))")
@@ -674,7 +705,7 @@ struct FHIRConformanceTests {
         inner.enableWhen = [when]
         let source = makeQuestionnaire(items: [groupItem("s1", [booleanItem("screener"), inner])])
 
-        let grove = try GroveQuestionnaire.Questionnaire(source)
+        let grove = try GroveQuestionnaire.Questionnaire(source, evaluationInstant: questionnaireResponseTestAuthoredAt)
         let exported = try ModelsR4.Questionnaire(grove)
 
         let group = try #require(item("mood-block", in: exported))
@@ -700,7 +731,7 @@ struct FHIRConformanceTests {
         when.answer = .boolean(FHIRPrimitive(FHIRBool(true)))
         inner.enableWhen = [when]
         let source = makeQuestionnaire(items: [groupItem("s1", [booleanItem("screener"), inner])])
-        let questionnaire = try GroveQuestionnaire.Questionnaire(source)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(source, evaluationInstant: questionnaireResponseTestAuthoredAt)
         let down = try #require(questionnaire.sections.flatMap(\.tasks).first { $0.id == "down" })
 
         let responses = QuestionnaireResponses(questionnaire: questionnaire)

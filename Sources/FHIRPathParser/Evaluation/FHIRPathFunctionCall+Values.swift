@@ -293,18 +293,18 @@ extension FHIRPathFunctionCall {
     private func evaluateEnvironment() throws -> [FHIRPathValue] {
         switch name {
         case "today":
-            var components = Calendar.current.dateComponents([.year, .month, .day], from: evaluator.context.now)
+            var components = Calendar.current.dateComponents([.year, .month, .day], from: evaluator.context.evaluationInstant)
             components.timeZone = nil
             return [.date(components)]
         case "now":
             var components = Calendar.current.dateComponents(
                 [.year, .month, .day, .hour, .minute, .second],
-                from: evaluator.context.now
+                from: evaluator.context.evaluationInstant
             )
             components.timeZone = TimeZone.current
             return [.dateTime(components)]
         case "timeOfDay":
-            let components = Calendar.current.dateComponents([.hour, .minute, .second], from: evaluator.context.now)
+            let components = Calendar.current.dateComponents([.hour, .minute, .second], from: evaluator.context.evaluationInstant)
             return [.time(components)]
         case "weight":
             return weights()

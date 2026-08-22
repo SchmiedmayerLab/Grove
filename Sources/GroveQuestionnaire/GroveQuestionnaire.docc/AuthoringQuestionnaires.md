@@ -248,14 +248,15 @@ still parsed at build time inside an ``Instrument()`` type.
 Calculated values recompute as the participant answers, and ride into the exported
 `QuestionnaireResponse` like any other answer.
 
-Install the FHIR expression engine before presenting a questionnaire that contains
-calculated values or raw FHIRPath expressions:
+Install the FHIR expression engine before presenting a questionnaire that contains calculated values or raw FHIRPath expressions:
 
 ```swift
 import GroveQuestionnaireFHIR
 
 let questionnaire = try Screener.questionnaire.withExpressionEngine()
 ```
+
+Clock-sensitive expressions such as `today()` use the wall clock; pass `evaluationInstant:` to pin them to a fixed instant, for example when re-evaluating a stored submission.
 
 ### Reading the answers
 

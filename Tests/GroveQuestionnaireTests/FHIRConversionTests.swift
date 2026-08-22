@@ -23,7 +23,7 @@ struct FHIRConversionTests {
         for input in allR4Inputs {
             // simply test that we can import all of the sample questionnaires without failure
             // IDEA maybe also test that they are what we expect
-            _ = try GroveQuestionnaire.Questionnaire(input)
+            _ = try GroveQuestionnaire.Questionnaire(input, evaluationInstant: questionnaireResponseTestAuthoredAt)
         }
     }
     
@@ -44,7 +44,10 @@ struct FHIRConversionTests {
                 return
             }
         }
-        var fhirResponse = try ModelsR4.QuestionnaireResponse(responses)
+        var fhirResponse = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
         var expected = try JSONDecoder().decode(
             ModelsR4.QuestionnaireResponse.self,
             from: Data(
@@ -83,6 +86,7 @@ struct FHIRConversionTests {
             metadata: .init(
                 id: "numeric-answer",
                 url: URL(string: "https://example.org/fhir/Questionnaire/numeric-answer"),
+                version: "1.0.0",
                 title: "",
                 explainer: ""
             ),
@@ -94,7 +98,10 @@ struct FHIRConversionTests {
         )
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["t0"].value.numberValue = 123
-        let fhir = try ModelsR4.QuestionnaireResponse(responses)
+        let fhir = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
         let items = try #require(fhir.item)
         #expect(items.count == 1)
         let item = try #require(items.first)
@@ -174,7 +181,7 @@ struct FHIRConversionTests {
         }()
         
         // Convert to GroveQuestionnaire
-        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire, evaluationInstant: questionnaireResponseTestAuthoredAt)
         
         // Retrieve the converted tasks
         let section = try #require(questionnaire.sections.first)
