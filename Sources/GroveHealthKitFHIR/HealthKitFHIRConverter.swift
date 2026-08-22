@@ -41,6 +41,15 @@ public struct HealthKitFHIRApplication: Hashable, Sendable {
     public let bundleIdentifier: String
     public let version: String
 
+    /// The identifier namespace this application owns for graph nodes it mints.
+    ///
+    /// A bundle identifier is globally unique and stable across releases, so it is a valid
+    /// default namespace for a deployment that does not yet own a server URL. Override it with
+    /// ``HealthKitFHIRConversionContext/graphIdentifierSystem`` once one exists.
+    public var graphIdentifierSystem: String {
+        "urn:grove:healthkit-graph:\(bundleIdentifier)"
+    }
+
     public init(name: String, bundleIdentifier: String, version: String) {
         self.name = name
         self.bundleIdentifier = bundleIdentifier
@@ -132,8 +141,12 @@ public struct HealthKitFHIRConversionContext: Sendable {
     /// conversion Provenance, and derived Device resources exist only because of this export.
     /// Their business identifiers are minted deterministically inside this namespace, so the
     /// same conversion always produces the same graph and re-sends deduplicate on the server.
-    /// Use one stable URL you own per deployment, for example
-    /// `https://mystudy.example.org/fhir/identifiers/mobile-graph`.
+    ///
+    /// Defaults to ``HealthKitFHIRApplication/graphIdentifierSystem``, which is derived from the
+    /// converting app's bundle identifier. Pass one stable URL you own once the deployment has a
+    /// server namespace, for example `https://mystudy.example.org/fhir/identifiers/mobile-graph`.
+    ///
+    /// - Note: See <doc:ConfiguringAConversion> for what an identifier namespace is in FHIR.
     public let graphIdentifierSystem: String
     public let sourceActor: HealthKitFHIRSourceActor
     public let converterWasGateway: Bool
@@ -156,10 +169,18 @@ public struct HealthKitFHIRConversionContext: Sendable {
     public let researchStudies: [Reference]
     public let repositoryIDs: HealthKitFHIRRepositoryIDs
 
+    /// Creates a conversion context, deriving everything that can be read from the running app.
+    ///
+    /// Only ``subject`` has no local answer: nothing on the device knows who the receiving
+    /// system thinks this data is about. See <doc:ConfiguringAConversion>.
+    ///
+    /// ```swift
+    /// let context = HealthKitFHIRConversionContext(subject: Reference(reference: "Patient/example"))
+    /// ```
     public init(
         subject: Reference,
-        converter: HealthKitFHIRApplication,
-        graphIdentifierSystem: String,
+        converter: HealthKitFHIRApplication = .main,
+        graphIdentifierSystem: String? = nil,
         sourceActor: HealthKitFHIRSourceActor = .omit,
         converterWasGateway: Bool = false,
         conversionInstant: Date = .now,
@@ -171,7 +192,7 @@ public struct HealthKitFHIRConversionContext: Sendable {
     ) {
         self.subject = subject
         self.converter = converter
-        self.graphIdentifierSystem = graphIdentifierSystem
+        self.graphIdentifierSystem = graphIdentifierSystem ?? converter.graphIdentifierSystem
         self.sourceActor = sourceActor
         self.converterWasGateway = converterWasGateway
         self.conversionInstant = conversionInstant
@@ -245,6 +266,29 @@ public struct HealthKitFHIRConverter: Sendable {
         } catch {
             throw GroveHealthKitFHIRError(conversionFailure: error)
         }
+    }
+
+    /// Converts one sample for a subject, deriving the rest of the context from the running app.
+    ///
+    /// Equivalent to building a ``HealthKitFHIRConversionContext`` with only its subject. Use the
+    /// context form to set a study reference, a disclosure policy, or a fixed conversion instant.
+    ///
+    /// ```swift
+    /// let conversion = try HealthKitFHIRConverter().convert(sample, for: patient)
+    /// ```
+    public func convert(
+        _ sample: HKSample,
+        for subject: Reference
+    ) throws(GroveHealthKitFHIRError) -> HealthKitFHIRConversion {
+        try convert(sample, context: HealthKitFHIRConversionContext(subject: subject))
+    }
+
+    /// Converts every input for a subject, deriving the rest of the context from the running app.
+    public func convert<S: Sequence>(
+        _ samples: S,
+        for subject: Reference
+    ) -> HealthKitFHIRBatchResult where S.Element == HKSample {
+        convert(samples, context: HealthKitFHIRConversionContext(subject: subject))
     }
 
     /// Converts every input and returns a typed failure for every record that was not emitted.

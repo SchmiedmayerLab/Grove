@@ -37,6 +37,9 @@ representation.
     [`HealthKitFHIRConverter`](../../GroveHealthKitFHIR/GroveHealthKitFHIR.docc/GroveHealthKitFHIR.md).
     It returns a complete HL7 FHIR R4 collection graph with Observation, Device, and Provenance
     resources when the sample has a published conversion contract.
+    [The Conversion Graph](../../GroveHealthKitFHIR/GroveHealthKitFHIR.docc/TheConversionGraph.md)
+    shows what those resources look like and why the device this module models appears beside
+    every measurement.
 
 ## Topics
 
