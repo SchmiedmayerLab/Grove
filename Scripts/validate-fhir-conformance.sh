@@ -8,7 +8,7 @@
 #
 
 # Emits the selected Swift producer's R4 resources and validates them against the exact
-# adapter-inclusive grove-fhir v0.3 package stack. No resources are uploaded.
+# adapter-inclusive grove-fhir package stack. No resources are uploaded.
 #
 # Usage: Scripts/validate-fhir-conformance.sh [healthkit|questionnaire|sensor|all]
 
@@ -20,7 +20,7 @@ cd "$(dirname "$0")/.."
 
 COMPONENT="${1:-${GROVE_FHIR_COMPONENT:-healthkit}}"
 GUIDES="${GROVE_FHIR_GUIDES:-$(pwd)/.fhir/grove-fhir}"
-GROVE_FHIR_REF="${GROVE_FHIR_REF:-69f26f1ea4ef16ab19e46cbfec6a98b66f1bdf6b}"
+GROVE_FHIR_REF="${GROVE_FHIR_REF:-a28b6dbc6fa0890fd80f4d1aaeee3eea01369f87}"
 
 if [ "$COMPONENT" = "all" ]; then
     for component in healthkit questionnaire sensor; do
@@ -102,7 +102,7 @@ python3 Scripts/generate-grove-fhir-producer-manifest.py \
     --semantic-vector-corpus "$GUIDES/Conformance/corpora/mobile-semantics/corpus.json" \
     "${manifest_package_arguments[@]}"
 
-echo "==> validating $COMPONENT resources against grove-fhir v0.3"
+echo "==> validating $COMPONENT resources against the grove-fhir guides"
 python3 "$GUIDES/Scripts/validate-producer.py" \
     --manifest "$MANIFEST" \
     --validator "$VALIDATOR" \

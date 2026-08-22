@@ -85,7 +85,7 @@ public enum HealthKitFHIRUDIDisclosurePolicy: Hashable, Sendable {
 /// be linkable. This policy is therefore independent of recording-device and UDI disclosure.
 public enum HealthKitFHIRSourceDisclosurePolicy: Hashable, Sendable {
     /// Do not disclose correlated-symptom source revision fields. This is the default.
-    /// Because the v0.2 ECG contract requires those fields, correlated symptoms fail closed.
+    /// Because the ECG contract requires those fields, correlated symptoms fail closed.
     case omit
     /// The caller has established necessity and authorization to disclose every required
     /// correlated-symptom `HKSourceRevision` field.
@@ -235,17 +235,15 @@ public struct HealthKitFHIRBatchResult: Sendable {
 public struct HealthKitFHIRConverter: Sendable {
     public init() {}
 
-    /// Converts one sample only when the closed catalog admits its exact v0.2 contract.
+    /// Converts one sample only when the closed catalog admits its exact published contract.
     public func convert(
         _ sample: HKSample,
         context: HealthKitFHIRConversionContext
-    ) throws -> HealthKitFHIRConversion {
+    ) throws(GroveHealthKitFHIRError) -> HealthKitFHIRConversion {
         do {
             return try Self.convertSample(sample, context: context)
-        } catch let error as GroveHealthKitFHIRError {
-            throw error
-        } catch let error as GroveFHIRExchangeIdentityError {
-            throw GroveHealthKitFHIRError.invalidExchangeIdentity(String(describing: error))
+        } catch {
+            throw GroveHealthKitFHIRError(conversionFailure: error)
         }
     }
 
@@ -259,17 +257,11 @@ public struct HealthKitFHIRConverter: Sendable {
         for sample in samples {
             do {
                 conversions.append(try convert(sample, context: context))
-            } catch let error as GroveHealthKitFHIRError {
-                failures.append(HealthKitFHIRRecordFailure(
-                    sourceUUID: sample.uuid,
-                    sourceTypeIdentifier: sample.sampleType.identifier,
-                    reason: error
-                ))
             } catch {
                 failures.append(HealthKitFHIRRecordFailure(
                     sourceUUID: sample.uuid,
                     sourceTypeIdentifier: sample.sampleType.identifier,
-                    reason: .unexpectedConversionFailure(String(describing: error))
+                    reason: error
                 ))
             }
         }

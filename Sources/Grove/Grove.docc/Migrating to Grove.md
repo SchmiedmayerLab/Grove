@@ -135,7 +135,7 @@ If the keychain is locked it defers instead of reporting "no passcode set".
 
 ## FHIR identifiers
 
-Grove's 0.2 FHIR APIs use only the canonical URLs published by the current Grove implementation guides.
+Grove's FHIR APIs use only the canonical URLs published by the current Grove implementation guides.
 They neither read nor write the retired Stanford-era aliases, and there is no dual-write mode.
 Migrate any externally persisted resources or downstream rules to the current `https://grovealliance.org/fhir` canonicals before adopting these APIs.
 

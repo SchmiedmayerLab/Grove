@@ -26,13 +26,11 @@ extension HealthKitFHIRConverter {
     public func convert(
         _ record: HealthKitECGRecord,
         context: HealthKitFHIRConversionContext
-    ) throws -> HealthKitFHIRConversion {
+    ) throws(GroveHealthKitFHIRError) -> HealthKitFHIRConversion {
         do {
             return try Self.convertECG(record, context: context)
-        } catch let error as GroveHealthKitFHIRError {
-            throw error
-        } catch let error as GroveFHIRExchangeIdentityError {
-            throw GroveHealthKitFHIRError.invalidExchangeIdentity(String(describing: error))
+        } catch {
+            throw GroveHealthKitFHIRError(conversionFailure: error)
         }
     }
 
@@ -43,7 +41,7 @@ extension HealthKitFHIRConverter {
         voltageMeasurements: [HKElectrocardiogram.VoltageMeasurement],
         correlatedSymptoms: [HKCategorySample] = [],
         context: HealthKitFHIRConversionContext
-    ) throws -> HealthKitFHIRConversion {
+    ) throws(GroveHealthKitFHIRError) -> HealthKitFHIRConversion {
         try convert(
             HealthKitECGRecord(
                 electrocardiogram: electrocardiogram,
