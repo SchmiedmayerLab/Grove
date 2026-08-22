@@ -1,5 +1,15 @@
 # Configuring a Conversion
 
+<!--
+#
+# This source file is part of the Grove open-source project
+#
+# SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+#
+# SPDX-License-Identifier: MIT
+#
+-->
+
 Decide who the data is about, who converted it, and which namespace names the resources the export creates.
 
 ## Overview
