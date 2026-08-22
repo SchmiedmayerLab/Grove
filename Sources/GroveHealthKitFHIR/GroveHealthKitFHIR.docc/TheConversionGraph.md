@@ -1,5 +1,15 @@
 # The Conversion Graph
 
+<!--
+#
+# This source file is part of the Grove open-source project
+#
+# SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+#
+# SPDX-License-Identifier: MIT
+#
+-->
+
 Read the resources one conversion emits and understand why a measurement arrives with a `Device` and a `Provenance` beside it.
 
 ## Overview
