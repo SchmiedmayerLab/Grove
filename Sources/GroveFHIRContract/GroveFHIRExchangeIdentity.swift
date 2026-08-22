@@ -183,7 +183,7 @@ public enum GroveFHIRExchangeIdentity {
         }
     }
 
-    private static func quotedJCSString(_ value: String) -> String {
+    static func quotedJCSString(_ value: String) -> String {
         var result = "\""
         for scalar in value.unicodeScalars {
             switch scalar.value {
