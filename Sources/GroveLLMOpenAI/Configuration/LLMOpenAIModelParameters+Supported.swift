@@ -30,12 +30,17 @@ extension LLMOpenAIModelParameters {
             \(modelType.rawValue) does not accept sampling controls; remove them from the schema's `modelParameters`.
             """
         )
-        var accepted = self
-        accepted.temperature = nil
-        accepted.topP = nil
-        accepted.presencePenalty = nil
-        accepted.frequencyPenalty = nil
-        accepted.logitBias = .init()
-        return accepted
+        return Self(
+            responseFormat: responseFormat,
+            responsesTextFormat: responsesTextFormat,
+            temperature: nil,
+            topP: nil,
+            completionsPerOutput: completionsPerOutput,
+            stopSequence: stopSequence,
+            maxOutputLength: maxOutputLength,
+            presencePenalty: nil,
+            frequencyPenalty: nil,
+            logitBias: .init()
+        )
     }
 }

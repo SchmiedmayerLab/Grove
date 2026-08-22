@@ -48,9 +48,9 @@ public struct LLMOpenAIModelParameters: Sendable {
     /// format the caller set rather than quietly answering in prose.
     let responsesTextFormat: Components.Schemas.TextResponseFormatConfiguration?
     /// The sampling temperature (0 to 2). Higher values increase randomness, lower values enhance focus.
-    var temperature: Double?
+    let temperature: Double?
     /// Nucleus sampling threshold. Considers tokens with top_p probability mass. Alternative to temperature sampling.
-    var topP: Double?
+    let topP: Double?
     /// The number of generated chat completions per input.
     let completionsPerOutput: Int?
     /// Sequences (up to 4) where generation stops. Output doesn't include these sequences.
@@ -58,13 +58,41 @@ public struct LLMOpenAIModelParameters: Sendable {
     /// Maximum token count for each completion.
     let maxOutputLength: Int?
     /// Adjusts new topic exploration (-2.0 to 2.0). Higher values encourage novelty.
-    var presencePenalty: Double?
+    let presencePenalty: Double?
     /// Controls repetition (-2.0 to 2.0). Higher values reduce the likelihood of repeating content.
-    var frequencyPenalty: Double?
+    let frequencyPenalty: Double?
     /// Alters specific token's likelihood in completion.
-    var logitBias: Components.Schemas.CreateChatCompletionRequest.Value2Payload.logit_biasPayload
+    let logitBias: Components.Schemas.CreateChatCompletionRequest.Value2Payload.logit_biasPayload
     
     
+    /// Creates parameters from the values another instance already holds.
+    ///
+    /// The public initializer takes a ``ResponseFormat``, which the two stored representations of it cannot be
+    /// turned back into, so deriving one set of parameters from another needs them as they are stored.
+    init(
+        responseFormat: Components.Schemas.CreateChatCompletionRequest.Value2Payload.response_formatPayload?,
+        responsesTextFormat: Components.Schemas.TextResponseFormatConfiguration?,
+        temperature: Double?,
+        topP: Double?,
+        completionsPerOutput: Int?,
+        stopSequence: [String],
+        maxOutputLength: Int?,
+        presencePenalty: Double?,
+        frequencyPenalty: Double?,
+        logitBias: Components.Schemas.CreateChatCompletionRequest.Value2Payload.logit_biasPayload
+    ) {
+        self.responseFormat = responseFormat
+        self.responsesTextFormat = responsesTextFormat
+        self.temperature = temperature
+        self.topP = topP
+        self.completionsPerOutput = completionsPerOutput
+        self.stopSequence = stopSequence
+        self.maxOutputLength = maxOutputLength
+        self.presencePenalty = presencePenalty
+        self.frequencyPenalty = frequencyPenalty
+        self.logitBias = logitBias
+    }
+
     /// Initializes ``LLMOpenAIModelParameters`` for OpenAI model configuration.
     ///
     /// - Parameters:
