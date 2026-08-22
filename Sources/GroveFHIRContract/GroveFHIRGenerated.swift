@@ -25,20 +25,91 @@ public enum GroveFHIRProfile {
     public static let groveApplicationDevice: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-application-device"
     public static let groveMobileActiveEnergy: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-active-energy"
     public static let groveMobileBasalBodyTemperature: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-basal-body-temperature"
+    public static let groveMobileBasalEnergy: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-basal-energy"
+    public static let groveMobileBloodGlucoseUnspecifiedSpecimen: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-blood-glucose-unspecified-specimen"
     public static let groveMobileBloodPressure: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-blood-pressure"
+    public static let groveMobileBodyFatPercentage: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-body-fat-percentage"
     public static let groveMobileBodyHeight: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-body-height"
     public static let groveMobileBodyTemperature: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-body-temperature"
+    public static let groveMobileBodyWaterMass: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-body-water-mass"
     public static let groveMobileBodyWeight: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-body-weight"
+    public static let groveMobileBoneMass: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-bone-mass"
+    public static let groveMobileCervicalMucusQuality: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-cervical-mucus-quality"
     public static let groveMobileConversionProvenance: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-conversion-provenance"
+    public static let groveMobileCyclingCadence: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-cycling-cadence"
+    public static let groveMobileDeepSleepDuration: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-deep-sleep-duration"
+    public static let groveMobileDietaryBiotin: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-biotin"
+    public static let groveMobileDietaryCaffeine: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-caffeine"
+    public static let groveMobileDietaryCalcium: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-calcium"
+    public static let groveMobileDietaryCarbohydrates: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-carbohydrates"
+    public static let groveMobileDietaryChloride: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-chloride"
+    public static let groveMobileDietaryCholesterol: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-cholesterol"
+    public static let groveMobileDietaryChromium: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-chromium"
+    public static let groveMobileDietaryCopper: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-copper"
+    public static let groveMobileDietaryEnergy: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-energy"
+    public static let groveMobileDietaryFatMonounsaturated: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-fat-monounsaturated"
+    public static let groveMobileDietaryFatPolyunsaturated: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-fat-polyunsaturated"
+    public static let groveMobileDietaryFatSaturated: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-fat-saturated"
+    public static let groveMobileDietaryFatTotal: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-fat-total"
+    public static let groveMobileDietaryFiber: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-fiber"
+    public static let groveMobileDietaryFolate: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-folate"
+    public static let groveMobileDietaryIodine: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-iodine"
+    public static let groveMobileDietaryIron: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-iron"
+    public static let groveMobileDietaryMagnesium: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-magnesium"
+    public static let groveMobileDietaryManganese: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-manganese"
+    public static let groveMobileDietaryMolybdenum: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-molybdenum"
+    public static let groveMobileDietaryNiacin: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-niacin"
+    public static let groveMobileDietaryPantothenicAcid: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-pantothenic-acid"
+    public static let groveMobileDietaryPhosphorus: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-phosphorus"
+    public static let groveMobileDietaryPotassium: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-potassium"
+    public static let groveMobileDietaryProtein: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-protein"
+    public static let groveMobileDietaryRiboflavin: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-riboflavin"
+    public static let groveMobileDietarySelenium: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-selenium"
+    public static let groveMobileDietarySodium: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-sodium"
+    public static let groveMobileDietarySugar: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-sugar"
+    public static let groveMobileDietaryThiamin: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-thiamin"
+    public static let groveMobileDietaryVitaminA: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-vitamin-a"
+    public static let groveMobileDietaryVitaminB12: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-vitamin-b12"
+    public static let groveMobileDietaryVitaminB6: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-vitamin-b6"
+    public static let groveMobileDietaryVitaminC: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-vitamin-c"
+    public static let groveMobileDietaryVitaminD: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-vitamin-d"
+    public static let groveMobileDietaryVitaminE: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-vitamin-e"
+    public static let groveMobileDietaryVitaminK: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-vitamin-k"
+    public static let groveMobileDietaryZinc: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-dietary-zinc"
     public static let groveMobileDistance: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-distance"
+    public static let groveMobileElectrodermalActivity: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-electrodermal-activity"
     public static let groveMobileExchangeBundle: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-exchange-bundle"
+    public static let groveMobileFlightsClimbed: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-flights-climbed"
+    public static let groveMobileFluidIntake: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-fluid-intake"
     public static let groveMobileHeartRate: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-heart-rate"
+    public static let groveMobileHeartRateVariabilityRmssd: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-heart-rate-variability-rmssd"
+    public static let groveMobileHeartRateVariabilitySdnn: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-heart-rate-variability-sdnn"
+    public static let groveMobileIntermenstrualBleeding: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-intermenstrual-bleeding"
+    public static let groveMobileLeanBodyMass: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-lean-body-mass"
+    public static let groveMobileLightSleepDuration: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-light-sleep-duration"
+    public static let groveMobileMenstruationFlow: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-menstruation-flow"
+    public static let groveMobileMindfulnessSession: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-mindfulness-session"
     public static let groveMobileObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-observation"
+    public static let groveMobileOvulationTestResult: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-ovulation-test-result"
     public static let groveMobileOxygenSaturation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-oxygen-saturation"
+    public static let groveMobileOxygenSaturationDailyAverage: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-oxygen-saturation-daily-average"
+    public static let groveMobilePower: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-power"
+    public static let groveMobileRemSleepDuration: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-rem-sleep-duration"
     public static let groveMobileRespiratoryRate: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-respiratory-rate"
+    public static let groveMobileRespiratoryRateAverage: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-respiratory-rate-average"
+    public static let groveMobileRestingHeartRate: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-resting-heart-rate"
+    public static let groveMobileSexualActivity: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-sexual-activity"
+    public static let groveMobileSkinTemperature: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-skin-temperature"
+    public static let groveMobileSleepAwakeDuration: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-sleep-awake-duration"
     public static let groveMobileSleepDuration: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-sleep-duration"
+    public static let groveMobileSleepHeartRate: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-sleep-heart-rate"
     public static let groveMobileSleepStage: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-sleep-stage"
+    public static let groveMobileSpeed: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-speed"
     public static let groveMobileStepCount: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-step-count"
+    public static let groveMobileVo2Max: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-vo2-max"
+    public static let groveMobileWheelchairPushCount: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-wheelchair-push-count"
+    public static let groveMobileWorkout: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-workout"
+    public static let groveMobileWorkoutSegment: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-workout-segment"
     public static let groveRecordingDevice: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-recording-device"
 
     // MARK: questionnaire
@@ -52,32 +123,145 @@ public enum GroveFHIRProfile {
     public static let groveSensorSampledDataObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-sampled-data-observation"
 
     // MARK: sensorkit
+    public static let sensorkitAccelerometerObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-accelerometer-observation"
     public static let sensorkitConversionProvenance: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-conversion-provenance"
     public static let sensorkitDeviceUsageObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-device-usage-observation"
     public static let sensorkitEcgObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-ecg-observation"
+    public static let sensorkitKeyboardMetricsObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-keyboard-metrics-observation"
+    public static let sensorkitMessagesUsageObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-messages-usage-observation"
     public static let sensorkitObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-observation"
     public static let sensorkitOnWristObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-on-wrist-observation"
+    public static let sensorkitPhoneUsageObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-phone-usage-observation"
+    public static let sensorkitPpgObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-ppg-observation"
     public static let sensorkitRecordingDocument: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"
+    public static let sensorkitSleepSessionObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-sleep-session-observation"
     public static let sensorkitVisitObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-visit-observation"
 
     // MARK: healthkit
+    public static let healthkitAppleExerciseTime: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-apple-exercise-time"
+    public static let healthkitAppleMoveTime: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-apple-move-time"
+    public static let healthkitAppleStandHour: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-apple-stand-hour"
+    public static let healthkitAppleStandTime: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-apple-stand-time"
+    public static let healthkitAtrialFibrillationBurden: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-atrial-fibrillation-burden"
+    public static let healthkitBladderIncontinence: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-bladder-incontinence"
+    public static let healthkitBleedingAfterPregnancy: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-bleeding-after-pregnancy"
+    public static let healthkitBleedingDuringPregnancy: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-bleeding-during-pregnancy"
+    public static let healthkitBloodAlcoholContent: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-blood-alcohol-content"
+    public static let healthkitBloodType: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-blood-type"
+    public static let healthkitClinicalRecordDocument: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-clinical-record-document"
+    public static let healthkitContraceptiveUse: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-contraceptive-use"
     public static let healthkitConversionProvenance: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-conversion-provenance"
+    public static let healthkitCyclingFunctionalThresholdPower: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-cycling-functional-threshold-power"
     public static let healthkitEcgObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-ecg-observation"
+    public static let healthkitEnvironmentalAudioExposure: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-environmental-audio-exposure"
+    public static let healthkitEnvironmentalSoundReduction: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-environmental-sound-reduction"
+    public static let healthkitForcedExpiratoryVolume1: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-forced-expiratory-volume-1"
+    public static let healthkitForcedVitalCapacity: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-forced-vital-capacity"
+    public static let healthkitGad7Assessment: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-gad7-assessment"
+    public static let healthkitHandwashingSession: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-handwashing-session"
+    public static let healthkitHeadphoneAudioExposure: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-headphone-audio-exposure"
+    public static let healthkitHeartRateRecoveryOneMinute: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-heart-rate-recovery-one-minute"
+    public static let healthkitInhalerUsage: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-inhaler-usage"
+    public static let healthkitInsulinDelivery: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-insulin-delivery"
+    public static let healthkitLactationStatus: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-lactation-status"
+    public static let healthkitNumberOfAlcoholicBeverages: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-number-of-alcoholic-beverages"
+    public static let healthkitNumberOfTimesFallen: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-number-of-times-fallen"
     public static let healthkitObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-observation"
+    public static let healthkitPeakExpiratoryFlowRate: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-peak-expiratory-flow-rate"
+    public static let healthkitPeripheralPerfusionIndex: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-peripheral-perfusion-index"
+    public static let healthkitPhq9Assessment: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-phq9-assessment"
+    public static let healthkitPhysicalEffort: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-physical-effort"
+    public static let healthkitPregnancyStatus: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-pregnancy-status"
+    public static let healthkitPregnancyTestResult: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-pregnancy-test-result"
+    public static let healthkitProgesteroneTestResult: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-progesterone-test-result"
+    public static let healthkitRunningGroundContactTime: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-running-ground-contact-time"
+    public static let healthkitRunningStrideLength: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-running-stride-length"
+    public static let healthkitRunningVerticalOscillation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-running-vertical-oscillation"
+    public static let healthkitSixMinuteWalkTestDistance: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-six-minute-walk-test-distance"
+    public static let healthkitSleepingBreathingDisturbances: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-sleeping-breathing-disturbances"
+    public static let healthkitStairAscentSpeed: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-stair-ascent-speed"
+    public static let healthkitStairDescentSpeed: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-stair-descent-speed"
+    public static let healthkitSwimmingStrokeCount: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-swimming-stroke-count"
+    public static let healthkitSymptomAbdominalCramps: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-abdominal-cramps"
+    public static let healthkitSymptomAcne: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-acne"
+    public static let healthkitSymptomAppetiteChanges: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-appetite-changes"
+    public static let healthkitSymptomBloating: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-bloating"
+    public static let healthkitSymptomBreastPain: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-breast-pain"
+    public static let healthkitSymptomChestTightnessOrPain: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-chest-tightness-or-pain"
+    public static let healthkitSymptomChills: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-chills"
+    public static let healthkitSymptomConstipation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-constipation"
+    public static let healthkitSymptomCoughing: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-coughing"
+    public static let healthkitSymptomDiarrhea: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-diarrhea"
+    public static let healthkitSymptomDizziness: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-dizziness"
+    public static let healthkitSymptomDrySkin: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-dry-skin"
+    public static let healthkitSymptomFainting: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-fainting"
+    public static let healthkitSymptomFatigue: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-fatigue"
+    public static let healthkitSymptomFever: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-fever"
+    public static let healthkitSymptomGeneralizedBodyAche: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-generalized-body-ache"
+    public static let healthkitSymptomHairLoss: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-hair-loss"
+    public static let healthkitSymptomHeadache: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-headache"
+    public static let healthkitSymptomHeartburn: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-heartburn"
+    public static let healthkitSymptomHotFlashes: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-hot-flashes"
+    public static let healthkitSymptomLossOfSmell: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-loss-of-smell"
+    public static let healthkitSymptomLossOfTaste: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-loss-of-taste"
+    public static let healthkitSymptomLowerBackPain: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-lower-back-pain"
+    public static let healthkitSymptomMemoryLapse: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-memory-lapse"
+    public static let healthkitSymptomMoodChanges: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-mood-changes"
+    public static let healthkitSymptomNausea: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-nausea"
+    public static let healthkitSymptomNightSweats: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-night-sweats"
+    public static let healthkitSymptomPelvicPain: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-pelvic-pain"
+    public static let healthkitSymptomRapidPoundingOrFlutteringHeartbeat: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-rapid-pounding-or-fluttering-heartbeat"
+    public static let healthkitSymptomRunnyNose: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-runny-nose"
+    public static let healthkitSymptomShortnessOfBreath: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-shortness-of-breath"
+    public static let healthkitSymptomSinusCongestion: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-sinus-congestion"
+    public static let healthkitSymptomSkippedHeartbeat: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-skipped-heartbeat"
+    public static let healthkitSymptomSleepChanges: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-sleep-changes"
+    public static let healthkitSymptomSoreThroat: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-sore-throat"
+    public static let healthkitSymptomVomiting: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-vomiting"
+    public static let healthkitSymptomWheezing: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-symptom-wheezing"
+    public static let healthkitTimeInDaylight: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-time-in-daylight"
+    public static let healthkitToothbrushingSession: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-toothbrushing-session"
+    public static let healthkitUnderwaterDepth: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-underwater-depth"
+    public static let healthkitUvExposure: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-uv-exposure"
+    public static let healthkitVaginalDryness: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-vaginal-dryness"
+    public static let healthkitWaistCircumference: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-waist-circumference"
+    public static let healthkitWalkingAsymmetry: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-walking-asymmetry"
+    public static let healthkitWalkingDoubleSupport: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-walking-double-support"
+    public static let healthkitWalkingHeartRateAverage: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-walking-heart-rate-average"
+    public static let healthkitWalkingSpeed: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-walking-speed"
+    public static let healthkitWalkingSteadiness: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-walking-steadiness"
+    public static let healthkitWalkingStepLength: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-walking-step-length"
+    public static let healthkitWaterTemperature: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-water-temperature"
+    public static let healthkitWheelchairUse: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-wheelchair-use"
+    public static let healthkitWorkoutEffortScore: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-workout-effort-score"
 
     // MARK: health-connect
+    public static let healthConnectBasalMetabolicRate: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-basal-metabolic-rate"
     public static let healthConnectCapillaryBloodGlucose: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-capillary-blood-glucose"
     public static let healthConnectConversionProvenance: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-conversion-provenance"
+    public static let healthConnectDietaryEnergyFromFat: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-dietary-energy-from-fat"
+    public static let healthConnectDietaryFatTrans: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-dietary-fat-trans"
+    public static let healthConnectDietaryFatUnsaturated: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-dietary-fat-unsaturated"
+    public static let healthConnectDietaryFolicAcid: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-dietary-folic-acid"
+    public static let healthConnectElevationGained: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-elevation-gained"
     public static let healthConnectInterstitialGlucose: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-interstitial-glucose"
+    public static let healthConnectMenstruationPeriod: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-menstruation-period"
     public static let healthConnectObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-observation"
     public static let healthConnectSerumPlasmaGlucose: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-serum-plasma-glucose"
     public static let healthConnectSpecimen: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-specimen"
+    public static let healthConnectStepCadence: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-step-cadence"
+    public static let healthConnectTotalEnergy: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-total-energy"
     public static let healthConnectWholeBloodGlucose: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-whole-blood-glucose"
 
     // MARK: providers
+    public static let providerBodyFatMass: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/providers/StructureDefinition/provider-body-fat-mass"
     public static let providerConversionProvenance: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/providers/StructureDefinition/provider-conversion-provenance"
+    public static let providerExtracellularWaterMass: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/providers/StructureDefinition/provider-extracellular-water-mass"
+    public static let providerIntracellularWaterMass: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/providers/StructureDefinition/provider-intracellular-water-mass"
+    public static let providerMuscleMass: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/providers/StructureDefinition/provider-muscle-mass"
     public static let providerObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/providers/StructureDefinition/provider-observation"
     public static let providerRecordingDocument: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/providers/StructureDefinition/provider-recording-document"
+    public static let providerSleepingHeartRateAverage: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/providers/StructureDefinition/provider-sleeping-heart-rate-average"
 }
 
 
@@ -106,10 +290,12 @@ public struct GroveFHIRQuantityContract: Hashable, Sendable {
 public struct GroveFHIRCodingContract: Hashable, Sendable {
     public let system: String
     public let code: String
+    public let display: String?
 
-    public init(system: String, code: String) {
+    public init(system: String, code: String, display: String? = nil) {
         self.system = system
         self.code = code
+        self.display = display
     }
 }
 
@@ -119,7 +305,22 @@ public struct GroveFHIRComponentContract: Hashable, Sendable {
     public let id: String
     public let system: String
     public let code: String
-    public let quantity: GroveFHIRQuantityContract
+    public let quantity: GroveFHIRQuantityContract?
+    public let resultCodes: [GroveFHIRResultCodeContract]
+}
+
+
+/// One fixed aggregation-method coding asserted by a windowed measurement profile.
+public struct GroveFHIRMethodContract: Hashable, Sendable {
+    public let code: String
+    public let display: String
+}
+
+
+/// One admitted coded result from a measurement's closed result value set.
+public struct GroveFHIRResultCodeContract: Hashable, Sendable {
+    public let code: String
+    public let display: String
 }
 
 
@@ -132,6 +333,9 @@ public struct GroveFHIRMeasurementContract: Sendable {
     public let components: [GroveFHIRComponentContract]
     public let resultCodeSystem: String?
     public let allowedValues: [String]
+    public let resultCodes: [GroveFHIRResultCodeContract]
+    public let method: GroveFHIRMethodContract?
+    public let methodChoice: [String]
     public let effective: GroveFHIRMeasurementEffective
 }
 
@@ -141,22 +345,56 @@ public enum GroveFHIRMeasurementCatalog {
     public static let activeEnergy = GroveFHIRMeasurementContract(
         id: "active-energy",
         profile: GroveFHIRProfile.groveMobileActiveEnergy,
-        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "active-energy-burned"),
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "active-energy-burned", display: "Active energy burned"),
         quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "kcal", unit: "kcal"),
         components: [],
         resultCodeSystem: nil,
         allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
         effective: .period
     )
 
     public static let basalBodyTemperature = GroveFHIRMeasurementContract(
         id: "basal-body-temperature",
         profile: GroveFHIRProfile.groveMobileBasalBodyTemperature,
-        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "basal-body-temperature"),
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "basal-body-temperature", display: "Basal body temperature"),
         quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "Cel", unit: "Cel"),
         components: [],
         resultCodeSystem: nil,
         allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let basalEnergy = GroveFHIRMeasurementContract(
+        id: "basal-energy",
+        profile: GroveFHIRProfile.groveMobileBasalEnergy,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "basal-energy-burned", display: "Basal energy burned"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "kcal", unit: "kcal"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let bloodGlucoseUnspecifiedSpecimen = GroveFHIRMeasurementContract(
+        id: "blood-glucose-unspecified-specimen",
+        profile: GroveFHIRProfile.groveMobileBloodGlucoseUnspecifiedSpecimen,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "2339-0", display: "Glucose [Mass/volume] in Blood"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg/dL", unit: "mg/dL"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
         effective: .dateTime
     )
 
@@ -166,11 +404,28 @@ public enum GroveFHIRMeasurementCatalog {
         code: GroveFHIRCodingContract(system: "http://loinc.org", code: "85354-9"),
         quantity: nil,
         components: [
-            GroveFHIRComponentContract(id: "systolic", system: "http://loinc.org", code: "8480-6", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mm[Hg]", unit: "mmHg")),
-            GroveFHIRComponentContract(id: "diastolic", system: "http://loinc.org", code: "8462-4", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mm[Hg]", unit: "mmHg")),
+            GroveFHIRComponentContract(id: "systolic", system: "http://loinc.org", code: "8480-6", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mm[Hg]", unit: "mmHg"), resultCodes: []),
+            GroveFHIRComponentContract(id: "diastolic", system: "http://loinc.org", code: "8462-4", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mm[Hg]", unit: "mmHg"), resultCodes: []),
         ],
         resultCodeSystem: nil,
         allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let bodyFatPercentage = GroveFHIRMeasurementContract(
+        id: "body-fat-percentage",
+        profile: GroveFHIRProfile.groveMobileBodyFatPercentage,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "41982-0", display: "Percentage of body fat Measured"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "%", unit: "%"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
         effective: .dateTime
     )
 
@@ -182,6 +437,9 @@ public enum GroveFHIRMeasurementCatalog {
         components: [],
         resultCodeSystem: nil,
         allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
         effective: .dateTime
     )
 
@@ -193,6 +451,23 @@ public enum GroveFHIRMeasurementCatalog {
         components: [],
         resultCodeSystem: nil,
         allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let bodyWaterMass = GroveFHIRMeasurementContract(
+        id: "body-water-mass",
+        profile: GroveFHIRProfile.groveMobileBodyWaterMass,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "101683-1", display: "Body water mass"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "kg", unit: "kg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
         effective: .dateTime
     )
 
@@ -204,7 +479,608 @@ public enum GroveFHIRMeasurementCatalog {
         components: [],
         resultCodeSystem: nil,
         allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
         effective: .dateTime
+    )
+
+    public static let boneMass = GroveFHIRMeasurementContract(
+        id: "bone-mass",
+        profile: GroveFHIRProfile.groveMobileBoneMass,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "101685-6", display: "Body bone mass"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "kg", unit: "kg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let cervicalMucusQuality = GroveFHIRMeasurementContract(
+        id: "cervical-mucus-quality",
+        profile: GroveFHIRProfile.groveMobileCervicalMucusQuality,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "cervical-mucus-quality", display: "Cervical mucus quality"),
+        quantity: nil,
+        components: [
+            GroveFHIRComponentContract(id: "sensation", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "cervical-mucus-sensation", quantity: nil, resultCodes: [GroveFHIRResultCodeContract(code: "light", display: "Light"), GroveFHIRResultCodeContract(code: "medium", display: "Medium"), GroveFHIRResultCodeContract(code: "heavy", display: "Heavy")]),
+        ],
+        resultCodeSystem: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-cervical-mucus-quality",
+        allowedValues: ["dry", "sticky", "creamy", "watery", "egg-white", "unusual", "unknown"],
+        resultCodes: [
+            GroveFHIRResultCodeContract(code: "dry", display: "Dry"),
+            GroveFHIRResultCodeContract(code: "sticky", display: "Sticky"),
+            GroveFHIRResultCodeContract(code: "creamy", display: "Creamy"),
+            GroveFHIRResultCodeContract(code: "watery", display: "Watery"),
+            GroveFHIRResultCodeContract(code: "egg-white", display: "Egg white"),
+            GroveFHIRResultCodeContract(code: "unusual", display: "Unusual"),
+            GroveFHIRResultCodeContract(code: "unknown", display: "Unknown"),
+        ],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let cyclingCadence = GroveFHIRMeasurementContract(
+        id: "cycling-cadence",
+        profile: GroveFHIRProfile.groveMobileCyclingCadence,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "cycling-cadence", display: "Cycling cadence"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "revolutions/minute"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let deepSleepDuration = GroveFHIRMeasurementContract(
+        id: "deep-sleep-duration",
+        profile: GroveFHIRProfile.groveMobileDeepSleepDuration,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "93831-6", display: "Deep sleep duration"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "min", unit: "min"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: GroveFHIRMethodContract(code: "session-total", display: "Session total"),
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryBiotin = GroveFHIRMeasurementContract(
+        id: "dietary-biotin",
+        profile: GroveFHIRProfile.groveMobileDietaryBiotin,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-biotin", display: "Dietary biotin"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "ug", unit: "ug"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryCaffeine = GroveFHIRMeasurementContract(
+        id: "dietary-caffeine",
+        profile: GroveFHIRProfile.groveMobileDietaryCaffeine,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-caffeine", display: "Dietary caffeine"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryCalcium = GroveFHIRMeasurementContract(
+        id: "dietary-calcium",
+        profile: GroveFHIRProfile.groveMobileDietaryCalcium,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-calcium", display: "Dietary calcium"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryCarbohydrates = GroveFHIRMeasurementContract(
+        id: "dietary-carbohydrates",
+        profile: GroveFHIRProfile.groveMobileDietaryCarbohydrates,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "9060-5", display: "Carbohydrate intake Measured"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "g", unit: "g"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryChloride = GroveFHIRMeasurementContract(
+        id: "dietary-chloride",
+        profile: GroveFHIRProfile.groveMobileDietaryChloride,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-chloride", display: "Dietary chloride"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryCholesterol = GroveFHIRMeasurementContract(
+        id: "dietary-cholesterol",
+        profile: GroveFHIRProfile.groveMobileDietaryCholesterol,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-cholesterol", display: "Dietary cholesterol"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryChromium = GroveFHIRMeasurementContract(
+        id: "dietary-chromium",
+        profile: GroveFHIRProfile.groveMobileDietaryChromium,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-chromium", display: "Dietary chromium"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "ug", unit: "ug"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryCopper = GroveFHIRMeasurementContract(
+        id: "dietary-copper",
+        profile: GroveFHIRProfile.groveMobileDietaryCopper,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-copper", display: "Dietary copper"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "ug", unit: "ug"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryEnergy = GroveFHIRMeasurementContract(
+        id: "dietary-energy",
+        profile: GroveFHIRProfile.groveMobileDietaryEnergy,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "9052-2", display: "Calorie intake total"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "kcal", unit: "kcal"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryFatMonounsaturated = GroveFHIRMeasurementContract(
+        id: "dietary-fat-monounsaturated",
+        profile: GroveFHIRProfile.groveMobileDietaryFatMonounsaturated,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-fat-monounsaturated", display: "Dietary monounsaturated fat"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "g", unit: "g"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryFatPolyunsaturated = GroveFHIRMeasurementContract(
+        id: "dietary-fat-polyunsaturated",
+        profile: GroveFHIRProfile.groveMobileDietaryFatPolyunsaturated,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-fat-polyunsaturated", display: "Dietary polyunsaturated fat"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "g", unit: "g"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryFatSaturated = GroveFHIRMeasurementContract(
+        id: "dietary-fat-saturated",
+        profile: GroveFHIRProfile.groveMobileDietaryFatSaturated,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-fat-saturated", display: "Dietary saturated fat"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "g", unit: "g"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryFatTotal = GroveFHIRMeasurementContract(
+        id: "dietary-fat-total",
+        profile: GroveFHIRProfile.groveMobileDietaryFatTotal,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "9067-0", display: "Fat intake Measured"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "g", unit: "g"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryFiber = GroveFHIRMeasurementContract(
+        id: "dietary-fiber",
+        profile: GroveFHIRProfile.groveMobileDietaryFiber,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-fiber", display: "Dietary fiber"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "g", unit: "g"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryFolate = GroveFHIRMeasurementContract(
+        id: "dietary-folate",
+        profile: GroveFHIRProfile.groveMobileDietaryFolate,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-folate", display: "Dietary folate"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "ug", unit: "ug"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryIodine = GroveFHIRMeasurementContract(
+        id: "dietary-iodine",
+        profile: GroveFHIRProfile.groveMobileDietaryIodine,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-iodine", display: "Dietary iodine"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "ug", unit: "ug"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryIron = GroveFHIRMeasurementContract(
+        id: "dietary-iron",
+        profile: GroveFHIRProfile.groveMobileDietaryIron,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-iron", display: "Dietary iron"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryMagnesium = GroveFHIRMeasurementContract(
+        id: "dietary-magnesium",
+        profile: GroveFHIRProfile.groveMobileDietaryMagnesium,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-magnesium", display: "Dietary magnesium"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryManganese = GroveFHIRMeasurementContract(
+        id: "dietary-manganese",
+        profile: GroveFHIRProfile.groveMobileDietaryManganese,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-manganese", display: "Dietary manganese"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryMolybdenum = GroveFHIRMeasurementContract(
+        id: "dietary-molybdenum",
+        profile: GroveFHIRProfile.groveMobileDietaryMolybdenum,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-molybdenum", display: "Dietary molybdenum"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "ug", unit: "ug"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryNiacin = GroveFHIRMeasurementContract(
+        id: "dietary-niacin",
+        profile: GroveFHIRProfile.groveMobileDietaryNiacin,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-niacin", display: "Dietary niacin"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryPantothenicAcid = GroveFHIRMeasurementContract(
+        id: "dietary-pantothenic-acid",
+        profile: GroveFHIRProfile.groveMobileDietaryPantothenicAcid,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-pantothenic-acid", display: "Dietary pantothenic acid"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryPhosphorus = GroveFHIRMeasurementContract(
+        id: "dietary-phosphorus",
+        profile: GroveFHIRProfile.groveMobileDietaryPhosphorus,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-phosphorus", display: "Dietary phosphorus"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryPotassium = GroveFHIRMeasurementContract(
+        id: "dietary-potassium",
+        profile: GroveFHIRProfile.groveMobileDietaryPotassium,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-potassium", display: "Dietary potassium"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryProtein = GroveFHIRMeasurementContract(
+        id: "dietary-protein",
+        profile: GroveFHIRProfile.groveMobileDietaryProtein,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "9080-3", display: "Protein intake Measured"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "g", unit: "g"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryRiboflavin = GroveFHIRMeasurementContract(
+        id: "dietary-riboflavin",
+        profile: GroveFHIRProfile.groveMobileDietaryRiboflavin,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-riboflavin", display: "Dietary riboflavin"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietarySelenium = GroveFHIRMeasurementContract(
+        id: "dietary-selenium",
+        profile: GroveFHIRProfile.groveMobileDietarySelenium,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-selenium", display: "Dietary selenium"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "ug", unit: "ug"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietarySodium = GroveFHIRMeasurementContract(
+        id: "dietary-sodium",
+        profile: GroveFHIRProfile.groveMobileDietarySodium,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-sodium", display: "Dietary sodium"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietarySugar = GroveFHIRMeasurementContract(
+        id: "dietary-sugar",
+        profile: GroveFHIRProfile.groveMobileDietarySugar,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-sugar", display: "Dietary sugar"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "g", unit: "g"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryThiamin = GroveFHIRMeasurementContract(
+        id: "dietary-thiamin",
+        profile: GroveFHIRProfile.groveMobileDietaryThiamin,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-thiamin", display: "Dietary thiamin"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryVitaminA = GroveFHIRMeasurementContract(
+        id: "dietary-vitamin-a",
+        profile: GroveFHIRProfile.groveMobileDietaryVitaminA,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-vitamin-a", display: "Dietary vitamin A"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "ug", unit: "ug"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryVitaminB12 = GroveFHIRMeasurementContract(
+        id: "dietary-vitamin-b12",
+        profile: GroveFHIRProfile.groveMobileDietaryVitaminB12,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-vitamin-b12", display: "Dietary vitamin B12"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "ug", unit: "ug"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryVitaminB6 = GroveFHIRMeasurementContract(
+        id: "dietary-vitamin-b6",
+        profile: GroveFHIRProfile.groveMobileDietaryVitaminB6,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-vitamin-b6", display: "Dietary vitamin B6"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryVitaminC = GroveFHIRMeasurementContract(
+        id: "dietary-vitamin-c",
+        profile: GroveFHIRProfile.groveMobileDietaryVitaminC,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-vitamin-c", display: "Dietary vitamin C"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryVitaminD = GroveFHIRMeasurementContract(
+        id: "dietary-vitamin-d",
+        profile: GroveFHIRProfile.groveMobileDietaryVitaminD,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-vitamin-d", display: "Dietary vitamin D"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "ug", unit: "ug"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryVitaminE = GroveFHIRMeasurementContract(
+        id: "dietary-vitamin-e",
+        profile: GroveFHIRProfile.groveMobileDietaryVitaminE,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-vitamin-e", display: "Dietary vitamin E"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryVitaminK = GroveFHIRMeasurementContract(
+        id: "dietary-vitamin-k",
+        profile: GroveFHIRProfile.groveMobileDietaryVitaminK,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-vitamin-k", display: "Dietary vitamin K"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "ug", unit: "ug"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let dietaryZinc = GroveFHIRMeasurementContract(
+        id: "dietary-zinc",
+        profile: GroveFHIRProfile.groveMobileDietaryZinc,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-zinc", display: "Dietary zinc"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mg", unit: "mg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
     )
 
     public static let distance = GroveFHIRMeasurementContract(
@@ -215,6 +1091,51 @@ public enum GroveFHIRMeasurementCatalog {
         components: [],
         resultCodeSystem: nil,
         allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let electrodermalActivity = GroveFHIRMeasurementContract(
+        id: "electrodermal-activity",
+        profile: GroveFHIRProfile.groveMobileElectrodermalActivity,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "electrodermal-activity", display: "Electrodermal activity"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "uS", unit: "uS"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let flightsClimbed = GroveFHIRMeasurementContract(
+        id: "flights-climbed",
+        profile: GroveFHIRProfile.groveMobileFlightsClimbed,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "100304-5", display: "Flights climbed [#] Reporting Period"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{flights}", unit: "flights"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let fluidIntake = GroveFHIRMeasurementContract(
+        id: "fluid-intake",
+        profile: GroveFHIRProfile.groveMobileFluidIntake,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "8985-4", display: "Fluid intake Measured"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mL", unit: "mL"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
         effective: .period
     )
 
@@ -226,6 +1147,134 @@ public enum GroveFHIRMeasurementCatalog {
         components: [],
         resultCodeSystem: nil,
         allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let heartRateVariabilityRmssd = GroveFHIRMeasurementContract(
+        id: "heart-rate-variability-rmssd",
+        profile: GroveFHIRProfile.groveMobileHeartRateVariabilityRmssd,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "heart-rate-variability-rmssd", display: "Heart rate variability RMSSD"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "ms", unit: "ms"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let heartRateVariabilitySdnn = GroveFHIRMeasurementContract(
+        id: "heart-rate-variability-sdnn",
+        profile: GroveFHIRProfile.groveMobileHeartRateVariabilitySdnn,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "112429-6", display: "Heart rate variability SDNN [Time]"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "ms", unit: "ms"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let intermenstrualBleeding = GroveFHIRMeasurementContract(
+        id: "intermenstrual-bleeding",
+        profile: GroveFHIRProfile.groveMobileIntermenstrualBleeding,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "intermenstrual-bleeding", display: "Intermenstrual bleeding"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-intermenstrual-bleeding",
+        allowedValues: ["present"],
+        resultCodes: [
+            GroveFHIRResultCodeContract(code: "present", display: "Present"),
+        ],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let leanBodyMass = GroveFHIRMeasurementContract(
+        id: "lean-body-mass",
+        profile: GroveFHIRProfile.groveMobileLeanBodyMass,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "91557-9", display: "Lean body weight"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "kg", unit: "kg"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let lightSleepDuration = GroveFHIRMeasurementContract(
+        id: "light-sleep-duration",
+        profile: GroveFHIRProfile.groveMobileLightSleepDuration,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "93830-8", display: "Light sleep duration"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "min", unit: "min"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: GroveFHIRMethodContract(code: "session-total", display: "Session total"),
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let menstruationFlow = GroveFHIRMeasurementContract(
+        id: "menstruation-flow",
+        profile: GroveFHIRProfile.groveMobileMenstruationFlow,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "menstruation-flow", display: "Menstruation flow"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-menstruation-flow",
+        allowedValues: ["unspecified", "light", "medium", "heavy", "none"],
+        resultCodes: [
+            GroveFHIRResultCodeContract(code: "unspecified", display: "Unspecified"),
+            GroveFHIRResultCodeContract(code: "light", display: "Light"),
+            GroveFHIRResultCodeContract(code: "medium", display: "Medium"),
+            GroveFHIRResultCodeContract(code: "heavy", display: "Heavy"),
+            GroveFHIRResultCodeContract(code: "none", display: "None"),
+        ],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let mindfulnessSession = GroveFHIRMeasurementContract(
+        id: "mindfulness-session",
+        profile: GroveFHIRProfile.groveMobileMindfulnessSession,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "mindfulness-session-duration", display: "Mindfulness session duration"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "min", unit: "min"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let ovulationTestResult = GroveFHIRMeasurementContract(
+        id: "ovulation-test-result",
+        profile: GroveFHIRProfile.groveMobileOvulationTestResult,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "ovulation-test-result", display: "Ovulation test result"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-ovulation-test-result",
+        allowedValues: ["negative", "high-fertility", "luteinizing-hormone-surge", "indeterminate"],
+        resultCodes: [
+            GroveFHIRResultCodeContract(code: "negative", display: "Negative"),
+            GroveFHIRResultCodeContract(code: "high-fertility", display: "High fertility"),
+            GroveFHIRResultCodeContract(code: "luteinizing-hormone-surge", display: "Luteinizing hormone surge"),
+            GroveFHIRResultCodeContract(code: "indeterminate", display: "Indeterminate"),
+        ],
+        method: nil,
+        methodChoice: [],
         effective: .dateTime
     )
 
@@ -237,7 +1286,52 @@ public enum GroveFHIRMeasurementCatalog {
         components: [],
         resultCodeSystem: nil,
         allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
         effective: .dateTime
+    )
+
+    public static let oxygenSaturationDailyAverage = GroveFHIRMeasurementContract(
+        id: "oxygen-saturation-daily-average",
+        profile: GroveFHIRProfile.groveMobileOxygenSaturationDailyAverage,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "103209-3", display: "Mean oxygen saturation"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "%", unit: "%"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: GroveFHIRMethodContract(code: "daily-mean", display: "Daily mean"),
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let power = GroveFHIRMeasurementContract(
+        id: "power",
+        profile: GroveFHIRProfile.groveMobilePower,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "power", display: "Power"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "W", unit: "W"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let remSleepDuration = GroveFHIRMeasurementContract(
+        id: "rem-sleep-duration",
+        profile: GroveFHIRProfile.groveMobileRemSleepDuration,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "93829-0", display: "REM sleep duration"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "min", unit: "min"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: GroveFHIRMethodContract(code: "session-total", display: "Session total"),
+        methodChoice: [],
+        effective: .period
     )
 
     public static let respiratoryRate = GroveFHIRMeasurementContract(
@@ -248,7 +1342,84 @@ public enum GroveFHIRMeasurementCatalog {
         components: [],
         resultCodeSystem: nil,
         allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
         effective: .dateTime
+    )
+
+    public static let respiratoryRateAverage = GroveFHIRMeasurementContract(
+        id: "respiratory-rate-average",
+        profile: GroveFHIRProfile.groveMobileRespiratoryRateAverage,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "103217-6", display: "Mean respiratory rate"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "breaths/minute"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: ["daily-mean", "session-mean"],
+        effective: .period
+    )
+
+    public static let restingHeartRate = GroveFHIRMeasurementContract(
+        id: "resting-heart-rate",
+        profile: GroveFHIRProfile.groveMobileRestingHeartRate,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "40443-4", display: "Heart rate --resting"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "beats/minute"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: GroveFHIRMethodContract(code: "daily-mean", display: "Daily mean"),
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let sexualActivity = GroveFHIRMeasurementContract(
+        id: "sexual-activity",
+        profile: GroveFHIRProfile.groveMobileSexualActivity,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "sexual-activity", display: "Sexual activity"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-sexual-activity",
+        allowedValues: ["protected", "unprotected", "unknown"],
+        resultCodes: [
+            GroveFHIRResultCodeContract(code: "protected", display: "Protection used"),
+            GroveFHIRResultCodeContract(code: "unprotected", display: "Protection not used"),
+            GroveFHIRResultCodeContract(code: "unknown", display: "Unknown"),
+        ],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let skinTemperature = GroveFHIRMeasurementContract(
+        id: "skin-temperature",
+        profile: GroveFHIRProfile.groveMobileSkinTemperature,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "61008-9", display: "Body surface temperature"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "Cel", unit: "Cel"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let sleepAwakeDuration = GroveFHIRMeasurementContract(
+        id: "sleep-awake-duration",
+        profile: GroveFHIRProfile.groveMobileSleepAwakeDuration,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "93828-2", display: "Nighttime awakening duration"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "min", unit: "min"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: GroveFHIRMethodContract(code: "session-total", display: "Session total"),
+        methodChoice: [],
+        effective: .period
     )
 
     public static let sleepDuration = GroveFHIRMeasurementContract(
@@ -259,45 +1430,1667 @@ public enum GroveFHIRMeasurementCatalog {
         components: [],
         resultCodeSystem: nil,
         allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let sleepHeartRate = GroveFHIRMeasurementContract(
+        id: "sleep-heart-rate",
+        profile: GroveFHIRProfile.groveMobileSleepHeartRate,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "sleep-heart-rate", display: "Sleep heart rate"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "beats/minute"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: ["session-mean", "session-minimum"],
         effective: .period
     )
 
     public static let sleepStage = GroveFHIRMeasurementContract(
         id: "sleep-stage",
         profile: GroveFHIRProfile.groveMobileSleepStage,
-        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "sleep-stage"),
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "sleep-stage", display: "Sleep stage"),
         quantity: nil,
         components: [],
         resultCodeSystem: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-sleep-stage",
         allowedValues: ["awake", "in-bed", "out-of-bed", "asleep-unspecified", "light", "deep", "rem", "unknown"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
         effective: .period
+    )
+
+    public static let speed = GroveFHIRMeasurementContract(
+        id: "speed",
+        profile: GroveFHIRProfile.groveMobileSpeed,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "speed", display: "Speed"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m/s", unit: "m/s"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
     )
 
     public static let stepCount = GroveFHIRMeasurementContract(
         id: "step-count",
         profile: GroveFHIRProfile.groveMobileStepCount,
-        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "step-count-total"),
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "step-count-total", display: "Step count total"),
         quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{steps}", unit: "steps"),
         components: [],
         resultCodeSystem: nil,
         allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let vo2Max = GroveFHIRMeasurementContract(
+        id: "vo2-max",
+        profile: GroveFHIRProfile.groveMobileVo2Max,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "vo2-max", display: "VO2 max"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mL/kg/min", unit: "mL/kg/min"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let wheelchairPushCount = GroveFHIRMeasurementContract(
+        id: "wheelchair-push-count",
+        profile: GroveFHIRProfile.groveMobileWheelchairPushCount,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "96502-0", display: "Number of wheelchair pushes per time period"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{pushes}", unit: "pushes"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let workout = GroveFHIRMeasurementContract(
+        id: "workout",
+        profile: GroveFHIRProfile.groveMobileWorkout,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "workout", display: "Workout session"),
+        quantity: nil,
+        components: [
+            GroveFHIRComponentContract(id: "active-duration", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "active-duration", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "s", unit: "s"), resultCodes: []),
+            GroveFHIRComponentContract(id: "distance-sum", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "distance-sum", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m", unit: "m"), resultCodes: []),
+            GroveFHIRComponentContract(id: "active-energy-sum", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "active-energy-sum", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "kcal", unit: "kcal"), resultCodes: []),
+            GroveFHIRComponentContract(id: "heart-rate-avg", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "heart-rate-avg", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "/min"), resultCodes: []),
+            GroveFHIRComponentContract(id: "heart-rate-max", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "heart-rate-max", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "/min"), resultCodes: []),
+            GroveFHIRComponentContract(id: "heart-rate-min", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "heart-rate-min", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "/min"), resultCodes: []),
+            GroveFHIRComponentContract(id: "step-count-sum", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "step-count-sum", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{steps}", unit: "{steps}"), resultCodes: []),
+            GroveFHIRComponentContract(id: "elevation-gain", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "elevation-gain", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m", unit: "m"), resultCodes: []),
+            GroveFHIRComponentContract(id: "flights-climbed-sum", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "flights-climbed-sum", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{flights}", unit: "{flights}"), resultCodes: []),
+            GroveFHIRComponentContract(id: "speed-avg", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "speed-avg", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m/s", unit: "m/s"), resultCodes: []),
+            GroveFHIRComponentContract(id: "swimming-stroke-count-sum", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "swimming-stroke-count-sum", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{strokes}", unit: "{strokes}"), resultCodes: []),
+            GroveFHIRComponentContract(id: "pool-lap-count", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "pool-lap-count", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{laps}", unit: "{laps}"), resultCodes: []),
+        ],
+        resultCodeSystem: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-activity",
+        allowedValues: ["running", "walking", "cycling", "hiking", "swimming", "strength-training", "high-intensity-interval-training", "yoga", "pilates", "rowing", "elliptical", "stair-climbing", "dancing", "tennis", "table-tennis", "badminton", "squash", "basketball", "soccer", "american-football", "baseball", "volleyball", "golf", "boxing", "martial-arts", "skiing", "snowboarding", "other"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let workoutSegment = GroveFHIRMeasurementContract(
+        id: "workout-segment",
+        profile: GroveFHIRProfile.groveMobileWorkoutSegment,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "workout-segment", display: "Workout segment"),
+        quantity: nil,
+        components: [
+            GroveFHIRComponentContract(id: "repetitions", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "repetitions", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{count}", unit: "repetitions"), resultCodes: []),
+            GroveFHIRComponentContract(id: "set-weight", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "set-weight", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "kg", unit: "kg"), resultCodes: []),
+            GroveFHIRComponentContract(id: "set-index", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "set-index", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{count}", unit: "set index"), resultCodes: []),
+            GroveFHIRComponentContract(id: "rating-of-perceived-exertion", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "rating-of-perceived-exertion", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{score}", unit: "RPE 0-10"), resultCodes: []),
+            GroveFHIRComponentContract(id: "lap-length", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "lap-length", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m", unit: "m"), resultCodes: []),
+        ],
+        resultCodeSystem: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-segment-type",
+        allowedValues: ["lap", "pause", "resume", "motion-paused", "motion-resumed", "pause-or-resume-request", "marker", "segment-generic", "rest", "other-workout", "unknown"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
         effective: .period
     )
 
     public static let all: [GroveFHIRMeasurementContract] = [
         activeEnergy,
         basalBodyTemperature,
+        basalEnergy,
+        bloodGlucoseUnspecifiedSpecimen,
         bloodPressure,
+        bodyFatPercentage,
         bodyHeight,
         bodyTemperature,
+        bodyWaterMass,
         bodyWeight,
+        boneMass,
+        cervicalMucusQuality,
+        cyclingCadence,
+        deepSleepDuration,
+        dietaryBiotin,
+        dietaryCaffeine,
+        dietaryCalcium,
+        dietaryCarbohydrates,
+        dietaryChloride,
+        dietaryCholesterol,
+        dietaryChromium,
+        dietaryCopper,
+        dietaryEnergy,
+        dietaryFatMonounsaturated,
+        dietaryFatPolyunsaturated,
+        dietaryFatSaturated,
+        dietaryFatTotal,
+        dietaryFiber,
+        dietaryFolate,
+        dietaryIodine,
+        dietaryIron,
+        dietaryMagnesium,
+        dietaryManganese,
+        dietaryMolybdenum,
+        dietaryNiacin,
+        dietaryPantothenicAcid,
+        dietaryPhosphorus,
+        dietaryPotassium,
+        dietaryProtein,
+        dietaryRiboflavin,
+        dietarySelenium,
+        dietarySodium,
+        dietarySugar,
+        dietaryThiamin,
+        dietaryVitaminA,
+        dietaryVitaminB12,
+        dietaryVitaminB6,
+        dietaryVitaminC,
+        dietaryVitaminD,
+        dietaryVitaminE,
+        dietaryVitaminK,
+        dietaryZinc,
         distance,
+        electrodermalActivity,
+        flightsClimbed,
+        fluidIntake,
         heartRate,
+        heartRateVariabilityRmssd,
+        heartRateVariabilitySdnn,
+        intermenstrualBleeding,
+        leanBodyMass,
+        lightSleepDuration,
+        menstruationFlow,
+        mindfulnessSession,
+        ovulationTestResult,
         oxygenSaturation,
+        oxygenSaturationDailyAverage,
+        power,
+        remSleepDuration,
         respiratoryRate,
+        respiratoryRateAverage,
+        restingHeartRate,
+        sexualActivity,
+        skinTemperature,
+        sleepAwakeDuration,
         sleepDuration,
+        sleepHeartRate,
         sleepStage,
+        speed,
         stepCount,
+        vo2Max,
+        wheelchairPushCount,
+        workout,
+        workoutSegment,
+    ]
+}
+
+
+/// Machine-generated HealthKit-exclusive measurement contracts owned by the HealthKit adapter.
+public enum GroveFHIRHealthKitMeasurementCatalog {
+    public static let appleExerciseTime = GroveFHIRMeasurementContract(
+        id: "apple-exercise-time",
+        profile: GroveFHIRProfile.healthkitAppleExerciseTime,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "apple-exercise-time", display: "Apple exercise time"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "min", unit: "min"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let appleMoveTime = GroveFHIRMeasurementContract(
+        id: "apple-move-time",
+        profile: GroveFHIRProfile.healthkitAppleMoveTime,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "apple-move-time", display: "Apple move time"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "min", unit: "min"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let appleStandHour = GroveFHIRMeasurementContract(
+        id: "apple-stand-hour",
+        profile: GroveFHIRProfile.healthkitAppleStandHour,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "apple-stand-hour", display: "Apple stand hour"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-apple-stand-hour",
+        allowedValues: ["stood", "idle"],
+        resultCodes: [
+            GroveFHIRResultCodeContract(code: "stood", display: "Stood"),
+            GroveFHIRResultCodeContract(code: "idle", display: "Idle"),
+        ],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let appleStandTime = GroveFHIRMeasurementContract(
+        id: "apple-stand-time",
+        profile: GroveFHIRProfile.healthkitAppleStandTime,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "apple-stand-time", display: "Apple stand time"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "min", unit: "min"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let atrialFibrillationBurden = GroveFHIRMeasurementContract(
+        id: "atrial-fibrillation-burden",
+        profile: GroveFHIRProfile.healthkitAtrialFibrillationBurden,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "atrial-fibrillation-burden", display: "Atrial fibrillation burden"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "%", unit: "%"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: GroveFHIRMethodContract(code: "percentage-of-time", display: "Percentage of time"),
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let bladderIncontinence = GroveFHIRMeasurementContract(
+        id: "bladder-incontinence",
+        profile: GroveFHIRProfile.healthkitBladderIncontinence,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "bladder-incontinence", display: "Bladder incontinence"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let bleedingAfterPregnancy = GroveFHIRMeasurementContract(
+        id: "bleeding-after-pregnancy",
+        profile: GroveFHIRProfile.healthkitBleedingAfterPregnancy,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "bleeding-after-pregnancy", display: "Bleeding after pregnancy"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-bleeding-after-pregnancy",
+        allowedValues: ["unspecified", "light", "medium", "heavy", "none"],
+        resultCodes: [
+            GroveFHIRResultCodeContract(code: "unspecified", display: "Unspecified"),
+            GroveFHIRResultCodeContract(code: "light", display: "Light"),
+            GroveFHIRResultCodeContract(code: "medium", display: "Medium"),
+            GroveFHIRResultCodeContract(code: "heavy", display: "Heavy"),
+            GroveFHIRResultCodeContract(code: "none", display: "None"),
+        ],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let bleedingDuringPregnancy = GroveFHIRMeasurementContract(
+        id: "bleeding-during-pregnancy",
+        profile: GroveFHIRProfile.healthkitBleedingDuringPregnancy,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "bleeding-during-pregnancy", display: "Bleeding during pregnancy"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-bleeding-during-pregnancy",
+        allowedValues: ["unspecified", "light", "medium", "heavy", "none"],
+        resultCodes: [
+            GroveFHIRResultCodeContract(code: "unspecified", display: "Unspecified"),
+            GroveFHIRResultCodeContract(code: "light", display: "Light"),
+            GroveFHIRResultCodeContract(code: "medium", display: "Medium"),
+            GroveFHIRResultCodeContract(code: "heavy", display: "Heavy"),
+            GroveFHIRResultCodeContract(code: "none", display: "None"),
+        ],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let bloodAlcoholContent = GroveFHIRMeasurementContract(
+        id: "blood-alcohol-content",
+        profile: GroveFHIRProfile.healthkitBloodAlcoholContent,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "blood-alcohol-content", display: "Blood alcohol content"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "%", unit: "%"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let bloodType = GroveFHIRMeasurementContract(
+        id: "blood-type",
+        profile: GroveFHIRProfile.healthkitBloodType,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "882-1", display: "ABO and Rh group [Type] in Blood"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-blood-type",
+        allowedValues: ["a-positive", "a-negative", "b-positive", "b-negative", "ab-positive", "ab-negative", "o-positive", "o-negative"],
+        resultCodes: [
+            GroveFHIRResultCodeContract(code: "a-positive", display: "A positive"),
+            GroveFHIRResultCodeContract(code: "a-negative", display: "A negative"),
+            GroveFHIRResultCodeContract(code: "b-positive", display: "B positive"),
+            GroveFHIRResultCodeContract(code: "b-negative", display: "B negative"),
+            GroveFHIRResultCodeContract(code: "ab-positive", display: "AB positive"),
+            GroveFHIRResultCodeContract(code: "ab-negative", display: "AB negative"),
+            GroveFHIRResultCodeContract(code: "o-positive", display: "O positive"),
+            GroveFHIRResultCodeContract(code: "o-negative", display: "O negative"),
+        ],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let contraceptiveUse = GroveFHIRMeasurementContract(
+        id: "contraceptive-use",
+        profile: GroveFHIRProfile.healthkitContraceptiveUse,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "8659-5", display: "Birth control method - Reported"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-contraceptive-use",
+        allowedValues: ["unspecified", "implant", "injection", "intrauterine-device", "intravaginal-ring", "oral", "patch"],
+        resultCodes: [
+            GroveFHIRResultCodeContract(code: "unspecified", display: "Unspecified"),
+            GroveFHIRResultCodeContract(code: "implant", display: "Implant"),
+            GroveFHIRResultCodeContract(code: "injection", display: "Injection"),
+            GroveFHIRResultCodeContract(code: "intrauterine-device", display: "Intrauterine device"),
+            GroveFHIRResultCodeContract(code: "intravaginal-ring", display: "Intravaginal ring"),
+            GroveFHIRResultCodeContract(code: "oral", display: "Oral"),
+            GroveFHIRResultCodeContract(code: "patch", display: "Patch"),
+        ],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let cyclingFunctionalThresholdPower = GroveFHIRMeasurementContract(
+        id: "cycling-functional-threshold-power",
+        profile: GroveFHIRProfile.healthkitCyclingFunctionalThresholdPower,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "cycling-functional-threshold-power", display: "Cycling functional threshold power"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "W", unit: "W"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let environmentalAudioExposure = GroveFHIRMeasurementContract(
+        id: "environmental-audio-exposure",
+        profile: GroveFHIRProfile.healthkitEnvironmentalAudioExposure,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "environmental-audio-exposure", display: "Environmental audio exposure"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "dB[SPL]", unit: "dB(SPL)"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let environmentalSoundReduction = GroveFHIRMeasurementContract(
+        id: "environmental-sound-reduction",
+        profile: GroveFHIRProfile.healthkitEnvironmentalSoundReduction,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "environmental-sound-reduction", display: "Environmental sound reduction"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "dB[SPL]", unit: "dB(SPL)"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let forcedExpiratoryVolume1 = GroveFHIRMeasurementContract(
+        id: "forced-expiratory-volume-1",
+        profile: GroveFHIRProfile.healthkitForcedExpiratoryVolume1,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "20150-9", display: "FEV1"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "L", unit: "L"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let forcedVitalCapacity = GroveFHIRMeasurementContract(
+        id: "forced-vital-capacity",
+        profile: GroveFHIRProfile.healthkitForcedVitalCapacity,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "19868-9", display: "Forced vital capacity [Volume] Respiratory system by Spirometry"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "L", unit: "L"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let gad7Assessment = GroveFHIRMeasurementContract(
+        id: "gad7-assessment",
+        profile: GroveFHIRProfile.healthkitGad7Assessment,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "70274-6", display: "Generalized anxiety disorder 7 item (GAD-7) total score [Reported.PHQ]"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{score}", unit: "score"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let handwashingSession = GroveFHIRMeasurementContract(
+        id: "handwashing-session",
+        profile: GroveFHIRProfile.healthkitHandwashingSession,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "handwashing-session", display: "Handwashing session"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "s", unit: "s"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let headphoneAudioExposure = GroveFHIRMeasurementContract(
+        id: "headphone-audio-exposure",
+        profile: GroveFHIRProfile.healthkitHeadphoneAudioExposure,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "headphone-audio-exposure", display: "Headphone audio exposure"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "dB[SPL]", unit: "dB(SPL)"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let heartRateRecoveryOneMinute = GroveFHIRMeasurementContract(
+        id: "heart-rate-recovery-one-minute",
+        profile: GroveFHIRProfile.healthkitHeartRateRecoveryOneMinute,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "heart-rate-recovery-one-minute", display: "Heart rate recovery one minute"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "beats/minute"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let inhalerUsage = GroveFHIRMeasurementContract(
+        id: "inhaler-usage",
+        profile: GroveFHIRProfile.healthkitInhalerUsage,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "inhaler-usage", display: "Inhaler usage"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{puff}", unit: "puffs"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let insulinDelivery = GroveFHIRMeasurementContract(
+        id: "insulin-delivery",
+        profile: GroveFHIRProfile.healthkitInsulinDelivery,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "insulin-delivery", display: "Insulin delivery"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "[iU]", unit: "IU"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let lactationStatus = GroveFHIRMeasurementContract(
+        id: "lactation-status",
+        profile: GroveFHIRProfile.healthkitLactationStatus,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "63895-7", display: "Breastfeeding status"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-lactation-status",
+        allowedValues: ["lactating"],
+        resultCodes: [
+            GroveFHIRResultCodeContract(code: "lactating", display: "Lactating"),
+        ],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let numberOfAlcoholicBeverages = GroveFHIRMeasurementContract(
+        id: "number-of-alcoholic-beverages",
+        profile: GroveFHIRProfile.healthkitNumberOfAlcoholicBeverages,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "number-of-alcoholic-beverages", display: "Number of alcoholic beverages"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{drinks}", unit: "drinks"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let numberOfTimesFallen = GroveFHIRMeasurementContract(
+        id: "number-of-times-fallen",
+        profile: GroveFHIRProfile.healthkitNumberOfTimesFallen,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "number-of-times-fallen", display: "Number of times fallen"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{falls}", unit: "falls"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let peakExpiratoryFlowRate = GroveFHIRMeasurementContract(
+        id: "peak-expiratory-flow-rate",
+        profile: GroveFHIRProfile.healthkitPeakExpiratoryFlowRate,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "33452-4", display: "Maximum expiratory gas flow Respiratory system airway"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "L/min", unit: "L/min"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let peripheralPerfusionIndex = GroveFHIRMeasurementContract(
+        id: "peripheral-perfusion-index",
+        profile: GroveFHIRProfile.healthkitPeripheralPerfusionIndex,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "61006-3", display: "Perfusion index Tissue by Pulse oximetry"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "%", unit: "%"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let phq9Assessment = GroveFHIRMeasurementContract(
+        id: "phq9-assessment",
+        profile: GroveFHIRProfile.healthkitPhq9Assessment,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "44261-6", display: "Patient Health Questionnaire 9 item (PHQ-9) total score [Reported]"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{score}", unit: "score"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let physicalEffort = GroveFHIRMeasurementContract(
+        id: "physical-effort",
+        profile: GroveFHIRProfile.healthkitPhysicalEffort,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "physical-effort", display: "Physical effort"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "kcal/kg/h", unit: "kcal/(kg.h)"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let pregnancyStatus = GroveFHIRMeasurementContract(
+        id: "pregnancy-status",
+        profile: GroveFHIRProfile.healthkitPregnancyStatus,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "82810-3", display: "Pregnancy status"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-pregnancy-status",
+        allowedValues: ["pregnant"],
+        resultCodes: [
+            GroveFHIRResultCodeContract(code: "pregnant", display: "Pregnant"),
+        ],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let pregnancyTestResult = GroveFHIRMeasurementContract(
+        id: "pregnancy-test-result",
+        profile: GroveFHIRProfile.healthkitPregnancyTestResult,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "2106-3", display: "Choriogonadotropin [Presence] in Urine"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-pregnancy-test-result",
+        allowedValues: ["negative", "positive", "indeterminate"],
+        resultCodes: [
+            GroveFHIRResultCodeContract(code: "negative", display: "Negative"),
+            GroveFHIRResultCodeContract(code: "positive", display: "Positive"),
+            GroveFHIRResultCodeContract(code: "indeterminate", display: "Indeterminate"),
+        ],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let progesteroneTestResult = GroveFHIRMeasurementContract(
+        id: "progesterone-test-result",
+        profile: GroveFHIRProfile.healthkitProgesteroneTestResult,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "progesterone-test-result", display: "Progesterone (PdG) test result"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-progesterone-test-result",
+        allowedValues: ["negative", "positive", "indeterminate"],
+        resultCodes: [
+            GroveFHIRResultCodeContract(code: "negative", display: "Negative"),
+            GroveFHIRResultCodeContract(code: "positive", display: "Positive"),
+            GroveFHIRResultCodeContract(code: "indeterminate", display: "Indeterminate"),
+        ],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let runningGroundContactTime = GroveFHIRMeasurementContract(
+        id: "running-ground-contact-time",
+        profile: GroveFHIRProfile.healthkitRunningGroundContactTime,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "running-ground-contact-time", display: "Running ground contact time"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "ms", unit: "ms"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let runningStrideLength = GroveFHIRMeasurementContract(
+        id: "running-stride-length",
+        profile: GroveFHIRProfile.healthkitRunningStrideLength,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "running-stride-length", display: "Running stride length"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m", unit: "m"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let runningVerticalOscillation = GroveFHIRMeasurementContract(
+        id: "running-vertical-oscillation",
+        profile: GroveFHIRProfile.healthkitRunningVerticalOscillation,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "running-vertical-oscillation", display: "Running vertical oscillation"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "cm", unit: "cm"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let sixMinuteWalkTestDistance = GroveFHIRMeasurementContract(
+        id: "six-minute-walk-test-distance",
+        profile: GroveFHIRProfile.healthkitSixMinuteWalkTestDistance,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "64098-7", display: "Six minute walk test"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m", unit: "m"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: GroveFHIRMethodContract(code: "rolling-mean", display: "Rolling mean"),
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let sleepingBreathingDisturbances = GroveFHIRMeasurementContract(
+        id: "sleeping-breathing-disturbances",
+        profile: GroveFHIRProfile.healthkitSleepingBreathingDisturbances,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "sleeping-breathing-disturbances", display: "Sleeping breathing disturbances"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/h", unit: "events/hour"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: GroveFHIRMethodContract(code: "session-rate", display: "Session rate"),
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let stairAscentSpeed = GroveFHIRMeasurementContract(
+        id: "stair-ascent-speed",
+        profile: GroveFHIRProfile.healthkitStairAscentSpeed,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "112431-2", display: "Stair ascent speed [Velocity]"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m/s", unit: "m/s"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let stairDescentSpeed = GroveFHIRMeasurementContract(
+        id: "stair-descent-speed",
+        profile: GroveFHIRProfile.healthkitStairDescentSpeed,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "112430-4", display: "Stair descent speed [Velocity]"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m/s", unit: "m/s"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let swimmingStrokeCount = GroveFHIRMeasurementContract(
+        id: "swimming-stroke-count",
+        profile: GroveFHIRProfile.healthkitSwimmingStrokeCount,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "swimming-stroke-count", display: "Swimming stroke count"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{strokes}", unit: "strokes"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomAbdominalCramps = GroveFHIRMeasurementContract(
+        id: "symptom-abdominal-cramps",
+        profile: GroveFHIRProfile.healthkitSymptomAbdominalCramps,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-abdominal-cramps", display: "Abdominal cramps"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomAcne = GroveFHIRMeasurementContract(
+        id: "symptom-acne",
+        profile: GroveFHIRProfile.healthkitSymptomAcne,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-acne", display: "Acne"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomAppetiteChanges = GroveFHIRMeasurementContract(
+        id: "symptom-appetite-changes",
+        profile: GroveFHIRProfile.healthkitSymptomAppetiteChanges,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-appetite-changes", display: "Appetite changes"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-symptom-appetite-changes",
+        allowedValues: ["no-change", "decreased", "increased", "change-unspecified"],
+        resultCodes: [
+            GroveFHIRResultCodeContract(code: "no-change", display: "No change"),
+            GroveFHIRResultCodeContract(code: "decreased", display: "Decreased"),
+            GroveFHIRResultCodeContract(code: "increased", display: "Increased"),
+            GroveFHIRResultCodeContract(code: "change-unspecified", display: "Changed, direction unspecified"),
+        ],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomBloating = GroveFHIRMeasurementContract(
+        id: "symptom-bloating",
+        profile: GroveFHIRProfile.healthkitSymptomBloating,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-bloating", display: "Bloating"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomBreastPain = GroveFHIRMeasurementContract(
+        id: "symptom-breast-pain",
+        profile: GroveFHIRProfile.healthkitSymptomBreastPain,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-breast-pain", display: "Breast pain"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomChestTightnessOrPain = GroveFHIRMeasurementContract(
+        id: "symptom-chest-tightness-or-pain",
+        profile: GroveFHIRProfile.healthkitSymptomChestTightnessOrPain,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-chest-tightness-or-pain", display: "Chest tightness or pain"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomChills = GroveFHIRMeasurementContract(
+        id: "symptom-chills",
+        profile: GroveFHIRProfile.healthkitSymptomChills,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-chills", display: "Chills"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomConstipation = GroveFHIRMeasurementContract(
+        id: "symptom-constipation",
+        profile: GroveFHIRProfile.healthkitSymptomConstipation,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-constipation", display: "Constipation"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomCoughing = GroveFHIRMeasurementContract(
+        id: "symptom-coughing",
+        profile: GroveFHIRProfile.healthkitSymptomCoughing,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-coughing", display: "Coughing"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomDiarrhea = GroveFHIRMeasurementContract(
+        id: "symptom-diarrhea",
+        profile: GroveFHIRProfile.healthkitSymptomDiarrhea,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-diarrhea", display: "Diarrhea"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomDizziness = GroveFHIRMeasurementContract(
+        id: "symptom-dizziness",
+        profile: GroveFHIRProfile.healthkitSymptomDizziness,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-dizziness", display: "Dizziness"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomDrySkin = GroveFHIRMeasurementContract(
+        id: "symptom-dry-skin",
+        profile: GroveFHIRProfile.healthkitSymptomDrySkin,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-dry-skin", display: "Dry skin"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomFainting = GroveFHIRMeasurementContract(
+        id: "symptom-fainting",
+        profile: GroveFHIRProfile.healthkitSymptomFainting,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-fainting", display: "Fainting"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomFatigue = GroveFHIRMeasurementContract(
+        id: "symptom-fatigue",
+        profile: GroveFHIRProfile.healthkitSymptomFatigue,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-fatigue", display: "Fatigue"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomFever = GroveFHIRMeasurementContract(
+        id: "symptom-fever",
+        profile: GroveFHIRProfile.healthkitSymptomFever,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-fever", display: "Fever"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomGeneralizedBodyAche = GroveFHIRMeasurementContract(
+        id: "symptom-generalized-body-ache",
+        profile: GroveFHIRProfile.healthkitSymptomGeneralizedBodyAche,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-generalized-body-ache", display: "Generalized body ache"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomHairLoss = GroveFHIRMeasurementContract(
+        id: "symptom-hair-loss",
+        profile: GroveFHIRProfile.healthkitSymptomHairLoss,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-hair-loss", display: "Hair loss"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomHeadache = GroveFHIRMeasurementContract(
+        id: "symptom-headache",
+        profile: GroveFHIRProfile.healthkitSymptomHeadache,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-headache", display: "Headache"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomHeartburn = GroveFHIRMeasurementContract(
+        id: "symptom-heartburn",
+        profile: GroveFHIRProfile.healthkitSymptomHeartburn,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-heartburn", display: "Heartburn"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomHotFlashes = GroveFHIRMeasurementContract(
+        id: "symptom-hot-flashes",
+        profile: GroveFHIRProfile.healthkitSymptomHotFlashes,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-hot-flashes", display: "Hot flashes"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomLossOfSmell = GroveFHIRMeasurementContract(
+        id: "symptom-loss-of-smell",
+        profile: GroveFHIRProfile.healthkitSymptomLossOfSmell,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-loss-of-smell", display: "Loss of smell"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomLossOfTaste = GroveFHIRMeasurementContract(
+        id: "symptom-loss-of-taste",
+        profile: GroveFHIRProfile.healthkitSymptomLossOfTaste,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-loss-of-taste", display: "Loss of taste"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomLowerBackPain = GroveFHIRMeasurementContract(
+        id: "symptom-lower-back-pain",
+        profile: GroveFHIRProfile.healthkitSymptomLowerBackPain,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-lower-back-pain", display: "Lower back pain"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomMemoryLapse = GroveFHIRMeasurementContract(
+        id: "symptom-memory-lapse",
+        profile: GroveFHIRProfile.healthkitSymptomMemoryLapse,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-memory-lapse", display: "Memory lapse"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomMoodChanges = GroveFHIRMeasurementContract(
+        id: "symptom-mood-changes",
+        profile: GroveFHIRProfile.healthkitSymptomMoodChanges,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-mood-changes", display: "Mood changes"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomNausea = GroveFHIRMeasurementContract(
+        id: "symptom-nausea",
+        profile: GroveFHIRProfile.healthkitSymptomNausea,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "81660-3", display: "Nausea [Presence]"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomNightSweats = GroveFHIRMeasurementContract(
+        id: "symptom-night-sweats",
+        profile: GroveFHIRProfile.healthkitSymptomNightSweats,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-night-sweats", display: "Night sweats"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomPelvicPain = GroveFHIRMeasurementContract(
+        id: "symptom-pelvic-pain",
+        profile: GroveFHIRProfile.healthkitSymptomPelvicPain,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-pelvic-pain", display: "Pelvic pain"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomRapidPoundingOrFlutteringHeartbeat = GroveFHIRMeasurementContract(
+        id: "symptom-rapid-pounding-or-fluttering-heartbeat",
+        profile: GroveFHIRProfile.healthkitSymptomRapidPoundingOrFlutteringHeartbeat,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-rapid-pounding-or-fluttering-heartbeat", display: "Rapid, pounding, or fluttering heartbeat"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomRunnyNose = GroveFHIRMeasurementContract(
+        id: "symptom-runny-nose",
+        profile: GroveFHIRProfile.healthkitSymptomRunnyNose,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-runny-nose", display: "Runny nose"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomShortnessOfBreath = GroveFHIRMeasurementContract(
+        id: "symptom-shortness-of-breath",
+        profile: GroveFHIRProfile.healthkitSymptomShortnessOfBreath,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-shortness-of-breath", display: "Shortness of breath"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomSinusCongestion = GroveFHIRMeasurementContract(
+        id: "symptom-sinus-congestion",
+        profile: GroveFHIRProfile.healthkitSymptomSinusCongestion,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-sinus-congestion", display: "Sinus congestion"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomSkippedHeartbeat = GroveFHIRMeasurementContract(
+        id: "symptom-skipped-heartbeat",
+        profile: GroveFHIRProfile.healthkitSymptomSkippedHeartbeat,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-skipped-heartbeat", display: "Skipped heartbeat"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomSleepChanges = GroveFHIRMeasurementContract(
+        id: "symptom-sleep-changes",
+        profile: GroveFHIRProfile.healthkitSymptomSleepChanges,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-sleep-changes", display: "Sleep changes"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomSoreThroat = GroveFHIRMeasurementContract(
+        id: "symptom-sore-throat",
+        profile: GroveFHIRProfile.healthkitSymptomSoreThroat,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-sore-throat", display: "Sore throat"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomVomiting = GroveFHIRMeasurementContract(
+        id: "symptom-vomiting",
+        profile: GroveFHIRProfile.healthkitSymptomVomiting,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-vomiting", display: "Vomiting"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let symptomWheezing = GroveFHIRMeasurementContract(
+        id: "symptom-wheezing",
+        profile: GroveFHIRProfile.healthkitSymptomWheezing,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-wheezing", display: "Wheezing"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let timeInDaylight = GroveFHIRMeasurementContract(
+        id: "time-in-daylight",
+        profile: GroveFHIRProfile.healthkitTimeInDaylight,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "time-in-daylight", display: "Time in daylight"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "min", unit: "min"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let toothbrushingSession = GroveFHIRMeasurementContract(
+        id: "toothbrushing-session",
+        profile: GroveFHIRProfile.healthkitToothbrushingSession,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "toothbrushing-session", display: "Toothbrushing session"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "s", unit: "s"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let underwaterDepth = GroveFHIRMeasurementContract(
+        id: "underwater-depth",
+        profile: GroveFHIRProfile.healthkitUnderwaterDepth,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "underwater-depth", display: "Underwater depth"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m", unit: "m"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let uvExposure = GroveFHIRMeasurementContract(
+        id: "uv-exposure",
+        profile: GroveFHIRProfile.healthkitUvExposure,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "uv-exposure", display: "UV exposure"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{uvindex}", unit: "UV index"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let vaginalDryness = GroveFHIRMeasurementContract(
+        id: "vaginal-dryness",
+        profile: GroveFHIRProfile.healthkitVaginalDryness,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "vaginal-dryness", display: "Vaginal dryness"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/grove-symptom-severity",
+        allowedValues: ["not-present", "present", "mild", "moderate", "severe"],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let waistCircumference = GroveFHIRMeasurementContract(
+        id: "waist-circumference",
+        profile: GroveFHIRProfile.healthkitWaistCircumference,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "8280-0", display: "Waist Circumference at umbilicus by Tape measure"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "cm", unit: "cm"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let walkingAsymmetry = GroveFHIRMeasurementContract(
+        id: "walking-asymmetry",
+        profile: GroveFHIRProfile.healthkitWalkingAsymmetry,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "112432-0", display: "Walking asymmetry"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "%", unit: "%"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let walkingDoubleSupport = GroveFHIRMeasurementContract(
+        id: "walking-double-support",
+        profile: GroveFHIRProfile.healthkitWalkingDoubleSupport,
+        code: GroveFHIRCodingContract(system: "http://loinc.org", code: "112434-6", display: "Walking double support [Percentile]"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "%", unit: "%"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let walkingHeartRateAverage = GroveFHIRMeasurementContract(
+        id: "walking-heart-rate-average",
+        profile: GroveFHIRProfile.healthkitWalkingHeartRateAverage,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "walking-heart-rate-average", display: "Walking heart rate average"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "beats/minute"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: GroveFHIRMethodContract(code: "daily-mean", display: "Daily mean"),
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let walkingSpeed = GroveFHIRMeasurementContract(
+        id: "walking-speed",
+        profile: GroveFHIRProfile.healthkitWalkingSpeed,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "walking-speed", display: "Walking speed"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m/s", unit: "m/s"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let walkingSteadiness = GroveFHIRMeasurementContract(
+        id: "walking-steadiness",
+        profile: GroveFHIRProfile.healthkitWalkingSteadiness,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "walking-steadiness", display: "Walking steadiness"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "%", unit: "%"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: GroveFHIRMethodContract(code: "rolling-mean", display: "Rolling mean"),
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let walkingStepLength = GroveFHIRMeasurementContract(
+        id: "walking-step-length",
+        profile: GroveFHIRProfile.healthkitWalkingStepLength,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "walking-step-length", display: "Walking step length"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "cm", unit: "cm"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let waterTemperature = GroveFHIRMeasurementContract(
+        id: "water-temperature",
+        profile: GroveFHIRProfile.healthkitWaterTemperature,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "water-temperature", display: "Water temperature"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "Cel", unit: "Cel"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let wheelchairUse = GroveFHIRMeasurementContract(
+        id: "wheelchair-use",
+        profile: GroveFHIRProfile.healthkitWheelchairUse,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "wheelchair-use", display: "Wheelchair use"),
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-wheelchair-use",
+        allowedValues: ["uses-wheelchair", "does-not-use-wheelchair"],
+        resultCodes: [
+            GroveFHIRResultCodeContract(code: "uses-wheelchair", display: "Uses wheelchair"),
+            GroveFHIRResultCodeContract(code: "does-not-use-wheelchair", display: "Does not use wheelchair"),
+        ],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime
+    )
+
+    public static let workoutEffortScore = GroveFHIRMeasurementContract(
+        id: "workout-effort-score",
+        profile: GroveFHIRProfile.healthkitWorkoutEffortScore,
+        code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "workout-effort-score", display: "Workout effort score"),
+        quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{score}", unit: "score"),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period
+    )
+
+    public static let all: [GroveFHIRMeasurementContract] = [
+        appleExerciseTime,
+        appleMoveTime,
+        appleStandHour,
+        appleStandTime,
+        atrialFibrillationBurden,
+        bladderIncontinence,
+        bleedingAfterPregnancy,
+        bleedingDuringPregnancy,
+        bloodAlcoholContent,
+        bloodType,
+        contraceptiveUse,
+        cyclingFunctionalThresholdPower,
+        environmentalAudioExposure,
+        environmentalSoundReduction,
+        forcedExpiratoryVolume1,
+        forcedVitalCapacity,
+        gad7Assessment,
+        handwashingSession,
+        headphoneAudioExposure,
+        heartRateRecoveryOneMinute,
+        inhalerUsage,
+        insulinDelivery,
+        lactationStatus,
+        numberOfAlcoholicBeverages,
+        numberOfTimesFallen,
+        peakExpiratoryFlowRate,
+        peripheralPerfusionIndex,
+        phq9Assessment,
+        physicalEffort,
+        pregnancyStatus,
+        pregnancyTestResult,
+        progesteroneTestResult,
+        runningGroundContactTime,
+        runningStrideLength,
+        runningVerticalOscillation,
+        sixMinuteWalkTestDistance,
+        sleepingBreathingDisturbances,
+        stairAscentSpeed,
+        stairDescentSpeed,
+        swimmingStrokeCount,
+        symptomAbdominalCramps,
+        symptomAcne,
+        symptomAppetiteChanges,
+        symptomBloating,
+        symptomBreastPain,
+        symptomChestTightnessOrPain,
+        symptomChills,
+        symptomConstipation,
+        symptomCoughing,
+        symptomDiarrhea,
+        symptomDizziness,
+        symptomDrySkin,
+        symptomFainting,
+        symptomFatigue,
+        symptomFever,
+        symptomGeneralizedBodyAche,
+        symptomHairLoss,
+        symptomHeadache,
+        symptomHeartburn,
+        symptomHotFlashes,
+        symptomLossOfSmell,
+        symptomLossOfTaste,
+        symptomLowerBackPain,
+        symptomMemoryLapse,
+        symptomMoodChanges,
+        symptomNausea,
+        symptomNightSweats,
+        symptomPelvicPain,
+        symptomRapidPoundingOrFlutteringHeartbeat,
+        symptomRunnyNose,
+        symptomShortnessOfBreath,
+        symptomSinusCongestion,
+        symptomSkippedHeartbeat,
+        symptomSleepChanges,
+        symptomSoreThroat,
+        symptomVomiting,
+        symptomWheezing,
+        timeInDaylight,
+        toothbrushingSession,
+        underwaterDepth,
+        uvExposure,
+        vaginalDryness,
+        waistCircumference,
+        walkingAsymmetry,
+        walkingDoubleSupport,
+        walkingHeartRateAverage,
+        walkingSpeed,
+        walkingSteadiness,
+        walkingStepLength,
+        waterTemperature,
+        wheelchairUse,
+        workoutEffortScore,
     ]
 }
 
@@ -305,6 +3098,8 @@ public enum GroveFHIRMeasurementCatalog {
 /// Swift producer states generated from the authoritative HealthKit adapter inventory.
 public enum GroveFHIRHealthKitImplementationStatus: String, CaseIterable, Sendable {
     case deferred = "deferred"
+    case intentionallyUnsupported = "intentionally-unsupported"
+    case platformExclusive = "platform-exclusive"
     case supported = "supported"
 }
 
@@ -339,490 +3134,490 @@ public enum GroveFHIRHealthKitCatalog {
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierAbdominalCramps",
             title: "Abdominal Cramps",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-abdominal-cramps"],
+            profiles: [GroveFHIRProfile.healthkitSymptomAbdominalCramps],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierAcne",
             title: "Acne",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-acne"],
+            profiles: [GroveFHIRProfile.healthkitSymptomAcne],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierAppetiteChanges",
             title: "Appetite Changes",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-appetite-changes"],
+            profiles: [GroveFHIRProfile.healthkitSymptomAppetiteChanges],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierAppleStandHour",
             title: "Apple Stand Hour",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["apple-stand-hour"],
+            profiles: [GroveFHIRProfile.healthkitAppleStandHour],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent",
             title: "Apple Walking Steadiness Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "Device alert: the enum encodes notification cadence (initial vs repeat) crossed with an Apple-defined banding of the appleWalkingSteadiness percent score, which is the actual measurement and is handled as a quantity type. The alert adds no measurement content beyond that score."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierAudioExposureEvent",
             title: "Audio Exposure Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .deferred,
-            requirement: "Apple renames this constant to HKCategoryTypeIdentifierEnvironmentalAudioExposureEvent while keeping its identifier. Version 0.2.0 publishes no admitted output contract."
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "Device alert: a threshold-crossing notification against a user-configurable limit, not a measurement. The measurement is the environmentalAudioExposure dB(A) quantity type, which carries the actual exposure level."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierBladderIncontinence",
             title: "Bladder Incontinence",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["bladder-incontinence"],
+            profiles: [GroveFHIRProfile.healthkitBladderIncontinence],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierBleedingAfterPregnancy",
             title: "Bleeding After Pregnancy",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["bleeding-after-pregnancy"],
+            profiles: [GroveFHIRProfile.healthkitBleedingAfterPregnancy],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierBleedingDuringPregnancy",
             title: "Bleeding During Pregnancy",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["bleeding-during-pregnancy"],
+            profiles: [GroveFHIRProfile.healthkitBleedingDuringPregnancy],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierBloating",
             title: "Bloating",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-bloating"],
+            profiles: [GroveFHIRProfile.healthkitSymptomBloating],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierBreastPain",
             title: "Breast Pain",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-breast-pain"],
+            profiles: [GroveFHIRProfile.healthkitSymptomBreastPain],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierCervicalMucusQuality",
             title: "Cervical Mucus Quality",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["cervical-mucus-quality"],
+            profiles: [GroveFHIRProfile.groveMobileCervicalMucusQuality],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierChestTightnessOrPain",
             title: "Chest Tightness/Pain",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-chest-tightness-or-pain"],
+            profiles: [GroveFHIRProfile.healthkitSymptomChestTightnessOrPain],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierChills",
             title: "Chills",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-chills"],
+            profiles: [GroveFHIRProfile.healthkitSymptomChills],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierConstipation",
             title: "Constipation",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-constipation"],
+            profiles: [GroveFHIRProfile.healthkitSymptomConstipation],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierContraceptive",
             title: "Contraceptive",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["contraceptive-use"],
+            profiles: [GroveFHIRProfile.healthkitContraceptiveUse],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierCoughing",
             title: "Coughing",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-coughing"],
+            profiles: [GroveFHIRProfile.healthkitSymptomCoughing],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierDiarrhea",
             title: "Diarrhea",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-diarrhea"],
+            profiles: [GroveFHIRProfile.healthkitSymptomDiarrhea],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierDizziness",
             title: "Dizziness",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-dizziness"],
+            profiles: [GroveFHIRProfile.healthkitSymptomDizziness],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierDrySkin",
             title: "Dry Skin",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-dry-skin"],
+            profiles: [GroveFHIRProfile.healthkitSymptomDrySkin],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierFainting",
             title: "Fainting",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-fainting"],
+            profiles: [GroveFHIRProfile.healthkitSymptomFainting],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierFatigue",
             title: "Fatigue",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-fatigue"],
+            profiles: [GroveFHIRProfile.healthkitSymptomFatigue],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierFever",
             title: "Fever",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-fever"],
+            profiles: [GroveFHIRProfile.healthkitSymptomFever],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierGeneralizedBodyAche",
             title: "Generalized Body Ache",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-generalized-body-ache"],
+            profiles: [GroveFHIRProfile.healthkitSymptomGeneralizedBodyAche],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierHairLoss",
             title: "Hair Loss",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-hair-loss"],
+            profiles: [GroveFHIRProfile.healthkitSymptomHairLoss],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierHandwashingEvent",
             title: "Handwashing Event",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["handwashing-session"],
+            profiles: [GroveFHIRProfile.healthkitHandwashingSession],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierHeadache",
             title: "Headache",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-headache"],
+            profiles: [GroveFHIRProfile.healthkitSymptomHeadache],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierHeadphoneAudioExposureEvent",
             title: "Headphone Audio Exposure Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "Device alert over an OS-computed rolling seven-day dose limit; not a measurement. The headphoneAudioExposure quantity type carries the measured levels."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierHeartburn",
             title: "Heartburn",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-heartburn"],
+            profiles: [GroveFHIRProfile.healthkitSymptomHeartburn],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierHighHeartRateEvent",
             title: "High Heart Rate Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "Device alert against a user-configurable threshold; not a measurement. Heart-rate quantities remain the measurement surface."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierHotFlashes",
             title: "Hot Flashes",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-hot-flashes"],
+            profiles: [GroveFHIRProfile.healthkitSymptomHotFlashes],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierHypertensionEvent",
             title: "Hypertension Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2.0 output contract is published for this platform source type."
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "Device alert from a proprietary screening algorithm asserting possible pathology without any pressure measurement; emitting it as an Observation would fabricate a blood-pressure-adjacent finding with no quantity. Cuff blood-pressure quantities remain the measurement surface."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierInfrequentMenstrualCycles",
             title: "Infrequent Menstrual Cycles",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "Algorithmic screening alert over derived cycle history; not a measurement."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierIntermenstrualBleeding",
             title: "Intermenstrual Bleeding",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["intermenstrual-bleeding"],
+            profiles: [GroveFHIRProfile.groveMobileIntermenstrualBleeding],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierIrregularHeartRhythmEvent",
             title: "Irregular Heart Rhythm Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "FDA-cleared screening notification from a proprietary algorithm, valueless and read-only. Grove admits the ECG itself (sensor ECG adapter claim, HKDataTypeIdentifierElectrocardiogram) and the atrial-fibrillation burden percentage (HKQuantityTypeIdentifierAtrialFibrillationBurden) as the rhythm evidence surfaces; re-emitting the alert would present a screening trigger as a rhythm finding without any waveform or classification payload."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierIrregularMenstrualCycles",
             title: "Irregular Menstrual Cycles",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "Algorithmic screening alert over derived cycle history; not a measurement."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierLactation",
             title: "Lactation",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["lactation-status"],
+            profiles: [GroveFHIRProfile.healthkitLactationStatus],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierLossOfSmell",
             title: "Loss of Smell",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-loss-of-smell"],
+            profiles: [GroveFHIRProfile.healthkitSymptomLossOfSmell],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierLossOfTaste",
             title: "Loss of Taste",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-loss-of-taste"],
+            profiles: [GroveFHIRProfile.healthkitSymptomLossOfTaste],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierLowCardioFitnessEvent",
             title: "Low Cardio Fitness Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "Device alert over an Apple-defined classification band of the VO2Max quantity, which is the measurement. Single enum case lowFitness carries no additional measurement meaning."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierLowHeartRateEvent",
             title: "Low Heart Rate Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "Device alert against a user-configurable threshold; the heart-rate quantity series is the admitted measurement. An alert Observation would encode a preference-dependent trigger, not a physiologic result."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierLowerBackPain",
             title: "Lower Back Pain",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-lower-back-pain"],
+            profiles: [GroveFHIRProfile.healthkitSymptomLowerBackPain],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierMemoryLapse",
             title: "Memory Lapse",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-memory-lapse"],
+            profiles: [GroveFHIRProfile.healthkitSymptomMemoryLapse],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierMenstrualFlow",
             title: "Menstrual Flow",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["menstruation-flow"],
+            profiles: [GroveFHIRProfile.groveMobileMenstruationFlow],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierMindfulSession",
             title: "Mindful Session",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["mindfulness-session"],
+            profiles: [GroveFHIRProfile.groveMobileMindfulnessSession],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierMoodChanges",
             title: "Mood Changes",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-mood-changes"],
+            profiles: [GroveFHIRProfile.healthkitSymptomMoodChanges],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierNausea",
             title: "Nausea",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-nausea"],
+            profiles: [GroveFHIRProfile.healthkitSymptomNausea],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierNightSweats",
             title: "Night Sweats",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-night-sweats"],
+            profiles: [GroveFHIRProfile.healthkitSymptomNightSweats],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierOvulationTestResult",
             title: "Ovulation Test Result",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["ovulation-test-result"],
+            profiles: [GroveFHIRProfile.groveMobileOvulationTestResult],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierPelvicPain",
             title: "Pelvic Pain",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-pelvic-pain"],
+            profiles: [GroveFHIRProfile.healthkitSymptomPelvicPain],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierPersistentIntermenstrualBleeding",
             title: "Persistent Intermenstrual Bleeding",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "Algorithmic screening alert derived from user-entered cycle data, not a measurement. The primary data (intermenstrualBleeding and menstrualFlow samples) is admitted through the cycle-tracking enum-absorption design; re-emitting HealthKit's derived possible-pathology flag would present a screening notification as a clinical finding."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierPregnancy",
             title: "Pregnancy",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["pregnancy-status"],
+            profiles: [GroveFHIRProfile.healthkitPregnancyStatus],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierPregnancyTestResult",
             title: "Pregnancy Test Result",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["pregnancy-test-result"],
+            profiles: [GroveFHIRProfile.healthkitPregnancyTestResult],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierProgesteroneTestResult",
             title: "Progesterone Test Result",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["progesterone-test-result"],
+            profiles: [GroveFHIRProfile.healthkitProgesteroneTestResult],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierProlongedMenstrualPeriods",
             title: "Prolonged Menstrual Periods",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "Algorithmic screening alert over derived cycle history; the underlying menstrualFlow data is the measurement and is covered by the cycle-tracking design."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierRapidPoundingOrFlutteringHeartbeat",
             title: "Rapid/Pounding/Fluttering Heartbeat",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-rapid-pounding-or-fluttering-heartbeat"],
+            profiles: [GroveFHIRProfile.healthkitSymptomRapidPoundingOrFlutteringHeartbeat],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierRunnyNose",
             title: "Runny Nose",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-runny-nose"],
+            profiles: [GroveFHIRProfile.healthkitSymptomRunnyNose],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierSexualActivity",
             title: "Sexual Activity",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["sexual-activity"],
+            profiles: [GroveFHIRProfile.groveMobileSexualActivity],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierShortnessOfBreath",
             title: "Shortness of Breath",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-shortness-of-breath"],
+            profiles: [GroveFHIRProfile.healthkitSymptomShortnessOfBreath],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierSinusCongestion",
             title: "Sinus Congestion",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-sinus-congestion"],
+            profiles: [GroveFHIRProfile.healthkitSymptomSinusCongestion],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierSkippedHeartbeat",
             title: "Skipped Heartbeat",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-skipped-heartbeat"],
+            profiles: [GroveFHIRProfile.healthkitSymptomSkippedHeartbeat],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierSleepAnalysis",
@@ -837,64 +3632,64 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Sleep Apnea Event",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "Device alert, not a measurement: an Apple proprietary screening algorithm's notification of possible pathology. The underlying signal (HKQuantityTypeIdentifierAppleSleepingBreathingDisturbances) is the measurement surface; emitting the alert as an Observation would misrepresent a screening notification as a clinical finding."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierSleepChanges",
             title: "Sleep Changes",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-sleep-changes"],
+            profiles: [GroveFHIRProfile.healthkitSymptomSleepChanges],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierSoreThroat",
             title: "Sore Throat",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-sore-throat"],
+            profiles: [GroveFHIRProfile.healthkitSymptomSoreThroat],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierToothbrushingEvent",
             title: "Toothbrushing Event",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["toothbrushing-session"],
+            profiles: [GroveFHIRProfile.healthkitToothbrushingSession],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierVaginalDryness",
             title: "Vaginal Dryness",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["vaginal-dryness"],
+            profiles: [GroveFHIRProfile.healthkitVaginalDryness],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierVomiting",
             title: "Vomiting",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-vomiting"],
+            profiles: [GroveFHIRProfile.healthkitSymptomVomiting],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierWheezing",
             title: "Wheezing",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["symptom-wheezing"],
+            profiles: [GroveFHIRProfile.healthkitSymptomWheezing],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCharacteristicTypeIdentifierActivityMoveMode",
             title: "Activity Move Mode",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .deferred,
-            requirement: "A HealthKit characteristic describes the subject rather than a measurement. Version 0.2.0 publishes no admitted output contract for characteristics."
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "DECIDED: intentionally-unsupported. A ring-display preference has no semantically exact Mobile meaning; converting it would encode Apple product configuration as clinical data. Verifier attack (would a researcher want it?): the mode is only interpretive context for AppleMoveTime/ActiveEnergy rows, which carry their own units and are handled in their own rows; the mode adds no measurement content of its own. Reason survives."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCharacteristicTypeIdentifierBiologicalSex",
@@ -907,10 +3702,10 @@ public enum GroveFHIRHealthKitCatalog {
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCharacteristicTypeIdentifierBloodType",
             title: "Blood Type",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "A HealthKit characteristic describes the subject rather than a measurement. Version 0.2.0 publishes no admitted output contract for characteristics."
+            measurementIDs: ["blood-type"],
+            profiles: [GroveFHIRProfile.healthkitBloodType],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCharacteristicTypeIdentifierDateOfBirth",
@@ -925,88 +3720,88 @@ public enum GroveFHIRHealthKitCatalog {
             title: "Fitzpatrick Skin Type",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .deferred,
-            requirement: "A HealthKit characteristic describes the subject rather than a measurement. Version 0.2.0 publishes no admitted output contract for characteristics."
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "DECIDED: intentionally-unsupported — applied as decided, not re-decided. Verifier correction to the stated reason: an exact LOINC does exist (66555-4), so the decision cannot rest on missing terminology; it rests solely on the decided scope call (single-platform self-reported phenotype outside the measurement contract, no consumer in the exchange set)."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCharacteristicTypeIdentifierWheelchairUse",
             title: "Wheelchair Use",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "A HealthKit characteristic describes the subject rather than a measurement. Version 0.2.0 publishes no admitted output contract for characteristics."
+            measurementIDs: ["wheelchair-use"],
+            profiles: [GroveFHIRProfile.healthkitWheelchairUse],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKClinicalTypeIdentifierAllergyRecord",
             title: "Allergy Record",
             measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
+            profiles: [GroveFHIRProfile.healthkitClinicalRecordDocument],
+            implementationStatus: .platformExclusive,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKClinicalTypeIdentifierClinicalNoteRecord",
             title: "Clinical Note Record",
             measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
+            profiles: [GroveFHIRProfile.healthkitClinicalRecordDocument],
+            implementationStatus: .platformExclusive,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKClinicalTypeIdentifierConditionRecord",
             title: "Condition Record",
             measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
+            profiles: [GroveFHIRProfile.healthkitClinicalRecordDocument],
+            implementationStatus: .platformExclusive,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKClinicalTypeIdentifierCoverageRecord",
             title: "Coverage Record",
             measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
+            profiles: [GroveFHIRProfile.healthkitClinicalRecordDocument],
+            implementationStatus: .platformExclusive,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKClinicalTypeIdentifierImmunizationRecord",
             title: "Immunization Record",
             measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
+            profiles: [GroveFHIRProfile.healthkitClinicalRecordDocument],
+            implementationStatus: .platformExclusive,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord",
             title: "Lab Result Record",
             measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
+            profiles: [GroveFHIRProfile.healthkitClinicalRecordDocument],
+            implementationStatus: .platformExclusive,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKClinicalTypeIdentifierMedicationRecord",
             title: "Medication Record",
             measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
+            profiles: [GroveFHIRProfile.healthkitClinicalRecordDocument],
+            implementationStatus: .platformExclusive,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKClinicalTypeIdentifierProcedureRecord",
             title: "Procedure Record",
             measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
+            profiles: [GroveFHIRProfile.healthkitClinicalRecordDocument],
+            implementationStatus: .platformExclusive,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKClinicalTypeIdentifierVitalSignRecord",
             title: "Vital Sign Record",
             measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "HealthKit clinical records already carry provider FHIR; the v0.2 HealthKit Observation adapter does not rewrite or re-profile them."
+            profiles: [GroveFHIRProfile.healthkitClinicalRecordDocument],
+            implementationStatus: .platformExclusive,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCorrelationTypeIdentifierBloodPressure",
@@ -1046,7 +3841,7 @@ public enum GroveFHIRHealthKitCatalog {
             measurementIDs: [],
             profiles: [],
             implementationStatus: .deferred,
-            requirement: "Use a Grove Sensor waveform graph once the HealthKit heartbeat-series adapter is implemented."
+            requirement: "The beat-to-beat interval series ships as a grove-csv-1 recording (heartbeat-series column schema) in the residual design pass; no Observation output is admitted."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKDataTypeStateOfMind",
@@ -1091,58 +3886,58 @@ public enum GroveFHIRHealthKitCatalog {
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierAppleExerciseTime",
             title: "Apple Exercise Time",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["apple-exercise-time"],
+            profiles: [GroveFHIRProfile.healthkitAppleExerciseTime],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierAppleMoveTime",
             title: "Apple Move Time",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["apple-move-time"],
+            profiles: [GroveFHIRProfile.healthkitAppleMoveTime],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierAppleSleepingBreathingDisturbances",
             title: "Apple Sleeping Breathing Disturbances",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["sleeping-breathing-disturbances"],
+            profiles: [GroveFHIRProfile.healthkitSleepingBreathingDisturbances],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierAppleSleepingWristTemperature",
             title: "Apple Sleeping Wrist Temperature",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["skin-temperature"],
+            profiles: [GroveFHIRProfile.groveMobileSkinTemperature],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierAppleStandTime",
             title: "Apple Stand Time",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["apple-stand-time"],
+            profiles: [GroveFHIRProfile.healthkitAppleStandTime],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierAppleWalkingSteadiness",
             title: "Apple Walking Steadiness",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["walking-steadiness"],
+            profiles: [GroveFHIRProfile.healthkitWalkingSteadiness],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierAtrialFibrillationBurden",
             title: "AFib Burden",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["atrial-fibrillation-burden"],
+            profiles: [GroveFHIRProfile.healthkitAtrialFibrillationBurden],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierBasalBodyTemperature",
@@ -1155,50 +3950,50 @@ public enum GroveFHIRHealthKitCatalog {
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierBasalEnergyBurned",
             title: "Basal Energy Burned",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["basal-energy"],
+            profiles: [GroveFHIRProfile.groveMobileBasalEnergy],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierBloodAlcoholContent",
             title: "Blood Alcohol Content",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["blood-alcohol-content"],
+            profiles: [GroveFHIRProfile.healthkitBloodAlcoholContent],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierBloodGlucose",
             title: "Blood Glucose",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "HealthKit does not identify the specimen needed by the Health Connect-only glucose profiles; source-only conversion fails closed."
+            measurementIDs: ["blood-glucose-unspecified-specimen"],
+            profiles: [GroveFHIRProfile.groveMobileBloodGlucoseUnspecifiedSpecimen],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierBloodPressureDiastolic",
             title: "Blood Pressure (Diastolic)",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["blood-pressure"],
+            profiles: [GroveFHIRProfile.groveMobileBloodPressure],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierBloodPressureSystolic",
             title: "Blood Pressure (Systolic)",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["blood-pressure"],
+            profiles: [GroveFHIRProfile.groveMobileBloodPressure],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierBodyFatPercentage",
             title: "Body Fat Percentage",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["body-fat-percentage"],
+            profiles: [GroveFHIRProfile.groveMobileBodyFatPercentage],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierBodyMass",
@@ -1227,354 +4022,354 @@ public enum GroveFHIRHealthKitCatalog {
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierCrossCountrySkiingSpeed",
             title: "Cross Country Skiing Speed",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["speed"],
+            profiles: [GroveFHIRProfile.groveMobileSpeed],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierCyclingCadence",
             title: "Cycling Cadence",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["cycling-cadence"],
+            profiles: [GroveFHIRProfile.groveMobileCyclingCadence],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierCyclingFunctionalThresholdPower",
             title: "Cycling Functional Threshold Power",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["cycling-functional-threshold-power"],
+            profiles: [GroveFHIRProfile.healthkitCyclingFunctionalThresholdPower],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierCyclingPower",
             title: "Cycling Power",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["power"],
+            profiles: [GroveFHIRProfile.groveMobilePower],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierCyclingSpeed",
             title: "Cycling Speed",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["speed"],
+            profiles: [GroveFHIRProfile.groveMobileSpeed],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryBiotin",
             title: "Dietary Biotin Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-biotin"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryBiotin],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryCaffeine",
             title: "Dietary Caffeine Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-caffeine"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryCaffeine],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryCalcium",
             title: "Dietary Calcium Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-calcium"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryCalcium],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryCarbohydrates",
             title: "Dietary Carbohydrates Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-carbohydrates"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryCarbohydrates],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryChloride",
             title: "Dietary Chloride Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-chloride"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryChloride],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryCholesterol",
             title: "Dietary Cholesterol Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-cholesterol"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryCholesterol],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryChromium",
             title: "Dietary Chromium Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-chromium"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryChromium],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryCopper",
             title: "Dietary Copper Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-copper"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryCopper],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryEnergyConsumed",
             title: "Dietary Energy Consumed",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-energy"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryEnergy],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryFatMonounsaturated",
             title: "Dietary Monounsaturated Fat Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-fat-monounsaturated"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryFatMonounsaturated],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryFatPolyunsaturated",
             title: "Dietary Polyunsaturated Fat Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-fat-polyunsaturated"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryFatPolyunsaturated],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryFatSaturated",
             title: "Dietary Saturated Fat Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-fat-saturated"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryFatSaturated],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryFatTotal",
             title: "Dietary Total Fat Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-fat-total"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryFatTotal],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryFiber",
             title: "Dietary Fiber Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-fiber"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryFiber],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryFolate",
             title: "Dietary Folate Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-folate"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryFolate],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryIodine",
             title: "Dietary Iodine Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-iodine"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryIodine],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryIron",
             title: "Dietary Iron Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-iron"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryIron],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryMagnesium",
             title: "Dietary Magnesium Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-magnesium"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryMagnesium],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryManganese",
             title: "Dietary Manganese Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-manganese"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryManganese],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryMolybdenum",
             title: "Dietary Molybdenum Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-molybdenum"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryMolybdenum],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryNiacin",
             title: "Dietary Niacin Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-niacin"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryNiacin],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryPantothenicAcid",
             title: "Dietary Pantothenic Acid Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-pantothenic-acid"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryPantothenicAcid],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryPhosphorus",
             title: "Dietary Phosphorus Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-phosphorus"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryPhosphorus],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryPotassium",
             title: "Dietary Potassium Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-potassium"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryPotassium],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryProtein",
             title: "Dietary Protein Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-protein"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryProtein],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryRiboflavin",
             title: "Dietary Riboflavin Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-riboflavin"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryRiboflavin],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietarySelenium",
             title: "Dietary Selenium Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-selenium"],
+            profiles: [GroveFHIRProfile.groveMobileDietarySelenium],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietarySodium",
             title: "Dietary Sodium Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-sodium"],
+            profiles: [GroveFHIRProfile.groveMobileDietarySodium],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietarySugar",
             title: "Dietary Sugar Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-sugar"],
+            profiles: [GroveFHIRProfile.groveMobileDietarySugar],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryThiamin",
             title: "Dietary Thiamin Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-thiamin"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryThiamin],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryVitaminA",
             title: "Dietary Vitamin A Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-vitamin-a"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryVitaminA],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryVitaminB12",
             title: "Dietary Vitamin B12 Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-vitamin-b12"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryVitaminB12],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryVitaminB6",
             title: "Dietary Vitamin B6 Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-vitamin-b6"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryVitaminB6],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryVitaminC",
             title: "Dietary Vitamin C Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-vitamin-c"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryVitaminC],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryVitaminD",
             title: "Dietary Vitamin D Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-vitamin-d"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryVitaminD],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryVitaminE",
             title: "Dietary Vitamin E Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-vitamin-e"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryVitaminE],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryVitaminK",
             title: "Dietary Vitamin K Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-vitamin-k"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryVitaminK],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryWater",
             title: "Dietary Water Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["fluid-intake"],
+            profiles: [GroveFHIRProfile.groveMobileFluidIntake],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDietaryZinc",
             title: "Dietary Zinc Intake",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["dietary-zinc"],
+            profiles: [GroveFHIRProfile.groveMobileDietaryZinc],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierDistanceCrossCountrySkiing",
@@ -1651,66 +4446,66 @@ public enum GroveFHIRHealthKitCatalog {
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierElectrodermalActivity",
             title: "Electrodermal Activity",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["electrodermal-activity"],
+            profiles: [GroveFHIRProfile.groveMobileElectrodermalActivity],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierEnvironmentalAudioExposure",
             title: "Environmental Audio Exposure",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["environmental-audio-exposure"],
+            profiles: [GroveFHIRProfile.healthkitEnvironmentalAudioExposure],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierEnvironmentalSoundReduction",
             title: "Environmental Sound Reduction",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["environmental-sound-reduction"],
+            profiles: [GroveFHIRProfile.healthkitEnvironmentalSoundReduction],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierEstimatedWorkoutEffortScore",
             title: "Estimated Workout Effort",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["workout-effort-score"],
+            profiles: [GroveFHIRProfile.healthkitWorkoutEffortScore],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierFlightsClimbed",
             title: "Flights Climbed",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["flights-climbed"],
+            profiles: [GroveFHIRProfile.groveMobileFlightsClimbed],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierForcedExpiratoryVolume1",
             title: "Forced Expiratory Volume (1 sec)",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["forced-expiratory-volume-1"],
+            profiles: [GroveFHIRProfile.healthkitForcedExpiratoryVolume1],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierForcedVitalCapacity",
             title: "Forced Vital Capacity",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["forced-vital-capacity"],
+            profiles: [GroveFHIRProfile.healthkitForcedVitalCapacity],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierHeadphoneAudioExposure",
             title: "Headphone Audio Exposure",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["headphone-audio-exposure"],
+            profiles: [GroveFHIRProfile.healthkitHeadphoneAudioExposure],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierHeartRate",
@@ -1723,18 +4518,18 @@ public enum GroveFHIRHealthKitCatalog {
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierHeartRateRecoveryOneMinute",
             title: "Heart Rate Recovery (1 min)",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["heart-rate-recovery-one-minute"],
+            profiles: [GroveFHIRProfile.healthkitHeartRateRecoveryOneMinute],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierHeartRateVariabilitySDNN",
             title: "Heart Rate Variability SDNN",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["heart-rate-variability-sdnn"],
+            profiles: [GroveFHIRProfile.groveMobileHeartRateVariabilitySdnn],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierHeight",
@@ -1747,50 +4542,50 @@ public enum GroveFHIRHealthKitCatalog {
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierInhalerUsage",
             title: "Inhaler Usage",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["inhaler-usage"],
+            profiles: [GroveFHIRProfile.healthkitInhalerUsage],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierInsulinDelivery",
             title: "Insulin Delivery",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["insulin-delivery"],
+            profiles: [GroveFHIRProfile.healthkitInsulinDelivery],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierLeanBodyMass",
             title: "Lean Body Mass",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["lean-body-mass"],
+            profiles: [GroveFHIRProfile.groveMobileLeanBodyMass],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierNikeFuel",
             title: "NikeFuel",
             measurementIDs: [],
             profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "NikeFuel is an opaque vendor index with an unpublished formula and a retired ecosystem; it has no physiological dimension, no UCUM representation beyond an arbitrary annotation, and no second source, so normalizing it would launder an undefined score into an exchange measurement."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierNumberOfAlcoholicBeverages",
             title: "Number of Alcoholic Beverages",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["number-of-alcoholic-beverages"],
+            profiles: [GroveFHIRProfile.healthkitNumberOfAlcoholicBeverages],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierNumberOfTimesFallen",
             title: "Number of Times Fallen",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["number-of-times-fallen"],
+            profiles: [GroveFHIRProfile.healthkitNumberOfTimesFallen],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierOxygenSaturation",
@@ -1803,42 +4598,42 @@ public enum GroveFHIRHealthKitCatalog {
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierPaddleSportsSpeed",
             title: "Paddle Sports Speed",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["speed"],
+            profiles: [GroveFHIRProfile.groveMobileSpeed],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierPeakExpiratoryFlowRate",
             title: "Peak Expiratory Flow Rate",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["peak-expiratory-flow-rate"],
+            profiles: [GroveFHIRProfile.healthkitPeakExpiratoryFlowRate],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierPeripheralPerfusionIndex",
             title: "Peripheral Perfusion Index",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["peripheral-perfusion-index"],
+            profiles: [GroveFHIRProfile.healthkitPeripheralPerfusionIndex],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierPhysicalEffort",
             title: "Physical Effort",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["physical-effort"],
+            profiles: [GroveFHIRProfile.healthkitPhysicalEffort],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierPushCount",
             title: "Wheelchair Push Count",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["wheelchair-push-count"],
+            profiles: [GroveFHIRProfile.groveMobileWheelchairPushCount],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierRespiratoryRate",
@@ -1851,82 +4646,82 @@ public enum GroveFHIRHealthKitCatalog {
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierRestingHeartRate",
             title: "Resting Heart Rate",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["resting-heart-rate"],
+            profiles: [GroveFHIRProfile.groveMobileRestingHeartRate],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierRowingSpeed",
             title: "Rowing Speed",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["speed"],
+            profiles: [GroveFHIRProfile.groveMobileSpeed],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierRunningGroundContactTime",
             title: "Ground Contact Time",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["running-ground-contact-time"],
+            profiles: [GroveFHIRProfile.healthkitRunningGroundContactTime],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierRunningPower",
             title: "Running Power",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["power"],
+            profiles: [GroveFHIRProfile.groveMobilePower],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierRunningSpeed",
             title: "Running Speed",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["speed"],
+            profiles: [GroveFHIRProfile.groveMobileSpeed],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierRunningStrideLength",
             title: "Running Stride Length",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["running-stride-length"],
+            profiles: [GroveFHIRProfile.healthkitRunningStrideLength],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierRunningVerticalOscillation",
             title: "Running Vertical Oscillation",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["running-vertical-oscillation"],
+            profiles: [GroveFHIRProfile.healthkitRunningVerticalOscillation],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierSixMinuteWalkTestDistance",
             title: "6 Minute Walk Test Distance",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["six-minute-walk-test-distance"],
+            profiles: [GroveFHIRProfile.healthkitSixMinuteWalkTestDistance],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierStairAscentSpeed",
             title: "Stair Ascent Speed",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["stair-ascent-speed"],
+            profiles: [GroveFHIRProfile.healthkitStairAscentSpeed],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierStairDescentSpeed",
             title: "Stair Descent Speed",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["stair-descent-speed"],
+            profiles: [GroveFHIRProfile.healthkitStairDescentSpeed],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierStepCount",
@@ -1939,122 +4734,122 @@ public enum GroveFHIRHealthKitCatalog {
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierSwimmingStrokeCount",
             title: "Swimming Stroke Count",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["swimming-stroke-count"],
+            profiles: [GroveFHIRProfile.healthkitSwimmingStrokeCount],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierTimeInDaylight",
             title: "Time in Daylight",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["time-in-daylight"],
+            profiles: [GroveFHIRProfile.healthkitTimeInDaylight],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierUVExposure",
             title: "UV Exposure",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["uv-exposure"],
+            profiles: [GroveFHIRProfile.healthkitUvExposure],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierUnderwaterDepth",
             title: "Underwater Depth",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["underwater-depth"],
+            profiles: [GroveFHIRProfile.healthkitUnderwaterDepth],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierVO2Max",
             title: "VO2Max",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["vo2-max"],
+            profiles: [GroveFHIRProfile.groveMobileVo2Max],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierWaistCircumference",
             title: "Waist Circumference",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["waist-circumference"],
+            profiles: [GroveFHIRProfile.healthkitWaistCircumference],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierWalkingAsymmetryPercentage",
             title: "Walking Asymmetry Percentage",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["walking-asymmetry"],
+            profiles: [GroveFHIRProfile.healthkitWalkingAsymmetry],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierWalkingDoubleSupportPercentage",
             title: "Walking Double Support Percentage",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["walking-double-support"],
+            profiles: [GroveFHIRProfile.healthkitWalkingDoubleSupport],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierWalkingHeartRateAverage",
             title: "Walking Heart Rate Average",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["walking-heart-rate-average"],
+            profiles: [GroveFHIRProfile.healthkitWalkingHeartRateAverage],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierWalkingSpeed",
             title: "Walking Speed",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["walking-speed"],
+            profiles: [GroveFHIRProfile.healthkitWalkingSpeed],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierWalkingStepLength",
             title: "Walking Step Length",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["walking-step-length"],
+            profiles: [GroveFHIRProfile.healthkitWalkingStepLength],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierWaterTemperature",
             title: "Water Temperature",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["water-temperature"],
+            profiles: [GroveFHIRProfile.healthkitWaterTemperature],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierWorkoutEffortScore",
             title: "Workout Effort",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or adapter-specific v0.2 output contract is published for this type."
+            measurementIDs: ["workout-effort-score"],
+            profiles: [GroveFHIRProfile.healthkitWorkoutEffortScore],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKScoredAssessmentTypeIdentifierGAD7",
             title: "GAD-7",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or HealthKit-adapter v0.2 output contract is published for this sample type."
+            measurementIDs: ["gad7-assessment"],
+            profiles: [GroveFHIRProfile.healthkitGad7Assessment],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKScoredAssessmentTypeIdentifierPHQ9",
             title: "PHQ-9",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or HealthKit-adapter v0.2 output contract is published for this sample type."
+            measurementIDs: ["phq9-assessment"],
+            profiles: [GroveFHIRProfile.healthkitPhq9Assessment],
+            implementationStatus: .supported,
+            requirement: nil
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKVisionPrescriptionTypeIdentifier",
@@ -2062,7 +4857,7 @@ public enum GroveFHIRHealthKitCatalog {
             measurementIDs: [],
             profiles: [],
             implementationStatus: .deferred,
-            requirement: "No shared or HealthKit-adapter v0.2 output contract is published for this sample type."
+            requirement: "A vision prescription is a clinical document, not a measurement; the residual design pass decides its envelope route and no Observation output is admitted."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKWorkoutRouteTypeIdentifier",
@@ -2075,10 +4870,10 @@ public enum GroveFHIRHealthKitCatalog {
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKWorkoutTypeIdentifier",
             title: "Workout",
-            measurementIDs: [],
-            profiles: [],
-            implementationStatus: .deferred,
-            requirement: "No shared or HealthKit-adapter v0.2 output contract is published for this sample type."
+            measurementIDs: ["workout", "workout-segment"],
+            profiles: [GroveFHIRProfile.groveMobileWorkout, GroveFHIRProfile.groveMobileWorkoutSegment],
+            implementationStatus: .supported,
+            requirement: nil
         ),
     ]
 }
