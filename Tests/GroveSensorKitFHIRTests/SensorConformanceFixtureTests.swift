@@ -48,16 +48,16 @@ struct SensorConformanceFixtureTests {
             subject: Reference(reference: "Patient/example"),
             converter: GroveSensorFHIRApplication(
                 identifier: try GroveFHIRBusinessIdentifier(
-                    system: "https://study.example.org/fhir/identifiers/application",
+                    system: "https://grovealliance.org/fhir/testing/identifiers/conformance-application",
                     value: "sensor-conformance|0.3.0"
                 ),
                 name: "Sensor Conformance Fixture",
                 version: "0.3.0"
             ),
-            graphIdentifierSystem: "https://study.example.org/fhir/identifiers/sensor-graph",
+            graphIdentifierSystem: "https://grovealliance.org/fhir/testing/identifiers/conformance-graph",
             recordingDevice: GroveSensorFHIRRecordingDevice(
                 identifier: try GroveFHIRBusinessIdentifier(
-                    system: "https://study.example.org/fhir/identifiers/recording-device",
+                    system: "https://grovealliance.org/fhir/testing/identifiers/conformance-recording-device",
                     value: "sensor-fixture-device"
                 ),
                 name: "Sensor Fixture Device"

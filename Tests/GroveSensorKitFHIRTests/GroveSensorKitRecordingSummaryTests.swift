@@ -77,7 +77,7 @@ struct GroveSensorKitRecordingSummaryTests {
     }
 
     @Test
-    func sleepSessionAssertsOnlyTheSessionInterval() throws {
+    func sleepSessionAssertsItsIntervalAndLength() throws {
         let record = GroveSensorKitSleepSessionRecord(
             sourceRecordID: try Self.sourceID,
             session: DateInterval(start: Self.start.addingTimeInterval(-28_800), end: Self.start)
@@ -86,7 +86,13 @@ struct GroveSensorKitRecordingSummaryTests {
         let observation = try #require(conversion.observations.first)
 
         #expect(observation.meta?.profile == [Self.profile("sensorkit-sleep-session-observation")])
-        #expect(observation.value == nil)
+        guard case .quantity(let value) = observation.value else {
+            Issue.record("A sleep session must carry the exact length of its interval")
+            return
+        }
+        #expect(value.value?.value?.decimal == 28_800)
+        #expect(value.code?.value?.string == "s")
+        #expect(value.system?.value?.url.absoluteString == "http://unitsofmeasure.org")
         #expect(observation.component == nil)
         #expect(observation.derivedFrom == nil)
         #expect(conversion.recordingDocument == nil)

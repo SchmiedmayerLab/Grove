@@ -243,6 +243,11 @@ extension GroveSensorKitFHIRConverter {
             end: record.session.end,
             timeZone: context.sourceTimeZone
         ))
+        observation.value = .quantity(quantity(
+            value: try nonNegativeDuration(record.session.duration, field: "sleepSessionDuration"),
+            code: "s",
+            unit: "seconds"
+        ))
         return observation
     }
 
