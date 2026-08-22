@@ -3697,7 +3697,7 @@ public enum GroveFHIRHealthKitCatalog {
             measurementIDs: [],
             profiles: [],
             implementationStatus: .deferred,
-            requirement: "A HealthKit characteristic describes the subject rather than a measurement. Version 0.2.0 publishes no admitted output contract for characteristics."
+            requirement: "A HealthKit characteristic describes the subject rather than a measurement. Version 0.3.0 publishes no admitted output contract for characteristics."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCharacteristicTypeIdentifierBloodType",
@@ -3713,7 +3713,7 @@ public enum GroveFHIRHealthKitCatalog {
             measurementIDs: [],
             profiles: [],
             implementationStatus: .deferred,
-            requirement: "A HealthKit characteristic describes the subject rather than a measurement. Version 0.2.0 publishes no admitted output contract for characteristics."
+            requirement: "A HealthKit characteristic describes the subject rather than a measurement. Version 0.3.0 publishes no admitted output contract for characteristics."
         ),
         GroveFHIRHealthKitCatalogRow(
             sourceTypeIdentifier: "HKCharacteristicTypeIdentifierFitzpatrickSkinType",
