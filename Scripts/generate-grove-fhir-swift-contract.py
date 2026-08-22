@@ -49,6 +49,16 @@ def swift_string(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
+def component_result_code_system(component: dict) -> str | None:
+    """The guide names a component's result CodeSystem with the last segment of its bound ValueSet."""
+    value_set = component.get("valueSet")
+    if not component.get("resultCodes") or not value_set:
+        return None
+    if "/ValueSet/" not in value_set:
+        raise ValueError(f"component valueSet is not a Grove canonical: {value_set!r}")
+    return value_set.replace("/ValueSet/", "/CodeSystem/")
+
+
 def measurement_lines(measurement: dict) -> list[str]:
     lines = [
         f"    public static let {swift_name(measurement['id'])} = GroveFHIRMeasurementContract(",
@@ -89,12 +99,15 @@ def measurement_lines(measurement: dict) -> list[str]:
                 f"display: {swift_string(result_code['display'])})"
                 for result_code in component.get("resultCodes", [])
             )
+            result_code_system = component_result_code_system(component)
             lines.append(
                 "            GroveFHIRComponentContract("
                 f"id: {swift_string(component['id'])}, "
                 f"system: {swift_string(component['system'])}, "
                 f"code: {swift_string(component['code'])}, "
                 f"quantity: {rendered_quantity}, "
+                f"resultCodeSystem: "
+                f"{swift_string(result_code_system) if result_code_system else 'nil'}, "
                 f"resultCodes: [{rendered_result_codes}]),"
             )
         lines.append("        ],")
@@ -243,6 +256,7 @@ def generate(catalog_directory: Path) -> str:
         "    public let system: String",
         "    public let code: String",
         "    public let quantity: GroveFHIRQuantityContract?",
+        "    public let resultCodeSystem: String?",
         "    public let resultCodes: [GroveFHIRResultCodeContract]",
         "}",
         "",

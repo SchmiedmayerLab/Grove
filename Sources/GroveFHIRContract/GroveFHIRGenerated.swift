@@ -306,6 +306,7 @@ public struct GroveFHIRComponentContract: Hashable, Sendable {
     public let system: String
     public let code: String
     public let quantity: GroveFHIRQuantityContract?
+    public let resultCodeSystem: String?
     public let resultCodes: [GroveFHIRResultCodeContract]
 }
 
@@ -404,8 +405,8 @@ public enum GroveFHIRMeasurementCatalog {
         code: GroveFHIRCodingContract(system: "http://loinc.org", code: "85354-9"),
         quantity: nil,
         components: [
-            GroveFHIRComponentContract(id: "systolic", system: "http://loinc.org", code: "8480-6", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mm[Hg]", unit: "mmHg"), resultCodes: []),
-            GroveFHIRComponentContract(id: "diastolic", system: "http://loinc.org", code: "8462-4", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mm[Hg]", unit: "mmHg"), resultCodes: []),
+            GroveFHIRComponentContract(id: "systolic", system: "http://loinc.org", code: "8480-6", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mm[Hg]", unit: "mmHg"), resultCodeSystem: nil, resultCodes: []),
+            GroveFHIRComponentContract(id: "diastolic", system: "http://loinc.org", code: "8462-4", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "mm[Hg]", unit: "mmHg"), resultCodeSystem: nil, resultCodes: []),
         ],
         resultCodeSystem: nil,
         allowedValues: [],
@@ -505,7 +506,7 @@ public enum GroveFHIRMeasurementCatalog {
         code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "cervical-mucus-quality", display: "Cervical mucus quality"),
         quantity: nil,
         components: [
-            GroveFHIRComponentContract(id: "sensation", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "cervical-mucus-sensation", quantity: nil, resultCodes: [GroveFHIRResultCodeContract(code: "light", display: "Light"), GroveFHIRResultCodeContract(code: "medium", display: "Medium"), GroveFHIRResultCodeContract(code: "heavy", display: "Heavy")]),
+            GroveFHIRComponentContract(id: "sensation", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "cervical-mucus-sensation", quantity: nil, resultCodeSystem: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-cervical-mucus-sensation", resultCodes: [GroveFHIRResultCodeContract(code: "light", display: "Light"), GroveFHIRResultCodeContract(code: "medium", display: "Medium"), GroveFHIRResultCodeContract(code: "heavy", display: "Heavy")]),
         ],
         resultCodeSystem: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-cervical-mucus-quality",
         allowedValues: ["dry", "sticky", "creamy", "watery", "egg-white", "unusual", "unknown"],
@@ -1230,7 +1231,9 @@ public enum GroveFHIRMeasurementCatalog {
         profile: GroveFHIRProfile.groveMobileMenstruationFlow,
         code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "menstruation-flow", display: "Menstruation flow"),
         quantity: nil,
-        components: [],
+        components: [
+            GroveFHIRComponentContract(id: "cycleStart", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "menstrual-cycle-start", quantity: nil, resultCodeSystem: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-menstrual-cycle-start", resultCodes: [GroveFHIRResultCodeContract(code: "cycle-start", display: "Cycle start"), GroveFHIRResultCodeContract(code: "not-cycle-start", display: "Not cycle start")]),
+        ],
         resultCodeSystem: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-menstruation-flow",
         allowedValues: ["unspecified", "light", "medium", "heavy", "none"],
         resultCodes: [
@@ -1526,18 +1529,18 @@ public enum GroveFHIRMeasurementCatalog {
         code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "workout", display: "Workout session"),
         quantity: nil,
         components: [
-            GroveFHIRComponentContract(id: "active-duration", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "active-duration", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "s", unit: "s"), resultCodes: []),
-            GroveFHIRComponentContract(id: "distance-sum", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "distance-sum", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m", unit: "m"), resultCodes: []),
-            GroveFHIRComponentContract(id: "active-energy-sum", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "active-energy-sum", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "kcal", unit: "kcal"), resultCodes: []),
-            GroveFHIRComponentContract(id: "heart-rate-avg", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "heart-rate-avg", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "/min"), resultCodes: []),
-            GroveFHIRComponentContract(id: "heart-rate-max", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "heart-rate-max", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "/min"), resultCodes: []),
-            GroveFHIRComponentContract(id: "heart-rate-min", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "heart-rate-min", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "/min"), resultCodes: []),
-            GroveFHIRComponentContract(id: "step-count-sum", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "step-count-sum", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{steps}", unit: "{steps}"), resultCodes: []),
-            GroveFHIRComponentContract(id: "elevation-gain", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "elevation-gain", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m", unit: "m"), resultCodes: []),
-            GroveFHIRComponentContract(id: "flights-climbed-sum", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "flights-climbed-sum", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{flights}", unit: "{flights}"), resultCodes: []),
-            GroveFHIRComponentContract(id: "speed-avg", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "speed-avg", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m/s", unit: "m/s"), resultCodes: []),
-            GroveFHIRComponentContract(id: "swimming-stroke-count-sum", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "swimming-stroke-count-sum", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{strokes}", unit: "{strokes}"), resultCodes: []),
-            GroveFHIRComponentContract(id: "pool-lap-count", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "pool-lap-count", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{laps}", unit: "{laps}"), resultCodes: []),
+            GroveFHIRComponentContract(id: "active-duration", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "active-duration", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "s", unit: "s"), resultCodeSystem: nil, resultCodes: []),
+            GroveFHIRComponentContract(id: "distance-sum", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "distance-sum", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m", unit: "m"), resultCodeSystem: nil, resultCodes: []),
+            GroveFHIRComponentContract(id: "active-energy-sum", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "active-energy-sum", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "kcal", unit: "kcal"), resultCodeSystem: nil, resultCodes: []),
+            GroveFHIRComponentContract(id: "heart-rate-avg", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "heart-rate-avg", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "/min"), resultCodeSystem: nil, resultCodes: []),
+            GroveFHIRComponentContract(id: "heart-rate-max", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "heart-rate-max", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "/min"), resultCodeSystem: nil, resultCodes: []),
+            GroveFHIRComponentContract(id: "heart-rate-min", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "heart-rate-min", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "/min"), resultCodeSystem: nil, resultCodes: []),
+            GroveFHIRComponentContract(id: "step-count-sum", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "step-count-sum", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{steps}", unit: "{steps}"), resultCodeSystem: nil, resultCodes: []),
+            GroveFHIRComponentContract(id: "elevation-gain", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "elevation-gain", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m", unit: "m"), resultCodeSystem: nil, resultCodes: []),
+            GroveFHIRComponentContract(id: "flights-climbed-sum", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "flights-climbed-sum", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{flights}", unit: "{flights}"), resultCodeSystem: nil, resultCodes: []),
+            GroveFHIRComponentContract(id: "speed-avg", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "speed-avg", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m/s", unit: "m/s"), resultCodeSystem: nil, resultCodes: []),
+            GroveFHIRComponentContract(id: "swimming-stroke-count-sum", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "swimming-stroke-count-sum", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{strokes}", unit: "{strokes}"), resultCodeSystem: nil, resultCodes: []),
+            GroveFHIRComponentContract(id: "pool-lap-count", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "pool-lap-count", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{laps}", unit: "{laps}"), resultCodeSystem: nil, resultCodes: []),
         ],
         resultCodeSystem: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-activity",
         allowedValues: ["running", "walking", "cycling", "hiking", "swimming", "strength-training", "high-intensity-interval-training", "yoga", "pilates", "rowing", "elliptical", "stair-climbing", "dancing", "tennis", "table-tennis", "badminton", "squash", "basketball", "soccer", "american-football", "baseball", "volleyball", "golf", "boxing", "martial-arts", "skiing", "snowboarding", "other"],
@@ -1553,11 +1556,11 @@ public enum GroveFHIRMeasurementCatalog {
         code: GroveFHIRCodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "workout-segment", display: "Workout segment"),
         quantity: nil,
         components: [
-            GroveFHIRComponentContract(id: "repetitions", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "repetitions", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{count}", unit: "repetitions"), resultCodes: []),
-            GroveFHIRComponentContract(id: "set-weight", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "set-weight", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "kg", unit: "kg"), resultCodes: []),
-            GroveFHIRComponentContract(id: "set-index", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "set-index", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{count}", unit: "set index"), resultCodes: []),
-            GroveFHIRComponentContract(id: "rating-of-perceived-exertion", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "rating-of-perceived-exertion", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{score}", unit: "RPE 0-10"), resultCodes: []),
-            GroveFHIRComponentContract(id: "lap-length", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "lap-length", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m", unit: "m"), resultCodes: []),
+            GroveFHIRComponentContract(id: "repetitions", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "repetitions", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{count}", unit: "repetitions"), resultCodeSystem: nil, resultCodes: []),
+            GroveFHIRComponentContract(id: "set-weight", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "set-weight", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "kg", unit: "kg"), resultCodeSystem: nil, resultCodes: []),
+            GroveFHIRComponentContract(id: "set-index", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "set-index", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{count}", unit: "set index"), resultCodeSystem: nil, resultCodes: []),
+            GroveFHIRComponentContract(id: "rating-of-perceived-exertion", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "rating-of-perceived-exertion", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "{score}", unit: "RPE 0-10"), resultCodeSystem: nil, resultCodes: []),
+            GroveFHIRComponentContract(id: "lap-length", system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-statistic", code: "lap-length", quantity: GroveFHIRQuantityContract(system: "http://unitsofmeasure.org", code: "m", unit: "m"), resultCodeSystem: nil, resultCodes: []),
         ],
         resultCodeSystem: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-segment-type",
         allowedValues: ["lap", "pause", "resume", "motion-paused", "motion-resumed", "pause-or-resume-request", "marker", "segment-generic", "rest", "other-workout", "unknown"],

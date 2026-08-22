@@ -135,7 +135,7 @@ struct ConformanceFixtureTests {
             converter: HealthKitFHIRApplication(
                 name: "Grove Conformance Fixture",
                 bundleIdentifier: "org.grovealliance.conformance-fixture",
-                version: "0.2.0"
+                version: "0.3.0"
             ),
             graphIdentifierSystem: "https://grovealliance.org/fhir/testing/identifiers/conformance-graph",
             converterWasGateway: true,

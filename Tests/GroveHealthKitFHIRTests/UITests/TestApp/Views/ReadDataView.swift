@@ -59,7 +59,7 @@ struct ReadDataView<Sample: _HKSampleWithSampleType>: View {
             converter: HealthKitFHIRApplication(
                 name: "Grove HealthKit FHIR Test App",
                 bundleIdentifier: "org.grovealliance.healthkit-fhir-test-app",
-                version: "0.2.0"
+                version: "0.3.0"
             ),
             graphIdentifierSystem: "https://grovealliance.org/fhir/testing/identifiers/ui-graph",
             conversionInstant: now
