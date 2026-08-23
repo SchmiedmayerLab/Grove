@@ -244,6 +244,8 @@ jobs:
         run: |
           echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || 'ccde2c33001a5b70eb943dd5cde30936ba32d725' }}"
           echo "grove-fhir SHA: $(git rev-parse HEAD)"
+      - name: Pin the implementation-guide cache key
+        run: echo "GROVE_FHIR_GUIDE_CACHE_KEY=grove-fhir-validation-${{ runner.os }}-${{ hashFiles('.github/GROVE_FHIR_DEVELOPMENT_SCOPE', '.fhir/grove-fhir/Gemfile.lock', '.fhir/grove-fhir/package-lock.json', '.fhir/grove-fhir/Scripts/**', '.fhir/grove-fhir/catalog/**', '.fhir/grove-fhir/mobile/**', '.fhir/grove-fhir/sensor/**', '.fhir/grove-fhir/sensorkit/**', '.fhir/grove-fhir/healthkit/**', '.fhir/grove-fhir/questionnaire/**') }}" >> "$GITHUB_ENV"
       - name: Restore built implementation guides
         id: guide-cache
         uses: actions/cache@v5
@@ -256,7 +258,7 @@ jobs:
             .fhir/grove-fhir/sensorkit/output/package.tgz
             .fhir/grove-fhir/healthkit/output/package.tgz
             .fhir/grove-fhir/questionnaire/output/package.tgz
-          key: grove-fhir-validation-${{ runner.os }}-${{ hashFiles('.github/GROVE_FHIR_DEVELOPMENT_SCOPE', '.fhir/grove-fhir/Gemfile.lock', '.fhir/grove-fhir/package-lock.json', '.fhir/grove-fhir/Scripts/**', '.fhir/grove-fhir/catalog/**', '.fhir/grove-fhir/mobile/**', '.fhir/grove-fhir/sensor/**', '.fhir/grove-fhir/sensorkit/**', '.fhir/grove-fhir/healthkit/**', '.fhir/grove-fhir/questionnaire/**') }}
+          key: ${{ env.GROVE_FHIR_GUIDE_CACHE_KEY }}
       - uses: actions/setup-node@v6
         with:
           node-version: 24
