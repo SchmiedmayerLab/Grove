@@ -848,6 +848,323 @@ struct AccountKeyMacroTests {
             failureHandler: { Issue.record("\($0.message)") }
         )
     }
+
+    @Test
+    func accountKeyModuleSelector() {
+        assertMacroExpansion(
+            """
+            extension AccountDetails {
+                @AccountKey(
+                    id: "genderIdentity",
+                    name: "Gender Identity",
+                    options: .mutable,
+                    as: ModuleA::GenderIdentity.self,
+                    initial: .empty(.preferNotToState)
+                )
+                var genderIdentity: ModuleA::GenderIdentity?
+            }
+            """,
+            expandedSource:
+            """
+            extension AccountDetails {
+                var genderIdentity: ModuleA::GenderIdentity? {
+                    get {
+                        self[__Key_genderIdentity.self]
+                    }
+                    set {
+                        self[__Key_genderIdentity.self] = newValue
+                    }
+                }
+
+                struct __Key_genderIdentity: AccountKey {
+                    typealias Value = ModuleA::GenderIdentity
+
+                    static let name: LocalizedStringResource = "Gender Identity"
+                    static let identifier: String = "genderIdentity"
+                    static let category: AccountKeyCategory = .other
+                    static var initialValue: InitialValue<Value> {
+                        .empty(.preferNotToState)
+                    }
+                    static let options: AccountKeyOptions = .mutable
+                    struct DataDisplay: DataDisplayView {
+                        var body: some View {
+                            fatalError("'\\("Gender Identity")' does not support display access.")
+                        }
+
+                        init(_ value: Value) {
+                            fatalError("'\\("Gender Identity")' does not support display access.")
+                        }
+                    }
+                    struct DataEntry: DataEntryView {
+                        var body: some View {
+                            fatalError("'\\("Gender Identity")' does not support display access.")
+                        }
+
+                        init(_ value: Binding<Value>) {
+                            fatalError("'\\("Gender Identity")' does not support display access.")
+                        }
+                    }
+                }
+            }
+            """,
+            macroSpecs: testMacrosSpecs,
+            failureHandler: { Issue.record("\($0.message)") }
+        )
+    }
+
+    @Test
+    func accountKeyModuleSelectorRequired() {
+        assertMacroExpansion(
+            """
+            extension AccountDetails {
+                @AccountKey(name: "Name", as: ModuleA::PersonName.self)
+                var name: ModuleA::PersonName
+            }
+            """,
+            expandedSource:
+            """
+            extension AccountDetails {
+                var name: ModuleA::PersonName {
+                    get {
+                        self[__Key_name.self]
+                    }
+                    set {
+                        self[__Key_name.self] = newValue
+                    }
+                }
+
+                struct __Key_name: RequiredAccountKey {
+                    typealias Value = ModuleA::PersonName
+
+                    static let name: LocalizedStringResource = "Name"
+                    static let identifier: String = "name"
+                    static let category: AccountKeyCategory = .other
+                    static let options: AccountKeyOptions = .default
+                }
+            }
+            """,
+            macroSpecs: testMacrosSpecs,
+            failureHandler: { Issue.record("\($0.message)") }
+        )
+    }
+
+    @Test
+    func accountKeyModuleSelectorNestedType() {
+        assertMacroExpansion(
+            """
+            extension AccountDetails {
+                @AccountKey(name: "Preferred Workout Type", as: ModuleA::WorkoutType.ID.self)
+                var preferredWorkoutType: ModuleA::WorkoutType.ID?
+            }
+            """,
+            expandedSource:
+            """
+            extension AccountDetails {
+                var preferredWorkoutType: ModuleA::WorkoutType.ID? {
+                    get {
+                        self[__Key_preferredWorkoutType.self]
+                    }
+                    set {
+                        self[__Key_preferredWorkoutType.self] = newValue
+                    }
+                }
+
+                struct __Key_preferredWorkoutType: AccountKey {
+                    typealias Value = ModuleA::WorkoutType.ID
+
+                    static let name: LocalizedStringResource = "Preferred Workout Type"
+                    static let identifier: String = "preferredWorkoutType"
+                    static let category: AccountKeyCategory = .other
+                    static let options: AccountKeyOptions = .default
+                }
+            }
+            """,
+            macroSpecs: testMacrosSpecs,
+            failureHandler: { Issue.record("\($0.message)") }
+        )
+    }
+
+    @Test
+    func accountKeyModuleSelectorCustomUI() {
+        assertMacroExpansion(
+            """
+            extension AccountDetails {
+                @AccountKey(
+                    name: "Gender Identity",
+                    as: ModuleA::GenderIdentity.self,
+                    displayView: ModuleA::GenderIdentityDisplayUI.self,
+                    entryView: ModuleA::GenderIdentityEntryUI.self
+                )
+                var genderIdentity: ModuleA::GenderIdentity?
+            }
+            """,
+            expandedSource:
+            """
+            extension AccountDetails {
+                var genderIdentity: ModuleA::GenderIdentity? {
+                    get {
+                        self[__Key_genderIdentity.self]
+                    }
+                    set {
+                        self[__Key_genderIdentity.self] = newValue
+                    }
+                }
+
+                struct __Key_genderIdentity: AccountKey {
+                    typealias Value = ModuleA::GenderIdentity
+
+                    static let name: LocalizedStringResource = "Gender Identity"
+                    static let identifier: String = "genderIdentity"
+                    static let category: AccountKeyCategory = .other
+                    static let options: AccountKeyOptions = .default
+                    struct DataDisplay: SetupDisplayView {
+                        typealias Value = ModuleA::GenderIdentity
+
+                        private let value: Value?
+
+                        var body: some View {
+                            if let value {
+                                ModuleA::GenderIdentityDisplayUI(value)
+                            } else {
+                                makeSetupView(for: ModuleA::GenderIdentityDisplayUI.self)
+                            }
+                        }
+
+                        private func makeSetupView<T: DataDisplayView>(for type: T.Type) -> some View {
+                            EmptyView()
+                        }
+
+                        private func makeSetupView<T: SetupDisplayView>(for type: T.Type) -> some View {
+                            T(nil)
+                        }
+
+                        init(_ value: Value?) {
+                            self.value = value
+                        }
+                    }
+                    struct DataEntry: DataEntryView {
+                        @Binding private var value: Value
+
+                        var body: some View {
+                            ModuleA::GenderIdentityEntryUI($value)
+                        }
+
+                        init(_ value: Binding<Value>) {
+                            self._value = value
+                        }
+                    }
+                }
+            }
+            """,
+            macroSpecs: testMacrosSpecs,
+            failureHandler: { Issue.record("\($0.message)") }
+        )
+    }
+
+    /// The value type and the binding's type annotation are compared by their tokens, so differences in
+    /// whitespace between the two spellings must not be reported as a type mismatch.
+    @Test
+    func accountKeyTypeComparisonIgnoresTrivia() {
+        assertMacroExpansion(
+            """
+            extension AccountDetails {
+                @AccountKey(name: "Gender Identity", as: ModuleA :: GenderIdentity.self)
+                var genderIdentity: ModuleA::GenderIdentity?
+            }
+            """,
+            expandedSource:
+            """
+            extension AccountDetails {
+                var genderIdentity: ModuleA::GenderIdentity? {
+                    get {
+                        self[__Key_genderIdentity.self]
+                    }
+                    set {
+                        self[__Key_genderIdentity.self] = newValue
+                    }
+                }
+
+                struct __Key_genderIdentity: AccountKey {
+                    typealias Value = ModuleA::GenderIdentity
+
+                    static let name: LocalizedStringResource = "Gender Identity"
+                    static let identifier: String = "genderIdentity"
+                    static let category: AccountKeyCategory = .other
+                    static let options: AccountKeyOptions = .default
+                }
+            }
+            """,
+            macroSpecs: testMacrosSpecs,
+            failureHandler: { Issue.record("\($0.message)") }
+        )
+
+        assertMacroExpansion(
+            """
+            extension AccountDetails {
+                @AccountKey(name: "Preferred Workout Type", as: WorkoutType . ID.self)
+                var preferredWorkoutType: WorkoutType.ID?
+            }
+            """,
+            expandedSource:
+            """
+            extension AccountDetails {
+                var preferredWorkoutType: WorkoutType.ID? {
+                    get {
+                        self[__Key_preferredWorkoutType.self]
+                    }
+                    set {
+                        self[__Key_preferredWorkoutType.self] = newValue
+                    }
+                }
+
+                struct __Key_preferredWorkoutType: AccountKey {
+                    typealias Value = WorkoutType.ID
+
+                    static let name: LocalizedStringResource = "Preferred Workout Type"
+                    static let identifier: String = "preferredWorkoutType"
+                    static let category: AccountKeyCategory = .other
+                    static let options: AccountKeyOptions = .default
+                }
+            }
+            """,
+            macroSpecs: testMacrosSpecs,
+            failureHandler: { Issue.record("\($0.message)") }
+        )
+    }
+
+    @Test
+    func accountKeyModuleSelectorTypeMismatch() {
+        assertMacroExpansion(
+            """
+            extension AccountDetails {
+                @AccountKey(name: "Gender Identity", as: ModuleA::GenderIdentity.self)
+                var genderIdentity: GenderIdentity?
+            }
+            """,
+            expandedSource:
+            """
+            extension AccountDetails {
+                var genderIdentity: GenderIdentity? {
+                    get {
+                        self[__Key_genderIdentity.self]
+                    }
+                    set {
+                        self[__Key_genderIdentity.self] = newValue
+                    }
+                }
+            }
+            """,
+            diagnostics: [
+                DiagnosticSpec(
+                    message: "Value type 'ModuleA::GenderIdentity' is expected to match the property binding type annotation 'GenderIdentity'",
+                    line: 2,
+                    column: 46
+                )
+            ],
+            macroSpecs: testMacrosSpecs,
+            failureHandler: { Issue.record("\($0.message)") }
+        )
+    }
 }
 
 #endif
