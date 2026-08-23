@@ -164,7 +164,7 @@ public struct HealthKitFHIRConversionContext: Sendable {
     ///
     /// Without it every sample carries its own recording `Device`, so one watch is stored once
     /// per reading. Supplying a stable scope switches the recorder to the published
-    /// ``GroveFHIRRecordingDeviceIdentity`` digest, which yields one Device per recorder
+    /// `GroveFHIRRecordingDeviceIdentity` digest, which yields one Device per recorder
     /// configuration instead. The scope is hashed into the identifier and never serialized.
     ///
     /// Fix it once per deployment and keep it: changing it re-mints every recording Device, so
