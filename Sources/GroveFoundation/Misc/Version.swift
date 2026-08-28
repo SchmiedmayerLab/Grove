@@ -177,8 +177,12 @@ extension Version: Equatable, Comparable {
 }
 
 
-@available(iOS 18, macOS 15, watchOS 11, *)
 extension Version: LosslessStringConvertible {
+    // The exact SemVer 2.0.0 grammar, including its leading-zero rules. Matched with
+    // NSRegularExpression so parsing works at the package deployment floor.
+    // swiftlint:disable:next line_length
+    private static let grammar = try? NSRegularExpression(pattern: #"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$"#)
+
     public var description: String {
         var desc = "\(major).\(minor).\(patch)"
         if !prereleaseIdentifiers.isEmpty {
@@ -192,24 +196,31 @@ extension Version: LosslessStringConvertible {
         return desc
     }
     
-    /// Attempts to create a ``Version` by parsing a `String`.
+    /// Attempts to create a ``Version`` by parsing a `String` against the exact SemVer 2.0.0 grammar.
     public init?(_ description: String) {
-        // swiftlint:disable:next line_length
-        let pattern = /^(?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)(?<prerelease>-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(?<buildMetadata>\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$/
-        guard let match = try? pattern.wholeMatch(in: description) else {
+        let range = NSRange(description.startIndex..., in: description)
+        guard let grammar = Self.grammar,
+              let match = grammar.firstMatch(in: description, options: [.anchored], range: range),
+              match.range == range else {
             return nil
         }
-        guard let major = UInt(match.output.major),
-              let minor = UInt(match.output.minor),
-              let patch = UInt(match.output.patch) else {
+        func group(_ index: Int) -> String? {
+            guard let bounds = Range(match.range(at: index), in: description) else {
+                return nil
+            }
+            return String(description[bounds])
+        }
+        guard let major = group(1).flatMap(UInt.init),
+              let minor = group(2).flatMap(UInt.init),
+              let patch = group(3).flatMap(UInt.init) else {
             return nil
         }
         self.init(
             major,
             minor,
             patch,
-            prereleaseIdentifiers: match.output.prerelease?.dropFirst().components(separatedBy: ".") ?? [],
-            buildMetadata: match.output.buildMetadata?.dropFirst().components(separatedBy: ".") ?? []
+            prereleaseIdentifiers: group(4)?.components(separatedBy: ".") ?? [],
+            buildMetadata: group(5)?.components(separatedBy: ".") ?? []
         )
     }
 }

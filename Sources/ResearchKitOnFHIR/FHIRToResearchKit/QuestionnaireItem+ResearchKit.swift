@@ -9,22 +9,28 @@
 #if ResearchKit
 
 import FHIRModelsExtensions
+import Foundation
 import ModelsR4
 import ResearchKit
 
 
 extension Questionnaire {
     /// Translates a FHIR `Questionnaire` into a series of ResearchKit `ORKSteps`.
+    /// - Parameter evaluationInstant: The explicit instant used to resolve relative date bounds.
     /// - throws: if there is an issue with one of the items in the questionnaire,
     ///     or if the questionnaire contains items which cannot be represented using the ResearchKit types.
-    func toORKSteps() -> [ORKStep] {
-        (item ?? []).flatMap { $0.toORKSteps(in: self) }
+    func toORKSteps(evaluationInstant: Date) -> [ORKStep] {
+        (item ?? []).flatMap { $0.toORKSteps(in: self, evaluationInstant: evaluationInstant) }
     }
 }
 
 
 extension QuestionnaireItem {
-    fileprivate func toORKSteps(in questionnaire: Questionnaire) -> [ORKStep] { // swiftlint:disable:this cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity
+    fileprivate func toORKSteps(
+        in questionnaire: Questionnaire,
+        evaluationInstant: Date
+    ) -> [ORKStep] {
         guard !self.hidden,
               let questionType = self.type.value else {
             return []
@@ -38,7 +44,11 @@ extension QuestionnaireItem {
         switch questionType {
         case .group:
             // Converts multiple questions in a group into a ResearchKit form step
-            if let groupStep = self.groupToORKFormStep(title: title, valueSets: valueSets) {
+            if let groupStep = self.groupToORKFormStep(
+                title: title,
+                valueSets: valueSets,
+                evaluationInstant: evaluationInstant
+            ) {
                 steps.append(groupStep)
             }
             // -groupToORKFormStep turns any potential nested items into parts of the form;
@@ -51,7 +61,11 @@ extension QuestionnaireItem {
             }
         case .question, .boolean, .decimal, .integer, .date, .dateTime, .time, .string, .text, .url, .choice, .openChoice, .reference, .quantity:
             // Converts individual questions to ResearchKit Question steps
-            if let step = self.toORKQuestionStep(title: title, valueSets: valueSets) {
+            if let step = self.toORKQuestionStep(
+                title: title,
+                valueSets: valueSets,
+                evaluationInstant: evaluationInstant
+            ) {
                 if let required = self.required?.value?.bool {
                     step.isOptional = !required
                 }
@@ -69,7 +83,10 @@ extension QuestionnaireItem {
         // Also handle any potential nested questions, if necessary.
         if !alreadyHandledNestedItems, let nestedItems = self.item {
             for item in nestedItems {
-                steps.append(contentsOf: item.toORKSteps(in: questionnaire))
+                steps.append(contentsOf: item.toORKSteps(
+                    in: questionnaire,
+                    evaluationInstant: evaluationInstant
+                ))
             }
         }
         
@@ -81,12 +98,19 @@ extension QuestionnaireItem {
     ///   - title: A `String` that will be displayed above the question when rendered by ResearchKit.
     ///   - valueSets: An array of `ValueSet` items containing sets of answer choices
     /// - Returns: An `ORKQuestionStep` object (a ResearchKit question step containing the above question).
-    fileprivate func toORKQuestionStep(title: String, valueSets: [ValueSet]) -> ORKQuestionStep? {
+    fileprivate func toORKQuestionStep(
+        title: String,
+        valueSets: [ValueSet],
+        evaluationInstant: Date
+    ) -> ORKQuestionStep? {
         guard let identifier = linkId.value?.string else {
             return nil
         }
         
-        let answer = try? self.toORKAnswerFormat(valueSets: valueSets)
+        let answer = try? self.toORKAnswerFormat(
+            valueSets: valueSets,
+            evaluationInstant: evaluationInstant
+        )
 
         let prefix = prefix?.value?.string
         let questionText = prefix ?? text?.value?.string ?? ""
@@ -105,7 +129,11 @@ extension QuestionnaireItem {
     ///   - title: A String that will be displayed at the top of the form when rendered by ResearchKit.
     ///   - valueSets: An array of `ValueSet` items containing sets of answer choices
     /// - Returns: An ORKFormStep object (a ResearchKit form step containing all of the nested questions).
-    fileprivate func groupToORKFormStep(title: String, valueSets: [ValueSet]) -> ORKFormStep? {
+    fileprivate func groupToORKFormStep(
+        title: String,
+        valueSets: [ValueSet],
+        evaluationInstant: Date
+    ) -> ORKFormStep? {
         guard self.type == .group,
               let id = linkId.value?.string,
               let nestedQuestions = item else {
@@ -128,7 +156,10 @@ extension QuestionnaireItem {
             if question.type == .display {
                 let formItem = ORKFormItem(sectionTitle: questionText, detailText: question.placeholderText, learnMoreItem: nil, showsProgress: false)
                 formItems.append(formItem)
-            } else if let answerFormat = try? question.toORKAnswerFormat(valueSets: valueSets) {
+            } else if let answerFormat = try? question.toORKAnswerFormat(
+                valueSets: valueSets,
+                evaluationInstant: evaluationInstant
+            ) {
                 let formItem = ORKFormItem(identifier: questionId, text: questionText, answerFormat: answerFormat)
                 if let required = question.required?.value?.bool {
                     // if !optional, the `Continue` will stay disabled till the question is answered.
@@ -178,8 +209,10 @@ extension QuestionnaireItem {
     /// Converts FHIR QuestionnaireItem answer types to the corresponding ResearchKit answer types (ORKAnswerFormat).
     /// - Parameter valueSets: An array of `ValueSet` items containing sets of answer choices
     /// - Returns: An object of type `ORKAnswerFormat` representing the type of answer this question accepts.
-    private func toORKAnswerFormat(valueSets: [ValueSet]) throws -> ORKAnswerFormat {
-        // swiftlint:disable:previous cyclomatic_complexity function_body_length
+    private func toORKAnswerFormat( // swiftlint:disable:this cyclomatic_complexity function_body_length
+        valueSets: [ValueSet],
+        evaluationInstant: Date
+    ) throws -> ORKAnswerFormat {
         // We have to cover all the switch cases in the following statement driving up the overall complexity.
         switch type.value {
         case .boolean:
@@ -198,16 +231,16 @@ extension QuestionnaireItem {
             return ORKDateAnswerFormat(
                 style: .date,
                 defaultDate: nil,
-                minimumDate: minDateValue.flatMap { Calendar.current.date(from: $0) },
-                maximumDate: maxDateValue.flatMap { Calendar.current.date(from: $0) },
+                minimumDate: minDateValue(evaluationInstant: evaluationInstant).flatMap { Calendar.current.date(from: $0) },
+                maximumDate: maxDateValue(evaluationInstant: evaluationInstant).flatMap { Calendar.current.date(from: $0) },
                 calendar: nil
             )
         case .dateTime:
             return ORKDateAnswerFormat(
                 style: .dateAndTime,
                 defaultDate: nil,
-                minimumDate: minDateValue.flatMap { Calendar.current.date(from: $0) },
-                maximumDate: maxDateValue.flatMap { Calendar.current.date(from: $0) },
+                minimumDate: minDateValue(evaluationInstant: evaluationInstant).flatMap { Calendar.current.date(from: $0) },
+                maximumDate: maxDateValue(evaluationInstant: evaluationInstant).flatMap { Calendar.current.date(from: $0) },
                 calendar: nil
             )
         case .time:

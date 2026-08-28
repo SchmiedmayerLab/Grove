@@ -8,25 +8,19 @@
 
 private import FHIRPathParser
 public import Foundation
-import GroveLegacyIdentifiers
 public import ModelsR4
 
 
 extension FHIRTypeWithExtensions {
-    /// The element's scoring weight: the `itemWeight` extension, falling back to the
-    /// retired `ordinalValue` spelling still carried by many published instruments.
+    /// The element's scoring weight from the current `itemWeight` extension.
     public var itemWeight: Decimal? {
-        let urls: [FHIRPrimitive<FHIRURI>] = [
-            "http://hl7.org/fhir/StructureDefinition/itemWeight",
-            "http://hl7.org/fhir/StructureDefinition/ordinalValue"
-        ]
-        for url in urls {
-            if case let .decimal(value) = extensions(for: url).first?.value,
-               let decimal = value.value?.decimal {
-                return decimal
-            }
+        if case let .decimal(value) = extensions(
+            for: "http://hl7.org/fhir/StructureDefinition/itemWeight"
+        ).first?.value {
+            value.value?.decimal
+        } else {
+            nil
         }
-        return nil
     }
 
     /// The `questionnaire-optionExclusive` flag on an answer option.
@@ -91,33 +85,8 @@ extension QuestionnaireItem {
         static let maxValue = "http://hl7.org/fhir/StructureDefinition/maxValue"
         static let hidden = "http://hl7.org/fhir/StructureDefinition/questionnaire-hidden"
         static let entryFormat = "http://hl7.org/fhir/StructureDefinition/entryFormat"
-        
-        // Read-only fallbacks. SDC's `targetConstraint` and `sdc-questionnaire-keyboard`
-        // are what Grove writes and what the guide describes; these spellings exist to
-        // keep questionnaires authored before that switch renderable, so the guide
-        // deliberately does not define them.
-        static let validationMessage = FHIRCanonicalURL(
-            "https://grovealliance.org/fhir/core/StructureDefinition/validationText",
-            superseding: SupersededFHIRURLs.validationText
-        )
-        static let keyboardType = FHIRCanonicalURL(
-            "https://grovealliance.org/fhir/core/StructureDefinition/iosKeyboardType",
-            superseding: SupersededFHIRURLs.iosKeyboardType
-        )
-        static let autocomplete = FHIRCanonicalURL(
-            "https://grovealliance.org/fhir/core/StructureDefinition/grove-autocomplete",
-            superseding: SupersededFHIRURLs.iosTextContentType
-        )
-        static let autocapitalize = FHIRCanonicalURL(
-            "https://grovealliance.org/fhir/core/StructureDefinition/grove-autocapitalize",
-            superseding: SupersededFHIRURLs.iosAutocapitalizationType
-        )
-        
-        static let dateMaxValue = "http://ehelse.no/fhir/StructureDefinition/sdf-maxvalue"
-        static let dateMinValue = "http://ehelse.no/fhir/StructureDefinition/sdf-minvalue"
     }
 
-    
     /// Is the question hidden
     /// - Returns: A boolean representing whether the question should be shown to the user
     public var hidden: Bool {
@@ -158,18 +127,6 @@ extension QuestionnaireItem {
     public var maxValue: NSNumber? {
         numericMinMaxValue(url: SupportedExtensions.maxValue)
             ?? numericMinMaxValue(url: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-maxQuantity")
-    }
-    
-    /// The minimum value for a date answer.
-    /// - Returns: An optional `DateComponents` containing the minimum date allowed.
-    public var minDateValue: DateComponents? {
-        dateMinMaxValue(urls: [SupportedExtensions.minValue, SupportedExtensions.dateMinValue])
-    }
-    
-    /// The maximum value for a date answer.
-    /// - Returns: An optional `DateComponents` containing the maximum date allowed.
-    public var maxDateValue: DateComponents? {
-        dateMinMaxValue(urls: [SupportedExtensions.maxValue, SupportedExtensions.dateMaxValue])
     }
     
     /// The maximum number of decimal places for a decimal answer.
@@ -220,32 +177,54 @@ extension QuestionnaireItem {
         }
     }
     
-    /// The validation message for a question.
-    /// - Returns: An optional `String` containing the validation message, if it exists.
+    /// The authored human guidance on the first current `targetConstraint`.
     public var validationMessage: String? {
-        extensions(for: SupportedExtensions.validationMessage).first?.value?.stringValue?.value?.string
+        extensions(for: "http://hl7.org/fhir/StructureDefinition/targetConstraint")
+            .first?
+            .extension?
+            .first { $0.url.value?.url.absoluteString == "human" }?
+            .value?
+            .stringValue?
+            .value?
+            .string
     }
 
     /// The placeholder text associated with the questionaire item.
     public var placeholderText: String? {
         extensions(for: SupportedExtensions.entryFormat).first?.value?.stringValue?.value?.string
     }
-    
-    /// The item's preferred keyboard type.
+
+    /// The code from the current SDC keyboard extension.
     public var keyboardTypeRawValue: String? {
-        extensions(for: SupportedExtensions.keyboardType).first?.value?.stringValue?.value?.string
-    }
-    
-    /// The item's autocapitalization behaviour, as a WHATWG `autocapitalize` value.
-    public var autocapitalizeRawValue: String? {
-        extensions(for: SupportedExtensions.autocapitalize).first?.value?.stringValue?.value?.string
-    }
-
-    /// The item's semantic content type, as a WHATWG `autocomplete` detail token.
-    public var autocompleteRawValue: String? {
-        extensions(for: SupportedExtensions.autocomplete).first?.value?.stringValue?.value?.string
+        guard case .coding(let coding)? = extensions(
+            for: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-keyboard"
+        ).first?.value else {
+            return nil
+        }
+        return coding.code?.value?.string
     }
 
+    /// No Grove extension assigns UIKit-specific autocapitalization behavior.
+    public var autocapitalizeRawValue: String? { nil }
+
+    /// No Grove extension assigns UIKit-specific text-content behavior.
+    public var autocompleteRawValue: String? { nil }
+
+    /// The minimum value for a date answer, resolving relative FHIRPath values at
+    /// the caller-supplied instant.
+    /// - Parameter evaluationInstant: The explicit instant used by clock-sensitive expressions.
+    /// - Returns: An optional `DateComponents` containing the minimum date allowed.
+    public func minDateValue(evaluationInstant: Date = .now) -> DateComponents? {
+        dateMinMaxValue(urls: [SupportedExtensions.minValue], evaluationInstant: evaluationInstant)
+    }
+
+    /// The maximum value for a date answer, resolving relative FHIRPath values at
+    /// the caller-supplied instant.
+    /// - Parameter evaluationInstant: The explicit instant used by clock-sensitive expressions.
+    /// - Returns: An optional `DateComponents` containing the maximum date allowed.
+    public func maxDateValue(evaluationInstant: Date = .now) -> DateComponents? {
+        dateMinMaxValue(urls: [SupportedExtensions.maxValue], evaluationInstant: evaluationInstant)
+    }
     
     /// Checks this QuestionnaireItem for an extension matching the given URL and then return it if it exists.
     /// - Parameters:
@@ -269,7 +248,11 @@ extension QuestionnaireItem {
         }
     }
     
-    private func dateMinMaxValue(urls: [String]) -> DateComponents? { // swiftlint:disable:this cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity
+    private func dateMinMaxValue(
+        urls: [String],
+        evaluationInstant: Date
+    ) -> DateComponents? {
         for url in urls {
             guard let ext = getExtensionInQuestionnaireItem(url: url) else {
                 continue
@@ -294,7 +277,11 @@ extension QuestionnaireItem {
                 guard let value = value.value?.string else {
                     continue
                 }
-                if let value = try? FHIRPathExpression.evaluate(expression: value, as: DateComponents.self) {
+                if let value = try? FHIRPathExpression.evaluate(
+                    expression: value,
+                    evaluationInstant: evaluationInstant,
+                    as: DateComponents.self
+                ) {
                     return value
                 } else {
                     continue

@@ -46,11 +46,17 @@ In this case, we implicitly define the Batch Processor's `Output` type as `Void`
 
 ```swift
 struct FirebaseUploader: BulkHealthExporter.BatchProcessor {
+    let subject: Reference   // the participant every exported observation is about
+    let converter = HealthKitConverter()
+
     func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) async throws {
         let batch = Firestore.firestore().batch()
         for sample in samples {
-            let document = db.collection("healthData").document(sample.uuid.uuidString) 
-            try batch.setData(from: sample.resource(), for: document)
+            guard let sample = sample as? HKSample else {
+                throw HealthKitConversionError.invalidValue
+            }
+            let document = db.collection("healthData").document(sample.uuid.uuidString)
+            try batch.setData(from: converter.convert(sample, for: subject).bundle, for: document)
         }
         try await batch.commit()
     }
@@ -74,7 +80,7 @@ let session = try await bulkExporter.session(
 try session.start()
 ```
 
-This Bulk Export Session will, in the background, go through all historical Health data for the Active Energy, Heart Rate, and Step Count quantity types, fetch the data from HealthKit, and pass it to the Batch Processor, which will then upload it to Firebase.
+This Bulk Export Session will, in the background, go through all historical Health data for the Active Energy, Heart Rate, and Step Count quantity types, fetch the data from HealthKit, and pass it to the Batch Processor, which will then upload it to Firebase. Firebase is only the destination chosen by this example; `GroveHealthKitFHIR` neither depends on Firebase nor reads from it.
 
 In this example, since the `FirebaseUploader`'s `Output` type is `Void`, we simply can call ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` and don't need to do anything beyond that.
 
@@ -89,9 +95,21 @@ extension BulkExportSessionIdentifier {
 }
 
 struct FHIREncodedJSONExporter: BatchProcessor {
+    let subject: Reference
+
     func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) throws -> URL {
-        let resources = try samples.mapIntoResourceProxies() // using GroveHealthKitFHIR
-        let encoded = try JSONEncoder().encode(resources)
+        let context = HealthKitConversionContext(subject: subject)
+        let healthKitSamples = try samples.map { sample -> HKSample in
+            guard let sample = sample as? HKSample else {
+                throw HealthKitConversionError.invalidValue
+            }
+            return sample
+        }
+        let result = HealthKitConverter().convert(healthKitSamples, context: context)
+        if let failure = result.failures.first {
+            throw failure
+        }
+        let encoded = try JSONEncoder().encode(result.conversions.map(\.bundle))
         let url = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString, conformingTo: .json)
         try encoded.write(to: url)
         return url

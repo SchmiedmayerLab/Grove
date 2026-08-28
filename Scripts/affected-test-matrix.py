@@ -13,9 +13,10 @@
 # workflow's `runs-on` uses to pick the self-hosted vs the GitHub-hosted runner.
 #
 # The logical sub-packages are defined in the repo-root packages.toml:
-#   platforms      = the platforms its unit tests run on (subject to the temporary CI_PLATFORMS limit)
-#   uiTests        = the platforms its UI tests run on, straight from the UITests project's Xcode config
-#                    (NOT subject to CI_PLATFORMS — absent for packages with no UITests project)
+#   platforms      = the platforms its unit tests run on (development selection may apply the
+#                    CI_PLATFORMS limit, which every run obeys)
+#   uiTests        = the platforms its UI tests run on, straight from the UITests project's Xcode
+#                    config, narrowed by the UI_PLATFORMS limit, which every run obeys)
 #   self-hosted-ci = which test kinds run on the self-hosted runner (vs GitHub-hosted): a subset of
 #                    ["unit", "ui"]. Optional; default ["ui"] (= today's behavior). Linux unit jobs
 #                    always run on GitHub-hosted ubuntu regardless (the self-hosted runner is macOS).
@@ -37,6 +38,7 @@
 #   has_jobs=true|false
 #   has_ui_jobs=true|false
 #   has_fhir_conformance=true|false
+#   fhir_components=healthkit,questionnaire,sensor
 #   affected=GroveAccount,GroveViews
 import argparse
 import json
@@ -73,12 +75,9 @@ def directory_to_package(packages):
 DIR2PKG = directory_to_package(PKGS)
 
 # Any change to these means "run everything" (shared test infrastructure, CI, or lint configuration).
-# The legacy-identifier vault is in here because it belongs to no single package: every string in it
-# names data already on a user's device, and fourteen targets read it.
 GLOBAL_PREFIXES = (
     "Package@", "Package.resolved",
     ".swiftpm/",
-    "Sources/GroveLegacyIdentifiers/",
 )
 
 # Declares one UI-test project per top-level table, keyed by logical package, so a change here can
@@ -104,7 +103,14 @@ NON_TEST_SCRIPT_PATHS = {
     "Scripts/run-periphery.sh",
 }
 
-FHIR_VALIDATION_PATH = "Scripts/validate-fhir-conformance.sh"
+FHIR_VALIDATION_PATHS = {
+    "Scripts/check-fhir-canonical-hygiene.sh",
+    "Scripts/generate-grove-fhir-producer-manifest.py",
+    "Scripts/generate-grove-fhir-semantic-vector-fixtures.py",
+    "Scripts/generate-grove-fhir-swift-contract.py",
+    "Scripts/generate-grove-sensor-swift-contract.py",
+    "Scripts/validate-fhir-conformance.sh",
+}
 # The end-to-end validator is expensive, so its CI job runs only when one of these FHIR-producing or
 # FHIR-consuming packages is affected (or when its orchestration script changes directly).
 FHIR_PACKAGES = {
@@ -114,14 +120,34 @@ FHIR_PACKAGES = {
     "GroveHealthKitFHIR",
     "GroveQuestionnaire",
     "GroveSensorKit",
+    "GroveSensorKitFHIR",
 }
 
-# TEMPORARY: limit UNIT-test scheduling to these platforms (macCatalyst/visionOS/tvOS excluded for
-# now — remove from this tuple to restore). Linux runs on GitHub-hosted ubuntu.
+# Producer components are intentionally narrower than FHIR_PACKAGES. Shared model/generator changes
+# join whichever producer changes in the same PR; a shared-only change conservatively validates all
+# producers. This lets each independently mergeable stacked PR validate only the IGs it implements.
+FHIR_COMPONENT_PACKAGES = {
+    "healthkit": {"GroveHealthKitFHIR"},
+    "questionnaire": {"GroveQuestionnaire", "ResearchKitOnFHIR"},
+    "sensor": {"GroveSensorKit", "GroveSensorKitFHIR"},
+}
+ALL_FHIR_COMPONENTS = set(FHIR_COMPONENT_PACKAGES)
+
+# Temporary stacked-PR scopes. A scope is honored only when the caller opts in explicitly;
+# release/main CI and workflow_dispatch with run_all keep the complete affected graph.
+# Delete the corresponding marker from `.github/GROVE_FHIR_DEVELOPMENT_SCOPE` before merge.
+DEVELOPMENT_SCOPES = {
+    "healthkit": {"GroveHealthKitFHIR"},
+    "questionnaire": {"GroveQuestionnaire"},
+    "sensor": {"GroveSensorKit", "GroveSensorKitFHIR"},
+}
+
+# TEMPORARY: limit ordinary change-aware/development UNIT-test scheduling to these platforms.
+# `--full-readiness` and explicit all-runs bypass this list. Linux uses GitHub-hosted ubuntu.
 CI_PLATFORMS = ("iOS", "macOS", "watchOS", "Linux")
 
-# TEMPORARY: limit UI-test scheduling to these platforms. The full per-project set (from packages.toml
-# `uiTests`) is iOS/iPadOS/visionOS; iPadOS + visionOS are disabled for now — add them back here to re-enable.
+# TEMPORARY: limit ordinary change-aware/development UI-test scheduling to these platforms.
+# `--full-readiness` and explicit all-runs schedule every per-project UI platform.
 UI_PLATFORMS = ("iOS",)
 
 def parse_args():
@@ -131,6 +157,12 @@ def parse_args():
     parser.add_argument("--base-ui-test-projects")
     parser.add_argument("--head-package-dump")
     parser.add_argument("--base-packages")
+    parser.add_argument("--development-scope", choices=sorted(DEVELOPMENT_SCOPES))
+    parser.add_argument(
+        "--full-readiness",
+        action="store_true",
+        help="Run the complete repository matrix while retaining change-aware FHIR components.",
+    )
     return parser.parse_args()
 
 
@@ -168,6 +200,41 @@ def target_dependencies(target):
         if value:
             dependencies.add(value[0])
     return dependencies
+
+
+
+def packages_for_target(target_name, head_dump):
+    """The changed target's package plus every package that consumes it, transitively.
+
+    Source changes are resolved through the manifest graph rather than through the directory
+    name alone, so a shared target schedules exactly its consumers -- no more, no less. Returns
+    None when the graph cannot answer completely, so the caller stays conservative instead of
+    silently under-scheduling.
+    """
+    targets = {target["name"]: target for target in head_dump.get("targets", [])}
+    if target_name not in targets:
+        return None
+    reverse = {}
+    for name, target in targets.items():
+        for dependency in target_dependencies(target):
+            reverse.setdefault(dependency, set()).add(name)
+    reached, pending = {target_name}, [target_name]
+    while pending:
+        current = pending.pop()
+        for dependent in reverse.get(current, set()):
+            if dependent not in reached:
+                reached.add(dependent)
+                pending.append(dependent)
+    # Every *consumer* must map to a package; an unmapped one would mean an incomplete answer.
+    # The changed target itself may legitimately belong to no package (a shared vault target),
+    # which is precisely the case this resolution exists to handle.
+    consumers = reached - {target_name}
+    if any(name not in DIR2PKG for name in consumers):
+        return None
+    packages = {DIR2PKG[name] for name in consumers}
+    if target_name in DIR2PKG:
+        packages.add(DIR2PKG[target_name])
+    return packages or None
 
 
 def external_package_dependencies(target):
@@ -313,20 +380,37 @@ def affected_by_package_configuration(base_packages):
     return changed_packages
 
 
+def fhir_components_for_packages(packages):
+    return {
+        component
+        for component, component_packages in FHIR_COMPONENT_PACKAGES.items()
+        if set(packages) & component_packages
+    }
+
+
 def main():
     args = parse_args()
+    if args.full_readiness and args.development_scope:
+        sys.exit("error: --full-readiness cannot be combined with --development-scope")
     changed = read_changed(args.changed_files)
+    development_scoped = args.development_scope is not None
     run_all = False
-    run_fhir_conformance = False
-    affected = set()
-    for path in changed:
-        if path == FHIR_VALIDATION_PATH:
+    run_fhir_conformance = development_scoped
+    affected = set(DEVELOPMENT_SCOPES.get(args.development_scope, set())) & set(PKGS)
+    fhir_components = {args.development_scope} if development_scoped else set()
+    shared_fhir_change = False
+    # The manifest graph resolves source changes to the packages that actually consume them.
+    head_dump = load_json(args.head_package_dump) if args.head_package_dump else None
+    for path in [] if development_scoped else changed:
+        if path in FHIR_VALIDATION_PATHS:
             affected.update(FHIR_PACKAGES & set(PKGS))
             run_fhir_conformance = True
+            shared_fhir_change = True
             continue
         if path in FULL_TEST_PATHS:
             run_all = True
             run_fhir_conformance |= FULL_TEST_PATHS[path]
+            shared_fhir_change |= FULL_TEST_PATHS[path]
             continue
         if path in NON_TEST_SCRIPT_PATHS or path.startswith("Scripts/Tests/"):
             continue
@@ -345,16 +429,19 @@ def main():
         if path == "__ALL__":
             run_all = True
             run_fhir_conformance = True
+            fhir_components.update(ALL_FHIR_COMPONENTS)
             continue
         if path.startswith(GLOBAL_PREFIXES):
             run_all = True
             if path.startswith(("Package@", "Package.resolved", ".swiftpm/", "Sources/GroveLegacyIdentifiers/")):
                 run_fhir_conformance = True
+                shared_fhir_change = True
             continue
         if path == "Package.swift":
             if not args.base_package_dump or not args.head_package_dump:
                 run_all = True
                 run_fhir_conformance = True
+                shared_fhir_change = True
                 continue
             try:
                 manifest_affected = affected_by_manifest(
@@ -367,9 +454,11 @@ def main():
             if manifest_affected is None:
                 run_all = True
                 run_fhir_conformance = True
+                shared_fhir_change = True
                 continue
             affected.update(manifest_affected)
             run_fhir_conformance |= bool(manifest_affected & FHIR_PACKAGES)
+            fhir_components.update(fhir_components_for_packages(manifest_affected))
             continue
         if path == UI_TEST_PROJECTS_PATH:
             if not args.base_ui_test_projects:
@@ -386,20 +475,24 @@ def main():
             if not args.base_packages:
                 run_all = True
                 run_fhir_conformance = True
+                shared_fhir_change = True
                 continue
             configuration_affected = affected_by_package_configuration(load_toml(args.base_packages))
             if configuration_affected is None:
                 run_all = True
                 run_fhir_conformance = True
+                shared_fhir_change = True
                 continue
             affected.update(configuration_affected)
             run_fhir_conformance |= bool(configuration_affected & FHIR_PACKAGES)
+            fhir_components.update(fhir_components_for_packages(configuration_affected))
             continue
         if path.startswith("Tests/TestPlans/"):
             package = os.path.splitext(os.path.basename(path))[0]
             if package in PKGS:
                 affected.add(package)
                 run_fhir_conformance |= package in FHIR_PACKAGES
+                fhir_components.update(fhir_components_for_packages({package}))
             else:
                 # The _All-<platform> plans cover multiple packages. Keep this conservative until
                 # the matrix supports a platform-only all-packages selection.
@@ -409,13 +502,30 @@ def main():
         if len(parts) >= 2 and parts[0] in ("Sources", "Tests"):
             if parts[0] == "Sources" and any(part.endswith(".docc") for part in parts):
                 continue
-            pkg = DIR2PKG.get(parts[1])
-            if pkg:
-                affected.add(pkg)
-                run_fhir_conformance |= pkg in FHIR_PACKAGES
+            # Resolve through the manifest graph so a shared target schedules its consumers and
+            # nothing else. Without a graph, fall back to the directory's own package.
+            packages = packages_for_target(parts[1], head_dump) if head_dump else None
+            if packages is None:
+                owner = DIR2PKG.get(parts[1])
+                if owner is None:
+                    # A directory no package claims and no graph to place it: stay conservative.
+                    run_all = True
+                    run_fhir_conformance = True
+                    shared_fhir_change = True
+                    continue
+                packages = {owner}
+            affected.update(packages)
+            run_fhir_conformance |= bool(packages & FHIR_PACKAGES)
+            fhir_components.update(fhir_components_for_packages(packages))
         # files elsewhere (root docs, etc.) affect no package
 
-    if run_all:
+    if run_fhir_conformance and not fhir_components:
+        # A shared-only validator/model/tooling change can affect every producer. If the same PR has
+        # a concrete producer change, that producer already narrows the applicable IG closure.
+        if shared_fhir_change or not development_scoped:
+            fhir_components.update(ALL_FHIR_COMPONENTS)
+
+    if run_all or args.full_readiness:
         affected = set(PKGS.keys())
 
     unit, ui = [], []
@@ -429,13 +539,13 @@ def main():
         # emitted as a JSON string the workflow's `runs-on` reads via fromJson(matrix.selfHostedLabels).
         self_hosted_labels = json.dumps(["self-hosted", "macOS"] + list(info.get("extra_runner_labels", [])))
         for platform in info["platforms"]:
-            if platform in CI_PLATFORMS:  # TEMPORARY unit-test platform limit (see CI_PLATFORMS above)
+            if platform in CI_PLATFORMS:
                 # Linux unit jobs always use GitHub-hosted ubuntu (the self-hosted runner is macOS).
                 unit.append({"package": pkg, "platform": platform,
                              "selfHosted": ("unit" in self_hosted) and platform != "Linux",
                              "selfHostedLabels": self_hosted_labels})
-        for platform in info.get("uiTests", []):  # UI tests: per-project platforms from packages.toml
-            if platform not in UI_PLATFORMS:  # TEMPORARY UI-test platform limit (see UI_PLATFORMS above)
+        for platform in [] if development_scoped else info.get("uiTests", []):  # UI tests: per-project platforms from packages.toml
+            if platform not in UI_PLATFORMS:
                 continue
             ui.append({"package": pkg, "platform": platform, "selfHosted": "ui" in self_hosted,
                        "selfHostedLabels": self_hosted_labels})
@@ -446,12 +556,14 @@ def main():
         f'has_jobs={"true" if unit else "false"}',
         f'has_ui_jobs={"true" if ui else "false"}',
         f'has_fhir_conformance={"true" if run_fhir_conformance else "false"}',
+        f'fhir_components={",".join(sorted(fhir_components)) if fhir_components else "(none)"}',
         f'affected={",".join(sorted(affected)) if affected else "(none)"}',
     ]
     sys.stdout.write("\n".join(lines) + "\n")
     sys.stderr.write(
-        f"[affected-test-matrix] run_all={run_all} affected={sorted(affected)} "
-        f"unit_jobs={len(unit)} ui_jobs={len(ui)} fhir_conformance={run_fhir_conformance}\n"
+        f"[affected-test-matrix] run_all={run_all} full_readiness={args.full_readiness} "
+        f"affected={sorted(affected)} unit_jobs={len(unit)} ui_jobs={len(ui)} "
+        f"fhir_components={sorted(fhir_components)}\n"
     )
 
 if __name__ == "__main__":

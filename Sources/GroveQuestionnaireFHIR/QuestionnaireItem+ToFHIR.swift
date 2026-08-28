@@ -170,7 +170,7 @@ extension ModelsR4.QuestionnaireItem {
         case .fileAttachment:
             return .attachment
         case .custom:
-            throw FHIRExportError("Custom question kind on '\(task.id)' has no FHIR export")
+            throw ExportError("Custom question kind on '\(task.id)' has no FHIR export")
         }
     }
 
@@ -319,7 +319,7 @@ extension ModelsR4.QuestionnaireItem {
         case .choice(let choice):
             return try initialCoding(forOption: choice.selectedOptions.first, on: task.id)
         case .attachments, .custom:
-            throw FHIRExportError("Initial value on '\(task.id)' is not exportable")
+            throw ExportError("Initial value on '\(task.id)' is not exportable")
         }
     }
 
@@ -338,7 +338,7 @@ extension ModelsR4.QuestionnaireItem {
         on taskId: GroveQuestionnaire.Questionnaire.Task.ID
     ) throws -> QuestionnaireItemInitial {
         guard let year = components.year else {
-            throw FHIRExportError("Initial date on '\(taskId)' is missing a year")
+            throw ExportError("Initial date on '\(taskId)' is missing a year")
         }
         return QuestionnaireItemInitial(value: .date(FHIRPrimitive(FHIRDate(
             year: year,
@@ -352,7 +352,7 @@ extension ModelsR4.QuestionnaireItem {
         on taskId: GroveQuestionnaire.Questionnaire.Task.ID
     ) throws -> QuestionnaireItemInitial {
         guard let optionId, let separator = optionId.firstIndex(of: "|") else {
-            throw FHIRExportError("Initial choice on '\(taskId)' must reference a coded option")
+            throw ExportError("Initial choice on '\(taskId)' must reference a coded option")
         }
         return QuestionnaireItemInitial(value: .coding(Coding(
             code: String(optionId[optionId.index(after: separator)...]).asFHIRStringPrimitive(),

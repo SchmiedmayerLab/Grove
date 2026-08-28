@@ -24,6 +24,7 @@ struct FHIRExportMetadataTests {
     private func makeFHIRQuestionnaire(status: PublicationStatus) -> ModelsR4.Questionnaire {
         var questionnaire = ModelsR4.Questionnaire(status: FHIRPrimitive(status))
         questionnaire.url = Self.url.absoluteString.asFHIRURIPrimitive()
+        questionnaire.version = "1.0.0".asFHIRStringPrimitive()
         var item = ModelsR4.QuestionnaireItem(linkId: "agree".asFHIRStringPrimitive(), type: .init(.boolean))
         item.text = "Agree?".asFHIRStringPrimitive()
         questionnaire.item = [item]
@@ -53,24 +54,27 @@ struct FHIRExportMetadataTests {
 
     @Test
     func exportedResourcesDeclareTheirProfile() throws {
-        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, title: "Export") {
+        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", title: "Export") {
             Section("s1") {
                 BooleanQuestion("agree", "Agree?")
             }
         }
         let fhir = try ModelsR4.Questionnaire(questionnaire)
-        #expect(profiles(of: fhir.meta) == ["https://grovealliance.org/fhir/core/StructureDefinition/grove-questionnaire"])
+        #expect(profiles(of: fhir.meta) == ["https://grovealliance.org/fhir/questionnaire/StructureDefinition/grove-questionnaire"])
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["agree"] = .init(value: .bool(true))
-        let fhirResponse = try ModelsR4.QuestionnaireResponse(responses)
-        #expect(profiles(of: fhirResponse.meta) == ["https://grovealliance.org/fhir/core/StructureDefinition/grove-questionnaire-response"])
+        let fhirResponse = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
+        #expect(profiles(of: fhirResponse.meta) == ["https://grovealliance.org/fhir/questionnaire/StructureDefinition/grove-questionnaire-response"])
     }
 
     // MARK: Publication Lifecycle
 
     @Test
     func draftSurvivesTheRoundTrip() throws {
-        let imported = try GroveQuestionnaire.Questionnaire(makeFHIRQuestionnaire(status: .draft))
+        let imported = try GroveQuestionnaire.Questionnaire(makeFHIRQuestionnaire(status: .draft), evaluationInstant: questionnaireResponseTestAuthoredAt)
         #expect(imported.metadata.lifecycle == .draft)
         #expect(try ModelsR4.Questionnaire(imported).status.value == .draft)
     }
@@ -79,10 +83,37 @@ struct FHIRExportMetadataTests {
     func retiredSurvivesTheRoundTrip() throws {
         let imported = try GroveQuestionnaire.Questionnaire(
             makeFHIRQuestionnaire(status: .retired),
+            evaluationInstant: questionnaireResponseTestAuthoredAt,
             using: .init(enforcesPublicationLifecycle: false)
         )
         #expect(imported.metadata.lifecycle == .retired)
         #expect(try ModelsR4.Questionnaire(imported).status.value == .retired)
+    }
+
+    @Test
+    func publicationWarningsUseTheExplicitEvaluationInstant() throws {
+        var source = makeFHIRQuestionnaire(status: .active)
+        source.effectivePeriod = try Period(
+            end: FHIRPrimitive(DateTime(date: Date(timeIntervalSince1970: 1_750_000_000))),
+            start: FHIRPrimitive(DateTime(date: Date(timeIntervalSince1970: 1_700_000_000)))
+        )
+
+        let before = try GroveQuestionnaire.Questionnaire(
+            source,
+            evaluationInstant: Date(timeIntervalSince1970: 1_650_000_000)
+        )
+        let within = try GroveQuestionnaire.Questionnaire(
+            source,
+            evaluationInstant: Date(timeIntervalSince1970: 1_725_000_000)
+        )
+        let after = try GroveQuestionnaire.Questionnaire(
+            source,
+            evaluationInstant: Date(timeIntervalSince1970: 1_800_000_000)
+        )
+
+        #expect(before.metadata.administrationWarnings.contains { $0.contains("not yet effective") })
+        #expect(within.metadata.administrationWarnings.isEmpty)
+        #expect(after.metadata.administrationWarnings.contains { $0.contains("past its effectivePeriod") })
     }
 
     @Test
@@ -95,7 +126,10 @@ struct FHIRExportMetadataTests {
             )
         ]
 
-        let exported = try ModelsR4.Questionnaire(GroveQuestionnaire.Questionnaire(source))
+        let exported = try ModelsR4.Questionnaire(GroveQuestionnaire.Questionnaire(
+            source,
+            evaluationInstant: questionnaireResponseTestAuthoredAt
+        ))
         guard case .code(let mode)? = exported.extensions(
             for: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-entryMode"
         ).first?.value else {
@@ -116,13 +150,16 @@ struct FHIRExportMetadataTests {
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["agree"] = .init(value: .bool(true))
         #expect(throws: (any Error).self) {
-            try ModelsR4.QuestionnaireResponse(responses)
+            try ModelsR4.QuestionnaireResponse(
+                responses,
+                authored: questionnaireResponseTestAuthoredAt
+            )
         }
     }
 
     @Test
     func responseIdentityAndAuthoredTimestampAreStableWhenSupplied() throws {
-        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, title: "Export") {
+        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", title: "Export") {
             Section("s1") {
                 BooleanQuestion("agree", "Agree?")
             }
@@ -132,17 +169,39 @@ struct FHIRExportMetadataTests {
 
         let first = try ModelsR4.QuestionnaireResponse(responses, authored: authored)
         let second = try ModelsR4.QuestionnaireResponse(responses, authored: authored)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
 
         #expect(first.identifier?.system?.value?.url == Self.url)
         #expect(first.identifier == second.identifier)
         #expect(first.authored == second.authored)
+        #expect(try encoder.encode(first) == encoder.encode(second))
+    }
+
+    @Test
+    func expressionEvaluationSnapshotHasNoHiddenClock() throws {
+        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", title: "Evaluation") {
+            Section("s1") {
+                BooleanQuestion("agree", "Agree?")
+            }
+        }
+        let responses = QuestionnaireResponses(questionnaire: questionnaire)
+
+        let first = try ModelsR4.QuestionnaireResponse(evaluating: responses)
+        let second = try ModelsR4.QuestionnaireResponse(evaluating: responses)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+
+        #expect(first.authored == nil)
+        #expect(second.authored == nil)
+        #expect(try encoder.encode(first) == encoder.encode(second))
     }
 
     // MARK: Numeric Bounds
 
     @Test
     func numericBoundsTakeTheAnswerType() throws {
-        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, title: "Bounds") {
+        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", title: "Bounds") {
             Section("s1") {
                 NumberQuestion.integer("count", "How many?").range(0...10)
                 NumberQuestion("score", "Score").range(0...1)
@@ -189,7 +248,7 @@ struct FHIRExportMetadataTests {
 
     @Test
     func fixedQuantityResponseUsesTheDeclaredUnitDisplay() throws {
-        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, title: "Temperature") {
+        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", title: "Temperature") {
             Section("s1") {
                 NumberQuestion.quantity(
                     "temperature",
@@ -202,7 +261,10 @@ struct FHIRExportMetadataTests {
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["temperature"] = .init(value: .quantity(36.8, unitCode: "Cel"))
 
-        let response = try ModelsR4.QuestionnaireResponse(responses)
+        let response = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
         guard case .quantity(let quantity)? = response.item?.first?.item?.first?.answer?.first?.value else {
             Issue.record("Expected a quantity response")
             return
@@ -224,7 +286,10 @@ struct FHIRExportMetadataTests {
         var source = makeFHIRQuestionnaire(status: .active)
         source.item = [scoreItem]
 
-        let exported = try ModelsR4.Questionnaire(GroveQuestionnaire.Questionnaire(source))
+        let exported = try ModelsR4.Questionnaire(GroveQuestionnaire.Questionnaire(
+            source,
+            evaluationInstant: questionnaireResponseTestAuthoredAt
+        ))
         let score = try #require(item("score", in: exported))
         guard case .integer(let places)? = score.extensions(
             for: "http://hl7.org/fhir/StructureDefinition/maxDecimalPlaces"
@@ -239,7 +304,7 @@ struct FHIRExportMetadataTests {
 
     @Test
     func synthesizedConstraintKeysStayWithinTheIdAlphabet() throws {
-        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, title: "Keys") {
+        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", title: "Keys") {
             Section("s1") {
                 TextQuestion("email_address", "Email").constraint("$this.matches('.+@.+')", message: "Enter a valid address.")
             }

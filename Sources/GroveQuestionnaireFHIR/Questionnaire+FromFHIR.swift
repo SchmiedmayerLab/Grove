@@ -20,13 +20,13 @@ private import UniformTypeIdentifiers
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
-private typealias FHIRConversionError = GroveQuestionnaire.Questionnaire.FHIRConversionError
+private typealias ConversionError = GroveQuestionnaire.Questionnaire.ConversionError
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension GroveQuestionnaire.Questionnaire {
     /// Controls conversion behaviour when creating a Grove `Questionnaire` from a FHIR R4 `Questionnaire`
-    public struct FHIRConversionOptions: Sendable {
+    public struct ConversionOptions: Sendable {
         /// All known question kinds, with the builtin ones at the end of the list.
         fileprivate let knownQuestionKinds: [any QuestionKindDefinition.Type]
         /// Whether conversion refuses questionnaires that must not be administered:
@@ -58,7 +58,7 @@ extension GroveQuestionnaire.Questionnaire {
     }
     
     /// An error that occured when creating a Grove `Questionnaire` from a FHIR R4 `Questionnaire`
-    public enum FHIRConversionError: LocalizedError {
+    public enum ConversionError: LocalizedError {
         /// The input FHIR questionnaire didn't contain any questions.
         case emptyQuestionnaire
         /// The input FHIR questionnaire contained a nonstandard question kind for which there was no matching `QuestionKindDefinition`.
@@ -84,31 +84,40 @@ extension GroveQuestionnaire.Questionnaire {
     /// Creates a Grove `Questionnaire` from a FHIR R4 `Questionnaire`.
     ///
     /// - parameter other: A FHIR R4 Questionnaire
+    /// - parameter evaluationInstant: The instant used for publication-lifecycle warnings and
+    ///   every clock-sensitive FHIRPath expression. Defaults to the wall clock; pass a fixed
+    ///   instant to make a conversion reproducible.
     /// - parameter options: Additional options to control the conversion process. Use this to specify e.g. custom question kinds.
     public init(
         _ other: ModelsR4.Questionnaire,
-        using options: FHIRConversionOptions = .init()
-    ) throws(FHIRConversionError) {
-        let metadata = try Self.metadata(of: other, using: options)
+        evaluationInstant: Date = .now,
+        using options: ConversionOptions = .init()
+    ) throws(ConversionError) {
+        let metadata = try Self.metadata(of: other, evaluationInstant: evaluationInstant, using: options)
         // R4: a resource with unprocessed modifier extensions must not be processed as if
         // their meaning were understood; none are supported, so conversion refuses them.
         if let modifier = other.modifierExtension?.first {
             throw .other("Unsupported modifierExtension '\(modifier.url.value?.url.absoluteString ?? "?")' on the questionnaire.")
         }
         let (usesExpressions, variables) = try Self.expressionUsage(of: other)
-        var engine: FHIRQuestionnaireExpressionEngine?
+        var engine: FHIRPathExpressionEngine?
         if usesExpressions || !variables.isEmpty || !options.launchContext.isEmpty {
             do {
-                engine = try FHIRQuestionnaireExpressionEngine(
+                engine = try FHIRPathExpressionEngine(
                     questionnaire: other,
                     variables: variables,
-                    launchContext: try options.launchContext.mapValues { try FHIRPathNode.encoding($0) }
+                    launchContext: try options.launchContext.mapValues { try FHIRPathNode.encoding($0) },
+                    evaluationInstant: evaluationInstant
                 )
             } catch {
                 throw .other("Failed to set up the expression engine: \(error)")
             }
         }
-        let sections = try other.toSections(using: options, engine: engine)
+        let sections = try other.toSections(
+            using: options,
+            engine: engine,
+            evaluationInstant: evaluationInstant
+        )
         do {
             self = try .validated(metadata: metadata, sections: sections)
         } catch {
@@ -119,8 +128,9 @@ extension GroveQuestionnaire.Questionnaire {
 
     private static func metadata(
         of other: ModelsR4.Questionnaire,
-        using options: FHIRConversionOptions
-    ) throws(FHIRConversionError) -> Metadata {
+        evaluationInstant: Date,
+        using options: ConversionOptions
+    ) throws(ConversionError) -> Metadata {
         guard let id = other.url?.value?.url.absoluteString ?? other.id?.value?.string else {
             throw .other("Missing both 'url' and 'id' fields. At least one must be present.")
         }
@@ -143,7 +153,11 @@ extension GroveQuestionnaire.Questionnaire {
             lifecycle: lifecycle,
             publisher: other.publisher?.value?.string,
             copyright: other.copyright?.value?.string,
-            administrationWarnings: administrationWarnings(of: other, lifecycle: lifecycle),
+            administrationWarnings: administrationWarnings(
+                of: other,
+                lifecycle: lifecycle,
+                evaluationInstant: evaluationInstant
+            ),
             entryMode: entryMode(of: other),
             variables: try other.sdcVariables()
         )
@@ -152,7 +166,8 @@ extension GroveQuestionnaire.Questionnaire {
     /// Conditions that don't prevent administering the questionnaire, but that the app should surface.
     private static func administrationWarnings(
         of other: ModelsR4.Questionnaire,
-        lifecycle: PublicationLifecycle
+        lifecycle: PublicationLifecycle,
+        evaluationInstant: Date
     ) -> [String] {
         var warnings: [String] = []
         if lifecycle == .draft {
@@ -160,11 +175,10 @@ extension GroveQuestionnaire.Questionnaire {
         }
         // Out-of-period instruments are common in published examples and archival
         // content, so they convert but carry a warning the app can act on.
-        let now = Date()
-        if let start = try? other.effectivePeriod?.start?.value?.asNSDate() as? Date, now < start {
+        if let start = try? other.effectivePeriod?.start?.value?.asNSDate() as? Date, evaluationInstant < start {
             warnings.append("The questionnaire is not yet effective (effectivePeriod starts \(start)).")
         }
-        if let end = try? other.effectivePeriod?.end?.value?.asNSDate() as? Date, now > end {
+        if let end = try? other.effectivePeriod?.end?.value?.asNSDate() as? Date, evaluationInstant > end {
             warnings.append("The questionnaire is past its effectivePeriod (ended \(end)).")
         }
         // rendering-styleSensitive: the spec says a renderer that ignores styling
@@ -194,21 +208,21 @@ extension GroveQuestionnaire.Questionnaire {
     /// programmer-error check.
     private static func expressionUsage(
         of other: ModelsR4.Questionnaire
-    ) throws(FHIRConversionError) -> (usesExpressions: Bool, variables: [FHIRQuestionnaireExpressionEngine.Variable]) {
+    ) throws(ConversionError) -> (usesExpressions: Bool, variables: [FHIRPathExpressionEngine.Variable]) {
         var seenIds: Set<String> = []
         var usesExpressions = false
-        var variables: [FHIRQuestionnaireExpressionEngine.Variable] = []
+        var variables: [FHIRPathExpressionEngine.Variable] = []
         // A `variable` is visible to the declaring element and its descendants, so an
         // item-level declaration carries the linkIds it covers.
         func collectVariables(
             of element: some FHIRTypeWithExtensions,
-            scope: FHIRQuestionnaireExpressionEngine.Variable.Scope
-        ) throws(FHIRConversionError) {
+            scope: FHIRPathExpressionEngine.Variable.Scope
+        ) throws(ConversionError) {
             for variable in try element.sdcVariables() {
                 variables.append(.init(name: variable.name, expression: variable.expression, scope: scope))
             }
         }
-        func check(_ items: [ModelsR4.QuestionnaireItem]) throws(FHIRConversionError) {
+        func check(_ items: [ModelsR4.QuestionnaireItem]) throws(ConversionError) {
             for item in items {
                 if let modifier = item.modifierExtension?.first {
                     let url = modifier.url.value?.url.absoluteString ?? "?"
@@ -233,13 +247,15 @@ extension GroveQuestionnaire.Questionnaire {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 private struct ConversionContext {
-    let options: GroveQuestionnaire.Questionnaire.FHIRConversionOptions
+    let options: GroveQuestionnaire.Questionnaire.ConversionOptions
+    /// The caller-supplied instant used to resolve relative date bounds.
+    let evaluationInstant: Date
     /// The FHIR questionnaire being converted
     let questionnaire: ModelsR4.Questionnaire
     /// The "is enabled" condition of the parent item.
     let parentItemCondition: GroveQuestionnaire.Questionnaire.Condition
     /// The expression engine, when the questionnaire uses SDC expression features.
-    var engine: FHIRQuestionnaireExpressionEngine?
+    var engine: FHIRPathExpressionEngine?
     /// The (non-top-level) FHIR groups enclosing the current items, outermost first.
     var groupPath: [GroveQuestionnaire.Questionnaire.Task.Group] = []
     /// The linkId of the question item the current items are nested under, if any.
@@ -253,14 +269,12 @@ private enum SDCExpressionURLs {
     static let calculated = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression"
     static let initial = "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-initialExpression"
     static let targetConstraint = "http://hl7.org/fhir/StructureDefinition/targetConstraint"
-    static let retiredConstraint = "http://hl7.org/fhir/StructureDefinition/questionnaire-constraint"
 
     static let all: [FHIRPrimitive<FHIRURI>] = [
         FHIRPrimitive(FHIRURI(stringLiteral: enableWhen)),
         FHIRPrimitive(FHIRURI(stringLiteral: calculated)),
         FHIRPrimitive(FHIRURI(stringLiteral: initial)),
-        FHIRPrimitive(FHIRURI(stringLiteral: targetConstraint)),
-        FHIRPrimitive(FHIRURI(stringLiteral: retiredConstraint))
+        FHIRPrimitive(FHIRURI(stringLiteral: targetConstraint))
     ]
 }
 
@@ -268,19 +282,21 @@ private enum SDCExpressionURLs {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ModelsR4.Questionnaire {
     fileprivate func toSections(
-        using options: GroveQuestionnaire.Questionnaire.FHIRConversionOptions,
-        engine: FHIRQuestionnaireExpressionEngine? = nil
-    ) throws(GroveQuestionnaire.Questionnaire.FHIRConversionError) -> [GroveQuestionnaire.Questionnaire.Section] {
+        using options: GroveQuestionnaire.Questionnaire.ConversionOptions,
+        engine: FHIRPathExpressionEngine? = nil,
+        evaluationInstant: Date
+    ) throws(GroveQuestionnaire.Questionnaire.ConversionError) -> [GroveQuestionnaire.Questionnaire.Section] {
         guard let items = item, !items.isEmpty else {
             throw .emptyQuestionnaire
         }
-        return try topLevelGroups(of: items).map { item, isSynthesized throws(GroveQuestionnaire.Questionnaire.FHIRConversionError) in
+        return try topLevelGroups(of: items).map { item, isSynthesized throws(GroveQuestionnaire.Questionnaire.ConversionError) in
             let linkId = try item.getLinkId()
             guard item.type.value == .group else {
                 throw .other("Top-level item '\(linkId)' is not a group")
             }
             let context = ConversionContext(
                 options: options,
+                evaluationInstant: evaluationInstant,
                 questionnaire: self,
                 parentItemCondition: .none,
                 engine: engine
@@ -293,7 +309,7 @@ extension ModelsR4.Questionnaire {
     /// so that every section is backed by a group item.
     private func topLevelGroups(
         of items: [ModelsR4.QuestionnaireItem]
-    ) throws(FHIRConversionError) -> [(item: ModelsR4.QuestionnaireItem, isSynthesized: Bool)] {
+    ) throws(ConversionError) -> [(item: ModelsR4.QuestionnaireItem, isSynthesized: Bool)] {
         var topLevelItems: [(item: ModelsR4.QuestionnaireItem, isSynthesized: Bool)] = []
         var itemsIterator = items.makeIterator()
         var nextGroupIdx = 0
@@ -340,7 +356,7 @@ extension ModelsR4.QuestionnaireItem {
     fileprivate func toSection(
         using context: ConversionContext,
         isSynthesized: Bool
-    ) throws(FHIRConversionError) -> GroveQuestionnaire.Questionnaire.Section {
+    ) throws(ConversionError) -> GroveQuestionnaire.Questionnaire.Section {
         guard type.value == .group else {
             throw .other("Not a group item!")
         }
@@ -352,6 +368,7 @@ extension ModelsR4.QuestionnaireItem {
         let groupCondition = try GroveQuestionnaire.Questionnaire.Condition(self, using: context)
         let itemContext = ConversionContext(
             options: context.options,
+            evaluationInstant: context.evaluationInstant,
             questionnaire: context.questionnaire,
             parentItemCondition: groupCondition,
             engine: context.engine
@@ -360,7 +377,7 @@ extension ModelsR4.QuestionnaireItem {
             id: linkId,
             title: isSynthesized ? "" : self.text?.localizedString(for: context.options.locale) ?? "",
             shortTitle: isSynthesized ? nil : shortText(for: context.options.locale),
-            tasks: try nestedItems.flatMap2 { item throws(FHIRConversionError) in
+            tasks: try nestedItems.flatMap2 { item throws(ConversionError) in
                 try item.toTasks(using: itemContext)
             },
             fhirGroupId: isSynthesized ? nil : linkId
@@ -372,7 +389,7 @@ extension ModelsR4.QuestionnaireItem {
     /// - invariant: If this `QuestionnaireItem` is a `group`, is must not be a top-level item (in that case, ``toSection(using:)`` must be used instead).
     fileprivate func toTasks(
         using context: ConversionContext
-    ) throws(GroveQuestionnaire.Questionnaire.FHIRConversionError) -> [GroveQuestionnaire.Questionnaire.Task] {
+    ) throws(GroveQuestionnaire.Questionnaire.ConversionError) -> [GroveQuestionnaire.Questionnaire.Task] {
         guard let itemType = type.value else {
             throw .other("QuestionnaireItem is missing 'type'")
         }
@@ -392,13 +409,14 @@ extension ModelsR4.QuestionnaireItem {
             )
             let itemContext = ConversionContext(
                 options: context.options,
+                evaluationInstant: context.evaluationInstant,
                 questionnaire: context.questionnaire,
                 parentItemCondition: context.parentItemCondition,
                 engine: context.engine,
                 groupPath: context.groupPath + [group],
                 parentTaskId: context.parentTaskId
             )
-            return try nestedItems.flatMap2 { item throws(FHIRConversionError) in
+            return try nestedItems.flatMap2 { item throws(ConversionError) in
                 try item.toTasks(using: itemContext)
             }
         // swiftlint:disable:next line_length
@@ -411,7 +429,7 @@ extension ModelsR4.QuestionnaireItem {
     private func toQuestionTasks(
         ofType itemType: ModelsR4.QuestionnaireItemType,
         using context: ConversionContext
-    ) throws(FHIRConversionError) -> [GroveQuestionnaire.Questionnaire.Task] {
+    ) throws(ConversionError) -> [GroveQuestionnaire.Questionnaire.Task] {
         let kind = try toTaskKind(using: context)
         let condition = try enabledCondition(using: context)
         let media = try itemMedia(for: kind)
@@ -463,7 +481,7 @@ extension ModelsR4.QuestionnaireItem {
     /// The item's own `enableWhen`/`enableWhenExpression`, combined with the condition of its parent.
     private func enabledCondition(
         using context: ConversionContext
-    ) throws(FHIRConversionError) -> GroveQuestionnaire.Questionnaire.Condition {
+    ) throws(ConversionError) -> GroveQuestionnaire.Questionnaire.Condition {
         var condition = try context.parentItemCondition && .init(self, using: context)
         if let enableExpression = try sdcExpression(SDCExpressionURLs.enableWhen) {
             guard enableWhen?.isEmpty ?? true else {
@@ -478,7 +496,7 @@ extension ModelsR4.QuestionnaireItem {
     /// The image or other attachment the item is rendered with, taken from SDC `itemMedia`.
     private func itemMedia(
         for kind: GroveQuestionnaire.Questionnaire.Task.Kind
-    ) throws(FHIRConversionError) -> GroveQuestionnaire.Questionnaire.Task.Media? {
+    ) throws(ConversionError) -> GroveQuestionnaire.Questionnaire.Task.Media? {
         guard case .attachment(let attachment)? = extensions(
             for: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-itemMedia"
         ).first?.value else {
@@ -521,9 +539,10 @@ extension ModelsR4.QuestionnaireItem {
         of items: [ModelsR4.QuestionnaireItem],
         under task: GroveQuestionnaire.Questionnaire.Task,
         using context: ConversionContext
-    ) throws(FHIRConversionError) -> [GroveQuestionnaire.Questionnaire.Task] {
+    ) throws(ConversionError) -> [GroveQuestionnaire.Questionnaire.Task] {
         let itemContext = ConversionContext(
             options: context.options,
+            evaluationInstant: context.evaluationInstant,
             questionnaire: context.questionnaire,
             parentItemCondition: context.parentItemCondition && task.enabledCondition
                 && .hasResponse(taskId: task.id),
@@ -531,14 +550,14 @@ extension ModelsR4.QuestionnaireItem {
             groupPath: context.groupPath,
             parentTaskId: task.id
         )
-        return try items.flatMap2 { item throws(FHIRConversionError) in
+        return try items.flatMap2 { item throws(ConversionError) in
             try item.toTasks(using: itemContext)
         }
     }
 
     fileprivate func toTaskKind( // swiftlint:disable:this cyclomatic_complexity function_body_length
         using context: ConversionContext
-    ) throws(GroveQuestionnaire.Questionnaire.FHIRConversionError) -> GroveQuestionnaire.Questionnaire.Task.Kind {
+    ) throws(GroveQuestionnaire.Questionnaire.ConversionError) -> GroveQuestionnaire.Questionnaire.Task.Kind {
         guard let itemType = type.value else {
             throw .other("QuestionnaireItem is missing 'type'")
         }
@@ -662,7 +681,7 @@ extension ModelsR4.QuestionnaireItem {
             case .none:
                 break
             }
-            // SDC keyboard hint (falling back to the legacy Grove iosKeyboardType spelling).
+            // The conversion surface maps only the standards-defined SDC keyboard hint.
             var keyboard: GroveQuestionnaire.Questionnaire.Task.Kind.FreeTextConfig.KeyboardHint?
             switch extensions(for: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-keyboard").first?.value {
             case .coding(let coding):
@@ -673,13 +692,7 @@ extension ModelsR4.QuestionnaireItem {
             case .code(let code):
                 keyboard = (code.value?.string).flatMap { .init(rawValue: $0) }
             default:
-                keyboard = switch keyboardTypeRawValue {
-                case "phonePad": .phone
-                case "emailAddress": .email
-                case "numberPad", "decimalPad", "numbersAndPunctuation": .number
-                case "URL": .url
-                default: nil
-                }
+                keyboard = nil
             }
             return .freeText(.init(
                 minLength: self.extensions(for: "http://hl7.org/fhir/StructureDefinition/minLength").first?.value?.intValue,
@@ -725,7 +738,7 @@ extension ModelsR4.QuestionnaireItem {
                 } else if let url = URL(string: answerValueSetURL), let resolved = context.options.resolveValueSet?(url) {
                     valueSet = resolved
                 } else {
-                    throw .other("Unresolvable answerValueSet '\(answerValueSetURL)': supply it via FHIRConversionOptions.resolveValueSet")
+                    throw .other("Unresolvable answerValueSet '\(answerValueSetURL)': supply it via ConversionOptions.resolveValueSet")
                 }
                 guard let valueSet else {
                     throw .other("Unable to find answer options")
@@ -857,7 +870,7 @@ extension ModelsR4.QuestionnaireItem {
     }
 
     /// Reads an SDC expression-valued extension, enforcing the FHIRPath language guard.
-    private func sdcExpression(_ url: String) throws(FHIRConversionError) -> String? {
+    private func sdcExpression(_ url: String) throws(ConversionError) -> String? {
         guard let ext = extensions(for: FHIRPrimitive(FHIRURI(stringLiteral: url))).first else {
             return nil
         }
@@ -882,21 +895,18 @@ extension ModelsR4.QuestionnaireItem {
         }
     }
 
-    /// The item's authored constraints: `targetConstraint`, plus the retired
-    /// `questionnaire-constraint` spelling still found in published content.
-    private func targetConstraints() throws(FHIRConversionError) -> [GroveQuestionnaire.Questionnaire.Task.Constraint] {
+    /// The item's authored current `targetConstraint` extensions.
+    private func targetConstraints() throws(ConversionError) -> [GroveQuestionnaire.Questionnaire.Task.Constraint] {
         var constraints: [GroveQuestionnaire.Questionnaire.Task.Constraint] = []
-        for url in [SDCExpressionURLs.targetConstraint, SDCExpressionURLs.retiredConstraint] {
-            for ext in extensions(for: FHIRPrimitive(FHIRURI(stringLiteral: url))) {
-                constraints.append(try toConstraint(ext))
-            }
+        for ext in extensions(for: FHIRPrimitive(FHIRURI(stringLiteral: SDCExpressionURLs.targetConstraint))) {
+            constraints.append(try toConstraint(ext))
         }
         return constraints
     }
 
     private func toConstraint(
         _ ext: ModelsR4.Extension
-    ) throws(FHIRConversionError) -> GroveQuestionnaire.Questionnaire.Task.Constraint {
+    ) throws(ConversionError) -> GroveQuestionnaire.Questionnaire.Task.Constraint {
         guard let expression = try constraintExpression(of: ext) else {
             throw .other("Constraint on item '\((try? getLinkId()) ?? "?")' is missing its expression")
         }
@@ -927,12 +937,9 @@ extension ModelsR4.QuestionnaireItem {
         )
     }
 
-    /// A constraint's FHIRPath expression, which published content spells both as a plain
-    /// string and as an `Expression`.
-    private func constraintExpression(of ext: ModelsR4.Extension) throws(FHIRConversionError) -> String? {
+    /// A constraint's FHIRPath expression.
+    private func constraintExpression(of ext: ModelsR4.Extension) throws(ConversionError) -> String? {
         switch ext.subExtension("expression")?.value {
-        case .string(let value):
-            return value.value?.string
         case .expression(let value):
             guard value.language.value?.string == "text/fhirpath" else {
                 throw .other("Unsupported constraint Expression.language — only text/fhirpath is supported")
@@ -947,7 +954,7 @@ extension ModelsR4.QuestionnaireItem {
     /// choice items, `item.initial` for everything else.
     private func initialResponseValue(
         for kind: GroveQuestionnaire.Questionnaire.Task.Kind
-    ) throws(FHIRConversionError) -> QuestionnaireResponses.Response.Value? {
+    ) throws(ConversionError) -> QuestionnaireResponses.Response.Value? {
         if case .choice(let config) = kind.variant {
             return initialChoiceResponseValue(for: config)
         }
@@ -993,11 +1000,15 @@ extension ModelsR4.QuestionnaireItem {
     private func toDateTimeTaskKind(
         style: GroveQuestionnaire.Questionnaire.Task.Kind.DateTimeConfig.Style,
         using context: ConversionContext
-    ) throws(GroveQuestionnaire.Questionnaire.FHIRConversionError) -> GroveQuestionnaire.Questionnaire.Task.Kind {
+    ) throws(GroveQuestionnaire.Questionnaire.ConversionError) -> GroveQuestionnaire.Questionnaire.Task.Kind {
         if itemControl != nil, let custom = try toCustomTaskKind(using: context) {
             return custom
         }
-        return .dateTime(.init(style: style, minValue: minDateValue, maxValue: maxDateValue))
+        return .dateTime(.init(
+            style: style,
+            minValue: minDateValue(evaluationInstant: context.evaluationInstant),
+            maxValue: maxDateValue(evaluationInstant: context.evaluationInstant)
+        ))
     }
 
     /// Attempts to match this item against a registered custom question kind.
@@ -1009,7 +1020,7 @@ extension ModelsR4.QuestionnaireItem {
     /// still propagate.
     private func toCustomTaskKind(
         using context: ConversionContext
-    ) throws(GroveQuestionnaire.Questionnaire.FHIRConversionError) -> GroveQuestionnaire.Questionnaire.Task.Kind? {
+    ) throws(GroveQuestionnaire.Questionnaire.ConversionError) -> GroveQuestionnaire.Questionnaire.Task.Kind? {
         for definition in context.options.knownQuestionKinds {
             guard let definition = definition as? any QuestionKindDefinitionWithFHIRDecodingSupport.Type else {
                 continue
@@ -1029,7 +1040,7 @@ extension ModelsR4.ValueSet {
     /// over `compose` (which must enumerate concepts — filters need an expansion).
     fileprivate func choiceOptions(
         for locale: Locale
-    ) throws(FHIRConversionError) -> [GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option] {
+    ) throws(ConversionError) -> [GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option] {
         var options: [GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option] = []
         if let contains = expansion?.contains, !contains.isEmpty {
             for entry in contains {
@@ -1178,7 +1189,7 @@ extension ModelsR4.Extension.ValueX {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ModelsR4.QuestionnaireItem {
-    fileprivate func getLinkId() throws(FHIRConversionError) -> String {
+    fileprivate func getLinkId() throws(ConversionError) -> String {
         guard let linkId = self.linkId.value?.string else {
             throw .other("QuestionnaireItem is missing 'linkId'")
         }
@@ -1214,13 +1225,13 @@ extension GroveQuestionnaire.Questionnaire.Condition {
     fileprivate init(
         _ item: ModelsR4.QuestionnaireItem,
         using context: ConversionContext
-    ) throws(FHIRConversionError) {
+    ) throws(ConversionError) {
         guard let enableWhen = item.enableWhen, !enableWhen.isEmpty else {
             self = .none
             return
         }
         let behaviour = item.enableBehavior?.value ?? .all
-        let elements = try enableWhen.mapIntoSet { enableWhen throws(FHIRConversionError) in
+        let elements = try enableWhen.mapIntoSet { enableWhen throws(ConversionError) in
             try Self(enableWhen, using: context)
         }
         switch behaviour {
@@ -1234,7 +1245,7 @@ extension GroveQuestionnaire.Questionnaire.Condition {
     fileprivate init( // swiftlint:disable:this function_body_length cyclomatic_complexity
         _ enableWhen: ModelsR4.QuestionnaireItemEnableWhen,
         using _: ConversionContext
-    ) throws(FHIRConversionError) {
+    ) throws(ConversionError) {
         guard let questionLinkId = enableWhen.question.value?.string else {
             throw .other("EnableWhen is missing question linkId")
         }
@@ -1302,7 +1313,7 @@ extension GroveQuestionnaire.Questionnaire.Condition {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ModelsR4.QuestionnaireItemEnableWhen.AnswerX {
-    private static func unwrap<T>(_ value: T?) throws(FHIRConversionError) -> T {
+    private static func unwrap<T>(_ value: T?) throws(ConversionError) -> T {
         if let value {
             return value
         } else {
@@ -1310,7 +1321,7 @@ extension ModelsR4.QuestionnaireItemEnableWhen.AnswerX {
         }
     }
 
-    fileprivate func toConditionValue() throws(FHIRConversionError) -> GroveQuestionnaire.Questionnaire.Condition.Value {
+    fileprivate func toConditionValue() throws(ConversionError) -> GroveQuestionnaire.Questionnaire.Condition.Value {
         switch self {
         case .boolean(let value):
             return .bool(try Self.unwrap(value.value?.bool))
@@ -1384,16 +1395,16 @@ extension ModelsR4.QuestionnaireItemEnableWhen.AnswerX {
 extension FHIRTypeWithExtensions {
     /// Reads the supported FHIRPath form of the SDC `variable` extension while
     /// retaining its declaration order for lossless export.
-    fileprivate func sdcVariables() throws(FHIRConversionError) -> [GroveQuestionnaire.Questionnaire.ExpressionVariable] {
+    fileprivate func sdcVariables() throws(ConversionError) -> [GroveQuestionnaire.Questionnaire.ExpressionVariable] {
         var variables: [GroveQuestionnaire.Questionnaire.ExpressionVariable] = []
         for ext in extensions(for: "http://hl7.org/fhir/StructureDefinition/variable") {
             guard case .expression(let expression) = ext.value,
                   let name = expression.name?.value?.string,
                   let source = expression.expression?.value?.string else {
-                throw FHIRConversionError.other("Malformed variable extension")
+                throw ConversionError.other("Malformed variable extension")
             }
             guard expression.language.value?.string == "text/fhirpath" else {
-                throw FHIRConversionError.other(
+                throw ConversionError.other(
                     "Unsupported Expression.language '\(expression.language.value?.string ?? "?")' — only text/fhirpath is supported"
                 )
             }

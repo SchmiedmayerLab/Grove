@@ -164,11 +164,11 @@ public final class QuestionnaireResponses: Identifiable {
             return
         }
         guard let engine = questionnaire.expressionEngine else {
-            // A questionnaire declared in Swift carries no engine until `withExpressionEngine()`
+            // A questionnaire declared in Swift carries no engine until `withExpressionEngine(evaluationInstant:)`
             // attaches one. Saying so beats leaving every computed value empty, which reads as
             // a scoring bug rather than a setup step.
             Self.logger.warning(
-                "\(self.questionnaire.metadata.title, privacy: .public) has calculated expressions but no expression engine; call withExpressionEngine() on it before presenting it."
+                "\(self.questionnaire.metadata.title, privacy: .public) has calculated expressions but no expression engine; call withExpressionEngine(evaluationInstant:) on it before presenting it."
             )
             return
         }

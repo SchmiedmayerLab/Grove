@@ -119,13 +119,16 @@ import SwiftUI
 
 struct DailyCheckIn: View {
     @State private var isPresented = false
+    private let evaluationInstant = Date()
 
     var body: some View {
         Button("Answer the PHQ-2") {
             isPresented = true
         }
         .sheet(isPresented: $isPresented) {
-            QuestionnaireSheet(try! PHQ2.questionnaire.withExpressionEngine()) { result in
+            QuestionnaireSheet(try! PHQ2.questionnaire.withExpressionEngine(
+                evaluationInstant: evaluationInstant
+            )) { result in
                 guard case .completed(let responses) = result else {
                     return
                 }
@@ -154,12 +157,13 @@ import GroveQuestionnaireFHIR
 import ModelsR4
 
 let resource = try JSONDecoder().decode(ModelsR4.Questionnaire.self, from: data)
-let questionnaire = try Questionnaire(resource).withExpressionEngine()
+let evaluationInstant = Date()
+let questionnaire = try Questionnaire(resource, evaluationInstant: evaluationInstant)
 ```
 
-`withExpressionEngine()` enables SDC conditions, initial values, and calculated
-FHIRPath expressions. Install it before presenting any questionnaire that uses those
-features.
+FHIR import enables supported SDC conditions, initial values, and calculated FHIRPath
+expressions. The explicit evaluation instant makes `now()`, `today()`, lifecycle
+warnings, and repeated exports reproducible.
 
 The result is an ordinary ``Questionnaire``, so it renders the same way, and the collected
 answers export as a `QuestionnaireResponse`:
@@ -170,7 +174,11 @@ QuestionnaireSheet(questionnaire) { result in
         return
     }
     do {
-        let fhirResponse = try ModelsR4.QuestionnaireResponse(responses, subject: participant)
+        let fhirResponse = try ModelsR4.QuestionnaireResponse(
+            responses,
+            subject: participant,
+            authored: submittedAt
+        )
         // ... upload the response
     } catch {
         // ... report the failure

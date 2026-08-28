@@ -44,6 +44,16 @@ extension QuestionnaireResponses {
     }
     
     
+    /// Renders an hour/minute/second bound like "9:30 AM" for a validation message.
+    ///
+    /// The components are anchored to the fixed reference date, not today: `date(bySettingHour:)`
+    /// on a daylight-saving transition day can shift or skip the requested wall time.
+    private static func formattedTime(hour: Int, minute: Int, second: Int) -> String? {
+        Calendar.current
+            .date(bySettingHour: hour, minute: minute, second: second, of: Date(timeIntervalSinceReferenceDate: 0))?
+            .formatted(date: .omitted, time: .shortened)
+    }
+
     func validateResponse( // swiftlint:disable:this function_body_length cyclomatic_complexity
         for task: Questionnaire.Task
     ) -> ResponseValidationResult {
@@ -145,30 +155,14 @@ extension QuestionnaireResponses {
             case .timeOnly:
                 let response = (response.hour ?? 0, response.minute ?? 0, response.second ?? 0)
                 if let minValue = config.minValue.map({ ($0.hour ?? 0, $0.minute ?? 0, $0.second ?? 0) }), !(response >= minValue) {
-                    let minValueDesc = cal
-                        .date(
-                            bySettingHour: minValue.0,
-                            minute: minValue.1,
-                            second: minValue.2,
-                            of: .now
-                        )?
-                        .formatted(date: .omitted, time: .shortened)
                     return .invalid(
-                        message: "Must be after \(minValueDesc ?? (config.minValue ?? .init()).description)", // will never be nil.
+                        message: "Must be after \(Self.formattedTime(hour: minValue.0, minute: minValue.1, second: minValue.2) ?? (config.minValue ?? .init()).description)",
                         bundle: .module
                     )
                 }
                 if let maxValue = config.maxValue.map({ ($0.hour ?? 0, $0.minute ?? 0, $0.second ?? 0) }), !(response <= maxValue) {
-                    let maxValueDesc = cal
-                        .date(
-                            bySettingHour: maxValue.0,
-                            minute: maxValue.1,
-                            second: maxValue.2,
-                            of: .now
-                        )?
-                        .formatted(date: .omitted, time: .shortened)
                     return .invalid(
-                        message: "Must be before \(maxValueDesc ?? (config.maxValue ?? .init()).description)", // will never be nil.
+                        message: "Must be before \(Self.formattedTime(hour: maxValue.0, minute: maxValue.1, second: maxValue.2) ?? (config.maxValue ?? .init()).description)",
                         bundle: .module
                     )
                 }
