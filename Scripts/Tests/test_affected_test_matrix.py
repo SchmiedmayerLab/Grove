@@ -312,6 +312,29 @@ tests = []
 
         self.assertIn("GroveAccount", result["affected"].split(","))
 
+    def test_development_scope_ignores_package_removed_entirely_from_head(self):
+        with tempfile.NamedTemporaryFile(mode="w") as base_packages:
+            base_packages.write(
+                """
+[RemovedPackage]
+platforms = ["iOS"]
+targets = ["RemovedTarget"]
+tests = []
+"""
+            )
+            base_packages.flush()
+            result = run_selector(
+                "Sources/RemovedTarget/Removed.swift",
+                extra_arguments=(
+                    "--development-scope",
+                    "fhir",
+                    "--base-packages",
+                    base_packages.name,
+                ),
+            )
+
+        self.assertNotIn("RemovedPackage", result["affected"].split(","))
+
     def test_development_scope_cannot_masquerade_as_full_readiness(self):
         with self.assertRaisesRegex(SystemExit, "cannot be combined"):
             run_selector(

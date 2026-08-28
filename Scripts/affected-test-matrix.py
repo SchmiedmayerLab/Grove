@@ -608,6 +608,8 @@ def main():
                         "error: temporary development scope cannot classify changed target "
                         f"{parts[1]!r}; add it to packages.toml"
                     )
+                # A package removed entirely from the head has no test job left to schedule.
+                packages &= set(PKGS)
             else:
                 packages = packages_for_target(parts[1], head_dump) if head_dump else None
             if packages is None:
