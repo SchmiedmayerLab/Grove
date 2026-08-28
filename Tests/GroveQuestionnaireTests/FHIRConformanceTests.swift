@@ -230,7 +230,8 @@ struct FHIRConformanceTests {
         responses.responses["count"] = .init(value: .number(3))
         let exported = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         let answer = try #require(exported.item?.first?.answer?.first)
         guard case .integer(let value) = try #require(answer.value) else {
@@ -249,7 +250,8 @@ struct FHIRConformanceTests {
         responses.responses["website"] = .init(value: .string("https://example.org"))
         let exported = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         let answer = try #require(exported.item?.first?.answer?.first)
         guard case .uri = try #require(answer.value) else {
@@ -279,7 +281,8 @@ struct FHIRConformanceTests {
         responses.responses["weight"] = .init(value: .number(72.5))
         let exported = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         let answer = try #require(exported.item?.first?.answer?.first)
         guard case .quantity(let quantity) = try #require(answer.value) else {
@@ -306,7 +309,8 @@ struct FHIRConformanceTests {
         responses.responses["inner-q"] = .init(value: .bool(false))
         let exported = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         // top-group wraps everything; nested-group wraps inner-q.
         let top = try #require(exported.item?.first)
@@ -329,7 +333,8 @@ struct FHIRConformanceTests {
         responses.responses["child-q"] = .init(value: .bool(false))
         let exported = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         let parentItem = try #require(exported.item?.first)
         #expect(parentItem.linkId.value?.string == "parent-q")
@@ -372,7 +377,8 @@ struct FHIRConformanceTests {
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let exported = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         #expect(exported.item == nil)
     }
@@ -388,7 +394,8 @@ struct FHIRConformanceTests {
         responses.responses["q1"] = .init(value: .bool(true))
         let exported = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         #expect(exported.questionnaire?.value?.version == "2.1.0")
         #expect(exported.questionnaire?.value?.url.absoluteString == "https://example.org/fhir/Questionnaire/conformance")
@@ -677,7 +684,8 @@ struct FHIRConformanceTests {
         responses.responses["flavor"] = .init(value: .choice(.init(selectedOptions: ["string|Vanilla"])))
         let exported = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         let answer = try #require(exported.item?.first?.answer?.first)
         guard case .string(let value) = try #require(answer.value) else {

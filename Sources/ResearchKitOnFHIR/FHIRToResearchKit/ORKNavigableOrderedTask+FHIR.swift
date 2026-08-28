@@ -14,28 +14,58 @@ public import ResearchKit
 
 
 extension ORKNavigableOrderedTask {
-    // periphery:ignore:parameters title - documented public API; the title override is not wired to the generated steps
     /// Create a `ORKNavigableOrderedTask` by parsing a FHIR `Questionnaire`. Throws a `FHIRToResearchKitConversionError` if an error happens during the parsing.
     /// - Parameters:
     ///  - title: The title of the questionnaire. If you pass in a `String` the translation overrides the title that might be provided in the FHIR `Questionnaire`.
     ///  - questionnaire: The FHIR `Questionnaire` used to create the `ORKNavigableOrderedTask`.
     ///  - evaluationInstant: The explicit instant used to resolve relative date bounds.
+    ///  - evaluationTimeZone: The explicit time zone used to resolve date-only bounds.
+    ///  - taskIdentifier: A caller-governed stable identifier required when `Questionnaire.url` is absent.
     ///  - completionStep: An optional `ORKCompletionStep` that can be displayed at the end of the ResearchKit survey.
     public convenience init(
         title: String? = nil,
         questionnaire: Questionnaire,
-        evaluationInstant: Date = .now,
+        evaluationInstant: Date,
+        evaluationTimeZone: TimeZone,
+        taskIdentifier: String? = nil,
         completionStep: ORKCompletionStep? = nil
     ) throws {
         guard questionnaire.item?.isEmpty == false else {
             throw FHIRToResearchKitConversionError.noItems
         }
         
-        // The task ID is set to the canonical URL of the questionnaire. If not present, random UUID string will be used
-        let id = questionnaire.url?.value?.url.absoluteString ?? UUID().uuidString
+        let id: String
+        if let canonical = questionnaire.url?.value?.url.absoluteString {
+            guard ResearchKitQuestionnaireCanonical.isValidURL(canonical) else {
+                throw FHIRToResearchKitConversionError.invalidTaskCanonical(canonical)
+            }
+            guard let version = questionnaire.version?.value?.string,
+                  ResearchKitQuestionnaireCanonical.isSemanticVersion(version) else {
+                let invalidCanonical = if let version = questionnaire.version?.value?.string {
+                    "\(canonical)|\(version)"
+                } else {
+                    canonical
+                }
+                throw FHIRToResearchKitConversionError.invalidTaskCanonical(
+                    invalidCanonical
+                )
+            }
+            id = "\(canonical)|\(version)"
+        } else if let taskIdentifier,
+                  taskIdentifier == taskIdentifier.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !taskIdentifier.isEmpty,
+                  taskIdentifier.unicodeScalars.allSatisfy({ !CharacterSet.controlCharacters.contains($0) }) {
+            id = taskIdentifier
+        } else {
+            throw FHIRToResearchKitConversionError.missingTaskIdentifier
+        }
         
         // Convert each FHIR Questionnaire Item to an ORKStep
-        var steps = questionnaire.toORKSteps(evaluationInstant: evaluationInstant)
+        var steps = try questionnaire.toORKSteps(
+            titleOverride: title,
+            evaluationInstant: evaluationInstant,
+            evaluationTimeZone: evaluationTimeZone
+        )
         
         // Add a completion step at the end of the task if defined
         if let completionStep = completionStep {
@@ -81,6 +111,47 @@ extension Questionnaire {
         }
         item?.forEach(imp)
         return retval
+    }
+
+    /// One global preflight catches malformed hidden items and duplicate nested identifiers before
+    /// rendering is allowed to omit hidden content or construct any ResearchKit object.
+    func validateResearchKitItems() throws {
+        var linkIDs: Set<String> = []
+        func validate(_ item: QuestionnaireItem) throws {
+            guard let linkID = item.linkId.value?.string,
+                  !linkID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw FHIRToResearchKitConversionError.missingLinkID
+            }
+            guard linkIDs.insert(linkID).inserted else {
+                throw FHIRToResearchKitConversionError.duplicateLinkID(linkID)
+            }
+            guard let type = item.type.value else {
+                throw FHIRToResearchKitConversionError.missingItemType(linkID: linkID)
+            }
+            if item.repeats?.value?.bool == true {
+                switch type {
+                case .choice, .openChoice:
+                    break
+                default:
+                    throw FHIRToResearchKitConversionError.unsupportedRepeatedItem(type, linkID: linkID)
+                }
+            }
+            if item.itemControl == "check-box", item.repeats?.value?.bool != true {
+                throw FHIRToResearchKitConversionError.itemControlCardinalityConflict(linkID: linkID)
+            }
+            if !item.hidden, type != .group {
+                guard let text = item.text?.value?.string,
+                      !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    throw FHIRToResearchKitConversionError.missingText(linkID: linkID)
+                }
+            }
+            for child in item.item ?? [] {
+                try validate(child)
+            }
+        }
+        for item in self.item ?? [] {
+            try validate(item)
+        }
     }
 }
 

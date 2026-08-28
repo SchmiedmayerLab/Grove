@@ -26,6 +26,30 @@ struct VersionTests {
         #expect(Version.init("a.b.c") == nil) // swiftlint:disable:this explicit_init
         #expect(Version.init("-1.2.3") == nil) // swiftlint:disable:this explicit_init
     }
+
+    @Test("Parsing enforces every SemVer lexical boundary")
+    func strictGrammar() {
+        let valid = [
+            "0.0.0",
+            "1.0.0-0",
+            "1.0.0-alpha-1",
+            "1.0.0-alpha+build.001",
+            "1.0.0+001"
+        ]
+        for value in valid {
+            #expect(Version(value) != nil, "expected valid SemVer: \(value)")
+        }
+
+        let invalid = [
+            "01.0.0", "1.01.0", "1.0.01",
+            "1.0.0-01", "1.0.0-", "1.0.0-alpha..1",
+            "1.0.0+", "1.0.0+build..1",
+            "v1.0.0", "1.0", "1.0.0 ", "1.0.0-álpha"
+        ]
+        for value in invalid {
+            #expect(Version(value) == nil, "expected invalid SemVer: \(value)")
+        }
+    }
     
     
     @Test
@@ -74,6 +98,37 @@ struct VersionTests {
         #expect(Version("1.2.3-alpha") > Version("1.2.3-1"))
         #expect(Version("1.2.3-alpha.1") < Version("1.2.3-alpha.a"))
         #expect(!(Version("1.2.3-alpha.a") < Version("1.2.3-alpha.1")))
+    }
+
+    @Test("Nonnumeric prerelease identifiers use antisymmetric ASCII SemVer ordering")
+    func prereleaseASCIIOrdering() {
+        let ordered: [Version] = [
+            "1.0.0-alpha",
+            "1.0.0-alpha.1",
+            "1.0.0-alpha.beta",
+            "1.0.0-beta",
+            "1.0.0-beta.2",
+            "1.0.0-beta.11",
+            "1.0.0-rc.1",
+            "1.0.0"
+        ]
+        for lowerIndex in ordered.indices {
+            for upperIndex in ordered.indices where lowerIndex < upperIndex {
+                let lower = ordered[lowerIndex]
+                let upper = ordered[upperIndex]
+                #expect(lower < upper)
+                #expect(!(upper < lower))
+                #expect(lower != upper)
+            }
+        }
+        #expect(Version("1.0.0-alpha") < Version("1.0.0-beta"))
+        #expect(!(Version("1.0.0-beta") < Version("1.0.0-alpha")))
+    }
+
+    @Test("Build metadata-neutral equality has matching Hashable behavior")
+    func buildMetadataHashing() {
+        let versions: Set<Version> = ["1.2.3+one", "1.2.3+two", "1.2.3"]
+        #expect(versions.count == 1)
     }
     
     

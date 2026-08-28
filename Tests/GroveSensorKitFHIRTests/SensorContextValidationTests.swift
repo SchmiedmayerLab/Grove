@@ -25,15 +25,11 @@ struct SensorFHIRContextValidationTests {
         SensorConversionContext(
             subject: subject,
             converter: SensorApplication(
-                identifier: try BusinessIdentifier(
-                    system: "https://study.example.org/fhir/identifiers/application",
-                    value: "org.grovealliance.conformance-fixture|0.3.0"
-                ),
+                sourceDeviceToken: "org.grovealliance.conformance-fixture",
                 name: "Grove Conformance Fixture",
                 version: "0.5.0"
             ),
             graphIdentifierSystem: "https://study.example.org/fhir/identifiers/sensor-graph",
-            issuedAt: start.addingTimeInterval(10),
             recordedAt: start.addingTimeInterval(20),
             researchStudies: researchStudies
         )
@@ -52,7 +48,6 @@ struct SensorFHIRContextValidationTests {
                 display: "Ambient light"
             ),
             title: "Ambient light recording",
-            contentType: "text/csv",
             format: .ambientLightSamples,
             payload: .inline(Data("t,lux\n0,120\n".utf8)),
             rawPayloadAdmission: .verifiedSanitizedInput
@@ -61,7 +56,10 @@ struct SensorFHIRContextValidationTests {
 
     @Test("A subject that is not a Patient reference is rejected")
     func rejectsNonPatientSubject() throws {
-        let context = try Self.context(subject: Reference(reference: "Group/cohort-1"))
+        let context = try Self.context(subject: SensorFHIRIdentityTestSupport.logicalReference(
+            resourceType: .group,
+            value: "cohort-1"
+        ))
         #expect(throws: SensorConversionError.invalidReference(
             field: "subject",
             expectedResourceType: .patient
@@ -73,8 +71,13 @@ struct SensorFHIRContextValidationTests {
     @Test("A study reference pointing at the wrong resource type is rejected")
     func rejectsNonStudyReference() throws {
         let context = try Self.context(
-            subject: Reference(reference: "Patient/example"),
-            researchStudies: [Reference(reference: "Patient/example")]
+            subject: SensorFHIRIdentityTestSupport.subject,
+            researchStudies: [
+                SensorFHIRIdentityTestSupport.logicalReference(
+                    resourceType: .patient,
+                    value: "example"
+                )
+            ]
         )
         #expect(throws: SensorConversionError.invalidReference(
             field: "researchStudies",
@@ -86,9 +89,12 @@ struct SensorFHIRContextValidationTests {
 
     @Test("The same study listed twice would create an ambiguous graph and is rejected")
     func rejectsDuplicateStudy() throws {
-        let study = Reference(reference: "ResearchStudy/heart-counts")
+        let study = try SensorFHIRIdentityTestSupport.logicalReference(
+            resourceType: .researchStudy,
+            value: "heart-counts"
+        )
         let context = try Self.context(
-            subject: Reference(reference: "Patient/example"),
+            subject: SensorFHIRIdentityTestSupport.subject,
             researchStudies: [study, study]
         )
         #expect(throws: SensorConversionError.duplicateReference(field: "researchStudies")) {
@@ -98,7 +104,10 @@ struct SensorFHIRContextValidationTests {
 
     @Test("A batch reports the typed reason for each rejected record rather than relabelling it")
     func batchReportsTypedReasons() throws {
-        let context = try Self.context(subject: Reference(reference: "Group/cohort-1"))
+        let context = try Self.context(subject: SensorFHIRIdentityTestSupport.logicalReference(
+            resourceType: .group,
+            value: "cohort-1"
+        ))
         let result = SensorConverter().convert([try Self.record()], context: context)
         #expect(result.conversions.isEmpty)
         #expect(result.failures.map(\.reason) == [

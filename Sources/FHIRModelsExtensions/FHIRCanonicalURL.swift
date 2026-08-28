@@ -6,9 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
-public import Foundation
-
-
 /// A current FHIR canonical URL.
 ///
 /// ```swift

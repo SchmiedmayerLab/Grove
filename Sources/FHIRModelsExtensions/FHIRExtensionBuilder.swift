@@ -6,7 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
-public import ModelsR4
+/// Failures raised when a type-erased extension mutation violates the builder contract.
+public enum FHIRExtensionBuilderError: Error, Equatable, Sendable {
+    /// The caller replaced the resource with a different concrete FHIR type.
+    case changedResourceType
+}
 
 
 /// Type-erased version of a ``FHIRExtensionBuilder``
@@ -20,7 +24,7 @@ public protocol FHIRExtensionBuilderProtocol<Input>: Sendable {
 }
 
 
-/// Defines a custom Extension Builder that can be applied to a FHIR `any FHIRTypeWithExtensions` representing a HeathKit sample.
+/// Defines a custom Extension Builder that can be applied to a FHIR `any FHIRTypeWithExtensions` representing a HealthKit sample.
 ///
 /// ## Topics
 ///
@@ -61,7 +65,7 @@ public struct FHIRExtensionBuilder<Input>: FHIRExtensionBuilderProtocol, Sendabl
         var copy: any FHIRTypeWithExtensions = resource
         try impl(input, &copy)
         guard let copy = copy as? T else {
-            preconditionFailure("Extension builder ilegally changed resource type!")
+            throw FHIRExtensionBuilderError.changedResourceType
         }
         resource = copy
     }

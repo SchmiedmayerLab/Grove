@@ -15,6 +15,14 @@ public import Foundation
 /// primitives so a producer encodes the published bytes rather than re-deriving them: a varint is
 /// easy to write and easy to write differently.
 public struct RecordingBinaryWriter: ~Copyable {
+    /// A value that has no canonical representation in a registered binary payload.
+    public enum WriterError: Error, Equatable, Sendable {
+        /// NaN and infinities are outside the registered finite binary64 domain.
+        case nonFiniteFloat
+        /// A mathematical set cannot contain the same logical value twice.
+        case duplicateSetValue
+    }
+
     private var bytes: Data
 
     /// Creates an empty writer.
@@ -47,8 +55,12 @@ public struct RecordingBinaryWriter: ~Copyable {
     }
 
     /// IEEE-754 binary64 in network byte order.
-    public mutating func writeFloat64(_ value: Double) {
-        withUnsafeBytes(of: value.bitPattern.bigEndian) { bytes.append(contentsOf: $0) }
+    public mutating func writeFloat64(_ value: Double) throws(WriterError) {
+        guard value.isFinite else {
+            throw .nonFiniteFloat
+        }
+        let canonical = value == 0 ? 0.0 : value
+        withUnsafeBytes(of: canonical.bitPattern.bigEndian) { bytes.append(contentsOf: $0) }
     }
 
     /// One byte: `0x00` false, `0x01` true.
@@ -64,18 +76,32 @@ public struct RecordingBinaryWriter: ~Copyable {
     }
 
     /// A presence byte, then the value when present.
-    public mutating func writeOptionalFloat64(_ value: Double?) {
+    public mutating func writeOptionalFloat64(_ value: Double?) throws(WriterError) {
         writeBoolean(value != nil)
         if let value {
-            writeFloat64(value)
+            try writeFloat64(value)
         }
     }
 
     /// A varint element count, then each element in order.
-    public mutating func writeArray<Element>(_ elements: [Element], element: (inout Self, Element) -> Void) {
+    public mutating func writeArray<Element>(
+        _ elements: [Element],
+        element: (inout Self, Element) throws -> Void
+    ) rethrows {
         writeVarint(UInt64(elements.count))
         for value in elements {
-            element(&self, value)
+            try element(&self, value)
         }
+    }
+
+    /// A canonical set: reject duplicates, sort ascending, then write count and values.
+    public mutating func writeCanonicalSet<Element: Comparable & Hashable>(
+        _ elements: [Element],
+        element: (inout Self, Element) throws -> Void
+    ) throws {
+        guard Set(elements).count == elements.count else {
+            throw WriterError.duplicateSetValue
+        }
+        try writeArray(elements.sorted(), element: element)
     }
 }

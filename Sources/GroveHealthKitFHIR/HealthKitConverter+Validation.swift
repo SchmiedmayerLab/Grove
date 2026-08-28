@@ -21,10 +21,24 @@ import ModelsR4
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitConverter {
     static func validate(context: HealthKitConversionContext) throws(HealthKitConversionError) {
+        try validateConverterApplication(context)
+        try validateRecordingIdentity(context)
+        try validateNativeIdentifierDisclosure(context)
+        _ = try validateReference(
+            reference: context.subject,
+            field: "subject",
+            expectedResourceType: .patient
+        )
+        try validateResearchStudies(context.researchStudies)
+    }
+
+    private static func validateConverterApplication(
+        _ context: HealthKitConversionContext
+    ) throws(HealthKitConversionError) {
         // Checked first: an empty bundle identifier still yields a syntactically valid graph
         // namespace (`urn:grove:healthkit-graph:`), so nothing downstream would catch it. A host
         // can carry CFBundleName without CFBundleIdentifier, so the name check would not either.
-        guard !context.converter.bundleIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        guard isValidAppleBundleIdentifier(context.converter.bundleIdentifier) else {
             throw HealthKitConversionError.invalidConverterApplication("bundleIdentifier")
         }
         guard !context.converter.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -33,16 +47,63 @@ extension HealthKitConverter {
         guard !context.converter.version.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw HealthKitConversionError.invalidConverterApplication("version")
         }
-        guard context.graphIdentifierSystem != nil else {
-            throw HealthKitConversionError.invalidConverterApplication("bundleIdentifier")
+        guard !context.converterHost.sourceDeviceToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw HealthKitConversionError.invalidConverterApplication("converterHost.sourceDeviceToken")
         }
-        _ = try validateReference(
-            reference: context.subject,
-            field: "subject",
-            expectedResourceType: .patient
-        )
+        guard !context.converterHost.operatingSystemVersion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw HealthKitConversionError.invalidConverterApplication("converterHost.operatingSystemVersion")
+        }
+        for (field, value) in [
+            ("converterHost.name", context.converterHost.name),
+            ("converterHost.manufacturer", context.converterHost.manufacturer),
+            ("converterHost.modelNumber", context.converterHost.modelNumber)
+        ] where value?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
+            throw HealthKitConversionError.invalidConverterApplication(field)
+        }
+    }
+
+    private static func validateRecordingIdentity(
+        _ context: HealthKitConversionContext
+    ) throws(HealthKitConversionError) {
+        if context.recordingDeviceStableUnitToken?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
+            throw HealthKitConversionError.invalidExchangeIdentity(
+                "recordingDeviceStableUnitToken must be absent or nonempty"
+            )
+        }
+    }
+
+    private static func validateNativeIdentifierDisclosure(
+        _ context: HealthKitConversionContext
+    ) throws(HealthKitConversionError) {
+        if case let .authorized(nativeSystem, _) = context.nativeIdentifierDisclosurePolicy {
+            let pseudonymous = context.identityScope.systems
+            let reservedSystems: Set<IdentifierSystem> = [
+                pseudonymous.sourceRecord,
+                pseudonymous.sourceOutput,
+                pseudonymous.writerRecord,
+                pseudonymous.providerRecord,
+                pseudonymous.providerOutput,
+                pseudonymous.sourceArtifact,
+                pseudonymous.providerArtifact,
+                pseudonymous.sourceContext,
+                pseudonymous.recordingDevice,
+                pseudonymous.deviceSnapshot,
+                context.eventIdentifier.businessIdentifier.system,
+                context.entryNodeIdentifierSystem
+            ]
+            guard !reservedSystems.contains(nativeSystem) else {
+                throw HealthKitConversionError.invalidExchangeIdentity(
+                    "native HealthKit identifier system must not reuse a Grove graph identity system"
+                )
+            }
+        }
+    }
+
+    private static func validateResearchStudies(
+        _ researchStudies: [Reference]
+    ) throws(HealthKitConversionError) {
         var studyIdentities: Set<TypedReferenceIdentity> = []
-        for study in context.researchStudies {
+        for study in researchStudies {
             let identity = try validateReference(
                 reference: study,
                 field: "researchStudies",
@@ -51,6 +112,23 @@ extension HealthKitConverter {
             guard studyIdentities.insert(identity).inserted else {
                 throw HealthKitConversionError.duplicateReference(field: "researchStudies")
             }
+        }
+    }
+
+    static func isValidAppleBundleIdentifier(_ value: String) -> Bool {
+        guard value == value.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty,
+              !value.hasPrefix("."),
+              !value.hasSuffix("."),
+              !value.contains("..") else {
+            return false
+        }
+        return value.utf8.allSatisfy { byte in
+            (0x41...0x5A).contains(byte)
+                || (0x61...0x7A).contains(byte)
+                || (0x30...0x39).contains(byte)
+                || byte == 0x2D
+                || byte == 0x2E
         }
     }
 
@@ -66,9 +144,9 @@ extension HealthKitConverter {
             )
         } catch {
             switch error {
-            case .unboundBundleUUID:
+            case .literalRequiresBundleEntry:
                 throw .invalidExchangeIdentity(
-                    "\(field) contains a UUID URN that is not an entry in the emitted Bundle"
+                    "\(field) must use an identifier-only logical Reference; literals require a Bundle entry"
                 )
             case .invalidReference:
                 throw .invalidReference(field: field, expectedResourceType: expectedResourceType)

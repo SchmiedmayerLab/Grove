@@ -9,6 +9,7 @@
 #if canImport(HealthKit)
 
 import Foundation
+import GroveFHIRContract
 import HealthKit
 
 
@@ -22,7 +23,7 @@ struct HealthKitECGGraphContext: Sendable {
 struct HealthKitECGObservationInput: Sendable {
     let source: HealthKitECGSourceEvidence
     let waveform: HealthKitECGValidatedWaveform
-    let symptoms: [HealthKitECGSymptomEvidence]
+    let symptomOutputIdentifiers: [BusinessIdentifier]
     let context: HealthKitConversionContext
 }
 

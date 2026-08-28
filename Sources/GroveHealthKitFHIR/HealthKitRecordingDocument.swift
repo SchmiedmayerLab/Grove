@@ -6,6 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
+// The public recording inputs and their graph result form one small contract inventory.
+// swiftlint:disable file_types_order
+
 #if canImport(HealthKit)
 
 public import CoreLocation
@@ -62,11 +65,15 @@ public struct HealthKitWorkoutRouteRecord: Sendable {
 
 /// Complete business identities of one emitted recording-document graph.
 public struct HealthKitDocumentGraphIdentifiers: Hashable, Sendable {
-    public let bundle: BusinessIdentifier
-    public let document: BusinessIdentifier
-    public let recordingDevice: BusinessIdentifier?
-    public let converterApplication: BusinessIdentifier
-    public let sourceAuthor: BusinessIdentifier?
+    public let event: BusinessIdentifier
+    public let sourceRecord: BusinessIdentifier
+    public let sourceOutput: BusinessIdentifier
+    public let sourceArtifact: BusinessIdentifier
+    public let recordingDeviceSnapshot: BusinessIdentifier?
+    public let converterApplicationSnapshot: BusinessIdentifier
+    public let converterHostSnapshot: BusinessIdentifier
+    public let sourceAuthorSnapshot: BusinessIdentifier?
+    public let sourceAuthorHostSnapshot: BusinessIdentifier?
     public let provenance: BusinessIdentifier
 }
 
@@ -81,9 +88,13 @@ public struct HealthKitDocumentConversion: Sendable {
     public let document: DocumentReference
     public let recordingDevice: Device?
     public let converterApplication: Device
+    public let converterHost: Device
     public let sourceAuthor: Device?
+    public let sourceAuthorHost: Device?
     public let provenance: Provenance
-    public let bundle: ModelsR4.Bundle
+    public let graph: ExchangeGraph
+
+    public var bundle: ModelsR4.Bundle { graph.bundle }
 }
 
 #endif

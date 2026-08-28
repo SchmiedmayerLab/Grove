@@ -9,7 +9,7 @@
 #if canImport(HealthKit)
 
 // The conformance corpus keeps all emitted profiles and their exact source vectors in one auditable suite.
-// swiftlint:disable function_body_length type_body_length
+// swiftlint:disable function_body_length type_body_length file_length
 
 import Foundation
 import GroveFHIRContract
@@ -65,7 +65,7 @@ struct ConformanceFixtureTests {
             .appendingPathComponent("grove-fhir-inventories/healthkit-source-inventory.json")
     }
 
-    private static let subject = Reference(reference: "Patient/example")
+    private static let subject = Reference.testPatient
     private static let sourceTimeZoneIdentifier = "America/Los_Angeles"
 
     private static var device: HKDevice {
@@ -412,7 +412,7 @@ struct ConformanceFixtureTests {
         let ecgInput = HealthKitECGObservationInput(
             source: ecgSource,
             waveform: ecgWaveform,
-            symptoms: [],
+            symptomOutputIdentifiers: [],
             context: ecgContext
         )
         // HKElectrocardiogram has no public synthetic initializer. This already-fetched
@@ -426,7 +426,17 @@ struct ConformanceFixtureTests {
         )
         let ecgConversion = try HealthKitConverter.assembleGraph(
             for: ecgEnvelopeSource,
-            context: ecgContext
+            context: ecgContext,
+            outputRole: "electrocardiogram",
+            childBuilder: { envelope in
+                guard let companion = try HealthKitConverter.ecgAverageHeartRateChild(
+                    input: ecgInput,
+                    envelope: envelope
+                ) else {
+                    return []
+                }
+                return [companion]
+            }
         ) { recordingDeviceURL, converterURL in
             try HealthKitConverter.ecgObservation(
                 input: ecgInput,
@@ -443,6 +453,62 @@ struct ConformanceFixtureTests {
         }
         #expect(ecgEffectivePeriod.start?.value?.description == "2026-08-20T08:20:00.25-07:00")
         #expect(ecgEffectivePeriod.end?.value?.description == "2026-08-20T08:20:00.256-07:00")
+        #expect(ecgObservation.hasMember == nil)
+        let interpretation = try #require(ecgObservation.interpretation)
+        #expect(interpretation.count == 1)
+        #expect(interpretation.first?.coding?.count == 1)
+        #expect(interpretation.first?.coding?.first?.system?.value?.url.absoluteString ==
+            "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-ecg-classification")
+        #expect(interpretation.first?.coding?.first?.code?.value?.string == "sinusRhythm")
+        #expect(ecgObservation.method?.coding?.count == 1)
+        #expect(ecgObservation.method?.coding?.first?.system?.value?.url.absoluteString ==
+            "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-ecg-algorithm-version")
+        #expect(ecgObservation.method?.coding?.first?.code?.value?.string == "version2")
+        #expect(ecgConversion.graphIdentifiers.childOutputs.count == 1)
+        let ecgChildren = ecgConversion.bundle.entry?.compactMap { entry -> Observation? in
+            guard case .observation(let child)? = entry.resource,
+                  child.meta?.profile?.contains(
+                      "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-ecg-average-heart-rate-observation"
+                  ) == true else {
+                return nil
+            }
+            return child
+        } ?? []
+        #expect(ecgChildren.count == 1)
+        let averageHeartRate = try #require(ecgChildren.first)
+        #expect(averageHeartRate.effective == ecgObservation.effective)
+        let averageHeartRateCategory = try #require(averageHeartRate.category)
+        #expect(averageHeartRateCategory.count == 1)
+        let averageHeartRateCategoryCodings = try #require(averageHeartRateCategory.first?.coding)
+        #expect(averageHeartRateCategoryCodings.count == 1)
+        #expect(averageHeartRateCategoryCodings.first?.system?.value?.url.absoluteString ==
+            "http://terminology.hl7.org/CodeSystem/observation-category")
+        #expect(averageHeartRateCategoryCodings.first?.code?.value?.string == "vital-signs")
+        let expectedECGURL = try ExchangeIdentity.fullURL(
+            for: ecgConversion.graphIdentifiers.primaryOutput
+        )
+        #expect(averageHeartRate.derivedFrom?.count == 1)
+        #expect(averageHeartRate.derivedFrom?.first?.reference?.value?.string == expectedECGURL)
+        #expect(averageHeartRate.identifier?.count == 2)
+        guard case .quantity(let averageHeartRateValue) = averageHeartRate.value else {
+            Issue.record("ECG average heart-rate companion must carry valueQuantity")
+            return
+        }
+        #expect(averageHeartRateValue.value?.value?.decimal == 72)
+        #expect(averageHeartRateValue.system?.value?.url.absoluteString == "http://unitsofmeasure.org")
+        #expect(averageHeartRateValue.code?.value?.string == "/min")
+        let legacyECGExtensionURLs = Set([
+            "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-ecg-average-heart-rate",
+            "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-ecg-sampling-frequency",
+            "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-ecg-voltage-measurement-count"
+        ])
+        #expect(ecgObservation.extension?.allSatisfy {
+            guard let url = $0.url.value?.url.absoluteString else {
+                return true
+            }
+            return !legacyECGExtensionURLs.contains(url)
+        } == true)
+        #expect(ecgConversion.provenance.target.count == 2)
         let directory = Self.fixtureDirectory
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         for (name, resource) in fixtures {

@@ -104,49 +104,9 @@ public struct RecordingCSVWriter: ~Copyable {
         }
     }
 
-    /// The shortest representation that round-trips the binary64 value, as the registry requires.
-    ///
-    /// Swift's own description is shortest-round-trip but switches to exponent form outside a
-    /// middling range, and the registry's decimal form admits no exponent. Values that would print
-    /// as `1e-05` or `1e+16` are therefore expanded to plain decimal, which still round-trips.
+    /// The one locale-independent shortest round-trip algorithm shared by every Swift producer.
     private static func number(_ value: Double) -> String {
-        if value == value.rounded(), abs(value) < 1e15 {
-            return String(format: "%.1f", value)
-        }
-        let shortest = "\(value)"
-        guard shortest.contains("e") || shortest.contains("E") else {
-            return shortest
-        }
-        return plainDecimal(value)
-    }
-
-    /// A plain-decimal rendering that still round-trips the binary64 value.
-    private static func plainDecimal(_ value: Double) -> String {
-        for precision in 1...17 where Double(String(format: "%.\(precision)e", value)) == value {
-            var text = String(format: "%.\(max(0, precision + exponentShift(value)))f", value)
-            if Double(text) == value {
-                // Trim the trailing zeros %f pads to the requested precision.
-                if text.contains(".") {
-                    while text.hasSuffix("0") {
-                        text.removeLast()
-                    }
-                    if text.hasSuffix(".") {
-                        text += "0"
-                    }
-                }
-                return text
-            }
-        }
-        return String(format: "%.17f", value)
-    }
-
-    /// How many further fractional digits a magnitude below one needs.
-    private static func exponentShift(_ value: Double) -> Int {
-        guard value != 0, value.isFinite else {
-            return 0
-        }
-        let exponent = Int(floor(log10(abs(value))))
-        return exponent < 0 ? -exponent : 0
+        String(groveFHIRPlainDecimal: value)
     }
 }
 

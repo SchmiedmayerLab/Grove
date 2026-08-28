@@ -28,4 +28,21 @@ public enum ContractRules {
     public static func isSemanticVersion(_ value: String) -> Bool {
         Version(value) != nil
     }
+
+    /// Grove Questionnaire canonicals are exact dereferenceable HTTP(S) URLs without a
+    /// fragment or embedded version separator.
+    public static func isValidQuestionnaireURL(_ value: String) -> Bool {
+        guard value == value.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty,
+              !value.contains("|"),
+              !value.contains("#"),
+              let components = URLComponents(string: value),
+              let scheme = components.scheme?.lowercased(),
+              ["http", "https"].contains(scheme),
+              components.host?.isEmpty == false,
+              components.fragment == nil else {
+            return false
+        }
+        return true
+    }
 }

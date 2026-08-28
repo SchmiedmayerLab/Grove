@@ -8,7 +8,7 @@
 
 // Members are ordered to read as a narrative rather than by kind, and the parser mirrors the
 // registry's quoting rules branch for branch rather than splitting them across helpers.
-// swiftlint:disable type_contents_order cyclomatic_complexity
+// swiftlint:disable type_contents_order cyclomatic_complexity function_body_length
 
 public import Foundation
 
@@ -42,29 +42,87 @@ public struct RecordingCSVReader: Sendable {
             self[column]?.isEmpty ?? true
         }
 
-        /// The column's value as a binary64 number, or `nil` when absent or not a number.
-        public func number(_ column: String) -> Double? {
-            guard let raw = self[column], !raw.isEmpty else {
+        /// The column's value as a binary64 number, or `nil` only when the field is absent.
+        ///
+        /// An unknown column or malformed/non-finite value throws so corruption cannot be
+        /// mistaken for a source that omitted the measurement.
+        public func number(_ column: String) throws -> Double? {
+            guard let raw = self[column] else {
+                throw RowValueError.unknownColumn(column)
+            }
+            guard !raw.isEmpty else {
                 return nil
             }
-            return Double(raw)
+            guard Self.isPlainDecimal(raw), let value = Double(raw), value.isFinite else {
+                throw RowValueError.malformedNumber(column: column, value: raw)
+            }
+            return value
         }
 
-        /// The column's value as an integer, or `nil` when absent or not an integer.
-        public func integer(_ column: String) -> Int? {
-            guard let raw = self[column], !raw.isEmpty else {
+        /// Parses a required canonical binary64 field without conflating absence and corruption.
+        public func requiredNumber(_ column: String) throws -> Double {
+            guard let value = try number(column) else {
+                throw RowValueError.absent(column)
+            }
+            return value
+        }
+
+        /// The column's value as an integer, or `nil` only when the field is absent.
+        public func integer(_ column: String) throws -> Int? {
+            guard let raw = self[column] else {
+                throw RowValueError.unknownColumn(column)
+            }
+            guard !raw.isEmpty else {
                 return nil
             }
-            return Int(raw)
+            guard Self.isInteger(raw), let value = Int(raw) else {
+                throw RowValueError.malformedInteger(column: column, value: raw)
+            }
+            return value
+        }
+
+        /// Parses a required base-ten integer field without conflating absence and corruption.
+        public func requiredInteger(_ column: String) throws -> Int {
+            guard let value = try integer(column) else {
+                throw RowValueError.absent(column)
+            }
+            return value
         }
 
         /// The column's value as an instant; the registry writes timestamps as epoch seconds.
-        public func timestamp(_ column: String) -> Date? {
-            guard let seconds = number(column) else {
+        public func timestamp(_ column: String) throws -> Date? {
+            guard let seconds = try number(column) else {
                 return nil
             }
             return Date(timeIntervalSince1970: seconds)
         }
+
+        private static func isInteger(_ value: String) -> Bool {
+            let digits = value.first == "-" ? value.dropFirst() : value[...]
+            return !digits.isEmpty && digits.utf8.allSatisfy { (0x30...0x39).contains($0) }
+        }
+
+        private static func isPlainDecimal(_ value: String) -> Bool {
+            let unsigned = value.first == "-" ? value.dropFirst() : value[...]
+            guard !unsigned.isEmpty, !unsigned.contains("e"), !unsigned.contains("E") else {
+                return false
+            }
+            let pieces = unsigned.split(separator: ".", omittingEmptySubsequences: false)
+            guard pieces.count <= 2,
+                  pieces.allSatisfy({
+                      !$0.isEmpty && $0.utf8.allSatisfy { (0x30...0x39).contains($0) }
+                  }) else {
+                return false
+            }
+            return true
+        }
+    }
+
+    public enum RowValueError: Error, Equatable, Sendable {
+        case unknownColumn(String)
+        case absent(String)
+        case malformedNumber(column: String, value: String)
+        case malformedInteger(column: String, value: String)
     }
 
     /// Why a payload could not be read as the format it claims to be.
@@ -81,6 +139,12 @@ public struct RecordingCSVReader: Sendable {
         case columnCountMismatch(row: Int, expected: Int, actual: Int)
         /// A quoted field is never closed.
         case unterminatedQuote(row: Int)
+        /// A quote appeared inside an unquoted field.
+        case unexpectedQuote(row: Int, column: Int, byteOffset: Int)
+        /// Only a comma, LF, or end may follow a closing quote.
+        case invalidCharacterAfterClosingQuote(row: Int, column: Int, byteOffset: Int)
+        /// The registered canonical grammar permits CR only as data inside a quoted field.
+        case unexpectedCarriageReturn(row: Int, column: Int, byteOffset: Int)
         /// The payload does not end with the row terminator the registry mandates.
         case missingFinalRowTerminator
     }
@@ -134,50 +198,75 @@ public struct RecordingCSVReader: Sendable {
     /// Parsed over unicode scalars in one pass rather than by splitting on newlines first: a
     /// quoted field may contain the row terminator, and splitting would tear such a row in half.
     private static func parse(_ text: String) throws -> [[String]] {
+        enum State {
+            case fieldStart
+            case unquoted
+            case quoted
+            case afterQuote
+        }
+
         var rows: [[String]] = []
         var fields: [String] = []
         var field = ""
-        var quoted = false
-        var iterator = text.unicodeScalars.makeIterator()
-        var pending: Unicode.Scalar?
+        var state = State.fieldStart
+        var row = 0
+        var byteOffset = 0
 
-        while let scalar = pending ?? iterator.next() {
-            pending = nil
-            if quoted {
+        func locationError(_ error: (Int, Int, Int) -> ReaderError) -> ReaderError {
+            error(row, fields.count, byteOffset)
+        }
+        func appendField() {
+            fields.append(field)
+            field = ""
+            state = .fieldStart
+        }
+        func appendRow() {
+            appendField()
+            rows.append(fields)
+            fields = []
+            row += 1
+        }
+
+        for scalar in text.unicodeScalars {
+            defer { byteOffset += scalar.utf8.count }
+            switch state {
+            case .fieldStart:
+                switch scalar {
+                case "\"": state = .quoted
+                case ",": appendField()
+                case "\n": appendRow()
+                case "\r": throw locationError(ReaderError.unexpectedCarriageReturn)
+                default:
+                    field.unicodeScalars.append(scalar)
+                    state = .unquoted
+                }
+            case .unquoted:
+                switch scalar {
+                case "\"": throw locationError(ReaderError.unexpectedQuote)
+                case ",": appendField()
+                case "\n": appendRow()
+                case "\r": throw locationError(ReaderError.unexpectedCarriageReturn)
+                default: field.unicodeScalars.append(scalar)
+                }
+            case .quoted:
                 if scalar == "\"" {
-                    if let next = iterator.next() {
-                        if next == "\"" {
-                            field.unicodeScalars.append("\"")
-                        } else {
-                            quoted = false
-                            pending = next
-                        }
-                    } else {
-                        quoted = false
-                    }
+                    state = .afterQuote
                 } else {
                     field.unicodeScalars.append(scalar)
                 }
-                continue
-            }
-            switch scalar {
-            case "\"" where field.isEmpty:
-                quoted = true
-            case ",":
-                fields.append(field)
-                field = ""
-            case "\n":
-                fields.append(field)
-                rows.append(fields)
-                fields = []
-                field = ""
-            case "\r":
-                break
-            default:
-                field.unicodeScalars.append(scalar)
+            case .afterQuote:
+                switch scalar {
+                case "\"":
+                    field.unicodeScalars.append("\"")
+                    state = .quoted
+                case ",": appendField()
+                case "\n": appendRow()
+                case "\r": throw locationError(ReaderError.unexpectedCarriageReturn)
+                default: throw locationError(ReaderError.invalidCharacterAfterClosingQuote)
+                }
             }
         }
-        if quoted {
+        if state == .quoted {
             throw ReaderError.unterminatedQuote(row: rows.count)
         }
         return rows

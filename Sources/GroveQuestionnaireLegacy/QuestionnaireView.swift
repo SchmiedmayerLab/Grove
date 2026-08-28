@@ -9,7 +9,7 @@
 #if ResearchKit && os(iOS)
 public import ModelsR4
 private import ResearchKit
-private import ResearchKitOnFHIR
+public import ResearchKitOnFHIR
 public import ResearchKitSwiftUI
 public import SwiftUI
 
@@ -53,6 +53,9 @@ public import SwiftUI
 public struct QuestionnaireView: View { // @available(*, deprecated, renamed: "GroveQuestionnaire.QuestionnaireSheet")
     private let questionnaire: ModelsR4.Questionnaire
     private let questionnaireResult: @MainActor (QuestionnaireResult) async -> Void
+    private let conversionContext: ResearchKitFHIRConversionContext
+    private let evaluationInstant: Date
+    private let evaluationTimeZone: TimeZone
     private let completionStepMessage: String?
     private let cancelBehavior: CancelBehavior
     
@@ -75,11 +78,17 @@ public struct QuestionnaireView: View { // @available(*, deprecated, renamed: "G
     ///   - questionnaireResult: Result closure that processes the ``QuestionnaireResult``.
     public init(
         questionnaire: ModelsR4.Questionnaire,
+        conversionContext: ResearchKitFHIRConversionContext,
+        evaluationInstant: Date,
+        evaluationTimeZone: TimeZone,
         completionStepMessage: String? = nil,
         cancelBehavior: CancelBehavior = .shouldConfirmCancel,
         questionnaireResult: @escaping @MainActor (QuestionnaireResult) async -> Void
     ) {
         self.questionnaire = questionnaire
+        self.conversionContext = conversionContext
+        self.evaluationInstant = evaluationInstant
+        self.evaluationTimeZone = evaluationTimeZone
         self.completionStepMessage = completionStepMessage
         self.cancelBehavior = cancelBehavior
         self.questionnaireResult = questionnaireResult
@@ -90,7 +99,11 @@ public struct QuestionnaireView: View { // @available(*, deprecated, renamed: "G
         let questionnaireResult: QuestionnaireResult
         switch result {
         case let .completed(result):
-            questionnaireResult = .completed(result.fhirResponse)
+            do {
+                questionnaireResult = .completed(try result.fhirResponse(using: conversionContext))
+            } catch {
+                questionnaireResult = .failed(error)
+            }
         case .cancelled:
             questionnaireResult = .cancelled
         case .failed(let error):
@@ -115,7 +128,8 @@ public struct QuestionnaireView: View { // @available(*, deprecated, renamed: "G
         do {
             return try ORKNavigableOrderedTask(
                 questionnaire: questionnaire,
-                evaluationInstant: .now,
+                evaluationInstant: evaluationInstant,
+                evaluationTimeZone: evaluationTimeZone,
                 completionStep: completionStep
             )
         } catch {

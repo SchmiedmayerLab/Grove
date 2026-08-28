@@ -262,12 +262,7 @@ extension HealthKitConverter {
                 code: FHIRPrimitive(FHIRString(stringLiteral: component.code)),
                 system: FHIRPrimitive(FHIRURI(stringLiteral: component.system))
             )]),
-            value: .quantity(Quantity(
-                code: FHIRPrimitive(FHIRString(stringLiteral: quantity.code)),
-                system: FHIRPrimitive(FHIRURI(stringLiteral: quantity.system)),
-                unit: FHIRPrimitive(FHIRString(stringLiteral: quantity.unit)),
-                value: FHIRPrimitive(FHIRDecimal(Decimal(value)))
-            ))
+            value: .quantity(try fhirQuantity(value: value, contract: quantity))
         )
     }
 }

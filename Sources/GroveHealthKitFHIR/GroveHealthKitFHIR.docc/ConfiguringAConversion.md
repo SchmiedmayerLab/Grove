@@ -10,46 +10,67 @@
 #
 -->
 
-Decide who the data is about, who converted it, and which namespace names the resources the export creates.
+Supply the durable event, subject, device, and privacy inputs for one source record/version.
 
 ## Overview
 
 The Grove Mobile implementation guide (`https://grovealliance.org/fhir/mobile`) is the single place the shared FHIR concepts below are explained; this article covers what is specific to this converter.
 
-A conversion needs one piece of information the device cannot supply — the subject — and derives the rest from the running application.
+A conversion context is an event record, not a bag of defaults. It carries the logical subject and
+its stable identity, the producer instance and monotonic event sequence, the converter and host
+snapshots, the deployment's current HMAC key epoch, the source repository scope, and the conversion
+instant. Construct and persist these inputs before conversion; an exact retry reuses them unchanged.
 
-The subject is a FHIR `Reference` naming the participant the measurements belong to. Your backend assigns that id when it enrols the participant; the converter never invents one. <doc:ConfiguringAConversion#Naming-the-subject> covers how to choose it.
+The subject is an identifier-only logical `Reference`. The converter does not emit the caller's
+`Patient`, so it rejects a literal `Patient/123` reference that would dangle inside the closed Bundle.
 
 ```swift
-let patient = Reference(reference: "Patient/1a2b3c")
-let conversion = try HealthKitConverter().convert(sample, for: patient)
+let patientID = try BusinessIdentifier(
+    system: "https://study.example/fhir/identifiers/participant",
+    value: "participant-42"
+)
+let patient = Reference(
+    identifier: patientID.fhirIdentifier,
+    type: FHIRPrimitive(FHIRURI(stringLiteral: "Patient"))
+)
 ```
 
-Reach for ``HealthKitConversionContext`` when you need a study reference, a disclosure policy, or a fixed instant.
+Build one ``HealthKitConversionContext`` per immutable source record/version and then convert:
 
 ```swift
 let context = HealthKitConversionContext(
     subject: patient,
-    researchStudies: [Reference(reference: "ResearchStudy/heart-study")]
+    subjectIdentity: patientID,
+    converter: converter,
+    converterHost: converterHost,
+    eventIdentifier: persistedEventIdentifier,
+    entryNodeIdentifierSystem: entryNodeSystem,
+    identityScope: deploymentIdentityScope,
+    repositoryScope: healthKitRepository,
+    conversionInstant: persistedConversionInstant
 )
-let result = HealthKitConverter().convert(samples, context: context)
+let conversion = try HealthKitConverter().convert(sample, context: context)
 ```
 
 ## Naming the subject
 
-`subject` is the link from every emitted `Observation` to the participant it belongs to, written as `"Patient/<id>"` where `<id>` is the patient's id **in the receiving system**.
-The implementation guide's *New to FHIR* page, under *References, identifiers, and ids*, explains what that means in FHIR terms and why an email address is the wrong choice.
+`subject` is the link from every emitted clinical resource to the participant it belongs to. It must
+contain exactly one complete `Identifier` and the exact `Reference.type` token `Patient`; it must not
+also contain `Reference.reference`. The implementation guide's *New to FHIR* page explains why this
+logical reference remains resolvable without inventing a Bundle-local Patient.
 
 For this converter, two things follow:
 
-- Pass the id your backend already assigns — a study enrolment id or an account primary key.
-- If the backend has not created the `Patient` yet, create it first and convert afterwards.
-  The converter never invents a subject, and there is no default.
+- Use a deployment-owned absolute ASCII URI as `Identifier.system` and a nonempty stable value.
+- Pass the complete pair separately as `subjectIdentity`; it participates in opaque HMAC preimages
+  but the converter never substitutes it for the FHIR reference.
+- Never send an email address, display label, bare value, or literal URL in place of the pair.
 
 ## Identifying the converting application
 
-`converter` records which app produced the graph, and defaults to ``HealthKitApplication/main``, which reads the name, bundle identifier, and version from the app's own bundle.
-It becomes a `Device` resource in the output — see <doc:TheConversionGraph>.
+`converter` records which app produced the graph. `converterHost` is the separate device on which it
+ran. Both become immutable event-time `Device` snapshots; the application snapshot links to its host.
+Do not update one stable Device resource across historical events.
 
 Supply the value explicitly in a bare test runner or a command-line tool, where there is no application bundle to read:
 
@@ -61,40 +82,50 @@ let converter = HealthKitApplication(
 )
 ```
 
-## Choosing an identifier namespace
+## Persisting the event identity
 
-A FHIR business identifier is a `system`/`value` pair, where the system names whose numbering scheme the value belongs to; the guide's *New to FHIR* page covers that under *References, identifiers, and ids*.
+The Bundle identifier is an ``ExchangeEventIdentifier``. Its wire value is
+`e2:<producer-instance UUID>:<positive monotonic sequence>`. The identifier system is
+deployment-owned and stable for that producer instance.
 
-Most resources here already have a natural identifier: an `Observation` carries the HealthKit object UUID it came from.
-But three kinds of node exist *only* because you ran an export — the `Bundle`, the conversion `Provenance`, and any `Device` the converter derived.
-`graphIdentifierSystem` is the namespace their identifiers are minted in.
+- Generate the producer UUID once and persist it.
+- Reserve and durably persist the next positive sequence before emitting an event.
+- Reuse the complete identifier, conversion instant, and identity inputs for an exact retry.
+- Allocate a distinct event for every new source record/version. A batch therefore supplies a
+  context per sample through `contextForSample`; it never shares one event identity across samples.
 
-The identifiers are derived deterministically, so converting the same samples twice produces the same identifiers and the receiving server can recognise a re-send instead of storing a duplicate.
+Do not derive the sequence from the wall clock, source UUID, or payload. Those shortcuts cannot prove
+monotonicity and can mint a new identity during a retry.
 
-The default is derived from your bundle identifier — `urn:grove:healthkit-graph:org.example.study` — which is globally unique and stable across releases.
-Once the deployment owns a server namespace, pass it instead:
+## Configuring pseudonymous identities
 
-```swift
-let context = HealthKitConversionContext(
-    subject: patient,
-    graphIdentifierSystem: "https://mystudy.example.org/fhir/identifiers/mobile-graph"
-)
-```
+``PseudonymousIdentityScope`` owns the HMAC key id, positive epoch, key material, and a distinct
+deployment-owned identifier system for each closed identity kind. Rotate by creating new
+key-epoch-specific systems; never reuse one system across kinds or deployments. The API rejects a
+short key, zero epoch, malformed URI, repeated system, wrong component count, or empty core field.
 
-Keep one namespace per deployment. Changing it re-mints every derived identifier, so previously exported graphs no longer deduplicate against new ones.
+Source UUIDs, bundle identifiers, device tokens, and source-revision linkage stay in the framed HMAC
+preimage rather than clear global Grove NamingSystems. Every output carries typed `source-record` and
+`source-output` identifiers; recording documents additionally carry `source-artifact`.
 
 ## Understanding the two kinds of time
 
 FHIR separates when a measurement happened from when a record was published; the guide's *New to FHIR* page explains the distinction under *Reading an Observation*.
 
-This converter fills both from different places, and that is worth being explicit about:
+This converter keeps the distinct clocks explicit:
 
 - **`Observation.effective`** is read from each sample's own `HKSample.startDate` and `endDate`.
   A batch of a thousand samples produces a thousand different effective times.
-- **`Provenance.recorded` and `Bundle.timestamp`** both take the single `conversionInstant`.
-  One export is one provenance event, so sharing that instant across the batch is deliberate rather than an oversight.
-- **`Observation.issued`** is left out entirely.
-  HealthKit keeps no publication timestamp for a sample, and filling it from the clock would make every re-conversion of unchanged data look like a new version.
-  The conversion time is already recorded once, on the `Provenance`.
+- **`Observation.issued` is absent** because HealthKit exposes no object availability/modification
+  instant. A conversion clock is not a valid substitute.
+- **`Provenance.occurred`**, **`Provenance.recorded`**, and **`Bundle.timestamp`** take the event's
+  persisted `conversionInstant`.
+- A retry reuses that instant. A later source version receives a new event and instant.
 
-`conversionInstant` defaults to the wall clock; pass a fixed value to make a conversion byte-for-byte reproducible in tests.
+The converter never reads the clock. This prevents a retry from silently changing the clinical graph.
+
+Before upload, validate the complete serialized graph with ``ExchangeGraph``. Its JSON initializer
+preserves the shared conformance-corpus diagnostic even when a mutation changes `resourceType` so
+that ModelsR4 could not otherwise decode the resource. Validation closes entry types, direct profile
+modes, typed identities, governed target types, fixed UCUM system/code pairs, numeric domains,
+contained nodes, and support connectivity.

@@ -22,7 +22,7 @@ SPEC.loader.exec_module(MODULE)
 
 class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
     def catalogs(self) -> dict[str, dict]:
-        base = {"fhirVersion": "4.0.1", "version": "0.3.0"}
+        base = {"fhirVersion": "4.0.1", "version": "0.6.0"}
         return {
             "package-graph.json": {
                 **base,
@@ -36,7 +36,11 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                     {
                         "source": "healthkit",
                         "canonical": "https://grovealliance.org/fhir/healthkit",
-                        "profiles": ["healthkit-conversion-provenance", "healthkit-ecg-observation"],
+                        "profiles": [
+                            "healthkit-application-device",
+                            "healthkit-conversion-provenance",
+                            "healthkit-ecg-observation",
+                        ],
                     },
                 ],
             },
@@ -58,16 +62,209 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                     ],
                     "forbiddenExplicitProfiles": [],
                 },
+                "healthKitSingleProfileObservationClaims": {
+                    "profiles": [],
+                },
+                "healthConnectPlatformExclusiveClaims": {
+                    "profiles": [],
+                },
+                "sensorKitPlatformExclusiveClaims": {
+                    "profiles": [],
+                },
+                "sensorKitHybridObservationClaims": {
+                    "profiles": [
+                        "https://grovealliance.org/fhir/sensor/StructureDefinition/"
+                        "grove-sensor-ecg-observation",
+                        "https://grovealliance.org/fhir/sensorkit/StructureDefinition/"
+                        "sensorkit-ecg-observation",
+                    ],
+                },
+                "healthConnectSpecimenClaim": {
+                    "resourceType": "Specimen",
+                    "cardinality": 1,
+                    "profile": (
+                        "https://grovealliance.org/fhir/health-connect/StructureDefinition/"
+                        "health-connect-specimen"
+                    ),
+                    "otherProfilesAllowed": False,
+                },
+                "healthKitPlatformExclusiveResourceClaims": [
+                    {
+                        "resourceType": "MedicationAdministration",
+                        "cardinality": 1,
+                        "profile": (
+                            "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                            "healthkit-medication-dose-event"
+                        ),
+                        "otherProfilesAllowed": False,
+                    },
+                    {
+                        "resourceType": "MedicationStatement",
+                        "cardinality": 1,
+                        "profile": (
+                            "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                            "healthkit-user-annotated-medication"
+                        ),
+                        "otherProfilesAllowed": False,
+                    },
+                    {
+                        "resourceType": "VisionPrescription",
+                        "cardinality": 1,
+                        "profile": (
+                            "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                            "healthkit-vision-prescription"
+                        ),
+                        "otherProfilesAllowed": False,
+                    },
+                ],
+                "sensorRecordingDocumentClaim": {
+                    "cardinality": 1,
+                    "profiles": [
+                        "https://grovealliance.org/fhir/sensor/StructureDefinition/"
+                        "grove-sensor-recording-document"
+                    ],
+                    "otherProfilesAllowed": False,
+                    "requiredIdentifierRoles": ["source-record", "source-output", "source-artifact"],
+                },
+                "healthKitRecordingDocumentClaim": {
+                    "cardinality": 2,
+                    "profiles": [
+                        "https://grovealliance.org/fhir/sensor/StructureDefinition/"
+                        "grove-sensor-recording-document",
+                        "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                        "healthkit-recording-document",
+                    ],
+                    "otherProfilesAllowed": False,
+                    "requiredIdentifierRoles": ["source-record", "source-output", "source-artifact"],
+                },
+                "healthKitClinicalRecordDocumentClaim": {
+                    "cardinality": 1,
+                    "profiles": [
+                        "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                        "healthkit-clinical-record-document"
+                    ],
+                    "otherProfilesAllowed": False,
+                    "requiredIdentifierRoles": ["source-record", "source-output", "source-artifact"],
+                },
+                "sensorKitRecordingDocumentClaim": {
+                    "cardinality": 2,
+                    "profiles": [
+                        "https://grovealliance.org/fhir/sensor/StructureDefinition/"
+                        "grove-sensor-recording-document",
+                        "https://grovealliance.org/fhir/sensorkit/StructureDefinition/"
+                        "sensorkit-recording-document",
+                    ],
+                    "otherProfilesAllowed": False,
+                    "requiredIdentifierRoles": ["source-record", "source-output", "source-artifact"],
+                },
+                "providerRecordingDocumentClaim": {
+                    "cardinality": 2,
+                    "profiles": [
+                        "https://grovealliance.org/fhir/sensor/StructureDefinition/"
+                        "grove-sensor-recording-document",
+                        "https://grovealliance.org/fhir/providers/StructureDefinition/"
+                        "providers-recording-document",
+                    ],
+                    "otherProfilesAllowed": False,
+                    "requiredIdentifierRoles": ["source-record", "source-output", "source-artifact"],
+                },
+                "activeDeviceClaims": [
+                    {
+                        "id": "mobile-application-device",
+                        "cardinality": 1,
+                        "profiles": [
+                            "https://grovealliance.org/fhir/mobile/StructureDefinition/"
+                            "grove-application-device"
+                        ],
+                        "otherProfilesAllowed": False,
+                        "requiredIdentifierRoles": ["device-snapshot"],
+                    }
+                ],
+                "activeQuestionnaireResponseClaim": {
+                    "cardinality": 1,
+                    "profiles": [
+                        "https://grovealliance.org/fhir/questionnaire/StructureDefinition/"
+                        "grove-questionnaire-response"
+                    ],
+                    "otherProfilesAllowed": False,
+                },
+                "adapterConversionProvenanceClaims": [
+                    {
+                        "adapter": "healthkit",
+                        "profile": (
+                            "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                            "healthkit-conversion-provenance"
+                        ),
+                        "targetAdapterProfiles": [
+                            "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                            "healthkit-ecg-observation"
+                        ],
+                    }
+                ],
             },
             "healthkit-adapter.json": {
                 **base,
-                "sourceTypeCoding": {
-                    "system": "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-source-type"
+                "sourceTypeExtension": {
+                    "url": (
+                        "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                        "healthkit-source-type-extension"
+                    ),
+                    "valueSystem": "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-source-type",
+                    "valueElement": "valueCode",
+                    "cardinality": "exactly one",
+                    "contexts": [
+                        "Observation",
+                        "DocumentReference",
+                        "VisionPrescription",
+                        "MedicationAdministration",
+                        "MedicationStatement",
+                    ],
+                    "rule": "lineage",
                 },
                 "conversionProvenanceProfile": (
                     "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
                     "healthkit-conversion-provenance"
                 ),
+                "applicationDeviceIdentity": {
+                    "profile": (
+                        "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                        "healthkit-application-device"
+                    ),
+                    "snapshotIdentifierRole": "device-snapshot",
+                    "bundleIdentifier": {
+                        "system": (
+                            "https://grovealliance.org/fhir/healthkit/NamingSystem/"
+                            "apple-bundle-id"
+                        ),
+                        "typeSystem": (
+                            "https://grovealliance.org/fhir/healthkit/CodeSystem/"
+                            "healthkit-identifier-type"
+                        ),
+                        "typeCode": "apple-bundle-id",
+                        "cardinality": "1..1",
+                    },
+                },
+                "clinicalRecordAdmission": {
+                    "profile": (
+                        "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                        "healthkit-clinical-record-document"
+                    ),
+                    "payloadFormat": "fhir-r4-resource",
+                    "sourceFHIRReleaseField": "HKFHIRVersion.fhirRelease",
+                    "admittedFHIRRelease": "r4",
+                    "fhirRepresentation": {
+                        "resourceType": "DocumentReference",
+                        "extensionUrl": (
+                            "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                            "healthkit-clinical-fhir-release"
+                        ),
+                        "valueElement": "valueCode",
+                        "cardinality": {"min": 1, "max": 1},
+                        "fixedValue": "r4",
+                    },
+                    "rejectedFHIRReleases": ["dstu2", "unknown"],
+                    "rule": "R4 only.",
+                },
                 "producerCanonicalization": {
                     "effectivePrecision": "millisecond",
                     "effectiveRounding": "half-even",
@@ -117,17 +314,93 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                     },
                 ],
             },
-            "exchange-identity.json": {
-                "version": "0.3.0",
-                "profile": (
-                    "https://grovealliance.org/fhir/mobile/StructureDefinition/"
-                    "grove-mobile-exchange-bundle"
-                ),
-                "entryIdentifierExtension": (
-                    "https://grovealliance.org/fhir/mobile/StructureDefinition/"
-                    "grove-exchange-entry-identifier"
-                ),
-                "fullUrlAlgorithm": {"name": "uuid-v5-jcs-identifier-v1", "namespace": "test"},
+            "providers-adapter.json": {
+                **base,
+                "providers": [
+                    {
+                        "id": "google-health-api",
+                        "measurementOwner": "google-health",
+                        "observationProfile": (
+                            "https://grovealliance.org/fhir/google-health/StructureDefinition/"
+                            "google-health-observation"
+                        ),
+                    },
+                    {
+                        "id": "oura",
+                        "measurementOwner": "oura",
+                        "observationProfile": (
+                            "https://grovealliance.org/fhir/oura/StructureDefinition/"
+                            "oura-observation"
+                        ),
+                    },
+                    {
+                        "id": "withings",
+                        "measurementOwner": "withings",
+                        "observationProfile": (
+                            "https://grovealliance.org/fhir/withings/StructureDefinition/"
+                            "withings-observation"
+                        ),
+                    },
+                ],
+            },
+            "exchange-protocol.json": {
+                **base,
+                "extensions": {
+                    "entryNodeKey": (
+                        "https://grovealliance.org/fhir/mobile/StructureDefinition/"
+                        "grove-exchange-entry-node-key"
+                    )
+                },
+                "entryIdentity": {
+                    "fullUrl": {
+                        "algorithm": "uuid-v5-length-framed-system-value-v2",
+                        "namespace": "43df4575-bff7-5a57-9a80-2472cd2b0623",
+                    }
+                },
+                "lifecycle": {
+                    "active": {
+                        "entryResourcePolicy": {
+                            "outputResourceTypes": [
+                                "Observation",
+                                "DocumentReference",
+                                "Specimen",
+                                "VisionPrescription",
+                                "MedicationAdministration",
+                                "MedicationStatement",
+                            ],
+                            "supportingResourceTypes": [
+                                "Patient",
+                                "Device",
+                                "ResearchStudy",
+                                "ResearchSubject",
+                                "PlanDefinition",
+                                "QuestionnaireResponse",
+                            ],
+                            "lifecycleResourceType": "Provenance",
+                            "otherResourceTypesAllowed": False,
+                            "containedResourcesAllowed": False,
+                            "supportingResourcesMustBeConnected": True,
+                        },
+                        "adapterOnlyOutputProfileClaims": {
+                            "resourceTypes": [
+                                "Specimen",
+                                "VisionPrescription",
+                                "MedicationAdministration",
+                                "MedicationStatement",
+                            ]
+                        }
+                    }
+                },
+                "profiles": {
+                    "conversionProvenance": (
+                        "https://grovealliance.org/fhir/mobile/StructureDefinition/"
+                        "grove-mobile-conversion-provenance"
+                    ),
+                    "retractionProvenance": (
+                        "https://grovealliance.org/fhir/mobile/StructureDefinition/"
+                        "grove-mobile-retraction-provenance"
+                    ),
+                },
             },
         }
 
@@ -146,7 +419,21 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         self.assertIn("HKQuantityTypeIdentifierBodyMassIndex", generated)
         self.assertIn("public static let bodyMassIndexProfiles", generated)
         self.assertIn("public static let electrocardiogramProfiles", generated)
-        self.assertIn("public static let electrocardiogramCorrelatedSymptomExtension", generated)
+        self.assertIn("public static let sourceTypeExtension", generated)
+        self.assertNotIn("electrocardiogramCorrelatedSymptomExtension", generated)
+        self.assertIn("public static let applicationDeviceProfile", generated)
+        self.assertIn("public static let appleBundleIdentifierSystem", generated)
+        self.assertIn('public static let appleBundleIdentifierTypeCode = "apple-bundle-id"', generated)
+        self.assertIn("public static let clinicalRecordProfile", generated)
+        self.assertIn("public static let clinicalFHIRReleaseExtension", generated)
+        self.assertIn('public static let clinicalFHIRReleaseCode = "r4"', generated)
+        self.assertIn("public static let adapterOnlyOutputProfiles", generated)
+        self.assertIn("public static let documentProfileModes", generated)
+        self.assertIn("public static let deviceProfileModes", generated)
+        self.assertIn("public static let activeProvenanceProfiles", generated)
+        self.assertIn("public static let activeOutputResourceTypes", generated)
+        self.assertIn("public static let containedResourcesAllowed = false", generated)
+        self.assertIn('"Specimen": "https://grovealliance.org/fhir/health-connect/', generated)
         # Generated rows reference the profile constants this file defines rather than literals.
         self.assertIn("Profile.healthkitEcgObservation],", generated)
         # A quantity contract carries the catalog's canonical unit display.
@@ -157,6 +444,13 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         catalogs["healthkit-adapter.json"]["rows"].reverse()
 
         with self.assertRaisesRegex(ValueError, "must be sorted"):
+            self.generate(catalogs)
+
+    def test_rejects_non_r4_clinical_record_representation(self):
+        catalogs = self.catalogs()
+        catalogs["healthkit-adapter.json"]["clinicalRecordAdmission"]["admittedFHIRRelease"] = "dstu2"
+
+        with self.assertRaisesRegex(ValueError, "exact R4 DocumentReference"):
             self.generate(catalogs)
 
     def test_rejects_unpaired_multi_measurement_healthkit_row(self):
@@ -181,7 +475,16 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                 "id": "heart-rate",
                 "profile": "grove-mobile-heart-rate",
                 "code": {"system": "http://loinc.org", "code": "8867-4"},
-                "quantity": {"system": "u", "code": "/min", "unit": "beats/minute"},
+                "quantity": {
+                    "system": "u",
+                    "code": "/min",
+                    "unit": "beats/minute",
+                    "valueDomain": {
+                        "minimum": {"value": 0, "inclusive": True},
+                        "maximum": {"value": 300, "inclusive": False},
+                        "integerOnly": True,
+                    },
+                },
                 "effective": "dateTime",
             },
             {
@@ -211,7 +514,98 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         self.assertLess(generated.index("let heartRate = MeasurementContract("), healthkit)
         self.assertGreater(generated.index("let symptomHeadache = MeasurementContract("), healthkit)
         self.assertIn('display: "Headache"', generated)
+        self.assertIn(
+            'QuantityValueDomain(minimum: QuantityBoundary(value: "0", inclusive: true), '
+            'maximum: QuantityBoundary(value: "300", inclusive: false), integerOnly: true)',
+            generated,
+        )
+        self.assertIn("    init(value lexical: String, inclusive: Bool) {", generated)
+        self.assertNotIn("    public init(value lexical: String, inclusive: Bool) {", generated)
+        self.assertIn("public func contains(_ value: Decimal) -> Bool", generated)
         self.assertNotIn("stepCadence", generated)
+
+    def test_preserves_effective_datetime_or_period_choice(self):
+        catalogs = self.catalogs()
+        catalogs["package-graph.json"]["packages"][0]["profiles"].append("grove-mobile-heart-rate")
+        catalogs["measurement-catalog.json"]["measurements"] = [
+            {
+                "id": "heart-rate",
+                "profile": "grove-mobile-heart-rate",
+                "code": {"system": "http://loinc.org", "code": "8867-4"},
+                "quantity": {"system": "http://unitsofmeasure.org", "code": "/min", "unit": "beats/minute"},
+                "effective": "dateTime-or-Period",
+            }
+        ]
+
+        generated = self.generate(catalogs)
+        self.assertIn('case dateTimeOrPeriod = "dateTime-or-Period"', generated)
+        self.assertIn("effective: .dateTimeOrPeriod", generated)
+
+    def test_provider_owned_semantics_require_their_exact_envelope(self):
+        catalogs = self.catalogs()
+        catalogs["measurement-catalog.json"]["measurements"] = [{
+            "id": "oura-readiness-score",
+            "owner": "oura",
+            "profile": "oura-readiness-score",
+            "code": {"system": "https://example.org/provider", "code": "readiness"},
+            "quantity": None,
+            "effective": "Period",
+        }]
+
+        generated = self.generate(catalogs)
+
+        self.assertIn("public static let providerOwnedSemanticAdapters", generated)
+        self.assertIn(
+            '"https://grovealliance.org/fhir/oura/StructureDefinition/oura-readiness-score": '
+            '"https://grovealliance.org/fhir/oura/StructureDefinition/oura-observation"',
+            generated,
+        )
+
+    def test_generates_additional_required_measurement_codings(self):
+        catalogs = self.catalogs()
+        catalogs["package-graph.json"]["packages"][0]["profiles"].append(
+            "grove-mobile-resting-heart-rate"
+        )
+        catalogs["measurement-catalog.json"]["measurements"] = [{
+            "id": "resting-heart-rate",
+            "profile": "grove-mobile-resting-heart-rate",
+            "code": {"system": "http://loinc.org", "code": "40443-4"},
+            "requiredCodings": [{
+                "slice": "heartRate",
+                "system": "http://loinc.org",
+                "code": "8867-4",
+                "display": "Heart rate",
+            }],
+            "quantity": {
+                "system": "http://unitsofmeasure.org",
+                "code": "/min",
+                "unit": "beats/minute",
+            },
+            "effective": "dateTime",
+        }]
+
+        generated = self.generate(catalogs)
+
+        self.assertIn("public let requiredCodings: [CodingContract]", generated)
+        self.assertIn(
+            'CodingContract(system: "http://loinc.org", code: "8867-4", display: "Heart rate")',
+            generated,
+        )
+
+    def test_rejects_unknown_effective_choice(self):
+        catalogs = self.catalogs()
+        catalogs["package-graph.json"]["packages"][0]["profiles"].append("grove-mobile-heart-rate")
+        catalogs["measurement-catalog.json"]["measurements"] = [
+            {
+                "id": "heart-rate",
+                "profile": "grove-mobile-heart-rate",
+                "code": {"system": "http://loinc.org", "code": "8867-4"},
+                "quantity": None,
+                "effective": "instant",
+            }
+        ]
+        with self.assertRaisesRegex(ValueError, "unsupported effective choice"):
+            self.generate(catalogs)
 
 
 if __name__ == "__main__":

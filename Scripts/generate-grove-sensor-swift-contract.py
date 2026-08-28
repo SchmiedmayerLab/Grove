@@ -6,7 +6,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""Generate Swift Sensor/SensorKit producer contracts from grove-fhir v0.3 catalogs."""
+"""Generate Swift Sensor/SensorKit producer contracts from grove-fhir v0.6 catalogs."""
 
 from __future__ import annotations
 
@@ -163,21 +163,54 @@ def validate_adapter(adapter: dict[str, Any], assertions: list[str]) -> list[dic
     return entries
 
 
-def validate_identity_vectors(adapter: dict[str, Any]) -> None:
-    """The output identity states its own inputs, so a vector is checked by rebuilding it."""
-    output = adapter["identity"]["output"]
-    separator = output["separator"]
-    scheme = output["versionPrefix"]
-    for vector in output["vectors"]:
-        components = vector["components"]
-        expected = vector["identifierValue"]
-        if any(separator in component for component in components):
-            # A component carrying the separator has no representation and is rejected.
-            if expected is not None:
-                raise ValueError("SensorKit identity vector admits an unrepresentable component")
-            continue
-        if expected != scheme + ":" + separator.join(components):
-            raise ValueError("SensorKit identity vector composition differs")
+def validate_identity_contract(adapter: dict[str, Any]) -> None:
+    """Require the adapter to delegate to the shared length-framed v2 identity contract."""
+    identity = adapter.get("identity")
+    if not isinstance(identity, dict):
+        raise ValueError("SensorKit adapter catalog has no identity contract")
+    if identity.get("contract") != "catalog/exchange-protocol.json":
+        raise ValueError("SensorKit identity must delegate to catalog/exchange-protocol.json")
+    if identity.get("protocolVersion") != 2 or identity.get("adapterId") != "sensorkit":
+        raise ValueError("SensorKit identity must use the sensorkit v2 protocol coordinates")
+
+    expected = {
+        "sourceRecord": (
+            "source-record",
+            [
+                "adapter-id",
+                "source-type",
+                "repository-scope-system",
+                "repository-scope-value",
+                "native-record-id",
+            ],
+        ),
+        "sourceOutput": (
+            "source-output",
+            [
+                "adapter-id",
+                "source-type",
+                "repository-scope-system",
+                "repository-scope-value",
+                "native-record-id",
+                "output-role",
+                "output-discriminator",
+            ],
+        ),
+    }
+    for name, (role, components) in expected.items():
+        declaration = identity.get(name)
+        if not isinstance(declaration, dict):
+            raise ValueError(f"SensorKit identity has no {name} declaration")
+        if declaration.get("identityKind") != role or declaration.get("identifierRole") != role:
+            raise ValueError(f"SensorKit {name} must use the shared {role} identity role")
+        if declaration.get("components") != components:
+            raise ValueError(f"SensorKit {name} component order differs from exchange protocol v2")
+
+    artifact = identity.get("sourceArtifact")
+    if not isinstance(artifact, dict):
+        raise ValueError("SensorKit identity has no sourceArtifact declaration")
+    if artifact.get("identityKind") != "source-artifact" or artifact.get("identifierRole") != "source-artifact":
+        raise ValueError("SensorKit sourceArtifact must use the shared source-artifact identity role")
 
 
 def requirement(entry: dict[str, Any]) -> str | None:
@@ -197,15 +230,13 @@ def generate(sensor_path: Path, adapter_path: Path, registry_path: Path) -> str:
     registry = read_json(registry_path)
     assertions = load_assertions(sensor)
     entries = validate_adapter(adapter, assertions)
-    validate_identity_vectors(adapter)
+    validate_identity_contract(adapter)
 
     canonical = adapter["canonical"]
     sensor_canonical = sensor.get("canonical")
     if not isinstance(sensor_canonical, str) or not sensor_canonical:
         raise ValueError("sensor catalog has no canonical")
     claims = adapter["profileClaims"]
-    source_system = adapter["identity"]["sourceRecord"]["system"]
-    output = adapter["identity"]["output"]
     raw_profiles = [
         claims["recordingDocument"]["sourceNeutralProfile"],
         claims["recordingDocument"]["adapterProfile"],
@@ -233,8 +264,6 @@ def generate(sensor_path: Path, adapter_path: Path, registry_path: Path) -> str:
 
     constants = {
         "canonicalRoot": canonical,
-        "sourceRecordIdentifierSystem": source_system,
-        "outputIdentifierSystem": output["system"],
         "sourceTypeExtension": f"{canonical}/StructureDefinition/sensorkit-source-type",
         "ecgSessionGuidanceExtension": f"{canonical}/StructureDefinition/sensorkit-ecg-session-guidance",
         "visitLocationExtension": f"{canonical}/StructureDefinition/sensorkit-visit-location",
@@ -251,9 +280,8 @@ def generate(sensor_path: Path, adapter_path: Path, registry_path: Path) -> str:
         "sensorRecordingDocumentProfile": claims["recordingDocument"]["sourceNeutralProfile"],
         "sensorConversionProvenanceProfile": sensor_profiles["conversion-provenance"],
         "recordingFormatCodeSystem": f"{sensor_canonical}/CodeSystem/grove-recording-format",
-        "defaultRawOutputDiscriminator": claims["recordingDocument"]["defaultOutputDiscriminator"],
     }
-    lines.append("/// Generated canonical and identity constants for the SensorKit v0.3 producer.")
+    lines.append("/// Generated canonical constants for the SensorKit v0.6 producer.")
     lines.append("public enum SensorKitContract {")
     for name, value in constants.items():
         lines.append(f"    public static let {name} = {swift_string(value)}")
@@ -277,8 +305,8 @@ def generate(sensor_path: Path, adapter_path: Path, registry_path: Path) -> str:
         lines.append(f"    case {swift_format_case(value)} = {swift_string(value)}")
     lines.extend(["", "    /// The media type the registry publishes for this format."])
     lines.append("    ///")
-    lines.append("    /// A recording may declare a more specific vendor subtype of it; this is the general")
-    lines.append("    /// form a receiver can always parse.")
+    lines.append("    /// This exact pair is closed by the registry; producers cannot supply an independent")
+    lines.append("    /// media type that contradicts the payload schema named by the format code.")
     lines.append("    public var registeredContentType: String {")
     lines.append("        switch self {")
     for value in sorted(formats):

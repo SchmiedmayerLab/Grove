@@ -30,6 +30,7 @@ struct HealthKitFHIRObservationContract: Sendable {
             profiles: HealthKitContract.bodyMassIndexProfiles
         ),
         code: CodingContract(system: "http://loinc.org", code: "39156-5"),
+        requiredCodings: [],
         quantity: QuantityContract(
             system: "http://unitsofmeasure.org",
             code: "kg/m2",
@@ -40,6 +41,7 @@ struct HealthKitFHIRObservationContract: Sendable {
 
     let measurement: HealthKitMeasurementContract
     let code: CodingContract
+    let requiredCodings: [CodingContract]
     let quantity: QuantityContract?
     let components: [ComponentContract]
     let resultCodeSystem: String?
@@ -51,14 +53,21 @@ struct HealthKitFHIRObservationContract: Sendable {
     var profiles: [FHIRPrimitive<Canonical>] { measurement.profiles }
 
     init(shared: MeasurementContract) {
-        self.measurement = HealthKitMeasurementContract(
-            id: shared.id,
-            profiles: ProfileClaims.observation(
+        let profiles: [FHIRPrimitive<Canonical>]
+        if ProfileClaims.singleObservationProfiles.contains(shared.profile) {
+            profiles = [shared.profile]
+        } else {
+            profiles = ProfileClaims.observation(
                 sharedMeasurement: shared.profile,
                 adapter: Profile.healthkitObservation
             )
+        }
+        self.measurement = HealthKitMeasurementContract(
+            id: shared.id,
+            profiles: profiles
         )
         self.code = shared.code
+        self.requiredCodings = shared.requiredCodings
         self.quantity = shared.quantity
         self.components = shared.components
         self.resultCodeSystem = shared.resultCodeSystem
@@ -70,6 +79,7 @@ struct HealthKitFHIRObservationContract: Sendable {
     private init(
         measurement: HealthKitMeasurementContract,
         code: CodingContract,
+        requiredCodings: [CodingContract] = [],
         quantity: QuantityContract?,
         components: [ComponentContract] = [],
         resultCodeSystem: String? = nil,
@@ -77,6 +87,7 @@ struct HealthKitFHIRObservationContract: Sendable {
     ) {
         self.measurement = measurement
         self.code = code
+        self.requiredCodings = requiredCodings
         self.quantity = quantity
         self.components = components
         self.resultCodeSystem = resultCodeSystem

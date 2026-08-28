@@ -92,13 +92,15 @@ struct DraftLifecycleTests {
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
             status: .inProgress,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         #expect(fhirResponse.status.value == .inProgress)
         // The default remains a completed response.
         let completed = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         #expect(completed.status.value == .completed)
     }

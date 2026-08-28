@@ -22,10 +22,18 @@ public struct RecordingBinaryReader: ~Copyable {
         case unexpectedEnd
         /// A varint ran past the ten bytes a 64-bit value can occupy.
         case varintOverflow
+        /// A value used more bytes than its shortest unsigned LEB128 encoding.
+        case nonCanonicalVarint
         /// A boolean byte was neither `0x00` nor `0x01`.
         case invalidBoolean(UInt8)
         /// A string's bytes are not valid UTF-8.
         case invalidUTF8
+        /// A binary64 value was NaN or infinite.
+        case nonFiniteFloat
+        /// Negative zero is not the canonical encoding of zero.
+        case nonCanonicalNegativeZero
+        /// A set member was duplicate or did not follow its predecessor in ascending order.
+        case nonAscendingSet
         /// A count would not fit this platform's `Int`.
         case countOutOfRange(UInt64)
         /// Bytes remained after the last declared value.
@@ -64,19 +72,20 @@ public struct RecordingBinaryReader: ~Copyable {
     /// Unsigned LEB128.
     public mutating func readVarint() throws -> UInt64 {
         var result: UInt64 = 0
-        var shift: UInt64 = 0
-        while true {
+        for index in 0..<10 {
             let byte = try next()
-            // Ten groups of seven bits is the most a 64-bit value can occupy.
-            guard shift < 70 else {
+            if index == 9, byte > 0x01 {
                 throw ReaderError.varintOverflow
             }
-            result |= UInt64(byte & 0x7F) << shift
+            result |= UInt64(byte & 0x7F) << UInt64(index * 7)
             if byte & 0x80 == 0 {
+                if index > 0, byte == 0 {
+                    throw ReaderError.nonCanonicalVarint
+                }
                 return result
             }
-            shift += 7
         }
+        throw ReaderError.varintOverflow
     }
 
     /// A signed integer, recovered from the two's-complement pattern the writer stored.
@@ -90,7 +99,14 @@ public struct RecordingBinaryReader: ~Copyable {
         for _ in 0..<8 {
             pattern = (pattern << 8) | UInt64(try next())
         }
-        return Double(bitPattern: UInt64(bigEndian: pattern.bigEndian))
+        let value = Double(bitPattern: pattern)
+        guard value.isFinite else {
+            throw ReaderError.nonFiniteFloat
+        }
+        guard pattern != (-0.0).bitPattern else {
+            throw ReaderError.nonCanonicalNegativeZero
+        }
+        return value
     }
 
     /// One byte: `0x00` false, `0x01` true. Any other byte is a malformed payload, not `true`.
@@ -132,9 +148,20 @@ public struct RecordingBinaryReader: ~Copyable {
         return values
     }
 
+    /// Reads a canonical set and rejects duplicates and non-ascending values.
+    public mutating func readCanonicalSet<Element: Comparable>(
+        element: (inout Self) throws -> Element
+    ) throws -> [Element] {
+        let values = try readArray(element: element)
+        for (previous, current) in zip(values, values.dropFirst()) where current <= previous {
+            throw ReaderError.nonAscendingSet
+        }
+        return values
+    }
+
     private mutating func readCount() throws -> Int {
         let raw = try readVarint()
-        guard let count = Int(exactly: raw), count <= bytes.count - offset + 1 else {
+        guard let count = Int(exactly: raw), count <= bytes.count - offset else {
             throw ReaderError.countOutOfRange(raw)
         }
         return count

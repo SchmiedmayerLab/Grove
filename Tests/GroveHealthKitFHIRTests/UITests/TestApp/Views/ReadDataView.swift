@@ -55,20 +55,15 @@ struct ReadDataView<Sample: _HKSampleWithSampleType>: View {
             sortedBy: [.init(\.startDate, order: .reverse)]
         )
         let now = Date.now
-        let context = HealthKitConversionContext(
-            subject: Reference(reference: "Patient/example"),
-            converter: HealthKitApplication(
-                name: "Grove HealthKit FHIR Test App",
-                bundleIdentifier: "org.grovealliance.healthkit-fhir-test-app",
-                version: "0.5.0"
-            ),
-            graphIdentifierSystem: "https://grovealliance.org/fhir/testing/identifiers/ui-graph",
-            conversionInstant: now
-        )
-        let bundles = try samples.map { sample in
+        let sequenceBase = UInt64(max(1, Int64(now.timeIntervalSince1970 * 1_000_000)))
+        let bundles = try samples.enumerated().map { offset, sample in
             guard let healthKitSample = sample as? HKSample else {
                 throw HealthKitConversionError.invalidValue
             }
+            let context = try makeFHIRTestContext(
+                sequence: sequenceBase + UInt64(offset),
+                conversionInstant: now
+            )
             return try HealthKitConverter().convert(healthKitSample, context: context).bundle
         }
         let encoder = JSONEncoder()

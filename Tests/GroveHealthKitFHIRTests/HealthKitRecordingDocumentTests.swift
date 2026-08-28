@@ -84,7 +84,7 @@ struct HealthKitRecordingDocumentTests {
         routeDisclosurePolicy: HealthKitRouteDisclosurePolicy = .omit
     ) -> HealthKitConversionContext {
         HealthKitConversionContext(
-            subject: Reference(reference: "Patient/example"),
+            subject: .testPatient,
             converter: HealthKitApplication(
                 name: "Example Study",
                 bundleIdentifier: "org.grovealliance.example-study",
@@ -115,14 +115,14 @@ struct HealthKitRecordingDocumentTests {
 
         #expect(String(decoding: payload, as: UTF8.self) == """
             timestamp,precededByGap
-            1755624000.0,0
+            1755624000,0
             1755624000.84,0
             1755624001.71,1
 
             """)
         // The exact base64 the guide publishes for its heartbeat-series example.
         #expect(payload.base64EncodedString() == """
-            dGltZXN0YW1wLHByZWNlZGVkQnlHYXAKMTc1NTYyNDAwMC4wLDAKMTc1NTYyNDAwMC44NCwwCjE3NTU2MjQwMDEuNzEsMQo=
+            dGltZXN0YW1wLHByZWNlZGVkQnlHYXAKMTc1NTYyNDAwMCwwCjE3NTU2MjQwMDAuODQsMAoxNzU1NjI0MDAxLjcxLDEK
             """)
     }
 
@@ -149,6 +149,7 @@ struct HealthKitRecordingDocumentTests {
         let conversion = try HealthKitConverter.assembleDocumentGraph(
             for: envelopeSample(),
             evidence: HealthKitRecordingEvidence(
+                outputRole: "native-recording",
                 format: .beatIntervalSeries,
                 title: "Heartbeat series beat intervals",
                 payload: payload
@@ -162,21 +163,22 @@ struct HealthKitRecordingDocumentTests {
             HealthKitRecordingDocumentContract.profile
         ])
         #expect(document.status.value == .current)
-        #expect(document.subject?.reference?.value?.string == "Patient/example")
-        #expect(document.identifier?.first?.system?.value?.url.absoluteString
-            == Canonicals.healthKitObjectIdentifierSystem)
-        #expect(document.identifier?.first?.value?.value?.string == conversion.graphIdentifiers.document.value)
+        #expect(document.subject == .testPatient)
+        let identifiers = try #require(document.identifier).map(BusinessIdentifier.init)
+        #expect(identifiers.map(\.role) == [.sourceRecord, .sourceOutput, .sourceArtifact])
+        #expect(document.identifier?[1].value?.value?.string == conversion.graphIdentifiers.sourceOutput.value)
+        #expect(document.content.count == 1)
 
         let content = try #require(document.content.first)
         #expect(content.format?.code?.value?.string == "beat-interval-series")
         #expect(content.format?.system?.value?.url.absoluteString
             == "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format")
-        #expect(content.format?.version?.value?.string == "0.5.0")
+        #expect(content.format?.version?.value?.string == "0.6.0")
         #expect(content.attachment.contentType?.value?.string == "text/csv")
         #expect(content.attachment.title?.value?.string == "Heartbeat series beat intervals")
-        #expect(content.attachment.size?.value?.integer == 71)
+        #expect(content.attachment.size?.value?.integer == 69)
         #expect(content.attachment.data?.value?.dataString == payload.base64EncodedString())
-        #expect(content.attachment.hash?.value?.dataString == "lpe4Lz8znQwYfaYZt3i6kWBo+JM=")
+        #expect(content.attachment.hash?.value?.dataString == "eQkKWi5ACtHFVRcy+yqDrwwrQs0=")
     }
 
     @Test("The document states its HealthKit source type and its conversion event")
@@ -185,6 +187,7 @@ struct HealthKitRecordingDocumentTests {
         let conversion = try HealthKitConverter.assembleDocumentGraph(
             for: sample,
             evidence: HealthKitRecordingEvidence(
+                outputRole: "native-recording",
                 format: .beatIntervalSeries,
                 title: "Heartbeat series beat intervals",
                 payload: try HealthKitConverter.beatIntervalPayload(
@@ -198,17 +201,26 @@ struct HealthKitRecordingDocumentTests {
 
         let coding = try #require(conversion.document.type?.coding?.first)
         #expect(coding.system?.value?.url.absoluteString
-            == "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-source-type")
-        #expect(coding.code?.value?.string == sample.sampleType.identifier)
+            == "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format")
+        #expect(coding.code?.value?.string == "beat-interval-series")
+        let sourceTypes = conversion.document.extension?.filter {
+            $0.url == Canonicals.healthKitSourceTypeExtension
+        }
+        #expect(sourceTypes?.count == 1)
+        guard case .code(let sourceType) = sourceTypes?.first?.value else {
+            Issue.record("HealthKit source type must use the lineage valueCode extension")
+            return
+        }
+        #expect(sourceType.value?.string == sample.sampleType.identifier)
 
-        // The HealthKit conversion profile admits only an Observation target, so a document's
-        // conversion event is stated under the shared sensor profile it descends from.
-        #expect(conversion.provenance.meta?.profile == [Profile.groveSensorConversionProvenance])
-        let documentURL = try ExchangeIdentity.fullURL(for: conversion.graphIdentifiers.document)
+        #expect(conversion.provenance.meta?.profile == [
+            HealthKitContract.conversionProvenanceProfile
+        ])
+        let documentURL = try ExchangeIdentity.fullURL(for: conversion.graphIdentifiers.sourceOutput)
         #expect(conversion.provenance.target.first?.reference?.value?.string == documentURL)
         #expect(conversion.bundle.entry?.first?.fullUrl?.value?.url.absoluteString == documentURL)
         #expect(conversion.document.author?.last?.reference?.value?.string
-            == (try ExchangeIdentity.fullURL(for: conversion.graphIdentifiers.converterApplication)))
+            == (try ExchangeIdentity.fullURL(for: conversion.graphIdentifiers.converterApplicationSnapshot)))
     }
 
     @Test("A route is omitted under the default disclosure policy")
@@ -232,8 +244,8 @@ struct HealthKitRecordingDocumentTests {
         // empty field rather than CoreLocation's negative sentinel.
         #expect(String(decoding: payload, as: UTF8.self) == """
             timestamp,latitude,longitude,altitude,horizontalAccuracy,verticalAccuracy,speed,speedAccuracy,course,courseAccuracy
-            1755624000.0,37.4275,-122.1697,30.5,5.0,3.0,2.25,0.5,91.5,10.0
-            1755624001.0,37.4276,-122.1698,0.0,65.0,,,,,
+            1755624000,37.4275,-122.1697,30.5,5,3,2.25,0.5,91.5,10
+            1755624001,37.4276,-122.1698,0,65,,,,,
 
             """)
     }
@@ -270,8 +282,16 @@ struct HealthKitRecordingDocumentTests {
         #expect(content.attachment.title?.value?.string == "Grove Example Summary")
         #expect(content.attachment.size?.value?.integer == Int32(bytes.count))
         #expect(content.attachment.data?.value?.dataString == bytes.base64EncodedString())
-        #expect(conversion.document.type?.coding?.first?.code?.value?.string == HKDocumentTypeIdentifier.CDA.rawValue)
+        #expect(conversion.document.type?.coding?.first?.code?.value?.string == "clinical-document")
+        #expect(conversion.document.extension?.contains {
+            guard $0.url == Canonicals.healthKitSourceTypeExtension,
+                  case .code(let value) = $0.value else {
+                return false
+            }
+            return value.value?.string == sample.sampleType.identifier
+        } == true)
     }
+
     #endif
 }
 

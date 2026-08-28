@@ -40,13 +40,11 @@ class SensorSwiftContractTests(unittest.TestCase):
                 },
             ],
         }))
-        source_system = "https://example.org/sensorkit/source"
         discriminator = "native-recording"
-        record = "879d9ea2-21cb-4527-b59b-2831dc4c84ab"
         adapter = pathlib.Path(directory) / "sensorkit-adapter.json"
         adapter.write_text(json.dumps({
             "schemaVersion": 1,
-            "version": "0.3.0",
+            "version": "0.6.0",
             "fhirVersion": "4.0.1",
             "packageId": "org.grovealliance.fhir.sensorkit",
             "canonical": "https://example.org/sensorkit",
@@ -66,23 +64,36 @@ class SensorSwiftContractTests(unittest.TestCase):
                 "conversionProvenance": {"profile": "https://example.org/sensorkit/provenance"},
             },
             "identity": {
-                "sourceRecord": {"system": source_system},
-                "output": {
-                    "system": "https://example.org/sensorkit/output",
-                    "separator": "|",
-                    "versionPrefix": "v1",
-                    "vectors": [
-                        {
-                            "outputDiscriminator": discriminator,
-                            "components": [record, discriminator],
-                            "identifierValue": f"v1:{record}|{discriminator}",
-                        },
-                        {
-                            "outputDiscriminator": "native|recording",
-                            "components": [record, "native|recording"],
-                            "identifierValue": None,
-                        },
+                "contract": "catalog/exchange-protocol.json",
+                "protocolVersion": 2,
+                "adapterId": "sensorkit",
+                "sourceRecord": {
+                    "identityKind": "source-record",
+                    "identifierRole": "source-record",
+                    "components": [
+                        "adapter-id",
+                        "source-type",
+                        "repository-scope-system",
+                        "repository-scope-value",
+                        "native-record-id",
                     ],
+                },
+                "sourceOutput": {
+                    "identityKind": "source-output",
+                    "identifierRole": "source-output",
+                    "components": [
+                        "adapter-id",
+                        "source-type",
+                        "repository-scope-system",
+                        "repository-scope-value",
+                        "native-record-id",
+                        "output-role",
+                        "output-discriminator",
+                    ],
+                },
+                "sourceArtifact": {
+                    "identityKind": "source-artifact",
+                    "identifierRole": "source-artifact",
                 },
             },
             "entries": entries or [{
@@ -100,7 +111,7 @@ class SensorSwiftContractTests(unittest.TestCase):
         registry.write_text(json.dumps({
             "schemaVersion": 1,
             "fhirVersion": "4.0.1",
-            "version": "0.3.0",
+            "version": "0.6.0",
             "formats": {
                 "grove-csv-1": {"title": "Grove CSV 1", "contentType": "text/csv", "status": "active"},
                 "native-json-1": {"title": "Native JSON 1", "contentType": "application/json", "status": "active"},
@@ -132,7 +143,21 @@ class SensorSwiftContractTests(unittest.TestCase):
                 "\"https://example.org/sensor/CodeSystem/grove-recording-format\"",
                 generated,
             )
+            self.assertNotIn("sourceRecordIdentifierSystem", generated)
+            self.assertNotIn("outputIdentifierSystem", generated)
             self.assertNotIn("Codable", generated.split("public enum", 1)[1].split("{", 1)[0])
+
+    def test_rejects_adapter_specific_legacy_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            sensor, adapter, registry = self.write_catalogs(directory)
+            value = json.loads(adapter.read_text())
+            value["identity"] = {
+                "sourceRecord": {"system": "https://example.org/source"},
+                "output": {"separator": "|", "versionPrefix": "v1", "vectors": []},
+            }
+            adapter.write_text(json.dumps(value))
+            with self.assertRaisesRegex(ValueError, "exchange-protocol.json"):
+                MODULE.generate(sensor, adapter, registry)
 
     def test_rejects_admitted_raw_row_without_registry_formats(self):
         with tempfile.TemporaryDirectory() as directory:

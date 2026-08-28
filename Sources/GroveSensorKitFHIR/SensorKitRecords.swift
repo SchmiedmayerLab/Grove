@@ -11,7 +11,6 @@
 // swiftlint:disable file_types_order identifier_name type_contents_order
 
 public import Foundation
-public import GroveFHIRContract
 
 
 /// Fail-closed validation errors for SensorKit adapter inputs.
@@ -36,6 +35,11 @@ public enum SensorKitRecordError: Error, Equatable, Sendable {
     case invalidContentType
     case invalidRecordingFormat
     case recordingFormatNotAdmitted(String)
+    case invalidRecordingPeriod
+    case invalidRegisteredPayload(
+        format: RegisteredRecordingFormat,
+        reason: RegisteredRecordingPayloadError
+    )
     case emptyPayload
     case invalidSidecarPath(String)
     case missingProviderValue(String)
@@ -45,8 +49,11 @@ public enum SensorKitRecordError: Error, Equatable, Sendable {
 
 /// A producer-assigned identity for one exact SensorKit source record.
 ///
-/// SensorKit provides no durable sample identifier. The producer must reuse this UUID only when
-/// all source fields and any supplied native bytes are unchanged.
+/// SensorKit provides no durable sample identifier. The producer must assign this UUID from a
+/// persisted acquisition-batch coordinate plus record ordinal, and reuse it only for that same
+/// coordinate after verifying the retried source fields/native bytes against the persisted digest.
+/// Byte-identical records delivered at distinct coordinates require distinct UUIDs so multiplicity
+/// is never collapsed by content.
 public struct SensorKitSourceRecordID: Hashable, Sendable {
     public let uuid: UUID
 
@@ -56,15 +63,6 @@ public struct SensorKitSourceRecordID: Hashable, Sendable {
 
     public var value: String {
         uuid.uuidString.lowercased()
-    }
-
-    public var businessIdentifier: BusinessIdentifier {
-        get throws {
-            try BusinessIdentifier(
-                system: SensorKitContract.sourceRecordIdentifierSystem,
-                value: value
-            )
-        }
     }
 }
 
@@ -77,22 +75,18 @@ public struct SensorKitNativeRecording: Sendable {
     }
 
     public let title: String
-    public let contentType: String
     public let format: RegisteredRecordingFormat
+    public var contentType: String { format.registeredContentType }
     public let payload: Payload
 
     public init(
         title: String,
-        contentType: String,
         format: RegisteredRecordingFormat,
         payload: Payload,
         admission: SensorRawPayloadAdmission
     ) throws {
         guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw SensorKitRecordError.invalidAttachmentTitle
-        }
-        guard Self.isValidContentType(contentType) else {
-            throw SensorKitRecordError.invalidContentType
         }
         let bytes: Data
         switch payload {
@@ -105,9 +99,13 @@ public struct SensorKitNativeRecording: Sendable {
         if case .sidecar(let path, _) = payload, !SensorRecordingDocument.isRelativeSidecarPath(path) {
             throw SensorKitRecordError.invalidSidecarPath(path)
         }
+        do {
+            try format.validatePayload(bytes)
+        } catch {
+            throw SensorKitRecordError.invalidRegisteredPayload(format: format, reason: error)
+        }
         _ = admission // Producer preflight only: deliberately never retained or serialized.
         self.title = title
-        self.contentType = contentType
         self.format = format
         self.payload = payload
     }
@@ -115,14 +113,6 @@ public struct SensorKitNativeRecording: Sendable {
     var bytes: Data {
         switch payload {
         case .inline(let data), .sidecar(_, let data): data
-        }
-    }
-
-    private static func isValidContentType(_ contentType: String) -> Bool {
-        let parts = contentType.split(separator: "/", omittingEmptySubsequences: false)
-        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "!#$&^_.+-"))
-        return parts.count == 2 && parts.allSatisfy { part in
-            !part.isEmpty && part.unicodeScalars.allSatisfy(allowed.contains)
         }
     }
 }
@@ -294,9 +284,8 @@ public struct SensorKitVisitRecord: Sendable {
     public let departureWindow: DateInterval
     /// SensorKit's own identifier for the place visited, when the caller supplies it.
     ///
-    /// It recurs across visits to the same place and never names or positions it. Supplying it here
-    /// is not enough to emit it: the conversion context's
-    /// ``SensorKitLinkableIdentifierPolicy`` must also authorize disclosure.
+    /// Conversion preserves its canonical lowercase UUID under the caller's governed
+    /// deployment/source-store namespace on an identifier-only logical `Location` focus.
     public let locationID: UUID?
 
     public init(
@@ -321,21 +310,31 @@ public struct SensorKitVisitRecord: Sendable {
 public struct SensorKitRawRecord: Sendable {
     public let sourceRecordID: SensorKitSourceRecordID
     public let sourceToken: String
+    /// Exact source coverage of the native recording.
+    public let effectivePeriod: DateInterval
     public let nativeRecording: SensorKitNativeRecording
 
     public init(
         sourceRecordID: SensorKitSourceRecordID,
         sourceToken: String,
+        effectivePeriod: DateInterval,
         nativeRecording: SensorKitNativeRecording
-    ) {
+    ) throws {
+        guard effectivePeriod.start.timeIntervalSinceReferenceDate.isFinite,
+              effectivePeriod.end.timeIntervalSinceReferenceDate.isFinite,
+              effectivePeriod.duration.isFinite,
+              effectivePeriod.duration > 0 else {
+            throw SensorKitRecordError.invalidRecordingPeriod
+        }
         self.sourceRecordID = sourceRecordID
         self.sourceToken = sourceToken
+        self.effectivePeriod = effectivePeriod
         self.nativeRecording = nativeRecording
     }
 }
 
 
-/// Every SensorKit output shape admitted by Grove FHIR 0.2.
+/// Every SensorKit output shape admitted by Grove FHIR 0.6.0.
 public enum SensorKitRecord: Sendable {
     case rotationRate(SensorKitRotationRateRecord)
     case electrocardiogram(SensorKitECGRecord)

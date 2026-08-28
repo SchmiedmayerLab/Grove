@@ -393,7 +393,7 @@ enum MobileSemanticVectorFixtures {
         ),
         MobileSemanticVectorFixture(
             id: "resting-heart-rate",
-            effective: .period(start: "2026-08-19T22:40:00-07:00", end: "2026-08-20T06:55:00-07:00"),
+            effective: .dateTime("2026-08-19T10:30:00-07:00"),
             result: .quantity(value: 58)
         ),
         MobileSemanticVectorFixture(

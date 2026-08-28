@@ -7,7 +7,7 @@
 //
 
 // Public source-neutral record types are intentionally grouped as one contract inventory.
-// swiftlint:disable file_types_order type_contents_order
+// swiftlint:disable file_types_order type_contents_order cyclomatic_complexity function_body_length
 
 public import Foundation
 public import GroveFHIRContract
@@ -16,6 +16,7 @@ public import ModelsR4
 
 /// Contract-level failures raised before Grove emits a Sensor FHIR resource.
 public enum SensorRecordError: Error, Equatable, Sendable {
+    case emptyNativeRecordID
     case emptySourceTypeIdentifier
     case incompleteCode(system: String, code: String)
     case emptySamples
@@ -24,12 +25,17 @@ public enum SensorRecordError: Error, Equatable, Sendable {
     case nonFiniteSample(index: Int)
     case invalidSamplingPeriod(Double)
     case invalidEffectivePeriod
+    case effectivePeriodOverflow
     case emptyECGChannels
     case mismatchedECGChannelLength(expected: Int, actual: Int, channel: Int)
     case duplicateECGLead(system: String, code: String)
     case invalidAttachmentTitle
     case invalidContentType
     case invalidRecordingFormat
+    case invalidRegisteredPayload(
+        format: RegisteredRecordingFormat,
+        reason: RegisteredRecordingPayloadError
+    )
     case emptyPayload
     case invalidSidecarPath(String)
     case payloadTooLarge(byteCount: Int)
@@ -72,7 +78,8 @@ public struct SensorCode: Hashable, Sendable {
 
 /// One source-neutral, uniformly sampled numeric time series.
 public struct SensorSampledDataRecord: Sendable {
-    public let identifier: BusinessIdentifier
+    /// Adapter-local immutable record identity. It is HMACed before it reaches FHIR output.
+    public let nativeRecordID: String
     public let sourceTypeIdentifier: String
     public let code: SensorCode
     public let start: Date
@@ -87,11 +94,10 @@ public struct SensorSampledDataRecord: Sendable {
     let adapterProfile: FHIRPrimitive<Canonical>?
 
     public init(
-        identifier: BusinessIdentifier,
+        nativeRecordID: String,
         sourceTypeIdentifier: String,
         code: SensorCode,
         start: Date,
-        end: Date,
         samples: [Double],
         dimensions: Int = 1,
         periodMilliseconds: Double,
@@ -100,11 +106,10 @@ public struct SensorSampledDataRecord: Sendable {
         unitDisplay: String? = nil
     ) throws {
         try self.init(
-            identifier: identifier,
+            nativeRecordID: nativeRecordID,
             sourceTypeIdentifier: sourceTypeIdentifier,
             code: code,
             start: start,
-            end: end,
             samples: samples,
             dimensions: dimensions,
             periodMilliseconds: periodMilliseconds,
@@ -116,11 +121,10 @@ public struct SensorSampledDataRecord: Sendable {
     }
 
     init(
-        identifier: BusinessIdentifier,
+        nativeRecordID: String,
         sourceTypeIdentifier: String,
         code: SensorCode,
         start: Date,
-        end: Date,
         samples: [Double],
         dimensions: Int,
         periodMilliseconds: Double,
@@ -129,6 +133,9 @@ public struct SensorSampledDataRecord: Sendable {
         unitDisplay: String?,
         adapterProfile: FHIRPrimitive<Canonical>?
     ) throws {
+        guard !nativeRecordID.isEmpty else {
+            throw SensorRecordError.emptyNativeRecordID
+        }
         guard !sourceTypeIdentifier.isEmpty else {
             throw SensorRecordError.emptySourceTypeIdentifier
         }
@@ -148,8 +155,14 @@ public struct SensorSampledDataRecord: Sendable {
             throw SensorRecordError.invalidSamplingPeriod(periodMilliseconds)
         }
         let frameCount = samples.count / dimensions
-        guard start <= end, frameCount == 1 || start < end else {
-            throw SensorRecordError.invalidEffectivePeriod
+        let durationMilliseconds = Double(frameCount - 1) * periodMilliseconds
+        guard durationMilliseconds.isFinite else {
+            throw SensorRecordError.effectivePeriodOverflow
+        }
+        let end = start.addingTimeInterval(durationMilliseconds / 1_000)
+        guard end.timeIntervalSinceReferenceDate.isFinite,
+              frameCount == 1 ? end == start : end > start else {
+            throw SensorRecordError.effectivePeriodOverflow
         }
         guard origin.isFinite else {
             throw SensorRecordError.nonFiniteSample(index: -1)
@@ -160,7 +173,7 @@ public struct SensorSampledDataRecord: Sendable {
         guard !unitCode.isEmpty else {
             throw SensorRecordError.incompleteCode(system: Self.ucum, code: unitCode)
         }
-        self.identifier = identifier
+        self.nativeRecordID = nativeRecordID
         self.sourceTypeIdentifier = sourceTypeIdentifier
         self.code = code
         self.start = start
@@ -205,7 +218,8 @@ public struct SensorECGChannel: Sendable {
 
 /// A source-neutral ECG recording with one or more uniformly sampled lead channels.
 public struct SensorECGRecord: Sendable {
-    public let identifier: BusinessIdentifier
+    /// Adapter-local immutable record identity. It is HMACed before it reaches FHIR output.
+    public let nativeRecordID: String
     public let sourceTypeIdentifier: String
     public let start: Date
     public let end: Date
@@ -215,18 +229,16 @@ public struct SensorECGRecord: Sendable {
     let adapterProfile: FHIRPrimitive<Canonical>?
 
     public init(
-        identifier: BusinessIdentifier,
+        nativeRecordID: String,
         sourceTypeIdentifier: String,
         start: Date,
-        end: Date,
         periodMilliseconds: Double,
         channels: [SensorECGChannel]
     ) throws {
         try self.init(
-            identifier: identifier,
+            nativeRecordID: nativeRecordID,
             sourceTypeIdentifier: sourceTypeIdentifier,
             start: start,
-            end: end,
             periodMilliseconds: periodMilliseconds,
             channels: channels,
             adapterProfile: nil
@@ -234,19 +246,18 @@ public struct SensorECGRecord: Sendable {
     }
 
     init(
-        identifier: BusinessIdentifier,
+        nativeRecordID: String,
         sourceTypeIdentifier: String,
         start: Date,
-        end: Date,
         periodMilliseconds: Double,
         channels: [SensorECGChannel],
         adapterProfile: FHIRPrimitive<Canonical>?
     ) throws {
+        guard !nativeRecordID.isEmpty else {
+            throw SensorRecordError.emptyNativeRecordID
+        }
         guard !sourceTypeIdentifier.isEmpty else {
             throw SensorRecordError.emptySourceTypeIdentifier
-        }
-        guard start <= end else {
-            throw SensorRecordError.invalidEffectivePeriod
         }
         guard periodMilliseconds.isFinite, periodMilliseconds > 0 else {
             throw SensorRecordError.invalidSamplingPeriod(periodMilliseconds)
@@ -269,10 +280,16 @@ public struct SensorECGRecord: Sendable {
                 code: channel.lead.code
             )
         }
-        guard expectedSampleCount == 1 || start < end else {
-            throw SensorRecordError.invalidEffectivePeriod
+        let durationMilliseconds = Double(expectedSampleCount - 1) * periodMilliseconds
+        guard durationMilliseconds.isFinite else {
+            throw SensorRecordError.effectivePeriodOverflow
         }
-        self.identifier = identifier
+        let end = start.addingTimeInterval(durationMilliseconds / 1_000)
+        guard end.timeIntervalSinceReferenceDate.isFinite,
+              expectedSampleCount == 1 ? end == start : end > start else {
+            throw SensorRecordError.effectivePeriodOverflow
+        }
+        self.nativeRecordID = nativeRecordID
         self.sourceTypeIdentifier = sourceTypeIdentifier
         self.start = start
         self.end = end
@@ -295,34 +312,33 @@ public struct SensorRecordingDocument: Sendable {
         case sidecar(path: String, bytes: Data)
     }
 
-    public let identifier: BusinessIdentifier
+    /// Adapter-local immutable record identity. It is HMACed before it reaches FHIR output.
+    public let nativeRecordID: String
     public let sourceTypeIdentifier: String
     public let type: SensorCode
     public let title: String
-    public let contentType: String
     public let format: RegisteredRecordingFormat
+    public var contentType: String { format.registeredContentType }
     public let payload: Payload
     public let related: [BusinessIdentifier]
 
     let adapterProfile: FHIRPrimitive<Canonical>?
 
     public init(
-        identifier: BusinessIdentifier,
+        nativeRecordID: String,
         sourceTypeIdentifier: String,
         type: SensorCode,
         title: String,
-        contentType: String,
         format: RegisteredRecordingFormat,
         payload: Payload,
         rawPayloadAdmission: SensorRawPayloadAdmission?,
         related: [BusinessIdentifier] = []
     ) throws {
         try self.init(
-            identifier: identifier,
+            nativeRecordID: nativeRecordID,
             sourceTypeIdentifier: sourceTypeIdentifier,
             type: type,
             title: title,
-            contentType: contentType,
             format: format,
             payload: payload,
             rawPayloadAdmission: rawPayloadAdmission,
@@ -332,25 +348,24 @@ public struct SensorRecordingDocument: Sendable {
     }
 
     init(
-        identifier: BusinessIdentifier,
+        nativeRecordID: String,
         sourceTypeIdentifier: String,
         type: SensorCode,
         title: String,
-        contentType: String,
         format: RegisteredRecordingFormat,
         payload: Payload,
         rawPayloadAdmission: SensorRawPayloadAdmission?,
         related: [BusinessIdentifier],
         adapterProfile: FHIRPrimitive<Canonical>?
     ) throws {
+        guard !nativeRecordID.isEmpty else {
+            throw SensorRecordError.emptyNativeRecordID
+        }
         guard !sourceTypeIdentifier.isEmpty else {
             throw SensorRecordError.emptySourceTypeIdentifier
         }
         guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw SensorRecordError.invalidAttachmentTitle
-        }
-        guard Self.isValidContentType(contentType) else {
-            throw SensorRecordError.invalidContentType
         }
         let bytes: Data
         switch payload {
@@ -368,11 +383,15 @@ public struct SensorRecordingDocument: Sendable {
         guard rawPayloadAdmission != nil else {
             throw SensorRecordError.rawPayloadAdmissionRequired
         }
-        self.identifier = identifier
+        do {
+            try format.validatePayload(bytes)
+        } catch {
+            throw SensorRecordError.invalidRegisteredPayload(format: format, reason: error)
+        }
+        self.nativeRecordID = nativeRecordID
         self.sourceTypeIdentifier = sourceTypeIdentifier
         self.type = type
         self.title = title
-        self.contentType = contentType
         self.format = format
         self.payload = payload
         self.related = related
@@ -395,17 +414,6 @@ public struct SensorRecordingDocument: Sendable {
         }
         return true
     }
-
-    private static func isValidContentType(_ contentType: String) -> Bool {
-        let parts = contentType.split(separator: "/", omittingEmptySubsequences: false)
-        guard parts.count == 2 else {
-            return false
-        }
-        let tokenCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "!#$&^_.+-"))
-        return parts.allSatisfy { part in
-            !part.isEmpty && part.unicodeScalars.allSatisfy(tokenCharacters.contains)
-        }
-    }
 }
 
 
@@ -415,11 +423,11 @@ public enum SensorRecord: Sendable {
     case electrocardiogram(SensorECGRecord)
     case recordingDocument(SensorRecordingDocument)
 
-    public var identifier: BusinessIdentifier {
+    public var nativeRecordID: String {
         switch self {
-        case .sampledData(let record): record.identifier
-        case .electrocardiogram(let record): record.identifier
-        case .recordingDocument(let record): record.identifier
+        case .sampledData(let record): record.nativeRecordID
+        case .electrocardiogram(let record): record.nativeRecordID
+        case .recordingDocument(let record): record.nativeRecordID
         }
     }
 

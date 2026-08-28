@@ -29,12 +29,12 @@ public enum HealthKitECGEvidenceFailure: Error, Equatable, Sendable {
     case symptomsRequired
     case unexpectedSymptoms
     case unsupportedSymptomType(String)
-    case invalidSymptomSeverity(typeIdentifier: String, value: Int)
-    case invalidSymptomPeriod(UUID)
-    case invalidSymptomSourceRevision(sourceUUID: UUID, field: String)
-    case symptomSourceDisclosureNotAuthorized
     case duplicateSymptomSource(UUID)
-    case tooManySymptoms(Int)
+    /// A companion conversion was produced for a different patient or repository scope.
+    case mismatchedSymptomContext
+    case invalidSymptomOutputIdentity
+    case duplicateSymptomOutputIdentity
+    case duplicateSymptomEventIdentity
     case unsupportedAlgorithmVersion(Int)
 }
 
@@ -53,6 +53,8 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
     case invalidECGEvidence(HealthKitECGEvidenceFailure)
     /// A required converter application field is empty.
     case invalidConverterApplication(String)
+    /// A caller-classified HealthKit source application has no valid Apple bundle identifier.
+    case invalidSourceApplication(String)
     /// A retained metadata value is present but not the type the key is defined to carry.
     case invalidMetadataValue(key: String)
     /// A required typed FHIR reference is empty or targets the wrong resource type.

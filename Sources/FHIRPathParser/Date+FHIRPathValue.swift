@@ -23,7 +23,10 @@ extension Date: _FHIRPathValue {
             switch value {
             case let .components(components):
                 // if the date components represent a valid date, we try the conversion
-                guard components.year != nil, let date = Calendar.current.date(from: components) else {
+                let calendar = FHIRPathCalendar.gregorian(
+                    timeZone: components.timeZone ?? FHIRPathCalendar.utc
+                )
+                guard components.year != nil, let date = calendar.date(from: components) else {
                     throw DateExpressionError.failedDateOperation(reason: .componentsDoNotFormValidDate)
                 }
                 return date
@@ -50,7 +53,7 @@ extension DateComponents: _FHIRPathValue {
             case let .components(components):
                 return components
             case let .date(date):
-                return Calendar.current.dateComponents(
+                return FHIRPathCalendar.gregorian().dateComponents(
                     [.timeZone, .year, .month, .day, .hour, .minute, .second],
                     from: date
                 )

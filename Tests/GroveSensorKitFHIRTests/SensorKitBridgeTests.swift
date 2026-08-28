@@ -62,7 +62,6 @@ struct GroveSensorKitBridgeTests {
         )
         let native = try SensorKitNativeRecording(
             title: "Exact native report",
-            contentType: "application/json",
             format: .nativeRecording,
             payload: .inline(Data(#"{"version":"1"}"#.utf8)),
             admission: .callerAuthorizedOpaquePayload

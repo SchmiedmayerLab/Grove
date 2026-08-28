@@ -20,7 +20,7 @@ cd "$(dirname "$0")/.."
 
 COMPONENT="${1:-${GROVE_FHIR_COMPONENT:-healthkit}}"
 GUIDES="${GROVE_FHIR_GUIDES:-$(pwd)/.fhir/grove-fhir}"
-GROVE_FHIR_REF="${GROVE_FHIR_REF:-main}"
+GROVE_FHIR_REF="${GROVE_FHIR_REF:-31197e876161e9c6d207760d472343231da527e2}"
 
 if [ "$COMPONENT" = "all" ]; then
     for component in healthkit questionnaire sensor; do
@@ -44,12 +44,23 @@ OUT="$(pwd)/.build/conformance-fixtures/$COMPONENT"
 
 if [ ! -d "$GUIDES" ]; then
     echo "==> cloning grove-fhir ref $GROVE_FHIR_REF"
-    git clone --depth 1 --branch "$GROVE_FHIR_REF" \
-        "${GROVE_FHIR_REMOTE:-https://github.com/SchmiedmayerLab/grove-fhir.git}" "$GUIDES"
+    mkdir -p "$(dirname "$GUIDES")"
+    git init "$GUIDES"
+    git -C "$GUIDES" remote add origin \
+        "${GROVE_FHIR_REMOTE:-https://github.com/SchmiedmayerLab/grove-fhir.git}"
+    git -C "$GUIDES" fetch --depth 1 origin "$GROVE_FHIR_REF"
+    git -C "$GUIDES" checkout --detach FETCH_HEAD
 fi
 
 echo "==> grove-fhir contract"
-git -C "$GUIDES" rev-parse HEAD
+ACTUAL_GROVE_FHIR_REF="$(git -C "$GUIDES" rev-parse HEAD)"
+EXPECTED_GROVE_FHIR_REF="$(git -C "$GUIDES" rev-parse --verify "$GROVE_FHIR_REF^{commit}" 2>/dev/null || true)"
+if [ -z "$EXPECTED_GROVE_FHIR_REF" ] || [ "$ACTUAL_GROVE_FHIR_REF" != "$EXPECTED_GROVE_FHIR_REF" ]; then
+    echo "error: $GUIDES is not checked out at requested grove-fhir ref $GROVE_FHIR_REF" >&2
+    echo "error: actual grove-fhir SHA is $ACTUAL_GROVE_FHIR_REF" >&2
+    exit 1
+fi
+echo "$ACTUAL_GROVE_FHIR_REF"
 python3 Scripts/generate-grove-fhir-swift-contract.py \
     --catalog-directory "$GUIDES/catalog" \
     --check

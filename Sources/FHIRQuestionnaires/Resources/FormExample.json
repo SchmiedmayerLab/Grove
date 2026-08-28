@@ -103,6 +103,7 @@
           "type": "choice",
           "text": "What is your favorite topping on ice cream?",
           "required": false,
+          "repeats": true,
           "extension": [
               {
                 "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-itemControl",

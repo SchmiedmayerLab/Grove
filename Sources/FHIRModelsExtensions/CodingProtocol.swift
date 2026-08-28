@@ -9,12 +9,44 @@
 public import ModelsR4
 
 
+/// A system-qualified physical unit for `Quantity`.
+public struct FHIRQuantityUnit: Hashable, Sendable {
+    public let system: FHIRPrimitive<FHIRURI>
+    public let code: FHIRPrimitive<FHIRString>
+    public let display: FHIRPrimitive<FHIRString>
+
+    public init(system: FHIRPrimitive<FHIRURI>, code: String, display: String) {
+        self.system = system
+        self.code = code.asFHIRStringPrimitive()
+        self.display = display.asFHIRStringPrimitive()
+    }
+
+    public init(
+        system: FHIRPrimitive<FHIRURI>,
+        code: FHIRPrimitive<FHIRString>,
+        display: FHIRPrimitive<FHIRString>
+    ) {
+        self.system = system
+        self.code = code
+        self.display = display
+    }
+
+    public static func ucum(code: String, display: String? = nil) -> Self {
+        Self(
+            system: "http://unitsofmeasure.org",
+            code: code,
+            display: display ?? code
+        )
+    }
+}
+
+
 // Note: we intentionally directly use `FHIRPrimitive`s here (instead of Strings which then get converted when needed);
 // the reason being that the `asFHIR{String|URI|etc}Primitive()` operations do take some time on the scale we perform them,
 // and it's just way more efficient to only perform this operation once.
 //
-// Conforming types are strongly encouraged to define their individual codings as non-computed static propertied,
-// to betterachieve these performance improvements.
+// Conforming types are strongly encouraged to define their individual codings as non-computed static properties
+// to better achieve these performance improvements.
 public protocol CodingProtocol: Hashable, Sendable {
     static var system: FHIRPrimitive<FHIRURI> { get }
     static var version: FHIRPrimitive<FHIRString>? { get }
@@ -90,34 +122,28 @@ extension ObservationComponent {
         )
     }
     
-    /// Builds the concept from a typed code, carrying its system and display.
+    /// Builds a component whose clinical concept and physical unit remain distinct.
     public init<C: CodingProtocol>(
         system: C.Type = C.self,
         code: C,
-        quantityUnit: String,
+        quantityUnit: FHIRQuantityUnit,
         quantityValue: Double
     ) {
         self.init(
-            code: code,
-            value: .quantity(.init(
-                system: system,
-                code: code,
-                unit: quantityUnit,
-                value: quantityValue
-            ))
+            code: CodeableConcept(system: system, code: code),
+            value: .quantity(Quantity(unit: quantityUnit, value: quantityValue))
         )
     }
 }
 
 
 extension Quantity {
-    // periphery:ignore:parameters system
-    /// Builds a Quantity whose unit is stated as a typed code, so the system travels with it.
-    public init<C: CodingProtocol>(system: C.Type = C.self, code: C, unit: String, value: Double) {
+    /// Builds a Quantity from a typed physical unit, never from the Observation's concept code.
+    public init(unit: FHIRQuantityUnit, value: Double) {
         self.init(
-            code: code.code,
-            system: code.system,
-            unit: unit.asFHIRStringPrimitive(),
+            code: unit.code,
+            system: unit.system,
+            unit: unit.display,
             value: value.asFHIRDecimalPrimitive()
         )
     }

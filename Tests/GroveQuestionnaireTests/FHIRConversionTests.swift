@@ -39,7 +39,8 @@ struct FHIRConversionTests {
             let questionnaire = try GroveQuestionnaire.Questionnaire(input, evaluationInstant: questionnaireResponseTestAuthoredAt)
             _ = try ModelsR4.QuestionnaireResponse(
                 QuestionnaireResponses(questionnaire: questionnaire),
-                authored: questionnaireResponseTestAuthoredAt
+                authored: questionnaireResponseTestAuthoredAt,
+                authoredTimeZone: questionnaireResponseTestTimeZone
             )
         }
     }
@@ -63,7 +64,8 @@ struct FHIRConversionTests {
         }
         var fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         var expected = try JSONDecoder().decode(
             ModelsR4.QuestionnaireResponse.self,
@@ -117,7 +119,8 @@ struct FHIRConversionTests {
         responses.responses["t0"].value.numberValue = 123
         let fhir = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         let items = try #require(fhir.item)
         #expect(items.count == 1)
@@ -189,11 +192,13 @@ struct FHIRConversionTests {
                 linkId: "section1".asFHIRStringPrimitive(),
                 type: .init(.group)
             )
-            let questionnaire = ModelsR4.Questionnaire(
+            var questionnaire = ModelsR4.Questionnaire(
                 id: "test-questionnaire".asFHIRStringPrimitive(),
                 item: [group],
                 status: .init(.active)
             )
+            questionnaire.url = "https://example.org/fhir/Questionnaire/enable-when-coding".asFHIRURIPrimitive()
+            questionnaire.version = "1.0.0".asFHIRStringPrimitive()
             return questionnaire
         }()
         

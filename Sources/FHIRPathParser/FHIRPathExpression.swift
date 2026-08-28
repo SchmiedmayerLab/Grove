@@ -19,7 +19,7 @@ public protocol _FHIRPathValue { // swiftlint:disable:this type_name
     /// `maxValue` is `today() + 3 months` must not straddle midnight between the two
     /// evaluations. It also makes evaluation reproducible in a test.
     /// Callers normally use ``FHIRPathExpression/evaluate(expression:evaluationInstant:as:)``,
-    /// which defaults it to the wall clock.
+    /// Callers supply it explicitly so replay never reads a different wall clock.
     ///
     /// - Parameter expression: The expression to evalaute.
     /// - Parameter evaluationInstant: The explicit instant used by clock-sensitive functions.
@@ -55,7 +55,7 @@ public enum FHIRPathExpression {
     ///     provided expression doesn't follow the FHIRPath grammar.
     public static func evaluate<Value: _FHIRPathValue>(
         expression: String,
-        evaluationInstant: Date = .now,
+        evaluationInstant: Date,
         as value: Value.Type = Value.self
     ) throws -> Value {
         // Routed through the locked parse: ANTLR's shared caches are not thread-safe.

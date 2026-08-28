@@ -31,15 +31,16 @@ public enum Canonicals {
     public static let mobileMeasurementCodeSystem = uri("/mobile/CodeSystem/grove-mobile-measurement")
     public static let aggregationMethodCodeSystem = uri("/mobile/CodeSystem/grove-aggregation-method")
     public static let groveApplicationVersionType = uri("/mobile/CodeSystem/grove-application-version-type")
+    public static let identifierRoleCodeSystem = uri("/mobile/CodeSystem/grove-identifier-role")
+    public static let entryNodeKey = uri("/mobile/StructureDefinition/grove-exchange-entry-node-key")
+    public static let retractionTargetRole = uri("/mobile/StructureDefinition/grove-retraction-target-role")
+    public static let retractionTargetRoleCodeSystem = uri("/mobile/CodeSystem/grove-retraction-target-role")
+    public static let lifecycleEventCodeSystem = uri("/mobile/CodeSystem/grove-lifecycle-event")
     public static let healthKitRetainedMetadata = uri("/healthkit/StructureDefinition/healthkit-retained-metadata")
 
     // MARK: HealthKit
 
-    public static let healthKitObjectIdentifierSystem = "\(root)/healthkit/NamingSystem/healthkit-object-id"
     public static let appleBundleIdentifierSystem = "\(root)/healthkit/NamingSystem/apple-bundle-id"
-    public static let healthKitSourceDeviceIdentifierSystem = "\(root)/healthkit/NamingSystem/healthkit-source-device-id"
-    public static let healthKitObjectIdentifier: FHIRPrimitive<FHIRURI> =
-        FHIRPrimitive(FHIRURI(stringLiteral: healthKitObjectIdentifierSystem))
     /// The logical record a writing application assigns, stable across the replacements a platform
     /// performs when the same writer saves a higher version of it.
     ///
@@ -51,6 +52,7 @@ public enum Canonicals {
         FHIRPrimitive(FHIRURI(stringLiteral: appleBundleIdentifierSystem))
     public static let healthKitMetadataKey = uri("/healthkit/CodeSystem/healthkit-metadata-key")
     public static let healthKitSourceType = HealthKitContract.sourceTypeCodeSystem
+    public static let healthKitSourceTypeExtension = HealthKitContract.sourceTypeExtension
     public static let healthKitHeartRateMotionContext = uri("/healthkit/CodeSystem/healthkit-heart-rate-motion-context")
     public static let healthKitInsulinDeliveryReason = uri("/healthkit/CodeSystem/healthkit-insulin-delivery-reason")
     public static let healthKitSleepAnalysis = uri("/healthkit/CodeSystem/healthkit-sleep-analysis")
@@ -66,12 +68,7 @@ public enum Canonicals {
     /// Shared by the pregnancy and progesterone test-result cases the guide retains in one system.
     public static let healthKitTestResult = uri("/healthkit/CodeSystem/healthkit-test-result")
     public static let healthKitVaginalBleeding = uri("/healthkit/CodeSystem/healthkit-vaginal-bleeding")
-    public static let healthKitECGClassificationExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-classification")
     public static let healthKitECGSymptomsStatusExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-symptoms-status")
-    public static let healthKitECGAverageHeartRateExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-average-heart-rate")
-    public static let healthKitECGSamplingFrequencyExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-sampling-frequency")
-    public static let healthKitECGCountExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-voltage-measurement-count")
-    public static let healthKitECGAlgorithmVersionExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-algorithm-version")
     public static let healthKitECGSourcePeriodExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-source-period")
 
     // MARK: Standard R4 extensions and terminology

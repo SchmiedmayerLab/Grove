@@ -7,7 +7,7 @@
 //
 
 // The graph assembly keeps one complete exchange transaction together.
-// swiftlint:disable function_body_length
+// swiftlint:disable function_body_length file_length large_tuple
 
 import CryptoKit
 import FHIRModelsExtensions
@@ -18,32 +18,68 @@ public import ModelsR4
 
 /// Product identity of the application performing a Sensor-to-FHIR conversion.
 public struct SensorApplication: Hashable, Sendable {
-    public let identifier: BusinessIdentifier
+    /// Source-local application token used only inside the event-scoped HMAC preimage.
+    public let sourceDeviceToken: String
     public let name: String
     public let version: String?
+    public let build: String?
 
-    public init(identifier: BusinessIdentifier, name: String, version: String? = nil) {
-        self.identifier = identifier
+    public init(
+        sourceDeviceToken: String,
+        name: String,
+        version: String? = nil,
+        build: String? = nil
+    ) {
+        self.sourceDeviceToken = sourceDeviceToken
         self.name = name
         self.version = version
+        self.build = build
+    }
+}
+
+
+/// Event-time host facts kept separate from the converting application release.
+public struct SensorHostDevice: Hashable, Sendable {
+    public let sourceDeviceToken: String
+    public let operatingSystemVersion: String
+    public let name: String?
+    public let manufacturer: String?
+    public let modelNumber: String?
+
+    public init(
+        sourceDeviceToken: String,
+        operatingSystemVersion: String,
+        name: String? = nil,
+        manufacturer: String? = nil,
+        modelNumber: String? = nil
+    ) {
+        self.sourceDeviceToken = sourceDeviceToken
+        self.operatingSystemVersion = operatingSystemVersion
+        self.name = name
+        self.manufacturer = manufacturer
+        self.modelNumber = modelNumber
     }
 }
 
 
 /// Identity and descriptive fields of the physical recording device, when known.
 public struct SensorRecordingDevice: Hashable, Sendable {
-    public let identifier: BusinessIdentifier
+    /// A source-local token that remains stable for the same physical unit.
+    ///
+    /// The token is never emitted. Adapter converters feed it to the deployment-scoped
+    /// `recording-device` HMAC instead of disclosing a platform identifier.
+    public let stableUnitToken: String
     public let name: String?
     public let manufacturer: String?
     public let modelNumber: String?
 
     public init(
-        identifier: BusinessIdentifier,
+        stableUnitToken: String,
         name: String? = nil,
         manufacturer: String? = nil,
         modelNumber: String? = nil
     ) {
-        self.identifier = identifier
+        self.stableUnitToken = stableUnitToken
         self.name = name
         self.manufacturer = manufacturer
         self.modelNumber = modelNumber
@@ -57,6 +93,7 @@ public struct SensorRepositoryIDs: Hashable, Sendable {
     public let record: RepositoryID?
     public let recordingDevice: RepositoryID?
     public let converterApplication: RepositoryID?
+    public let converterHost: RepositoryID?
     public let provenance: RepositoryID?
 
     public init(
@@ -64,12 +101,14 @@ public struct SensorRepositoryIDs: Hashable, Sendable {
         record: RepositoryID? = nil,
         recordingDevice: RepositoryID? = nil,
         converterApplication: RepositoryID? = nil,
+        converterHost: RepositoryID? = nil,
         provenance: RepositoryID? = nil
     ) {
         self.bundle = bundle
         self.record = record
         self.recordingDevice = recordingDevice
         self.converterApplication = converterApplication
+        self.converterHost = converterHost
         self.provenance = provenance
     }
 }
@@ -78,32 +117,49 @@ public struct SensorRepositoryIDs: Hashable, Sendable {
 /// Explicit deployment and audit inputs used to build one reproducible graph.
 public struct SensorConversionContext: Sendable {
     public let subject: Reference
+    /// Stable deployment identity of `subject`, used only as an HMAC component.
+    public let subjectIdentity: BusinessIdentifier
     public let converter: SensorApplication
-    public let graphIdentifierSystem: IdentifierSystem
+    public let converterHost: SensorHostDevice
+    /// Closed adapter token included in every source identity.
+    public let adapterID: String
+    public let eventIdentifier: ExchangeEventIdentifier
+    public let entryNodeIdentifierSystem: IdentifierSystem
+    public let identityScope: PseudonymousIdentityScope
+    public let repositoryScope: BusinessIdentifier
     public let recordingDevice: SensorRecordingDevice?
     public let converterWasGateway: Bool
-    public let issuedAt: Date
     public let recordedAt: Date
     public let researchStudies: [Reference]
     public let repositoryIDs: SensorRepositoryIDs
 
     public init(
         subject: Reference,
+        subjectIdentity: BusinessIdentifier,
         converter: SensorApplication,
-        graphIdentifierSystem: IdentifierSystem,
+        converterHost: SensorHostDevice,
+        adapterID: String,
+        eventIdentifier: ExchangeEventIdentifier,
+        entryNodeIdentifierSystem: IdentifierSystem,
+        identityScope: PseudonymousIdentityScope,
+        repositoryScope: BusinessIdentifier,
         recordingDevice: SensorRecordingDevice? = nil,
         converterWasGateway: Bool = false,
-        issuedAt: Date,
         recordedAt: Date,
         researchStudies: [Reference] = [],
         repositoryIDs: SensorRepositoryIDs = .init()
     ) {
         self.subject = subject
+        self.subjectIdentity = subjectIdentity
         self.converter = converter
-        self.graphIdentifierSystem = graphIdentifierSystem
+        self.converterHost = converterHost
+        self.adapterID = adapterID
+        self.eventIdentifier = eventIdentifier
+        self.entryNodeIdentifierSystem = entryNodeIdentifierSystem
+        self.identityScope = identityScope
+        self.repositoryScope = repositoryScope
         self.recordingDevice = recordingDevice
         self.converterWasGateway = converterWasGateway
-        self.issuedAt = issuedAt
         self.recordedAt = recordedAt
         self.researchStudies = researchStudies
         self.repositoryIDs = repositoryIDs
@@ -113,11 +169,15 @@ public struct SensorConversionContext: Sendable {
 
 /// Complete business identities of one emitted Sensor exchange graph.
 public struct SensorGraphIdentifiers: Hashable, Sendable {
-    public let bundle: BusinessIdentifier
-    public let record: BusinessIdentifier
+    public let event: BusinessIdentifier
+    public let sourceRecord: BusinessIdentifier
+    public let sourceOutput: BusinessIdentifier
+    public let sourceArtifact: BusinessIdentifier?
     public let recordingDevice: BusinessIdentifier?
-    public let converterApplication: BusinessIdentifier
-    public let provenance: BusinessIdentifier?
+    public let recordingDeviceSnapshot: BusinessIdentifier?
+    public let converterApplicationSnapshot: BusinessIdentifier
+    public let converterHostSnapshot: BusinessIdentifier
+    public let provenance: BusinessIdentifier
 }
 
 
@@ -136,8 +196,12 @@ public struct SensorConversion: Sendable {
     public let primaryResource: SensorPrimaryResource
     public let recordingDevice: Device?
     public let converterApplication: Device
-    public let provenance: Provenance?
-    public let bundle: ModelsR4.Bundle
+    public let converterHost: Device
+    public let provenance: Provenance
+    /// The authoritative graph. Upload and persistence code must serialize this value.
+    public let graph: ExchangeGraph
+
+    public var bundle: ModelsR4.Bundle { graph.bundle }
 }
 
 
@@ -166,18 +230,24 @@ public struct SensorConverter: Sendable {
     /// Converts every input and returns a typed failure for every record that was not emitted.
     public func convert<S: Sequence>(
         _ records: S,
-        context: SensorConversionContext
+        contextForRecord: (SensorRecord) throws -> SensorConversionContext
     ) -> SensorBatchResult where S.Element == SensorRecord {
         var conversions: [SensorConversion] = []
         var failures: [SensorRecordFailure] = []
         for record in records {
             do {
-                conversions.append(try convert(record, context: context))
-            } catch {
+                conversions.append(try convert(record, context: contextForRecord(record)))
+            } catch let error as SensorConversionError {
                 failures.append(SensorRecordFailure(
-                    sourceIdentifier: record.identifier,
+                    nativeRecordID: record.nativeRecordID,
                     sourceTypeIdentifier: record.sourceTypeIdentifier,
                     reason: error
+                ))
+            } catch {
+                failures.append(SensorRecordFailure(
+                    nativeRecordID: record.nativeRecordID,
+                    sourceTypeIdentifier: record.sourceTypeIdentifier,
+                    reason: SensorConversionError(conversionFailure: error)
                 ))
             }
         }
@@ -199,30 +269,93 @@ extension SensorConverter {
         context: SensorConversionContext
     ) throws -> SensorConversion {
         try validate(context: context)
-        let bundleIdentity = try derivedIdentity(
-            role: "exchange-bundle",
-            record: record.identifier,
-            system: context.graphIdentifierSystem
+        let sourceRecord = try context.identityScope.sourceRecord(
+            adapterID: context.adapterID,
+            sourceType: record.sourceTypeIdentifier,
+            repositoryScope: context.repositoryScope,
+            nativeRecordID: record.nativeRecordID
         )
-        let provenanceIdentity = try derivedIdentity(
-            role: "conversion-provenance",
-            record: record.identifier,
-            system: context.graphIdentifierSystem
-        )
-
-        let recordURL = try ExchangeIdentity.fullURL(for: record.identifier)
-        let converterURL = try ExchangeIdentity.fullURL(for: context.converter.identifier)
-        let recordingDeviceURL = try context.recordingDevice.map {
-            try ExchangeIdentity.fullURL(for: $0.identifier)
+        let outputDescriptor: (role: String, discriminator: String) = switch record {
+        case .sampledData, .electrocardiogram:
+            ("structured", "single")
+        case .recordingDocument:
+            ("native-recording", "single")
         }
+        let sourceOutput = try context.identityScope.sourceOutput(
+            adapterID: context.adapterID,
+            sourceType: record.sourceTypeIdentifier,
+            repositoryScope: context.repositoryScope,
+            nativeRecordID: record.nativeRecordID,
+            outputRole: outputDescriptor.role,
+            outputDiscriminator: outputDescriptor.discriminator
+        )
+        let sourceArtifact = try (record.recordingFormat).map { format in
+            try context.identityScope.sourceArtifact(
+                adapterID: context.adapterID,
+                sourceType: record.sourceTypeIdentifier,
+                repositoryScope: context.repositoryScope,
+                nativeRecordID: record.nativeRecordID,
+                formatCode: format.rawValue,
+                partIndex: 0
+            )
+        }
+        let converterApplicationIdentity = try context.identityScope.deviceSnapshot(
+            eventIdentifier: context.eventIdentifier,
+            deviceRole: .application,
+            sourceDeviceToken: context.converter.sourceDeviceToken
+        )
+        let converterHostIdentity = try context.identityScope.deviceSnapshot(
+            eventIdentifier: context.eventIdentifier,
+            deviceRole: .host,
+            sourceDeviceToken: context.converterHost.sourceDeviceToken
+        )
+        let provenanceNode = try ExchangeNodeKey(
+            system: context.entryNodeIdentifierSystem,
+            eventIdentifier: context.eventIdentifier,
+            nodeRole: "conversion-provenance",
+            ordinal: 0
+        )
+        let recordingDeviceIdentity = try context.recordingDevice.map { device in
+            try context.identityScope.recordingDevice(
+                adapterID: context.adapterID,
+                subject: context.subjectIdentity,
+                stableUnitToken: device.stableUnitToken
+            )
+        }
+        let recordingDeviceSnapshot = try context.recordingDevice.map { device in
+            try context.identityScope.deviceSnapshot(
+                eventIdentifier: context.eventIdentifier,
+                deviceRole: .recordingDevice,
+                sourceDeviceToken: device.stableUnitToken
+            )
+        }
+
+        let recordURL = try ExchangeIdentity.fullURL(for: sourceOutput)
+        let converterURL = try ExchangeIdentity.fullURL(for: converterApplicationIdentity)
+        let converterHostURL = try ExchangeIdentity.fullURL(for: converterHostIdentity)
+        let recordingDeviceURL = try recordingDeviceSnapshot.map(ExchangeIdentity.fullURL(for:))
 
         var converterApplication = applicationDevice(context.converter)
         converterApplication.id = context.repositoryIDs.converterApplication?.primitive
-        var recordingDevice = context.recordingDevice.map(recordingDevice)
+        converterApplication.identifier = [converterApplicationIdentity.fhirIdentifier]
+        converterApplication.parent = Reference(reference: converterHostURL.asFHIRStringPrimitive())
+        var converterHost = hostDevice(context.converterHost)
+        converterHost.id = context.repositoryIDs.converterHost?.primitive
+        converterHost.identifier = [converterHostIdentity.fhirIdentifier]
+        var recordingDevice = zip(
+            context.recordingDevice,
+            recordingDeviceIdentity,
+            recordingDeviceSnapshot
+        ).map { source, identity, snapshot in
+            recordingDevice(source, identity: identity, snapshot: snapshot)
+        }
         recordingDevice?.id = context.repositoryIDs.recordingDevice?.primitive
 
         let primaryResource = try primaryResource(
             record,
+            sourceRecord: sourceRecord,
+            sourceOutput: sourceOutput,
+            sourceArtifact: sourceArtifact,
             context: context,
             recordingDeviceURL: recordingDeviceURL,
             converterURL: converterURL
@@ -238,7 +371,7 @@ extension SensorConverter {
         }
 
         var provenance = try provenance(
-            sourceIdentifier: record.identifier.fhirIdentifier,
+            sourceIdentifier: sourceRecord.fhirIdentifier,
             targetURL: recordURL,
             converterURL: converterURL,
             recordedAt: context.recordedAt
@@ -246,32 +379,41 @@ extension SensorConverter {
         provenance.id = context.repositoryIDs.provenance?.primitive
 
         var entries = [
-            try ExchangeIdentity.entry(identifier: record.identifier, resource: primaryProxy)
+            try ExchangeIdentity.entry(identifier: sourceOutput, resource: primaryProxy)
         ]
-        if let recordingDevice, let identity = context.recordingDevice?.identifier {
+        if let recordingDevice, let recordingDeviceSnapshot {
             entries.append(try ExchangeIdentity.entry(
-                identifier: identity,
+                identifier: recordingDeviceSnapshot,
                 resource: ResourceProxy(with: recordingDevice)
             ))
         }
         entries.append(try ExchangeIdentity.entry(
-            identifier: context.converter.identifier,
+            identifier: converterHostIdentity,
+            resource: ResourceProxy(with: converterHost)
+        ))
+        entries.append(try ExchangeIdentity.entry(
+            identifier: converterApplicationIdentity,
             resource: ResourceProxy(with: converterApplication)
         ))
         entries.append(try ExchangeIdentity.entry(
-            identifier: provenanceIdentity,
+            nodeKey: provenanceNode,
             resource: ResourceProxy(with: provenance)
         ))
         try ExchangeIdentity.validate(entries: entries)
 
         var bundle = Bundle(
             entry: entries,
-            identifier: bundleIdentity.fhirIdentifier,
+            identifier: context.eventIdentifier.businessIdentifier.fhirIdentifier,
             meta: Meta(profile: [Profile.groveMobileExchangeBundle]),
             timestamp: FHIRPrimitive(try Instant(date: context.recordedAt)),
             type: FHIRPrimitive(.collection)
         )
         bundle.id = context.repositoryIDs.bundle?.primitive
+        let graph = try ExchangeGraph(
+            kind: .active,
+            eventIdentifier: context.eventIdentifier,
+            bundle: bundle
+        )
 
         let retainedPrimary: SensorPrimaryResource
         switch primaryResource {
@@ -283,32 +425,52 @@ extension SensorConverter {
             retainedPrimary = .recordingDocument(document)
         }
         return SensorConversion(
-            sourceIdentifier: record.identifier.fhirIdentifier,
+            sourceIdentifier: sourceRecord.fhirIdentifier,
             sourceTypeIdentifier: record.sourceTypeIdentifier,
             graphIdentifiers: SensorGraphIdentifiers(
-                bundle: bundleIdentity,
-                record: record.identifier,
-                recordingDevice: context.recordingDevice?.identifier,
-                converterApplication: context.converter.identifier,
-                provenance: provenanceIdentity
+                event: context.eventIdentifier.businessIdentifier,
+                sourceRecord: sourceRecord,
+                sourceOutput: sourceOutput,
+                sourceArtifact: sourceArtifact,
+                recordingDevice: recordingDeviceIdentity,
+                recordingDeviceSnapshot: recordingDeviceSnapshot,
+                converterApplicationSnapshot: converterApplicationIdentity,
+                converterHostSnapshot: converterHostIdentity,
+                provenance: provenanceNode.identifier
             ),
             primaryResource: retainedPrimary,
             recordingDevice: recordingDevice,
             converterApplication: converterApplication,
+            converterHost: converterHost,
             provenance: provenance,
-            bundle: bundle
+            graph: graph
         )
     }
 
     private static func validate(context: SensorConversionContext) throws {
+        guard !context.adapterID.isEmpty else {
+            throw SensorConversionError.invalidExchangeIdentity("adapterID is empty")
+        }
         guard !context.converter.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw SensorConversionError.invalidConverterApplication("name")
+        }
+        guard !context.converter.sourceDeviceToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw SensorConversionError.invalidConverterApplication("sourceDeviceToken")
+        }
+        guard !context.converterHost.sourceDeviceToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw SensorConversionError.invalidConverterApplication("converterHost.sourceDeviceToken")
+        }
+        guard !context.converterHost.operatingSystemVersion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw SensorConversionError.invalidConverterApplication("converterHost.operatingSystemVersion")
         }
         if context.converter.version?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
             throw SensorConversionError.invalidConverterApplication("version")
         }
         if context.repositoryIDs.recordingDevice != nil, context.recordingDevice == nil {
             throw SensorConversionError.repositoryIDWithoutRecordingDevice
+        }
+        if context.recordingDevice?.stableUnitToken.isEmpty == true {
+            throw SensorConversionError.invalidExchangeIdentity("recordingDevice.stableUnitToken is empty")
         }
         _ = try validateReference(context.subject, field: "subject", expectedResourceType: .patient)
         var studyIdentities: Set<TypedReferenceIdentity> = []
@@ -336,23 +498,31 @@ extension SensorConverter {
             )
         } catch {
             switch error {
-            case .unboundBundleUUID:
+            case .literalRequiresBundleEntry:
                 throw .invalidExchangeIdentity(
-                    "\(field) contains a UUID URN that is not an entry in the emitted Bundle"
+                    "\(field) must use an identifier-only logical Reference; literals require a Bundle entry"
                 )
             case .invalidReference:
                 throw .invalidReference(field: field, expectedResourceType: expectedResourceType)
             }
         }
     }
+}
 
-    private static func derivedIdentity(
-        role: String,
-        record: BusinessIdentifier,
-        system: IdentifierSystem
-    ) throws -> BusinessIdentifier {
-        let recordURL = try ExchangeIdentity.fullURL(for: record)
-        let recordUUID = recordURL.dropFirst("urn:uuid:".count)
-        return try BusinessIdentifier(system: system, value: "\(role):\(recordUUID)")
+
+extension SensorRecord {
+    fileprivate var recordingFormat: RegisteredRecordingFormat? {
+        guard case .recordingDocument(let document) = self else {
+            return nil
+        }
+        return document.format
     }
+}
+
+
+private func zip<A, B, C>(_ first: A?, _ second: B?, _ third: C?) -> (A, B, C)? {
+    guard let first, let second, let third else {
+        return nil
+    }
+    return (first, second, third)
 }

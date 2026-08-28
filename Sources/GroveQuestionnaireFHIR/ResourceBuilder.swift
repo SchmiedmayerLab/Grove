@@ -46,7 +46,8 @@ public struct ResourceBuilder: Sendable {
         status: QuestionnaireResponseStatus = .completed,
         identifier: Identifier? = nil,
         repositoryID: RepositoryID? = nil,
-        authored: Date = .now
+        authored: Date,
+        authoredTimeZone: TimeZone
     ) throws -> ModelsR4.QuestionnaireResponse {
         try ModelsR4.QuestionnaireResponse(
             source,
@@ -56,7 +57,8 @@ public struct ResourceBuilder: Sendable {
             status: status,
             identifier: identifier,
             repositoryID: repositoryID,
-            authored: authored
+            authored: authored,
+            authoredTimeZone: authoredTimeZone
         )
     }
 
@@ -85,7 +87,8 @@ public struct ResourceBuilder: Sendable {
         questionnaireRepositoryID: RepositoryID? = nil,
         responseRepositoryID: RepositoryID? = nil,
         valueSets: [ModelsR4.ValueSet] = [],
-        authored: Date = .now
+        authored: Date,
+        authoredTimeZone: TimeZone
     ) throws -> ResourcePair {
         let questionnaire = try questionnaire(
             from: source.questionnaire,
@@ -99,12 +102,20 @@ public struct ResourceBuilder: Sendable {
             status: status,
             identifier: identifier,
             repositoryID: responseRepositoryID,
-            authored: authored
+            authored: authored,
+            authoredTimeZone: authoredTimeZone
+        )
+        let evaluator = try PairExpressionEvaluator.fhirPath(
+            questionnaire: questionnaire,
+            response: response,
+            evaluationInstant: authored,
+            evaluationTimeZone: authoredTimeZone
         )
         return try ResourcePair(
             questionnaire: questionnaire,
             response: response,
-            valueSets: valueSets
+            valueSets: valueSets,
+            validator: .init(expressionEvaluator: evaluator)
         )
     }
 }

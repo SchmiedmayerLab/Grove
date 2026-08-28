@@ -15,7 +15,6 @@ public import Foundation
 internal import GroveFHIRContract
 public import GroveHealthKit
 public import HealthKit
-public import ModelsDSTU2
 public import ModelsR4
 
 
@@ -37,32 +36,22 @@ public struct HealthKitClinicalAttachment: Sendable {
 }
 
 
-/// A clinical record read from HealthKit, in the FHIR release the institution authored it in.
+/// A byte-preserved R4 clinical record read from HealthKit.
 ///
 /// This is not a conversion. A clinical record already *is* FHIR — an institution's own resource,
 /// delivered through HealthKit — so Grove reads and identifies it rather than re-modelling it.
 /// The adapter catalog records these source types as platform-exclusive for that reason.
 public struct HealthKitClinicalRecord: Sendable {
-    /// The record's payload, in the release it was authored in.
-    public enum Payload: Sendable {
-        case r4(any ModelsR4.Resource) // swiftlint:disable:this identifier_name
-        case dstu2(any ModelsDSTU2.Resource)
-    }
-
     /// The HealthKit object the record was read from.
     public let sourceUUID: UUID
-    /// The record's own FHIR resource.
-    public let payload: Payload
+    /// The exact bytes HealthKit returned. These bytes, not a re-encoded model, are the payload
+    /// carried in the exchange graph and covered by `Attachment.hash` and `Attachment.size`.
+    public let sourceData: Data
+    /// A decoded view for clients that need to inspect the provider-issued resource. Grove never
+    /// serializes this value back into the carried payload.
+    public let resource: any ModelsR4.Resource
     /// The documents HealthKit stores alongside the record, when the caller asked for them.
     public let attachments: [HealthKitClinicalAttachment]
-
-    /// The `(system, value)` pair identifying the HealthKit object this record was read from.
-    public var sourceIdentifier: ModelsR4.Identifier {
-        ModelsR4.Identifier(
-            system: FHIRPrimitive(FHIRURI(stringLiteral: Canonicals.healthKitObjectIdentifierSystem)),
-            value: FHIRPrimitive(FHIRString(stringLiteral: sourceUUID.uuidString.lowercased()))
-        )
-    }
 }
 
 
@@ -82,22 +71,12 @@ extension HealthKitConverter {
         guard let fhirResource = record.fhirResource else {
             throw .clinicalRecordWithoutResource(record.uuid)
         }
-        let payload: HealthKitClinicalRecord.Payload
-        do {
-            let decoder = JSONDecoder()
-            switch fhirResource.fhirVersion.fhirRelease {
-            case .dstu2:
-                payload = .dstu2(try decoder.decode(ModelsDSTU2.ResourceProxy.self, from: fhirResource.data).get())
-            case .r4:
-                payload = .r4(try decoder.decode(ModelsR4.ResourceProxy.self, from: fhirResource.data).get())
-            default:
-                throw HealthKitConversionError.unsupportedClinicalRelease(fhirResource.fhirVersion.stringRepresentation)
-            }
-        } catch let error as HealthKitConversionError {
-            throw error
-        } catch {
-            throw .undecodableClinicalRecord(record.uuid)
-        }
+        let resource = try Self.decodeR4ClinicalResource(
+            data: fhirResource.data,
+            release: fhirResource.fhirVersion.fhirRelease,
+            versionDescription: fhirResource.fhirVersion.stringRepresentation,
+            sourceUUID: record.uuid
+        )
         var attachments: [HealthKitClinicalAttachment] = []
         if let healthKit {
             do {
@@ -106,7 +85,30 @@ extension HealthKitConverter {
                 throw .unreadableClinicalAttachment(record.uuid)
             }
         }
-        return HealthKitClinicalRecord(sourceUUID: record.uuid, payload: payload, attachments: attachments)
+        return HealthKitClinicalRecord(
+            sourceUUID: record.uuid,
+            sourceData: fhirResource.data,
+            resource: resource,
+            attachments: attachments
+        )
+    }
+
+    /// Fails before decoding unless HealthKit explicitly declares R4. Keeping this gate separate
+    /// makes the DSTU2 rejection testable without constructing Apple's read-only HKFHIRResource.
+    static func decodeR4ClinicalResource(
+        data: Data,
+        release: HKFHIRRelease,
+        versionDescription: String,
+        sourceUUID: UUID
+    ) throws(HealthKitConversionError) -> any ModelsR4.Resource {
+        guard release == .r4 else {
+            throw .unsupportedClinicalRelease(versionDescription)
+        }
+        do {
+            return try JSONDecoder().decode(ModelsR4.ResourceProxy.self, from: data).get()
+        } catch {
+            throw .undecodableClinicalRecord(sourceUUID)
+        }
     }
 
     private static func attachments(

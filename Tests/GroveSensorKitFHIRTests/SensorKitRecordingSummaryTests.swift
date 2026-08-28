@@ -28,18 +28,20 @@ struct GroveSensorKitRecordingSummaryTests {
     private static var context: SensorKitConversionContext {
         get throws {
             SensorKitConversionContext(
-                subject: Reference(reference: "Patient/example"),
+                subject: SensorFHIRIdentityTestSupport.subject,
+                subjectIdentity: try SensorFHIRIdentityTestSupport.subjectIdentity,
                 converter: SensorApplication(
-                    identifier: try BusinessIdentifier(
-                        system: "https://study.example.org/fhir/identifiers/application",
-                        value: "sensor-conformance|0.3.0"
-                    ),
+                    sourceDeviceToken: "org.grovealliance.sensor-conformance",
                     name: "Sensor Conformance",
                     version: "0.5.0"
                 ),
-                graphIdentifierSystem: "https://study.example.org/fhir/identifiers/sensor-graph",
+                converterHost: SensorFHIRIdentityTestSupport.converterHost,
+                eventIdentifier: try SensorFHIRIdentityTestSupport.event(),
+                entryNodeIdentifierSystem: SensorFHIRIdentityTestSupport.entryNodeIdentifierSystem,
+                identityScope: try SensorFHIRIdentityTestSupport.identityScope,
+                repositoryScope: try SensorFHIRIdentityTestSupport.repositoryScope,
+                visitLocationIdentifierSystem: SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem,
                 sourceTimeZone: try #require(TimeZone(identifier: "America/Los_Angeles")),
-                issuedAt: start.addingTimeInterval(30),
                 recordedAt: start.addingTimeInterval(60)
             )
         }
@@ -53,7 +55,6 @@ struct GroveSensorKitRecordingSummaryTests {
             batchCount: 3,
             nativeRecording: try SensorKitNativeRecording(
                 title: "Exact SensorKit accelerometer batch",
-                contentType: "text/csv",
                 format: format,
                 payload: .inline(Data("timestamp,identifier,x,y,z,device\n1787009400,1,0.1,0.2,0.3,Watch\n".utf8)),
                 admission: .verifiedSanitizedInput
@@ -96,8 +97,13 @@ struct GroveSensorKitRecordingSummaryTests {
         #expect(observation.component == nil)
         #expect(observation.derivedFrom == nil)
         #expect(conversion.recordingDocument == nil)
-        #expect(conversion.outputIdentifiers.map(\.value) == ["v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|sleep-session"])
-        #expect(conversion.bundle.entry?.count == 3)
+        #expect(conversion.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
+            sourceRecordID: try Self.sourceID,
+            sourceToken: "SRSensor.sleepSessions",
+            structuredDiscriminator: "sleep-session",
+            includesNativeRecording: false
+        )))
+        #expect(conversion.bundle.entry?.count == 4)
         guard case .period(let effective) = observation.effective else {
             Issue.record("A sleep session must span its exact session Period")
             return
@@ -123,10 +129,12 @@ struct GroveSensorKitRecordingSummaryTests {
         let format = try #require(document.content.first?.format)
         #expect(format.system?.value?.url.absoluteString == SensorKitContract.recordingFormatCodeSystem)
         #expect(format.code?.value?.string == "triaxial-acceleration-samples")
-        #expect(conversion.outputIdentifiers.map(\.value) == [
-            "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|accelerometer-recording-summary",
-            "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|native-recording"
-        ])
+        #expect(conversion.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
+            sourceRecordID: try Self.sourceID,
+            sourceToken: "SRSensor.accelerometer",
+            structuredDiscriminator: "accelerometer-recording-summary",
+            includesNativeRecording: true
+        )))
         #expect(conversion.provenance.target.count == 2)
     }
 
@@ -140,7 +148,6 @@ struct GroveSensorKitRecordingSummaryTests {
             accelerometerSampleCount: 256,
             nativeRecording: try SensorKitNativeRecording(
                 title: "Exact SensorKit PPG batch",
-                contentType: "application/octet-stream",
                 format: .photoplethysmogramSamples,
                 payload: .inline(Data([0x02, 0x41, 0xDA, 0x9E, 0x9F, 0x8C, 0xE3, 0x60, 0x00])),
                 admission: .callerAuthorizedOpaquePayload
@@ -161,10 +168,15 @@ struct GroveSensorKitRecordingSummaryTests {
         #expect(observation.derivedFrom?.first?.reference?.value?.string == entries[1].fullUrl?.value?.url.absoluteString)
         #expect(document.content.first?.format?.code?.value?.string == "photoplethysmogram-samples")
         #expect(document.identifier?.first == observation.identifier?.first)
-        #expect(conversion.outputIdentifiers.map(\.value) == [
-            "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|ppg-recording-summary",
-            "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|native-recording"
-        ])
+        let identifiers = try #require(document.identifier).map(BusinessIdentifier.init)
+        #expect(identifiers.map(\.role) == [.sourceRecord, .sourceOutput, .sourceArtifact])
+        #expect(document.content.count == 1)
+        #expect(conversion.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
+            sourceRecordID: try Self.sourceID,
+            sourceToken: "SRSensor.photoplethysmogram",
+            structuredDiscriminator: "ppg-recording-summary",
+            includesNativeRecording: true
+        )))
         #expect(conversion.provenance.target.count == 2)
     }
 

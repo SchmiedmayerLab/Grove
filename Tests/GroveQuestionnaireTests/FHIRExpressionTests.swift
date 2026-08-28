@@ -133,7 +133,8 @@ struct FHIRExpressionTests {
         // The hidden score item flows into the emitted response.
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         let totalItem = fhirResponse.item?.first { $0.linkId.value?.string == "total" }
         #expect(totalItem?.answer?.first?.value == .decimal(FHIRPrimitive(FHIRDecimal(4))))
@@ -281,7 +282,8 @@ struct FHIRExpressionTests {
             let response = try ModelsR4.QuestionnaireResponse(
                 responses,
                 identifier: identifier,
-                authored: authored
+                authored: authored,
+                authoredTimeZone: questionnaireResponseTestTimeZone
             )
             return try encoder.encode(response)
         }

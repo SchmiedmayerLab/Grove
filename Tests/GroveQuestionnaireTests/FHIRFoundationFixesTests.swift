@@ -203,7 +203,8 @@ struct FHIRFoundationFixesTests {
         responses.responses["mood"] = .init(value: .choice(.init(selectedOptions: ["https://example.org/scale|nearly-every-day"])))
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         guard case let .coding(coding) = fhirResponse.item?.first?.item?.first?.answer?.first?.value ?? fhirResponse.item?.first?.answer?.first?.value else {
             Issue.record("Expected a coding answer")

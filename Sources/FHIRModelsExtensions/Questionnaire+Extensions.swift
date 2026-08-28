@@ -11,6 +11,19 @@ public import Foundation
 public import ModelsR4
 
 
+/// A present Questionnaire bound is malformed and cannot be represented faithfully.
+///
+/// Absence remains a valid `nil` result. These errors distinguish absence from a corrupt or
+/// unsupported bound so a renderer never silently widens the range the author specified.
+public enum QuestionnaireItemBoundError: Error, Equatable, Sendable {
+    case repeatedExtension(url: String, count: Int)
+    case missingValue(url: String)
+    case unsupportedValue(url: String)
+    case invalidNumber(url: String)
+    case invalidFHIRPath(url: String, expression: String, reason: String)
+}
+
+
 extension FHIRTypeWithExtensions {
     /// The element's scoring weight from the current `itemWeight` extension.
     public var itemWeight: Decimal? {
@@ -115,8 +128,14 @@ extension QuestionnaireItem {
     /// `minQuantity` (whose unit is assumed to match the question's).
     /// - Returns: An optional `NSNumber` containing the minimum value allowed.
     public var minValue: NSNumber? {
-        numericMinMaxValue(url: SupportedExtensions.minValue)
-            ?? numericMinMaxValue(url: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-minQuantity")
+        get throws {
+            if try uniqueExtension(url: SupportedExtensions.minValue) != nil {
+                return try numericMinMaxValue(url: SupportedExtensions.minValue)
+            }
+            return try numericMinMaxValue(
+                url: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-minQuantity"
+            )
+        }
     }
 
     /// The maximum value for a numerical answer.
@@ -125,8 +144,14 @@ extension QuestionnaireItem {
     /// `maxQuantity` (whose unit is assumed to match the question's).
     /// - Returns: An optional `NSNumber` containing the maximum value allowed.
     public var maxValue: NSNumber? {
-        numericMinMaxValue(url: SupportedExtensions.maxValue)
-            ?? numericMinMaxValue(url: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-maxQuantity")
+        get throws {
+            if try uniqueExtension(url: SupportedExtensions.maxValue) != nil {
+                return try numericMinMaxValue(url: SupportedExtensions.maxValue)
+            }
+            return try numericMinMaxValue(
+                url: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-maxQuantity"
+            )
+        }
     }
     
     /// The maximum number of decimal places for a decimal answer.
@@ -168,12 +193,32 @@ extension QuestionnaireItem {
     }
     
     /// The regular expression specified for validating a text input in a question.
-    /// - Returns: An optional `String` containing the regular expression, if it exists.
+    ///
+    /// Absence returns `nil`; a present repeated, mistyped, valueless, or invalid expression throws
+    /// so conversion cannot silently widen the author's constraint.
     public var validationRegularExpression: NSRegularExpression? {
-        if let pattern = extensions(for: SupportedExtensions.regex).first?.value?.stringValue?.value?.string {
-            try? NSRegularExpression(pattern: pattern)
-        } else {
-            nil
+        get throws {
+            let matches = extensions(for: SupportedExtensions.regex)
+            guard matches.count <= 1 else {
+                throw QuestionnaireItemRegexError.repeatedExtension(count: matches.count)
+            }
+            guard let regexExtension = matches.first else {
+                return nil
+            }
+            guard let value = regexExtension.value else {
+                throw QuestionnaireItemRegexError.missingValue
+            }
+            guard case .string(let string) = value else {
+                throw QuestionnaireItemRegexError.unsupportedValue
+            }
+            guard let pattern = string.value?.string else {
+                throw QuestionnaireItemRegexError.missingValue
+            }
+            do {
+                return try NSRegularExpression(pattern: pattern)
+            } catch {
+                throw QuestionnaireItemRegexError.invalidPattern(pattern)
+            }
         }
     }
     
@@ -214,16 +259,16 @@ extension QuestionnaireItem {
     /// the caller-supplied instant.
     /// - Parameter evaluationInstant: The explicit instant used by clock-sensitive expressions.
     /// - Returns: An optional `DateComponents` containing the minimum date allowed.
-    public func minDateValue(evaluationInstant: Date = .now) -> DateComponents? {
-        dateMinMaxValue(urls: [SupportedExtensions.minValue], evaluationInstant: evaluationInstant)
+    public func minDateValue(evaluationInstant: Date) throws -> DateComponents? {
+        try dateMinMaxValue(url: SupportedExtensions.minValue, evaluationInstant: evaluationInstant)
     }
 
     /// The maximum value for a date answer, resolving relative FHIRPath values at
     /// the caller-supplied instant.
     /// - Parameter evaluationInstant: The explicit instant used by clock-sensitive expressions.
     /// - Returns: An optional `DateComponents` containing the maximum date allowed.
-    public func maxDateValue(evaluationInstant: Date = .now) -> DateComponents? {
-        dateMinMaxValue(urls: [SupportedExtensions.maxValue], evaluationInstant: evaluationInstant)
+    public func maxDateValue(evaluationInstant: Date) throws -> DateComponents? {
+        try dateMinMaxValue(url: SupportedExtensions.maxValue, evaluationInstant: evaluationInstant)
     }
     
     /// Checks this QuestionnaireItem for an extension matching the given URL and then return it if it exists.
@@ -234,62 +279,91 @@ extension QuestionnaireItem {
         self.`extension`?.first(where: { $0.url.value?.url.absoluteString == url })
     }
     
-    private func numericMinMaxValue(url: String) -> NSNumber? {
-        switch getExtensionInQuestionnaireItem(url: url)?.value {
+    private func uniqueExtension(url: String) throws -> Extension? {
+        let matches = extensions(for: url)
+        guard matches.count <= 1 else {
+            throw QuestionnaireItemBoundError.repeatedExtension(url: url, count: matches.count)
+        }
+        return matches.first
+    }
+
+    private func numericMinMaxValue(url: String) throws -> NSNumber? {
+        guard let bound = try uniqueExtension(url: url) else {
+            return nil
+        }
+        switch bound.value {
         case .integer(let integer):
-            (integer.value?.integer).map { NSNumber(value: $0) }
+            guard let value = integer.value?.integer else {
+                throw QuestionnaireItemBoundError.missingValue(url: url)
+            }
+            return NSNumber(value: value)
         case .decimal(let decimal):
-            (decimal.value?.decimal).map { NSDecimalNumber(decimal: $0) }
+            guard let value = decimal.value?.decimal else {
+                throw QuestionnaireItemBoundError.missingValue(url: url)
+            }
+            let number = NSDecimalNumber(decimal: value)
+            guard number != .notANumber else {
+                throw QuestionnaireItemBoundError.invalidNumber(url: url)
+            }
+            return number
         case .quantity(let quantity):
             // Note: this operates on the assumption that the unit used by the min/maxValue quantity is using the same unit as the question itself.
-            (quantity.value?.value?.decimal).map { NSDecimalNumber(decimal: $0) }
+            guard let value = quantity.value?.value?.decimal else {
+                throw QuestionnaireItemBoundError.missingValue(url: url)
+            }
+            let number = NSDecimalNumber(decimal: value)
+            guard number != .notANumber else {
+                throw QuestionnaireItemBoundError.invalidNumber(url: url)
+            }
+            return number
         default:
-            nil
+            throw QuestionnaireItemBoundError.unsupportedValue(url: url)
         }
     }
     
     // swiftlint:disable:next cyclomatic_complexity
     private func dateMinMaxValue(
-        urls: [String],
+        url: String,
         evaluationInstant: Date
-    ) -> DateComponents? {
-        for url in urls {
-            guard let ext = getExtensionInQuestionnaireItem(url: url) else {
-                continue
+    ) throws -> DateComponents? {
+        guard let ext = try uniqueExtension(url: url) else {
+            return nil
+        }
+        switch ext.value {
+        case .date(let value):
+            guard let value = value.value else {
+                throw QuestionnaireItemBoundError.missingValue(url: url)
             }
-            switch ext.value {
-            case .date(let value):
-                guard let value = value.value else {
-                    continue
-                }
-                return value.dateComponents()
-            case .time(let value):
-                guard let value = value.value else {
-                    continue
-                }
-                return value.dateComponents()
-            case .dateTime(let value):
-                guard let value = value.value else {
-                    continue
-                }
-                return value.dateComponents()
-            case .string(let value):
-                guard let value = value.value?.string else {
-                    continue
-                }
-                if let value = try? FHIRPathExpression.evaluate(
-                    expression: value,
+            return value.dateComponents()
+        case .time(let value):
+            guard let value = value.value else {
+                throw QuestionnaireItemBoundError.missingValue(url: url)
+            }
+            return value.dateComponents()
+        case .dateTime(let value):
+            guard let value = value.value else {
+                throw QuestionnaireItemBoundError.missingValue(url: url)
+            }
+            return value.dateComponents()
+        case .string(let value):
+            guard let expression = value.value?.string else {
+                throw QuestionnaireItemBoundError.missingValue(url: url)
+            }
+            do {
+                return try FHIRPathExpression.evaluate(
+                    expression: expression,
                     evaluationInstant: evaluationInstant,
                     as: DateComponents.self
-                ) {
-                    return value
-                } else {
-                    continue
-                }
-            default:
-                continue
+                )
+            } catch {
+                throw QuestionnaireItemBoundError.invalidFHIRPath(
+                    url: url,
+                    expression: expression,
+                    reason: String(describing: error)
+                )
             }
+        default:
+            throw QuestionnaireItemBoundError.unsupportedValue(url: url)
         }
-        return nil
     }
 }

@@ -75,32 +75,56 @@ public struct CollectSamples<Sample: _HKSampleWithSampleType>: HealthKitConfigur
         self.timeRange = timeRange
         self.predicate = predicate
     }
-    
-    public func configure(for healthKit: HealthKit, on standard: any HealthKitConstraint) async {
-        let timeRange: HealthKitQueryTimeRange = switch timeRange {
+
+    /// Resolves the durable start boundary before a collector can be registered.
+    ///
+    /// The injected clock/storage operations keep the fail-closed state transition directly
+    /// testable: a present-but-unreadable boundary or a failed first write throws and no query starts.
+    static func resolveTimeRange(
+        _ configuredRange: TimeRange,
+        now: Date,
+        calendar: Calendar,
+        load: () throws -> Date?,
+        store: (Date) throws -> Void
+    ) throws -> HealthKitQueryTimeRange {
+        switch configuredRange {
         case .newSamples:
-            if let startDate = healthKit.sampleCollectionStartDates[sampleType] {
-                .startingAt(startDate)
-            } else {
-                { () -> HealthKitQueryTimeRange in
-                    let cal = Calendar.current
-                    var components = cal.dateComponents(in: .current, from: .now)
-                    components.setValue(0, for: .second)
-                    components.setValue(0, for: .nanosecond)
-                    let defaultQueryDate = cal.date(from: components) ?? .now
-                    healthKit.sampleCollectionStartDates[sampleType] = defaultQueryDate
-                    return .init(defaultQueryDate...)
-                }()
+            if let startDate = try load() {
+                return .startingAt(startDate)
             }
+            var components = calendar.dateComponents(in: calendar.timeZone, from: now)
+            components.setValue(0, for: .second)
+            components.setValue(0, for: .nanosecond)
+            let defaultQueryDate = calendar.date(from: components) ?? now
+            try store(defaultQueryDate)
+            return .startingAt(defaultQueryDate)
         case .startingAt(let date):
-            .init(date...)
+            return .startingAt(date)
+        }
+    }
+
+    public func configure(for healthKit: HealthKit, on standard: any HealthKitConstraint) async {
+        let queryTimeRange: HealthKitQueryTimeRange
+        do {
+            queryTimeRange = try Self.resolveTimeRange(
+                self.timeRange,
+                now: .now,
+                calendar: .current,
+                load: { try healthKit.sampleCollectionStartDates.load(for: sampleType) },
+                store: { try healthKit.sampleCollectionStartDates.store($0, for: sampleType) }
+            )
+        } catch {
+            healthKit.logger.error(
+                "Unable to durably resolve the collection start for \(sampleType.id); collector registration was aborted: \(error)"
+            )
+            return
         }
         let collector = HealthKitSampleCollector(
             source: .collectSamples,
             healthKit: healthKit,
             standard: standard,
             sampleType: sampleType,
-            timeRange: timeRange,
+            timeRange: queryTimeRange,
             predicate: predicate,
             deliverySetting: deliverySetting
         )

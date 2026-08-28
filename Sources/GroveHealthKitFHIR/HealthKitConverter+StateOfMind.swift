@@ -100,12 +100,10 @@ extension HealthKitConverter {
     ///
     /// Valence is the one numeric axis: a dimensionless −1…1 score, so UCUM's unity code applies.
     static func stateOfMindValue(_ sample: HKStateOfMind) throws -> Quantity {
-        Quantity(
-            code: "1",
-            system: FHIRPrimitive(FHIRURI(stringLiteral: "http://unitsofmeasure.org")),
-            unit: "{valence}",
-            value: FHIRPrimitive(FHIRDecimal(Decimal(sample.valence)))
-        )
+        guard let contract = HealthKitMeasurementCatalog.stateOfMind.quantity else {
+            throw HealthKitConversionError.invalidValue
+        }
+        return try fhirQuantity(value: sample.valence, contract: contract)
     }
 
     /// Every coded axis of the reflection.

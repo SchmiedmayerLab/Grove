@@ -51,7 +51,14 @@ struct ContentView: View {
                             id: "\(additionalFHIRResourceId):\(UUID().uuidString)".asFHIRStringPrimitive(),
                             status: .init()
                         )
-                        fhirStore.insert(FHIRResource(resource: resource, displayName: "Random Account FHIR Resource"))
+                        do {
+                            try fhirStore.insert(FHIRResource(
+                                resource: resource,
+                                displayName: "Random Account FHIR Resource"
+                            ))
+                        } catch {
+                            viewState = .error(AnyLocalizedError(error: error))
+                        }
                     } label: {
                         Label("Add", systemImage: "doc.badge.plus")
                             .accessibilityLabel("Add FHIR Resource")
