@@ -39,6 +39,7 @@ public struct CanonicalNonnegativeDecimal: Hashable, Sendable, CustomStringConve
         if first == 0x30 {
             return value.utf8.count == 1
         }
-        return (0x31...0x39).contains(first) && value.utf8.dropFirst().allSatisfy((0x30...0x39).contains)
+        return (0x31...0x39).contains(first)
+            && value.utf8.dropFirst().allSatisfy { (0x30...0x39).contains($0) }
     }
 }

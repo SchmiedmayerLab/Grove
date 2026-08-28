@@ -36,7 +36,7 @@ struct DateTimeLiteralParserTests {
                 date: .init(year: 1998, month: 6, day: 2),
                 time: DateTimeLiteralParser.Time(hour: 18, minute: 15, second: 0)
             )))
-            #expect(timeZone == .gmt)
+            #expect(timeZone == .init(secondsFromGMT: 0))
         }
         do {
             let (result, timeZone) = try DateTimeLiteralParser.parse("@2017-11-05T01:30:00-04:00")

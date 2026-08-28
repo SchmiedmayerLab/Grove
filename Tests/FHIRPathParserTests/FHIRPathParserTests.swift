@@ -37,6 +37,7 @@ struct FHIRPathParserTests { // swiftlint:disable:this type_body_length
         }
         
         let tz1 = try #require(TimeZone(identifier: "Europe/Berlin"))
+        let utc = try #require(TimeZone(secondsFromGMT: 0))
         
         let tests: [Test] = [
             Test(input: "@1998-06-02Z", expectedOutput: .invalid),
@@ -83,12 +84,12 @@ struct FHIRPathParserTests { // swiftlint:disable:this type_body_length
                     let parsedDate = try FHIRPathExpression.evaluate(expression: test.input, evaluationInstant: Self.evaluationInstant, as: Date.self)
                     let parsedDateComponents = try #require(cal.convert(
                         components: cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: parsedDate),
-                        bySettingTimeZoneTo: .gmt,
+                        bySettingTimeZoneTo: utc,
                         componentsToReturn: [.year, .month, .day, .hour, .minute, .second]
                     ))
                     let expectedComponents = try #require(cal.convert(
                         components: expectedComponentsWhenParsedAsDate,
-                        bySettingTimeZoneTo: .gmt,
+                        bySettingTimeZoneTo: utc,
                         componentsToReturn: [.year, .month, .day, .hour, .minute, .second]
                     ))
                     let expectedDate = try #require(cal.date(from: expectedComponents))

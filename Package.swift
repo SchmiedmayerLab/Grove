@@ -69,7 +69,7 @@ let defaultEnabledTraits: Set<String> = if isLoweredDeploymentTargetEnabled {
 let excludeDocCCatalogs = Context.environment["GROVE_EXCLUDE_DOCC_CATALOGS"] == "1"
 
 let packagePlatforms: [SupportedPlatform] = if isLoweredDeploymentTargetEnabled {
-    [.iOS(.v15), .macOS(.v12), .watchOS(.v9)]
+    [.iOS(.v15), .macOS(.v12), .watchOS(.v8)]
 } else {
     [.iOS(.v18), .macOS(.v15), .watchOS(.v11)]
 }
