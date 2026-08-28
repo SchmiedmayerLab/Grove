@@ -3279,6 +3279,10 @@ extension HKClinicalType {
     /// which is expensive.
     @available(watchOS, unavailable)
     @usableFromInline
+    // SAFETY: Swift initializes this immutable static value once and `SampleType` is `Sendable`.
+    // The compiler cannot prove the generic conformance here because `HKClinicalRecord` is unavailable
+    // on watchOS. Remove this escape hatch once the compiler recognizes that conformance across availability.
+    nonisolated(unsafe)
     static let _allKnownClinicalRecords: Set<SampleType<HKClinicalRecord>> = {
         HKClinicalType.allKnownClinicalRecords.compactMapIntoSet { $0.sampleType as? SampleType<HKClinicalRecord> }
     }()

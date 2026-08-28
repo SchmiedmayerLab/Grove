@@ -115,9 +115,9 @@ extension ${hk_sampletype_class} {
     % end
     @usableFromInline
     % if hk_class == 'HKClinicalRecord':
-    % # we need to add this here to stop the compiler from complaining about the property not being concurrency-safe
-    % # because it thinks that `Set<SampleType<HKClinicalRecord>>` isn't Sendable.
-    % # (apparently the compiler can't pick up HKSample's @unchecked Sendable conformance if the specific subclass isn't available on the platform?)
+    // SAFETY: Swift initializes this immutable static value once and `SampleType` is `Sendable`.
+    // The compiler cannot prove the generic conformance here because `HKClinicalRecord` is unavailable
+    // on watchOS. Remove this escape hatch once the compiler recognizes that conformance across availability.
     nonisolated(unsafe)
     % end
     static let _allKnown${''.join(display_title_plural.split())}: Set<SampleType<${hk_class}>> = {
