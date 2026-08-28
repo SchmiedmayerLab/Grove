@@ -7,12 +7,13 @@
 //
 
 public import Foundation
+public import GroveFHIRContract
 public import GroveQuestionnaire
 public import ModelsR4
 
 
 /// An error occurring while exporting a natively declared questionnaire to FHIR.
-public struct FHIRExportError: LocalizedError {
+public struct ExportError: LocalizedError {
     public let errorDescription: String?
 
     init(_ message: String) {
@@ -72,10 +73,15 @@ extension GroveQuestionnaire.Questionnaire {
     /// questionnaire converts cleanly and carries no administration warnings.
     public static func authoringDiagnostics(
         for questionnaire: ModelsR4.Questionnaire,
-        using options: FHIRConversionOptions = .init()
+        evaluationInstant: Date,
+        using options: ConversionOptions = .init()
     ) -> [String] {
         do {
-            let converted = try GroveQuestionnaire.Questionnaire(questionnaire, using: options)
+            let converted = try GroveQuestionnaire.Questionnaire(
+                questionnaire,
+                evaluationInstant: evaluationInstant,
+                using: options
+            )
             return converted.metadata.administrationWarnings
         } catch {
             return [error.localizedDescription]
@@ -90,18 +96,35 @@ extension ModelsR4.Questionnaire {
     ///
     /// Together with `ModelsR4.QuestionnaireResponse.init(_:)` this closes the round
     /// trip: instruments authored with the Swift DSL serve FHIR-native consumers.
-    public init(_ questionnaire: GroveQuestionnaire.Questionnaire) throws {
+    public init(
+        _ questionnaire: GroveQuestionnaire.Questionnaire,
+        repositoryID: RepositoryID? = nil
+    ) throws {
+        guard let url = questionnaire.metadata.url else {
+            throw ContractError.missingQuestionnaireURL
+        }
+        guard let version = questionnaire.metadata.version else {
+            throw ContractError.missingQuestionnaireVersion
+        }
+        guard ContractRules.isSemanticVersion(version) else {
+            throw ContractError.invalidQuestionnaireVersion(version)
+        }
+        let canonical = "\(url.absoluteString)|\(version)"
+        guard !url.absoluteString.contains("|"),
+              !url.absoluteString.contains("#"),
+              !version.contains("|"),
+              !version.contains("#") else {
+            throw ContractError.invalidQuestionnaireCanonical(canonical)
+        }
         self.init(status: FHIRPrimitive(Self.publicationStatus(of: questionnaire.metadata.lifecycle)))
-        // Self-declare the profile so validators and profile-aware stores pick up
-        // the contract without out-of-band knowledge.
-        self.meta = Meta(profile: [
-            FHIRPrimitive(Canonical(
-            "https://grovealliance.org/fhir/core/StructureDefinition/grove-questionnaire"
-        ))
-        ])
+        self.id = repositoryID?.primitive
+        self.meta = Meta(profile: [Profile.groveQuestionnaire])
         applyMetadata(questionnaire.metadata)
         let items = try Self.items(of: questionnaire)
-        self.item = items.isEmpty ? nil : items
+        guard !items.isEmpty else {
+            throw ContractError.emptyQuestionnaire
+        }
+        self.item = items
     }
 
     private static func publicationStatus(
@@ -147,7 +170,16 @@ extension ModelsR4.Questionnaire {
     }
 
     private mutating func applyMetadata(_ metadata: GroveQuestionnaire.Questionnaire.Metadata) {
-        var resourceExtensions = metadata.variables.map { variable in
+        var resourceExtensions = [
+            Extension(
+                url: Canonicals.versionAlgorithm,
+                value: .coding(Coding(
+                    code: "semver".asFHIRStringPrimitive(),
+                    system: Canonicals.versionAlgorithmCodeSystem
+                ))
+            )
+        ]
+        resourceExtensions.append(contentsOf: metadata.variables.map { variable in
             Extension(
                 url: "http://hl7.org/fhir/StructureDefinition/variable",
                 value: .expression(Expression(
@@ -156,18 +188,17 @@ extension ModelsR4.Questionnaire {
                     name: variable.name.asFHIRStringPrimitive()
                 ))
             )
-        }
+        })
         if metadata.entryMode != .random {
             resourceExtensions.append(Extension(
                 url: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-entryMode",
                 value: .code(FHIRPrimitive(ModelsR4.FHIRString(metadata.entryMode.rawValue)))
             ))
         }
-        self.extension = resourceExtensions.isEmpty ? nil : resourceExtensions
+        self.extension = resourceExtensions
         if let url = metadata.url {
             self.url = url.asFHIRURIPrimitive()
         }
-        self.id = metadata.url == nil ? metadata.id.asFHIRStringPrimitive() : nil
         self.version = metadata.version?.asFHIRStringPrimitive()
         self.title = metadata.title.isEmpty ? nil : metadata.title.asFHIRStringPrimitive()
         self.name = metadata.title.isEmpty ? nil : metadata.title

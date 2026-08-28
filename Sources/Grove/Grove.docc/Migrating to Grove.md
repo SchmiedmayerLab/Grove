@@ -135,44 +135,12 @@ If the keychain is locked it defers instead of reporting "no passcode set".
 
 ## FHIR identifiers
 
-Canonical URLs moved to the `grovealliance.org` authority:
+Grove's FHIR APIs use only the canonical URLs published by the current Grove implementation guides.
+They neither read nor write the retired Stanford-era aliases, and there is no dual-write mode.
+Migrate any externally persisted resources or downstream rules to the current `https://grovealliance.org/fhir` canonicals before adopting these APIs.
 
-```diff
--https://bdh.stanford.edu/fhir/defs/sourceDevice
-+https://grovealliance.org/fhir/core/StructureDefinition/sourceDevice
-```
-
-Reads accept **every spelling ever published**; writes emit only the new one.
-`extensions(for:)` walks the spellings canonical-first and never merges them, so a resource carrying both is read as the newer writer intended.
-
-If an analysis pipeline is keyed on the old URLs, opt into dual-write while you migrate it:
-
-```swift
-FHIRWritePolicy.default = .canonicalAndSuperseded
-```
-
-Every `Observation` Grove builds from a HealthKit sample then carries a compatibility copy under each superseded spelling.
-Copies are deep, so nested extensions such as `sourceRevision/source/bundleIdentifier` are reproduced in full, and the pass is idempotent.
-Resources you assemble yourself — and the clinical records Grove only tags — opt in by calling `writeSupersededSpellings(of:)` once the extensions are in place.
-
-> Note: Dual-written extensions are duplicates, not new information.
-> Anything reading through Grove already resolves both spellings and should leave this at its default of `.canonicalOnly`.
-
-## Identifiers that keep their old spelling
-
-Two different things are easy to confuse here, and only one of them lasts.
-
-**Transitional — read once, then gone.** The reverse-DNS keys in the table above.
-They exist only so the migrations can find your users' data.
-They are never written, a fresh install never encounters them, and they are deleted outright once these migrations have shipped.
-
-**Published — read forever.** Superseded FHIR canonical URLs under `bdh.stanford.edu`, `spezi.stanford.edu` and `spezi.health`.
-These are not on your device: they are in resources this project does not own — a questionnaire authored elsewhere in 2024, an `Observation` already sitting in a research database.
-Those will never be rewritten, so Grove has to keep understanding them.
-A brand-new install still meets them the first time it parses an externally-authored questionnaire.
-
-> Note: Both live in the `GroveLegacyIdentifiers` target, which is not a package product — you cannot import it, and you should not need to.
-> It exists so the rest of the codebase carries no pre-Grove name, and so the transitional half can be deleted in one commit.
+The reverse-DNS keys in the table above are different: they are transitional on-device locations used only so the migrations can find existing local data.
+They are never written, a fresh install never encounters them, and they can be deleted once these migrations have shipped.
 
 ## Removed
 

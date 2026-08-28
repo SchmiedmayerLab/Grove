@@ -54,7 +54,9 @@ struct FHIRQuestionnaireDetail: View {
         .navigationTitle(example.title)
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            converted = Result { try GroveQuestionnaire.Questionnaire(example.fhir) }
+            converted = Result {
+                try GroveQuestionnaire.Questionnaire(example.fhir, evaluationInstant: .now)
+            }
         }
         .runsQuestionnaires($running)
         .sheet(isPresented: $runningLegacy) {

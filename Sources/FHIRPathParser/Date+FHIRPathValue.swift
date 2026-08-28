@@ -10,8 +10,11 @@ import Foundation
 
 
 extension Date: _FHIRPathValue {
-    public static func evaluate(_ expression: FHIRPathParser.ExpressionContext) throws -> Date {
-        switch expression.accept(DateExpressionEvaluation()) {
+    public static func evaluate(
+        _ expression: FHIRPathParser.ExpressionContext,
+        evaluationInstant: Date
+    ) throws -> Date {
+        switch expression.accept(DateExpressionEvaluation(evaluationInstant: evaluationInstant)) {
         case .none:
             throw DateExpressionError.internalError
         case let .failure(error):
@@ -33,8 +36,11 @@ extension Date: _FHIRPathValue {
 
 
 extension DateComponents: _FHIRPathValue {
-    public static func evaluate(_ expression: FHIRPathParser.ExpressionContext) throws -> DateComponents {
-        switch expression.accept(DateExpressionEvaluation()) {
+    public static func evaluate(
+        _ expression: FHIRPathParser.ExpressionContext,
+        evaluationInstant: Date
+    ) throws -> DateComponents {
+        switch expression.accept(DateExpressionEvaluation(evaluationInstant: evaluationInstant)) {
         case .none:
             throw DateExpressionError.internalError
         case let .failure(error):

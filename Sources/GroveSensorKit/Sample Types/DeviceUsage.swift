@@ -42,6 +42,29 @@ extension SRDeviceUsageReport: SensorKitSampleProtocol {
             timestamp..<(timestamp + duration)
         }
         
+        /// Creates a device-usage report.
+        public init(
+            timestamp: Date,
+            duration: TimeInterval,
+            totalScreenWakes: Int,
+            totalUnlocks: Int,
+            totalUnlockDuration: TimeInterval,
+            version: String,
+            appUsageByCategory: [CategoryKey: [AppUsage]] = [:],
+            notificationUsageByCategory: [CategoryKey: [NotificationUsage]] = [:],
+            webUsageByCategory: [CategoryKey: [WebUsage]] = [:]
+        ) {
+            self.timestamp = timestamp
+            self.duration = duration
+            self.totalScreenWakes = totalScreenWakes
+            self.totalUnlocks = totalUnlocks
+            self.totalUnlockDuration = totalUnlockDuration
+            self.version = version
+            self.appUsageByCategory = appUsageByCategory
+            self.notificationUsageByCategory = notificationUsageByCategory
+            self.webUsageByCategory = webUsageByCategory
+        }
+
         @inlinable
         init(timestamp: Date, report: SRDeviceUsageReport) {
             self.timestamp = timestamp

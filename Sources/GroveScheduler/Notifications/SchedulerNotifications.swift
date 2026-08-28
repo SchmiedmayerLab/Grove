@@ -239,7 +239,7 @@ public final class SchedulerNotifications: Module, DefaultInitializable, Environ
             }
             if defaults.object(forKey: current) == nil {
                 defaults.set(value, forKey: current)
-                LegacyIdentifierReport.encountered(legacy, in: "GroveScheduler", .duringMigration)
+                LegacyIdentifierReport.encountered(legacy, in: "GroveScheduler")
             }
             defaults.removeObject(forKey: legacy)
         }

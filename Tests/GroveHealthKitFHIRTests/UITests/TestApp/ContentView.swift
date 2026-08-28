@@ -24,11 +24,11 @@ struct ContentView: View {
                     }
                 }
                 Section("Other") {
-                    NavigationLink("Read Data (appleStandTime)") {
-                        ReadDataView(.appleStandTime)
+                    NavigationLink("Read Data (heartRate)") {
+                        ReadDataView(.heartRate)
                     }
-                    NavigationLink("Read Data (appleStandHour)") {
-                        ReadDataView(.appleStandHour)
+                    NavigationLink("Read Data (basalBodyTemperature)") {
+                        ReadDataView(.basalBodyTemperature)
                     }
                 }
             }

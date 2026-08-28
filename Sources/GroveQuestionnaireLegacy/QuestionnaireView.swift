@@ -113,7 +113,11 @@ public struct QuestionnaireView: View { // @available(*, deprecated, renamed: "G
         
         // Create a navigable task from the Questionnaire
         do {
-            return try ORKNavigableOrderedTask(questionnaire: questionnaire, completionStep: completionStep)
+            return try ORKNavigableOrderedTask(
+                questionnaire: questionnaire,
+                evaluationInstant: .now,
+                completionStep: completionStep
+            )
         } catch {
             print("Failed to create ORK task: \(error)")
             return nil

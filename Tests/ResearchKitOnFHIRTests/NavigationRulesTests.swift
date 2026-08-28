@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import Foundation
 import ModelsR4
 import ResearchKit
 @testable import ResearchKitOnFHIR
@@ -13,6 +14,8 @@ import Testing
 
 
 struct NavigationRulesTests {
+    private static let evaluationInstant = Date(timeIntervalSince1970: 1_700_000_000)
+
     private func createORKNavigableOrderedTask(
         firstItemID: String,
         firstItemType: QuestionnaireItemType,
@@ -35,7 +38,10 @@ struct NavigationRulesTests {
             status: FHIRPrimitive(PublicationStatus.draft),
             url: FHIRPrimitive(FHIRURI(stringLiteral: "http://grovealliance.org/fhir/questionnaire/navigation-rule-test"))
         )
-        return try ORKNavigableOrderedTask(questionnaire: questionnaire)
+        return try ORKNavigableOrderedTask(
+            questionnaire: questionnaire,
+            evaluationInstant: Self.evaluationInstant
+        )
     }
     
     

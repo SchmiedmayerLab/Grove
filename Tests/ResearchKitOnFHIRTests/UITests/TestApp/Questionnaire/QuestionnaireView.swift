@@ -83,7 +83,11 @@ struct QuestionnaireView: View {
         
         // Create a navigable task from the Questionnaire
         do {
-            return try ORKNavigableOrderedTask(questionnaire: questionnaire, completionStep: completionStep)
+            return try ORKNavigableOrderedTask(
+                questionnaire: questionnaire,
+                evaluationInstant: .now,
+                completionStep: completionStep
+            )
         } catch {
             print("Error creating task: \(error)")
         }
@@ -101,6 +105,7 @@ extension QuestionnaireResponseItem {
                     break
                 }
                 let newFileUrl = newAttachmentsDir.appendingPathComponent(fileUrl.lastPathComponent)
+                // swiftlint:disable:next force_try
                 try! FileManager.default.moveItem(at: fileUrl, to: newFileUrl)
                 attachment.url = newFileUrl.asFHIRURIPrimitive()
                 answer.value = .attachment(attachment)

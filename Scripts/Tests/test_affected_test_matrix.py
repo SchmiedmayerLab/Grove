@@ -95,14 +95,14 @@ class AffectedManifestTests(unittest.TestCase):
         head = package_dump(
             [
                 target("GroveHealthKitFHIR"),
-                target("GroveHealthKitFHIRMacros", ["GroveHealthKitFHIR"]),
+                target("GroveFHIRContract"),
             ],
-            products=[{"name": "GroveHealthKitFHIRMacros", "targets": ["GroveHealthKitFHIRMacros"]}],
+            products=[{"name": "GroveFHIRContract", "targets": ["GroveFHIRContract"]}],
         )
 
         affected = MODULE.affected_by_manifest(base, head, MODULE.PKGS)
 
-        self.assertEqual(affected, {"GroveHealthKitFHIR"})
+        self.assertEqual(affected, {"GroveFHIR"})
 
     def test_new_unclassified_target_fails_instead_of_silently_disappearing(self):
         base = package_dump([])
@@ -158,16 +158,58 @@ class AffectedManifestTests(unittest.TestCase):
 
 
 class FHIRConformanceSelectionTests(unittest.TestCase):
-    def test_validator_script_runs_only_fhir_packages_and_conformance(self):
+    def test_validator_script_runs_only_fhir_packages_and_every_conformance_lane(self):
         result = run_selector("Scripts/validate-fhir-conformance.sh")
 
         self.assertEqual(result["has_fhir_conformance"], "true")
-        self.assertEqual(set(result["affected"].split(",")), MODULE.FHIR_PACKAGES)
+        self.assertEqual(set(result["fhir_components"].split(",")), MODULE.ALL_FHIR_COMPONENTS)
+        self.assertEqual(set(result["affected"].split(",")), MODULE.FHIR_PACKAGES & set(MODULE.PKGS))
+
+    def test_contract_generator_runs_every_conformance_lane(self):
+        for path in sorted(MODULE.FHIR_VALIDATION_PATHS):
+            with self.subTest(path=path):
+                result = run_selector(path)
+
+                self.assertEqual(result["has_fhir_conformance"], "true")
+                self.assertEqual(set(result["fhir_components"].split(",")), MODULE.ALL_FHIR_COMPONENTS)
+
+    def test_a_producer_change_selects_only_its_lane(self):
+        for path, component in (
+            ("Sources/GroveHealthKitFHIR/HealthKitConverter.swift", "healthkit"),
+            ("Sources/GroveQuestionnaire/Model/Questionnaire.swift", "questionnaire"),
+            ("Sources/GroveSensorKitFHIR/SensorKitConverter.swift", "sensor"),
+        ):
+            with self.subTest(path=path):
+                result = run_selector(path)
+
+                self.assertEqual(result["has_fhir_conformance"], "true")
+                self.assertEqual(result["fhir_components"], component)
+
+    def test_explicit_all_selects_every_conformance_lane(self):
+        result = run_selector("__ALL__")
+
+        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+        self.assertEqual(set(result["fhir_components"].split(",")), MODULE.ALL_FHIR_COMPONENTS)
+
+    def test_fhir_only_schedules_every_conformance_lane_and_no_package_jobs(self):
+        result = run_selector(
+            "Sources/GroveHealthKitFHIR/HealthKitConverter.swift",
+            extra_arguments=("--fhir-only",),
+        )
+
+        self.assertEqual(json.loads(result["matrix"]), {"include": []})
+        self.assertEqual(json.loads(result["ui_matrix"]), {"include": []})
+        self.assertEqual(result["has_jobs"], "false")
+        self.assertEqual(result["has_ui_jobs"], "false")
+        self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(result["fhir_components"], "healthkit,questionnaire,sensor")
+        self.assertEqual(result["affected"], "(none)")
 
     def test_runner_script_runs_the_smoke_set_without_conformance(self):
         result = run_selector("Scripts/run-package-tests.sh")
 
         self.assertEqual(result["has_fhir_conformance"], "false")
+        self.assertEqual(result["fhir_components"], "(none)")
         self.assertEqual(set(result["affected"].split(",")), MODULE.smoke_packages())
 
 
@@ -198,6 +240,7 @@ class InfrastructureSelectionTests(unittest.TestCase):
 
         self.assertEqual(set(result["affected"].split(",")), MODULE.smoke_packages())
         self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(set(result["fhir_components"].split(",")), MODULE.ALL_FHIR_COMPONENTS)
 
     def test_smoke_set_covers_every_configuration_shape_once(self):
         smoke = MODULE.smoke_packages()
@@ -223,6 +266,7 @@ class InfrastructureSelectionTests(unittest.TestCase):
 
         self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
         self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(set(result["fhir_components"].split(",")), MODULE.ALL_FHIR_COMPONENTS)
 
     def test_shared_all_platform_test_plan_runs_every_package(self):
         result = run_selector("Tests/TestPlans/_All-iOS.xctestplan")
@@ -327,6 +371,7 @@ class IgnoredSharedChangeTests(unittest.TestCase):
                 self.assertEqual(json.loads(result["matrix"])["include"], [])
                 self.assertEqual(json.loads(result["ui_matrix"])["include"], [])
                 self.assertEqual(result["has_fhir_conformance"], "false")
+                self.assertEqual(result["fhir_components"], "(none)")
 
     def test_source_and_test_changes_keep_their_consumers_when_shared_changes_are_ignored(self):
         head = package_dump([

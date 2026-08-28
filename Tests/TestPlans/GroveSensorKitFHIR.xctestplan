@@ -1,0 +1,32 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000035",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+        {
+          "containerPath" : "container:",
+          "identifier" : "GroveSensorKitFHIR",
+          "name" : "GroveSensorKitFHIR"
+        }
+      ]
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "GroveSensorKitFHIRTests",
+        "name" : "GroveSensorKitFHIRTests"
+      }
+    }
+  ],
+  "version" : 1
+}

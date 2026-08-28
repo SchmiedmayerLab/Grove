@@ -7,10 +7,11 @@
 //
 
 import Foundation
-import HealthKit
-import GroveHealthKitFHIR
-import ModelsR4
+import GroveFHIRContract
 import GroveHealthKit
+import GroveHealthKitFHIR
+import HealthKit
+import ModelsR4
 import SwiftUI
 
 
@@ -53,10 +54,26 @@ struct ReadDataView<Sample: _HKSampleWithSampleType>: View {
             limit: 1,
             sortedBy: [.init(\.startDate, order: .reverse)]
         )
-        let observations = samples.compactMap { try? $0.resource() }
+        let now = Date.now
+        let context = HealthKitConversionContext(
+            subject: Reference(reference: "Patient/example"),
+            converter: HealthKitApplication(
+                name: "Grove HealthKit FHIR Test App",
+                bundleIdentifier: "org.grovealliance.healthkit-fhir-test-app",
+                version: "0.5.0"
+            ),
+            graphIdentifierSystem: "https://grovealliance.org/fhir/testing/identifiers/ui-graph",
+            conversionInstant: now
+        )
+        let bundles = try samples.map { sample in
+            guard let healthKitSample = sample as? HKSample else {
+                throw HealthKitConversionError.invalidValue
+            }
+            return try HealthKitConverter().convert(healthKitSample, context: context).bundle
+        }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        let data = try encoder.encode(observations)
+        let data = try encoder.encode(bundles)
         self.json = String(decoding: data, as: UTF8.self)
     }
 }

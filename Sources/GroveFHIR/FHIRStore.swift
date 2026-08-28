@@ -180,22 +180,6 @@ extension FHIRStore {
         }
     }
     
-    /// Removes a FHIR resource from the ``FHIRStore``.
-    ///
-    /// - Parameter healthKitId: The HealthKit `uuid` of the resource that should be removed.
-    /// - returns: The removed ``FHIRResource``, if applicable.
-    @_spi(Internal)
-    @MainActor
-    @discardableResult
-    public func removeResource(withHealthKitUUID healthKitId: String) -> FHIRResource? {
-        guard let resource = _resources.first(where: { $0.healthKitSampleId == healthKitId }) else {
-            return nil
-        }
-        return mutatingResourceCategories(CollectionOfOne(resource.category)) {
-            _resources.remove(resource)
-        }
-    }
-    
     /// Removes all ``FHIRResource``s that satisfy the predicate.
     @MainActor
     public func removeAllResources(where predicate: (FHIRResource) throws -> Bool) rethrows {

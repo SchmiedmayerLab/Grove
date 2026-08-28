@@ -90,18 +90,7 @@ extension QuestionnaireResponses.Response {
                     value: response.asFHIRDecimalPrimitive()
                 ))
             case .decimal:
-                if !config.unit.isEmpty || config.unitCode != nil {
-                    // Legacy behaviour: a decimal item carrying a unit extension is emitted
-                    // as a coded quantity so the unit is not lost.
-                    value = .quantity(Quantity(
-                        code: config.unitCode?.asFHIRStringPrimitive(),
-                        system: config.unitSystem?.asFHIRURIPrimitive(),
-                        unit: (config.unit.isEmpty ? config.unitCode : config.unit)?.asFHIRStringPrimitive(),
-                        value: response.asFHIRDecimalPrimitive()
-                    ))
-                } else {
-                    value = .decimal(response.asFHIRDecimalPrimitive())
-                }
+                value = .decimal(response.asFHIRDecimalPrimitive())
             }
             responseItem.answer = [.init(value: value)]
         case let .quantity(response, unitCode):

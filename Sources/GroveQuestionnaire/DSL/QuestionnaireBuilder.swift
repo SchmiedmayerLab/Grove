@@ -88,7 +88,7 @@ extension Questionnaire {
     /// ```
     public init(
         url: URL,
-        version: String? = nil,
+        version: String,
         title: String,
         explainer: String = "",
         publisher: String? = nil,

@@ -99,7 +99,9 @@ class ExampleAppDelegate: GroveAppDelegate {
 
 ### Working with ECG Data
 - ``HealthKit/HKElectrocardiogram/symptoms(from:)``
+- ``HealthKit/HKElectrocardiogram/correlatedSymptomSamples(from:)``
 - ``HealthKit/HKElectrocardiogram/voltageMeasurements(from:)``
+- ``HealthKit/HKElectrocardiogram/rawVoltageMeasurements(from:)``
 - ``HealthKit/HKElectrocardiogram/Symptoms``
 - ``HealthKit/HKElectrocardiogram/Measurement``
 - ``HealthKit/HKElectrocardiogram/correlatedSymptomTypes``

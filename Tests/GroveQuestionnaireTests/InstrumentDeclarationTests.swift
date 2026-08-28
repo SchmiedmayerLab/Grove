@@ -25,6 +25,7 @@ private enum Screener {
 
     static let questionnaire = GroveQuestionnaire.Questionnaire(
         url: URL(string: "https://example.org/fhir/Questionnaire/screener")!,
+        version: "1.0.0",
         title: "Screener"
     ) {
         Section("intake", title: "Intake") {
@@ -60,6 +61,7 @@ struct InstrumentDeclarationTests {
     func aDriftedQuestionnaireReportsWhatIsMissing() throws {
         let drifted = GroveQuestionnaire.Questionnaire(
             url: try #require(URL(string: "https://example.org/fhir/Questionnaire/screener")),
+            version: "1.0.0",
             title: "Screener"
         ) {
             Section("intake", title: "Intake") {
@@ -107,7 +109,7 @@ struct InstrumentDeclarationTests {
     /// Section("s") { cough.isTrue }                     // a condition belongs on an item
     /// Section("s") { "Some text" }                      // text needs an Instruction
     /// Section("s") { Section("nested") { cough } }      // sections do not nest
-    /// Questionnaire(url: …, title: …) { cough }         // a questionnaire is built from Sections
+    /// Questionnaire(url: …, version: "1.0.0", title: …) { cough }         // a questionnaire is built from Sections
     /// ```
     @Test
     func buildersTakeComponentsOnly() {

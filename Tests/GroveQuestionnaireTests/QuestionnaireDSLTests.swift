@@ -85,6 +85,7 @@ private enum ActivityLog {
 
     static let questionnaire = GroveQuestionnaire.Questionnaire(
         url: URL(string: "https://example.org/fhir/Questionnaire/activity-log")!,
+        version: "1.0.0",
         title: "Activity Log"
     ) {
         Section("log", title: "Your Week") {
@@ -177,7 +178,10 @@ struct QuestionnaireDSLTests {
     func typedChoiceAnswersExport() throws {
         let responses = QuestionnaireResponses(questionnaire: CheckIn.questionnaire)
         responses[CheckIn.mood] = .nearlyEveryDay
-        let fhirResponse = try ModelsR4.QuestionnaireResponse(responses)
+        let fhirResponse = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
         let mood = try #require(fhirResponse.item?.first?.item?.first { $0.linkId.value?.string == "mood" })
         guard case .coding(let coding)? = mood.answer?.first?.value else {
             Issue.record("Expected a coded answer, got \(String(describing: mood.answer?.first?.value))")
@@ -224,6 +228,7 @@ struct QuestionnaireDSLTests {
         let colour = DynamicChoiceQuestion("colour", "Favourite colour", system: system, choices: resolved)
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: try #require(URL(string: "https://example.org/fhir/Questionnaire/dynamic")),
+            version: "1.0.0",
             title: "Dynamic"
         ) {
             Section("s1") { colour }
@@ -241,6 +246,7 @@ struct QuestionnaireDSLTests {
     func booleanConditionsGateOnTheAnswer() throws {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: try #require(URL(string: "https://example.org/fhir/Questionnaire/boolean")),
+            version: "1.0.0",
             title: "Boolean"
         ) {
             Section("s1") {
@@ -280,6 +286,7 @@ struct QuestionnaireDSLTests {
             .initialValue(.severalDays)
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: URL(string: "https://example.org/fhir/Questionnaire/preselect")!,
+            version: "1.0.0",
             title: "Preselect"
         ) {
             Section("s1") { mood }
@@ -291,7 +298,7 @@ struct QuestionnaireDSLTests {
         #expect(item.initial == nil)
         #expect(item.answerOption?.compactMap { $0.initialSelected?.value?.bool } == [true])
         #expect(item.answerOption?[1].initialSelected?.value?.bool == true)
-        let reimported = try GroveQuestionnaire.Questionnaire(fhir)
+        let reimported = try GroveQuestionnaire.Questionnaire(fhir, evaluationInstant: questionnaireResponseTestAuthoredAt)
         #expect(QuestionnaireResponses(questionnaire: reimported)[mood] == .severalDays)
     }
 
@@ -349,7 +356,7 @@ struct QuestionnaireDSLTests {
     func roundTripPreservesBehavior() throws {
         // Export the Swift-declared instrument to FHIR and read it back in.
         let fhir = try ModelsR4.Questionnaire(CheckIn.questionnaire)
-        let reimported = try GroveQuestionnaire.Questionnaire(fhir)
+        let reimported = try GroveQuestionnaire.Questionnaire(fhir, evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: reimported)
 
         // The typed handles keep working against the reimported questionnaire —
@@ -367,7 +374,10 @@ struct QuestionnaireDSLTests {
         #expect(responses.shouldEnable(task: followUpTask))
 
         // And the collected answers export as a QuestionnaireResponse with the score.
-        let fhirResponse = try ModelsR4.QuestionnaireResponse(responses)
+        let fhirResponse = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
         #expect(fhirResponse.questionnaire?.value?.version == "2.1.0")
         let totalItem = fhirResponse.item?.first?.item?.first { $0.linkId.value?.string == "total" }
         #expect(totalItem?.answer?.first?.value == .decimal(FHIRPrimitive(FHIRDecimal(4))))
@@ -378,6 +388,7 @@ struct QuestionnaireDSLTests {
         let includeExtras = true
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: URL(string: "https://example.org/fhir/Questionnaire/builder-forms")!,
+            version: "1.0.0",
             title: "Builder Forms"
         ) {
             Section("always", title: "Always") {
@@ -399,6 +410,7 @@ struct QuestionnaireDSLTests {
     func groupsExportAsNestedFHIRGroups() throws {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: try #require(URL(string: "https://example.org/fhir/Questionnaire/groups")),
+            version: "1.0.0",
             title: "Groups"
         ) {
             Section("s1", title: "Screening") {
@@ -434,6 +446,7 @@ struct QuestionnaireDSLTests {
     func groupsNest() throws {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: try #require(URL(string: "https://example.org/fhir/Questionnaire/nested")),
+            version: "1.0.0",
             title: "Nested"
         ) {
             Section("s1") {
@@ -456,11 +469,13 @@ struct QuestionnaireDSLTests {
 
     /// Scoring must work for a questionnaire declared in Swift, not only for one imported
     /// from FHIR. The engine is attached by the FHIR import, so a natively declared
-    /// instrument computed nothing at all until `withExpressionEngine()` existed — and
+    /// instrument computed nothing at all until `withExpressionEngine(evaluationInstant:)` existed — and
     /// every scoring test here went through a round trip, which hid it.
     @Test
     func aNativelyDeclaredQuestionnaireEvaluatesItsScore() throws {
-        let questionnaire = try CheckIn.questionnaire.withExpressionEngine()
+        let questionnaire = try CheckIn.questionnaire.withExpressionEngine(
+            evaluationInstant: questionnaireResponseTestAuthoredAt
+        )
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
 
         responses[CheckIn.interest] = .severalDays
@@ -529,7 +544,10 @@ struct QuestionnaireDSLTests {
         responses.responses["activities"].nestedResponses = [
             .choiceOption("\(system)|running"): .init(["minutes": .init(value: .number(30))])
         ]
-        let fhirResponse = try ModelsR4.QuestionnaireResponse(responses)
+        let fhirResponse = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt
+        )
         let activities = try #require(fhirResponse.item?.first?.item?.first { $0.linkId.value?.string == "activities" })
         let answer = try #require(activities.answer?.first)
         guard case .coding(let coding)? = answer.value else {
@@ -553,6 +571,7 @@ struct QuestionnaireDSLTests {
 
         let withoutFollowUps = GroveQuestionnaire.Questionnaire(
             url: try #require(URL(string: "https://example.org/fhir/Questionnaire/activity-log")),
+            version: "1.0.0",
             title: "Activity Log"
         ) {
             Section("log", title: "Your Week") {

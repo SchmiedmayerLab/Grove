@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-@testable @_spi(Testing) import GroveFHIR
+@testable import GroveFHIR
 import ModelsR4
 import Testing
 
@@ -76,7 +76,7 @@ struct FHIRStoreTests {
         store.insert(resource)
         #expect(store.medications.count == 1)
         
-        store.removeResource(withId: resource.id.fhirResourceId)
+        store.removeResource(withId: resource.id)
         #expect(store.medications.isEmpty)
     }
     
@@ -142,7 +142,7 @@ struct FHIRStoreTests {
         
         store.load(bundle: bundle)
         #expect(store.conditions.count == 1)
-        #expect(store.conditions.first?.id.fhirResourceId == "condition-id")
+        #expect(store.conditions.first?.id == "condition-id")
         #expect(store.otherResources.isEmpty)
     }
     
@@ -160,6 +160,6 @@ struct FHIRStoreTests {
         
         store.load(bundle: bundle)
         #expect(store.conditions.count == 1)
-        #expect(try #require(store.conditions.first).id.fhirResourceId == "condition-id")
+        #expect(try #require(store.conditions.first).id == "condition-id")
     }
 }

@@ -114,6 +114,7 @@
     }
   }],
   "url" : "http://hl7.org/fhir/Questionnaire/gcs",
+  "version" : "4.0.1",
   "title" : "Glasgow Coma Score",
   "status" : "draft",
   "experimental" : true,

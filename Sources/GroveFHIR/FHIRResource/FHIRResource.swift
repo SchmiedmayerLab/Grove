@@ -6,23 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-// swiftlint:disable file_types_order
-
-public import FHIRModelsExtensions
 public import Foundation
-import GroveLegacyIdentifiers
 public import ModelsDSTU2
 public import ModelsR4
 
-
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension FHIRExtensionURL {
-    /// The resource's associated HealthKit HKSample identifier, if applicable.
-    public static let hkSampleId = Self(
-        FHIRResource.hkSampleIdentifier.canonical,
-        superseding: FHIRResource.hkSampleIdentifier.superseded
-    )
-}
 
 /// Represents a FHIR (Fast Healthcare Interoperability Resources) entity.
 ///
@@ -58,40 +45,19 @@ public struct FHIRResource: Identifiable, Hashable, Sendable {
         }
     }
     
-    public struct ID: Hashable, Codable, Sendable {
-        @_spi(Testing) public let fhirResourceId: String
-        @_spi(Testing) public let healthKitUUID: String?
-    }
-    
-    /// The FHIR extension holding a resource's associated HealthKit HKSample identifier.
-    ///
-    /// Clinical records arrive already carrying the originating institution's
-    /// `identifier` list, so the platform's record id rides in this extension rather
-    /// than joining it. Grove-authored Observations use `Observation.identifier`.
-    ///
-    /// String-backed so that it — unlike the `FHIRExtensionURL`-typed ``FHIRExtensionURL/hkSampleId``,
-    /// which derives from it — is usable below the iOS-18 availability floor.
-    static let hkSampleIdentifier = FHIRCanonicalURL(
-        "https://grovealliance.org/fhir/core/StructureDefinition/grove-source-record-id",
-        superseding: SupersededFHIRURLs.healthKitSampleId
-    )
-
-    /// The identifier system of HealthKit records.
-    public static let healthKitSampleIdSystem = "https://grovealliance.org/fhir/sid/healthkit-sample-id"
-    
     /// The version-specific FHIR resource.
     public let versionedResource: VersionedFHIRResource
     /// Human-readable name or description of the resource.
     public let displayName: String
     
     
-    public var id: ID {
+    public var id: String {
         guard let fhirId else {
             preconditionFailure(
                 "A stable identifier must be present when wrapping content in a FHIRResource. The identifier might have been changed."
             )
         }
-        return ID(fhirResourceId: fhirId, healthKitUUID: healthKitSampleId)
+        return fhirId
     }
     
     /// The `id` of the underlying FHIR `Resource`.
@@ -104,26 +70,6 @@ public struct FHIRResource: Identifiable, Hashable, Sendable {
         }
     }
 
-    /// The `uuid` of the `HKSample` from which this FHIRResource was created, if applicable.
-    var healthKitSampleId: String? {
-        // Goes through FHIRModels' own String-keyed API (declared on the DomainResource protocol
-        // itself): the FHIRTypeWithExtensions overloads only exist on the concrete types, so they
-        // aren't visible on an `any DomainResource` existential.
-        // Canonical spelling first, so a resource carrying both is read as the newer writer meant it.
-        for spelling in Self.hkSampleIdentifier.allSpellings {
-            let value: String? = switch versionedResource {
-            case .r4(let resource):
-                (resource as? any ModelsR4.DomainResource)?.extensions(for: spelling).first?.recordIdValue
-            case .dstu2(let resource):
-                (resource as? any ModelsDSTU2.DomainResource)?.extensions(for: spelling).first?.recordIdValue
-            }
-            if let value {
-                return value
-            }
-        }
-        return nil
-    }
-    
     /// The type of the FHIR resource represented as a string. It provides an easy way to identify the kind of FHIR entity (e.g., Observation, MedicationOrder).
     public var resourceType: String {
         switch versionedResource {
@@ -220,37 +166,6 @@ extension FHIRResource {
         }
     }
 }
-
-
-extension ModelsR4.Extension {
-    /// The record id an extension carries, in the current `Identifier` shape or the retired bare-id one.
-    fileprivate var recordIdValue: String? {
-        switch value {
-        case .identifier(let identifier):
-            identifier.value?.value?.string
-        case .id(let value):
-            value.value?.string
-        default:
-            nil
-        }
-    }
-}
-
-
-extension ModelsDSTU2.Extension {
-    /// The record id an extension carries, in the current `Identifier` shape or the retired bare-id one.
-    fileprivate var recordIdValue: String? {
-        switch value {
-        case .identifier(let identifier):
-            identifier.value?.value?.string
-        case .id(let value):
-            value.value?.string
-        default:
-            nil
-        }
-    }
-}
-
 
 extension Equatable {
     fileprivate func isEqual(_ other: Any) -> Bool {

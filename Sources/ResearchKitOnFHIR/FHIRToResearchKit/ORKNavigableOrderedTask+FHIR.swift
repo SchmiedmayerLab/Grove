@@ -8,6 +8,7 @@
 
 #if ResearchKit
 
+public import Foundation
 public import ModelsR4
 public import ResearchKit
 
@@ -18,10 +19,12 @@ extension ORKNavigableOrderedTask {
     /// - Parameters:
     ///  - title: The title of the questionnaire. If you pass in a `String` the translation overrides the title that might be provided in the FHIR `Questionnaire`.
     ///  - questionnaire: The FHIR `Questionnaire` used to create the `ORKNavigableOrderedTask`.
+    ///  - evaluationInstant: The explicit instant used to resolve relative date bounds.
     ///  - completionStep: An optional `ORKCompletionStep` that can be displayed at the end of the ResearchKit survey.
     public convenience init(
         title: String? = nil,
         questionnaire: Questionnaire,
+        evaluationInstant: Date = .now,
         completionStep: ORKCompletionStep? = nil
     ) throws {
         guard questionnaire.item?.isEmpty == false else {
@@ -32,7 +35,7 @@ extension ORKNavigableOrderedTask {
         let id = questionnaire.url?.value?.url.absoluteString ?? UUID().uuidString
         
         // Convert each FHIR Questionnaire Item to an ORKStep
-        var steps = questionnaire.toORKSteps()
+        var steps = questionnaire.toORKSteps(evaluationInstant: evaluationInstant)
         
         // Add a completion step at the end of the task if defined
         if let completionStep = completionStep {

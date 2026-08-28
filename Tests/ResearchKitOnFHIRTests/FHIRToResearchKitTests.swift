@@ -15,6 +15,8 @@ import Testing
 
 
 struct FHIRToResearchKitTests {
+    private static let evaluationInstant = Date(timeIntervalSince1970: 1_700_000_000)
+
     /// - Note: "FHIR extensions" here meaning Swift extensions on FHIR types, not actual FHIR extensions.
     @Test("FHIR extensions")
     func testFHIRExtensions() {
@@ -30,7 +32,10 @@ struct FHIRToResearchKitTests {
     @Test("Create ORKNavigableOrderedTask")
     func testCreateORKNavigableOrderedTask() throws {
         let questionnaire = Questionnaire.skipLogicExample
-        let task = try ORKNavigableOrderedTask(questionnaire: questionnaire)
+        let task = try ORKNavigableOrderedTask(
+            questionnaire: questionnaire,
+            evaluationInstant: Self.evaluationInstant
+        )
         #expect(!task.steps.isEmpty)
         #expect(task.steps.count == questionnaire.flattenedItems.count)
     }
@@ -39,7 +44,7 @@ struct FHIRToResearchKitTests {
     @Test("Convert QuestionnaireItem to ORKSteps")
     func testConvertQuestionnaireItemToORKSteps() throws {
         func testQuestionnaire(_ questionnaire: Questionnaire, expectedNumSteps: Int) throws {
-            let steps = questionnaire.toORKSteps()
+            let steps = questionnaire.toORKSteps(evaluationInstant: Self.evaluationInstant)
             #expect(steps.count == expectedNumSteps)
             for (item, step) in zip(questionnaire.flattenedItems, steps) {
                 #expect(try #require(item.linkId.value).string == step.identifier)
@@ -54,7 +59,7 @@ struct FHIRToResearchKitTests {
     @Test("Image capture step")
     func testImageCaptureStep() throws {
         let questionnaire = Questionnaire.imageCaptureExample
-        let steps = questionnaire.toORKSteps()
+        let steps = questionnaire.toORKSteps(evaluationInstant: Self.evaluationInstant)
         #expect(steps.count == 1)
     }
     
@@ -113,11 +118,9 @@ struct FHIRToResearchKitTests {
     }
     
     
-    @Test("Validation message extension")
-    func testValidationMessageExtension() throws {
-        let testValidationMessage = Questionnaire.textValidationExample.item?.first?.validationMessage
-        let validationMessage = "Please enter a valid email address."
-        #expect(validationMessage == testValidationMessage)
+    @Test("A regex does not infer a retired validation-message extension")
+    func regexDoesNotInferValidationMessage() {
+        #expect(Questionnaire.textValidationExample.item?.first?.validationMessage == nil)
     }
     
     
@@ -153,7 +156,9 @@ struct FHIRToResearchKitTests {
     
     @Test("Minimum date value extension")
     func testMinDateValueExtension() throws {
-        let minDateValue = Questionnaire.dateTimeExample.item?.first?.minDateValue
+        let minDateValue = Questionnaire.dateTimeExample.item?.first?.minDateValue(
+            evaluationInstant: Self.evaluationInstant
+        )
         let unwrappedMinDate = try #require(minDateValue)
         #expect(unwrappedMinDate.year == 2001)
         #expect(unwrappedMinDate.month == 1)
@@ -163,7 +168,9 @@ struct FHIRToResearchKitTests {
     
     @Test("Maximum date value extension")
     func testMaxDateValueExtension() throws {
-        let maxDateValue = Questionnaire.dateTimeExample.item?.first?.maxDateValue
+        let maxDateValue = Questionnaire.dateTimeExample.item?.first?.maxDateValue(
+            evaluationInstant: Self.evaluationInstant
+        )
         let unwrappedMaxDate = try #require(maxDateValue)
         #expect(unwrappedMaxDate.year == 2024)
         #expect(unwrappedMaxDate.month == 1)
@@ -187,7 +194,10 @@ struct FHIRToResearchKitTests {
             url: try #require("http://grovealliance.org/fhir/questionnaire/test".asFHIRURIPrimitive() as FHIRPrimitive<FHIRURI>?)
         )
         #expect(throws: FHIRToResearchKitConversionError.noItems) {
-            try ORKNavigableOrderedTask(questionnaire: questionnaire)
+            try ORKNavigableOrderedTask(
+                questionnaire: questionnaire,
+                evaluationInstant: Self.evaluationInstant
+            )
         }
     }
     
@@ -204,7 +214,10 @@ struct FHIRToResearchKitTests {
             ],
             status: FHIRPrimitive(PublicationStatus.draft)
         )
-        let task = try ORKNavigableOrderedTask(questionnaire: questionnaire)
+        let task = try ORKNavigableOrderedTask(
+            questionnaire: questionnaire,
+            evaluationInstant: Self.evaluationInstant
+        )
         #expect(
             UUID(uuidString: task.identifier) != nil,
             "In case there's no URL provided, random UUID will be generated and assigned to the ID"

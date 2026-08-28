@@ -14,47 +14,77 @@ Import, present, and export FHIR R4 questionnaires.
 
 ## Overview
 
-`GroveQuestionnaireFHIR` connects Grove's questionnaire model with
-[FHIR R4 Questionnaire](https://hl7.org/fhir/R4/questionnaire.html) and
-[QuestionnaireResponse](https://hl7.org/fhir/R4/questionnaireresponse.html) resources.
-It preserves supported SDC branching, variables, initial expressions, calculated
-expressions, item metadata, and nested groups across an import/export round trip.
+`GroveQuestionnaireFHIR` connects Grove's questionnaire model with [FHIR R4 Questionnaire](https://hl7.org/fhir/R4/questionnaire.html) and [QuestionnaireResponse](https://hl7.org/fhir/R4/questionnaireresponse.html) resources.
+Supported SDC branching, variables, initial and calculated expressions, item metadata, and nested groups survive an import/export round trip.
 
-Decode a resource and install the expression engine before presenting it:
+### Import a Questionnaire
+
+Decode a resource and convert it; the questionnaire is ready to present:
 
 ```swift
 import GroveQuestionnaireFHIR
 import ModelsR4
 
 let resource = try JSONDecoder().decode(ModelsR4.Questionnaire.self, from: data)
-let questionnaire = try Questionnaire(resource).withExpressionEngine()
+let questionnaire = try Questionnaire(resource)
 ```
 
-Grove questionnaires can also be published as FHIR resources, and collected answers
-can be submitted with stable identity and authorship metadata:
+Clock-sensitive expressions such as `today()` use the wall clock by default.
+Pass `evaluationInstant:` to make a conversion reproducible, for example in tests or when re-evaluating a stored submission:
 
 ```swift
-let fhirQuestionnaire = try ModelsR4.Questionnaire(questionnaire)
-let response = try ModelsR4.QuestionnaireResponse(
-    responses,
-    subject: participant,
-    identifier: submissionIdentifier,
-    authored: submittedAt
+let questionnaire = try Questionnaire(resource, evaluationInstant: submittedAt)
+```
+
+### Export a Response
+
+``ResourceBuilder`` publishes a completed questionnaire and its answers as a validated resource pair:
+
+```swift
+let pair = try ResourceBuilder().pair(
+    from: responses,
+    subject: Reference(reference: "Patient/example")
+)
+upload(pair.questionnaire, pair.response)
+```
+
+`pair(from:)` cross-validates the two resources against the published pair rules, so an inconsistent export fails locally instead of at the receiving system.
+Use `response(from:)` instead when the receiver already holds the Questionnaire.
+Publishing requires a canonical URL, a Semantic Versioning 2.0.0 version, and at least one item; the response points at the exact `url|version` and carries one complete business identifier.
+`Questionnaire.id` and `QuestionnaireResponse.id` stay empty unless a repository already assigned one and the caller supplies a `RepositoryID`.
+
+### Accept a Pair
+
+Run ``PairValidator`` when accepting a pair from elsewhere:
+
+```swift
+let warnings = try PairValidator().validate(
+    questionnaire: questionnaire,
+    response: response,
+    valueSets: resolvedValueSets
 )
 ```
 
-Custom question kinds can participate by conforming their definitions and response
-values to the FHIR support protocols below. Unsupported custom kinds fail export rather
-than being silently omitted.
+The offline preflight enforces identifiers, hierarchy, answer datatypes, enablement, ValueSet membership, bounds, units, and attachment limits.
+Supply every ValueSet an answer or unit constraint references; unresolved terminology fails closed, and the validator never performs a network lookup.
+Completed and amended responses that depend on an unevaluated error-severity `targetConstraint` or `enableWhenExpression` are rejected; warning-severity constraints surface in ``ResourcePair/warnings`` instead.
+
+### Boundaries
+
+Questionnaire answers remain QuestionnaireResponse answers: this package does not infer Observations from answers, which requires a separately governed extraction definition.
+Custom question kinds participate by conforming to the protocols below; unsupported custom kinds fail export rather than being silently omitted.
 
 ## Topics
 
 ### Conversion
 
-- ``GroveQuestionnaire/Questionnaire/init(_:using:)``
-- ``ModelsR4/Questionnaire/init(_:)``
-- ``ModelsR4/QuestionnaireResponse/init(_:subject:author:source:status:identifier:authored:)``
-- ``GroveQuestionnaire/Questionnaire/withExpressionEngine(launchContext:)``
+- ``GroveQuestionnaire/Questionnaire/init(_:evaluationInstant:using:)``
+- ``ModelsR4/Questionnaire/init(_:repositoryID:)``
+- ``ModelsR4/QuestionnaireResponse/init(_:subject:author:source:status:identifier:repositoryID:authored:)``
+- ``ResourceBuilder``
+- ``ResourcePair``
+- ``PairValidator``
+- ``GroveQuestionnaire/Questionnaire/withExpressionEngine(evaluationInstant:launchContext:)``
 
 ### Custom Question Kinds
 

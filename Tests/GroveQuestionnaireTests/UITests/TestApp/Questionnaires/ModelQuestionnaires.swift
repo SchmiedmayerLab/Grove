@@ -19,6 +19,7 @@ extension Questionnaire {
         Metadata(
             id: "org.grovealliance.GroveQuestionnaire.demo.\(id)",
             url: URL(string: "https://grovealliance.org/questionnaires/demo/\(id)"),
+            version: "1.0.0",
             title: title,
             explainer: ""
         )

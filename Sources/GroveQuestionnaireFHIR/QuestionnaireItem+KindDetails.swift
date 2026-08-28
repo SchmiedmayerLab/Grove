@@ -100,7 +100,7 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.NumericTaskConfig {
         using context: FHIRExportContext
     ) -> [Extension] {
         var extensions: [Extension] = []
-        if let maxDecimalPlaces {
+        if valueKind == .decimal, let maxDecimalPlaces {
             extensions.append(Extension(
                 url: "http://hl7.org/fhir/StructureDefinition/maxDecimalPlaces",
                 value: .integer(FHIRPrimitive(FHIRInteger(Int32(clamping: maxDecimalPlaces))))
@@ -296,12 +296,12 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
             return .string(string.asFHIRStringPrimitive())
         case .integer(let integer):
             guard let value = Int32(exactly: integer) else {
-                throw FHIRExportError("Choice option '\(id)' on '\(taskId)' is out of range for a FHIR integer")
+                throw ExportError("Choice option '\(id)' on '\(taskId)' is out of range for a FHIR integer")
             }
             return .integer(FHIRPrimitive(FHIRInteger(value)))
         case .date(let components):
             guard let year = components.year else {
-                throw FHIRExportError("Choice option '\(id)' on '\(taskId)' is missing a year")
+                throw ExportError("Choice option '\(id)' on '\(taskId)' is missing a year")
             }
             return .date(FHIRPrimitive(FHIRDate(
                 year: year,
@@ -315,7 +315,7 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
                 second: Decimal(components.second ?? 0)
             )))
         case nil:
-            throw FHIRExportError("Choice option '\(id)' on '\(taskId)' has no coding; declare a system")
+            throw ExportError("Choice option '\(id)' on '\(taskId)' has no coding; declare a system")
         }
     }
 }
