@@ -163,6 +163,11 @@ def parse_args():
         action="store_true",
         help="Run the complete repository matrix while retaining change-aware FHIR components.",
     )
+    parser.add_argument(
+        "--fhir-only",
+        action="store_true",
+        help="Run all FHIR producer conformance lanes without scheduling unit or UI jobs.",
+    )
     return parser.parse_args()
 
 
@@ -392,6 +397,26 @@ def main():
     args = parse_args()
     if args.full_readiness and args.development_scope:
         sys.exit("error: --full-readiness cannot be combined with --development-scope")
+    if args.fhir_only and (args.full_readiness or args.development_scope):
+        sys.exit(
+            "error: --fhir-only cannot be combined with --full-readiness or --development-scope"
+        )
+    if args.fhir_only:
+        lines = [
+            f'matrix={json.dumps({"include": []})}',
+            f'ui_matrix={json.dumps({"include": []})}',
+            'has_jobs=false',
+            'has_ui_jobs=false',
+            'has_fhir_conformance=true',
+            f'fhir_components={",".join(sorted(ALL_FHIR_COMPONENTS))}',
+            'affected=(none)',
+        ]
+        sys.stdout.write("\n".join(lines) + "\n")
+        sys.stderr.write(
+            "[affected-test-matrix] fhir_only=true affected=[] unit_jobs=0 ui_jobs=0 "
+            f"fhir_components={sorted(ALL_FHIR_COMPONENTS)}\n"
+        )
+        return
     changed = read_changed(args.changed_files)
     development_scoped = args.development_scope is not None
     run_all = False

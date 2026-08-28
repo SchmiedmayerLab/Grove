@@ -18,6 +18,9 @@ import ModelsR4
 extension SensorConverter {
     static func primaryResource(
         _ record: SensorRecord,
+        sourceRecord: BusinessIdentifier,
+        sourceOutput: BusinessIdentifier,
+        sourceArtifact: BusinessIdentifier?,
         context: SensorConversionContext,
         recordingDeviceURL: String?,
         converterURL: String
@@ -26,6 +29,8 @@ extension SensorConverter {
         case .sampledData(let record):
             return .observation(try observation(
                 record,
+                sourceRecord: sourceRecord,
+                sourceOutput: sourceOutput,
                 context: context,
                 recordingDeviceURL: recordingDeviceURL,
                 converterURL: converterURL
@@ -33,6 +38,8 @@ extension SensorConverter {
         case .electrocardiogram(let record):
             return .observation(try observation(
                 record,
+                sourceRecord: sourceRecord,
+                sourceOutput: sourceOutput,
                 context: context,
                 recordingDeviceURL: recordingDeviceURL,
                 converterURL: converterURL
@@ -40,6 +47,9 @@ extension SensorConverter {
         case .recordingDocument(let record):
             return .recordingDocument(try document(
                 record,
+                sourceRecord: sourceRecord,
+                sourceOutput: sourceOutput,
+                sourceArtifact: sourceArtifact,
                 context: context,
                 recordingDeviceURL: recordingDeviceURL,
                 converterURL: converterURL
@@ -49,6 +59,8 @@ extension SensorConverter {
 
     static func observation(
         _ record: SensorSampledDataRecord,
+        sourceRecord: BusinessIdentifier,
+        sourceOutput: BusinessIdentifier,
         context: SensorConversionContext,
         recordingDeviceURL: String?,
         converterURL: String
@@ -59,13 +71,12 @@ extension SensorConverter {
         }
         var observation = Observation(code: record.code.concept, status: FHIRPrimitive(.final))
         observation.meta = Meta(profile: profiles)
-        observation.identifier = [record.identifier.fhirIdentifier]
+        observation.identifier = [sourceRecord.fhirIdentifier, sourceOutput.fhirIdentifier]
         observation.subject = context.subject
         observation.effective = .period(try period(start: record.start, end: record.end))
-        observation.issued = FHIRPrimitive(try Instant(date: context.issuedAt))
         observation.device = recordingDeviceURL.map(reference)
         observation.extension = contextExtensions(context, converterURL: converterURL)
-        observation.value = .sampledData(sampledData(
+        observation.value = .sampledData(try sampledData(
             samples: record.samples,
             dimensions: record.dimensions,
             periodMilliseconds: record.periodMilliseconds,
@@ -78,6 +89,8 @@ extension SensorConverter {
 
     static func observation(
         _ record: SensorECGRecord,
+        sourceRecord: BusinessIdentifier,
+        sourceOutput: BusinessIdentifier,
         context: SensorConversionContext,
         recordingDeviceURL: String?,
         converterURL: String
@@ -95,16 +108,15 @@ extension SensorConverter {
             status: FHIRPrimitive(.final)
         )
         observation.meta = Meta(profile: profiles)
-        observation.identifier = [record.identifier.fhirIdentifier]
+        observation.identifier = [sourceRecord.fhirIdentifier, sourceOutput.fhirIdentifier]
         observation.subject = context.subject
         observation.effective = .period(try period(start: record.start, end: record.end))
-        observation.issued = FHIRPrimitive(try Instant(date: context.issuedAt))
         observation.device = recordingDeviceURL.map(reference)
         observation.extension = contextExtensions(context, converterURL: converterURL)
-        observation.component = record.channels.map { channel in
+        observation.component = try record.channels.map { channel in
             ObservationComponent(
                 code: channel.lead.concept,
-                value: .sampledData(sampledData(
+                value: .sampledData(try sampledData(
                     samples: channel.millivolts,
                     dimensions: 1,
                     periodMilliseconds: record.periodMilliseconds,
@@ -119,6 +131,9 @@ extension SensorConverter {
 
     static func document(
         _ record: SensorRecordingDocument,
+        sourceRecord: BusinessIdentifier,
+        sourceOutput: BusinessIdentifier,
+        sourceArtifact: BusinessIdentifier?,
         context: SensorConversionContext,
         recordingDeviceURL: String?,
         converterURL: String
@@ -132,6 +147,9 @@ extension SensorConverter {
         let related = context.researchStudies + record.related.map {
             Reference(identifier: $0.fhirIdentifier)
         }
+        guard let sourceArtifact else {
+            throw SensorConversionError.invalidExchangeIdentity("recording document has no source-artifact identity")
+        }
         var document = DocumentReference(
             author: authors,
             content: [DocumentReferenceContent(
@@ -144,7 +162,11 @@ extension SensorConverter {
             )],
             context: related.isEmpty ? nil : DocumentReferenceContext(related: related),
             date: FHIRPrimitive(try Instant(date: context.recordedAt)),
-            identifier: [record.identifier.fhirIdentifier],
+            identifier: [
+                sourceRecord.fhirIdentifier,
+                sourceOutput.fhirIdentifier,
+                sourceArtifact.fhirIdentifier
+            ],
             meta: Meta(profile: profiles),
             status: FHIRPrimitive(.current),
             subject: context.subject,
@@ -161,7 +183,7 @@ extension SensorConverter {
         origin: Double,
         unitCode: String,
         unitDisplay: String?
-    ) -> SampledData {
+    ) throws -> SampledData {
         SampledData(
             data: samples.map(fhirNumber).joined(separator: " ").asFHIRStringPrimitive(),
             dimensions: FHIRPrimitive(FHIRPositiveInteger(Int32(dimensions))),
@@ -169,9 +191,9 @@ extension SensorConverter {
                 code: unitCode.asFHIRStringPrimitive(),
                 system: ucum,
                 unit: unitDisplay?.asFHIRStringPrimitive(),
-                value: FHIRPrimitive(FHIRDecimal(Decimal(string: String(groveFHIRPlainDecimal: origin)) ?? 0))
+                value: try GroveFHIRDecimal(origin).primitive
             ),
-            period: FHIRPrimitive(FHIRDecimal(Decimal(string: String(groveFHIRPlainDecimal: periodMilliseconds)) ?? 0))
+            period: try GroveFHIRDecimal(periodMilliseconds).primitive
         )
     }
 
@@ -229,7 +251,7 @@ extension SensorConverter {
     static func applicationDevice(_ application: SensorApplication) -> Device {
         var device = Device()
         device.meta = Meta(profile: [Profile.groveApplicationDevice])
-        device.identifier = [application.identifier.fhirIdentifier]
+        device.status = FHIRPrimitive(.active)
         device.deviceName = [DeviceDeviceName(
             name: application.name.asFHIRStringPrimitive(),
             type: FHIRPrimitive(.userFriendlyName)
@@ -244,13 +266,51 @@ extension SensorConverter {
                 value: version.asFHIRStringPrimitive()
             )]
         }
+        if let build = application.build {
+            device.version = (device.version ?? []) + [DeviceVersion(
+                type: CodeableConcept(coding: [Coding(
+                    code: "build".asFHIRStringPrimitive(),
+                    display: "Build".asFHIRStringPrimitive(),
+                    system: Canonicals.groveApplicationVersionType
+                )]),
+                value: build.asFHIRStringPrimitive()
+            )]
+        }
         return device
     }
 
-    static func recordingDevice(_ source: SensorRecordingDevice) -> Device {
+    static func hostDevice(_ host: SensorHostDevice) -> Device {
+        var device = Device()
+        device.meta = Meta(profile: [Profile.groveHostDevice])
+        device.status = FHIRPrimitive(.active)
+        device.manufacturer = host.manufacturer?.asFHIRStringPrimitive()
+        device.modelNumber = host.modelNumber?.asFHIRStringPrimitive()
+        if let name = host.name {
+            device.deviceName = [DeviceDeviceName(
+                name: name.asFHIRStringPrimitive(),
+                type: FHIRPrimitive(.userFriendlyName)
+            )]
+        }
+        device.version = [DeviceVersion(
+            type: CodeableConcept(coding: [Coding(
+                code: "os-version".asFHIRStringPrimitive(),
+                display: "Operating system version".asFHIRStringPrimitive(),
+                system: Canonicals.groveApplicationVersionType
+            )]),
+            value: host.operatingSystemVersion.asFHIRStringPrimitive()
+        )]
+        return device
+    }
+
+    static func recordingDevice(
+        _ source: SensorRecordingDevice,
+        identity: BusinessIdentifier,
+        snapshot: BusinessIdentifier
+    ) -> Device {
         var device = Device()
         device.meta = Meta(profile: [Profile.groveRecordingDevice])
-        device.identifier = [source.identifier.fhirIdentifier]
+        device.status = FHIRPrimitive(.active)
+        device.identifier = [snapshot.fhirIdentifier, identity.fhirIdentifier]
         if let name = source.name {
             device.deviceName = [DeviceDeviceName(
                 name: name.asFHIRStringPrimitive(),
@@ -286,9 +346,7 @@ extension SensorConverter {
                 role: FHIRPrimitive(.source),
                 what: Reference(identifier: sourceIdentifier)
             )],
-            meta: Meta(profile: [FHIRPrimitive(Canonical(
-                stringLiteral: SensorKitContract.sensorConversionProvenanceProfile
-            ))]),
+            meta: Meta(profile: [GroveLifecycleContract.conversionProvenanceProfile]),
             occurred: .dateTime(FHIRPrimitive(try DateTime(date: recordedAt))),
             recorded: FHIRPrimitive(try Instant(date: recordedAt)),
             target: [reference(targetURL)]

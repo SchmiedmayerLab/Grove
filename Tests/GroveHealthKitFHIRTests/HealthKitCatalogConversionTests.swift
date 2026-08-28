@@ -41,7 +41,7 @@ struct HealthKitFHIRCatalogConversionTests {
 
     private var context: HealthKitConversionContext {
         HealthKitConversionContext(
-            subject: Reference(reference: "Patient/example"),
+            subject: .testPatient,
             converter: HealthKitApplication(
                 name: "Example Study",
                 bundleIdentifier: "org.grovealliance.example-study",
@@ -97,8 +97,31 @@ struct HealthKitFHIRCatalogConversionTests {
         let code = try #require(codings.first)
         #expect(code.system?.value?.url.absoluteString == contract.code.system, "\(identifier) code system")
         #expect(code.code?.value?.string == contract.code.code, "\(identifier) code")
-        #expect(codings.last?.system == Canonicals.healthKitSourceType, "\(identifier) source coding")
-        #expect(codings.last?.code?.value?.string == identifier, "\(identifier) source type")
+        #expect(
+            codings.count == 1 + contract.requiredCodings.count,
+            "\(identifier) must emit every catalog-required clinical coding and no source-lineage coding"
+        )
+        for (coding, required) in zip(codings.dropFirst(), contract.requiredCodings) {
+            #expect(coding.system?.value?.url.absoluteString == required.system, "\(identifier) required code system")
+            #expect(coding.code?.value?.string == required.code, "\(identifier) required code")
+        }
+        assertSourceAndValue(observation, contract: contract, identifier: identifier)
+    }
+
+    private func assertSourceAndValue(
+        _ observation: Observation,
+        contract: HealthKitFHIRObservationContract,
+        identifier: String
+    ) {
+        let sourceType = observation.extension?.filter {
+            $0.url == Canonicals.healthKitSourceTypeExtension
+        }
+        #expect(sourceType?.count == 1, "\(identifier) source extension cardinality")
+        guard case .code(let sourceCode) = sourceType?.first?.value else {
+            Issue.record("\(identifier) source extension is not valueCode")
+            return
+        }
+        #expect(sourceCode.value?.string == identifier, "\(identifier) source type")
         let emittedPeriod = if case .period = observation.effective { true } else { false }
         #expect(emittedPeriod == (contract.effective == .period), "\(identifier) effective kind")
         guard case .quantity(let value)? = observation.value else {

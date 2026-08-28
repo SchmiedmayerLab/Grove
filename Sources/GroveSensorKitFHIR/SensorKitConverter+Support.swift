@@ -49,10 +49,6 @@ extension SensorKitConverter {
         observation.meta = Meta(profile: profiles.map(profile))
         observation.identifier = [sourceIdentifier.fhirIdentifier, outputIdentifier.fhirIdentifier]
         observation.subject = context.subject
-        observation.issued = FHIRPrimitive(try exactInstant(
-            context.issuedAt,
-            timeZone: context.sourceTimeZone
-        ))
         observation.device = recordingDeviceURL.map(reference)
         observation.extension = [sourceTypeExtension(sourceTypeCode)] + contextExtensions(
             context,

@@ -22,7 +22,7 @@ struct RecordingCSVWriterTests {
         try writer.append([.timestamp(Date(timeIntervalSince1970: 0)), .number(1.5)])
         let text = String(decoding: writer.data(), as: UTF8.self)
         // The registry requires LF after every row, the last one included, and no byte-order mark.
-        #expect(text == "timestamp,value\n0.0,1.5\n")
+        #expect(text == "timestamp,value\n0,1.5\n")
     }
 
     @Test
@@ -146,9 +146,9 @@ struct RecordingBinaryWriterTests {
     }
 
     @Test
-    func float64IsBigEndian() {
+    func float64IsBigEndian() throws {
         var writer = RecordingBinaryWriter()
-        writer.writeFloat64(1.0)
+        try writer.writeFloat64(1.0)
         #expect(Array(writer.data()) == [0x3F, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
     }
 
@@ -160,16 +160,137 @@ struct RecordingBinaryWriterTests {
     }
 
     @Test
-    func optionalsCarryAPresenceByte() {
+    func optionalsCarryAPresenceByte() throws {
         var present = RecordingBinaryWriter()
-        present.writeOptionalFloat64(1.0)
+        try present.writeOptionalFloat64(1.0)
         let presentBytes = Array(present.data())
         #expect(presentBytes.first == 0x01)
         #expect(presentBytes.count == 9)
 
         var absent = RecordingBinaryWriter()
-        absent.writeOptionalFloat64(nil)
+        try absent.writeOptionalFloat64(nil)
         #expect(Array(absent.data()) == [0x00])
+    }
+
+    @Test
+    func nonFiniteFloatsAreRejectedAndNegativeZeroIsCanonicalized() throws {
+        var nonFinite = RecordingBinaryWriter()
+        #expect(throws: RecordingBinaryWriter.WriterError.nonFiniteFloat) {
+            try nonFinite.writeFloat64(.nan)
+        }
+
+        var zero = RecordingBinaryWriter()
+        try zero.writeFloat64(-0.0)
+        #expect(Array(zero.data()) == Array(repeating: 0, count: 8))
+    }
+}
+
+
+@Suite
+struct RecordingBinaryReaderTests {
+    @Test
+    func overlongAndOverflowingVarintsAreRejected() {
+        var overlong = RecordingBinaryReader(Data([0x80, 0x00]))
+        #expect(throws: RecordingBinaryReader.ReaderError.nonCanonicalVarint) {
+            _ = try overlong.readVarint()
+        }
+
+        var overflow = RecordingBinaryReader(Data(Array(repeating: 0x80, count: 9) + [0x02]))
+        #expect(throws: RecordingBinaryReader.ReaderError.varintOverflow) {
+            _ = try overflow.readVarint()
+        }
+    }
+
+    @Test
+    func malformedStringsAndFloatsAreRejected() {
+        var malformedUTF8 = RecordingBinaryReader(Data([0x01, 0xFF]))
+        #expect(throws: RecordingBinaryReader.ReaderError.invalidUTF8) {
+            _ = try malformedUTF8.readString()
+        }
+
+        var negativeZero = RecordingBinaryReader(Data([0x80, 0, 0, 0, 0, 0, 0, 0]))
+        #expect(throws: RecordingBinaryReader.ReaderError.nonCanonicalNegativeZero) {
+            _ = try negativeZero.readFloat64()
+        }
+
+        var infinity = RecordingBinaryReader(Data([0x7F, 0xF0, 0, 0, 0, 0, 0, 0]))
+        #expect(throws: RecordingBinaryReader.ReaderError.nonFiniteFloat) {
+            _ = try infinity.readFloat64()
+        }
+    }
+
+    @Test
+    func duplicateOrDescendingSetValuesAreRejected() {
+        var duplicate = RecordingBinaryReader(Data([0x02, 0x01, 0x01]))
+        #expect(throws: RecordingBinaryReader.ReaderError.nonAscendingSet) {
+            _ = try duplicate.readCanonicalSet { try $0.readVarint() }
+        }
+
+        var descending = RecordingBinaryReader(Data([0x02, 0x02, 0x01]))
+        #expect(throws: RecordingBinaryReader.ReaderError.nonAscendingSet) {
+            _ = try descending.readCanonicalSet { try $0.readVarint() }
+        }
+    }
+}
+
+
+@Suite
+struct RegisteredRecordingPayloadTests {
+    private static let validCollection = Data(#"""
+        {
+          "resourceType": "Bundle",
+          "type": "collection",
+          "timestamp": "2026-08-20T19:00:00Z",
+          "entry": [{
+            "fullUrl": "urn:uuid:3314ab4c-4ab3-536f-a556-e3b6ff97762d",
+            "resource": { "resourceType": "Patient" }
+          }]
+        }
+        """#.utf8)
+
+    @Test("The replacement FHIR collection format accepts one closed R4 collection Bundle")
+    func collectionBundleIsAccepted() throws {
+        try RegisteredRecordingFormat.fhirCollectionBundle.validatePayload(Self.validCollection)
+    }
+
+    @Test("A bare resource array is not a registered FHIR payload")
+    func resourceArrayIsRejected() {
+        #expect(throws: RegisteredRecordingPayloadError.invalidFHIRJSON) {
+            try RegisteredRecordingFormat.fhirCollectionBundle.validatePayload(
+                Data(#"[{"resourceType":"Patient"}]"#.utf8)
+            )
+        }
+    }
+
+    @Test("Transaction semantics cannot hide inside a source-preservation collection")
+    func transactionFieldsAreRejected() {
+        let transaction = Data(#"""
+            {
+              "resourceType": "Bundle",
+              "type": "collection",
+              "timestamp": "2026-08-20T19:00:00Z",
+              "entry": [{
+                "fullUrl": "urn:uuid:3314ab4c-4ab3-536f-a556-e3b6ff97762d",
+                "resource": { "resourceType": "Patient" },
+                "request": { "method": "POST", "url": "Patient" }
+              }]
+            }
+            """#.utf8)
+        #expect(throws: RegisteredRecordingPayloadError.forbiddenEntryRequest(index: 0)) {
+            try RegisteredRecordingFormat.fhirCollectionBundle.validatePayload(transaction)
+        }
+    }
+
+    @Test("The single-resource R4 format parses one resource, never an array")
+    func r4ResourceShapeIsClosed() throws {
+        try RegisteredRecordingFormat.fhirR4Resource.validatePayload(
+            Data(#"{"resourceType":"Patient"}"#.utf8)
+        )
+        #expect(throws: RegisteredRecordingPayloadError.invalidFHIRJSON) {
+            try RegisteredRecordingFormat.fhirR4Resource.validatePayload(
+                Data(#"[{"resourceType":"Patient"}]"#.utf8)
+            )
+        }
     }
 }
 

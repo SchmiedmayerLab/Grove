@@ -684,7 +684,7 @@ extension StudyManager {
             }
         }
         let studyBundleUrl = enrollment.studyBundleUrl
-        await tearDownStudyBackgroundComponents(for: CollectionOfOne(enrollment))
+        try await tearDownStudyBackgroundComponents(for: CollectionOfOne(enrollment))
         modelContext.delete(enrollment)
         try? FileManager.default.removeItem(at: studyBundleUrl)
         try modelContext.save()
@@ -774,8 +774,8 @@ extension StudyManager {
     }
     
     @MainActor
-    private func tearDownStudyBackgroundComponents(for enrollments: some Collection<StudyEnrollment>) async {
-        await stopBackgroundHealthDataCollection(for: enrollments)
+    private func tearDownStudyBackgroundComponents(for enrollments: some Collection<StudyEnrollment>) async throws {
+        try await stopBackgroundHealthDataCollection(for: enrollments)
     }
     
     
@@ -816,13 +816,13 @@ extension StudyManager {
     }
     
     @MainActor
-    private func stopBackgroundHealthDataCollection(for enrollments: some Collection<StudyEnrollment>) async {
-        func imp<Sample>(_ sampleType: some AnySampleType<Sample>) async {
+    private func stopBackgroundHealthDataCollection(for enrollments: some Collection<StudyEnrollment>) async throws {
+        func imp<Sample>(_ sampleType: some AnySampleType<Sample>) async throws {
             let sampleType = SampleType(sampleType)
-            await healthKit.resetSampleCollection(for: sampleType)
+            try await healthKit.resetSampleCollection(for: sampleType)
         }
         for sampleType in allCollectedSampleTypes(in: enrollments).combined {
-            await imp(sampleType)
+            try await imp(sampleType)
         }
     }
     

@@ -64,7 +64,8 @@ struct QuestionnaireConformanceFixtureTests {
         let pair = try ResourceBuilder().pair(
             from: responses,
             subject: Reference(reference: "Patient/example"),
-            authored: Date(timeIntervalSince1970: 1_700_000_000)
+            authored: Date(timeIntervalSince1970: 1_700_000_000),
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         let fixtures: [String: ResourceProxy] = [
             "questionnaire": ResourceProxy(with: pair.questionnaire),

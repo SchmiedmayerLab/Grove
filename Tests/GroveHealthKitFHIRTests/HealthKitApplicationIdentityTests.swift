@@ -20,7 +20,7 @@ struct HealthKitFHIRApplicationIdentityTests {
     @Test("A bundle-less host is rejected as an invalid converter application")
     func bundleLessHostIsRejected() {
         let context = HealthKitConversionContext(
-            subject: Reference(reference: "Patient/1a2b3c".asFHIRStringPrimitive()),
+            subject: .testLogicalReference(resourceType: .patient, value: "1a2b3c"),
             converter: HealthKitApplication(name: "Runner", bundleIdentifier: "", version: "1.0")
         )
         #expect(throws: HealthKitConversionError.invalidConverterApplication("bundleIdentifier")) {
@@ -28,11 +28,19 @@ struct HealthKitFHIRApplicationIdentityTests {
         }
     }
 
-    @Test("The empty namespace such a host derives is never treated as valid")
-    func emptyNamespaceIsNotSilentlyAccepted() {
-        let application = HealthKitApplication(name: "Runner", bundleIdentifier: "", version: "1.0")
-        // Syntactically a valid URN, which is exactly why validation cannot rely on it.
-        #expect(application.graphIdentifierSystem == "urn:grove:healthkit-graph:")
+    @Test("A bundle identifier is the exact Apple product token, not arbitrary text")
+    func malformedBundleIdentifierIsRejected() {
+        let context = HealthKitConversionContext(
+            subject: .testLogicalReference(resourceType: .patient, value: "1a2b3c"),
+            converter: HealthKitApplication(
+                name: "Runner",
+                bundleIdentifier: "org.example. bad-id",
+                version: "1.0"
+            )
+        )
+        #expect(throws: HealthKitConversionError.invalidConverterApplication("bundleIdentifier")) {
+            try HealthKitConverter.validate(context: context)
+        }
     }
 }
 

@@ -252,7 +252,7 @@ extension FHIRPathExpressionEngine {
         case .dateTime:
             dateValue(from: first)
         case .choice(let config):
-            choiceValue(from: result, options: config.options)
+            try choiceValue(from: result, options: config.options)
         case .instructional, .fileAttachment, .custom:
             nil
         }
@@ -313,7 +313,7 @@ extension FHIRPathExpressionEngine {
     private static func choiceValue(
         from result: [FHIRPathValue],
         options: [GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option]
-    ) -> QuestionnaireResponses.Response.Value? {
+    ) throws -> QuestionnaireResponses.Response.Value? {
         var selected: Set<String> = []
         for value in result {
             switch value {
@@ -321,12 +321,15 @@ extension FHIRPathExpressionEngine {
                 guard let code = node.stringMember("code") else {
                     continue
                 }
-                let token = node.stringMember("system").map { "\($0)|\(code)" } ?? code
-                if let match = options.first(where: { $0.id == token || $0.id.hasSuffix("|\(code)") }) {
+                let system = node.stringMember("system").flatMap(URL.init(string:))
+                if node.stringMember("system") != nil, system == nil {
+                    throw FHIRPathEvaluationError.typeMismatch("Coding.system is not an absolute URI")
+                }
+                if let match = try ChoiceOptionResolver.coding(system: system, code: code, in: options) {
                     selected.insert(match.id)
                 }
             case .string(let string):
-                if let match = options.first(where: { $0.id == string || $0.id.hasSuffix("|\(string)") }) {
+                if let match = try ChoiceOptionResolver.token(string, in: options) {
                     selected.insert(match.id)
                 }
             default:

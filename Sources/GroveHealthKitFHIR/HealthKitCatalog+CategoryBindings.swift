@@ -17,12 +17,6 @@ extension HealthKitCatalog {
     // A closed source-type dispatch is intentionally spelled as a single exhaustive switch.
     // swiftlint:disable:next cyclomatic_complexity function_body_length
     static func categoryBinding(for identifier: String) -> HealthKitFHIRBinding? {
-        // Added in the iOS 26 SDK after this exhaustive enum was introduced. Compare the
-        // frozen catalog identifier so the adapter still builds at its iOS 18 deployment
-        // floor while treating the event only as the source notification occurrence.
-        if identifier == "HKCategoryTypeIdentifierHypertensionEvent" {
-            return .notification(HealthKitMeasurementCatalog.hypertensionNotification)
-        }
         switch HKCategoryTypeIdentifier(rawValue: identifier) {
         case .abdominalCramps:
             return .severity(HealthKitMeasurementCatalog.symptomAbdominalCramps)
@@ -193,6 +187,12 @@ extension HealthKitCatalog {
         case .persistentIntermenstrualBleeding:
             return .notification(HealthKitMeasurementCatalog.persistentIntermenstrualBleeding)
         default:
+            // Added in the iOS 26 SDK after this exhaustive enum was introduced. Compare the
+            // frozen catalog identifier so the adapter still builds at its iOS 18 deployment
+            // floor while treating the event only as the source notification occurrence.
+            if identifier == "HKCategoryTypeIdentifierHypertensionEvent" {
+                return .notification(HealthKitMeasurementCatalog.hypertensionNotification)
+            }
             return nil
         }
     }

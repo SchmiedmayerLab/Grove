@@ -43,8 +43,8 @@ enum HealthKitECGEvidenceValidator {
         )
     }
 
-    private static func validateCount(reported: Int, supplied: Int) throws {
-        guard reported > 0, reported <= Int(Int32.max) else {
+    static func validateCount(reported: Int, supplied: Int) throws {
+        guard reported > 0 else {
             throw HealthKitConversionError.invalidECGEvidence(.invalidReportedVoltageCount(reported))
         }
         guard supplied == reported else {

@@ -137,6 +137,37 @@ class AffectedManifestTests(unittest.TestCase):
 
 
 class FHIRConformanceSelectionTests(unittest.TestCase):
+    def test_fhir_only_schedules_every_conformance_lane_and_no_package_jobs(self):
+        result = run_selector(
+            "Sources/GroveHealthKitFHIR/HealthKitConverter.swift",
+            extra_arguments=("--fhir-only",),
+        )
+
+        self.assertEqual(json.loads(result["matrix"]), {"include": []})
+        self.assertEqual(json.loads(result["ui_matrix"]), {"include": []})
+        self.assertEqual(result["has_jobs"], "false")
+        self.assertEqual(result["has_ui_jobs"], "false")
+        self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(
+            result["fhir_components"],
+            "healthkit,questionnaire,sensor",
+        )
+        self.assertEqual(result["affected"], "(none)")
+
+    def test_fhir_only_rejects_broader_selection_modes(self):
+        incompatible_modes = (
+            ("--full-readiness",),
+            ("--development-scope", "healthkit"),
+        )
+
+        for incompatible_mode in incompatible_modes:
+            with self.subTest(incompatible_mode=incompatible_mode):
+                with self.assertRaisesRegex(SystemExit, "cannot be combined"):
+                    run_selector(
+                        "Sources/GroveHealthKitFHIR/HealthKitConverter.swift",
+                        extra_arguments=("--fhir-only", *incompatible_mode),
+                    )
+
     def test_validator_script_runs_only_fhir_packages_and_conformance(self):
         result = run_selector("Scripts/validate-fhir-conformance.sh")
 

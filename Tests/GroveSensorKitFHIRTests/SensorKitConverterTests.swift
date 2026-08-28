@@ -6,8 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-// Profile arrays are formatted to mirror their normative order in the IG contract.
-// swiftlint:disable multiline_literal_brackets
+// One suite exercises the complete adapter graph surface against the normative catalog.
+// swiftlint:disable type_body_length
 
 import Foundation
 import GroveFHIRContract
@@ -28,31 +28,40 @@ struct GroveSensorKitFHIRConverterTests {
     }
 
     private static var context: SensorKitConversionContext {
-        get throws {
-            SensorKitConversionContext(
-                subject: Reference(reference: "Patient/example"),
+        get throws { try makeContext() }
+    }
+
+    private static func makeContext(
+        sourceIdentifierDisclosurePolicy: GovernedSourceIdentifierDisclosurePolicy = .omit,
+        visitLocationIdentifierSystem: IdentifierSystem = SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem
+    ) throws -> SensorKitConversionContext {
+        SensorKitConversionContext(
+                subject: SensorFHIRIdentityTestSupport.subject,
+                subjectIdentity: try SensorFHIRIdentityTestSupport.subjectIdentity,
                 converter: SensorApplication(
-                    identifier: try BusinessIdentifier(
-                        system: "https://study.example.org/fhir/identifiers/application",
-                        value: "sensor-conformance|0.3.0"
-                    ),
+                    sourceDeviceToken: "org.grovealliance.sensor-conformance",
                     name: "Sensor Conformance",
                     version: "0.5.0"
                 ),
-                graphIdentifierSystem: "https://study.example.org/fhir/identifiers/sensor-graph",
+                converterHost: SensorFHIRIdentityTestSupport.converterHost,
+                eventIdentifier: try SensorFHIRIdentityTestSupport.event(),
+                entryNodeIdentifierSystem: SensorFHIRIdentityTestSupport.entryNodeIdentifierSystem,
+                identityScope: try SensorFHIRIdentityTestSupport.identityScope,
+                repositoryScope: try SensorFHIRIdentityTestSupport.repositoryScope,
+                visitLocationIdentifierSystem: visitLocationIdentifierSystem,
+                sourceIdentifierDisclosurePolicy: sourceIdentifierDisclosurePolicy,
                 recordingDevice: SensorRecordingDevice(
                     identifier: try BusinessIdentifier(
                         system: "https://study.example.org/fhir/identifiers/device",
                         value: "watch-42"
                     ),
+                    stableUnitToken: "watch-42",
                     name: "Example Watch"
                 ),
                 converterWasGateway: true,
                 sourceTimeZone: try #require(TimeZone(identifier: "America/Los_Angeles")),
-                issuedAt: start.addingTimeInterval(30),
                 recordedAt: start.addingTimeInterval(60)
-            )
-        }
+        )
     }
 
     private static func native(
@@ -61,7 +70,6 @@ struct GroveSensorKitFHIRConverterTests {
     ) throws -> SensorKitNativeRecording {
         try SensorKitNativeRecording(
             title: "Exact SensorKit native record",
-            contentType: "application/json",
             format: format,
             payload: .inline(Data(#"{"flags":[0,2,1,0]}"#.utf8)),
             admission: admission
@@ -69,26 +77,35 @@ struct GroveSensorKitFHIRConverterTests {
     }
 
     @Test(arguments: [
-        ("sampled-data", "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|sampled-data"),
-        ("native-recording", "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|native-recording"),
-        ("on-wrist", "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|on-wrist"),
-        ("device-usage-summary", "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|device-usage-summary"),
-        ("ecg-waveform", "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|ecg-waveform"),
-        ("visit-summary", "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|visit-summary"),
-        ("messages-usage-summary", "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|messages-usage-summary"),
-        ("phone-usage-summary", "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|phone-usage-summary"),
-        ("keyboard-metrics-summary", "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|keyboard-metrics-summary"),
-        ("sleep-session", "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|sleep-session"),
-        ("accelerometer-recording-summary", "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|accelerometer-recording-summary"),
-        ("ppg-recording-summary", "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|ppg-recording-summary")
+        "sampled-data",
+        "native-recording",
+        "on-wrist",
+        "device-usage-summary",
+        "ecg-waveform",
+        "visit-summary",
+        "messages-usage-summary",
+        "phone-usage-summary",
+        "keyboard-metrics-summary",
+        "sleep-session",
+        "accelerometer-recording-summary",
+        "ppg-recording-summary"
     ])
-    func outputIdentityMatchesCatalogVector(testCase: (String, String)) throws {
-        let identifier = try SensorKitOutputIdentity.businessIdentifier(
-            source: Self.sourceID,
-            discriminator: testCase.0
+    func outputIdentityIsDeploymentScopedAndDoesNotDiscloseItsSource(discriminator: String) throws {
+        let sourceID = try Self.sourceID
+        let identifier = try SensorFHIRIdentityTestSupport.identityScope.sourceOutput(
+            adapterID: "sensorkit",
+            sourceType: "SRSensor.rotationRate",
+            repositoryScope: SensorFHIRIdentityTestSupport.repositoryScope,
+            nativeRecordID: sourceID.value,
+            outputRole: RetractionTargetRole.primaryOutput.rawValue,
+            outputDiscriminator: discriminator
         )
-        #expect(identifier.systemValue == SensorKitContract.outputIdentifierSystem)
-        #expect(identifier.value == testCase.1)
+        #expect(identifier.systemValue ==
+            "https://study.example.org/fhir/identifiers/pseudonym/source-output/test/1")
+        #expect(identifier.role == .sourceOutput)
+        #expect(identifier.value.hasPrefix("v2:test:1:"))
+        #expect(!identifier.value.contains(sourceID.value))
+        #expect(!identifier.value.contains(discriminator))
     }
 
     @Test
@@ -106,17 +123,19 @@ struct GroveSensorKitFHIRConverterTests {
         let entries = try #require(conversion.bundle.entry)
 
         #expect(observation.id == nil)
+        #expect(observation.issued == nil)
         #expect(observation.meta?.profile == [
             Profile.groveSensorSampledDataObservation,
             FHIRPrimitive(Canonical(stringLiteral: SensorKitContract.observationProfile))
         ])
-        #expect(observation.identifier?.map { $0.system?.value?.url.absoluteString } == [
-            SensorKitContract.sourceRecordIdentifierSystem,
-            SensorKitContract.outputIdentifierSystem
+        let identifierRoles = try observation.identifier?.map { try BusinessIdentifier($0).role }
+        #expect(identifierRoles == [
+            .sourceRecord,
+            .sourceOutput
         ])
         #expect(conversion.recordingDocument == nil)
         #expect(conversion.provenance.target.count == 1)
-        #expect(entries.count == 4)
+        #expect(entries.count == 5)
         #expect(entries.allSatisfy { $0.fullUrl?.value?.url.absoluteString.hasPrefix("urn:uuid:") == true })
         try ExchangeIdentity.validate(entries: entries)
 
@@ -130,6 +149,72 @@ struct GroveSensorKitFHIRConverterTests {
         #expect(sampled.data?.value?.string == "0.01 -0.02 0.03 0.02 -0.01 0.04 0.01 -0.01 0.02")
         #expect(effective.start?.value?.description == "2026-08-17T16:30:00-07:00")
         #expect(effective.end?.value?.description == "2026-08-17T16:30:00.02-07:00")
+    }
+
+    @Test("Governed native record ID is opt-in and appears only on a structured primary")
+    func governedNativeIDOnStructuredPrimary() throws {
+        let record = SensorKitRotationRateRecord(
+            sourceRecordID: try Self.sourceID,
+            samples: [
+                .init(timestamp: Self.start, x: 0.01, y: 0.02, z: 0.03),
+                .init(timestamp: Self.start.addingTimeInterval(0.01), x: 0.02, y: 0.03, z: 0.04)
+            ]
+        )
+        let nativeSystem: IdentifierSystem =
+            "https://study.example.org/fhir/identifier/sensorkit-source-record"
+        let context = try Self.makeContext(sourceIdentifierDisclosurePolicy: .authorized(
+            system: nativeSystem,
+            type: GovernedSourceIdentifierType(
+                system: "https://study.example.org/fhir/CodeSystem/source-identifier-type",
+                code: "sensorkit-record-id"
+            )
+        ))
+        let conversion = try SensorKitConverter().convert(.rotationRate(record), context: context)
+        #expect(conversion.observations.count == 1)
+        let observation = try #require(conversion.observations.first)
+        let nativeValue = try Self.sourceID.value
+        let native = try #require(observation.identifier?.first {
+            $0.system?.value?.url.absoluteString == nativeSystem.rawValue
+        })
+
+        #expect(native.value?.value?.string == nativeValue)
+        #expect(observation.id == nil)
+        #expect(conversion.recordingDocument == nil)
+        let bundleJSON = String(decoding: try JSONEncoder().encode(conversion.bundle), as: UTF8.self)
+        #expect(conversion.bundle.entry?.contains {
+            $0.fullUrl?.value?.url.absoluteString.contains(nativeValue) == true
+        } != true)
+        #expect(bundleJSON.components(separatedBy: nativeValue).count == 2)
+    }
+
+    @Test("Visit location is retained exactly under the governed source-store system")
+    func visitLocationUsesGovernedNativeIdentity() throws {
+        let locationID = try #require(UUID(uuidString: "6f2692c2-7a8e-45db-8f2f-3300157fc0b4"))
+        let record = SensorKitVisitRecord(
+            sourceRecordID: try Self.sourceID,
+            locationCategory: .work,
+            distanceFromHomeMeters: 1_250,
+            arrivalWindow: DateInterval(start: Self.start, duration: 60),
+            departureWindow: DateInterval(start: Self.start.addingTimeInterval(3_600), duration: 60),
+            locationID: locationID
+        )
+
+        let conversion = try SensorKitConverter().convert(.visit(record), context: Self.context)
+        #expect(conversion.observations.count == 1)
+        let observation = try #require(conversion.observations.first)
+        #expect(observation.focus?.count == 1)
+        let focus = try #require(observation.focus?.first)
+        let identifier = try #require(focus.identifier)
+
+        #expect(focus.reference == nil)
+        #expect(focus.type?.value?.url.absoluteString == ResourceType.location.rawValue)
+        #expect(identifier.system?.value?.url.absoluteString ==
+            SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem.rawValue)
+        #expect(identifier.value?.value?.string == locationID.uuidString.lowercased())
+        #expect(identifier.type == nil)
+        let encoded = try JSONEncoder().encode(conversion.bundle)
+        let json = try #require(String(data: encoded, encoding: .utf8))
+        #expect(json.contains(locationID.uuidString.lowercased()))
     }
 
     @Test
@@ -165,14 +250,16 @@ struct GroveSensorKitFHIRConverterTests {
         #expect(format.code?.value?.string == "native-recording")
         #expect(observation.derivedFrom?.first?.reference?.value?.string == entries[1].fullUrl?.value?.url.absoluteString)
         #expect(conversion.provenance.target.count == 2)
-        #expect(conversion.provenance.meta?.profile == [FHIRPrimitive(Canonical(
-            stringLiteral: SensorKitContract.conversionProvenanceProfile
-        ))])
-        #expect(entries.count == 5)
-        #expect(conversion.outputIdentifiers.map(\.value) == [
-            "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|ecg-waveform",
-            "v1:879d9ea2-21cb-4527-b59b-2831dc4c84ab|native-recording"
+        #expect(conversion.provenance.meta?.profile == [
+            FHIRPrimitive(Canonical(stringLiteral: SensorKitContract.conversionProvenanceProfile))
         ])
+        #expect(entries.count == 6)
+        #expect(conversion.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
+            sourceRecordID: try Self.sourceID,
+            sourceToken: "SRSensor.electrocardiogram",
+            structuredDiscriminator: "ecg-waveform",
+            includesNativeRecording: true
+        )))
         guard case .period(let effective) = observation.effective,
               case .sampledData(let waveform) = observation.component?.first?.value else {
             Issue.record("ECG must emit one SampledData lead over a Period")
@@ -182,6 +269,36 @@ struct GroveSensorKitFHIRConverterTests {
         #expect(effective.end?.value?.description == "2026-08-17T16:30:00.006-07:00")
         #expect(waveform.period.value?.decimal == 2)
         #expect(waveform.data?.value?.string == "0.011 0.023 -0.005 0.014")
+    }
+
+    @Test("Hybrid graph discloses the governed source ID only on its structured primary")
+    func governedNativeIDOnHybridPrimaryOnly() throws {
+        let record = SensorKitECGRecord(
+            sourceRecordID: try Self.sourceID,
+            startDate: Self.start,
+            durationSeconds: 0.002,
+            frequencyHertz: 500,
+            lead: .leftArmMinusRightArm,
+            guidance: .guided,
+            batches: [.init(offsetSeconds: 0, millivolts: [0.1, 0.2])],
+            nativeRecording: try Self.native()
+        )
+        let nativeSystem: IdentifierSystem =
+            "https://study.example.org/fhir/identifier/sensorkit-source-record"
+        let conversion = try SensorKitConverter().convert(
+            .electrocardiogram(record),
+            context: Self.makeContext(sourceIdentifierDisclosurePolicy: .authorized(system: nativeSystem))
+        )
+
+        #expect(conversion.observations.count == 1)
+        let observation = try #require(conversion.observations.first)
+        #expect(observation.identifier?.contains {
+            $0.system?.value?.url.absoluteString == nativeSystem.rawValue
+        } == true)
+        #expect(conversion.recordingDocument?.identifier?.contains {
+            $0.system?.value?.url.absoluteString == nativeSystem.rawValue
+        } != true)
+        #expect(conversion.recordingDocument?.id == nil)
     }
 
     @Test
@@ -228,9 +345,10 @@ struct GroveSensorKitFHIRConverterTests {
 
     @Test(arguments: SensorRawPayloadAdmission.allCases)
     func rawAdmissionIsConsumedButNeverSerialized(_ admission: SensorRawPayloadAdmission) throws {
-        let record = SensorKitRawRecord(
+        let record = try SensorKitRawRecord(
             sourceRecordID: try Self.sourceID,
             sourceToken: "SRSensor.heartRate",
+            effectivePeriod: DateInterval(start: Self.start, duration: 1),
             nativeRecording: try Self.native(admission: admission, format: .heartRateSamples)
         )
         let conversion = try SensorKitConverter().convert(.raw(record), context: Self.context)
@@ -241,14 +359,90 @@ struct GroveSensorKitFHIRConverterTests {
         }
         #expect(conversion.observations.isEmpty)
         #expect(conversion.recordingDocument?.content.first?.format?.code?.value?.string == "heart-rate-samples")
+        #expect(conversion.recordingDocument?.context?.period?.start != nil)
+        #expect(conversion.recordingDocument?.context?.period?.end != nil)
         #expect(conversion.provenance.target.count == 1)
+    }
+
+    @Test("A raw-only source discloses its governed ID on the sole DocumentReference")
+    func governedNativeIDOnRawOnlyPrimary() throws {
+        let record = try SensorKitRawRecord(
+            sourceRecordID: try Self.sourceID,
+            sourceToken: "SRSensor.heartRate",
+            effectivePeriod: DateInterval(start: Self.start, duration: 1),
+            nativeRecording: try Self.native(format: .heartRateSamples)
+        )
+        let nativeSystem: IdentifierSystem =
+            "https://study.example.org/fhir/identifier/sensorkit-source-record"
+        let conversion = try SensorKitConverter().convert(
+            .raw(record),
+            context: Self.makeContext(sourceIdentifierDisclosurePolicy: .authorized(system: nativeSystem))
+        )
+        let nativeValue = try Self.sourceID.value
+
+        #expect(conversion.observations.isEmpty)
+        #expect(conversion.recordingDocument?.identifier?.contains {
+            $0.system?.value?.url.absoluteString == nativeSystem.rawValue
+                && $0.value?.value?.string == nativeValue
+        } == true)
+        #expect(conversion.recordingDocument?.id == nil)
+    }
+
+    @Test("A governed native ID cannot masquerade under generic or provider opaque namespaces")
+    func governedNativeIDRejectsReservedSystem() throws {
+        let record = SensorKitRotationRateRecord(
+            sourceRecordID: try Self.sourceID,
+            samples: [
+                .init(timestamp: Self.start, x: 0.01, y: 0.02, z: 0.03),
+                .init(timestamp: Self.start.addingTimeInterval(0.01), x: 0.02, y: 0.03, z: 0.04)
+            ]
+        )
+        let identityScope = try SensorFHIRIdentityTestSupport.identityScope
+        for reserved in [
+            identityScope.systems.sourceRecord,
+            identityScope.systems.providerOutput,
+            identityScope.systems.providerArtifact
+        ] {
+            let context = try Self.makeContext(
+                sourceIdentifierDisclosurePolicy: .authorized(system: reserved)
+            )
+            #expect(throws: SensorKitConversionError.invalidIdentity(
+                "governed SensorKit source identifier system must not reuse a Grove opaque-identity namespace"
+            )) {
+                try SensorKitConverter().convert(.rotationRate(record), context: context)
+            }
+        }
+    }
+
+    @Test("Visit locations cannot reuse provider output or artifact namespaces")
+    func visitLocationRejectsProviderOpaqueSystems() throws {
+        let record = SensorKitRotationRateRecord(
+            sourceRecordID: try Self.sourceID,
+            samples: [
+                .init(timestamp: Self.start, x: 0.01, y: 0.02, z: 0.03),
+                .init(timestamp: Self.start.addingTimeInterval(0.01), x: 0.02, y: 0.03, z: 0.04)
+            ]
+        )
+        let identityScope = try SensorFHIRIdentityTestSupport.identityScope
+        for reserved in [
+            identityScope.systems.providerOutput,
+            identityScope.systems.providerArtifact
+        ] {
+            let context = try Self.makeContext(visitLocationIdentifierSystem: reserved)
+            #expect(throws: SensorKitConversionError.invalidIdentity(
+                "visitLocationIdentifierSystem must not reuse a Grove opaque-identity namespace"
+            )) {
+                try SensorKitConverter().convert(.rotationRate(record), context: context)
+            }
+        }
     }
 
     @Test
     func unregisteredRecordingFormatFailsClosed() throws {
-        let record = SensorKitRawRecord(
+        let record = try SensorKitRawRecord(
             sourceRecordID: try Self.sourceID,
             sourceToken: "SRSensor.heartRate",
+            effectivePeriod: DateInterval(start: Self.start, duration: 1),
             nativeRecording: try Self.native(format: .nativeRecording)
         )
         #expect(throws: SensorKitConversionError.invalidRecord(
@@ -260,9 +454,10 @@ struct GroveSensorKitFHIRConverterTests {
 
     @Test
     func structuredOnlyStreamCannotClaimRawSupport() throws {
-        let record = SensorKitRawRecord(
+        let record = try SensorKitRawRecord(
             sourceRecordID: try Self.sourceID,
             sourceToken: "SRSensor.sleepSessions",
+            effectivePeriod: DateInterval(start: Self.start, duration: 1),
             nativeRecording: try Self.native()
         )
         #expect(throws: SensorKitConversionError.invalidRecord(
@@ -274,9 +469,10 @@ struct GroveSensorKitFHIRConverterTests {
 
     @Test
     func unknownSourceTokenIsNotAdmitted() throws {
-        let record = SensorKitRawRecord(
+        let record = try SensorKitRawRecord(
             sourceRecordID: try Self.sourceID,
             sourceToken: "SRSensor.headphoneMotion",
+            effectivePeriod: DateInterval(start: Self.start, duration: 1),
             nativeRecording: try Self.native()
         )
         #expect(throws: SensorKitConversionError.invalidRecord(

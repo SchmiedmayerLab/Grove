@@ -39,6 +39,10 @@ public protocol AccountNotifyConstraint: Standard {
     ///
     /// - Note: This function will be folded into the ``AccountNotifications/Event`` enum in a future release.
     func willLogOut(_ details: AccountDetails) async
+
+    /// Notifies the Standard that an awaited logout/account-removal transition failed after
+    /// `willLogOut` returned and the existing account remains associated.
+    func accountRemovalDidFail(_ details: AccountDetails) async
 }
 
 
@@ -46,4 +50,7 @@ public protocol AccountNotifyConstraint: Standard {
 extension AccountNotifyConstraint {
     // swiftlint:disable:next missing_docs
     public func willLogOut(_ details: AccountDetails) async {}
+
+    // swiftlint:disable:next missing_docs
+    public func accountRemovalDidFail(_ details: AccountDetails) async {}
 }

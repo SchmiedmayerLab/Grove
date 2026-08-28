@@ -103,6 +103,9 @@ extension ModelsR4.Questionnaire {
         guard let url = questionnaire.metadata.url else {
             throw ContractError.missingQuestionnaireURL
         }
+        guard ContractRules.isValidQuestionnaireURL(url.absoluteString) else {
+            throw ContractError.invalidQuestionnaireCanonical(url.absoluteString)
+        }
         guard let version = questionnaire.metadata.version else {
             throw ContractError.missingQuestionnaireVersion
         }
@@ -110,9 +113,7 @@ extension ModelsR4.Questionnaire {
             throw ContractError.invalidQuestionnaireVersion(version)
         }
         let canonical = "\(url.absoluteString)|\(version)"
-        guard !url.absoluteString.contains("|"),
-              !url.absoluteString.contains("#"),
-              !version.contains("|"),
+        guard !version.contains("|"),
               !version.contains("#") else {
             throw ContractError.invalidQuestionnaireCanonical(canonical)
         }

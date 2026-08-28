@@ -16,11 +16,15 @@ on:
   workflow_dispatch:
     inputs:
       grove_fhir_ref:
-        description: grove-fhir branch or commit carrying the v0.4 adapter stack. Defaults to a pinned commit.
+        description: grove-fhir commit carrying the v0.6.0 development contract. Defaults to the current main revision.
         type: string
-        default: 0.4.0
+        default: 31197e876161e9c6d207760d472343231da527e2
       full_readiness:
         description: Schedule every package and platform instead of only the ones the change touches.
+        type: boolean
+        default: false
+      fhir_only:
+        description: Run only producer conformance against the selected grove-fhir development contract.
         type: boolean
         default: false
   workflow_call:
@@ -30,9 +34,9 @@ on:
         type: boolean
         default: false
       grove_fhir_ref:
-        description: grove-fhir branch or commit carrying the v0.4 adapter stack. Defaults to a pinned commit.
+        description: grove-fhir commit carrying the v0.6.0 development contract. Defaults to the current main revision.
         type: string
-        default: 0.4.0
+        default: 31197e876161e9c6d207760d472343231da527e2
       full_readiness:
         description: Schedule every package and platform instead of only the ones the change touches.
         type: boolean
@@ -131,6 +135,12 @@ jobs:
           fi
           if [ "${{ steps.changes.outputs.ui_test_projects_changed }}" = "true" ] && [ -f "$RUNNER_TEMP/base-ui-test-projects.toml" ]; then
             ARGS+=(--base-ui-test-projects "$RUNNER_TEMP/base-ui-test-projects.toml")
+          fi
+          if [ "${{ inputs.fhir_only }}" = "true" ]; then
+            ARGS+=(--fhir-only)
+          fi
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.full_readiness }}" = "true" ]; then
+            ARGS+=(--full-readiness)
           fi
           if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ inputs.run_all }}" != "true" ] && [ -f .github/GROVE_FHIR_DEVELOPMENT_SCOPE ]; then
             DEVELOPMENT_SCOPE="$(sed -n '1p' .github/GROVE_FHIR_DEVELOPMENT_SCOPE)"
@@ -237,12 +247,12 @@ jobs:
         with:
           repository: SchmiedmayerLab/grove-fhir
           path: .fhir/grove-fhir
-          ref: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || 'main' }}
+          ref: ${{ inputs.grove_fhir_ref || '31197e876161e9c6d207760d472343231da527e2' }}
           persist-credentials: false
       - name: Record grove-fhir contract revision
         working-directory: .fhir/grove-fhir
         run: |
-          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || 'main' }}"
+          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || '31197e876161e9c6d207760d472343231da527e2' }}"
           echo "grove-fhir SHA: $(git rev-parse HEAD)"
       - name: Pin the implementation-guide cache key
         run: echo "GROVE_FHIR_GUIDE_CACHE_KEY=grove-fhir-validation-${{ runner.os }}-${{ hashFiles('.github/GROVE_FHIR_DEVELOPMENT_SCOPE', '.fhir/grove-fhir/Gemfile.lock', '.fhir/grove-fhir/package-lock.json', '.fhir/grove-fhir/Scripts/**', '.fhir/grove-fhir/catalog/**', '.fhir/grove-fhir/mobile/**', '.fhir/grove-fhir/sensor/**', '.fhir/grove-fhir/sensorkit/**', '.fhir/grove-fhir/healthkit/**', '.fhir/grove-fhir/questionnaire/**') }}" >> "$GITHUB_ENV"
@@ -291,7 +301,7 @@ jobs:
       - name: Validate resources emitted by Grove
         env:
           FHIR_COMPONENTS: ${{ needs.detect.outputs.fhir_components }}
-          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || vars.GROVE_FHIR_CONFORMANCE_REF || 'main' }}
+          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || '31197e876161e9c6d207760d472343231da527e2' }}
         run: |
           IFS=',' read -r -a COMPONENTS <<< "$FHIR_COMPONENTS"
           for component in "${COMPONENTS[@]}"; do

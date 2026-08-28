@@ -90,7 +90,7 @@ extension GroveQuestionnaire.Questionnaire {
     /// - parameter options: Additional options to control the conversion process. Use this to specify e.g. custom question kinds.
     public init(
         _ other: ModelsR4.Questionnaire,
-        evaluationInstant: Date = .now,
+        evaluationInstant: Date,
         using options: ConversionOptions = .init()
     ) throws(ConversionError) {
         let metadata = try Self.metadata(of: other, evaluationInstant: evaluationInstant, using: options)
@@ -131,8 +131,17 @@ extension GroveQuestionnaire.Questionnaire {
         evaluationInstant: Date,
         using options: ConversionOptions
     ) throws(ConversionError) -> Metadata {
-        guard let id = other.url?.value?.url.absoluteString ?? other.id?.value?.string else {
-            throw .other("Missing both 'url' and 'id' fields. At least one must be present.")
+        guard let id = other.url?.value?.url.absoluteString else {
+            throw .other("A Grove Questionnaire requires an exact canonical 'url'.")
+        }
+        guard ContractRules.isValidQuestionnaireURL(id) else {
+            throw .other("Questionnaire canonical URL '\(id)' must be an exact HTTP(S) URL without a fragment or '|'.")
+        }
+        guard let version = other.version?.value?.string else {
+            throw .other("A Grove Questionnaire requires 'version'.")
+        }
+        guard ContractRules.isSemanticVersion(version) else {
+            throw .other("Questionnaire version '\(version)' is not Semantic Versioning 2.0.0.")
         }
         let lifecycle: PublicationLifecycle = switch other.status.value {
         case .draft: .draft
@@ -147,13 +156,13 @@ extension GroveQuestionnaire.Questionnaire {
         return Metadata(
             id: id,
             url: other.url?.value?.url,
-            version: other.version?.value?.string,
+            version: version,
             title: other.title?.localizedString(for: options.locale) ?? "",
             explainer: other.description_fhir?.localizedString(for: options.locale) ?? "",
             lifecycle: lifecycle,
             publisher: other.publisher?.value?.string,
             copyright: other.copyright?.value?.string,
-            administrationWarnings: administrationWarnings(
+            administrationWarnings: try administrationWarnings(
                 of: other,
                 lifecycle: lifecycle,
                 evaluationInstant: evaluationInstant
@@ -168,18 +177,33 @@ extension GroveQuestionnaire.Questionnaire {
         of other: ModelsR4.Questionnaire,
         lifecycle: PublicationLifecycle,
         evaluationInstant: Date
-    ) -> [String] {
+    ) throws(ConversionError) -> [String] {
         var warnings: [String] = []
         if lifecycle == .draft {
             warnings.append("The questionnaire is a draft.")
         }
-        // Out-of-period instruments are common in published examples and archival
-        // content, so they convert but carry a warning the app can act on.
-        if let start = try? other.effectivePeriod?.start?.value?.asNSDate() as? Date, evaluationInstant < start {
-            warnings.append("The questionnaire is not yet effective (effectivePeriod starts \(start)).")
+        // FHIRModels has already parsed valid dateTime lexemes. Converting the parsed values
+        // must still fail explicitly: silently ignoring one boundary can administer an
+        // instrument outside its authorized period.
+        if let startValue = other.effectivePeriod?.start?.value {
+            do {
+                let start = try startValue.asNSDate() as Date
+                if evaluationInstant < start {
+                    warnings.append("The questionnaire is not yet effective (effectivePeriod starts \(start)).")
+                }
+            } catch {
+                throw .other("Questionnaire effectivePeriod.start cannot be evaluated: \(error)")
+            }
         }
-        if let end = try? other.effectivePeriod?.end?.value?.asNSDate() as? Date, evaluationInstant > end {
-            warnings.append("The questionnaire is past its effectivePeriod (ended \(end)).")
+        if let endValue = other.effectivePeriod?.end?.value {
+            do {
+                let end = try endValue.asNSDate() as Date
+                if evaluationInstant > end {
+                    warnings.append("The questionnaire is past its effectivePeriod (ended \(end)).")
+                }
+            } catch {
+                throw .other("Questionnaire effectivePeriod.end cannot be evaluated: \(error)")
+            }
         }
         // rendering-styleSensitive: the spec says a renderer that ignores styling
         // should not render such questionnaires; surface it instead of silence.
@@ -455,12 +479,15 @@ extension ModelsR4.QuestionnaireItem {
             groupPath: context.groupPath,
             parentTaskId: context.parentTaskId
         )
-        if task.initialValue == nil,
-           let initialExpression = task.initialExpression,
-           let engine = context.engine {
-            // SDC population is best-effort: a failing initialExpression leaves the
-            // item blank rather than failing the questionnaire.
-            task.initialValue = try? engine.evaluateInitialValue(initialExpression, for: task)
+        if task.initialValue == nil, let initialExpression = task.initialExpression {
+            guard let engine = context.engine else {
+                throw .other("Item '\(task.id)' declares initialExpression but no expression engine is available")
+            }
+            do {
+                task.initialValue = try engine.evaluateInitialValue(initialExpression, for: task)
+            } catch {
+                throw .other("initialExpression on item '\(task.id)' failed: \(error)")
+            }
         }
         guard itemType != .display, let nestedItems = item, !nestedItems.isEmpty else {
             return [task]
@@ -649,10 +676,18 @@ extension ModelsR4.QuestionnaireItem {
             // A quantity item with one unitOption is a fixed-unit question. Preserve
             // that coding in the model so its response can emit a coded Quantity.
             let fixedQuantityUnit = itemType == .quantity && unitOptions.count == 1 ? unitOptions.first : nil
+            let minimumValue: NSNumber?
+            let maximumValue: NSNumber?
+            do {
+                minimumValue = try minValue
+                maximumValue = try maxValue
+            } catch {
+                throw .other("Invalid numeric answer bound: \(error)")
+            }
             return .numeric(.init(
                 inputMode: inputMode,
-                minimum: minValue?.doubleValue,
-                maximum: maxValue?.doubleValue,
+                minimum: minimumValue?.doubleValue,
+                maximum: maximumValue?.doubleValue,
                 maxDecimalPlaces: self.maximumDecimalPlaces?.uintValue,
                 unit: unitCoding?.display?.value?.string ?? unit ?? fixedQuantityUnit?.display ?? unitOptions.first?.display ?? "",
                 unitSystem: unitCoding?.system?.value?.url ?? fixedQuantityUnit?.system,
@@ -694,6 +729,16 @@ extension ModelsR4.QuestionnaireItem {
             default:
                 keyboard = nil
             }
+            let validationRegex: NSRegularExpression?
+            do {
+                validationRegex = try self.validationRegularExpression
+            } catch let error as QuestionnaireItemRegexError {
+                let itemID = linkId.value?.string ?? "<missing-linkId>"
+                throw .other("Invalid regex constraint on QuestionnaireItem '\(itemID)': \(error.message)")
+            } catch {
+                let itemID = linkId.value?.string ?? "<missing-linkId>"
+                throw .other("Invalid regex constraint on QuestionnaireItem '\(itemID)'")
+            }
             return .freeText(.init(
                 minLength: self.extensions(for: "http://hl7.org/fhir/StructureDefinition/minLength").first?.value?.intValue,
                 maxLength: { () -> Int? in
@@ -703,7 +748,7 @@ extension ModelsR4.QuestionnaireItem {
                         self.extensions(for: "http://hl7.org/fhir/StructureDefinition/maxLength").first?.value?.intValue
                     }
                 }(),
-                regex: self.validationRegularExpression,
+                regex: validationRegex,
                 disableAutocorrection: itemType == .url,
                 expectsURL: itemType == .url,
                 keyboard: itemType == .url ? .url : keyboard,
@@ -956,7 +1001,7 @@ extension ModelsR4.QuestionnaireItem {
         for kind: GroveQuestionnaire.Questionnaire.Task.Kind
     ) throws(ConversionError) -> QuestionnaireResponses.Response.Value? {
         if case .choice(let config) = kind.variant {
-            return initialChoiceResponseValue(for: config)
+            return try initialChoiceResponseValue(for: config)
         }
         guard let initial = initial?.first?.value else {
             return nil
@@ -978,7 +1023,7 @@ extension ModelsR4.QuestionnaireItem {
     /// any coded `item.initial`.
     private func initialChoiceResponseValue(
         for config: GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig
-    ) -> QuestionnaireResponses.Response.Value? {
+    ) throws(ConversionError) -> QuestionnaireResponses.Response.Value? {
         // answerOption maps 1:1 onto config.options for answerOption-built items.
         var selected: Set<String> = []
         for (index, option) in (answerOption ?? []).enumerated()
@@ -987,9 +1032,19 @@ extension ModelsR4.QuestionnaireItem {
         }
         for initial in initial ?? [] {
             if case .coding(let coding) = initial.value, let code = coding.code?.value?.string {
-                let token = (coding.system?.value?.url).map { "\($0.absoluteString)|\(code)" } ?? code
-                if let match = config.options.first(where: { $0.id == token || $0.id.hasSuffix("|\(code)") && coding.system == nil }) {
+                do {
+                    guard let match = try ChoiceOptionResolver.coding(
+                        system: coding.system?.value?.url,
+                        code: code,
+                        in: config.options
+                    ) else {
+                        throw ConversionError.other("Initial Coding '\(code)' is not one of the item's answer options")
+                    }
                     selected.insert(match.id)
+                } catch let error as ConversionError {
+                    throw error
+                } catch {
+                    throw .other("Initial Coding '\(code)' cannot be resolved: \(error)")
                 }
             }
         }
@@ -1004,11 +1059,15 @@ extension ModelsR4.QuestionnaireItem {
         if itemControl != nil, let custom = try toCustomTaskKind(using: context) {
             return custom
         }
-        return .dateTime(.init(
-            style: style,
-            minValue: minDateValue(evaluationInstant: context.evaluationInstant),
-            maxValue: maxDateValue(evaluationInstant: context.evaluationInstant)
-        ))
+        do {
+            return .dateTime(.init(
+                style: style,
+                minValue: try minDateValue(evaluationInstant: context.evaluationInstant),
+                maxValue: try maxDateValue(evaluationInstant: context.evaluationInstant)
+            ))
+        } catch {
+            throw .other("Invalid temporal answer bound: \(error)")
+        }
     }
 
     /// Attempts to match this item against a registered custom question kind.

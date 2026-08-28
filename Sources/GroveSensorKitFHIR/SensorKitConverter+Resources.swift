@@ -122,15 +122,25 @@ extension SensorKitConverter {
         var authors = recordingDeviceURL.map { [reference($0)] } ?? []
         authors.append(reference(converterURL))
         let related = relatedURLs.map(reference) + context.researchStudies
+        let sourcePeriod = try record.rawEffectivePeriod.map {
+            try period(start: $0.start, end: $0.end, timeZone: context.sourceTimeZone)
+        }
+        let documentContext = sourcePeriod == nil && related.isEmpty ? nil : DocumentReferenceContext(
+            period: sourcePeriod,
+            related: related
+        )
         var document = DocumentReference(
             author: authors,
             content: [DocumentReferenceContent(
                 attachment: try attachment(native),
                 format: try recordingFormat(native.format, entry: entry)
             )],
-            context: related.isEmpty ? nil : DocumentReferenceContext(related: related),
+            context: documentContext,
             date: FHIRPrimitive(try exactInstant(context.recordedAt, timeZone: context.sourceTimeZone)),
-            identifier: [sourceIdentifier.fhirIdentifier, outputNode.identifier.fhirIdentifier],
+            identifier: [
+                sourceIdentifier.fhirIdentifier,
+                outputNode.identifier.fhirIdentifier
+            ] + (outputNode.artifactIdentifier.map { [$0.fhirIdentifier] } ?? []),
             meta: Meta(profile: entry.rawProfiles.map(profile)),
             status: FHIRPrimitive(.current),
             subject: context.subject,
@@ -445,15 +455,15 @@ extension SensorKitConverter {
                 timeZone: context.sourceTimeZone
             )
         ]
-        // The place identifier travels only when the deployment has authorized it. Supplying it on
-        // the record is not consent; the policy is.
-        if case .authorized = context.linkableIdentifierPolicy, let locationID = record.locationID {
-            observation.extension = (observation.extension ?? []) + [Extension(
-                url: FHIRPrimitive(FHIRURI(stringLiteral: SensorKitContract.visitLocationExtension)),
-                value: .identifier(Identifier(
-                    system: FHIRPrimitive(FHIRURI(stringLiteral: SensorKitContract.visitLocationIdentifierSystem)),
-                    value: FHIRPrimitive(FHIRString(stringLiteral: locationID.uuidString.lowercased()))
-                ))
+        if let locationID = record.locationID {
+            observation.focus = [Reference(
+                identifier: Identifier(
+                    system: FHIRPrimitive(FHIRURI(
+                        stringLiteral: context.visitLocationIdentifierSystem.rawValue
+                    )),
+                    value: locationID.uuidString.lowercased().asFHIRStringPrimitive()
+                ),
+                type: FHIRPrimitive(FHIRURI(stringLiteral: ResourceType.location.rawValue))
             )]
         }
         return observation

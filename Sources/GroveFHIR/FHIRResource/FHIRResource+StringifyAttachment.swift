@@ -64,7 +64,11 @@ extension FHIRResource {
             for idx in docRef.content.indices {
                 try docRef.content[idx].attachment.stringify(using: options)
             }
-            self = .init(versionedResource: .r4(docRef), displayName: self.displayName)
+            self = try .init(
+                versionedResource: .r4(docRef),
+                displayName: self.displayName,
+                identitySource: nonLogicalIdentitySource
+            )
         case .dstu2(let resource):
             guard var docRef = resource as? ModelsDSTU2.DocumentReference else {
                 return
@@ -72,7 +76,11 @@ extension FHIRResource {
             for idx in docRef.content.indices {
                 try docRef.content[idx].attachment.stringify(using: options)
             }
-            self = .init(versionedResource: .dstu2(docRef), displayName: self.displayName)
+            self = try .init(
+                versionedResource: .dstu2(docRef),
+                displayName: self.displayName,
+                identitySource: nonLogicalIdentitySource
+            )
         }
     }
 }

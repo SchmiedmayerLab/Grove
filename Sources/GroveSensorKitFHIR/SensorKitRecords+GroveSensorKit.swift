@@ -172,8 +172,8 @@ extension SensorKitDeviceUsageRecord {
 extension SensorKitVisitRecord {
     /// Creates a visit summary from an already-fetched Grove SensorKit value.
     ///
-    /// The location identifier defaults to omission. Supplying it does not itself disclose it: the
-    /// conversion context's ``SensorKitLinkableIdentifierPolicy`` still decides.
+    /// The location identifier defaults to omission. When supplied, conversion retains its exact
+    /// canonical UUID only under the caller's governed source-store namespace on a logical Location.
     public init(
         sourceRecordID: SensorKitSourceRecordID,
         visit: SRVisit.SafeRepresentation,

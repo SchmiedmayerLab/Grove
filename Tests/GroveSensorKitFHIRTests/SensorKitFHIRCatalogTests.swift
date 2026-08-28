@@ -18,7 +18,7 @@ struct SensorKitFHIRCatalogTests {
         let tokens = catalog.entries.map(\.sourceToken)
 
         #expect(catalog.schemaVersion == 1)
-        #expect(catalog.version == "0.5.0")
+        #expect(catalog.version == "0.6.0")
         #expect(catalog.fhirVersion == "4.0.1")
         #expect(tokens == tokens.sorted())
         #expect(Set(tokens).count == 22)
@@ -72,7 +72,7 @@ struct SensorKitFHIRCatalogTests {
         )
         #expect(formats["accelerometer"] == [.triaxialAccelerationSamples])
         #expect(formats["ppg"] == [.photoplethysmogramSamples])
-        #expect(formats["device-usage"] == [.fhirResourceArray, .nativeRecording])
+        #expect(formats["device-usage"] == [.fhirCollectionBundle, .nativeRecording])
         #expect(formats["keyboard-metrics"] == [.nativeRecording])
         #expect(formats["sleep-sessions"]?.isEmpty == true)
     }

@@ -145,9 +145,9 @@ func matchingFiles(in targetPath: String, skipping skippedExcludes: [String], wh
 
 var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/antlr/antlr4.git", from: "4.13.1"),
-    // 0.9.1 lower bound: 0.9.0 breaks the DSTU2 models (BackboneElement typealias collapse).
-    // <0.9.2 upper bound: 0.9.2 raises FHIRModels' deployment targets to iOS 16/macOS 13 (OSAllocatedUnfairLock),
-    // which conflicts with the lowered-deployment-target builds (`isLoweredDeploymentTargetEnabled`).
+    // 0.9.3 fixes the DSTU2 model regression and restores iOS 15/macOS 12 deployment support
+    // after 0.9.2 temporarily raised those floors. `.upToNextMinor` intentionally admits only
+    // compatible 0.9.x fixes; lowered watchOS 8 builds still exclude FHIRModels as documented above.
     .package(url: "https://github.com/SchmiedmayerLab/FHIRModels.git", .upToNextMinor(from: "0.9.3")),
     .package(url: "https://github.com/PhoneNumberKit/PhoneNumberKit.git", from: "5.0.0"),
     .package(url: "https://github.com/apple/swift-algorithms.git", from: "1.2.1"),
@@ -393,7 +393,8 @@ var targets: [Target] = [
             .product(name: "ResearchKitSwiftUI", package: "ResearchKit", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions"),
-            .target(name: "FHIRPathParser")
+            .target(name: "FHIRPathParser"),
+            .target(name: "GroveFHIRContract")
         ],
         exclude: targetExcludes("ResearchKitOnFHIR"),
         swiftSettings: defaultSwiftSettings,
@@ -403,7 +404,8 @@ var targets: [Target] = [
         name: "ResearchKitOnFHIRTests",
         dependencies: [
             .target(name: "ResearchKitOnFHIR", condition: .when(traits: [researchKitTrait])),
-            .target(name: "FHIRQuestionnaires")
+            .target(name: "FHIRQuestionnaires"),
+            .target(name: "GroveQuestionnaireFHIR")
         ],
         exclude: testTargetExcludes("ResearchKitOnFHIRTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
@@ -1598,6 +1600,7 @@ var targets: [Target] = [
     .testTarget(
         name: "GroveStorageTests",
         dependencies: [
+            .target(name: "GroveFoundation"),
             .target(name: "GroveLegacyIdentifiers"),
             .target(name: "GroveLocalStorage"),
             .target(name: "XCTGrove")

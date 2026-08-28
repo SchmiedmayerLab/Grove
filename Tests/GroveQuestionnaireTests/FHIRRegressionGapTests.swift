@@ -33,6 +33,28 @@ struct FHIRRegressionGapTests {
         return item
     }
 
+    @Test("A malformed present regex fails the complete Questionnaire conversion")
+    func malformedRegexFailsConversion() {
+        var item = ModelsR4.QuestionnaireItem(
+            linkId: "invalid-regex".asFHIRStringPrimitive(),
+            type: .init(.string)
+        )
+        item.text = "Invalid regex".asFHIRStringPrimitive()
+        item.extension = [
+            Extension(
+                url: "http://hl7.org/fhir/StructureDefinition/regex",
+                value: .string("[".asFHIRStringPrimitive())
+            )
+        ]
+
+        #expect(throws: GroveQuestionnaire.Questionnaire.ConversionError.self) {
+            _ = try GroveQuestionnaire.Questionnaire(
+                makeQuestionnaire(items: [item]),
+                evaluationInstant: questionnaireResponseTestAuthoredAt
+            )
+        }
+    }
+
     // MARK: enableWhen `exists`
 
     @Test
@@ -142,7 +164,8 @@ struct FHIRRegressionGapTests {
         responses.responses["q2"] = .init(value: .bool(false))
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         let topItem = try #require(fhirResponse.item?.first { $0.linkId.value?.string == "top" })
         #expect(topItem.item?.map { $0.linkId.value?.string } == ["left", "right"])
@@ -215,7 +238,8 @@ struct FHIRRegressionGapTests {
         responses.responses["weight"] = .init(value: .number(72.5))
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         guard case let .decimal(value)? = fhirResponse.item?.first?.answer?.first?.value else {
             Issue.record("Expected valueDecimal for a decimal Questionnaire item")
@@ -242,7 +266,8 @@ struct FHIRRegressionGapTests {
         responses.responses["rating"] = .init(value: .choice(.init(selectedOptions: ["integer|3"])))
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         #expect(fhirResponse.item?.first?.answer?.first?.value == .integer(FHIRPrimitive(FHIRInteger(3))))
     }
@@ -277,7 +302,10 @@ struct FHIRRegressionGapTests {
         #expect(type("long") == .text)
         #expect(type("link") == .url)
     }
+}
 
+
+extension FHIRRegressionGapTests {
     // MARK: Corpus spot check
 
     @Test

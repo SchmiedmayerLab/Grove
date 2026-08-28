@@ -65,7 +65,8 @@ struct FHIRExportMetadataTests {
         responses.responses["agree"] = .init(value: .bool(true))
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         #expect(profiles(of: fhirResponse.meta) == ["https://grovealliance.org/fhir/questionnaire/StructureDefinition/grove-questionnaire-response"])
     }
@@ -152,7 +153,8 @@ struct FHIRExportMetadataTests {
         #expect(throws: (any Error).self) {
             try ModelsR4.QuestionnaireResponse(
                 responses,
-                authored: questionnaireResponseTestAuthoredAt
+                authored: questionnaireResponseTestAuthoredAt,
+                authoredTimeZone: questionnaireResponseTestTimeZone
             )
         }
     }
@@ -167,8 +169,8 @@ struct FHIRExportMetadataTests {
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let authored = Date(timeIntervalSince1970: 1_700_000_000)
 
-        let first = try ModelsR4.QuestionnaireResponse(responses, authored: authored)
-        let second = try ModelsR4.QuestionnaireResponse(responses, authored: authored)
+        let first = try ModelsR4.QuestionnaireResponse(responses, authored: authored, authoredTimeZone: questionnaireResponseTestTimeZone)
+        let second = try ModelsR4.QuestionnaireResponse(responses, authored: authored, authoredTimeZone: questionnaireResponseTestTimeZone)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
 
@@ -263,7 +265,8 @@ struct FHIRExportMetadataTests {
 
         let response = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         guard case .quantity(let quantity)? = response.item?.first?.item?.first?.answer?.first?.value else {
             Issue.record("Expected a quantity response")

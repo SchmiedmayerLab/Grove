@@ -146,9 +146,8 @@ struct FHIRPathEvaluatorTests {
     func temporalComparisons() throws {
         #expect(try evaluate("@2026-01-01 < @2026-02-01") == [.boolean(true)])
         #expect(try evaluate("@2026-03-14 = @2026-03-14") == [.boolean(true)])
-        // Deviation from full FHIRPath: the literal parser zero-fills partial dates,
-        // so differing precision compares on the filled fields instead of being empty.
-        #expect(try evaluate("@2026-01 = @2026-01-15") == [.boolean(false)])
+        // FHIRPath equality is unknown when the operands have different date precision.
+        #expect(try evaluate("@2026-01 = @2026-01-15").isEmpty)
         #expect(try evaluate("@T10:30 < @T11:00") == [.boolean(true)])
     }
 
@@ -176,8 +175,11 @@ struct FHIRPathEvaluatorTests {
     func dateArithmetic() throws {
         #expect(try evaluate("@2020-01-31 + 1 month") == [.date(DateComponents(year: 2020, month: 2, day: 29))])
         #expect(try evaluate("@2026-08-14 - 18 years") == [.date(DateComponents(year: 2008, month: 8, day: 14))])
-        let fixed = try #require(Calendar.current.date(from: DateComponents(year: 2026, month: 8, day: 14, hour: 12)))
-        let context = FHIRPathEvaluationContext(evaluationInstant: fixed)
+        let timeZone = try #require(TimeZone(secondsFromGMT: 0))
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let fixed = try #require(calendar.date(from: DateComponents(year: 2026, month: 8, day: 14, hour: 12)))
+        let context = FHIRPathEvaluationContext(evaluationInstant: fixed, evaluationTimeZone: timeZone)
         #expect(try evaluate("today()", context: context) == [.date(DateComponents(year: 2026, month: 8, day: 14))])
         #expect(try evaluate("today() - 18 years < @2010-01-01", context: context) == [.boolean(true)])
     }

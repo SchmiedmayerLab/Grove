@@ -8,6 +8,7 @@
 
 #if canImport(HealthKit)
 
+import Foundation
 import Grove
 @testable import GroveHealthKit
 import GroveTesting
@@ -25,6 +26,26 @@ private actor TestStandard: Standard, HealthKitConstraint {
 }
 
 extension GroveHealthKitTests {
+    private enum StartDateStorageError: Error {
+        case unavailable
+    }
+
+    @Test("A failed initial collection-boundary write aborts resolution")
+    func failedCollectionStartWriteIsNotIgnored() throws {
+        let now = Date(timeIntervalSinceReferenceDate: 123_456)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
+        #expect(throws: StartDateStorageError.unavailable) {
+            _ = try CollectSamples<HKQuantitySample>.resolveTimeRange(
+                .newSamples,
+                now: now,
+                calendar: calendar,
+                load: { nil },
+                store: { _ in throw StartDateStorageError.unavailable }
+            )
+        }
+    }
+
     @Test("Collect Samples Registration Deduplication")
     func collectSamplesRegistrationDeduplication() async throws {
         let healthKit = HealthKit {

@@ -9,7 +9,7 @@
 #if canImport(HealthKit)
 
 // The coded-result suite covers every category absorption family in one auditable matrix.
-// swiftlint:disable file_length type_body_length
+// swiftlint:disable type_body_length
 
 import Foundation
 import GroveFHIRContract
@@ -140,7 +140,7 @@ struct HealthKitFHIRCategoryConversionTests {
 
     private var context: HealthKitConversionContext {
         HealthKitConversionContext(
-            subject: Reference(reference: "Patient/example"),
+            subject: .testPatient,
             converter: HealthKitApplication(
                 name: "Example Study",
                 bundleIdentifier: "org.grovealliance.example-study",
@@ -183,10 +183,7 @@ struct HealthKitFHIRCategoryConversionTests {
         let codings = try codings(observation)
         let contract = HealthKitMeasurementCatalog.symptomHeadache
 
-        #expect(observation.meta?.profile == [
-            Profile.healthkitSymptomHeadache,
-            Profile.healthkitObservation
-        ])
+        #expect(observation.meta?.profile == [Profile.healthkitSymptomHeadache])
         #expect(codings.count == 2)
         #expect(codings[0].system?.value?.url.absoluteString == contract.resultCodeSystem)
         #expect(codings[0].code?.value?.string == testCase.sharedCode)

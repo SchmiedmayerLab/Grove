@@ -8,13 +8,11 @@
 
 #if canImport(HealthKit)
 
-// ECG negative vectors stay colocated so the complete fail-closed evidence matrix is reviewable together.
-// swiftlint:disable function_body_length type_body_length
-
 import Foundation
 import GroveFHIRContract
 @testable import GroveHealthKitFHIR
 import HealthKit
+import ModelsR4
 import Testing
 
 
@@ -35,6 +33,53 @@ struct HealthKitECGEvidenceValidatorTests {
         HealthKitECGVoltagePoint(timeSinceSampleStart: 0.256, millivolts: 3)
     ]
 
+    @Test("ECG symptom companions must share the exact patient and repository scope")
+    func symptomCompanionScopeValidation() throws {
+        let context = HealthKitConversionContext(subject: .testPatient)
+        let otherSubject = Reference.testLogicalReference(resourceType: .patient, value: "other")
+        let otherSubjectIdentity = try BusinessIdentifier(
+            system: context.subjectIdentity.system,
+            value: "other"
+        )
+        let otherRepository = try BusinessIdentifier(
+            system: context.repositoryScope.system,
+            value: "secondary"
+        )
+        let expected = HealthKitConversionError.invalidECGEvidence(.mismatchedSymptomContext)
+
+        #expect(throws: expected) {
+            try HealthKitConverter.validateSymptomConversionContext(
+                subject: otherSubject,
+                subjectIdentity: context.subjectIdentity,
+                repositoryScope: context.repositoryScope,
+                expectedContext: context
+            )
+        }
+        #expect(throws: expected) {
+            try HealthKitConverter.validateSymptomConversionContext(
+                subject: context.subject,
+                subjectIdentity: otherSubjectIdentity,
+                repositoryScope: context.repositoryScope,
+                expectedContext: context
+            )
+        }
+        #expect(throws: expected) {
+            try HealthKitConverter.validateSymptomConversionContext(
+                subject: context.subject,
+                subjectIdentity: context.subjectIdentity,
+                repositoryScope: otherRepository,
+                expectedContext: context
+            )
+        }
+
+        try HealthKitConverter.validateSymptomConversionContext(
+            subject: context.subject,
+            subjectIdentity: context.subjectIdentity,
+            repositoryScope: context.repositoryScope,
+            expectedContext: context
+        )
+    }
+
     @Test
     func completeUniformEnumerationRetainsFirstOffsetAndExactPeriod() throws {
         let waveform = try HealthKitECGEvidenceValidator.validateWaveform(
@@ -50,7 +95,7 @@ struct HealthKitECGEvidenceValidatorTests {
     }
 
     @Test
-    func sampledDataUsesPlainDecimalWithoutChangingTheSuppliedDouble() throws {
+    func sampledDataUsesPlainRoundTripDecimals() throws {
         let values = [0.123_456_789_012_345_66, 1e-16]
         let waveform = try HealthKitECGEvidenceValidator.validateWaveform(
             reportedCount: 2,
@@ -68,8 +113,20 @@ struct HealthKitECGEvidenceValidatorTests {
         #expect(Double(encoded[1])?.bitPattern == values[1].bitPattern)
     }
 
+    @Test("Reported ECG frame counts are not constrained by a removed wire integer field")
+    func reportedCountHasNoArtificialInt32Limit() throws {
+        let count = Int(Int32.max) + 1
+        try HealthKitECGEvidenceValidator.validateCount(reported: count, supplied: count)
+        #expect(throws: HealthKitConversionError.invalidECGEvidence(.voltageCountMismatch(
+            reported: count,
+            supplied: count - 1
+        ))) {
+            try HealthKitECGEvidenceValidator.validateCount(reported: count, supplied: count - 1)
+        }
+    }
+
     @Test(
-        "Incomplete or nonuniform ECG evidence fails closed",
+        "Incomplete, contradictory, or nonuniform ECG evidence fails closed",
         arguments: [
             InvalidCase(
                 testDescription: "reported count is not positive",
@@ -96,10 +153,7 @@ struct HealthKitECGEvidenceValidatorTests {
                 testDescription: "negative first offset",
                 reportedCount: 2,
                 samplingFrequencyHertz: 500,
-                points: [
-                    .init(timeSinceSampleStart: -0.002, millivolts: 0),
-                    .init(timeSinceSampleStart: 0, millivolts: 1)
-                ],
+                points: [.init(timeSinceSampleStart: -0.002, millivolts: 0), validPoints[0]],
                 expected: .invalidOffset(index: 0)
             ),
             InvalidCase(
@@ -120,11 +174,7 @@ struct HealthKitECGEvidenceValidatorTests {
                 testDescription: "nonuniform third offset",
                 reportedCount: 3,
                 samplingFrequencyHertz: nil,
-                points: [
-                    validPoints[0],
-                    validPoints[1],
-                    .init(timeSinceSampleStart: 0.255, millivolts: 2)
-                ],
+                points: [validPoints[0], validPoints[1], .init(timeSinceSampleStart: 0.255, millivolts: 2)],
                 expected: .nonUniformOffset(index: 2)
             ),
             InvalidCase(
@@ -135,7 +185,7 @@ struct HealthKitECGEvidenceValidatorTests {
                 expected: .invalidSamplingFrequency
             ),
             InvalidCase(
-                testDescription: "sampling frequency disagrees with offsets",
+                testDescription: "sampling frequency disagrees with SampledData period",
                 reportedCount: 4,
                 samplingFrequencyHertz: 256,
                 points: validPoints,
@@ -145,10 +195,7 @@ struct HealthKitECGEvidenceValidatorTests {
                 testDescription: "nonfinite voltage",
                 reportedCount: 2,
                 samplingFrequencyHertz: 500,
-                points: [
-                    validPoints[0],
-                    .init(timeSinceSampleStart: 0.252, millivolts: .nan)
-                ],
+                points: [validPoints[0], .init(timeSinceSampleStart: 0.252, millivolts: .nan)],
                 expected: .invalidLeadVoltage(index: 1)
             )
         ]
@@ -164,158 +211,53 @@ struct HealthKitECGEvidenceValidatorTests {
     }
 
     @Test
-    func correlatedSymptomRetainsIdentityPeriodTypeSeverityAndSourceRevision() throws {
-        let symptom = symptom(.dizziness, severity: .moderate)
-
-        let validated = try HealthKitConverter.validatedSymptomEvidence([symptom], status: .present)
-        let extensionValue = try HealthKitConverter.symptomExtension(try #require(validated.first))
-        let children = try #require(extensionValue.extension)
-        let source = try #require(children.first { $0.url.value?.url.absoluteString == "sourceIdentifier" })
-        let period = try #require(children.first { $0.url.value?.url.absoluteString == "effectivePeriod" })
-        let type = try #require(children.first { $0.url.value?.url.absoluteString == "symptomType" })
-        let severity = try #require(children.first { $0.url.value?.url.absoluteString == "severity" })
-        let sourceName = try #require(children.first { $0.url.value?.url.absoluteString == "sourceName" })
-        let sourceBundleIdentifier = try #require(children.first {
-            $0.url.value?.url.absoluteString == "sourceBundleIdentifier"
-        })
-        let majorVersion = try #require(children.first {
-            $0.url.value?.url.absoluteString == "sourceOperatingSystemMajorVersion"
-        })
-        let minorVersion = try #require(children.first {
-            $0.url.value?.url.absoluteString == "sourceOperatingSystemMinorVersion"
-        })
-        let patchVersion = try #require(children.first {
-            $0.url.value?.url.absoluteString == "sourceOperatingSystemPatchVersion"
-        })
-
-        guard case .identifier(let sourceIdentifier) = source.value,
-              case .period(let effectivePeriod) = period.value,
-              case .code(let typeCode) = type.value,
-              case .code(let severityCode) = severity.value,
-              case .string(let sourceNameValue) = sourceName.value,
-              case .string(let sourceBundleIdentifierValue) = sourceBundleIdentifier.value,
-              case .integer(let majorVersionValue) = majorVersion.value,
-              case .integer(let minorVersionValue) = minorVersion.value,
-              case .integer(let patchVersionValue) = patchVersion.value else {
-            Issue.record("Correlated symptom extension has the wrong typed child shape")
-            return
-        }
-        #expect(extensionValue.url == HealthKitContract.electrocardiogramCorrelatedSymptomExtension)
-        #expect(sourceIdentifier.system == Canonicals.healthKitObjectIdentifier)
-        #expect(sourceIdentifier.value?.value?.string == symptom.sourceUUID.uuidString.lowercased())
-        #expect(effectivePeriod.start != nil)
-        #expect(effectivePeriod.end != nil)
-        #expect(typeCode.value?.string == HKCategoryTypeIdentifier.dizziness.rawValue)
-        #expect(severityCode.value?.string == "moderate")
-        #expect(sourceNameValue.value?.string == symptom.sourceName)
-        #expect(sourceBundleIdentifierValue.value?.string == symptom.sourceBundleIdentifier)
-        #expect(majorVersionValue.value?.integer == Int32(exactly: symptom.sourceOperatingSystemMajorVersion))
-        #expect(minorVersionValue.value?.integer == Int32(exactly: symptom.sourceOperatingSystemMinorVersion))
-        #expect(patchVersionValue.value?.integer == Int32(exactly: symptom.sourceOperatingSystemPatchVersion))
-
-        let sourceVersion = children.first { $0.url.value?.url.absoluteString == "sourceVersion" }
-        if let exactVersion = symptom.sourceVersion {
-            guard case .string(let sourceVersionValue) = try #require(sourceVersion?.value) else {
-                Issue.record("Expected sourceVersion as valueString")
-                return
-            }
-            #expect(sourceVersionValue.value?.string == exactVersion)
-        } else {
-            #expect(sourceVersion == nil)
-        }
-
-        let sourceProductType = children.first { $0.url.value?.url.absoluteString == "sourceProductType" }
-        if let exactProductType = symptom.sourceProductType {
-            guard case .string(let sourceProductTypeValue) = try #require(sourceProductType?.value) else {
-                Issue.record("Expected sourceProductType as valueString")
-                return
-            }
-            #expect(sourceProductTypeValue.value?.string == exactProductType)
-        } else {
-            #expect(sourceProductType == nil)
-        }
-    }
-
-    @Test
-    func distinctSymptomsOfTheSameTypeRemainDistinct() throws {
-        let first = symptom(.dizziness, severity: .mild)
-        let secondOfSameType = symptom(.dizziness, severity: .severe)
-        let validated = try HealthKitConverter.validatedSymptomEvidence(
-            [secondOfSameType, first],
+    func correlatedSymptomRelationshipPreservesDistinctSourceSamples() throws {
+        let first = symptom(.dizziness)
+        let second = symptom(.dizziness)
+        let validated = try HealthKitConverter.validatedSymptomSamples(
+            [second, first],
             status: .present
         )
 
-        #expect(first.sourceUUID != secondOfSameType.sourceUUID)
-        #expect(validated.map(\.sourceUUID) == [first.sourceUUID, secondOfSameType.sourceUUID].sorted {
+        #expect(first.uuid != second.uuid)
+        #expect(validated.map(\.uuid) == [first.uuid, second.uuid].sorted {
             $0.uuidString.lowercased() < $1.uuidString.lowercased()
         })
     }
 
     @Test
-    func correlatedSymptomSourceRevisionRequiresExplicitDisclosureAuthorization() throws {
-        try HealthKitConverter.validateSymptomSourceDisclosure(
-            symptomCount: 0,
-            policy: .omit
-        )
-        try HealthKitConverter.validateSymptomSourceDisclosure(
-            symptomCount: 1,
-            policy: .authorized
-        )
-        #expect(throws: HealthKitConversionError.invalidECGEvidence(
-            .symptomSourceDisclosureNotAuthorized
-        )) {
-            try HealthKitConverter.validateSymptomSourceDisclosure(
-                symptomCount: 1,
-                policy: .omit
-            )
-        }
-    }
-
-    @Test
-    func symptomStateAndUUIDUniquenessRulesFailClosed() throws {
-        let first = symptom(.dizziness, severity: .mild)
-        let unsupported = symptom(.sleepAnalysis, severity: .mild)
+    func symptomRelationshipRulesFailClosed() throws {
+        let first = symptom(.dizziness)
+        let unsupported = symptom(.sleepAnalysis)
 
         #expect(throws: HealthKitConversionError.invalidECGEvidence(.symptomsRequired)) {
-            try HealthKitConverter.validatedSymptomEvidence([], status: .present)
+            try HealthKitConverter.validatedSymptomSamples([], status: .present)
         }
         #expect(throws: HealthKitConversionError.invalidECGEvidence(.unexpectedSymptoms)) {
-            try HealthKitConverter.validatedSymptomEvidence([first], status: .none)
+            try HealthKitConverter.validatedSymptomSamples([first], status: .none)
         }
-        #expect(throws: HealthKitConversionError.invalidECGEvidence(.duplicateSymptomSource(first.sourceUUID))) {
-            try HealthKitConverter.validatedSymptomEvidence([first, first], status: .present)
+        #expect(throws: HealthKitConversionError.invalidECGEvidence(.duplicateSymptomSource(first.uuid))) {
+            try HealthKitConverter.validatedSymptomSamples([first, first], status: .present)
         }
         #expect(throws: HealthKitConversionError.invalidECGEvidence(
             .unsupportedSymptomType(HKCategoryTypeIdentifier.sleepAnalysis.rawValue)
         )) {
-            try HealthKitConverter.validatedSymptomEvidence([unsupported], status: .present)
+            try HealthKitConverter.validatedSymptomSamples([unsupported], status: .present)
         }
-        #expect(throws: HealthKitConversionError.invalidECGEvidence(.tooManySymptoms(8))) {
-            try HealthKitConverter.validatedSymptomEvidence(
-                (0..<8).map { _ in symptom(.dizziness, severity: .mild) },
-                status: .present
-            )
-        }
+        let repeatedTypeSamples = (0..<8).map { _ in symptom(.dizziness) }
+        let repeatedTypeValidated = try HealthKitConverter.validatedSymptomSamples(
+            repeatedTypeSamples,
+            status: .present
+        )
+        #expect(repeatedTypeValidated.count == repeatedTypeSamples.count)
     }
 
-    private func symptom(
-        _ type: HKCategoryTypeIdentifier,
-        severity: HKCategoryValueSeverity
-    ) -> HealthKitECGSymptomEvidence {
-        HealthKitECGSymptomEvidence(
-            sourceUUID: UUID(),
-            typeIdentifier: type.rawValue,
-            severityValue: severity.rawValue,
-            startDate: Date(timeIntervalSince1970: 1_787_148_600.123_456),
-            endDate: Date(timeIntervalSince1970: 1_787_148_612.373_456),
-            timeZone: TimeZone(secondsFromGMT: -7 * 60 * 60) ?? .gmt,
-            sourceName: "Grove Health",
-            sourceBundleIdentifier: "org.grovealliance.health",
-            sourceVersion: "2.0.0",
-            sourceProductType: "Watch6,4",
-            sourceOperatingSystemMajorVersion: 12,
-            sourceOperatingSystemMinorVersion: 0,
-            sourceOperatingSystemPatchVersion: 1
+    private func symptom(_ type: HKCategoryTypeIdentifier) -> HKCategorySample {
+        HKCategorySample(
+            type: HKCategoryType(type),
+            value: HKCategoryValueSeverity.moderate.rawValue,
+            start: Date(timeIntervalSince1970: 1_787_148_600),
+            end: Date(timeIntervalSince1970: 1_787_148_612)
         )
     }
 }

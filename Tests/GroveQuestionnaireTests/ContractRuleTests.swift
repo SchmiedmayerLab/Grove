@@ -37,7 +37,8 @@ struct GroveQuestionnaireFHIRContractTests {
     func builderProducesTheExactVersionedPair() throws {
         let pair = try ResourceBuilder().pair(
             from: responses(),
-            authored: Date(timeIntervalSince1970: 1_700_000_000)
+            authored: Date(timeIntervalSince1970: 1_700_000_000),
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
 
         #expect(pair.questionnaire.id == nil)
@@ -62,7 +63,8 @@ struct GroveQuestionnaireFHIRContractTests {
             from: responses(),
             questionnaireRepositoryID: questionnaireID,
             responseRepositoryID: responseID,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
 
         #expect(pair.questionnaire.id?.value?.string == "questionnaire-42")
@@ -73,7 +75,8 @@ struct GroveQuestionnaireFHIRContractTests {
     func pairValidationRejectsCanonicalDrift() throws {
         let valid = try ResourceBuilder().pair(
             from: responses(),
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         var drifted = valid.response
         drifted.questionnaire = FHIRPrimitive(Canonical(
@@ -97,7 +100,8 @@ struct GroveQuestionnaireFHIRContractTests {
     func pairValidationRejectsWrongAnswerTypesAndUnknownItems() throws {
         let valid = try ResourceBuilder().pair(
             from: responses(),
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         var drifted = valid.response
         drifted.item = [
@@ -119,7 +123,8 @@ struct GroveQuestionnaireFHIRContractTests {
     func pairValidationChecksPrimitiveInlineOptionsByValue() throws {
         let valid = try ResourceBuilder().pair(
             from: responses(),
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         var questionnaire = valid.questionnaire
         var questionnaireGroup = try #require(questionnaire.item?.first)
@@ -171,7 +176,8 @@ struct GroveQuestionnaireFHIRContractTests {
     func exportSurfaceDoesNotExtractObservations() throws {
         let pair = try ResourceBuilder().pair(
             from: responses(),
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         let encodedResources = [
             try JSONEncoder().encode(ResourceProxy(with: pair.questionnaire)),

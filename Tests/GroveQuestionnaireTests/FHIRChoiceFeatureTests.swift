@@ -209,7 +209,8 @@ struct FHIRChoiceFeatureTests {
         responses.responses["weight"] = .init(value: .quantity(150, unitCode: "[lb_av]"))
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         guard case let .quantity(quantity)? = fhirResponse.item?.first?.answer?.first?.value else {
             Issue.record("Expected a quantity answer")

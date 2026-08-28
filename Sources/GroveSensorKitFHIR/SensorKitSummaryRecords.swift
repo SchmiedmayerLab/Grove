@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-// The closely related public summary input records stay together so the structured v0.3 facade
+// The closely related public summary input records stay together so the structured 0.6.0 facade
 // is readable in one place.
 // swiftlint:disable file_types_order
 

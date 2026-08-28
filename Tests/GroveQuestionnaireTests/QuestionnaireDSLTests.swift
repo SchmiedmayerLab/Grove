@@ -180,7 +180,8 @@ struct QuestionnaireDSLTests {
         responses[CheckIn.mood] = .nearlyEveryDay
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         let mood = try #require(fhirResponse.item?.first?.item?.first { $0.linkId.value?.string == "mood" })
         guard case .coding(let coding)? = mood.answer?.first?.value else {
@@ -376,7 +377,8 @@ struct QuestionnaireDSLTests {
         // And the collected answers export as a QuestionnaireResponse with the score.
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         #expect(fhirResponse.questionnaire?.value?.version == "2.1.0")
         let totalItem = fhirResponse.item?.first?.item?.first { $0.linkId.value?.string == "total" }
@@ -546,7 +548,8 @@ struct QuestionnaireDSLTests {
         ]
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         let activities = try #require(fhirResponse.item?.first?.item?.first { $0.linkId.value?.string == "activities" })
         let answer = try #require(activities.answer?.first)

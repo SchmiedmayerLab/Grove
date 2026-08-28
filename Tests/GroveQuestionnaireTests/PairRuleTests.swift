@@ -88,6 +88,58 @@ struct GroveQuestionnaireFHIRPairRuleTests {
         var testDescription: String { rawValue }
     }
 
+    @Test("Questionnaire subjectType matches a declared, literal, absolute, or contained target")
+    func validatesResolvedSubjectType() throws {
+        let validSubjects: [JSONObject] = [
+            ["type": "Patient", "identifier": ["system": "https://example.org/patient", "value": "one"]],
+            [
+                "type": "http://hl7.org/fhir/StructureDefinition/Patient",
+                "identifier": ["system": "https://example.org/patient", "value": "two"]
+            ],
+            ["reference": "Patient/one"],
+            ["reference": "https://example.org/fhir/Patient/one/_history/2"],
+            ["reference": "#patient"]
+        ]
+        for subject in validSubjects {
+            var objects = try basePairObjects()
+            objects.questionnaire["subjectType"] = ["Patient"]
+            objects.response["subject"] = subject
+            if subject["reference"] as? String == "#patient" {
+                objects.response["contained"] = [["resourceType": "Patient", "id": "patient"]]
+            }
+            let pair = try decodePair(objects)
+            let issues = PairValidator().issues(
+                questionnaire: pair.questionnaire,
+                response: pair.response
+            )
+            #expect(!issues.contains { $0.code == .subjectType })
+        }
+    }
+
+    @Test("Questionnaire subjectType rejects mismatches, conflicts, and unresolved targets")
+    func rejectsInvalidSubjectType() throws {
+        let invalidSubjects: [JSONObject] = [
+            ["type": "Practitioner", "reference": "Practitioner/one"],
+            ["type": "Patient", "reference": "Practitioner/one"],
+            ["type": "https://not-hl7.example/Patient", "reference": "Patient/one"],
+            ["reference": "urn:uuid:78f7199c-ea39-4d68-9311-bdc1d25ad709"],
+            ["reference": "#missing"]
+        ]
+        for subject in invalidSubjects {
+            var objects = try basePairObjects()
+            objects.questionnaire["subjectType"] = ["Patient"]
+            objects.response["subject"] = subject
+            let pair = try decodePair(objects)
+            let issues = PairValidator().issues(
+                questionnaire: pair.questionnaire,
+                response: pair.response
+            )
+            #expect(issues.contains {
+                $0.code == .subjectType && $0.path == "QuestionnaireResponse.subject"
+            })
+        }
+    }
+
     @Test("Rejects every deterministic answer-constraint family", arguments: AnswerRuleCase.allCases)
     func rejectsAnswerConstraintFamily(testCase: AnswerRuleCase) throws {
         var objects = try basePairObjects()
@@ -471,7 +523,8 @@ extension GroveQuestionnaireFHIRPairRuleTests {
         responses.responses["question"] = .init(value: .bool(true))
         let pair = try ResourceBuilder().pair(
             from: responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         return try PairObjects(
             questionnaire: object(pair.questionnaire),

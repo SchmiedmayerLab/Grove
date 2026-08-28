@@ -18,7 +18,7 @@ enum DateEvaluationValue {
 
 final class DateExpressionEvaluation: FHIRPathBaseVisitor<Result<DateEvaluationValue, Error>> {
     private let evaluationInstant: Date
-    private let cal = Calendar.current
+    private let cal = FHIRPathCalendar.gregorian()
 
     init(evaluationInstant: Date) {
         self.evaluationInstant = evaluationInstant
@@ -143,7 +143,10 @@ final class DateExpressionEvaluation: FHIRPathBaseVisitor<Result<DateEvaluationV
                 return .failure(node.getSymbol(), .invalidLiteral)
             case .dateTime(let dateTime):
                 // should also be unreachable, but at least we can handle it
-                return .success(.components(dateTime.time.components))
+                guard let time = dateTime.time else {
+                    return .failure(node.getSymbol(), .invalidLiteral)
+                }
+                return .success(.components(time.components))
             }
         } catch {
             return .failure(node.getSymbol(), .internalError)

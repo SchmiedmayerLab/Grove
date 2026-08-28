@@ -132,7 +132,12 @@ private struct QuestionnaireRunner: ViewModifier {
                         guard !failsSubmission else {
                             throw SubmissionFailure()
                         }
-                        try responsesStore.record(responses, from: running.title)
+                        try responsesStore.record(
+                            responses,
+                            from: running.title,
+                            authored: .now,
+                            authoredTimeZone: .current
+                        )
                     }
                     example = nil
                 }

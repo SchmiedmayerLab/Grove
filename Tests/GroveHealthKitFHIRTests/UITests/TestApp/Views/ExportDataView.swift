@@ -66,19 +66,23 @@ struct ExportDataView: View {
                 print("did fetch samples (#=\(samples.count)) (took \(fetchEndTS - fetchStartTS) sec)")
                 let mapResourcesStartTS = CACurrentMediaTime()
                 let now = Date.now
-                let context = HealthKitConversionContext(
-                    subject: Reference(reference: "Patient/example"),
-                    converter: HealthKitApplication(
-                        name: "Grove HealthKit FHIR Test App",
-                        bundleIdentifier: "org.grovealliance.healthkit-fhir-test-app",
-                        version: "0.5.0"
-                    ),
-                    graphIdentifierSystem: "https://grovealliance.org/fhir/testing/identifiers/ui-graph",
-                    conversionInstant: now
+                let sequenceBase = UInt64(max(1, Int64(now.timeIntervalSince1970 * 1_000_000)))
+                var sequenceBySource = Dictionary(
+                    uniqueKeysWithValues: samples.enumerated().map { offset, sample in
+                        (sample.uuid, sequenceBase + UInt64(offset))
+                    }
                 )
                 let result = HealthKitConverter().convert(
                     samples.map { $0 as HKSample },
-                    context: context
+                    contextForSample: { sample in
+                        guard let sequence = sequenceBySource.removeValue(forKey: sample.uuid) else {
+                            throw HealthKitConversionError.invalidValue
+                        }
+                        return try makeFHIRTestContext(
+                            sequence: sequence,
+                            conversionInstant: now
+                        )
+                    }
                 )
                 if let failure = result.failures.first {
                     throw failure

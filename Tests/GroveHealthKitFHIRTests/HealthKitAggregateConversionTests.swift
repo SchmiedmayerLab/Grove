@@ -29,12 +29,6 @@ struct HealthKitFHIRAggregateConversionTests {
 
     static let methodCases: [MethodCase] = [
         MethodCase(
-            identifier: .restingHeartRate,
-            unit: .count().unitDivided(by: .minute()),
-            value: 58,
-            measurement: MeasurementCatalog.restingHeartRate
-        ),
-        MethodCase(
             identifier: .walkingHeartRateAverage,
             unit: .count().unitDivided(by: .minute()),
             value: 104,
@@ -65,7 +59,7 @@ struct HealthKitFHIRAggregateConversionTests {
 
     private var context: HealthKitConversionContext {
         HealthKitConversionContext(
-            subject: Reference(reference: "Patient/example"),
+            subject: .testPatient,
             converter: HealthKitApplication(
                 name: "Example Study",
                 bundleIdentifier: "org.grovealliance.example-study",
@@ -109,9 +103,25 @@ struct HealthKitFHIRAggregateConversionTests {
     func pointMeasurementsHaveNoMethod() throws {
         let sample = quantitySample(.heartRate, unit: .count().unitDivided(by: .minute()), value: 72)
         let observation = try converter.convert(sample, context: context).observation
+        let resting = try converter.convert(
+            quantitySample(.restingHeartRate, unit: .count().unitDivided(by: .minute()), value: 58),
+            context: context
+        ).observation
 
         #expect(observation.method == nil)
         #expect(MeasurementCatalog.heartRate.method == nil)
+        #expect(resting.method == nil)
+        #expect(resting.effective?.isPeriod == false)
+        #expect(MeasurementCatalog.restingHeartRate.effective == .dateTime)
+        #expect(resting.code.coding?.map {
+            [
+                $0.system?.value?.url.absoluteString ?? "",
+                $0.code?.value?.string ?? ""
+            ]
+        } == [
+            ["http://loinc.org", "40443-4"],
+            ["http://loinc.org", "8867-4"]
+        ])
     }
 
     @Test("Sleeping breathing disturbances normalize to events per hour of the session")

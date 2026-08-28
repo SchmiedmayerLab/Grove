@@ -79,9 +79,16 @@ public struct Version: Hashable, Sendable {
         self.minor = minor
         self.patch = patch
         func isValidIdentifier(_ string: String) -> Bool {
-            string.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }
+            !string.isEmpty
+                && string.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }
         }
-        precondition(prereleaseIdentifiers.allSatisfy(isValidIdentifier))
+        func isValidPrereleaseIdentifier(_ string: String) -> Bool {
+            guard isValidIdentifier(string) else {
+                return false
+            }
+            return string.count == 1 || string.first != "0" || string.contains { !$0.isNumber }
+        }
+        precondition(prereleaseIdentifiers.allSatisfy(isValidPrereleaseIdentifier))
         precondition(buildMetadata.allSatisfy(isValidIdentifier))
         self.prereleaseIdentifiers = prereleaseIdentifiers
         self.buildMetadata = buildMetadata
@@ -116,7 +123,7 @@ extension Version: Equatable, Comparable {
     public static func == (lhs: Version, rhs: Version) -> Bool {
         !(lhs < rhs) && !(lhs > rhs)
     }
-    
+
     /// Compares two ``Version``s for precedence, based on the rules defined in the [SemVer 2.0.0 specification](https://semver.org/#spec-item-11)
     public static func < (lhs: Version, rhs: Version) -> Bool { // swiftlint:disable:this cyclomatic_complexity
         // all lines prefixed with `> ` are quoting from version 2 of the SemVer spec.
@@ -135,11 +142,11 @@ extension Version: Equatable, Comparable {
             return false
         case (true, false):
             // lhs is a pre-release component, but rhs is not, and all lhs components until now have compared equal to their respective rhs components
-            // --> lhs predeced rhs
+            // --> lhs precedes rhs
             return true
         case (false, true):
             // lhs is not a pre-release component, but rhs is, and all lhs components until now have compared equal to their respective rhs components
-            // --> lhs does not predede rhs
+            // --> lhs does not precede rhs
             return false
         case (true, true):
             // > Precedence for two pre-release versions with the same major, minor, and patch version MUST be determined by comparing each dot separated identifier from left to right until a difference is found as follows:
@@ -160,7 +167,7 @@ extension Version: Equatable, Comparable {
                     lhs < rhs
                 // > 2. Identifiers with letters or hyphens are compared lexically in ASCII sort order.
                 case (.none, .none):
-                    !lhs.lexicographicallyPrecedes(lhs)
+                    lhs.lexicographicallyPrecedes(rhs)
                 // 3. Numeric identifiers always have lower precedence than non-numeric identifiers.
                 case (.some, .none):
                     true // lhs is numeric --> it has precedence
@@ -173,6 +180,15 @@ extension Version: Equatable, Comparable {
             // > 4. A larger set of pre-release fields has a higher precedence than a smaller set, if all of the preceding identifiers are equal.
             return lhs.prereleaseIdentifiers.count < rhs.prereleaseIdentifiers.count
         }
+    }
+
+    /// Hashes the fields that participate in SemVer precedence. Build metadata is deliberately
+    /// excluded because ``==(_:_:)`` follows SemVer and treats it as precedence-neutral.
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(major)
+        hasher.combine(minor)
+        hasher.combine(patch)
+        hasher.combine(prereleaseIdentifiers)
     }
 }
 

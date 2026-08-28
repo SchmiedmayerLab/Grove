@@ -12,6 +12,9 @@
 
 #if canImport(HealthKit)
 
+import Foundation
+public import GroveFHIRContract
+
 
 /// Interpretation of `HKSourceRevision.source` for one conversion.
 ///
@@ -23,8 +26,10 @@ public enum HealthKitSourceActor: Hashable, Sendable {
     /// Record the writer as the application it is. This is the default.
     case application
     /// The caller has established that the source stands for a device rather than an application.
-    /// The opaque HealthKit source identifier is disclosed only when explicitly authorized.
-    case device(discloseIdentifier: Bool)
+    /// The Provenance author reuses the dual-identity recording Device when stable per-unit
+    /// evidence exists. Without that evidence, the Device author is omitted rather than inferred
+    /// from model, product, application, or record identifiers.
+    case device
 }
 
 
@@ -43,34 +48,20 @@ public enum HealthKitUDIDisclosurePolicy: Hashable, Sendable {
 }
 
 
-/// Controls disclosure of the complete source revision attached to a correlated ECG symptom.
-///
-/// The bundle identifier, product type, software version, and operating-system version can
-/// be linkable. This policy is therefore independent of recording-device and UDI disclosure.
-public enum HealthKitSourceDisclosurePolicy: Hashable, Sendable {
-    /// Do not disclose correlated-symptom source revision fields. This is the default.
-    /// Because the ECG contract requires those fields, correlated symptoms fail closed.
-    case omit
-    /// The caller has established necessity and authorization to disclose every required
-    /// correlated-symptom `HKSourceRevision` field.
-    case authorized
-}
+/// HealthKit spelling of Grove's shared governed source-identifier type.
+public typealias HealthKitNativeIdentifierType = GovernedSourceIdentifierType
 
 
-/// Controls disclosure of retained metadata that identifies a record across systems.
+/// Controls intentional disclosure of the source `HKObject.uuid` on the primary output.
 ///
-/// `HKSample.metadata` is retained verbatim so a conversion loses nothing, but a handful of its keys
-/// carry an identifier another system also holds — an external UUID, a device serial. Those recur
-/// across records and link them, which is the same property that makes them useful, so the choice
-/// belongs to the deployment rather than to this adapter.
-///
-/// Omission removes those entries from the retained set and leaves every other entry untouched.
-public enum HealthKitLinkableMetadataPolicy: Hashable, Sendable {
-    /// Omit metadata entries that identify a record across systems. This is the default.
-    case omit
-    /// The caller has established necessity and authorization to retain them.
-    case authorized
-}
+/// Grove's opaque `source-record` and `source-output` identifiers remain mandatory and are the
+/// protocol identities. This optional identifier exists only for deployments with a governed
+/// HealthKit-store namespace and a concrete round-trip or traceability requirement. Grove emits
+/// `HKObject.uuid` in canonical lowercase RFC 4122 text, so the supplied `Identifier.system` must
+/// name that exact canonical source-store key space. The policy never
+/// authorizes copying the UUID into `Resource.id`, filenames, URLs, titles, logs, metadata
+/// components, workout children, or supporting resources.
+public typealias HealthKitNativeIdentifierDisclosurePolicy = GovernedSourceIdentifierDisclosurePolicy // swiftlint:disable:this type_name
 
 
 /// Controls disclosure of a workout's recorded route.

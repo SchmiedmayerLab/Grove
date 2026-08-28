@@ -6,7 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+import FHIRPathParser
+public import Foundation
 public import ModelsR4
 
 
@@ -21,6 +22,7 @@ public struct ValidationIssue: Equatable, Hashable, Sendable {
         case questionnaireProfile
         case responseProfile
         case questionnaireCanonical
+        case subjectType
         case responseIdentifier
         case responseEnteredInError
         case itemUnknown
@@ -46,6 +48,8 @@ public struct ValidationIssue: Equatable, Hashable, Sendable {
         case enableWhenEvaluation
         case expressionShape
         case expressionEngineRequired
+        case expressionEvaluation
+        case targetConstraint
         case serialization
     }
 
@@ -69,8 +73,36 @@ public struct ValidationIssue: Equatable, Hashable, Sendable {
 /// Base R4, SDC, and profile validation remain the job of the official validator pipeline.
 /// This preflight is deliberately offline: every terminology resource must be supplied by
 /// the caller, and an unresolved ValueSet fails closed.
+public struct PairExpressionEvaluator: Sendable {
+    // FHIRPath has three outcomes here: true, false, and the empty collection (`nil`).
+    // swiftlint:disable:next discouraged_optional_boolean
+    private let evaluation: @Sendable (_ expression: String, _ path: String) throws -> Bool?
+
+    // swiftlint:disable discouraged_optional_boolean
+    /// Creates an evaluator already bound to the Questionnaire/QuestionnaireResponse and
+    /// launch context being validated. Returning `nil` means the expression evaluated empty.
+    public init(
+        _ evaluation: @escaping @Sendable (_ expression: String, _ path: String) throws -> Bool?
+    ) {
+        self.evaluation = evaluation
+    }
+    // swiftlint:enable discouraged_optional_boolean
+
+    func evaluate(_ expression: String, path: String) throws -> Bool? { // swiftlint:disable:this discouraged_optional_boolean
+        try evaluation(expression, path)
+    }
+}
+
+
 public struct PairValidator: Sendable {
-    public init() {}
+    private let expressionEvaluator: PairExpressionEvaluator?
+
+    /// Creates a pair validator. Completed responses that use FHIRPath must supply an
+    /// evaluator bound to the exact validation inputs; otherwise they fail with
+    /// `expressionEngineRequired` rather than being accepted by assumption.
+    public init(expressionEvaluator: PairExpressionEvaluator? = nil) {
+        self.expressionEvaluator = expressionEvaluator
+    }
 
     /// Validates a pair and returns all non-blocking warnings.
     ///
@@ -104,7 +136,8 @@ public struct PairValidator: Sendable {
         PairRules.issues(
             questionnaire: questionnaire,
             response: response,
-            valueSets: valueSets
+            valueSets: valueSets,
+            expressionEvaluator: expressionEvaluator
         )
     }
 }
@@ -135,5 +168,46 @@ public struct ResourcePair {
         )
         self.questionnaire = questionnaire
         self.response = response
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension PairExpressionEvaluator {
+    /// Creates the built-in FHIRPath evaluator bound to one exact resource pair.
+    public static func fhirPath(
+        questionnaire: ModelsR4.Questionnaire,
+        response: ModelsR4.QuestionnaireResponse,
+        evaluationInstant: Date,
+        evaluationTimeZone: TimeZone,
+        launchContext: [String: ResourceProxy] = [:]
+    ) throws -> Self {
+        let questionnaireNode = try FHIRPathNode.encoding(questionnaire)
+        let responseNode = try FHIRPathNode.encoding(response)
+        let launchNodes = try launchContext.mapValues { try FHIRPathNode.encoding($0) }
+        return Self { expression, _ in
+            var constants: [String: [FHIRPathValue]] = [
+                "questionnaire": [.object(questionnaireNode)],
+                "resource": [.object(responseNode)],
+                "context": [.object(responseNode)]
+            ]
+            for (name, node) in launchNodes {
+                constants[name] = [.object(node)]
+            }
+            let context = FHIRPathEvaluationContext(
+                focus: [.object(responseNode)],
+                constants: constants,
+                evaluationInstant: evaluationInstant,
+                evaluationTimeZone: evaluationTimeZone
+            )
+            return switch try FHIRPathExpression.evaluateBoolean(
+                expression: expression,
+                context: context
+            ) {
+            case .true: true
+            case .false: false
+            case .empty: nil
+            }
+        }
     }
 }

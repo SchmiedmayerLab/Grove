@@ -69,6 +69,8 @@ struct FHIRConversionCustomTasksTests {
               "title": "Test",
               "resourceType": "Questionnaire",
               "id": "org.grovealliance.Grove.Questionnaire.test",
+              "url": "https://example.org/fhir/Questionnaire/test-custom-task",
+              "version": "1.0.0",
               "language": "en-US",
               "status": "draft",
               "meta": {

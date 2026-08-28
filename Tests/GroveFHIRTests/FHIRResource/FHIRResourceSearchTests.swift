@@ -15,7 +15,7 @@ extension FHIRResourceTests {
     func testMatchesDisplayName() throws {
         let observation = try ModelsR4Mocks.createObservation()
         
-        let resource = FHIRResource(
+        let resource = try FHIRResource(
             versionedResource: .r4(observation),
             displayName: "Test Resource"
         )
@@ -34,15 +34,15 @@ extension FHIRResourceTests {
         let patient = try ModelsR4Mocks.createPatient()
         let medicationRequest = try ModelsR4Mocks.createMedicationRequest()
         
-        let resource1 = FHIRResource(
+        let resource1 = try FHIRResource(
             versionedResource: .r4(observation),
             displayName: "Test Resource1"
         )
-        let resource2 = FHIRResource(
+        let resource2 = try FHIRResource(
             versionedResource: .r4(patient),
             displayName: "Test Resource2"
         )
-        let resource3 = FHIRResource(
+        let resource3 = try FHIRResource(
             versionedResource: .r4(medicationRequest),
             displayName: "Test Resource3"
         )

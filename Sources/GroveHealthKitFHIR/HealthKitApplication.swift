@@ -10,7 +10,6 @@
 #if canImport(HealthKit)
 
 import Foundation
-internal import GroveFHIRContract
 
 
 /// Product identity of the application performing a HealthKit-to-FHIR conversion.
@@ -31,15 +30,8 @@ public struct HealthKitApplication: Hashable, Sendable {
             name: name,
             bundleIdentifier: identifier,
             version: version,
-            build: info["CFBundleVersion"] as? String,
-            operatingSystemVersion: Self.currentOperatingSystemVersion
+            build: info["CFBundleVersion"] as? String
         )
-    }
-
-    /// The operating system release the process is running on.
-    static var currentOperatingSystemVersion: String {
-        let version = ProcessInfo.processInfo.operatingSystemVersion
-        return "\(version.majorVersion).\(version.minorVersion).\(version.patchVersion)"
     }
 
     public let name: String
@@ -47,33 +39,17 @@ public struct HealthKitApplication: Hashable, Sendable {
     /// The marketing version, alone. A build that produced the resource is ``build``.
     public let version: String
     public let build: String?
-    public let operatingSystemVersion: String?
-
-    /// The identifier namespace this application owns for graph nodes it mints.
-    ///
-    /// A bundle identifier is globally unique and stable across releases, so it is a valid
-    /// default namespace for a deployment that does not yet own a server URL. Override it with
-    /// ``HealthKitConversionContext/graphIdentifierSystem`` once one exists.
-    ///
-    /// `nil` for a host whose bundle identifier cannot form one — the same hosts ``main``
-    /// describes, which conversion already rejects as
-    /// ``HealthKitConversionError/invalidConverterApplication(_:)``.
-    var graphIdentifierSystem: IdentifierSystem? {
-        try? IdentifierSystem("urn:grove:healthkit-graph:\(bundleIdentifier)")
-    }
 
     public init(
         name: String,
         bundleIdentifier: String,
         version: String,
-        build: String? = nil,
-        operatingSystemVersion: String? = nil
+        build: String? = nil
     ) {
         self.name = name
         self.bundleIdentifier = bundleIdentifier
         self.version = version
         self.build = build
-        self.operatingSystemVersion = operatingSystemVersion
     }
 }
 

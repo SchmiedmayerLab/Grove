@@ -22,23 +22,38 @@ extension HealthKitConverter {
 
     static func convertECG(
         _ record: HealthKitECGRecord,
-        context: HealthKitConversionContext
-    ) throws -> HealthKitConversion {
+        context: HealthKitConversionContext,
+        symptomConversions: [HealthKitConversion]
+    ) throws -> HealthKitConversionSet {
         try validate(context: context)
         let ecg = record.electrocardiogram
         let source = try ecgSourceEvidence(ecg)
-        let symptoms = try validatedSymptoms(record.correlatedSymptoms, status: source.symptomsStatus)
-        try validateSymptomSourceDisclosure(
-            symptomCount: symptoms.count,
-            policy: context.sourceRevisionDisclosurePolicy
+        let symptomOutputs = try validatedSymptomConversions(
+            for: record,
+            source: source,
+            conversions: symptomConversions,
+            context: context
         )
         let input = HealthKitECGObservationInput(
             source: source,
             waveform: try validatedWaveform(for: record, source: source),
-            symptoms: symptoms,
+            symptomOutputIdentifiers: symptomOutputs,
             context: context
         )
-        return try assembleGraph(for: ecg, context: context) { recordingDeviceURL, converterURL in
+        let primary = try assembleGraph(
+            for: ecg,
+            context: context,
+            outputRole: "electrocardiogram",
+            childBuilder: { envelope in
+                guard let companion = try ecgAverageHeartRateChild(
+                    input: input,
+                    envelope: envelope
+                ) else {
+                    return []
+                }
+                return [companion]
+            }
+        ) { recordingDeviceURL, converterURL in
             try ecgObservation(
                 input: input,
                 graphContext: .init(
@@ -47,6 +62,67 @@ extension HealthKitConverter {
                 )
             )
         }
+        let events = [primary.graphIdentifiers.event] + symptomConversions.map(\.graphIdentifiers.event)
+        guard Set(events).count == events.count else {
+            throw HealthKitConversionError.invalidECGEvidence(.duplicateSymptomEventIdentity)
+        }
+        guard !symptomOutputs.contains(primary.graphIdentifiers.primaryOutput) else {
+            throw HealthKitConversionError.invalidECGEvidence(.invalidSymptomOutputIdentity)
+        }
+        return HealthKitConversionSet(primary: primary, companions: symptomConversions)
+    }
+
+    private static func validatedSymptomConversions(
+        for record: HealthKitECGRecord,
+        source: HealthKitECGSourceEvidence,
+        conversions: [HealthKitConversion],
+        context: HealthKitConversionContext
+    ) throws -> [BusinessIdentifier] {
+        let symptoms = try validatedSymptomSamples(record.correlatedSymptoms, status: source.symptomsStatus)
+        guard symptoms.map(\.uuid) == conversions.map(\.localSourceUUID) else {
+            throw HealthKitConversionError.invalidECGEvidence(.invalidSymptomOutputIdentity)
+        }
+        for conversion in conversions {
+            try validateSymptomConversionContext(
+                subject: conversion.observation.subject,
+                subjectIdentity: conversion.subjectIdentity,
+                repositoryScope: conversion.repositoryScope,
+                expectedContext: context
+            )
+        }
+        return try validatedSymptomOutputIdentifiers(
+            conversions,
+            expectedSystem: context.identityScope.systems.sourceOutput
+        )
+    }
+
+    static func validateSymptomConversionContext(
+        subject: Reference?,
+        subjectIdentity: BusinessIdentifier,
+        repositoryScope: BusinessIdentifier,
+        expectedContext: HealthKitConversionContext
+    ) throws {
+        guard subject == expectedContext.subject,
+              subjectIdentity == expectedContext.subjectIdentity,
+              repositoryScope == expectedContext.repositoryScope else {
+            throw HealthKitConversionError.invalidECGEvidence(.mismatchedSymptomContext)
+        }
+    }
+
+    private static func validatedSymptomOutputIdentifiers(
+        _ conversions: [HealthKitConversion],
+        expectedSystem: IdentifierSystem
+    ) throws -> [BusinessIdentifier] {
+        let outputs = conversions.map(\.graphIdentifiers.primaryOutput)
+        guard outputs.allSatisfy({
+            $0.role == .sourceOutput && $0.system == expectedSystem
+        }) else {
+            throw HealthKitConversionError.invalidECGEvidence(.invalidSymptomOutputIdentity)
+        }
+        guard Set(outputs).count == outputs.count else {
+            throw HealthKitConversionError.invalidECGEvidence(.duplicateSymptomOutputIdentity)
+        }
+        return outputs
     }
 
     private static func validatedWaveform(
@@ -106,10 +182,31 @@ extension HealthKitConverter {
             effectivePeriod: period,
             context: input.context
         )
-        observation.extension = try ecgExtensions(
-            source: source,
-            symptoms: input.symptoms
-        )
+        observation.extension = (observation.extension ?? []) + (try requiredECGExtensions(source: source))
+        observation.interpretation = [
+            CodeableConcept(coding: [
+                Coding(
+                    code: try classificationCode(source.classification).asFHIRStringPrimitive(),
+                    system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-ecg-classification"
+                )
+            ])
+        ]
+        if let algorithm = try algorithmVersionCode(source.algorithmVersion) {
+            observation.method = CodeableConcept(coding: [
+                Coding(
+                    code: algorithm.asFHIRStringPrimitive(),
+                    system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-ecg-algorithm-version"
+                )
+            ])
+        }
+        if !input.symptomOutputIdentifiers.isEmpty {
+            observation.hasMember = input.symptomOutputIdentifiers.map { identifier in
+                Reference(
+                    identifier: identifier.fhirIdentifier,
+                    type: FHIRPrimitive(FHIRURI(stringLiteral: ResourceType.observation.rawValue))
+                )
+            }
+        }
         applyGraphContext(
             to: &observation,
             context: input.context,
@@ -117,6 +214,46 @@ extension HealthKitConverter {
             wasUserEntered: source.wasUserEntered
         )
         return observation
+    }
+
+    /// The source's period average is a distinct clinical result derived from the ECG waveform.
+    /// It therefore receives its own output identity and provenance target instead of being hidden
+    /// in a waveform-specific extension or making the waveform claim the reverse relationship.
+    static func ecgAverageHeartRateChild(
+        input: HealthKitECGObservationInput,
+        envelope: GraphEnvelope
+    ) throws -> GraphChildOutput? {
+        guard let averageHeartRate = input.source.averageHeartRate else {
+            return nil
+        }
+        guard averageHeartRate.isFinite else {
+            throw HealthKitConversionError.invalidECGEvidence(.invalidAverageHeartRate)
+        }
+        let identity = try input.context.identityScope.sourceOutput(
+            adapterID: "healthkit",
+            sourceType: input.source.sourceTypeIdentifier,
+            repositoryScope: input.context.repositoryScope,
+            nativeRecordID: envelope.sourceUUID,
+            outputRole: "average-heart-rate",
+            outputDiscriminator: "single"
+        )
+        let effective = try effectivePeriod(
+            source: input.source,
+            waveform: input.waveform,
+            timeZone: input.source.timeZone
+        )
+        let observation = try averageHeartRateObservation(
+            value: averageHeartRate,
+            identity: identity,
+            effective: effective,
+            input: input,
+            envelope: envelope
+        )
+        return GraphChildOutput(
+            identity: identity,
+            observation: observation,
+            primaryRelationship: .none
+        )
     }
 
     private static func baseECGObservation(
@@ -128,16 +265,12 @@ extension HealthKitConverter {
         var observation = Observation(
             code: CodeableConcept(
                 coding: [
-                    Coding(code: "11524-6", display: "EKG study", system: "http://loinc.org"),
-                    Coding(
-                        code: source.sourceTypeIdentifier.asFHIRStringPrimitive(),
-                        display: "ECG",
-                        system: Canonicals.healthKitSourceType
-                    )
+                    Coding(code: "11524-6", display: "EKG study", system: "http://loinc.org")
                 ]
             ),
             status: FHIRPrimitive(.final)
         )
+        applySourceTypeLineage(source.sourceTypeIdentifier, to: &observation)
         observation.meta = Meta(profile: HealthKitContract.electrocardiogramProfiles)
         observation.subject = context.subject
         // `issued` is deliberately absent. It states when this version of the record became
@@ -176,31 +309,13 @@ extension HealthKitConverter {
         )
     }
 
-    private static func ecgExtensions(
-        source: HealthKitECGSourceEvidence,
-        symptoms: [HealthKitECGSymptomEvidence]
-    ) throws -> [Extension] {
-        var extensions = try requiredECGExtensions(source: source)
-        extensions.append(contentsOf: try symptoms.map(symptomExtension))
-        extensions.append(contentsOf: try optionalECGExtensions(source))
-        return extensions
-    }
-
     private static func requiredECGExtensions(
         source: HealthKitECGSourceEvidence
     ) throws -> [Extension] {
         [
             Extension(
-                url: Canonicals.healthKitECGClassificationExtension,
-                value: .code(try classificationCode(source.classification).asFHIRStringPrimitive())
-            ),
-            Extension(
                 url: Canonicals.healthKitECGSymptomsStatusExtension,
                 value: .code(try symptomsStatusCode(source.symptomsStatus).asFHIRStringPrimitive())
-            ),
-            Extension(
-                url: Canonicals.healthKitECGCountExtension,
-                value: .integer(FHIRPrimitive(FHIRInteger(Int32(source.numberOfVoltageMeasurements))))
             ),
             Extension(
                 url: Canonicals.healthKitECGSourcePeriodExtension,
@@ -216,36 +331,6 @@ extension HealthKitConverter {
                 ))
             )
         ]
-    }
-
-    private static func optionalECGExtensions(_ source: HealthKitECGSourceEvidence) throws -> [Extension] {
-        var extensions: [Extension] = []
-        if let averageHeartRate = source.averageHeartRate {
-            guard averageHeartRate.isFinite else {
-                throw HealthKitConversionError.invalidECGEvidence(.invalidAverageHeartRate)
-            }
-            extensions.append(Extension(
-                url: Canonicals.healthKitECGAverageHeartRateExtension,
-                value: .quantity(try decimalQuantity(
-                    averageHeartRate,
-                    code: "/min",
-                    display: "beats/minute"
-                ))
-            ))
-        }
-        if let samplingFrequency = source.samplingFrequency {
-            extensions.append(Extension(
-                url: Canonicals.healthKitECGSamplingFrequencyExtension,
-                value: .quantity(try decimalQuantity(samplingFrequency, code: "Hz", display: "Hz"))
-            ))
-        }
-        if let algorithm = try algorithmVersionCode(source.algorithmVersion) {
-            extensions.append(Extension(
-                url: Canonicals.healthKitECGAlgorithmVersionExtension,
-                value: .code(algorithm.asFHIRStringPrimitive())
-            ))
-        }
-        return extensions
     }
 
     static func applyGraphContext(
@@ -310,68 +395,6 @@ extension HealthKitConverter {
         )
     }
 
-    /// Constructs a FHIR dateTime from the shortest round-trip representation of
-    /// Foundation's source instant, then adds an exact decimal HealthKit offset.
-    /// Going through `Date.addingTimeInterval` would introduce a second binary
-    /// floating-point rounding step and can make SampledData's period arithmetic
-    /// fail despite a complete uniform voltage enumeration.
-    static func exactHealthKitDateTime(
-        _ date: Date,
-        offsetSeconds: Decimal = 0,
-        timeZone: TimeZone
-    ) throws -> DateTime {
-        let epochSeconds = date.timeIntervalSince1970
-        guard epochSeconds.isFinite,
-              let epochDecimal = Decimal(
-                  string: String(epochSeconds),
-                  locale: Locale(identifier: "en_US_POSIX")
-              ) else {
-            throw HealthKitConversionError.invalidECGEvidence(.invalidSourcePeriod)
-        }
-        let target = epochDecimal + offsetSeconds
-        let approximateTarget = NSDecimalNumber(decimal: target).doubleValue
-        guard approximateTarget.isFinite,
-              approximateTarget >= Double(Int64.min),
-              approximateTarget <= Double(Int64.max) else {
-            throw HealthKitConversionError.invalidECGEvidence(.invalidSourcePeriod)
-        }
-
-        var wholeSeconds = Int64(floor(approximateTarget))
-        var fractionalSecond = target - Decimal(wholeSeconds)
-        if fractionalSecond < 0 {
-            wholeSeconds -= 1
-            fractionalSecond += 1
-        } else if fractionalSecond >= 1 {
-            wholeSeconds += 1
-            fractionalSecond -= 1
-        }
-
-        let wholeSecondDate = Date(timeIntervalSince1970: TimeInterval(wholeSeconds))
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
-        let components = calendar.dateComponents(
-            [.year, .month, .day, .hour, .minute, .second],
-            from: wholeSecondDate
-        )
-        guard let year = components.year,
-              let month = components.month.flatMap(UInt8.init(exactly:)),
-              let day = components.day.flatMap(UInt8.init(exactly:)),
-              let hour = components.hour.flatMap(UInt8.init(exactly:)),
-              let minute = components.minute.flatMap(UInt8.init(exactly:)),
-              let second = components.second else {
-            throw HealthKitConversionError.invalidECGEvidence(.invalidSourcePeriod)
-        }
-        return DateTime(
-            date: FHIRDate(year: year, month: month, day: day),
-            time: FHIRTime(
-                hour: hour,
-                minute: minute,
-                second: Decimal(second) + fractionalSecond
-            ),
-            timezone: timeZone
-        )
-    }
-
     private static func classificationCode(
         _ classification: HKElectrocardiogram.Classification
     ) throws -> String {
@@ -413,7 +436,7 @@ extension HealthKitConverter {
         }
     }
 
-    private static func decimalQuantity(_ value: Double, code: String, display: String) throws -> Quantity {
+    static func decimalQuantity(_ value: Double, code: String, display: String) throws -> Quantity {
         guard value.isFinite else {
             throw HealthKitConversionError.invalidECGEvidence(.invalidSamplingFrequency)
         }

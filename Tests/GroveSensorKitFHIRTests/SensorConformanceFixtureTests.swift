@@ -33,7 +33,6 @@ struct SensorConformanceFixtureTests {
     private static func nativeRecording(title: String) throws -> SensorKitNativeRecording {
         try SensorKitNativeRecording(
             title: title,
-            contentType: RegisteredRecordingFormat.nativeRecording.registeredContentType,
             format: .nativeRecording,
             payload: .inline(Data(#"{"source":"SensorKit","complete":true}"#.utf8)),
             admission: .verifiedSanitizedInput
@@ -44,29 +43,34 @@ struct SensorConformanceFixtureTests {
     func writeSharedSensorFixtures() throws {
         let timestamp = Date(timeIntervalSince1970: 1_787_009_400)
         let converter = SensorKitConverter()
-        let context = SensorKitConversionContext(
-            subject: Reference(reference: "Patient/example"),
-            converter: SensorApplication(
-                identifier: try BusinessIdentifier(
-                    system: "https://grovealliance.org/fhir/testing/identifiers/conformance-application",
-                    value: "sensor-conformance|0.3.0"
+        func context(_ sequence: UInt64) throws -> SensorKitConversionContext {
+            try SensorKitConversionContext(
+                subject: SensorFHIRIdentityTestSupport.subject,
+                subjectIdentity: SensorFHIRIdentityTestSupport.subjectIdentity,
+                converter: SensorApplication(
+                    sourceDeviceToken: "org.grovealliance.sensor-conformance",
+                    name: "Sensor Conformance Fixture",
+                    version: "0.5.0"
                 ),
-                name: "Sensor Conformance Fixture",
-                version: "0.5.0"
-            ),
-            graphIdentifierSystem: "https://grovealliance.org/fhir/testing/identifiers/conformance-graph",
-            recordingDevice: SensorRecordingDevice(
-                identifier: try BusinessIdentifier(
-                    system: "https://grovealliance.org/fhir/testing/identifiers/conformance-recording-device",
-                    value: "sensor-fixture-device"
+                converterHost: SensorFHIRIdentityTestSupport.converterHost,
+                eventIdentifier: SensorFHIRIdentityTestSupport.event(sequence: sequence),
+                entryNodeIdentifierSystem: SensorFHIRIdentityTestSupport.entryNodeIdentifierSystem,
+                identityScope: SensorFHIRIdentityTestSupport.identityScope,
+                repositoryScope: SensorFHIRIdentityTestSupport.repositoryScope,
+                visitLocationIdentifierSystem: SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem,
+                recordingDevice: SensorRecordingDevice(
+                    identifier: BusinessIdentifier(
+                        system: "https://grovealliance.org/fhir/testing/identifiers/conformance-recording-device",
+                        value: "sensor-fixture-device"
+                    ),
+                    stableUnitToken: "sensor-fixture-device",
+                    name: "Sensor Fixture Device"
                 ),
-                name: "Sensor Fixture Device"
-            ),
-            converterWasGateway: true,
-            sourceTimeZone: try #require(TimeZone(identifier: "America/Los_Angeles")),
-            issuedAt: timestamp.addingTimeInterval(10),
-            recordedAt: timestamp.addingTimeInterval(20)
-        )
+                converterWasGateway: true,
+                sourceTimeZone: #require(TimeZone(identifier: "America/Los_Angeles")),
+                recordedAt: timestamp.addingTimeInterval(20)
+            )
+        }
         let rotation = SensorKitRotationRateRecord(
             sourceRecordID: try Self.sourceID("754cdecc-6733-4610-935b-f19425cff68e"),
             samples: [
@@ -118,12 +122,12 @@ struct SensorConformanceFixtureTests {
                 end: timestamp
             )
         )
-        let raw = SensorKitRawRecord(
+        let raw = try SensorKitRawRecord(
             sourceRecordID: try Self.sourceID("248b854a-8d64-4308-9ee0-d220e7d747d3"),
             sourceToken: "SRSensor.heartRate",
+            effectivePeriod: DateInterval(start: timestamp, duration: 1),
             nativeRecording: try SensorKitNativeRecording(
                 title: "Exact SensorKit heart rate batch",
-                contentType: "text/csv",
                 format: .heartRateSamples,
                 payload: .inline(Data("timestamp,value,confidence,device\n1787009400,72,3,Watch\n".utf8)),
                 admission: .verifiedSanitizedInput
@@ -174,7 +178,6 @@ struct SensorConformanceFixtureTests {
             batchCount: 3,
             nativeRecording: try SensorKitNativeRecording(
                 title: "Exact SensorKit accelerometer batch",
-                contentType: "text/csv",
                 format: .triaxialAccelerationSamples,
                 payload: .inline(Data("timestamp,identifier,x,y,z,device\n1787009400,1,0.1,0.2,0.3,Watch\n".utf8)),
                 admission: .verifiedSanitizedInput
@@ -188,25 +191,24 @@ struct SensorConformanceFixtureTests {
             accelerometerSampleCount: 256,
             nativeRecording: try SensorKitNativeRecording(
                 title: "Exact SensorKit PPG batch",
-                contentType: "application/octet-stream",
                 format: .photoplethysmogramSamples,
                 payload: .inline(Data([0x02, 0x41, 0xDA, 0x9E, 0x9F, 0x8C, 0xE3, 0x60, 0x00])),
                 admission: .callerAuthorizedOpaquePayload
             )
         )
         let fixtures = [
-            "rotation-rate": try converter.convert(.rotationRate(rotation), context: context).bundle,
-            "ecg-hybrid": try converter.convert(.electrocardiogram(ecg), context: context).bundle,
-            "on-wrist": try converter.convert(.onWrist(onWrist), context: context).bundle,
-            "device-usage-hybrid": try converter.convert(.deviceUsage(deviceUsage), context: context).bundle,
-            "visit": try converter.convert(.visit(visit), context: context).bundle,
-            "raw-recording": try converter.convert(.raw(raw), context: context).bundle,
-            "messages-usage-hybrid": try converter.convert(.messagesUsage(messagesUsage), context: context).bundle,
-            "phone-usage": try converter.convert(.phoneUsage(phoneUsage), context: context).bundle,
-            "keyboard-metrics-hybrid": try converter.convert(.keyboardMetrics(keyboardMetrics), context: context).bundle,
-            "sleep-session": try converter.convert(.sleepSession(sleepSession), context: context).bundle,
-            "accelerometer-summary-hybrid": try converter.convert(.accelerometer(accelerometer), context: context).bundle,
-            "ppg-summary-hybrid": try converter.convert(.ppg(ppg), context: context).bundle
+            "rotation-rate": try converter.convert(.rotationRate(rotation), context: context(1)).bundle,
+            "ecg-hybrid": try converter.convert(.electrocardiogram(ecg), context: context(2)).bundle,
+            "on-wrist": try converter.convert(.onWrist(onWrist), context: context(3)).bundle,
+            "device-usage-hybrid": try converter.convert(.deviceUsage(deviceUsage), context: context(4)).bundle,
+            "visit": try converter.convert(.visit(visit), context: context(5)).bundle,
+            "raw-recording": try converter.convert(.raw(raw), context: context(6)).bundle,
+            "messages-usage-hybrid": try converter.convert(.messagesUsage(messagesUsage), context: context(7)).bundle,
+            "phone-usage": try converter.convert(.phoneUsage(phoneUsage), context: context(8)).bundle,
+            "keyboard-metrics-hybrid": try converter.convert(.keyboardMetrics(keyboardMetrics), context: context(9)).bundle,
+            "sleep-session": try converter.convert(.sleepSession(sleepSession), context: context(10)).bundle,
+            "accelerometer-summary-hybrid": try converter.convert(.accelerometer(accelerometer), context: context(11)).bundle,
+            "ppg-summary-hybrid": try converter.convert(.ppg(ppg), context: context(12)).bundle
         ]
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]

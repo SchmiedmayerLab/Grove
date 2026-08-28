@@ -43,7 +43,8 @@ struct FHIRPrepopulationTests {
         // Seeded values flow into the generated response.
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         #expect(fhirResponse.item?.count == 2)
     }
@@ -213,7 +214,8 @@ struct FHIRPrepopulationTests {
             responses,
             subject: Reference(reference: "Patient/participant-1".asFHIRStringPrimitive()),
             author: Reference(reference: "Device/app-instance".asFHIRStringPrimitive()),
-            authored: questionnaireResponseTestAuthoredAt
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
         )
         #expect(fhirResponse.subject?.reference?.value?.string == "Patient/participant-1")
         #expect(fhirResponse.author?.reference?.value?.string == "Device/app-instance")

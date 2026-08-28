@@ -23,15 +23,20 @@ public struct FHIRPathEvaluationContext: Sendable {
     ///
     /// Defaults to the wall clock; pass a fixed instant to make an evaluation reproducible.
     public var evaluationInstant: Date
+    /// The explicit zone used to project `evaluationInstant` for `now()`, `today()`, and
+    /// `timeOfDay()`. It is never inferred from the device.
+    public var evaluationTimeZone: TimeZone
 
     public init(
         focus: [FHIRPathValue] = [],
         constants: [String: [FHIRPathValue]] = [:],
-        evaluationInstant: Date = Date()
+        evaluationInstant: Date,
+        evaluationTimeZone: TimeZone = .gmt
     ) {
         self.focus = focus
         self.constants = constants
         self.evaluationInstant = evaluationInstant
+        self.evaluationTimeZone = evaluationTimeZone
         self.constants["ucum"] = [.string("http://unitsofmeasure.org")]
         if let resource = constants["resource"], self.constants["context"] == nil {
             self.constants["context"] = resource

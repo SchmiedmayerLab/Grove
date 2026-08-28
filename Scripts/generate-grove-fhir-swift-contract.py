@@ -29,6 +29,7 @@ HEADER = """//
 // Machine-generated catalog constants and inventory rows intentionally bypass style lint.
 // swiftlint:disable all
 
+public import Foundation
 public import ModelsR4
 
 """
@@ -59,6 +60,34 @@ def component_result_code_system(component: dict) -> str | None:
     return value_set.replace("/ValueSet/", "/CodeSystem/")
 
 
+def quantity_contract_expression(quantity: dict) -> str:
+    domain = quantity.get("valueDomain")
+    rendered_domain = "nil"
+    if domain:
+        minimum = domain["minimum"]
+        maximum = domain.get("maximum")
+        rendered_maximum = (
+            "QuantityBoundary("
+            f"value: {swift_string(json.dumps(maximum['value'], allow_nan=False))}, "
+            f"inclusive: {str(maximum['inclusive']).lower()})"
+        ) if maximum else "nil"
+        rendered_domain = (
+            "QuantityValueDomain("
+            "minimum: QuantityBoundary("
+            f"value: {swift_string(json.dumps(minimum['value'], allow_nan=False))}, "
+            f"inclusive: {str(minimum['inclusive']).lower()}), "
+            f"maximum: {rendered_maximum}, "
+            f"integerOnly: {str(domain['integerOnly']).lower()})"
+        )
+    return (
+        "QuantityContract("
+        f"system: {swift_string(quantity['system'])}, "
+        f"code: {swift_string(quantity['code'])}, "
+        f"unit: {swift_string(quantity['unit'])}, "
+        f"valueDomain: {rendered_domain})"
+    )
+
+
 def measurement_lines(measurement: dict) -> list[str]:
     lines = [
         f"    public static let {swift_name(measurement['id'])} = MeasurementContract(",
@@ -72,14 +101,26 @@ def measurement_lines(measurement: dict) -> list[str]:
         f"system: {swift_string(code['system'])}, "
         f"code: {swift_string(code['code'])}{display}),"
     )
+    required_codings = measurement.get("requiredCodings", [])
+    if required_codings:
+        lines.append("        requiredCodings: [")
+        for required_coding in required_codings:
+            required_display = (
+                f", display: {swift_string(required_coding['display'])}"
+                if required_coding.get("display")
+                else ""
+            )
+            lines.append(
+                "            CodingContract("
+                f"system: {swift_string(required_coding['system'])}, "
+                f"code: {swift_string(required_coding['code'])}{required_display}),"
+            )
+        lines.append("        ],")
+    else:
+        lines.append("        requiredCodings: [],")
     quantity = measurement.get("quantity")
     if quantity:
-        lines.append(
-            "        quantity: QuantityContract("
-            f"system: {swift_string(quantity['system'])}, "
-            f"code: {swift_string(quantity['code'])}, "
-            f"unit: {swift_string(quantity['unit'])}),"
-        )
+        lines.append(f"        quantity: {quantity_contract_expression(quantity)},")
     else:
         lines.append("        quantity: nil,")
     components = measurement.get("components", [])
@@ -87,12 +128,7 @@ def measurement_lines(measurement: dict) -> list[str]:
         lines.append("        components: [")
         for component in components:
             quantity = component.get("quantity")
-            rendered_quantity = (
-                "QuantityContract("
-                f"system: {swift_string(quantity['system'])}, "
-                f"code: {swift_string(quantity['code'])}, "
-                f"unit: {swift_string(quantity['unit'])})"
-            ) if quantity else "nil"
+            rendered_quantity = quantity_contract_expression(quantity) if quantity else "nil"
             rendered_result_codes = ", ".join(
                 "ResultCodeContract("
                 f"code: {swift_string(result_code['code'])}, "
@@ -150,7 +186,16 @@ def measurement_lines(measurement: dict) -> list[str]:
         lines.append(f"        methodChoice: [{values}],")
     else:
         lines.append("        methodChoice: [],")
-    effective = "dateTime" if measurement["effective"] == "dateTime" else "period"
+    effective = {
+        "dateTime": "dateTime",
+        "Period": "period",
+        "dateTime-or-Period": "dateTimeOrPeriod",
+    }.get(measurement["effective"])
+    if effective is None:
+        raise ValueError(
+            f"measurement {measurement['id']!r} has unsupported effective choice "
+            f"{measurement['effective']!r}"
+        )
     lines.append(f"        effective: .{effective}")
     lines.extend(["    )", ""])
     return lines
@@ -169,13 +214,15 @@ def generate(catalog_directory: Path) -> str:
     measurement_catalog = load_catalog(catalog_directory / "measurement-catalog.json")
     profile_claims = load_catalog(catalog_directory / "profile-claims.json")
     healthkit_catalog = load_catalog(catalog_directory / "healthkit-adapter.json")
-    identity = json.loads((catalog_directory / "exchange-identity.json").read_text(encoding="utf-8"))
+    providers_catalog = load_catalog(catalog_directory / "providers-adapter.json")
+    exchange_protocol = load_catalog(catalog_directory / "exchange-protocol.json")
     versions = {
         package_graph["version"],
         measurement_catalog["version"],
         profile_claims["version"],
         healthkit_catalog["version"],
-        identity["version"],
+        providers_catalog["version"],
+        exchange_protocol["version"],
     }
     if len(versions) != 1:
         raise ValueError("package, measurement, and profile-claim catalogs have different versions")
@@ -190,6 +237,113 @@ def generate(catalog_directory: Path) -> str:
 
     def profile_reference(canonical: str) -> str:
         return profile_members.get(canonical, swift_string(canonical))
+
+    adapter_only_claims = [
+        profile_claims["healthConnectSpecimenClaim"],
+        *profile_claims["healthKitPlatformExclusiveResourceClaims"],
+    ]
+    adapter_only_claims.sort(key=lambda claim: claim["resourceType"])
+    adapter_only_types = [claim["resourceType"] for claim in adapter_only_claims]
+    protocol_adapter_only_types = sorted(
+        exchange_protocol["lifecycle"]["active"]["adapterOnlyOutputProfileClaims"][
+            "resourceTypes"
+        ]
+    )
+    if adapter_only_types != protocol_adapter_only_types:
+        raise ValueError("adapter-only output claims disagree with exchange-protocol.json")
+    if any(
+        claim["cardinality"] != 1 or claim["otherProfilesAllowed"] is not False
+        for claim in adapter_only_claims
+    ):
+        raise ValueError("adapter-only outputs must carry exactly one direct profile")
+
+    document_claim_names = [
+        "sensorRecordingDocumentClaim",
+        "healthKitRecordingDocumentClaim",
+        "healthKitClinicalRecordDocumentClaim",
+        "sensorKitRecordingDocumentClaim",
+        "providerRecordingDocumentClaim",
+    ]
+    document_claims = [profile_claims[name] for name in document_claim_names]
+    device_claims = profile_claims["activeDeviceClaims"]
+    questionnaire_response_claim = profile_claims["activeQuestionnaireResponseClaim"]
+
+    def validate_direct_claim(claim: dict, label: str) -> None:
+        profiles = claim.get("profiles")
+        if not isinstance(profiles, list) or not profiles or len(profiles) != len(set(profiles)):
+            raise ValueError(f"{label} must declare a nonempty unique profile mode")
+        if claim["cardinality"] != len(profiles) or claim["otherProfilesAllowed"] is not False:
+            raise ValueError(f"{label} must close its exact direct profile mode")
+
+    for name, claim in zip(document_claim_names, document_claims, strict=True):
+        validate_direct_claim(claim, name)
+    for claim in device_claims:
+        validate_direct_claim(claim, f"activeDeviceClaims.{claim['id']}")
+    validate_direct_claim(questionnaire_response_claim, "activeQuestionnaireResponseClaim")
+
+    active_entry_policy = exchange_protocol["lifecycle"]["active"]["entryResourcePolicy"]
+    if active_entry_policy["containedResourcesAllowed"] is not False:
+        raise ValueError("Mobile exchange must prohibit contained resources")
+    if active_entry_policy["otherResourceTypesAllowed"] is not False:
+        raise ValueError("Mobile exchange must close its active entry resource types")
+    if active_entry_policy["supportingResourcesMustBeConnected"] is not True:
+        raise ValueError("Mobile exchange supporting resources must be connected")
+
+    measurement_profiles = [
+        (
+            f"https://grovealliance.org/fhir/{measurement.get('owner', 'mobile')}"
+            f"/StructureDefinition/{measurement['profile']}"
+        )
+        for measurement in measurement_catalog["measurements"]
+    ]
+    shared_observation_profiles = set(measurement_profiles)
+    observation_claim = profile_claims["observationAdapterClaim"]
+    shared_observation_profiles.update(observation_claim.get("sharedSensorProfiles", []))
+    shared_observation_profiles.update(
+        claim["semanticProfile"]
+        for claim in observation_claim.get("standardAdapterClaims", [])
+    )
+    provider_adapter_by_owner = {
+        provider["measurementOwner"]: provider["observationProfile"]
+        for provider in providers_catalog["providers"]
+    }
+    if len(provider_adapter_by_owner) != len(providers_catalog["providers"]):
+        raise ValueError("provider measurement owners must be unique")
+    provider_owned_semantic_adapters = {
+        canonical: provider_adapter_by_owner[measurement.get("owner", "mobile")]
+        for measurement, canonical in zip(
+            measurement_catalog["measurements"], measurement_profiles, strict=True
+        )
+        if measurement.get("owner", "mobile") in provider_adapter_by_owner
+    }
+    single_observation_profiles = {
+        *profile_claims["healthKitSingleProfileObservationClaims"]["profiles"],
+        *profile_claims["healthConnectPlatformExclusiveClaims"]["profiles"],
+        *profile_claims["sensorKitPlatformExclusiveClaims"]["profiles"],
+    }
+    hybrid_observation_profiles = profile_claims["sensorKitHybridObservationClaims"]["profiles"]
+    if len(hybrid_observation_profiles) != len(set(hybrid_observation_profiles)):
+        raise ValueError("SensorKit hybrid Observation profiles must be unique")
+
+    active_provenance_profiles = [
+        exchange_protocol["profiles"]["conversionProvenance"],
+        *(
+            claim["profile"]
+            for claim in profile_claims["adapterConversionProvenanceClaims"]
+        ),
+    ]
+    if len(active_provenance_profiles) != len(set(active_provenance_profiles)):
+        raise ValueError("active conversion Provenance profiles must be unique")
+    retraction_provenance_profiles = [exchange_protocol["profiles"]["retractionProvenance"]]
+
+    quantity_claims = []
+    for measurement, canonical in zip(
+        measurement_catalog["measurements"], measurement_profiles, strict=True
+    ):
+        quantity = measurement.get("quantity")
+        if quantity is not None:
+            quantity_claims.append((canonical, measurement["id"], quantity))
+    quantity_claims.sort(key=lambda claim: claim[0])
 
     lines = [HEADER]
     lines.extend([
@@ -219,6 +373,50 @@ def generate(catalog_directory: Path) -> str:
         "public enum MeasurementEffective: String, Sendable {",
         "    case dateTime",
         "    case period = \"Period\"",
+        "    case dateTimeOrPeriod = \"dateTime-or-Period\"",
+        "}",
+        "",
+        "",
+        "/// One quantity or component constraint from the generated measurement catalog.",
+        "public struct QuantityBoundary: Hashable, Sendable {",
+        "    public let value: Decimal",
+        "    public let inclusive: Bool",
+        "",
+        "    init(value lexical: String, inclusive: Bool) {",
+        "        guard let value = Decimal(",
+        "            string: lexical,",
+        "            locale: Locale(identifier: \"en_US_POSIX\")",
+        "        ) else {",
+        "            preconditionFailure(\"Generated quantity boundary is not a decimal: \\(lexical)\")",
+        "        }",
+        "        self.value = value",
+        "        self.inclusive = inclusive",
+        "    }",
+        "}",
+        "",
+        "",
+        "/// Closed numeric domain declared by one quantity contract.",
+        "public struct QuantityValueDomain: Hashable, Sendable {",
+        "    public let minimum: QuantityBoundary",
+        "    public let maximum: QuantityBoundary?",
+        "    public let integerOnly: Bool",
+        "",
+        "    public func contains(_ value: Decimal) -> Bool {",
+        "        var source = value",
+        "        var integer = Decimal()",
+        "        NSDecimalRound(&integer, &source, 0, .plain)",
+        "        guard !value.isNaN, !integerOnly || integer == value else {",
+        "            return false",
+        "        }",
+        "        let satisfiesMinimum = minimum.inclusive ? value >= minimum.value : value > minimum.value",
+        "        guard satisfiesMinimum else {",
+        "            return false",
+        "        }",
+        "        guard let maximum else {",
+        "            return true",
+        "        }",
+        "        return maximum.inclusive ? value <= maximum.value : value < maximum.value",
+        "    }",
         "}",
         "",
         "",
@@ -227,11 +425,18 @@ def generate(catalog_directory: Path) -> str:
         "    public let system: String",
         "    public let code: String",
         "    public let unit: String",
+        "    public let valueDomain: QuantityValueDomain?",
         "",
-        "    public init(system: String, code: String, unit: String) {",
+        "    public init(",
+        "        system: String,",
+        "        code: String,",
+        "        unit: String,",
+        "        valueDomain: QuantityValueDomain? = nil",
+        "    ) {",
         "        self.system = system",
         "        self.code = code",
         "        self.unit = unit",
+        "        self.valueDomain = valueDomain",
         "    }",
         "}",
         "",
@@ -280,6 +485,7 @@ def generate(catalog_directory: Path) -> str:
         "    public let id: String",
         "    public let profile: FHIRPrimitive<Canonical>",
         "    public let code: CodingContract",
+        "    public let requiredCodings: [CodingContract]",
         "    public let quantity: QuantityContract?",
         "    public let components: [ComponentContract]",
         "    public let resultCodeSystem: String?",
@@ -346,7 +552,36 @@ def generate(catalog_directory: Path) -> str:
         "/// Machine-generated HealthKit producer contract and complete source inventory.",
         "public enum HealthKitContract {",
     ])
-    source_type_coding = healthkit_catalog["sourceTypeCoding"]
+    source_type_extension = healthkit_catalog["sourceTypeExtension"]
+    if (
+        source_type_extension["valueElement"] != "valueCode"
+        or source_type_extension["cardinality"] != "exactly one"
+        or set(source_type_extension["contexts"])
+        != {
+            "Observation",
+            "DocumentReference",
+            "VisionPrescription",
+            "MedicationAdministration",
+            "MedicationStatement",
+        }
+    ):
+        raise ValueError("HealthKit source type must be one required valueCode lineage extension")
+    application_device_identity = healthkit_catalog["applicationDeviceIdentity"]
+    bundle_identifier_identity = application_device_identity["bundleIdentifier"]
+    if bundle_identifier_identity["cardinality"] != "1..1":
+        raise ValueError("HealthKit application bundle identifier must have cardinality 1..1")
+    clinical_admission = healthkit_catalog["clinicalRecordAdmission"]
+    clinical_representation = clinical_admission["fhirRepresentation"]
+    if (
+        clinical_admission["payloadFormat"] != "fhir-r4-resource"
+        or clinical_admission["admittedFHIRRelease"] != "r4"
+        or set(clinical_admission["rejectedFHIRReleases"]) != {"dstu2", "unknown"}
+        or clinical_representation["resourceType"] != "DocumentReference"
+        or clinical_representation["valueElement"] != "valueCode"
+        or clinical_representation["cardinality"] != {"min": 1, "max": 1}
+        or clinical_representation["fixedValue"] != clinical_admission["admittedFHIRRelease"]
+    ):
+        raise ValueError("HealthKit clinical-record admission must be exact R4 DocumentReference pass-through")
     ecg_claim = healthkit_catalog["sensorAdapterClaims"]["electrocardiogram"]
     correlated_symptom = ecg_claim["correlatedSymptomEvidence"]
     if len(ecg_claim["profiles"]) != profile_claims["observationAdapterClaim"]["cardinality"]:
@@ -363,9 +598,25 @@ def generate(catalog_directory: Path) -> str:
         raise ValueError("HealthKit body-mass-index row has the wrong direct profile cardinality")
     lines.extend([
         "    public static let sourceTypeCodeSystem: FHIRPrimitive<FHIRURI> = "
-        f"{swift_string(source_type_coding['system'])}",
+        f"{swift_string(source_type_extension['valueSystem'])}",
+        "    public static let sourceTypeExtension: FHIRPrimitive<FHIRURI> = "
+        f"{swift_string(source_type_extension['url'])}",
         "    public static let conversionProvenanceProfile: FHIRPrimitive<Canonical> = "
         f"{profile_reference(healthkit_catalog['conversionProvenanceProfile'])}",
+        "    public static let applicationDeviceProfile: FHIRPrimitive<Canonical> = "
+        f"{profile_reference(application_device_identity['profile'])}",
+        "    public static let appleBundleIdentifierSystem: FHIRPrimitive<FHIRURI> = "
+        f"{swift_string(bundle_identifier_identity['system'])}",
+        "    public static let appleBundleIdentifierTypeSystem: FHIRPrimitive<FHIRURI> = "
+        f"{swift_string(bundle_identifier_identity['typeSystem'])}",
+        "    public static let appleBundleIdentifierTypeCode = "
+        f"{swift_string(bundle_identifier_identity['typeCode'])}",
+        "    public static let clinicalRecordProfile: FHIRPrimitive<Canonical> = "
+        f"{profile_reference(clinical_admission['profile'])}",
+        "    public static let clinicalFHIRReleaseExtension: FHIRPrimitive<FHIRURI> = "
+        f"{swift_string(clinical_representation['extensionUrl'])}",
+        "    public static let clinicalFHIRReleaseCode = "
+        f"{swift_string(clinical_representation['fixedValue'])}",
         "    public static let electrocardiogramSourceTypeIdentifier = "
         f"{swift_string(ecg_claim['sourceTypeIdentifier'])}",
         "    public static let electrocardiogramProfiles: [FHIRPrimitive<Canonical>] = [",
@@ -380,8 +631,6 @@ def generate(catalog_directory: Path) -> str:
         lines.append(f"        {profile_reference(profile)},")
     lines.extend([
         "    ]",
-        "    public static let electrocardiogramCorrelatedSymptomExtension: FHIRPrimitive<FHIRURI> = "
-        f"{swift_string(correlated_symptom['url'])}",
         "",
         "    public static let rows: [HealthKitContractRow] = [",
     ])
@@ -426,6 +675,20 @@ def generate(catalog_directory: Path) -> str:
         "}",
         "",
         "",
+        "/// One closed direct `meta.profile` mode and the Grove identifier roles it requires.",
+        "public struct DirectProfileClaim: Sendable {",
+        "    public let profiles: [FHIRPrimitive<Canonical>]",
+        "    public let requiredIdentifierRoles: [String]",
+        "}",
+        "",
+        "",
+        "/// The catalog-fixed quantity semantics selected by one direct measurement profile.",
+        "public struct FixedMeasurementQuantityClaim: Hashable, Sendable {",
+        "    public let measurementID: String",
+        "    public let quantity: QuantityContract",
+        "}",
+        "",
+        "",
         "/// Exact direct profile-claim rules generated from profile-claims.json.",
         "public enum ProfileClaims {",
         f"    public static let observationAdapterCardinality = {profile_claims['observationAdapterClaim']['cardinality']}",
@@ -444,6 +707,139 @@ def generate(catalog_directory: Path) -> str:
     lines.extend([
         "    ]",
         "",
+        "    /// Exact one-profile claims for active output types that have no shared mobile shape.",
+        "    public static let adapterOnlyOutputProfiles: [String: FHIRPrimitive<Canonical>] = [",
+    ])
+    for claim in adapter_only_claims:
+        lines.append(
+            f"        {swift_string(claim['resourceType'])}: "
+            f"{profile_reference(claim['profile'])},"
+        )
+    lines.extend([
+        "    ]",
+        "",
+        "    /// Every catalog semantic profile that may participate in shared-plus-adapter mode.",
+        "    public static let sharedObservationProfiles: [FHIRPrimitive<Canonical>] = [",
+    ])
+    for profile in sorted(shared_observation_profiles):
+        lines.append(f"        {profile_reference(profile)},")
+    lines.extend([
+        "    ]",
+        "",
+        "    /// Provider-owned semantic profile to its one required provider envelope.",
+        "    public static let providerOwnedSemanticAdapters: [String: FHIRPrimitive<Canonical>] = [",
+    ])
+    for semantic, adapter in sorted(provider_owned_semantic_adapters.items()):
+        lines.append(
+            f"        {swift_string(semantic)}: {profile_reference(adapter)},"
+        )
+    lines.extend([
+        "    ]",
+        "",
+        "    /// Adapter-owned Observation profiles whose complete direct claim is one profile.",
+        "    public static let singleObservationProfiles: [FHIRPrimitive<Canonical>] = [",
+    ])
+    for profile in sorted(single_observation_profiles):
+        lines.append(f"        {profile_reference(profile)},")
+    lines.extend([
+        "    ]",
+        "",
+        "    /// Multi-profile Observation modes that cannot be expressed as shared-plus-adapter.",
+        "    public static let exactObservationProfileModes: [[FHIRPrimitive<Canonical>]] = [",
+        "        [",
+    ])
+    for profile in hybrid_observation_profiles:
+        lines.append(f"            {profile_reference(profile)},")
+    lines.extend([
+        "        ],",
+        "    ]",
+        "",
+        "    /// Every exact active recording or clinical DocumentReference direct-profile mode.",
+        "    public static let documentProfileModes: [DirectProfileClaim] = [",
+    ])
+    for claim in document_claims:
+        lines.append("        DirectProfileClaim(")
+        lines.append("            profiles: [")
+        for profile in claim["profiles"]:
+            lines.append(f"                {profile_reference(profile)},")
+        lines.append("            ],")
+        roles = ", ".join(
+            swift_string(role) for role in claim.get("requiredIdentifierRoles", [])
+        )
+        lines.append(f"            requiredIdentifierRoles: [{roles}]")
+        lines.append("        ),")
+    lines.extend([
+        "    ]",
+        "",
+        "    /// Every exact active Device direct-profile and typed-identifier mode.",
+        "    public static let deviceProfileModes: [DirectProfileClaim] = [",
+    ])
+    for claim in device_claims:
+        lines.append("        DirectProfileClaim(")
+        lines.append("            profiles: [")
+        for profile in claim["profiles"]:
+            lines.append(f"                {profile_reference(profile)},")
+        lines.append("            ],")
+        roles = ", ".join(
+            swift_string(role) for role in claim.get("requiredIdentifierRoles", [])
+        )
+        lines.append(f"            requiredIdentifierRoles: [{roles}]")
+        lines.append("        ),")
+    lines.extend([
+        "    ]",
+        "",
+        "    /// The sole direct-profile mode for active QuestionnaireResponse support nodes.",
+        "    public static let questionnaireResponseProfileModes: [DirectProfileClaim] = [",
+        "        DirectProfileClaim(",
+        "            profiles: [",
+    ])
+    for profile in questionnaire_response_claim["profiles"]:
+        lines.append(f"                {profile_reference(profile)},")
+    lines.extend([
+        "            ],",
+        "            requiredIdentifierRoles: []",
+        "        ),",
+        "    ]",
+        "",
+        "    /// The complete one-profile modes for active conversion Provenance.",
+        "    public static let activeProvenanceProfiles: [FHIRPrimitive<Canonical>] = [",
+    ])
+    for profile in active_provenance_profiles:
+        lines.append(f"        {profile_reference(profile)},")
+    lines.extend([
+        "    ]",
+        "",
+        "    /// The sole direct-profile mode for retraction Provenance.",
+        "    public static let retractionProvenanceProfiles: [FHIRPrimitive<Canonical>] = [",
+    ])
+    for profile in retraction_provenance_profiles:
+        lines.append(f"        {profile_reference(profile)},")
+    lines.extend([
+        "    ]",
+        "",
+        "    /// Adapter Provenance profile to every adapter output profile it may assert.",
+        "    public static let adapterProvenanceTargetProfiles: [String: [FHIRPrimitive<Canonical>]] = [",
+    ])
+    for claim in profile_claims["adapterConversionProvenanceClaims"]:
+        lines.append(f"        {swift_string(claim['profile'])}: [")
+        for profile in claim["targetAdapterProfiles"]:
+            lines.append(f"            {profile_reference(profile)},")
+        lines.append("        ],")
+    lines.extend([
+        "    ]",
+        "",
+        "    /// Fixed system/code/domain semantics keyed by every quantity-bearing profile.",
+        "    public static let fixedMeasurementQuantities: [String: FixedMeasurementQuantityClaim] = [",
+    ])
+    for canonical, measurement_id, quantity in quantity_claims:
+        lines.append(
+            f"        {swift_string(canonical)}: FixedMeasurementQuantityClaim("
+            f"measurementID: {swift_string(measurement_id)}, "
+            f"quantity: {quantity_contract_expression(quantity)}),"
+        )
+    lines.extend([
+        "    ]",
+        "",
         "    /// The only allowed direct claim shape for an adapter-produced measurement.",
         "    public static func observation(",
         "        sharedMeasurement: FHIRPrimitive<Canonical>,",
@@ -454,10 +850,25 @@ def generate(catalog_directory: Path) -> str:
         "}",
         "",
         "",
-        "/// Frozen exchange-graph values generated from exchange-identity.json.",
+        "/// Frozen exchange-graph values generated from exchange-protocol.json.",
         "public enum ExchangeContract {",
-        f"    public static let entryIdentifierExtension: FHIRPrimitive<FHIRURI> = {swift_string(identity['entryIdentifierExtension'])}",
-        f"    public static let fullURLNamespace = {swift_string(identity['fullUrlAlgorithm']['namespace'])}",
+        f"    public static let entryIdentifierExtension: FHIRPrimitive<FHIRURI> = {swift_string(exchange_protocol['extensions']['entryNodeKey'])}",
+        f"    public static let fullURLNamespace = {swift_string(exchange_protocol['entryIdentity']['fullUrl']['namespace'])}",
+        "    public static let activeOutputResourceTypes: Set<String> = [",
+    ])
+    for resource_type in active_entry_policy["outputResourceTypes"]:
+        lines.append(f"        {swift_string(resource_type)},")
+    lines.extend([
+        "    ]",
+        "    public static let activeSupportingResourceTypes: Set<String> = [",
+    ])
+    for resource_type in active_entry_policy["supportingResourceTypes"]:
+        lines.append(f"        {swift_string(resource_type)},")
+    lines.extend([
+        "    ]",
+        "    public static let activeLifecycleResourceType = "
+        f"{swift_string(active_entry_policy['lifecycleResourceType'])}",
+        "    public static let containedResourcesAllowed = false",
         "}",
         "",
     ])

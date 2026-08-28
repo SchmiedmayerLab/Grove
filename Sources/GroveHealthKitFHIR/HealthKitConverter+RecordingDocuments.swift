@@ -8,7 +8,7 @@
 
 // Literal formatting follows FHIR resource shape, and members are ordered to read as a narrative
 // rather than by kind: each entry point precedes the builders it uses.
-// swiftlint:disable multiline_literal_brackets type_contents_order
+// swiftlint:disable multiline_literal_brackets type_contents_order file_types_order function_body_length
 
 #if canImport(HealthKit)
 
@@ -26,11 +26,13 @@ enum HealthKitRecordingFormat: String, Sendable {
     case beatIntervalSeries = "beat-interval-series"
     case locationTrackSamples = "location-track-samples"
     case clinicalDocument = "clinical-document"
+    case fhirR4Resource = "fhir-r4-resource"
 
     var contentType: String {
         switch self {
         case .beatIntervalSeries, .locationTrackSamples: "text/csv"
         case .clinicalDocument: "application/hl7-cda+xml"
+        case .fhirR4Resource: "application/fhir+json"
         }
     }
 }
@@ -38,9 +40,34 @@ enum HealthKitRecordingFormat: String, Sendable {
 
 /// The published payload of one recording document, ready to be carried.
 struct HealthKitRecordingEvidence: Sendable {
+    let outputRole: String
     let format: HealthKitRecordingFormat
     let title: String
     let payload: Data
+    let profiles: [FHIRPrimitive<Canonical>]
+    let clinicalRecordTypeCode: String?
+    let clinicalFHIRReleaseCode: String?
+
+    init(
+        outputRole: String,
+        format: HealthKitRecordingFormat,
+        title: String,
+        payload: Data,
+        profiles: [FHIRPrimitive<Canonical>] = [
+            Profile.groveSensorRecordingDocument,
+            HealthKitRecordingDocumentContract.profile
+        ],
+        clinicalRecordTypeCode: String? = nil,
+        clinicalFHIRReleaseCode: String? = nil
+    ) {
+        self.outputRole = outputRole
+        self.format = format
+        self.title = title
+        self.payload = payload
+        self.profiles = profiles
+        self.clinicalRecordTypeCode = clinicalRecordTypeCode
+        self.clinicalFHIRReleaseCode = clinicalFHIRReleaseCode
+    }
 }
 
 
@@ -54,7 +81,9 @@ enum HealthKitRecordingDocumentContract {
     static let formatCodeSystem: FHIRPrimitive<FHIRURI> =
         "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
     /// The registry release a carried payload conforms to, written to `content.format.version`.
-    static let registryVersion = "0.5.0"
+    static let registryVersion = "0.6.0"
+    static let clinicalRecordTypeCodeSystem: FHIRPrimitive<FHIRURI> =
+        "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-clinical-record-type"
 }
 
 
@@ -91,6 +120,7 @@ extension HealthKitConverter {
             return try Self.assembleDocumentGraph(
                 for: record.series,
                 evidence: HealthKitRecordingEvidence(
+                    outputRole: "native-recording",
                     format: .beatIntervalSeries,
                     title: "Heartbeat series beat intervals",
                     payload: try Self.beatIntervalPayload(
@@ -126,6 +156,7 @@ extension HealthKitConverter {
             return try Self.assembleDocumentGraph(
                 for: record.route,
                 evidence: HealthKitRecordingEvidence(
+                    outputRole: "native-recording",
                     format: .locationTrackSamples,
                     title: "Workout route locations",
                     payload: payload
@@ -194,44 +225,64 @@ extension HealthKitConverter {
         context: HealthKitConversionContext
     ) throws -> HealthKitDocumentConversion {
         try validate(context: context)
-        let envelope = try graphEnvelope(for: sample, context: context)
+        let envelope = try graphEnvelope(
+            for: sample,
+            context: context,
+            outputRole: evidence.outputRole,
+            outputDiscriminator: "single"
+        )
+        let artifactIdentity = try context.identityScope.sourceArtifact(
+            adapterID: "healthkit",
+            sourceType: sample.sampleType.identifier,
+            repositoryScope: context.repositoryScope,
+            nativeRecordID: envelope.sourceUUID,
+            formatCode: evidence.format.rawValue,
+            partIndex: 0
+        )
         let document = try recordingDocument(
             for: sample,
             evidence: evidence,
             envelope: envelope,
-            context: context
+            context: context,
+            artifactIdentity: artifactIdentity
         )
         var provenance = try Self.provenance(
-            sourceIdentifier: envelope.primary.fhirIdentifier,
+            sourceIdentifier: envelope.sourceRecord.fhirIdentifier,
             targetURL: envelope.primaryURL,
             converterURL: envelope.converterURL,
             sourceAuthorURL: envelope.sourceAuthorURL,
-            recordedAt: context.conversionInstant,
-            profile: Profile.groveSensorConversionProvenance
+            recordedAt: context.conversionInstant
         )
         provenance.id = context.repositoryIDs.provenance?.primitive
 
+        let graph = try exchangeBundle(
+            envelope: envelope,
+            primary: ResourceProxy(with: document),
+            provenance: provenance,
+            context: context
+        )
         return HealthKitDocumentConversion(
-            sourceIdentifier: envelope.primary.fhirIdentifier,
+            sourceIdentifier: envelope.sourceRecord.fhirIdentifier,
             graphIdentifiers: HealthKitDocumentGraphIdentifiers(
-                bundle: envelope.bundle,
-                document: envelope.primary,
-                recordingDevice: envelope.recordingDevice?.identity,
-                converterApplication: envelope.converter,
-                sourceAuthor: envelope.sourceAuthor?.identity,
-                provenance: envelope.provenance
+                event: context.eventIdentifier.businessIdentifier,
+                sourceRecord: envelope.sourceRecord,
+                sourceOutput: envelope.primary,
+                sourceArtifact: artifactIdentity,
+                recordingDeviceSnapshot: envelope.recordingDevice?.identity,
+                converterApplicationSnapshot: envelope.converterApplication.identity,
+                converterHostSnapshot: envelope.converterHost.identity,
+                sourceAuthorSnapshot: envelope.sourceAuthor?.author.identity,
+                sourceAuthorHostSnapshot: envelope.sourceAuthor?.host?.identity,
+                provenance: envelope.provenanceNode.identifier
             ),
             document: document,
             recordingDevice: envelope.recordingDevice?.resource,
-            converterApplication: envelope.converterApplication,
-            sourceAuthor: envelope.sourceAuthor?.resource,
+            converterApplication: envelope.converterApplication.resource,
+            converterHost: envelope.converterHost.resource,
+            sourceAuthor: envelope.sourceAuthor?.author.resource,
+            sourceAuthorHost: envelope.sourceAuthor?.host?.resource,
             provenance: provenance,
-            bundle: try exchangeBundle(
-                envelope: envelope,
-                primary: ResourceProxy(with: document),
-                provenance: provenance,
-                context: context
-            )
+            graph: graph
         )
     }
 
@@ -239,11 +290,23 @@ extension HealthKitConverter {
         for sample: HKSample,
         evidence: HealthKitRecordingEvidence,
         envelope: GraphEnvelope,
-        context: HealthKitConversionContext
+        context: HealthKitConversionContext,
+        artifactIdentity: BusinessIdentifier
     ) throws -> DocumentReference {
         let sourceTypeIdentifier = sample.sampleType.identifier
         var authors = envelope.recordingDeviceURL.map { [Reference(reference: $0.asFHIRStringPrimitive())] } ?? []
         authors.append(Reference(reference: envelope.converterURL.asFHIRStringPrimitive()))
+        let typeCoding = if let clinicalRecordTypeCode = evidence.clinicalRecordTypeCode {
+            Coding(
+                code: clinicalRecordTypeCode.asFHIRStringPrimitive(),
+                system: HealthKitRecordingDocumentContract.clinicalRecordTypeCodeSystem
+            )
+        } else {
+            Coding(
+                code: evidence.format.rawValue.asFHIRStringPrimitive(),
+                system: HealthKitRecordingDocumentContract.formatCodeSystem
+            )
+        }
         var document = DocumentReference(
             author: authors,
             content: [DocumentReferenceContent(
@@ -258,22 +321,23 @@ extension HealthKitConverter {
                 ? nil
                 : DocumentReferenceContext(related: context.researchStudies),
             date: FHIRPrimitive(try Instant(date: context.conversionInstant)),
-            identifier: [envelope.primary.fhirIdentifier],
-            meta: Meta(profile: [
-                Profile.groveSensorRecordingDocument,
-                HealthKitRecordingDocumentContract.profile
-            ]),
+            identifier: [
+                envelope.sourceRecord.fhirIdentifier,
+                envelope.primary.fhirIdentifier,
+                artifactIdentity.fhirIdentifier
+            ] + nativeIdentifiers(for: sample, policy: context.nativeIdentifierDisclosurePolicy),
+            meta: Meta(profile: evidence.profiles),
             status: FHIRPrimitive(.current),
             subject: context.subject,
-            type: CodeableConcept(coding: [Coding(
-                code: sourceTypeIdentifier.asFHIRStringPrimitive(),
-                display: HealthKitCatalog
-                    .entry(forSourceTypeIdentifier: sourceTypeIdentifier)?
-                    .title
-                    .asFHIRStringPrimitive(),
-                system: Canonicals.healthKitSourceType
-            )])
+            type: CodeableConcept(coding: [typeCoding])
         )
+        applySourceTypeLineage(sourceTypeIdentifier, to: &document)
+        if let clinicalFHIRReleaseCode = evidence.clinicalFHIRReleaseCode {
+            document.append(extension: Extension(
+                    url: HealthKitContract.clinicalFHIRReleaseExtension,
+                    value: .code(clinicalFHIRReleaseCode.asFHIRStringPrimitive())
+                ))
+        }
         document.id = context.repositoryIDs.document?.primitive
         return document
     }

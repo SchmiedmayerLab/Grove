@@ -6,13 +6,13 @@
 // SPDX-License-Identifier: MIT
 //
 
-public import GroveFHIRContract
+import GroveFHIRContract
 public import ModelsR4
 
 
 /// A typed failure for one record; batch conversion never drops input silently.
 public struct SensorRecordFailure: Error, Equatable, Sendable {
-    public let sourceIdentifier: BusinessIdentifier
+    public let nativeRecordID: String
     public let sourceTypeIdentifier: String
     public let reason: SensorConversionError
 }

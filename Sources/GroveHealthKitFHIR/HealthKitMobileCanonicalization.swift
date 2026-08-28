@@ -16,8 +16,8 @@ import ModelsR4
 ///
 /// Sensor and ECG timing use their separate exact Decimal contracts and never call this helper.
 enum HealthKitMobileCanonicalization {
-    /// Produces a stable FHIR decimal without exposing Foundation's expanded IEEE-754 artifact.
-    static func scalarDecimal(_ value: Double) throws -> FHIRPrimitive<FHIRDecimal> {
+    /// Produces the exact Decimal value Grove will place on the wire for a binary64 scalar.
+    static func scalarDecimalValue(_ value: Double) throws -> Decimal {
         guard value.isFinite,
               let decimal = Decimal(
                 string: String(value),
@@ -25,7 +25,12 @@ enum HealthKitMobileCanonicalization {
               ) else {
             throw HealthKitConversionError.invalidValue
         }
-        return FHIRPrimitive(FHIRDecimal(decimal))
+        return decimal
+    }
+
+    /// Produces a stable FHIR decimal without exposing Foundation's expanded IEEE-754 artifact.
+    static func scalarDecimal(_ value: Double) throws -> FHIRPrimitive<FHIRDecimal> {
+        FHIRPrimitive(FHIRDecimal(try scalarDecimalValue(value)))
     }
 
     /// Rounds one Foundation `Date` to the nearest millisecond, ties to even, while retaining

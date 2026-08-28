@@ -71,9 +71,8 @@ extension ModelsR4.QuestionnaireResponse {
     ///     Grove uses the questionnaire canonical as its system and the response UUID as its value.
     /// - parameter repositoryID: A repository-assigned logical id for the resource. Leave it `nil`
     ///     unless the caller already holds an id assignment from the receiving repository.
-    /// - parameter authored: The instant at which the response was authored. Defaults to the
-    ///     wall clock, which fits the common export-on-completion flow; pass the stored instant
-    ///     when exporting later.
+    /// - parameter authored: The caller-persisted instant at which the response was authored.
+    /// - parameter authoredTimeZone: The explicit zone used to serialize `authored`.
     public init(
         _ other: GroveQuestionnaire.QuestionnaireResponses,
         subject: Reference? = nil,
@@ -82,7 +81,8 @@ extension ModelsR4.QuestionnaireResponse {
         status: QuestionnaireResponseStatus = .completed,
         identifier: Identifier? = nil,
         repositoryID: RepositoryID? = nil,
-        authored: Date = .now
+        authored: Date,
+        authoredTimeZone: TimeZone
     ) throws {
         try self.init(
             other,
@@ -93,6 +93,7 @@ extension ModelsR4.QuestionnaireResponse {
             identifier: identifier,
             repositoryID: repositoryID,
             authored: authored,
+            authoredTimeZone: authoredTimeZone,
             droppingUnconvertibleAnswers: false
         )
     }
@@ -110,6 +111,7 @@ extension ModelsR4.QuestionnaireResponse {
             identifier: nil,
             repositoryID: nil,
             authored: nil,
+            authoredTimeZone: nil,
             droppingUnconvertibleAnswers: true
         )
     }
@@ -123,6 +125,7 @@ extension ModelsR4.QuestionnaireResponse {
         identifier: Identifier?,
         repositoryID: RepositoryID?,
         authored: Date?,
+        authoredTimeZone: TimeZone?,
         droppingUnconvertibleAnswers: Bool
     ) throws {
         self.init(status: .init(status))
@@ -131,7 +134,10 @@ extension ModelsR4.QuestionnaireResponse {
             self.id = repositoryID?.primitive
         }
         if let authored {
-            self.authored = try FHIRPrimitive(DateTime(date: authored))
+            guard let authoredTimeZone else {
+                throw FHIRResponseConversionError("authoredTimeZone is required with authored")
+            }
+            self.authored = try FHIRPrimitive(DateTime(date: authored, timeZone: authoredTimeZone))
         }
         self.subject = subject
         self.author = author
@@ -222,11 +228,16 @@ extension QuestionnaireResponses.Responses {
         let tasksIdsByOverallPosition: [String: Int] = context.allTasks
             .enumerated()
             .reduce(into: [:]) { $0[$1.element.id] = $1.offset }
-        return try items.sorted { lhs, rhs in
-            let lhsLinkId = try lhs.getLinkId()
-            let rhsLinkId = try rhs.getLinkId()
-            return tasksIdsByOverallPosition[lhsLinkId]! < tasksIdsByOverallPosition[rhsLinkId]! // swiftlint:disable:this force_unwrapping
+        let positioned = try items.map { item -> (item: QuestionnaireResponseItem, position: Int) in
+            let linkId = try item.getLinkId()
+            guard let position = tasksIdsByOverallPosition[linkId] else {
+                throw FHIRResponseConversionError(
+                    "Response item '\(linkId)' is not present in the validated task scope \(context.allTasks.map(\.id))"
+                )
+            }
+            return (item, position)
         }
+        return positioned.sorted { $0.position < $1.position }.map(\.item)
     }
 
     /// Builds the response items for one section, restoring the questionnaire's structure:
