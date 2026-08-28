@@ -133,10 +133,13 @@ FHIR_COMPONENT_PACKAGES = {
 }
 ALL_FHIR_COMPONENTS = set(FHIR_COMPONENT_PACKAGES)
 
-# Temporary stacked-PR scopes. A scope is honored only when the caller opts in explicitly;
-# release/main CI and workflow_dispatch with run_all keep the complete affected graph.
-# Delete the corresponding marker from `.github/GROVE_FHIR_DEVELOPMENT_SCOPE` before merge.
+# Temporary stacked-PR scopes. A scope is honored only when the caller opts in explicitly. It
+# schedules the named FHIR packages plus the direct owner of every changed source/test target while
+# suppressing repository-wide fan-out from shared CI and manifest files. Configured unit and UI
+# lanes still run for that reduced package set. Release and main CI remain unaffected; delete
+# `.github/GROVE_FHIR_DEVELOPMENT_SCOPE` and run the explicit full-readiness workflow before merge.
 DEVELOPMENT_SCOPES = {
+    "fhir": FHIR_PACKAGES,
     "healthkit": {"GroveHealthKitFHIR"},
     "questionnaire": {"GroveQuestionnaire"},
     "sensor": {"GroveSensorKit", "GroveSensorKitFHIR"},
@@ -208,7 +211,7 @@ def target_dependencies(target):
 
 
 
-def packages_for_target(target_name, head_dump):
+def packages_for_target(target_name, head_dump, directory_map=None):
     """The changed target's package plus every package that consumes it, transitively.
 
     Source changes are resolved through the manifest graph rather than through the directory
@@ -216,6 +219,7 @@ def packages_for_target(target_name, head_dump):
     None when the graph cannot answer completely, so the caller stays conservative instead of
     silently under-scheduling.
     """
+    directory_map = directory_map or DIR2PKG
     targets = {target["name"]: target for target in head_dump.get("targets", [])}
     if target_name not in targets:
         return None
@@ -234,11 +238,39 @@ def packages_for_target(target_name, head_dump):
     # The changed target itself may legitimately belong to no package (a shared vault target),
     # which is precisely the case this resolution exists to handle.
     consumers = reached - {target_name}
-    if any(name not in DIR2PKG for name in consumers):
+    if any(name not in directory_map for name in consumers):
         return None
-    packages = {DIR2PKG[name] for name in consumers}
-    if target_name in DIR2PKG:
-        packages.add(DIR2PKG[target_name])
+    packages = {directory_map[name] for name in consumers}
+    if target_name in directory_map:
+        packages.add(directory_map[target_name])
+    return packages or None
+
+
+def direct_packages_for_target(target_name, package_dump, directory_map):
+    """Returns the changed target's owner, or the nearest owners of an unowned shared target.
+
+    Temporary development CI intentionally stops at the first mapped consumer instead of walking
+    through that package to every transitive dependent. Full-readiness CI uses
+    ``packages_for_target`` and retains the complete reverse dependency closure.
+    """
+    if target_name in directory_map:
+        return {directory_map[target_name]}
+    targets = {target["name"]: target for target in package_dump.get("targets", [])}
+    if target_name not in targets:
+        return None
+    reverse = {}
+    for name, target in targets.items():
+        for dependency in target_dependencies(target):
+            reverse.setdefault(dependency, set()).add(name)
+    packages, reached, pending = set(), {target_name}, [target_name]
+    while pending:
+        current = pending.pop()
+        for dependent in reverse.get(current, set()):
+            if dependent in directory_map:
+                packages.add(directory_map[dependent])
+            elif dependent not in reached:
+                reached.add(dependent)
+                pending.append(dependent)
     return packages or None
 
 
@@ -419,14 +451,35 @@ def main():
         return
     changed = read_changed(args.changed_files)
     development_scoped = args.development_scope is not None
+    if development_scoped:
+        # This is the temporary global-file override: retain direct source/test target changes and
+        # ignore shared manifest, workflow, script, UI-project, and all-package test-plan fan-out.
+        changed = [
+            path
+            for path in changed
+            if path.startswith(("Sources/", "Tests/"))
+            and path != UI_TEST_PROJECTS_PATH
+            and not path.startswith("Tests/TestPlans/")
+        ]
     run_all = False
     run_fhir_conformance = development_scoped
     affected = set(DEVELOPMENT_SCOPES.get(args.development_scope, set())) & set(PKGS)
-    fhir_components = {args.development_scope} if development_scoped else set()
+    fhir_components = (
+        set(ALL_FHIR_COMPONENTS)
+        if args.development_scope == "fhir"
+        else ({args.development_scope} if development_scoped else set())
+    )
     shared_fhir_change = False
     # The manifest graph resolves source changes to the packages that actually consume them.
     head_dump = load_json(args.head_package_dump) if args.head_package_dump else None
-    for path in [] if development_scoped else changed:
+    base_dump = load_json(args.base_package_dump) if args.base_package_dump else None
+    development_directory_map = dict(DIR2PKG)
+    if development_scoped and args.base_packages:
+        # Deleted targets no longer occur in the head map. Retain their former package ownership so
+        # removing a target still schedules the package that owned it at the PR base.
+        for directory, package in directory_to_package(load_toml(args.base_packages)).items():
+            development_directory_map.setdefault(directory, package)
+    for path in changed:
         if path in FHIR_VALIDATION_PATHS:
             affected.update(FHIR_PACKAGES & set(PKGS))
             run_fhir_conformance = True
@@ -527,9 +580,36 @@ def main():
         if len(parts) >= 2 and parts[0] in ("Sources", "Tests"):
             if parts[0] == "Sources" and any(part.endswith(".docc") for part in parts):
                 continue
-            # Resolve through the manifest graph so a shared target schedules its consumers and
-            # nothing else. Without a graph, fall back to the directory's own package.
-            packages = packages_for_target(parts[1], head_dump) if head_dump else None
+            # Temporary development scopes intentionally test direct target owners rather than
+            # every transitive consumer. The full-readiness run restores the complete graph before
+            # merge. Ordinary CI continues to resolve shared targets through the manifest graph.
+            if development_scoped:
+                owner = development_directory_map.get(parts[1])
+                if owner is not None:
+                    packages = {owner}
+                else:
+                    packages = (
+                        direct_packages_for_target(
+                            parts[1],
+                            head_dump,
+                            development_directory_map,
+                        )
+                        if head_dump
+                        else None
+                    )
+                    if packages is None and base_dump:
+                        packages = direct_packages_for_target(
+                            parts[1],
+                            base_dump,
+                            development_directory_map,
+                        )
+                if packages is None:
+                    sys.exit(
+                        "error: temporary development scope cannot classify changed target "
+                        f"{parts[1]!r}; add it to packages.toml"
+                    )
+            else:
+                packages = packages_for_target(parts[1], head_dump) if head_dump else None
             if packages is None:
                 owner = DIR2PKG.get(parts[1])
                 if owner is None:
@@ -569,7 +649,7 @@ def main():
                 unit.append({"package": pkg, "platform": platform,
                              "selfHosted": ("unit" in self_hosted) and platform != "Linux",
                              "selfHostedLabels": self_hosted_labels})
-        for platform in [] if development_scoped else info.get("uiTests", []):  # UI tests: per-project platforms from packages.toml
+        for platform in info.get("uiTests", []):  # UI tests: per-project platforms from packages.toml
             if platform not in UI_PLATFORMS:
                 continue
             ui.append({"package": pkg, "platform": platform, "selfHosted": "ui" in self_hosted,
@@ -587,6 +667,7 @@ def main():
     sys.stdout.write("\n".join(lines) + "\n")
     sys.stderr.write(
         f"[affected-test-matrix] run_all={run_all} full_readiness={args.full_readiness} "
+        f"development_scope={args.development_scope} "
         f"affected={sorted(affected)} unit_jobs={len(unit)} ui_jobs={len(ui)} "
         f"fhir_components={sorted(fhir_components)}\n"
     )

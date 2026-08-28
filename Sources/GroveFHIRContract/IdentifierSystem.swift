@@ -52,9 +52,9 @@ public struct BusinessIdentifier: Hashable, Sendable {
 
     /// Accepts a namespace that is still text — a generated constant or a deployment setting.
     ///
-    /// - Warning: Prefer ``init(system:value:)-(IdentifierSystem,_)``. This overload re-parses the
-    ///   namespace on every call and reports a malformed one here rather than where it was
-    ///   configured.
+    /// - Warning: Prefer the overload whose `system` parameter is an ``IdentifierSystem``. This
+    ///   overload re-parses the namespace on every call and reports a malformed one here rather
+    ///   than where it was configured.
     @_disfavoredOverload
     public init(
         system: String,

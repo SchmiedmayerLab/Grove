@@ -449,16 +449,30 @@ extension HealthKitConverter {
     }
 
     static func healthKitTimeZone(for sample: HKSample) throws -> TimeZone {
-        guard let identifier = sample.metadata?[HKMetadataKeyTimeZone] as? String else {
-            return .gmt
-        }
-        guard let timeZone = TimeZone(identifier: identifier) else {
+        try healthKitTimeZone(metadata: sample.metadata ?? [:])
+    }
+
+    static func healthKitTimeZone(metadata: [String: Any]) throws -> TimeZone {
+        switch metadata[HKMetadataKeyTimeZone] {
+        case nil:
+            guard let utc = TimeZone(secondsFromGMT: 0) else {
+                preconditionFailure("Foundation must provide a zero-offset time zone.")
+            }
+            return utc
+        case let identifier as String:
+            guard let timeZone = TimeZone(identifier: identifier) else {
+                throw HealthKitConversionError.unsupportedMetadataValue(
+                    key: HKMetadataKeyTimeZone,
+                    value: identifier
+                )
+            }
+            return timeZone
+        case let value?:
             throw HealthKitConversionError.unsupportedMetadataValue(
                 key: HKMetadataKeyTimeZone,
-                value: identifier
+                value: String(describing: value)
             )
         }
-        return timeZone
     }
 }
 

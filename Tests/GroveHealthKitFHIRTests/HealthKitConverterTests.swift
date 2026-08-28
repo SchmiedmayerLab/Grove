@@ -830,6 +830,29 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
+    func healthKitTimeZoneMetadataIsTypedAndFailClosed() throws {
+        let missing = try HealthKitConverter.healthKitTimeZone(metadata: [:])
+        #expect(missing.secondsFromGMT(for: timestamp) == 0)
+
+        let identifier = "America/Los_Angeles"
+        let explicit = try HealthKitConverter.healthKitTimeZone(metadata: [HKMetadataKeyTimeZone: identifier])
+        #expect(explicit.identifier == identifier)
+
+        #expect(throws: HealthKitConversionError.unsupportedMetadataValue(
+            key: HKMetadataKeyTimeZone,
+            value: "Not/A-Time-Zone"
+        )) {
+            try HealthKitConverter.healthKitTimeZone(metadata: [HKMetadataKeyTimeZone: "Not/A-Time-Zone"])
+        }
+        #expect(throws: HealthKitConversionError.unsupportedMetadataValue(
+            key: HKMetadataKeyTimeZone,
+            value: "42"
+        )) {
+            try HealthKitConverter.healthKitTimeZone(metadata: [HKMetadataKeyTimeZone: 42])
+        }
+    }
+
+    @Test
     func glucoseConvertsWithoutSpecimenAndWithoutHealthConnectOnlyProfiles() throws {
         let sample = quantitySample(
             .bloodGlucose,

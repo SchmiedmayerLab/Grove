@@ -100,7 +100,9 @@ jobs:
             echo "ui_test_projects_changed=false" >> "$GITHUB_OUTPUT"
           fi
           echo "Changed files:"; cat changed.txt
-      - name: Evaluate package graphs
+      - name: Evaluate head package graph
+        run: swift package dump-package > "$RUNNER_TEMP/head-package.json"
+      - name: Evaluate base package graph and configuration
         if: steps.changes.outputs.manifest_changed == 'true' || steps.changes.outputs.packages_changed == 'true' || steps.changes.outputs.ui_test_projects_changed == 'true'
         env:
           BASE_SHA: ${{ steps.changes.outputs.base_sha }}
@@ -113,9 +115,6 @@ jobs:
           if [ -f "$BASE_WORKTREE/Tests/UITestProjects.toml" ]; then
             cp "$BASE_WORKTREE/Tests/UITestProjects.toml" "$RUNNER_TEMP/base-ui-test-projects.toml"
           fi
-          # The head graph resolves every source change to the packages that consume it, so it is
-          # produced for all runs, not only when the manifest itself changed.
-          swift package dump-package > "$RUNNER_TEMP/head-package.json"
           if [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
             swift package --package-path "$BASE_WORKTREE" dump-package > "$RUNNER_TEMP/base-package.json"
           fi
@@ -139,17 +138,16 @@ jobs:
           if [ "${{ inputs.fhir_only }}" = "true" ]; then
             ARGS+=(--fhir-only)
           fi
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.full_readiness }}" = "true" ]; then
+          if [ "${{ inputs.full_readiness }}" = "true" ]; then
             ARGS+=(--full-readiness)
-          fi
-          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ inputs.run_all }}" != "true" ] && [ -f .github/GROVE_FHIR_DEVELOPMENT_SCOPE ]; then
+          elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ inputs.run_all }}" != "true" ] && [ -f .github/GROVE_FHIR_DEVELOPMENT_SCOPE ]; then
             DEVELOPMENT_SCOPE="$(sed -n '1p' .github/GROVE_FHIR_DEVELOPMENT_SCOPE)"
             ARGS+=(--development-scope "$DEVELOPMENT_SCOPE")
-            echo "::warning::Temporary Grove FHIR development scope '$DEVELOPMENT_SCOPE' is active. Remove .github/GROVE_FHIR_DEVELOPMENT_SCOPE and run the full readiness workflow before merge."
+            echo "::warning::Temporary Grove FHIR development scope '$DEVELOPMENT_SCOPE' is active. Unit and UI tests are limited to FHIR packages plus directly changed target owners. Remove .github/GROVE_FHIR_DEVELOPMENT_SCOPE and run the full-readiness workflow before merge."
           # Self-hosted runner capacity is the constraint, so a ready pull request stays scoped to what it
           # changes. Set the FULL_READINESS_ON_PULL_REQUESTS variable once capacity allows the wider matrix.
           elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ inputs.run_all }}" != "true" ] \
-              && [ "${{ inputs.full_readiness || vars.FULL_READINESS_ON_PULL_REQUESTS }}" = "true" ]; then
+              && [ "${{ vars.FULL_READINESS_ON_PULL_REQUESTS }}" = "true" ]; then
             ARGS+=(--full-readiness)
           fi
           python3 Scripts/affected-test-matrix.py "${ARGS[@]}" >> "$GITHUB_OUTPUT"

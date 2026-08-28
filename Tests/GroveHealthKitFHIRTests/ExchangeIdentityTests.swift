@@ -388,9 +388,6 @@ extension GroveFHIRExchangeIdentityTests {
     }
 
     private func expectInvalidProtocolDecimalSpellings() {
-        #expect(throws: CanonicalDecimalError.invalidNonnegativeDecimal("01")) {
-            try CanonicalNonnegativeDecimal("01")
-        }
         #expect(throws: CanonicalDecimalError.invalidPositiveDecimal("0")) {
             try CanonicalPositiveDecimal("0")
         }
@@ -402,6 +399,42 @@ extension GroveFHIRExchangeIdentityTests {
                 value: "e2:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:01",
                 role: .event
             ))
+        }
+    }
+
+    @Test(
+        "Nonnegative protocol decimals accept every canonical boundary spelling",
+        arguments: ["0", "1", "18446744073709551616", "9999999999999999999999999999999999999999"]
+    )
+    func canonicalNonnegativeProtocolDecimal(_ rawValue: String) throws {
+        #expect(try CanonicalNonnegativeDecimal(rawValue).rawValue == rawValue)
+    }
+
+    @Test(
+        "Nonnegative protocol decimals reject every noncanonical spelling",
+        arguments: ["", "00", "01", "-1", "+1", "1.0", " 1", "1 ", "١"]
+    )
+    func noncanonicalProtocolDecimal(_ rawValue: String) {
+        #expect(throws: CanonicalDecimalError.invalidNonnegativeDecimal(rawValue)) {
+            try CanonicalNonnegativeDecimal(rawValue)
+        }
+    }
+
+    @Test(
+        "Positive protocol decimals accept every canonical boundary spelling",
+        arguments: ["1", "18446744073709551616", "9999999999999999999999999999999999999999"]
+    )
+    func canonicalPositiveProtocolDecimal(_ rawValue: String) throws {
+        #expect(try CanonicalPositiveDecimal(rawValue).rawValue == rawValue)
+    }
+
+    @Test(
+        "Positive protocol decimals reject zero and every noncanonical spelling",
+        arguments: ["", "0", "00", "01", "-1", "+1", "1.0", " 1", "1 ", "١"]
+    )
+    func noncanonicalPositiveProtocolDecimal(_ rawValue: String) {
+        #expect(throws: CanonicalDecimalError.invalidPositiveDecimal(rawValue)) {
+            try CanonicalPositiveDecimal(rawValue)
         }
     }
 }

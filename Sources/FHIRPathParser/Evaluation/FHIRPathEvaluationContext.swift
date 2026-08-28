@@ -21,17 +21,32 @@ public struct FHIRPathEvaluationContext: Sendable {
     public var constants: [String: [FHIRPathValue]]
     /// The instant used for `now()`/`today()`/`timeOfDay()`.
     ///
-    /// Defaults to the wall clock; pass a fixed instant to make an evaluation reproducible.
+    /// Callers must supply this explicitly; pass a fixed instant to make an evaluation reproducible.
     public var evaluationInstant: Date
     /// The explicit zone used to project `evaluationInstant` for `now()`, `today()`, and
     /// `timeOfDay()`. It is never inferred from the device.
     public var evaluationTimeZone: TimeZone
 
+    /// Creates an evaluation context that projects temporal functions in UTC.
+    public init(
+        focus: [FHIRPathValue] = [],
+        constants: [String: [FHIRPathValue]] = [:],
+        evaluationInstant: Date
+    ) {
+        self.init(
+            focus: focus,
+            constants: constants,
+            evaluationInstant: evaluationInstant,
+            evaluationTimeZone: FHIRPathCalendar.utc
+        )
+    }
+
+    /// Creates an evaluation context that projects temporal functions in an explicit time zone.
     public init(
         focus: [FHIRPathValue] = [],
         constants: [String: [FHIRPathValue]] = [:],
         evaluationInstant: Date,
-        evaluationTimeZone: TimeZone = .gmt
+        evaluationTimeZone: TimeZone
     ) {
         self.focus = focus
         self.constants = constants

@@ -201,7 +201,7 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
         self.assertEqual(result["fhir_components"], "(none)")
         self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
 
-    def test_healthkit_development_scope_suppresses_manifest_fanout_and_ui(self):
+    def test_healthkit_development_scope_suppresses_manifest_fanout(self):
         result = run_selector(
             "Package.swift",
             ".github/workflows/tests.yml",
@@ -211,7 +211,106 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
         self.assertEqual(result["affected"], "GroveHealthKitFHIR")
         self.assertEqual(result["has_fhir_conformance"], "true")
         self.assertEqual(result["fhir_components"], "healthkit")
-        self.assertEqual(result["has_ui_jobs"], "false")
+        self.assertEqual(result["has_ui_jobs"], "true")
+        self.assertEqual(
+            {(job["package"], job["platform"]) for job in json.loads(result["ui_matrix"])["include"]},
+            {("GroveHealthKitFHIR", "iOS")},
+        )
+
+    def test_fhir_development_scope_unions_fhir_and_direct_changes_with_their_ui(self):
+        result = run_selector(
+            "Package.swift",
+            ".github/workflows/tests.yml",
+            "Sources/GroveAccount/AccountNotifyConstraint.swift",
+            "Tests/GroveHealthKitFHIRTests/HealthKitConverterTests.swift",
+            extra_arguments=("--development-scope", "fhir"),
+        )
+
+        expected = (MODULE.FHIR_PACKAGES | {"GroveAccount"}) & set(MODULE.PKGS)
+        self.assertEqual(set(result["affected"].split(",")), expected)
+        self.assertEqual(
+            set(result["fhir_components"].split(",")),
+            MODULE.ALL_FHIR_COMPONENTS,
+        )
+        self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(result["has_ui_jobs"], "true")
+        ui_packages = {job["package"] for job in json.loads(result["ui_matrix"])["include"]}
+        self.assertLessEqual(ui_packages, expected)
+        self.assertTrue({"GroveAccount", "GroveHealthKitFHIR", "GroveQuestionnaire"} <= ui_packages)
+
+    def test_development_scope_rejects_unclassified_changed_target(self):
+        with self.assertRaisesRegex(SystemExit, "cannot classify changed target 'Unclassified'"):
+            run_selector(
+                "Sources/Unclassified/Thing.swift",
+                extra_arguments=("--development-scope", "fhir"),
+            )
+
+    def test_development_scope_keeps_direct_owner_without_transitive_fanout(self):
+        dump = package_dump([
+            target("GroveAccount"),
+            target("GroveStudy", ["GroveAccount"]),
+        ])
+        with tempfile.NamedTemporaryFile(mode="w") as head_dump:
+            json.dump(dump, head_dump)
+            head_dump.flush()
+            result = run_selector(
+                "Sources/GroveAccount/AccountNotifyConstraint.swift",
+                extra_arguments=(
+                    "--development-scope",
+                    "fhir",
+                    "--head-package-dump",
+                    head_dump.name,
+                ),
+            )
+
+        self.assertIn("GroveAccount", result["affected"].split(","))
+        self.assertNotIn("GroveStudy", result["affected"].split(","))
+
+    def test_development_scope_maps_shared_target_to_its_consuming_package(self):
+        dump = package_dump([
+            target("SharedMigrationTarget"),
+            target("UnownedAdapter", ["SharedMigrationTarget"]),
+            target("GroveAccount", ["UnownedAdapter"]),
+            target("GroveStudy", ["GroveAccount"]),
+        ])
+        with tempfile.NamedTemporaryFile(mode="w") as head_dump:
+            json.dump(dump, head_dump)
+            head_dump.flush()
+            result = run_selector(
+                "Sources/SharedMigrationTarget/Migration.swift",
+                extra_arguments=(
+                    "--development-scope",
+                    "fhir",
+                    "--head-package-dump",
+                    head_dump.name,
+                ),
+            )
+
+        self.assertIn("GroveAccount", result["affected"].split(","))
+        self.assertNotIn("GroveStudy", result["affected"].split(","))
+
+    def test_development_scope_uses_base_owner_for_deleted_target(self):
+        with tempfile.NamedTemporaryFile(mode="w") as base_packages:
+            base_packages.write(
+                """
+[GroveAccount]
+platforms = ["iOS"]
+targets = ["RemovedGroveAccountTarget"]
+tests = []
+"""
+            )
+            base_packages.flush()
+            result = run_selector(
+                "Sources/RemovedGroveAccountTarget/Removed.swift",
+                extra_arguments=(
+                    "--development-scope",
+                    "fhir",
+                    "--base-packages",
+                    base_packages.name,
+                ),
+            )
+
+        self.assertIn("GroveAccount", result["affected"].split(","))
 
     def test_development_scope_cannot_masquerade_as_full_readiness(self):
         with self.assertRaisesRegex(SystemExit, "cannot be combined"):
@@ -315,7 +414,11 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
 
         self.assertEqual(set(result["affected"].split(",")), {"GroveSensorKit", "GroveSensorKitFHIR"})
         self.assertEqual(result["has_fhir_conformance"], "true")
-        self.assertEqual(result["has_ui_jobs"], "false")
+        self.assertEqual(result["has_ui_jobs"], "true")
+        self.assertEqual(
+            {(job["package"], job["platform"]) for job in json.loads(result["ui_matrix"])["include"]},
+            {("GroveSensorKit", "iOS")},
+        )
 
 
 class InfrastructureSelectionTests(unittest.TestCase):

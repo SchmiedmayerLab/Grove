@@ -184,6 +184,20 @@ struct FHIRPathEvaluatorTests {
         #expect(try evaluate("today() - 18 years < @2010-01-01", context: context) == [.boolean(true)])
     }
 
+    @Test
+    func evaluationTimeZoneInitialization() throws {
+        let instant = Date(timeIntervalSince1970: 1_700_000_000)
+        let defaultContext = FHIRPathEvaluationContext(evaluationInstant: instant)
+        #expect(defaultContext.evaluationTimeZone.secondsFromGMT(for: instant) == 0)
+
+        let explicitTimeZone = try #require(TimeZone(identifier: "America/Los_Angeles"))
+        let explicitContext = FHIRPathEvaluationContext(
+            evaluationInstant: instant,
+            evaluationTimeZone: explicitTimeZone
+        )
+        #expect(explicitContext.evaluationTimeZone == explicitTimeZone)
+    }
+
     // MARK: Collections
 
     @Test

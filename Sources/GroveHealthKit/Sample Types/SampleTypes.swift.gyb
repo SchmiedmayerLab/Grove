@@ -111,19 +111,26 @@ extension ${hk_sampletype_class} {
     /// Stored here rather than in `SampleType` bc that type is generic and the static property would get re-computed on each access,
     /// which is expensive.
     % if hk_class == 'HKClinicalRecord':
+    #if os(watchOS)
     @available(watchOS, unavailable)
-    % end
     @usableFromInline
-    % if hk_class == 'HKClinicalRecord':
-    // SAFETY: Swift initializes this immutable static value once and `SampleType` is `Sendable`.
-    // The compiler cannot prove the generic conformance here because `HKClinicalRecord` is unavailable
-    // on watchOS. Remove this escape hatch once the compiler recognizes that conformance across availability.
-    nonisolated(unsafe)
-    % end
+    static var _allKnown${''.join(display_title_plural.split())}: Set<SampleType<${hk_class}>> {
+        preconditionFailure("Clinical records are unavailable on watchOS.")
+    }
+    #else
+    @available(watchOS, unavailable)
+    @usableFromInline
+    static let _allKnown${''.join(display_title_plural.split())}: Set<SampleType<${hk_class}>> = {
+        ${hk_sampletype_class}.allKnown${''.join(display_title_plural.split())}.compactMapIntoSet { $0.sampleType as? SampleType<${hk_class}> }
+    }()
+    #endif
+    % else:
+    @usableFromInline
     static let _allKnown${''.join(display_title_plural.split())}: Set<SampleType<${hk_class}>> = {
         % # TODO could also just have a giant literal here?!
         ${hk_sampletype_class}.allKnown${''.join(display_title_plural.split())}.compactMapIntoSet { $0.sampleType as? SampleType<${hk_class}> }
     }()
+    % end
 }
 
 % if is_availability_restricted(SAMPLE_TYPE_AVAILABILITY):
