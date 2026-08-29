@@ -58,7 +58,7 @@ public actor MyAccountService: AccountService {
         // delete account details ...
 
         // emitting the event is mandatory
-        try await notifications.reportEvent(.deletingAccount(details.accountId))
+        try await notifications.reportEvent(.willDelete(details.accountId))
 
         await account.removeUserDetails()
     }
