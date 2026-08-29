@@ -85,7 +85,7 @@ public final class AccountNotifications: Module, DefaultInitializable, Environme
     /// Report an event to the account subsystem.
     ///
     /// This method is used by an ``AccountService`` to report an event.
-    /// - Note: The ``Event/deletingAccount(_:)`` is the only event that an ``AccountService`` has to manually report to the Account module.
+    /// - Note: The ``Event/willDelete(_:)`` is the only event that an ``AccountService`` has to manually report to the Account module.
     /// - Parameter event: The event that occurred.
     @MainActor
     public func reportEvent(_ event: Event) async throws {
