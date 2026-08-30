@@ -340,6 +340,9 @@ extension LocalPreferenceKeys {
     /// - ``app``
     /// - ``bundle(_:)``
     /// - ``custom(_:)``
+    ///
+    /// ### Instance Methods
+    /// - ``nested(_:)``
     public struct Namespace: Equatable, Sendable {
         /// The namespace's path. Empty if this is the global namespace.
         @usableFromInline let path: [String]
@@ -372,6 +375,9 @@ extension LocalPreferenceKeys {
         }
         
         /// Creates a nested namespace, by appending an inner namespace to the current one.
+        ///
+        /// - Note: Bulk-removing a namespace (via ``LocalPreferencesStore/removeAllEntries(in:)``
+        ///     will also remove all entries belonging to nested namespaces within the outer one.
         public func nested(_ innerName: String) -> Namespace {
             Namespace(path: path + [innerName])
         }
