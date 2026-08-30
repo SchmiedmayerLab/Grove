@@ -52,6 +52,16 @@ extension HealthKitCatalog {
                 )
             )
         }
+        // Blood pressure is a panel, so its component unit does not appear in the scalar
+        // quantity bindings above even though the adapter consumes and emits it.
+        let bloodPressure = HealthKitUnitBinding(
+            ucumCode: "mm[Hg]",
+            displayUnit: "mmHg",
+            unit: .millimeterOfMercury()
+        )
+        if seen.insert("\(bloodPressure.ucumCode)\u{0}\(bloodPressure.displayUnit)").inserted {
+            bindings.append(bloodPressure)
+        }
         return bindings
     }()
 
