@@ -18,11 +18,15 @@ private actor TestStandard: Standard, HealthKitConstraint {
     func handleNewSamples<Sample>(
         _ addedSamples: some Collection<Sample>,
         ofType sampleType: SampleType<Sample>
-    ) async {}
+    ) async -> HealthKitAnchorCommitAction? {
+        nil
+    }
     func handleDeletedObjects<Sample>(
         _ deletedObjects: some Collection<HKDeletedObject>,
         ofType sampleType: SampleType<Sample>
-    ) async {}
+    ) async -> HealthKitAnchorCommitAction? {
+        nil
+    }
 }
 
 extension GroveHealthKitTests {
