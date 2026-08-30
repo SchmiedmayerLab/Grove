@@ -28,7 +28,7 @@ An `AccountService` implements account operations and notifies the ``Account`` m
 The code example below demonstrates the minimal protocol requirements of an `AccountService`.
 It is an empty `AccountService` that currently doesn't support setting up accounts.
 
-> Warning: An `AccountService` must emit the ``AccountNotifications/Event/deletingAccount(_:)`` notification to allow
+> Warning: An `AccountService` must emit the ``AccountNotifications/Event/willDelete(_:)`` notification to allow
     other components to perform cleanup of associated account data.
 
 ```swift
@@ -58,7 +58,7 @@ public actor MyAccountService: AccountService {
         // delete account details ...
 
         // emitting the event is mandatory
-        try await notifications.reportEvent(.deletingAccount(details.accountId))
+        try await notifications.reportEvent(.willDelete(details.accountId))
 
         await account.removeUserDetails()
     }
