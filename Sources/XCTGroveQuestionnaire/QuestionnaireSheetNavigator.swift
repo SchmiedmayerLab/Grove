@@ -135,7 +135,7 @@ public struct QuestionnaireSheetNavigator {
 
 extension QuestionnaireSheetNavigator {
     /// The navigation stack that owns the complete questionnaire run.
-    private var questionnaireRoot: XCUIElement {
+    var questionnaireRoot: XCUIElement {
         app.descendants(matching: .any).matching(identifier: "GroveQuestionnaireNavStack").firstMatch
     }
 
@@ -145,6 +145,15 @@ extension QuestionnaireSheetNavigator {
     /// deliberately matches any element type.
     public var section: XCUIElement {
         app.descendants(matching: .any).matching(identifier: "GroveQuestionnaireSection").firstMatch
+    }
+
+    /// The element that scrolls the current page.
+    ///
+    /// SwiftUI can omit a `Form`'s accessibility identifier when the form is the sole page in its
+    /// navigation stack. The stack remains a collection view in that case and provides the same
+    /// scrolling surface.
+    var scrollablePage: XCUIElement {
+        section.exists ? section : questionnaireRoot
     }
 
     /// Whether any page of the questionnaire — a section, or the completion page — is on screen.
@@ -194,12 +203,12 @@ extension QuestionnaireSheetNavigator {
     /// Choice options are buttons rather than text, so they are not in here; ask the question
     /// they belong to about those.
     public var visibleText: [String] {
-        section.staticTexts.allElementsBoundByIndex.map(\.label)
+        scrollablePage.staticTexts.allElementsBoundByIndex.map(\.label)
     }
 
     /// Whether `text` appears anywhere on the page, above or below the fold.
     public func showsText(_ text: String) -> Bool {
-        scan { section.staticTexts.matching(label: text).firstMatch.exists }
+        scan { scrollablePage.staticTexts.matching(label: text).firstMatch.exists }
     }
 
     /// Whether the navigation bar carries `text`, as the page's title or as its subtitle.

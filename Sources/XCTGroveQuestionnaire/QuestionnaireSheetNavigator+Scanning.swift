@@ -39,7 +39,7 @@ extension QuestionnaireSheetNavigator {
         guard element.isHittable else {
             return false
         }
-        let page = section.frame
+        let page = scrollablePage.frame
         let underneath = navigationBar.exists ? navigationBar.frame.maxY : page.minY
         // A tap lands in the middle of what it is aimed at, so that is what has to be in the clear.
         return element.frame.midY >= underneath && element.frame.midY <= page.maxY
@@ -52,7 +52,7 @@ extension QuestionnaireSheetNavigator {
     private func scroll(_ swipe: (XCUIElement) -> Void, lookingFor isFound: () -> Bool) -> Bool {
         var lastSeen = visibleText
         for _ in 0..<Self.maximumScanSwipes {
-            let page = section
+            let page = scrollablePage
             guard page.exists else {
                 return false
             }
