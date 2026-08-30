@@ -230,7 +230,7 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
             anchor: &anchor,
             predicate: predicate
         )
-        try await handleQueryResult(added: added, deleted: deleted)
+        let commitActions = try await handleQueryResult(added: added, deleted: deleted)
         guard try healthKit.queryAnchors.compareExchange(
             expected: persistedAnchor,
             desired: anchor,
@@ -239,6 +239,9 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
             // Another callback committed from the same cursor while this actor was suspended.
             // Retrying is safe because the consumer must stage exact duplicates idempotently.
             throw AnchorCommitError.staleAnchor
+        }
+        for action in commitActions {
+            await action()
         }
     }
 
@@ -274,7 +277,10 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
                         guard isActive, !Task.isCancelled else {
                             return
                         }
-                        try await handleQueryResult(added: update.addedSamples, deleted: update.deletedObjects)
+                        let commitActions = try await handleQueryResult(
+                            added: update.addedSamples,
+                            deleted: update.deletedObjects
+                        )
                         let newAnchor = QueryAnchor(update.newAnchor)
                         guard try healthKit.queryAnchors.compareExchange(
                             expected: expectedAnchor,
@@ -282,6 +288,9 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
                             for: sampleType
                         ) else {
                             throw AnchorCommitError.staleAnchor
+                        }
+                        for action in commitActions {
+                            await action()
                         }
                         expectedAnchor = newAnchor
                         retryDelay = .seconds(1)
@@ -309,16 +318,22 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
     private func handleQueryResult(
         added: some Collection<Sample> & Sendable,
         deleted: some Collection<HKDeletedObject> & Sendable
-    ) async throws {
+    ) async throws -> [HealthKitAnchorCommitAction] {
+        var commitActions: [HealthKitAnchorCommitAction] = []
         if !added.isEmpty {
-            try await standard.handleNewSamples(added, ofType: sampleType)
+            if let action = try await standard.handleNewSamples(added, ofType: sampleType) {
+                commitActions.append(action)
+            }
         }
         // An anchored delta may contain a sample that was both created and deleted between
         // checkpoints. Stage additions first so the deletion can atomically elide/tombstone the
         // never-published graph; the anchor still advances only after both callbacks succeed.
         if !deleted.isEmpty {
-            try await standard.handleDeletedObjects(deleted, ofType: sampleType)
+            if let action = try await standard.handleDeletedObjects(deleted, ofType: sampleType) {
+                commitActions.append(action)
+            }
         }
+        return commitActions
     }
 }
 

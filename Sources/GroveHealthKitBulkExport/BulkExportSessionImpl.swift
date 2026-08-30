@@ -37,9 +37,7 @@ final class BulkExportSessionImpl<Processor: BatchProcessor>: Sendable, BulkExpo
     
     @MainActor private var descriptor: ExportSessionDescriptor {
         didSet {
-            if state != .terminated {
-                persistDescriptor(descriptor)
-            }
+            persistDescriptor(descriptor)
         }
     }
     
@@ -171,6 +169,7 @@ extension BulkExportSessionImpl {
             pendingStateChangeRequest = .paused
             task.cancel()
             _ = await task.result
+            await persistDescriptor.flush()
         }
     }
     
@@ -182,11 +181,12 @@ extension BulkExportSessionImpl {
         }
         guard let task else {
             state = .terminated
+            await persistDescriptor.flush()
             return
         }
         switch state {
         case .terminated, .completed:
-            return
+            break
         case .paused:
             state = .terminated
         case .running:
@@ -194,6 +194,43 @@ extension BulkExportSessionImpl {
             task.cancel()
             _ = await task.result
         }
+        await persistDescriptor.flush()
+    }
+
+
+    @MainActor
+    private func record(_ batch: ExportBatch, result: Result<Void, any Error>) -> Task<Void, any Error> {
+        descriptor.record(batch, result: result)
+        return persistDescriptor.checkpoint()
+    }
+
+
+    @MainActor
+    private func markPersistenceFailure(for batch: ExportBatch, error: any Error) -> Task<Void, any Error> {
+        descriptor.markPersistenceFailure(for: batch, error: error)
+        return persistDescriptor.checkpoint()
+    }
+
+
+    @concurrent
+    private func publish(
+        _ result: Processor.Output,
+        for batch: ExportBatch,
+        to continuation: AsyncStream<Processor.Output>.Continuation
+    ) async {
+        let persistence = await record(batch, result: .success(()))
+        do {
+            try await persistence.value
+        } catch {
+            bulkExporter.logger.error(
+                "Processed batch \(String(describing: batch)), but failed to persist its completion: \(String(describing: error)). Will schedule it for retry."
+            )
+            let rollbackPersistence = await markPersistenceFailure(for: batch, error: error)
+            _ = await rollbackPersistence.result
+            return
+        }
+        continuation.yield(result)
+        await batchProcessor.didPersist(result)
     }
     
     
@@ -203,28 +240,6 @@ extension BulkExportSessionImpl {
         batchResultsContinuation: AsyncStream<Processor.Output>.Continuation
     ) async {
         let logger = self.bulkExporter.logger
-        let popBatch = { @MainActor @Sendable (batch: ExportBatch, result: Result<Void, any Error>) in
-            var batch = batch
-            if let batchIdx = self.descriptor.pendingBatches.firstIndex(of: batch) {
-                self.descriptor.pendingBatches.remove(at: batchIdx)
-            } else {
-                preconditionFailure("Unable to find to-be-removed batch")
-            }
-            switch result {
-            case .success:
-                batch.result = .success
-                self.descriptor.completedBatches.append(batch)
-            case .failure(let error):
-                if error is CancellationError {
-                    // If this is a CancellationError, the batch didn't actually fail, but simply got cancelled.
-                    batch.result = nil
-                    self.descriptor.pendingBatches.insert(batch, at: 0)
-                } else {
-                    batch.result = .failure(errorDescription: error.localizedDescription)
-                    self.descriptor.pendingBatches.append(batch)
-                }
-            }
-        }
         
         /// processes a single batch
         ///
@@ -252,56 +267,45 @@ extension BulkExportSessionImpl {
                             "Failed to query and process batch \(String(describing: batch)): \(String(describing: error)). Will schedule for retry on next app launch."
                         )
                     }
-                    await popBatch(batch, .failure(error.underlyingError))
+                    let persistence = await self.record(batch, result: .failure(error.underlyingError))
+                    _ = await persistence.result
                     return
                 } catch {
                     // SAFETY: this is in fact unreachable: the `queryAndProcess` call above has a typed throw, but the compiler doesn't seem to understand this.
                     fatalError("unreachable")
                 }
-                batchResultsContinuation.yield(result)
-                await popBatch(batch, .success(()))
+                await self.publish(result, for: batch, to: batchResultsContinuation)
             }
         }
         
         let isDone = { @MainActor @Sendable in
-            self.task = nil
-            if !(self.state == .paused || self.state == .terminated) {
-                // if we end up in here (ie, outside of the while loop), and we haven't manually paused or terminated the session,
-                // it reached its end normally and we simply want to complete it.
-                self.state = .completed
+            switch self.pendingStateChangeRequest {
+            case .paused:
+                self.state = .paused
+            case .terminated:
+                self.state = .terminated
+            case nil:
+                if !(self.state == .paused || self.state == .terminated) {
+                    self.state = .completed
+                }
             }
+            self.pendingStateChangeRequest = nil
+            self.task = nil
             batchResultsContinuation.finish()
         }
         
-        await withTaskCancellationHandler {
-            await withManagedTaskQueue(limit: concurrencyLevel.effectiveLimit) { taskQueue in
-                let batches = await self.descriptor.pendingBatches
-                for batch in batches where batch.result == nil {
-                    taskQueue.addTask {
-                        guard !Task.isCancelled else {
-                            return
-                        }
-                        await handleBatch(batch)
+        await withManagedTaskQueue(limit: concurrencyLevel.effectiveLimit) { taskQueue in
+            let batches = await self.descriptor.pendingBatches
+            for batch in batches where batch.result == nil {
+                taskQueue.addTask {
+                    guard !Task.isCancelled else {
+                        return
                     }
-                }
-            }
-            await isDone()
-        } onCancel: {
-            Task {
-                await MainActor.run {
-                    switch self.pendingStateChangeRequest {
-                    case nil:
-                        break
-                    case .paused:
-                        self.state = .paused
-                    case .terminated:
-                        self.state = .terminated
-                    }
-                    self.pendingStateChangeRequest = nil
-                    isDone()
+                    await handleBatch(batch)
                 }
             }
         }
+        await isDone()
     }
 }
 
@@ -309,37 +313,53 @@ extension BulkExportSessionImpl {
 // MARK: Helpers
 
 @available(iOS 18, macOS 15, watchOS 11, *)
-private final class SessionDescriptorPersisting: Sendable {
+/* private-but-tests */ final class SessionDescriptorPersisting: Sendable {
     @globalActor
     private actor PersistSessionStateActor {
         static let shared = PersistSessionStateActor()
     }
     
-    private let localStorage: LocalStorage
-    private let storageKey: LocalStorageKey<ExportSessionDescriptor>
+    private let storeDescriptor: @Sendable (ExportSessionDescriptor) throws -> Void
     private let persistTask = Mutex<Task<Void, any Error>?>(nil)
     
     init(localStorage: LocalStorage, storageKey: LocalStorageKey<ExportSessionDescriptor>) {
-        self.localStorage = localStorage
-        self.storageKey = storageKey
-    }
-    
-    func callAsFunction(_ descriptor: ExportSessionDescriptor) {
-        Task { @concurrent in
-            await persistDescriptor(descriptor)
+        self.storeDescriptor = { descriptor in
+            try localStorage.store(descriptor, for: storageKey)
         }
     }
+
+    init(storeDescriptor: @escaping @Sendable (ExportSessionDescriptor) throws -> Void) {
+        self.storeDescriptor = storeDescriptor
+    }
     
-    @concurrent
-    private func persistDescriptor(_ descriptor: ExportSessionDescriptor) async {
+    @discardableResult
+    func callAsFunction(_ descriptor: ExportSessionDescriptor) -> Task<Void, any Error> {
         persistTask.withLock { persistTask in
-            persistTask?.cancel()
-            persistTask = Task { @PersistSessionStateActor in
-                guard !Task.isCancelled else {
-                    return
+            let previousTask = persistTask
+            let nextTask = Task { @PersistSessionStateActor in
+                if let previousTask {
+                    _ = try? await previousTask.value
                 }
-                try? localStorage.store(descriptor, for: storageKey)
+                try storeDescriptor(descriptor)
             }
+            persistTask = nextTask
+            return nextTask
+        }
+    }
+
+    func checkpoint() -> Task<Void, any Error> {
+        persistTask.withLock { persistTask in
+            guard let persistTask else {
+                preconditionFailure("A descriptor mutation did not schedule persistence")
+            }
+            return persistTask
+        }
+    }
+
+    func flush() async {
+        let task = persistTask.withLock { $0 }
+        if let task {
+            _ = await task.result
         }
     }
 }

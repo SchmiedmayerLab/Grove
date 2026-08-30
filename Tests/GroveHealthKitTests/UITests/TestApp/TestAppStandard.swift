@@ -6,10 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-import HealthKit
 import Grove
 import GroveHealthKit
 import GroveHealthKitBulkExport
+import HealthKit
 
 
 /// An example Standard used for the configuration.
@@ -39,18 +39,20 @@ actor TestAppStandard: Standard, HealthKitConstraint {
     func handleNewSamples<Sample>(
         _ addedSamples: some Collection<Sample>,
         ofType sampleType: SampleType<Sample>
-    ) async {
+    ) async -> HealthKitAnchorCommitAction? {
         for sample in addedSamples {
             await fakeHealthStore.add(sample)
         }
+        return nil
     }
     
     func handleDeletedObjects<Sample>(
         _ deletedObjects: some Collection<HKDeletedObject>,
         ofType sampleType: SampleType<Sample>
-    ) async {
+    ) async -> HealthKitAnchorCommitAction? {
         for object in deletedObjects {
             await fakeHealthStore.remove(object)
         }
+        return nil
     }
 }

@@ -79,16 +79,18 @@ actor ExampleStandard: Standard, HealthKitConstraint {
     func handleNewSamples<Sample>(
         _ addedSamples: some Collection<Sample>,
         ofType sampleType: SampleType<Sample>
-    ) async {
+    ) async -> HealthKitAnchorCommitAction? {
         // ...
+        return nil
     }
 
     // Remove the deleted HealthKit objects from your application.
     func handleDeletedObjects<Sample>(
         _ deletedObjects: some Collection<HKDeletedObject>,
         ofType sampleType: SampleType<Sample>
-    ) async {
+    ) async -> HealthKitAnchorCommitAction? {
         // ...
+        return nil
     }
 }
 ```
