@@ -67,6 +67,11 @@ public enum QuestionnaireExchangeProjection {
             questionnaire: questionnaire,
             response: response
         ).extract()
+        // An exchange event must carry at least one source output; an unmarked instrument
+        // refuses here, before any identity is minted.
+        guard !extracted.isEmpty else {
+            throw ObservationExtractionError.noExtractableMeasurements
+        }
         let frame = try GraphFrame(response: response, context: context)
         var entries = try frame.supportEntries()
         var observationURLs: [String] = []
