@@ -9,7 +9,11 @@
 // The exact typed constructors form one auditable protocol surface.
 // swiftlint:disable function_parameter_count type_body_length
 
+#if canImport(CryptoKit)
 import CryptoKit
+#else
+import Crypto
+#endif
 public import Foundation
 
 

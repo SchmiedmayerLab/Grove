@@ -1,0 +1,121 @@
+{
+  "resourceType": "QuestionnaireResponse",
+  "id": "GroveHomeVitalsResponseExample",
+  "meta": {
+    "profile": [
+      "https://grovealliance.org/fhir/questionnaire/StructureDefinition/grove-questionnaire-response"
+    ]
+  },
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/StructureDefinition/questionnaireresponse-completionMode",
+      "valueCodeableConcept": {
+        "coding": [
+          {
+            "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationMode",
+            "code": "ELECTRONIC"
+          }
+        ]
+      }
+    },
+    {
+      "extension": [
+        {
+          "url": "applicationIdentifier",
+          "valueIdentifier": {
+            "system": "https://study.example.org/fhir/NamingSystem/application",
+            "value": "org.grovealliance.example.client"
+          }
+        },
+        {
+          "url": "applicationName",
+          "valueString": "Grove Questionnaire Client"
+        },
+        {
+          "url": "applicationVersion",
+          "valueString": "1.4.0"
+        },
+        {
+          "url": "applicationBuild",
+          "valueString": "1402"
+        },
+        {
+          "url": "hostModel",
+          "valueString": "iPhone17,1"
+        },
+        {
+          "url": "hostOperatingSystemVersion",
+          "valueString": "26.0"
+        }
+      ],
+      "url": "https://grovealliance.org/fhir/questionnaire/StructureDefinition/grove-questionnaire-writer-context"
+    }
+  ],
+  "identifier": {
+    "system": "https://study.example.org/fhir/NamingSystem/questionnaire-response",
+    "value": "home-vitals-2026-08-28"
+  },
+  "questionnaire": "https://grovealliance.org/fhir/questionnaire/Questionnaire/GroveHomeVitalsExample|1.0.0",
+  "status": "completed",
+  "subject": {
+    "reference": "Patient/GroveQuestionnairePatientExample"
+  },
+  "author": {
+    "reference": "Patient/GroveQuestionnairePatientExample"
+  },
+  "authored": "2026-08-28T08:32:00-07:00",
+  "item": [
+    {
+      "linkId": "body-weight",
+      "answer": [
+        {
+          "valueQuantity": {
+            "value": 72.5,
+            "unit": "kg",
+            "system": "http://unitsofmeasure.org",
+            "code": "kg"
+          }
+        }
+      ]
+    },
+    {
+      "linkId": "blood-pressure",
+      "item": [
+        {
+          "linkId": "systolic",
+          "answer": [
+            {
+              "valueQuantity": {
+                "value": 118,
+                "unit": "mmHg",
+                "system": "http://unitsofmeasure.org",
+                "code": "mm[Hg]"
+              }
+            }
+          ]
+        },
+        {
+          "linkId": "diastolic",
+          "answer": [
+            {
+              "valueQuantity": {
+                "value": 76,
+                "unit": "mmHg",
+                "system": "http://unitsofmeasure.org",
+                "code": "mm[Hg]"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "linkId": "step-count",
+      "answer": [
+        {
+          "valueInteger": 8432
+        }
+      ]
+    }
+  ]
+}

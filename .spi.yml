@@ -56,6 +56,7 @@ builder:
         - XCTGroveNotificationsUI
         - GroveOnboarding
         - GroveQuestionnaire
+        - GroveQuestionnaireExtraction
         - GroveQuestionnaireCatalog
         - GroveQuestionnaireFHIR
         - GroveQuestionnaireLegacy

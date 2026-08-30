@@ -10,7 +10,11 @@
 // mirrors RFC 4122 groups for direct audit against the generated identity vectors.
 // swiftlint:disable type_contents_order multiline_literal_brackets
 
+#if canImport(CryptoKit)
 import CryptoKit
+#else
+import Crypto
+#endif
 public import Foundation
 public import ModelsR4
 
