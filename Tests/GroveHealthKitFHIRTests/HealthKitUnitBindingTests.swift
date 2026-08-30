@@ -27,6 +27,7 @@ struct HealthKitUnitBindingTests {
         #expect(HealthKitCatalog.unit(forUCUMCode: "{steps}") == .count())
         #expect(HealthKitCatalog.unit(forUCUMCode: "/min") == HKUnit.count() / .minute())
         #expect(HealthKitCatalog.unit(forUCUMCode: "kcal") == .kilocalorie())
+        #expect(HealthKitCatalog.unit(forUCUMCode: "mm[Hg]") == .millimeterOfMercury())
     }
 
     /// Several measurements share one UCUM code while naming it differently for display, and a
