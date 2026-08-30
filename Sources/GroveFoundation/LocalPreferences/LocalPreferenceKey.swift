@@ -341,7 +341,8 @@ extension LocalPreferenceKeys {
     /// - ``bundle(_:)``
     /// - ``custom(_:)``
     public struct Namespace: Equatable, Sendable {
-        @usableFromInline let value: String
+        /// The namespace's path. Empty if this is the global namespace.
+        @usableFromInline let path: [String]
         
         /// Checks if this is the global namespace.
         ///
@@ -354,17 +355,13 @@ extension LocalPreferenceKeys {
         }
         
         @inlinable
-        init(value: String) {
-            self.value = value
+        init(path: [String]) {
+            self.path = path
         }
         
         @inlinable
         func format(keyName: String, applyKVOCompatibilityFixes: Bool) -> String {
-            let fullKey = if isGlobal {
-                keyName
-            } else {
-                "\(value):\(keyName)"
-            }
+            let fullKey = (path + [keyName]).joined(separator: ":")
             return if applyKVOCompatibilityFixes {
                 // We want to be able to observe these entries via KVO, which doesn't work if they appear to be keyPaths,
                 // therefore we replace all '.' with '_'.
@@ -372,6 +369,11 @@ extension LocalPreferenceKeys {
             } else {
                 fullKey
             }
+        }
+        
+        /// Creates a nested namespace, by appending an inner namespace to the current one.
+        public func nested(_ innerName: String) -> Namespace {
+            Namespace(path: path + [innerName])
         }
     }
 }
@@ -385,7 +387,7 @@ extension LocalPreferenceKeys.Namespace {
     
     /// A special namespace that causes local preference values be written at the global scope.
     @inlinable public static var none: Self {
-        .custom("")
+        .init(path: [])
     }
     
     /// Creates a namespace that scopes keys based on a bundle id.
@@ -396,12 +398,12 @@ extension LocalPreferenceKeys.Namespace {
         guard let bundleId = bundle.bundleIdentifier else {
             return .none
         }
-        return Self(value: bundleId)
+        return Self(path: [bundleId])
     }
     
     /// Creates a namespace that scopes keys based on a custom string.
     @inlinable
     public static func custom(_ value: String) -> Self {
-        Self(value: value)
+        Self(path: [value])
     }
 }
