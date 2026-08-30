@@ -48,15 +48,18 @@ struct GroveSensorKitRecordingSummaryTests {
     }
 
     private static func accelerometerRecord(format: RegisteredRecordingFormat = .triaxialAccelerationSamples) throws -> SensorKitAccelerometerRecord {
-        SensorKitAccelerometerRecord(
+        let payload = switch format {
+        case .nativeRecording:
+            Data("{}".utf8)
+        default:
+            Data("timestamp,identifier,x,y,z,device\n1787009400,1,0.1,0.2,0.3,Watch\n".utf8)
+        }
+        return try SensorKitAccelerometerRecord(
             sourceRecordID: try Self.sourceID,
-            coverage: DateInterval(start: Self.start, duration: 60),
-            sampleCount: 18_000,
-            batchCount: 3,
             nativeRecording: try SensorKitNativeRecording(
                 title: "Exact SensorKit accelerometer batch",
                 format: format,
-                payload: .inline(Data("timestamp,identifier,x,y,z,device\n1787009400,1,0.1,0.2,0.3,Watch\n".utf8)),
+                payload: .inline(payload),
                 admission: .verifiedSanitizedInput
             )
         )
@@ -124,7 +127,7 @@ struct GroveSensorKitRecordingSummaryTests {
 
         #expect(observation.meta?.profile == [Self.profile("sensorkit-accelerometer-observation")])
         #expect(observation.value == nil)
-        #expect(Self.componentCounts(observation) == ["sample-count": 18_000, "batch-count": 3])
+        #expect(Self.componentCounts(observation) == ["sample-count": 1, "batch-count": 1])
         #expect(observation.derivedFrom?.first?.reference?.value?.string == entries[1].fullUrl?.value?.url.absoluteString)
         let format = try #require(document.content.first?.format)
         #expect(format.system?.value?.url.absoluteString == SensorKitContract.recordingFormatCodeSystem)
@@ -140,16 +143,13 @@ struct GroveSensorKitRecordingSummaryTests {
 
     @Test
     func ppgSummaryLinksTheMandatoryRecording() throws {
-        let record = SensorKitPPGRecord(
+        let payload = try SensorKitPPGTestSupport.recording(start: Self.start).encoded()
+        let record = try SensorKitPPGRecord(
             sourceRecordID: try Self.sourceID,
-            coverage: DateInterval(start: Self.start, duration: 30),
-            recordCount: 2,
-            opticalSampleCount: 512,
-            accelerometerSampleCount: 256,
             nativeRecording: try SensorKitNativeRecording(
                 title: "Exact SensorKit PPG batch",
                 format: .photoplethysmogramSamples,
-                payload: .inline(Data([0x02, 0x41, 0xDA, 0x9E, 0x9F, 0x8C, 0xE3, 0x60, 0x00])),
+                payload: .inline(payload),
                 admission: .callerAuthorizedOpaquePayload
             )
         )
@@ -162,8 +162,8 @@ struct GroveSensorKitRecordingSummaryTests {
         #expect(observation.value == nil)
         #expect(Self.componentCounts(observation) == [
             "record-count": 2,
-            "optical-sample-count": 512,
-            "accelerometer-sample-count": 256
+            "optical-sample-count": 2,
+            "accelerometer-sample-count": 2
         ])
         #expect(observation.derivedFrom?.first?.reference?.value?.string == entries[1].fullUrl?.value?.url.absoluteString)
         #expect(document.content.first?.format?.code?.value?.string == "photoplethysmogram-samples")
@@ -182,12 +182,8 @@ struct GroveSensorKitRecordingSummaryTests {
 
     @Test
     func summaryRecordingRejectsAnUnregisteredFormat() throws {
-        let record = try Self.accelerometerRecord(format: .nativeRecording)
-
-        #expect(throws: SensorKitConversionError.invalidRecord(
-            .recordingFormatNotAdmitted("native-recording")
-        )) {
-            try SensorKitConverter().convert(.accelerometer(record), context: Self.context)
+        #expect(throws: SensorKitRecordError.invalidRecordingFormat) {
+            _ = try Self.accelerometerRecord(format: .nativeRecording)
         }
     }
 }

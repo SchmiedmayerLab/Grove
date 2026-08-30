@@ -68,4 +68,22 @@ public struct SensorKitCatalog: Equatable, Sendable {
     public let version: String
     public let fhirVersion: String
     public let entries: [SensorKitCatalogEntry]
+
+    /// Returns the one catalog row for its authoritative source token.
+    public func entry(sourceToken: String) -> SensorKitCatalogEntry? {
+        entries.first { $0.sourceToken == sourceToken }
+    }
+
+    /// Returns the one catalog row for its source-type code.
+    public func entry(sourceTypeCode: String) -> SensorKitCatalogEntry? {
+        entries.first { $0.sourceTypeCode == sourceTypeCode }
+    }
+}
+
+
+extension SensorKitCatalogEntry {
+    /// The sole registered payload format for this source, when the catalog admits exactly one.
+    public var soleRawFormat: RegisteredRecordingFormat? {
+        rawFormats.count == 1 ? rawFormats[0] : nil
+    }
 }

@@ -123,6 +123,20 @@ public struct SensorKitNativeRecording: Sendable {
 }
 
 
+/// Where Grove places bytes it generates for a registered recording.
+public enum SensorKitRecordingLocation: Sendable {
+    case inline
+    case sidecar(path: String)
+
+    func payload(bytes: Data) -> SensorKitNativeRecording.Payload {
+        switch self {
+        case .inline: .inline(bytes)
+        case .sidecar(let path): .sidecar(path: path, bytes: bytes)
+        }
+    }
+}
+
+
 /// One exact rotation-rate sample from SensorKit.
 public struct SensorKitRotationRateSample: Hashable, Sendable {
     public let timestamp: Date

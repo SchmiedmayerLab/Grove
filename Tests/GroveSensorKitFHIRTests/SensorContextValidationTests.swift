@@ -49,7 +49,9 @@ struct SensorFHIRContextValidationTests {
             ),
             title: "Ambient light recording",
             format: .ambientLightSamples,
-            payload: .inline(Data("t,lux\n0,120\n".utf8)),
+            payload: .inline(Data(
+                "timestamp,lux,placement,chromaticityX,chromaticityY,device\n0,120,frontTop,0.3,0.4,iPhone18\n".utf8
+            )),
             rawPayloadAdmission: .verifiedSanitizedInput
         ))
     }

@@ -47,6 +47,7 @@ struct GroveQuestionnaireFHIRContractTests {
         #expect(pair.response.meta?.profile == [Profile.groveQuestionnaireResponse])
         #expect(pair.response.questionnaire?.value?.url == Self.canonical)
         #expect(pair.response.questionnaire?.value?.version == "2.1.0")
+        #expect(pair.questionnaire.canonicalIdentity == pair.response.questionnaireCanonicalIdentity)
         #expect(pair.response.identifier?.system?.value?.url == Self.canonical)
         #expect(pair.response.identifier?.value?.value?.string.isEmpty == false)
         #expect(PairValidator().issues(

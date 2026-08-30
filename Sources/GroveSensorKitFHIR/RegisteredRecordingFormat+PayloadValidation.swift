@@ -7,7 +7,7 @@
 //
 
 // This validator intentionally keeps the closed payload grammar in one exhaustive switch.
-// swiftlint:disable cyclomatic_complexity
+// swiftlint:disable cyclomatic_complexity function_body_length
 
 import Foundation
 import GroveFHIRContract
@@ -17,6 +17,13 @@ import ModelsR4
 /// Why bytes do not satisfy the payload grammar named by a registered format code.
 public enum RegisteredRecordingPayloadError: Error, Equatable, Sendable {
     case invalidFHIRJSON
+    case invalidJSON
+    case JSONByteOrderMark
+    case expectedJSONObjectOrArray
+    case duplicateJSONMember(String)
+    case nonFiniteJSONNumber
+    case invalidTabularPayload
+    case invalidPhotoplethysmogramPayload
     case expectedR4CollectionBundle
     case missingBundleTimestamp
     case emptyCollectionBundle
@@ -45,6 +52,33 @@ extension RegisteredRecordingFormat {
     /// on the media type alone.
     func validatePayload(_ data: Data) throws(RegisteredRecordingPayloadError) {
         switch self {
+        case .nativeRecording, .providerRecording:
+            do {
+                var validator = StrictJSONEnvelopeValidator(data)
+                try validator.validate()
+            } catch let error as StrictJSONEnvelopeError {
+                switch error {
+                case .byteOrderMark: throw .JSONByteOrderMark
+                case .scalarRoot: throw .expectedJSONObjectOrArray
+                case .duplicateMember(let name): throw .duplicateJSONMember(name)
+                case .nonFiniteNumber: throw .nonFiniteJSONNumber
+                case .invalidJSON, .nestingLimit: throw .invalidJSON
+                }
+            } catch {
+                throw .invalidJSON
+            }
+        case .photoplethysmogramSamples:
+            do {
+                _ = try SensorKitPPGRecording(data: data)
+            } catch {
+                throw .invalidPhotoplethysmogramPayload
+            }
+        case let format where Self.tabularFormats.contains(format):
+            do {
+                _ = try RecordingCSVReader(data, format: format)
+            } catch {
+                throw .invalidTabularPayload
+            }
         case .fhirCollectionBundle:
             let bundle: ModelsR4.Bundle
             do {

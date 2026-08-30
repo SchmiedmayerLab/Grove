@@ -11,9 +11,6 @@ import GroveFHIRContract
 @testable import GroveSensorKitFHIR
 import Testing
 
-// swiftlint:disable file_types_order
-
-
 @Suite
 struct RecordingCSVWriterTests {
     @Test
@@ -26,13 +23,11 @@ struct RecordingCSVWriterTests {
     }
 
     @Test
-    func aFieldContainingCRLFIsQuoted() throws {
+    func carriageReturnIsRejectedEvenInsideAQuotedField() throws {
         var writer = RecordingCSVWriter(columns: ["note"])
-        try writer.append([.text("line1\r\nline2")])
-        let text = String(decoding: writer.data(), as: UTF8.self)
-        // Swift treats CRLF as one Character equal to neither "\n" nor "\r", so a character-wise
-        // quoting test misses it and the raw break splits the row.
-        #expect(text == "note\n\"line1\r\nline2\"\n")
+        #expect(throws: RecordingCSVWriter.WriterError.carriageReturn(column: "note")) {
+            try writer.append([.text("line1\r\nline2")])
+        }
     }
 
     @Test
@@ -361,6 +356,25 @@ struct RegisteredRecordingPayloadTests {
             admission: .callerAuthorizedOpaquePayload
         )
         #expect(recording.contentType == "application/fhir+json; fhirVersion=1.0")
+    }
+
+    @Test("Native JSON accepts objects and arrays but rejects lossy envelopes")
+    func nativeJSONEnvelopeIsStrict() throws {
+        try RegisteredRecordingFormat.nativeRecording.validatePayload(Data(#"{"a":1}"#.utf8))
+        try RegisteredRecordingFormat.nativeRecording.validatePayload(Data(#"[1,true,null]"#.utf8))
+
+        #expect(throws: RegisteredRecordingPayloadError.expectedJSONObjectOrArray) {
+            try RegisteredRecordingFormat.nativeRecording.validatePayload(Data(#"42"#.utf8))
+        }
+        #expect(throws: RegisteredRecordingPayloadError.duplicateJSONMember("a")) {
+            try RegisteredRecordingFormat.nativeRecording.validatePayload(Data(#"{"a":1,"\u0061":2}"#.utf8))
+        }
+        #expect(throws: RegisteredRecordingPayloadError.JSONByteOrderMark) {
+            try RegisteredRecordingFormat.nativeRecording.validatePayload(Data([0xEF, 0xBB, 0xBF]) + Data(#"{}"#.utf8))
+        }
+        #expect(throws: RegisteredRecordingPayloadError.nonFiniteJSONNumber) {
+            try RegisteredRecordingFormat.nativeRecording.validatePayload(Data(#"{"a":1e9999}"#.utf8))
+        }
     }
 }
 
