@@ -144,11 +144,6 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
     @Application(\.logger)
     private var logger
 
-    @StandardActor private var standard: any Standard
-    private var notifyStandard: (any AccountNotifyConstraint)? {
-        standard as? any AccountNotifyConstraint
-    }
-
     // periphery:ignore - dependency ordering: ensures FirebaseApp.configure() runs before this service
     @Dependency(ConfigureFirebaseApp.self)
     private var configureFirebaseApp
@@ -327,7 +322,7 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
     /// - Throws: Throws an ``FirebaseAccountError`` if the operation fails.
     public func login(userId: String, password: String) async throws {
         logger.debug("Received new login request ...")
-        try await ensureSignedOutBeforeLogin()
+        try ensureSignedOutBeforeLogin()
 
         try await dispatchFirebaseAuthAction { @MainActor in
             let result = try await Auth.auth().signIn(withEmail: userId, password: password)
@@ -340,7 +335,7 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
     /// - Throws: Throws an ``FirebaseAccountError`` if the operation fails.
     public func signUpAnonymously() async throws {
         logger.debug("Signing up anonymously ...")
-        try await ensureSignedOutBeforeLogin()
+        try ensureSignedOutBeforeLogin()
 
         try await dispatchFirebaseAuthAction {
             let result = try await Auth.auth().signInAnonymously()
@@ -356,7 +351,7 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
     ///  the `userId` or `password` keys are not present.
     public func signUp(with signupDetails: AccountDetails) async throws {
         logger.debug("Received new signup request with details ...")
-        try await ensureSignedOutBeforeLogin()
+        try ensureSignedOutBeforeLogin()
 
         guard let password = signupDetails.password, signupDetails.contains(AccountKeys.userId) else {
             throw FirebaseAccountError.invalidCredentials
@@ -411,7 +406,7 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
     /// - Throws: Throws an ``FirebaseAccountError`` if the operation fails.
     public func signUp(with credential: OAuthCredential) async throws {
         logger.debug("Received new signup request with OAuth credential ...")
-        try await ensureSignedOutBeforeLogin()
+        try ensureSignedOutBeforeLogin()
 
         try await dispatchFirebaseAuthAction { @MainActor in
             if let currentUser = Auth.auth().currentUser,
@@ -439,25 +434,13 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
         }
     }
 
-    private func ensureSignedOutBeforeLogin() async throws {
+    private func ensureSignedOutBeforeLogin() throws {
+        // We don't bother to notify GroveAccount. This method is called when we attempt to associate a new user.
+        // We will update GroveAccount with a new user anyways.
         if let user = Auth.auth().currentUser, !user.isAnonymous {
             logger.debug("Found existing user associated. Performing signOut() first ...")
-            let details = account.details
-            if let details {
-                // A login can replace a restored/current Firebase session without going through
-                // `logout()`. Give publication and other account-scoped state the same awaited
-                // pre-authentication transition barrier before that implicit sign-out.
-                await notifyStandard?.willLogOut(details)
-            }
-            do {
-                try mapFirebaseAccountError {
-                    try Auth.auth().signOut()
-                }
-            } catch {
-                if let details {
-                    await notifyStandard?.accountRemovalDidFail(details)
-                }
-                throw error
+            try mapFirebaseAccountError {
+                try Auth.auth().signOut()
             }
         }
     }
@@ -485,21 +468,13 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
                 throw FirebaseAccountError.notSignedIn
             }
         }
-        let details = account.details
-        if let details {
-            await notifyStandard?.willLogOut(details)
+        if let details = account.details {
+            try await notifications.reportEvent(.willLogOut(details))
         }
-        do {
-            try await dispatchFirebaseAuthAction { @MainActor in
-                try Auth.auth().signOut()
-                logger.debug("Successful signOut() for user.")
-                return .removed
-            }
-        } catch {
-            if let details {
-                await notifyStandard?.accountRemovalDidFail(details)
-            }
-            throw error
+        try await dispatchFirebaseAuthAction { @MainActor in
+            try Auth.auth().signOut()
+            logger.debug("Successful signOut() for user.")
+            return .removed
         }
     }
 
@@ -512,7 +487,7 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
     ///
     /// - Throws: Throws an ``FirebaseAccountError`` if the operation fails. A ``FirebaseAccountError/notSignedIn`` is thrown if delete
     ///     is called when no user was logged in.
-    public func delete() async throws { // swiftlint:disable:this cyclomatic_complexity
+    public func delete() async throws {
         guard let currentUser = Auth.auth().currentUser else {
             if account.signedIn {
                 notifyUserRemoval()
@@ -520,61 +495,50 @@ public final class FirebaseAccountService: AccountService { // swiftlint:disable
             throw FirebaseAccountError.notSignedIn
         }
 
+        try await notifications.reportEvent(.willDelete(currentUser.uid))
+
         let result = try await reauthenticateUser(user: currentUser) // delete requires a recent sign in
         guard case .success = result else {
             logger.debug("Re-authentication was cancelled by user. Not deleting the account.")
             throw CancellationError()
         }
 
-        // Reauthentication can be cancelled while the existing account remains fully active. Only
-        // notify storage and the Standard after it succeeds, immediately before the destructive auth
-        // transition, so pre-delete quiescence cannot strand a live session in a paused state.
-        let details = account.details
-        do {
-            try await notifications.reportEvent(.deletingAccount(currentUser.uid))
-
-            try await dispatchFirebaseAuthAction { @MainActor in
-                if let credential = result.credential {
-                    // re-authentication was made through sign in provider, delete SSO account as well
-                    guard let authorizationCode = credential.authorizationCode else {
-                        logger.error("Unable to fetch authorizationCode from ASAuthorizationAppleIDCredential.")
-                        throw FirebaseAccountError.setupError
-                    }
-
-                    guard let authorizationCodeString = String(data: authorizationCode, encoding: .utf8) else {
-                        logger.error("Unable to serialize authorizationCode to utf8 string.")
-                        throw FirebaseAccountError.setupError
-                    }
-
-                    do {
-                        logger.debug("Revoking Apple Id Token ...")
-                        try await Auth.auth().revokeToken(withAuthorizationCode: authorizationCodeString)
-                    } catch let error as NSError {
-#if targetEnvironment(simulator)
-                        // token revocation for Sign in with Apple is currently unsupported for Firebase
-                        // see https://github.com/firebase/firebase-tools/issues/6028
-                        // and https://github.com/firebase/firebase-tools/pull/6050
-                        if error.code != AuthErrorCode.invalidCredential.rawValue {
-                            throw error
-                        }
-#else
-                        throw error
-#endif
-                    } catch {
-                        throw error
-                    }
+        try await dispatchFirebaseAuthAction { @MainActor in
+            if let credential = result.credential {
+                // re-authentication was made through sign in provider, delete SSO account as well
+                guard let authorizationCode = credential.authorizationCode else {
+                    logger.error("Unable to fetch authorizationCode from ASAuthorizationAppleIDCredential.")
+                    throw FirebaseAccountError.setupError
                 }
 
-                try await currentUser.delete()
-                logger.debug("delete() for user.")
+                guard let authorizationCodeString = String(data: authorizationCode, encoding: .utf8) else {
+                    logger.error("Unable to serialize authorizationCode to utf8 string.")
+                    throw FirebaseAccountError.setupError
+                }
 
-                return .removed
+                do {
+                    logger.debug("Revoking Apple Id Token ...")
+                    try await Auth.auth().revokeToken(withAuthorizationCode: authorizationCodeString)
+                } catch let error as NSError {
+#if targetEnvironment(simulator)
+                    // token revocation for Sign in with Apple is currently unsupported for Firebase
+                    // see https://github.com/firebase/firebase-tools/issues/6028
+                    // and https://github.com/firebase/firebase-tools/pull/6050
+                    if error.code != AuthErrorCode.invalidCredential.rawValue {
+                        throw error
+                    }
+#else
+                    throw error
+#endif
+                } catch {
+                    throw error
+                }
             }
-        } catch {
-            if let details {
-                await notifyStandard?.accountRemovalDidFail(details)
-            }
-            throw error
+
+            try await currentUser.delete()
+            logger.debug("delete() for user.")
+
+            return .removed
         }
     }
 

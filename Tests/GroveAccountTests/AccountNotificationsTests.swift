@@ -43,7 +43,7 @@ private final actor TestStandard: Standard, AccountNotifyConstraint {
     @MainActor private(set) var trackedEvents: [AccountNotifications.Event] = []
 
     @MainActor
-    func respondToEvent(_ event: AccountNotifications.Event) async {
+    func handleAccountEvent(_ event: AccountNotifications.Event) async {
         trackedEvents.append(event)
     }
 }
@@ -69,9 +69,9 @@ struct AccountNotificationsTests {
                 
                 let details: AccountDetails = .mock()
                 
-                try await notifications.reportEvent(.deletingAccount("account1"))
-                try await notifications.reportEvent(.associatedAccount(details))
-                try await notifications.reportEvent(.disassociatingAccount(details))
+                try await notifications.reportEvent(.willDelete("account1"))
+                try await notifications.reportEvent(.didAssociate(details))
+                try await notifications.reportEvent(.didDisassociate(details))
                 
                 var iterator = stream.makeAsyncIterator()
                 
@@ -84,19 +84,19 @@ struct AccountNotificationsTests {
                     _ event1: AccountNotifications.Event?,
                     _ event2: AccountNotifications.Event?
                 ) {
-                    if case let .deletingAccount(id) = element0 {
+                    if case let .willDelete(id) = element0 {
                         #expect(id == "account1")
                     } else {
                         Issue.record("Unexpected first element \(String(describing: element0))")
                     }
                     
-                    if case let .associatedAccount(associated) = element1 {
+                    if case let .didAssociate(associated) = element1 {
                         assertDetails(associated, details)
                     } else {
                         Issue.record("Unexpected second element \(String(describing: element1))")
                     }
                     
-                    if case let .disassociatingAccount(disassociated) = element2 {
+                    if case let .didDisassociate(disassociated) = element2 {
                         assertDetails(disassociated, details)
                     } else {
                         Issue.record("Unexpected third element \(String(describing: element2))")

@@ -8,6 +8,7 @@
 
 import Foundation
 public import Grove
+private import Synchronization
 
 
 /// Manage Account events and notifications.
@@ -29,40 +30,49 @@ public final class AccountNotifications: Module, DefaultInitializable, Environme
     public enum Event: Sendable {
         /// A new account was associated due to a login or signup operation.
         ///
-        /// - Note: This enum case will be renamed to `didAssociate` in a future release.
-        case associatedAccount(_ details: AccountDetails)
-        /// The details of the currently associated Account changed.
-        case detailsChanged(_ previous: AccountDetails, _ new: AccountDetails)
+        /// - Note: In previous releases of the package, this case was named `associatedAccount`.
+        case didAssociate(_ details: AccountDetails)
+
+        /// The details of the currently associated account changed.
+        case detailsChanged(_ old: AccountDetails, _ new: AccountDetails)
+
+        /// The currently associated account is about to be logged out.
+        ///
+        /// Note that this event is not guaranteed to always be emitted;
+        /// e.g., if the account was deleted on the backend and the account service is responding to that by disassociating it locally,
+        /// no `willLogOut` event will be triggered.
+        case willLogOut(_ details: AccountDetails)
+
         /// The account with the given details is being disassociated (e.g., because it was logged out or deleted).
         ///
-        /// - Note: This enum case will be renamed to `didDisassociate` in a future release.
-        case disassociatingAccount(_ details: AccountDetails)
+        /// - Note: In previous releases of the package, this case was named `disassociatingAccount`.
+        case didDisassociate(_ details: AccountDetails)
+
         /// The currently associated user account is about to be deleted.
         ///
-        /// This event signals that the user requested to have their account deleted and the user's data is about to be deleted.
+        /// This event signals that the user requested to have their account deleted, and that the user's data is about to be deleted.
         ///
-        /// - Note: Make sure to report this event before the account is deleted. Deletion might be forwarded to an external ``AccountStorageProvider`` which
-        ///     might report an error if it fails to fully delete the associated user data.
+        /// - Note: Make sure to report this event before the account is deleted.
+        ///     Deletion might be forwarded to an external ``AccountStorageProvider`` which might report an error if it fails to fully delete the associated user data.
         ///
-        /// - Note: This enum case will be renamed to `willDelete` in a future release.
-        case deletingAccount(_ accountId: String)
+        /// - Note: In previous releases of the package, this case was named `deletingAccount`.
+        case willDelete(_ accountId: String)
     }
 
-    @StandardActor private var standard: any Standard
-    private var notifyStandard: (any AccountNotifyConstraint)? {
-        standard as? any AccountNotifyConstraint
-    }
+    @StandardActor private var standard: (any AccountNotifyConstraint)?
 
     @Dependency(ExternalAccountStorage.self)
     private var storage
 
-    private var subscriptions: [UUID: AsyncStream<Event>.Continuation] = [:]
-    private let lock = NSLock()
+    private let subscriptions = Mutex<[UUID: AsyncStream<Event>.Continuation]>([:])
 
 
     /// Subscribe to event notifications.
     ///
     /// Use the async stream to await all future events.
+    ///
+    /// - Note: In contrast to events delivered to ``AccountNotifyConstraint/handleAccountEvent(_:)``,
+    ///     events emitted to this stream will not be awaited by the account service.
     public var events: AsyncStream<Event> {
         newSubscription()
     }
@@ -75,22 +85,22 @@ public final class AccountNotifications: Module, DefaultInitializable, Environme
     /// Report an event to the account subsystem.
     ///
     /// This method is used by an ``AccountService`` to report an event.
-    /// - Note: The ``Event/deletingAccount(_:)`` is the only event that an ``AccountService`` has to manually report to the Account module.
+    /// - Note: The ``Event/willDelete(_:)`` is the only event that an ``AccountService`` has to manually report to the Account module.
     /// - Parameter event: The event that occurred.
     @MainActor
     public func reportEvent(_ event: Event) async throws {
-        await notifyStandard?.respondToEvent(event)
+        await standard?.handleAccountEvent(event)
         switch event {
-        case let .deletingAccount(accountId):
+        case .willDelete(let accountId):
             try await storage.willDeleteAccount(for: accountId)
-        case let .disassociatingAccount(details):
+        case .didDisassociate(let details):
             await storage.userDidDisassociate(for: details.accountId)
         default:
             break
         }
-        lock.withLock {
-            for subscription in subscriptions.values {
-                subscription.yield(event)
+        subscriptions.withLock {
+            for sub in $0.values {
+                sub.yield(event)
             }
         }
     }
@@ -99,15 +109,15 @@ public final class AccountNotifications: Module, DefaultInitializable, Environme
     private func newSubscription() -> AsyncStream<Event> {
         AsyncStream { continuation in
             let id = UUID()
-            lock.withLock {
-                subscriptions[id] = continuation
+            subscriptions.withLock {
+                $0[id] = continuation
             }
             continuation.onTermination = { [weak self, id] _ in
                 guard let self else {
                     return
                 }
-                lock.withLock {
-                    _ = self.subscriptions.removeValue(forKey: id)
+                subscriptions.withLock {
+                    _ = $0.removeValue(forKey: id)
                 }
             }
         }
