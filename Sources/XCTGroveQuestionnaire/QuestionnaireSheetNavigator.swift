@@ -134,6 +134,11 @@ public struct QuestionnaireSheetNavigator {
 // MARK: Finding the Questionnaire
 
 extension QuestionnaireSheetNavigator {
+    /// The navigation stack that owns the complete questionnaire run.
+    private var questionnaireRoot: XCUIElement {
+        app.descendants(matching: .any).matching(identifier: "GroveQuestionnaireNavStack").firstMatch
+    }
+
     /// The scrolling content of the section on screen.
     ///
     /// A section is drawn as a `Form`, whose element type differs between OS versions, so this
@@ -144,19 +149,19 @@ extension QuestionnaireSheetNavigator {
 
     /// Whether any page of the questionnaire — a section, or the completion page — is on screen.
     public var isPresented: Bool {
-        section.exists || completionPage.exists
+        questionnaireRoot.exists
     }
 
     /// Waits until the questionnaire is on screen.
     @discardableResult
     public func waitUntilPresented(timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        section.waitForExistence(timeout: timeout) || completionPage.exists
+        questionnaireRoot.waitForExistence(timeout: timeout)
     }
 
     /// Waits until the questionnaire has gone, which is what a handed-off or discarded run looks like.
     @discardableResult
     public func waitUntilDismissed(timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        section.waitForNonExistence(timeout: timeout) && completionPage.waitForNonExistence(timeout: timeout)
+        questionnaireRoot.waitForNonExistence(timeout: timeout)
     }
 }
 
