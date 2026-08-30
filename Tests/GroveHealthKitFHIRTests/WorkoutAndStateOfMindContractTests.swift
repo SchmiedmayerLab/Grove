@@ -88,8 +88,7 @@ struct WorkoutAndStateOfMindContractTests {
             (.running, .distanceWalkingRunning)
         ]
         for (activity, identifier) in expected {
-            let workout = HKWorkout(activityType: activity, start: Date(), end: Date().addingTimeInterval(60))
-            #expect(HealthKitConverter.distanceType(for: workout) == identifier)
+            #expect(HealthKitConverter.distanceType(for: activity) == identifier)
         }
     }
 

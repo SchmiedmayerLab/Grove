@@ -99,8 +99,9 @@ extension HealthKitConverter {
         HKWorkoutActivityType.crossTraining.rawValue: "crossTraining",
         HKWorkoutActivityType.curling.rawValue: "curling",
         HKWorkoutActivityType.cycling.rawValue: "cycling",
-        HKWorkoutActivityType.dance.rawValue: "dance",
-        HKWorkoutActivityType.danceInspiredTraining.rawValue: "danceInspiredTraining",
+        // Apple keeps these deprecated raw values available so older workouts remain readable.
+        14: "dance",
+        15: "danceInspiredTraining",
         HKWorkoutActivityType.discSports.rawValue: "discSports",
         HKWorkoutActivityType.downhillSkiing.rawValue: "downhillSkiing",
         HKWorkoutActivityType.elliptical.rawValue: "elliptical",
@@ -124,7 +125,7 @@ extension HealthKitConverter {
         HKWorkoutActivityType.martialArts.rawValue: "martialArts",
         HKWorkoutActivityType.mindAndBody.rawValue: "mindAndBody",
         HKWorkoutActivityType.mixedCardio.rawValue: "mixedCardio",
-        HKWorkoutActivityType.mixedMetabolicCardioTraining.rawValue: "mixedMetabolicCardioTraining",
+        30: "mixedMetabolicCardioTraining",
         HKWorkoutActivityType.other.rawValue: "other",
         HKWorkoutActivityType.paddleSports.rawValue: "paddleSports",
         HKWorkoutActivityType.pickleball.rawValue: "pickleball",
@@ -196,8 +197,8 @@ extension HealthKitConverter {
     /// `HKWorkout.statistics(for:)` returns nil for a type the workout never collected, so reading
     /// only walking/running distance would silently drop every cycling, swimming, wheelchair, and
     /// snow-sport distance.
-    static func distanceType(for workout: HKWorkout) -> HKQuantityTypeIdentifier {
-        switch workout.workoutActivityType {
+    static func distanceType(for activityType: HKWorkoutActivityType) -> HKQuantityTypeIdentifier {
+        switch activityType {
         case .cycling, .handCycling: .distanceCycling
         case .swimming: .distanceSwimming
         case .wheelchairRunPace, .wheelchairWalkPace: .distanceWheelchair
@@ -212,7 +213,11 @@ extension HealthKitConverter {
 
     static func workoutComponents(_ workout: HKWorkout) throws -> [ObservationComponent] {
         let sums: [WorkoutStatistic] = [
-            WorkoutStatistic(componentID: "distance-sum", identifier: distanceType(for: workout), unit: .meter()),
+            WorkoutStatistic(
+                componentID: "distance-sum",
+                identifier: distanceType(for: workout.workoutActivityType),
+                unit: .meter()
+            ),
             WorkoutStatistic(componentID: "active-energy-sum", identifier: .activeEnergyBurned, unit: .kilocalorie()),
             WorkoutStatistic(componentID: "step-count-sum", identifier: .stepCount, unit: .count()),
             WorkoutStatistic(componentID: "flights-climbed-sum", identifier: .flightsClimbed, unit: .count()),

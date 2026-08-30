@@ -94,10 +94,13 @@ public struct HealthKitConversionContext: Sendable {
     public let researchStudies: [Reference]
     public let repositoryIDs: HealthKitRepositoryIDs
 
-    /// Creates a conversion context, deriving everything that can be read from the running app.
+    /// Creates a conversion context from caller-supplied identity and conversion metadata.
     ///
-    /// Only ``subject`` has no local answer: nothing on the device knows who the receiving
-    /// system thinks this data is about. See <doc:ConfiguringAConversion>.
+    /// This initializer performs no application or platform discovery. Callers must supply the
+    /// subject, durable event identity, pseudonymous identity scope, repository scope, converter
+    /// application and host snapshots, and conversion instant. Persist and reuse the event identity
+    /// and identity-scope inputs when retrying the same acquisition. Application and platform
+    /// convenience values may be constructed separately. See <doc:ConfiguringAConversion>.
     ///
     /// ```swift
     /// let patientID = try BusinessIdentifier(
@@ -118,7 +121,7 @@ public struct HealthKitConversionContext: Sendable {
         entryNodeIdentifierSystem: IdentifierSystem,
         identityScope: PseudonymousIdentityScope,
         repositoryScope: BusinessIdentifier,
-        sourceActor: HealthKitSourceActor,
+        sourceActor: HealthKitSourceActor = .application,
         converterWasGateway: Bool = false,
         conversionInstant: Date,
         recordingDeviceStableUnitToken: String? = nil,

@@ -80,7 +80,7 @@ Custom question kinds participate by conforming to the protocols below; unsuppor
 
 - ``GroveQuestionnaire/Questionnaire/init(_:evaluationInstant:using:)``
 - ``ModelsR4/Questionnaire/init(_:repositoryID:)``
-- ``ModelsR4/QuestionnaireResponse/init(_:subject:author:source:status:identifier:repositoryID:authored:)``
+- ``ModelsR4/QuestionnaireResponse/init(_:subject:author:source:status:identifier:repositoryID:authored:authoredTimeZone:)``
 - ``ResourceBuilder``
 - ``ResourcePair``
 - ``PairValidator``

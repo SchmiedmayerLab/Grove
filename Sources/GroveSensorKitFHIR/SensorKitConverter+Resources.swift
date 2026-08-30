@@ -127,7 +127,7 @@ extension SensorKitConverter {
         }
         let documentContext = sourcePeriod == nil && related.isEmpty ? nil : DocumentReferenceContext(
             period: sourcePeriod,
-            related: related
+            related: related.isEmpty ? nil : related
         )
         var document = DocumentReference(
             author: authors,
@@ -234,12 +234,11 @@ extension SensorKitConverter {
             recordingDeviceURL: recordingDeviceURL,
             converterURL: converterURL
         )
-        observation.extension?.append(Extension(
-            url: FHIRPrimitive(FHIRURI(
-                stringLiteral: SensorKitContract.ecgSessionGuidanceExtension
-            )),
-            value: .code(record.guidance.rawValue.asFHIRStringPrimitive())
-        ))
+        observation.method = CodeableConcept(coding: [Coding(
+            code: record.guidance.rawValue.asFHIRStringPrimitive(),
+            display: (record.guidance == .guided ? "Guided" : "Unguided").asFHIRStringPrimitive(),
+            system: SensorKitContract.valueCodeSystem.asFHIRURIPrimitive()
+        )])
         observation.effective = .period(Period(
             end: FHIRPrimitive(try exactDateTime(
                 record.startDate,

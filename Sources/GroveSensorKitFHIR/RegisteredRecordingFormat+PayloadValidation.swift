@@ -10,6 +10,7 @@
 // swiftlint:disable cyclomatic_complexity
 
 import Foundation
+import GroveFHIRContract
 import ModelsR4
 
 
@@ -29,6 +30,14 @@ public enum RegisteredRecordingPayloadError: Error, Equatable, Sendable {
 
 
 extension RegisteredRecordingFormat {
+    /// Resolves an explicit media type or derives the sole registered representation.
+    func resolveContentType(_ contentType: String?) -> String? {
+        if let contentType {
+            return registeredContentTypes.contains(contentType) ? contentType : nil
+        }
+        return registeredContentType
+    }
+
     /// Validates the registered formats whose code makes a complete FHIR-shape assertion.
     ///
     /// Opaque and tabular formats have their own typed writers/readers. A FHIR collection payload
@@ -73,9 +82,9 @@ extension RegisteredRecordingFormat {
                     throw .forbiddenEntryResponse(index: index)
                 }
             }
-        case .fhirR4Resource:
+        case .fhirResource:
             do {
-                _ = try JSONDecoder().decode(ResourceProxy.self, from: data).get()
+                try FHIRJSONResourcePayload.validate(data)
             } catch {
                 throw .invalidFHIRJSON
             }

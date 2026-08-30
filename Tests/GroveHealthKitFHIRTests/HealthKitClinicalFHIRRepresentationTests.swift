@@ -18,20 +18,29 @@ import Testing
 
 @Suite
 struct HealthKitClinicalFHIRRepresentationTests {
-    @Test("The catalog-fixed R4 representation is mandatory on a clinical FHIR document")
-    func clinicalFHIRRepresentationIsFixed() throws {
-        let conversion = try makeConversion()
-        let releaseExtensions = conversion.document.extension?.filter {
-            $0.url == HealthKitContract.clinicalFHIRReleaseExtension
+    @Test("Each admitted source release uses its versioned media type with byte-preserved payload")
+    func admittedClinicalFHIRRepresentationsAreExact() throws {
+        #expect(HealthKitContract.admittedClinicalFHIRReleaseCodes == ["dstu2", "r4"])
+        #expect(HealthKitContract.clinicalFHIRContentTypeByRelease == [
+            "dstu2": "application/fhir+json; fhirVersion=1.0",
+            "r4": "application/fhir+json; fhirVersion=4.0"
+        ])
+        for sourceRelease in HealthKitContract.admittedClinicalFHIRReleaseCodes.sorted() {
+            let payload = Data(" {\"resourceType\":\"Observation\",\"id\":\"\(sourceRelease)\"}\n".utf8)
+            let conversion = try makeConversion(releaseCode: sourceRelease, payload: payload)
+            let content = try #require(conversion.document.content.first)
+            #expect(content.format?.code?.value?.string == HealthKitContract.clinicalFHIRPayloadFormatCode)
+            #expect(
+                content.attachment.contentType?.value?.string
+                    == HealthKitContract.clinicalFHIRContentTypeByRelease[sourceRelease]
+            )
+            #expect(content.attachment.data?.value?.dataString == payload.base64EncodedString())
         }
-        let releaseExtension = try #require(releaseExtensions?.first)
-        #expect(releaseExtensions?.count == 1)
-        guard case .code(let releaseCode)? = releaseExtension.value else {
-            Issue.record("Clinical FHIR release extension is not valueCode")
-            return
-        }
-        #expect(releaseCode.value?.string == HealthKitContract.clinicalFHIRReleaseCode)
+    }
 
+    @Test("An unversioned FHIR JSON media type fails graph validation")
+    func clinicalFHIRContentTypeIsVersioned() throws {
+        let conversion = try makeConversion(releaseCode: "dstu2")
         var bundle = conversion.bundle
         var entries = try #require(bundle.entry)
         let documentIndex = try #require(entries.firstIndex(where: {
@@ -44,7 +53,8 @@ struct HealthKitClinicalFHIRRepresentationTests {
             Issue.record("Clinical graph does not contain its DocumentReference")
             return
         }
-        document.extension = nil
+        document.content[0].attachment.contentType =
+            "application/fhir+json".asFHIRStringPrimitive()
         entries[documentIndex].resource = ResourceProxy(with: document)
         bundle.entry = entries
 
@@ -57,7 +67,17 @@ struct HealthKitClinicalFHIRRepresentationTests {
         }
     }
 
-    private func makeConversion() throws -> HealthKitDocumentConversion {
+    @Test("A release outside the admitted DSTU2 and R4 set fails before graph emission")
+    func unsupportedClinicalFHIRReleaseIsRejected() {
+        #expect(throws: ExchangeGraphError.ruleViolation(.clinicalFHIRRepresentation)) {
+            _ = try makeConversion(releaseCode: "r5")
+        }
+    }
+
+    private func makeConversion(
+        releaseCode: String,
+        payload: Data = Data(#"{"resourceType":"Observation","id":"clinical"}"#.utf8)
+    ) throws -> HealthKitDocumentConversion {
         try HealthKitConverter.assembleDocumentGraph(
             for: HKQuantitySample(
                 type: HKQuantityType(.heartRate),
@@ -70,12 +90,12 @@ struct HealthKitClinicalFHIRRepresentationTests {
             ),
             evidence: HealthKitRecordingEvidence(
                 outputRole: "clinical-record",
-                format: .fhirR4Resource,
+                format: .fhirResource,
                 title: "Clinical FHIR resource",
-                payload: Data(#"{"resourceType":"Observation","id":"clinical-r4"}"#.utf8),
+                payload: payload,
                 profiles: [HealthKitContract.clinicalRecordProfile],
                 clinicalRecordTypeCode: "lab-result-record",
-                clinicalFHIRReleaseCode: HealthKitContract.clinicalFHIRReleaseCode
+                clinicalFHIRReleaseCode: releaseCode
             ),
             context: HealthKitConversionContext(
                 subject: .testPatient,

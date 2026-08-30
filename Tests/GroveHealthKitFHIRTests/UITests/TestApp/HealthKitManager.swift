@@ -12,10 +12,8 @@ import GroveFHIRContract
 import GroveHealthKitFHIR
 import HealthKit
 import ModelsR4
-import Observation
 
 
-@Observable
 final class HealthKitManager: Sendable {
     let healthStore: HKHealthStore?
     
@@ -95,7 +93,7 @@ func makeFHIRTestContext(
         converter: HealthKitApplication(
             name: "Grove HealthKit FHIR Test App",
             bundleIdentifier: "org.grovealliance.healthkit-fhir-test-app",
-            version: "0.6.0"
+            version: "1.0.0 (1)"
         ),
         converterHost: HealthKitHostDevice(
             sourceDeviceToken: "grove-healthkit-fhir-ui-test-host",

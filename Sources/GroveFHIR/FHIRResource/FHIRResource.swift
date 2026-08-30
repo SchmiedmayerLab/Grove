@@ -134,6 +134,7 @@ public struct FHIRResource: Identifiable, Hashable, Sendable {
     /// - Parameters:
     ///   - versionedResource: The specific version (DSTU2 or R4) of the FHIR resource.
     ///   - displayName: A user-friendly name for the resource.
+    ///   - identitySource: A stable bundle full URL or caller-defined identity used when the resource has no logical id.
     public init(
         versionedResource: VersionedFHIRResource,
         displayName: String,
@@ -181,6 +182,7 @@ public struct FHIRResource: Identifiable, Hashable, Sendable {
     /// - Parameters:
     ///   - resource: An R4 FHIR resource.
     ///   - displayName: A user-friendly name for the resource.
+    ///   - identitySource: A stable bundle full URL or caller-defined identity used when the resource has no logical id.
     public init(
         resource: any ModelsR4.Resource,
         displayName: String,
@@ -193,6 +195,7 @@ public struct FHIRResource: Identifiable, Hashable, Sendable {
     /// - Parameters:
     ///   - resource: A DSTU2 FHIR resource.
     ///   - displayName: A user-friendly name for the resource.
+    ///   - identitySource: A stable bundle full URL or caller-defined identity used when the resource has no logical id.
     public init(
         resource: any ModelsDSTU2.Resource,
         displayName: String,

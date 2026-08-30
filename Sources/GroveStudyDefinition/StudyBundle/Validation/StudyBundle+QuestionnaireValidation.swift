@@ -627,8 +627,11 @@ private struct QuestionnaireValidator: ~Copyable { // swiftlint:disable:this typ
                     }
                 }
             case .quantity:
+                // GroveStudy currently renders localized quantity items with one fixed unit. This is a
+                // StudyDefinition limitation, not a restriction of the Grove FHIR Implementation Guides;
+                // GroveQuestionnaire continues to support the IG's complete unit-option contract.
                 checkExtensions(
-                    with: "http://hl7.org/fhir/StructureDefinition/questionnaire-unit",
+                    with: "http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption",
                     of: otherItem,
                     at: otherFileRef,
                     against: baseItem,
@@ -637,16 +640,16 @@ private struct QuestionnaireValidator: ~Copyable { // swiftlint:disable:this typ
                     require: true,
                     expectedType: .coding
                 )
-                for name in ["minValue", "maxValue"] {
+                for name in ["minQuantity", "maxQuantity"] {
                     checkExtensions(
-                        with: "http://hl7.org/fhir/StructureDefinition/\(name)",
+                        with: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-\(name)",
                         of: otherItem,
                         at: otherFileRef,
                         against: baseItem,
                         at: baseFileRef,
                         path: path,
                         require: false,
-                        expectedType: .anyOf([.quantity, .decimal, .integer])
+                        expectedType: .quantity
                     )
                 }
             case .integer, .decimal:
@@ -816,6 +819,21 @@ extension QuestionnaireValidator {
             return
         }
         let path = path.extensions[url]
+        var hasUnsupportedCardinality = false
+        for (extensions, fileRef) in [(baseExts, baseFileRef), (otherExts, otherFileRef)] where extensions.count > 1 {
+            hasUnsupportedCardinality = true
+            issues.append(.invalidField(
+                fileRef: fileRef,
+                path: path.length,
+                fieldValue: Value(extensions.count),
+                failureReason: require
+                    ? "Grove study definitions currently require exactly one extension entry for '\(url)'"
+                    : "Grove study definitions currently support at most one extension entry for '\(url)'"
+            ))
+        }
+        guard !hasUnsupportedCardinality else {
+            return
+        }
         switch (baseExts.count, otherExts.count) {
         case (0, 0):
             assert(require) // checked above
@@ -989,7 +1007,7 @@ extension QuestionnaireValidator {
                             .mismatchingFieldValues(
                                 baseFileRef: baseFileRef,
                                 localizedFileRef: otherFileRef,
-                                path: path.valueCoding.appending(name),
+                                path: path.valueQuantity.appending(name),
                                 baseValue: Value(baseVal),
                                 localizedValue: Value(otherVal)
                             )
@@ -1002,9 +1020,6 @@ extension QuestionnaireValidator {
                             issue
                         }
                         if let issue = imp(\.code?.value?.string, "code") {
-                            issue
-                        }
-                        if let issue = imp(\.unit?.value?.string, "unit") {
                             issue
                         }
                         if let issue = imp(\.value?.value?.decimal, "value") {
@@ -1078,8 +1093,8 @@ extension QuestionnaireValidator {
                 self.issues.append(contentsOf: issues)
             }
         default:
-            // we currently only support extensions that will appear a single time at most.
-            fatalError("unsupported")
+            // Counts greater than one are diagnosed above.
+            return
         }
     }
 }

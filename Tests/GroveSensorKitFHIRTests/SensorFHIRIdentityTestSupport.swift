@@ -21,9 +21,9 @@ enum SensorFHIRIdentityTestSupport {
         0x8d, 0xdd, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee
     ))
     static let entryNodeIdentifierSystem: IdentifierSystem =
-        "https://study.example.org/fhir/identifiers/exchange-entry-node"
+        "https://grovealliance.org/fhir/testing/identifiers/exchange-entry-node"
     static let visitLocationIdentifierSystem: IdentifierSystem =
-        "https://study.example.org/fhir/identifiers/sensorkit-location"
+        "https://grovealliance.org/fhir/testing/identifiers/sensorkit-location"
     static let converterHost = SensorHostDevice(
         sourceDeviceToken: "test-converter-host",
         operatingSystemVersion: "20.1",
@@ -35,7 +35,7 @@ enum SensorFHIRIdentityTestSupport {
     static var subjectIdentity: BusinessIdentifier {
         get throws {
             try BusinessIdentifier(
-                system: "https://study.example.org/fhir/identifiers/participant",
+                system: "https://grovealliance.org/fhir/testing/identifiers/participant",
                 value: "example"
             )
         }
@@ -51,7 +51,7 @@ enum SensorFHIRIdentityTestSupport {
         value: String
     ) throws -> Reference {
         let identifier = try BusinessIdentifier(
-            system: "https://study.example.org/fhir/identifiers/\(resourceType.rawValue.lowercased())",
+            system: "https://grovealliance.org/fhir/testing/identifiers/\(resourceType.rawValue.lowercased())",
             value: value
         )
         return Reference(
@@ -63,7 +63,7 @@ enum SensorFHIRIdentityTestSupport {
     static var repositoryScope: BusinessIdentifier {
         get throws {
             try BusinessIdentifier(
-                system: "https://study.example.org/fhir/identifiers/repository",
+                system: "https://grovealliance.org/fhir/testing/identifiers/repository",
                 value: "primary"
             )
         }
@@ -73,16 +73,16 @@ enum SensorFHIRIdentityTestSupport {
         get throws {
             try PseudonymousIdentityScope(
                 systems: PseudonymousIdentitySystems(
-                    sourceRecord: "https://study.example.org/fhir/identifiers/pseudonym/source-record/test/1",
-                    sourceOutput: "https://study.example.org/fhir/identifiers/pseudonym/source-output/test/1",
-                    writerRecord: "https://study.example.org/fhir/identifiers/pseudonym/writer-record/test/1",
-                    providerRecord: "https://study.example.org/fhir/identifiers/pseudonym/provider-record/test/1",
-                    providerOutput: "https://study.example.org/fhir/identifiers/pseudonym/provider-output/test/1",
-                    sourceArtifact: "https://study.example.org/fhir/identifiers/pseudonym/source-artifact/test/1",
-                    providerArtifact: "https://study.example.org/fhir/identifiers/pseudonym/provider-artifact/test/1",
-                    sourceContext: "https://study.example.org/fhir/identifiers/pseudonym/source-context/test/1",
-                    recordingDevice: "https://study.example.org/fhir/identifiers/pseudonym/recording-device/test/1",
-                    deviceSnapshot: "https://study.example.org/fhir/identifiers/pseudonym/device-snapshot/test/1"
+                    sourceRecord: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-record/test/1",
+                    sourceOutput: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-output/test/1",
+                    writerRecord: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/writer-record/test/1",
+                    providerRecord: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/provider-record/test/1",
+                    providerOutput: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/provider-output/test/1",
+                    sourceArtifact: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-artifact/test/1",
+                    providerArtifact: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/provider-artifact/test/1",
+                    sourceContext: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-context/test/1",
+                    recordingDevice: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/recording-device/test/1",
+                    deviceSnapshot: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/device-snapshot/test/1"
                 ),
                 keyID: "test",
                 epoch: 1,
@@ -93,7 +93,7 @@ enum SensorFHIRIdentityTestSupport {
 
     static func event(sequence: UInt64 = 1) throws -> ExchangeEventIdentifier {
         try ExchangeEventIdentifier(
-            system: "https://study.example.org/fhir/identifiers/exchange-event",
+            system: "https://grovealliance.org/fhir/testing/identifiers/exchange-event",
             producerInstance: producerInstance,
             sequence: sequence
         )
@@ -127,25 +127,6 @@ enum SensorFHIRIdentityTestSupport {
             ))
         }
         return outputs
-    }
-}
-
-
-extension SensorRecordingDevice {
-    init(
-        identifier: BusinessIdentifier,
-        stableUnitToken: String,
-        name: String? = nil,
-        manufacturer: String? = nil,
-        modelNumber: String? = nil
-    ) {
-        _ = identifier // Legacy clear identity is deliberately ignored by the v2 converter.
-        self.init(
-            stableUnitToken: stableUnitToken,
-            name: name,
-            manufacturer: manufacturer,
-            modelNumber: modelNumber
-        )
     }
 }
 

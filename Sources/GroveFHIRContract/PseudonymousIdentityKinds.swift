@@ -20,7 +20,7 @@ public enum GroveIdentifierRole: String, CaseIterable, Hashable, Sendable {
 }
 
 
-/// The providers admitted by the 0.6 identity protocol.
+/// The providers admitted by the Grove identity protocol.
 ///
 /// Provider-owned records use a provider identity kind. Rejecting these values from generic
 /// `source-*` constructors prevents two names for the same provider preimage.
@@ -39,7 +39,7 @@ public enum GroveDeviceSnapshotRole: String, CaseIterable, Hashable, Sendable {
 }
 
 
-/// The closed domain-separation token fed to the v2 HMAC preimage.
+/// The closed domain-separation token fed to the Grove HMAC preimage.
 public enum PseudonymousIdentityKind: String, CaseIterable, Hashable, Sendable {
     case sourceRecord = "source-record"
     case sourceOutput = "source-output"

@@ -134,10 +134,6 @@ public enum HealthKitCatalog {
         uniqueKeysWithValues: entries.map { ($0.sourceTypeIdentifier, $0) }
     )
 
-    static func entry(for sample: HKSample) -> HealthKitCatalogEntry? {
-        entry(forSourceTypeIdentifier: sample.sampleType.identifier)
-    }
-
     static func entry(forSourceTypeIdentifier identifier: String) -> HealthKitCatalogEntry? {
         entriesBySourceTypeIdentifier[identifier]
     }

@@ -76,12 +76,13 @@ public struct SensorKitNativeRecording: Sendable {
 
     public let title: String
     public let format: RegisteredRecordingFormat
-    public var contentType: String { format.registeredContentType }
+    public let contentType: String
     public let payload: Payload
 
     public init(
         title: String,
         format: RegisteredRecordingFormat,
+        contentType: String? = nil,
         payload: Payload,
         admission: SensorRawPayloadAdmission
     ) throws {
@@ -104,6 +105,10 @@ public struct SensorKitNativeRecording: Sendable {
         } catch {
             throw SensorKitRecordError.invalidRegisteredPayload(format: format, reason: error)
         }
+        guard let contentType = format.resolveContentType(contentType) else {
+            throw SensorKitRecordError.invalidContentType
+        }
+        self.contentType = contentType
         _ = admission // Producer preflight only: deliberately never retained or serialized.
         self.title = title
         self.format = format
@@ -323,7 +328,7 @@ public struct SensorKitRawRecord: Sendable {
         guard effectivePeriod.start.timeIntervalSinceReferenceDate.isFinite,
               effectivePeriod.end.timeIntervalSinceReferenceDate.isFinite,
               effectivePeriod.duration.isFinite,
-              effectivePeriod.duration > 0 else {
+              effectivePeriod.duration >= 0 else {
             throw SensorKitRecordError.invalidRecordingPeriod
         }
         self.sourceRecordID = sourceRecordID
@@ -334,7 +339,7 @@ public struct SensorKitRawRecord: Sendable {
 }
 
 
-/// Every SensorKit output shape admitted by Grove FHIR 0.6.0.
+/// Every SensorKit output shape admitted by the Grove FHIR Implementation Guides.
 public enum SensorKitRecord: Sendable {
     case rotationRate(SensorKitRotationRateRecord)
     case electrocardiogram(SensorKitECGRecord)

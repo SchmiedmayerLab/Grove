@@ -9,7 +9,7 @@
 #if ResearchKit && os(iOS)
 public import ModelsR4
 private import ResearchKit
-public import ResearchKitOnFHIR
+private import ResearchKitOnFHIR
 public import ResearchKitSwiftUI
 public import SwiftUI
 
@@ -53,12 +53,9 @@ public import SwiftUI
 public struct QuestionnaireView: View { // @available(*, deprecated, renamed: "GroveQuestionnaire.QuestionnaireSheet")
     private let questionnaire: ModelsR4.Questionnaire
     private let questionnaireResult: @MainActor (QuestionnaireResult) async -> Void
-    private let conversionContext: ResearchKitFHIRConversionContext
-    private let evaluationInstant: Date
-    private let evaluationTimeZone: TimeZone
     private let completionStepMessage: String?
     private let cancelBehavior: CancelBehavior
-    
+
     public var body: some View {
         if let task = createTask(questionnaire: questionnaire) {
             ORKOrderedTaskView(tasks: task, tintColor: .accentColor, cancelBehavior: cancelBehavior, result: handleResult)
@@ -69,8 +66,8 @@ public struct QuestionnaireView: View { // @available(*, deprecated, renamed: "G
             Text("Questionnaire could not be loaded.")
         }
     }
-    
-    
+
+
     /// - Parameters:
     ///   - questionnaire: The  `Questionnaire` that should be displayed.
     ///   - completionStepMessage: Optional completion message that can be appended at the end of the questionnaire.
@@ -78,32 +75,22 @@ public struct QuestionnaireView: View { // @available(*, deprecated, renamed: "G
     ///   - questionnaireResult: Result closure that processes the ``QuestionnaireResult``.
     public init(
         questionnaire: ModelsR4.Questionnaire,
-        conversionContext: ResearchKitFHIRConversionContext,
-        evaluationInstant: Date,
-        evaluationTimeZone: TimeZone,
         completionStepMessage: String? = nil,
         cancelBehavior: CancelBehavior = .shouldConfirmCancel,
         questionnaireResult: @escaping @MainActor (QuestionnaireResult) async -> Void
     ) {
         self.questionnaire = questionnaire
-        self.conversionContext = conversionContext
-        self.evaluationInstant = evaluationInstant
-        self.evaluationTimeZone = evaluationTimeZone
         self.completionStepMessage = completionStepMessage
         self.cancelBehavior = cancelBehavior
         self.questionnaireResult = questionnaireResult
     }
-    
-    
+
+
     private func handleResult(_ result: TaskResult) async {
         let questionnaireResult: QuestionnaireResult
         switch result {
         case let .completed(result):
-            do {
-                questionnaireResult = .completed(try result.fhirResponse(using: conversionContext))
-            } catch {
-                questionnaireResult = .failed(error)
-            }
+            questionnaireResult = .completed(result.fhirResponse)
         case .cancelled:
             questionnaireResult = .cancelled
         case .failed(let error):
@@ -112,7 +99,7 @@ public struct QuestionnaireView: View { // @available(*, deprecated, renamed: "G
         await self.questionnaireResult(questionnaireResult)
     }
 
-    
+
     /// Creates a ResearchKit navigable task from a questionnaire
     /// - Parameter questionnaire: a questionnaire
     /// - Returns: a ResearchKit navigable task
@@ -123,15 +110,10 @@ public struct QuestionnaireView: View { // @available(*, deprecated, renamed: "G
             completionStep = ORKCompletionStep(identifier: "completion-step")
             completionStep?.text = completionStepMessage
         }
-        
+
         // Create a navigable task from the Questionnaire
         do {
-            return try ORKNavigableOrderedTask(
-                questionnaire: questionnaire,
-                evaluationInstant: evaluationInstant,
-                evaluationTimeZone: evaluationTimeZone,
-                completionStep: completionStep
-            )
+            return try ORKNavigableOrderedTask(questionnaire: questionnaire, completionStep: completionStep)
         } catch {
             print("Failed to create ORK task: \(error)")
             return nil

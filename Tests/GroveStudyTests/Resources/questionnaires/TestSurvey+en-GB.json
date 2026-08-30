@@ -84,7 +84,7 @@
       "required": false,
       "extension": [
         {
-          "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-unit",
+          "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption",
           "valueCoding": {
             "system": "http://unitsofmeasure.org",
             "code": "kg",

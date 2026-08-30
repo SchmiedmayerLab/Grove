@@ -302,7 +302,6 @@ public enum Profile {
     public static let withingsPulseWaveVelocity: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/withings/StructureDefinition/withings-pulse-wave-velocity"
     public static let withingsQrsDuration: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/withings/StructureDefinition/withings-qrs-duration"
     public static let withingsQtInterval: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/withings/StructureDefinition/withings-qt-interval"
-    public static let withingsSleepingHeartRateAverage: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/withings/StructureDefinition/withings-sleeping-heart-rate-average"
     public static let withingsVascularAge: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/withings/StructureDefinition/withings-vascular-age"
     public static let withingsVisceralFatIndex: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/withings/StructureDefinition/withings-visceral-fat-index"
 
@@ -3783,6 +3782,7 @@ public struct HealthKitContractRow: Sendable {
 
 /// Machine-generated HealthKit producer contract and complete source inventory.
 public enum HealthKitContract {
+    public static let catalogVersion = "0.6.0"
     public static let sourceTypeCodeSystem: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-source-type"
     public static let sourceTypeExtension: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type-extension"
     public static let conversionProvenanceProfile: FHIRPrimitive<Canonical> = Profile.healthkitConversionProvenance
@@ -3791,8 +3791,15 @@ public enum HealthKitContract {
     public static let appleBundleIdentifierTypeSystem: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-identifier-type"
     public static let appleBundleIdentifierTypeCode = "apple-bundle-id"
     public static let clinicalRecordProfile: FHIRPrimitive<Canonical> = Profile.healthkitClinicalRecordDocument
-    public static let clinicalFHIRReleaseExtension: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-clinical-fhir-release"
-    public static let clinicalFHIRReleaseCode = "r4"
+    public static let clinicalFHIRPayloadFormatCode = "fhir-resource"
+    public static let admittedClinicalFHIRReleaseCodes: Set<String> = [
+        "dstu2",
+        "r4",
+    ]
+    public static let clinicalFHIRContentTypeByRelease: [String: String] = [
+        "dstu2": "application/fhir+json; fhirVersion=1.0",
+        "r4": "application/fhir+json; fhirVersion=4.0",
+    ]
     public static let electrocardiogramSourceTypeIdentifier = "HKDataTypeIdentifierElectrocardiogram"
     public static let electrocardiogramProfiles: [FHIRPrimitive<Canonical>] = [
         Profile.groveSensorEcgObservation,
@@ -4370,7 +4377,7 @@ public enum HealthKitContract {
             measurementIDs: ["biological-sex"],
             profiles: [Profile.healthkitBiologicalSex],
             implementationStatus: .supported,
-            requirement: "Emit the reviewed healthkit-biological-sex Observation only for HKBiologicalSex.female, .male, or .other. LOINC 46098-0 'Sex' identifies the observation concept; do not relabel the source as LOINC 76689-9 'Sex assigned at birth', because HealthKit does not assert that provenance. Preserve the exact HealthKit result in the required Grove value set, and emit no Observation for .notSet."
+            requirement: "Emit the healthkit-biological-sex Observation only for HKBiologicalSex.female, .male, or .other. LOINC 46098-0 'Sex' identifies the observation concept; do not relabel the source as LOINC 76689-9 'Sex assigned at birth', because HealthKit does not assert that provenance. Preserve the exact HealthKit result in the required Grove value set, and emit no Observation for .notSet."
         ),
         HealthKitContractRow(
             sourceTypeIdentifier: "HKCharacteristicTypeIdentifierBloodType",
@@ -4386,7 +4393,7 @@ public enum HealthKitContract {
             measurementIDs: ["date-of-birth"],
             profiles: [Profile.healthkitDateOfBirth],
             implementationStatus: .supported,
-            requirement: "The mapping is defined, but disclosure is fail-closed: emit the reviewed healthkit-date-of-birth Observation only when deployment policy explicitly authorizes exchanging this direct identifier. Otherwise emit no resource. Never substitute an inferred date, silently reduce precision, or place the value on the pseudonymous exchange Patient; deployments that only require age must derive it under their own approved policy."
+            requirement: "The mapping is defined, but disclosure is fail-closed: emit the healthkit-date-of-birth Observation only when deployment policy explicitly authorizes exchanging this direct identifier. Otherwise emit no resource. Never substitute an inferred date, silently reduce precision, or place the value on the pseudonymous exchange Patient; deployments that only require age must derive it under their own approved policy."
         ),
         HealthKitContractRow(
             sourceTypeIdentifier: "HKCharacteristicTypeIdentifierFitzpatrickSkinType",
@@ -4394,7 +4401,7 @@ public enum HealthKitContract {
             measurementIDs: ["fitzpatrick-skin-type"],
             profiles: [Profile.healthkitFitzpatrickSkinType],
             implementationStatus: .supported,
-            requirement: "Emit the reviewed healthkit-fitzpatrick-skin-type Observation only for HealthKit's six stated Fitzpatrick categories, preserving the exact category in the required Grove value set. Treat the value as source-reported classification, not a measured or inferred skin phenotype, and emit no Observation for .notSet."
+            requirement: "Emit the healthkit-fitzpatrick-skin-type Observation only for HealthKit's six stated Fitzpatrick categories, preserving the exact category in the required Grove value set. Treat the value as source-reported classification, not a measured or inferred skin phenotype, and emit no Observation for .notSet."
         ),
         HealthKitContractRow(
             sourceTypeIdentifier: "HKCharacteristicTypeIdentifierWheelchairUse",
@@ -4530,7 +4537,7 @@ public enum HealthKitContract {
             measurementIDs: [],
             profiles: [Profile.healthkitUserAnnotatedMedication],
             implementationStatus: .platformExclusive,
-            requirement: "A tracked medication is admitted as a MedicationStatement identified by the HKHealthConceptIdentifier of its concept, carrying the person's nickname, the platform's general form, and whether a schedule exists. An archived medication is completed and a tracked one is active."
+            requirement: "A non-archived tracked medication is admitted as a MedicationStatement identified by the HKHealthConceptIdentifier of its concept, carrying the person's nickname, the platform's general form, whether a schedule exists, and status active. An archived medication is not admitted, because archival alone does not establish that medication use was completed or stopped."
         ),
         HealthKitContractRow(
             sourceTypeIdentifier: "HKDocumentTypeIdentifierCDA",
@@ -4647,18 +4654,18 @@ public enum HealthKitContract {
         HealthKitContractRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierBloodPressureDiastolic",
             title: "Blood Pressure (Diastolic)",
-            measurementIDs: ["blood-pressure"],
-            profiles: [Profile.groveMobileBloodPressure],
-            implementationStatus: .supported,
-            requirement: nil
+            measurementIDs: [],
+            profiles: [],
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "A diastolic quantity alone cannot populate the required two-component blood-pressure panel. Convert blood pressure only from HKCorrelationTypeIdentifierBloodPressure."
         ),
         HealthKitContractRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierBloodPressureSystolic",
             title: "Blood Pressure (Systolic)",
-            measurementIDs: ["blood-pressure"],
-            profiles: [Profile.groveMobileBloodPressure],
-            implementationStatus: .supported,
-            requirement: nil
+            measurementIDs: [],
+            profiles: [],
+            implementationStatus: .intentionallyUnsupported,
+            requirement: "A systolic quantity alone cannot populate the required two-component blood-pressure panel. Convert blood pressure only from HKCorrelationTypeIdentifierBloodPressure."
         ),
         HealthKitContractRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierBodyFatPercentage",
@@ -5530,7 +5537,7 @@ public enum HealthKitContract {
             measurementIDs: [],
             profiles: [Profile.healthkitVisionPrescription],
             implementationStatus: .platformExclusive,
-            requirement: "A glasses or contacts prescription is admitted as a structured R4 VisionPrescription: the lens specifications map natively, one HKVisionPrism resolves into its vertical and horizontal components, and vertex distance, the two pupillary distances, and the expiration date ride as extensions. HealthKit supplies no prescriber, so the mandatory reference is stated absent rather than invented."
+            requirement: "A glasses or contacts prescription is admitted as a structured R4 VisionPrescription: the lens specifications map natively, one HKVisionPrism resolves into its vertical and horizontal components, and vertex distance, the two pupillary distances, and the expiration date are represented by extensions. HealthKit supplies no prescriber, so the mandatory reference is stated absent rather than invented."
         ),
         HealthKitContractRow(
             sourceTypeIdentifier: "HKWorkoutRouteTypeIdentifier",
@@ -5825,7 +5832,6 @@ public enum ProfileClaims {
         Profile.withingsPulseWaveVelocity,
         Profile.withingsQrsDuration,
         Profile.withingsQtInterval,
-        Profile.withingsSleepingHeartRateAverage,
         Profile.withingsVascularAge,
         Profile.withingsVisceralFatIndex,
     ]
@@ -5847,7 +5853,6 @@ public enum ProfileClaims {
         "https://grovealliance.org/fhir/withings/StructureDefinition/withings-pulse-wave-velocity": Profile.withingsObservation,
         "https://grovealliance.org/fhir/withings/StructureDefinition/withings-qrs-duration": Profile.withingsObservation,
         "https://grovealliance.org/fhir/withings/StructureDefinition/withings-qt-interval": Profile.withingsObservation,
-        "https://grovealliance.org/fhir/withings/StructureDefinition/withings-sleeping-heart-rate-average": Profile.withingsObservation,
         "https://grovealliance.org/fhir/withings/StructureDefinition/withings-vascular-age": Profile.withingsObservation,
         "https://grovealliance.org/fhir/withings/StructureDefinition/withings-visceral-fat-index": Profile.withingsObservation,
     ]
@@ -6374,7 +6379,6 @@ public enum ProfileClaims {
         "https://grovealliance.org/fhir/withings/StructureDefinition/withings-pulse-wave-velocity": FixedMeasurementQuantityClaim(measurementID: "withings-pulse-wave-velocity", quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "m/s", unit: "m/s", valueDomain: nil)),
         "https://grovealliance.org/fhir/withings/StructureDefinition/withings-qrs-duration": FixedMeasurementQuantityClaim(measurementID: "qrs-duration", quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "ms", unit: "ms", valueDomain: nil)),
         "https://grovealliance.org/fhir/withings/StructureDefinition/withings-qt-interval": FixedMeasurementQuantityClaim(measurementID: "qt-interval", quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "ms", unit: "ms", valueDomain: nil)),
-        "https://grovealliance.org/fhir/withings/StructureDefinition/withings-sleeping-heart-rate-average": FixedMeasurementQuantityClaim(measurementID: "sleeping-heart-rate-average", quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "beats/minute", valueDomain: nil)),
         "https://grovealliance.org/fhir/withings/StructureDefinition/withings-vascular-age": FixedMeasurementQuantityClaim(measurementID: "withings-vascular-age", quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "a", unit: "years", valueDomain: nil)),
         "https://grovealliance.org/fhir/withings/StructureDefinition/withings-visceral-fat-index": FixedMeasurementQuantityClaim(measurementID: "withings-visceral-fat-index", quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "{score}", unit: "score", valueDomain: nil)),
     ]

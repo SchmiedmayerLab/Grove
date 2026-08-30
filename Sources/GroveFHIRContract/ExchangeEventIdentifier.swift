@@ -30,7 +30,7 @@ public struct ExchangeEventIdentifier: Hashable, Sendable {
         self.sequence = sequence
         self.businessIdentifier = try BusinessIdentifier(
             system: system,
-            value: "e2:\(canonicalUUID):\(sequence.rawValue)",
+            value: "e0:\(canonicalUUID):\(sequence.rawValue)",
             role: .event
         )
     }
@@ -61,7 +61,7 @@ public struct ExchangeEventIdentifier: Hashable, Sendable {
         }
         let components = identifier.value.split(separator: ":", omittingEmptySubsequences: false)
         guard components.count == 3,
-              components[0] == "e2",
+              components[0] == "e0",
               let uuid = UUID(uuidString: String(components[1])),
               uuid.uuidString.lowercased() == components[1],
               let sequence = try? CanonicalPositiveDecimal(String(components[2])) else {

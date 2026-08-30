@@ -34,7 +34,7 @@ public struct FHIRExtensionURL: Sendable, Hashable {
     public init(_ url: URL) {
         self.url = url
     }
-    
+
     /// Creates a FHIR Extension URL from caller-supplied text.
     ///
     /// Relative URLs remain valid because the FHIR `uri` primitive admits them. Empty or
@@ -62,7 +62,7 @@ extension FHIRExtensionURL {
     public var r4: ModelsR4.FHIRPrimitive<ModelsR4.FHIRURI> { // swiftlint:disable:this identifier_name
         url.asFHIRURIPrimitive()
     }
-    
+
     /// DSTU2 `FHIRPrimitive<FHIRURI>`
     public var dstu2: ModelsDSTU2.FHIRPrimitive<ModelsDSTU2.FHIRURI> {
         url.asFHIRURIPrimitive()
@@ -76,7 +76,7 @@ extension FHIRExtensionURL {
     public func appending(component: some StringProtocol) -> Self {
         Self(url.appending(component: component))
     }
-    
+
     /// Creates a new `FHIRExtensionURL>` by appending multiple components.
     public func appending(components: some Collection<some StringProtocol>) -> Self {
         func extend(_ url: URL) -> URL {

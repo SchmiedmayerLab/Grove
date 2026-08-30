@@ -41,7 +41,9 @@ extension SensorKitECGRecord {
     /// Creates a strict hybrid ECG input from an already-fetched Grove SensorKit session.
     ///
     /// `nativeRecording` must contain the exact corresponding native session evidence, including
-    /// per-point SensorKit flags and session state. Grove neither fetches nor inspects those bytes.
+    /// `SensorKitECGSession.sessionIdentifier`, `SensorKitECGSession.sessionStates`, and the
+    /// per-point SensorKit flags.
+    /// Grove neither fetches nor inspects those bytes.
     public init(
         sourceRecordID: SensorKitSourceRecordID,
         session: SensorKitECGSession,
@@ -54,11 +56,10 @@ extension SensorKitECGRecord {
         guard let finalBatch = session.batches.last, !finalBatch.samples.isEmpty else {
             throw SensorKitRecordError.emptySamples
         }
-        let finalSampleOffset = finalBatch.offset + Double(finalBatch.samples.count - 1) / frequency
         self.init(
             sourceRecordID: sourceRecordID,
             startDate: session.startDate,
-            durationSeconds: finalSampleOffset,
+            durationSeconds: session.duration,
             frequencyHertz: frequency,
             lead: try Self.lead(session.lead),
             guidance: try Self.guidance(session.guidance),

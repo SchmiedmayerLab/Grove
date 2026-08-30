@@ -24,7 +24,7 @@ set -e
 
 if [ "$status" -eq 0 ]; then
     printf '%s\n' "$matches"
-    echo "error: retired FHIR canonical found; Grove FHIR 0.6.0 has no alias or fallback layer" >&2
+    echo "error: retired FHIR canonical found; the Grove FHIR Implementation Guides have no alias or fallback layer" >&2
     exit 1
 fi
 

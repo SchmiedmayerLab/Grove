@@ -20,11 +20,10 @@ public enum SensorRawPayloadAdmission: String, CaseIterable, Hashable, Sendable 
 }
 
 
-/// Generated canonical constants for the SensorKit v0.6 producer.
+/// Generated canonical constants for the SensorKit producer.
 public enum SensorKitContract {
     public static let canonicalRoot = "https://grovealliance.org/fhir/sensorkit"
     public static let sourceTypeExtension = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-source-type"
-    public static let ecgSessionGuidanceExtension = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-ecg-session-guidance"
     public static let visitLocationExtension = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-visit-location"
     public static let wristTemperatureAlgorithmVersionExtension = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-wrist-temperature-algorithm-version"
     public static let visitLocationIdentifierSystem = "https://grovealliance.org/fhir/sensorkit/NamingSystem/sensorkit-visit-location-id"
@@ -53,7 +52,7 @@ public enum RegisteredRecordingFormat: String, CaseIterable, Hashable, Sendable 
     case beatIntervalSeries = "beat-interval-series"
     case clinicalDocument = "clinical-document"
     case fhirCollectionBundle = "fhir-collection-bundle"
-    case fhirR4Resource = "fhir-r4-resource"
+    case fhirResource = "fhir-resource"
     case heartRateSamples = "heart-rate-samples"
     case locationTrackSamples = "location-track-samples"
     case nativeRecording = "native-recording"
@@ -65,29 +64,34 @@ public enum RegisteredRecordingFormat: String, CaseIterable, Hashable, Sendable 
     case triaxialRotationSamples = "triaxial-rotation-samples"
     case wristTemperatureSamples = "wrist-temperature-samples"
 
-    /// The media type the registry publishes for this format.
+    /// The media types the registry admits for this format.
     ///
-    /// This exact pair is closed by the registry; producers cannot supply an independent
-    /// media type that contradicts the payload schema named by the format code.
-    public var registeredContentType: String {
+    /// Most formats admit one exact media type. A release-neutral format can admit several
+    /// versioned representations of the same payload grammar.
+    public var registeredContentTypes: [String] {
         switch self {
-        case .ambientLightSamples: "text/csv"
-        case .ambientPressureSamples: "text/csv"
-        case .beatIntervalSeries: "text/csv"
-        case .clinicalDocument: "application/hl7-cda+xml"
-        case .fhirCollectionBundle: "application/fhir+json"
-        case .fhirR4Resource: "application/fhir+json"
-        case .heartRateSamples: "text/csv"
-        case .locationTrackSamples: "text/csv"
-        case .nativeRecording: "application/vnd.grovealliance.native+json"
-        case .odometerSamples: "text/csv"
-        case .pedometerSamples: "text/csv"
-        case .photoplethysmogramSamples: "application/vnd.grovealliance.ppg"
-        case .providerRecording: "application/vnd.grovealliance.provider+json"
-        case .triaxialAccelerationSamples: "text/csv"
-        case .triaxialRotationSamples: "text/csv"
-        case .wristTemperatureSamples: "text/csv"
+        case .ambientLightSamples: ["text/csv"]
+        case .ambientPressureSamples: ["text/csv"]
+        case .beatIntervalSeries: ["text/csv"]
+        case .clinicalDocument: ["application/hl7-cda+xml"]
+        case .fhirCollectionBundle: ["application/fhir+json"]
+        case .fhirResource: ["application/fhir+json; fhirVersion=1.0", "application/fhir+json; fhirVersion=4.0"]
+        case .heartRateSamples: ["text/csv"]
+        case .locationTrackSamples: ["text/csv"]
+        case .nativeRecording: ["application/json"]
+        case .odometerSamples: ["text/csv"]
+        case .pedometerSamples: ["text/csv"]
+        case .photoplethysmogramSamples: ["application/octet-stream"]
+        case .providerRecording: ["application/json"]
+        case .triaxialAccelerationSamples: ["text/csv"]
+        case .triaxialRotationSamples: ["text/csv"]
+        case .wristTemperatureSamples: ["text/csv"]
         }
+    }
+
+    /// The registry's exact media type when this format has only one representation.
+    public var registeredContentType: String? {
+        registeredContentTypes.count == 1 ? registeredContentTypes[0] : nil
     }
 }
 
@@ -101,7 +105,7 @@ extension RegisteredRecordingFormat {
     /// header. `nil` for a format that is not tabular.
     public var csvColumns: [String]? {
         switch self {
-        case .ambientLightSamples: ["timestamp", "lux", "placement", "chromacityX", "chromacityY", "device"]
+        case .ambientLightSamples: ["timestamp", "lux", "placement", "chromaticityX", "chromaticityY", "device"]
         case .ambientPressureSamples: ["timestamp", "identifier", "pressure", "temperature", "device"]
         case .beatIntervalSeries: ["timestamp", "precededByGap"]
         case .heartRateSamples: ["timestamp", "value", "confidence", "device"]
@@ -124,7 +128,7 @@ extension RegisteredRecordingFormat {
 
 enum SensorKitGenerated {
     static let catalog = SensorKitCatalog(
-        schemaVersion: 1,
+        schemaVersion: 0,
         version: "0.6.0",
         fhirVersion: "4.0.1",
         entries: [
@@ -150,7 +154,7 @@ enum SensorKitGenerated {
                 structuredProfiles: [],
                 rawProfiles: [],
                 rawFormats: [],
-                requirement: "Version 0.6.0 publishes no reviewed output contract for this stable platform symbol."
+                requirement: "The Grove FHIR contracts publish no admitted output contract for this stable platform symbol."
             ),
             SensorKitCatalogEntry(
                 sourceToken: "SRSensor.ambientLightSensor",
@@ -162,7 +166,7 @@ enum SensorKitGenerated {
                 structuredProfiles: [],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
                 rawFormats: [.ambientLightSamples],
-                requirement: "The source contains heterogeneous light fields for which version 0.6.0 does not publish a lossless component profile."
+                requirement: "The source contains heterogeneous light fields for which the Grove FHIR contracts do not publish a lossless component profile."
             ),
             SensorKitCatalogEntry(
                 sourceToken: "SRSensor.ambientPressure",
@@ -198,7 +202,7 @@ enum SensorKitGenerated {
                 structuredProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-ecg-observation", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-ecg-observation"],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
                 rawFormats: [.fhirCollectionBundle, .nativeRecording],
-                requirement: "All batches form one complete uniform series at the exact reported frequency, one exact lead orientation is retained, and no voltage sample is omitted. Non-uniform, incomplete, mixed-lead, or inconsistent input fails closed."
+                requirement: "All batches form one complete uniform series at the exact reported frequency, one exact lead orientation is retained, and no voltage sample is omitted. The duration ends at the final sample instant: final batch offset + (final batch sample count - 1) / frequency. Non-uniform, incomplete, mixed-lead, or inconsistent input fails closed."
             ),
             SensorKitCatalogEntry(
                 sourceToken: "SRSensor.faceMetrics",
@@ -210,7 +214,7 @@ enum SensorKitGenerated {
                 structuredProfiles: [],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
                 rawFormats: [.nativeRecording],
-                requirement: "Version 0.6.0 publishes no reviewed structured profile for the heterogeneous face metrics."
+                requirement: "The Grove FHIR contracts publish no structured profile for the heterogeneous face metrics."
             ),
             SensorKitCatalogEntry(
                 sourceToken: "SRSensor.heartRate",
@@ -246,7 +250,7 @@ enum SensorKitGenerated {
                 structuredProfiles: [],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
                 rawFormats: [.nativeRecording],
-                requirement: "Media interactions do not have a reviewed source-neutral clinical Observation representation in version 0.6.0."
+                requirement: "Media interactions do not have a source-neutral clinical Observation representation under the Grove FHIR contracts."
             ),
             SensorKitCatalogEntry(
                 sourceToken: "SRSensor.messagesUsageReport",
@@ -342,7 +346,7 @@ enum SensorKitGenerated {
                 structuredProfiles: [],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
                 rawFormats: [.nativeRecording],
-                requirement: "Speech metrics have no reviewed source-neutral clinical Observation representation in version 0.6.0."
+                requirement: "Speech metrics have no source-neutral clinical Observation representation under the Grove FHIR contracts."
             ),
             SensorKitCatalogEntry(
                 sourceToken: "SRSensor.sleepSessions",
@@ -366,7 +370,7 @@ enum SensorKitGenerated {
                 structuredProfiles: [],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
                 rawFormats: [.nativeRecording],
-                requirement: "Speech metrics have no reviewed source-neutral clinical Observation representation in version 0.6.0."
+                requirement: "Speech metrics have no source-neutral clinical Observation representation under the Grove FHIR contracts."
             ),
             SensorKitCatalogEntry(
                 sourceToken: "SRSensor.visits",
@@ -390,7 +394,7 @@ enum SensorKitGenerated {
                 structuredProfiles: ["https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-wrist-temperature-observation"],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
                 rawFormats: [.wristTemperatureSamples],
-                requirement: "A sleep-interval wrist skin reading is neither body nor basal body temperature, so version 0.6.0 publishes a platform-scoped summary rather than binding it to a shared clinical meaning."
+                requirement: "A sleep-interval wrist skin reading is neither body nor basal body temperature, so the Grove FHIR contracts publish a platform-scoped summary rather than binding it to a shared clinical meaning."
             ),
         ]
     )

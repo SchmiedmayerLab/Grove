@@ -50,7 +50,7 @@ struct GroveFHIRExchangeIdentityTests {
             nativeContextID: "2f8a51c6-9d34-4e07-b2f1-63c8ad905e12"
         )
         #expect(identifier.role == .sourceContext)
-        #expect(identifier.value == "v2:test-key:1:nq3ZogmXHSznC1LC1wNMm7KTQChgapPzmjmGeB9RHcw")
+        #expect(identifier.value == "v0:test-key:1:YTeSyVMN8VDKaIp7rLq6h9HfDIypiKcwO-nFqCJA8Dk")
     }
 
     @Test("Matches the normative Unicode and separator source-record vector")
@@ -64,7 +64,7 @@ struct GroveFHIRExchangeIdentityTests {
             ),
             nativeRecordID: "record|東京"
         )
-        #expect(identifier.value == "v2:test-key:1:UKY2qgzSB8--SueGxEfOhpElzHTVJ6usIUWV_KUTD6o")
+        #expect(identifier.value == "v0:test-key:1:BDCkwCFA2Wg4-fHVRsy4L0JWYuvQknZkCTXL4Ct01IQ")
         #expect(identifier.role == .sourceRecord)
     }
 
@@ -81,7 +81,7 @@ struct GroveFHIRExchangeIdentityTests {
             outputRole: "sample",
             outputDiscriminator: "2026-08-19T10:30:00.000000000Z|0"
         )
-        #expect(identifier.value == "v2:test-key:1:PQCWz9dZSrJm-KrbhbkckGeowkjhSSwWDRCVuF3VfXw")
+        #expect(identifier.value == "v0:test-key:1:MYPFjAMsSt0suOqpN29y_KjG__sagIpCbYKAfVKx6ck")
         #expect(identifier.role == .sourceOutput)
     }
 
@@ -118,22 +118,22 @@ struct GroveFHIRExchangeIdentityTests {
             subject: Self.identifier("https://study.example.org/participants", "participant-001"),
             stableUnitToken: "watch-unit-token-001"
         )
-        #expect(provider.value == "v2:test-key:1:p3NFdQ-hmHon98JG7cmCbLncbAmNkjkBa5sYocSr6pw")
-        #expect(providerOutput.value == "v2:test-key:1:HjBwHRt0W3-CbhJbc7hGpWRp92zug70gt5m626T4Y2U")
-        #expect(providerArtifact.value == "v2:test-key:1:CxLpZ4NQee12xCyJCGimrxMLEKvbRt54Kl6RTh9UsrU")
-        #expect(writer.value == "v2:test-key:1:N4QSlWU6sNp9ahfyfSRTUO0K_VIZZoy-Lw3JTNrDzP4")
-        #expect(recordingDevice.value == "v2:test-key:1:MWGV3Vfk0jfLIr0nowr_I7TAwoqGtpSkxUi1d8FxTnE")
+        #expect(provider.value == "v0:test-key:1:qfmx1ajnVg_rNE8qiL_hIAWI8GtbVpRtf6T2RWREezM")
+        #expect(providerOutput.value == "v0:test-key:1:mum-FTSsu6Kv_QBFNSjcFuznTp5C6D3QnrQ6iwm23Ec")
+        #expect(providerArtifact.value == "v0:test-key:1:0LxvhsWmRngwxPPMqWk7--4qTN8Wa1j-oTbGuMCCgrA")
+        #expect(writer.value == "v0:test-key:1:DvVpDnGZfj28tqpozMhpZSHjT2J65wvN_bmTYu0x0Cw")
+        #expect(recordingDevice.value == "v0:test-key:1:BZfymBSOLQlRaEwkvjBNFKbiTvUoNrz8CJEgYlztkus")
     }
 
     @Test("Matches normative event, entry-node, and UUIDv5 vectors")
     func graphKeyVectors() throws {
         let event = try ExchangeEventIdentifier(
-            system: "https://study.example.org/fhir/NamingSystem/grove-event-v2",
+            system: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
             producerInstance: #require(UUID(uuidString: "1f5c58aa-6ec6-4e79-a682-829a9debd3f5")),
             sequence: 42
         )
         let node = try ExchangeNodeKey(
-            system: "https://study.example.org/fhir/NamingSystem/grove-entry-node-v2",
+            system: "https://study.example.org/fhir/NamingSystem/grove-entry-node-v0",
             eventIdentifier: event,
             nodeRole: "conversion-provenance",
             ordinal: 0
@@ -142,9 +142,9 @@ struct GroveFHIRExchangeIdentityTests {
             system: "https://xn--fsq.example/%E8%AD%98%E5%88%A5%E5%AD%90",
             value: "café|東京"
         )
-        #expect(event.businessIdentifier.value == "e2:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:42")
-        #expect(node.identifier.value == "n2:conversion-provenance:0:SwGD7C4DT5_9kgIOQ9h7W8I4UdwJPuEOnkh2TgQVwko")
-        #expect(try ExchangeIdentity.fullURL(for: node.identifier) == "urn:uuid:9908feb7-0370-5f06-a689-f8afa210eb41")
+        #expect(event.businessIdentifier.value == "e0:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:42")
+        #expect(node.identifier.value == "n0:conversion-provenance:0:8JmcQF7rmULm9uJBkHWruJwfMu3GJTxGWqXWn2DGqWk")
+        #expect(try ExchangeIdentity.fullURL(for: node.identifier) == "urn:uuid:71abc484-b9ee-511e-b22a-5b35d026d620")
         #expect(try ExchangeIdentity.fullURL(for: unicode) == "urn:uuid:d35e4203-71f6-595c-bd1b-306b8414974e")
     }
 
@@ -153,7 +153,7 @@ struct GroveFHIRExchangeIdentityTests {
         let invalid = try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000000"))
         #expect(throws: ExchangeIdentityError.invalidProducerInstance(invalid)) {
             try ExchangeEventIdentifier(
-                system: "https://study.example.org/fhir/NamingSystem/grove-event-v2",
+                system: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
                 producerInstance: invalid,
                 sequence: 1
             )
@@ -165,7 +165,7 @@ struct GroveFHIRExchangeIdentityTests {
         let identifier = Identifier(
             system: "https://study.example.org/fhir/NamingSystem/source-record-test-key-1",
             type: CodeableConcept(coding: [Coding(system: Canonicals.identifierRoleCodeSystem)]),
-            value: "v2:test-key:1:UKY2qgzSB8--SueGxEfOhpElzHTVJ6usIUWV_KUTD6o"
+            value: "v0:test-key:1:BDCkwCFA2Wg4-fHVRsy4L0JWYuvQknZkCTXL4Ct01IQ"
         )
         #expect(throws: ExchangeIdentityError.invalidIdentifierRole("missing")) {
             try BusinessIdentifier(identifier)
@@ -357,12 +357,12 @@ extension GroveFHIRExchangeIdentityTests {
             nativeRecordID: "record-001"
         )
         let event = try ExchangeEventIdentifier(
-            system: "https://study.example.org/fhir/NamingSystem/grove-event-v2",
+            system: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
             producerInstance: #require(UUID(uuidString: "1f5c58aa-6ec6-4e79-a682-829a9debd3f5")),
             sequence: CanonicalPositiveDecimal(aboveUInt64)
         )
         let node = try ExchangeNodeKey(
-            system: "https://study.example.org/fhir/NamingSystem/grove-entry-node-v2",
+            system: "https://study.example.org/fhir/NamingSystem/grove-entry-node-v0",
             eventIdentifier: event,
             nodeRole: "conversion-provenance",
             ordinal: CanonicalNonnegativeDecimal(aboveUInt64)
@@ -377,9 +377,9 @@ extension GroveFHIRExchangeIdentityTests {
         )
         #expect(event.sequence.rawValue == aboveUInt64)
         #expect(wideEpochScope.epoch.rawValue == aboveUInt64)
-        #expect(wideEpochIdentity.value.hasPrefix("v2:wide-epoch:\(aboveUInt64):"))
+        #expect(wideEpochIdentity.value.hasPrefix("v0:wide-epoch:\(aboveUInt64):"))
         #expect(ExchangeIdentity.isCanonicalOpaqueIdentifierValue(wideEpochIdentity.value))
-        #expect(!ExchangeIdentity.isCanonicalOpaqueIdentifierValue("v2:wide-epoch:01:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
+        #expect(!ExchangeIdentity.isCanonicalOpaqueIdentifierValue("v0:wide-epoch:01:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
         #expect(event.businessIdentifier.value.hasSuffix(":\(aboveUInt64)"))
         #expect(node.ordinal.rawValue == aboveUInt64)
         #expect(node.identifier.value.contains(":\(aboveUInt64):"))
@@ -392,11 +392,11 @@ extension GroveFHIRExchangeIdentityTests {
             try CanonicalPositiveDecimal("0")
         }
         #expect(throws: ExchangeIdentityError.invalidEventIdentifier(
-            "e2:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:01"
+            "e0:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:01"
         )) {
             try ExchangeEventIdentifier(BusinessIdentifier(
-                system: "https://study.example.org/fhir/NamingSystem/grove-event-v2",
-                value: "e2:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:01",
+                system: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
+                value: "e0:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:01",
                 role: .event
             ))
         }
@@ -486,7 +486,7 @@ extension GroveFHIRExchangeIdentityTests {
             }]
           },
           "system": "https://例.example/識別子",
-          "value": "e2:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:42"
+          "value": "e0:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:42"
         }
         """#.utf8)
         #expect(throws: ExchangeIdentityError.invalidIdentifierSystem("https://例.example/識別子")) {

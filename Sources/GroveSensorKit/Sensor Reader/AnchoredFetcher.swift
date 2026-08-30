@@ -286,7 +286,7 @@ extension SensorKit {
 
         /// Canonical local-ledger representation suitable for a length-delimited identity preimage.
         public var stableValue: String {
-            "sensorkit-batch-v1:\(cursorTimestamp.timeIntervalSinceReferenceDate.bitPattern):"
+            "sensorkit-batch-v0:\(cursorTimestamp.timeIntervalSinceReferenceDate.bitPattern):"
                 + "\(resetGeneration):\(sequence)"
         }
 

@@ -175,12 +175,11 @@ extension ExchangeGraph {
         else {
             return
         }
-        let releaseExtensions = document.extension?.filter {
-            $0.url == HealthKitContract.clinicalFHIRReleaseExtension
-        } ?? []
-        guard releaseExtensions.count == 1,
-              case .code(let releaseCode)? = releaseExtensions.first?.value,
-              releaseCode.value?.string == HealthKitContract.clinicalFHIRReleaseCode else {
+        guard let content = document.content.first,
+              content.format?.code?.value?.string
+                  == HealthKitContract.clinicalFHIRPayloadFormatCode,
+              let contentType = content.attachment.contentType?.value?.string,
+              HealthKitContract.clinicalFHIRContentTypeByRelease.values.contains(contentType) else {
             throw .ruleViolation(.clinicalFHIRRepresentation)
         }
     }

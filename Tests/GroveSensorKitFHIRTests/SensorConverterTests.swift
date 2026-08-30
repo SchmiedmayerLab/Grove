@@ -32,10 +32,6 @@ struct SensorFHIRConverterTests {
                 ),
                 graphIdentifierSystem: "https://study.example.org/fhir/identifiers/sensor-graph",
                 recordingDevice: SensorRecordingDevice(
-                    identifier: try BusinessIdentifier(
-                        system: "https://study.example.org/fhir/identifiers/recording-device",
-                        value: "watch-42"
-                    ),
                     stableUnitToken: "watch-42",
                     name: "Example Watch",
                     manufacturer: "Example",
@@ -190,12 +186,13 @@ struct SensorFHIRConverterTests {
         #expect(document.content.count == 1)
         #expect(attachment.data == nil)
         #expect(attachment.url?.value?.url.absoluteString == "payloads/ambient-light/session-1.json")
-        #expect(attachment.contentType?.value?.string == "application/vnd.grovealliance.native+json")
+        #expect(attachment.contentType?.value?.string == RegisteredRecordingFormat.nativeRecording.registeredContentType)
         #expect(attachment.size?.value?.integer == 2)
         #expect(attachment.hash != nil)
         let format = try #require(document.content.first?.format)
         #expect(format.system?.value?.url.absoluteString == SensorKitContract.recordingFormatCodeSystem)
         #expect(format.code?.value?.string == "native-recording")
+        #expect(format.version == nil)
         #expect(conversion.provenance.meta?.profile == [
             GroveLifecycleContract.conversionProvenanceProfile
         ])

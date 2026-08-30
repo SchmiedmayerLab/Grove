@@ -59,10 +59,6 @@ struct SensorConformanceFixtureTests {
                 repositoryScope: SensorFHIRIdentityTestSupport.repositoryScope,
                 visitLocationIdentifierSystem: SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem,
                 recordingDevice: SensorRecordingDevice(
-                    identifier: BusinessIdentifier(
-                        system: "https://grovealliance.org/fhir/testing/identifiers/conformance-recording-device",
-                        value: "sensor-fixture-device"
-                    ),
                     stableUnitToken: "sensor-fixture-device",
                     name: "Sensor Fixture Device"
                 ),

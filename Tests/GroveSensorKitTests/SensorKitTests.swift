@@ -8,14 +8,90 @@
 
 import Foundation
 @testable import GroveSensorKit
+#if os(iOS)
+import SensorKit
+#endif
 import Testing
 
 
 @Suite
 struct SensorKitTests {
-    @Test
+    #if os(iOS)
+    @Test("ECG safe representations retain exact session evidence and coverage")
+    @available(iOS 17.4, *)
+    func ecgSafeRepresentationRetainsNativeIdentity() {
+        let sample = SensorKitECGSession.Batch.VoltageSample(
+            flags: [],
+            voltage: Measurement(value: 1, unit: .microvolts)
+        )
+        let finalBatchOffset: TimeInterval = 2
+        let finalBatchSampleCount = 3
+        let frequencyHertz = 512.0
+        let session = SensorKitECGSession(
+            startDate: Date(timeIntervalSinceReferenceDate: 1_000),
+            sessionIdentifier: "provider-session",
+            sessionStates: [.end, .begin, .active],
+            frequency: Measurement(value: frequencyHertz, unit: .hertz),
+            lead: .rightArmMinusLeftArm,
+            guidance: .guided,
+            batches: [
+                .init(offset: 0, samples: [sample]),
+                .init(offset: finalBatchOffset, samples: Array(repeating: sample, count: finalBatchSampleCount))
+            ]
+        )
+
+        #expect(session.sessionIdentifier == "provider-session")
+        #expect(session.sessionStates == [.begin, .active, .end])
+        let expectedDuration = finalBatchOffset + Double(finalBatchSampleCount - 1) / frequencyHertz
+        #expect(session.duration == expectedDuration)
+        #expect(session.timeRange.upperBound == session.startDate.addingTimeInterval(expectedDuration))
+    }
+
+    @Test("Device-usage evidence is constructible without private SensorKit initializers")
     @available(iOS 18, *)
-    func hmmm() {
+    func deviceUsageEvidenceHasSourceNeutralInitializers() throws {
+        let textInputSession = SRDeviceUsageReport.SafeRepresentation.AppUsage.TextInputSession(
+            duration: 2,
+            sessionType: .keyboard,
+            identifier: "keyboard-session"
+        )
+        let supplementalCategory = SRDeviceUsageReport.SafeRepresentation.AppUsage.SupplementalCategory(
+            identifier: "communication"
+        )
+        let appUsage = SRDeviceUsageReport.SafeRepresentation.AppUsage(
+            bundleIdentifier: "com.apple.MobileSMS",
+            relativeStartTime: 5,
+            usageTime: 30,
+            reportApplicationIdentifier: "report-app",
+            textInputSessions: [textInputSession],
+            supplementalCategories: [supplementalCategory]
+        )
+        let notificationUsage = SRDeviceUsageReport.SafeRepresentation.NotificationUsage(
+            bundleIdentifier: "com.apple.MobileSMS",
+            event: .received
+        )
+        let webUsage = SRDeviceUsageReport.SafeRepresentation.WebUsage(totalUsageTime: 10)
+        let report = SRDeviceUsageReport.SafeRepresentation(
+            timestamp: Date(timeIntervalSinceReferenceDate: 1_000),
+            duration: 60,
+            totalScreenWakes: 2,
+            totalUnlocks: 1,
+            totalUnlockDuration: 20,
+            version: "1",
+            appUsageByCategory: [.socialNetworking: [appUsage]],
+            notificationUsageByCategory: [.socialNetworking: [notificationUsage]],
+            webUsageByCategory: [.socialNetworking: [webUsage]]
+        )
+
+        #expect(try #require(report.appUsageByCategory[.socialNetworking]?.first) == appUsage)
+        #expect(try #require(report.notificationUsageByCategory[.socialNetworking]?.first) == notificationUsage)
+        #expect(try #require(report.webUsageByCategory[.socialNetworking]?.first) == webUsage)
+    }
+    #endif
+
+    @Test("A new SensorKit instance has not requested heart-rate authorization")
+    @available(iOS 18, *)
+    func initialAuthorizationStatusIsNotDetermined() {
         let module = SensorKit()
         #expect(module.authorizationStatus(for: .heartRate) == .notDetermined)
     }

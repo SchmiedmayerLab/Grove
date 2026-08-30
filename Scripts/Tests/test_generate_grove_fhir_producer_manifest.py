@@ -47,6 +47,7 @@ class ProducerManifestTests(unittest.TestCase):
                 [entry["path"] for entry in manifest["resources"]],
                 ["a.json", "z.json"],
             )
+            self.assertEqual(manifest["schemaVersion"], 0)
             self.assertEqual(
                 manifest["resources"][1]["requiredProfiles"],
                 ["https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-observation"],

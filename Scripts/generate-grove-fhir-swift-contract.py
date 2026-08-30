@@ -572,16 +572,22 @@ def generate(catalog_directory: Path) -> str:
         raise ValueError("HealthKit application bundle identifier must have cardinality 1..1")
     clinical_admission = healthkit_catalog["clinicalRecordAdmission"]
     clinical_representation = clinical_admission["fhirRepresentation"]
+    admitted_clinical_releases = clinical_admission["admittedFHIRReleases"]
+    clinical_content_types = clinical_representation["contentTypeByRelease"]
     if (
-        clinical_admission["payloadFormat"] != "fhir-r4-resource"
-        or clinical_admission["admittedFHIRRelease"] != "r4"
-        or set(clinical_admission["rejectedFHIRReleases"]) != {"dstu2", "unknown"}
+        clinical_admission["payloadFormat"] != "fhir-resource"
+        or admitted_clinical_releases != ["dstu2", "r4"]
+        or clinical_admission["rejectedFHIRReleases"] != ["unknown"]
         or clinical_representation["resourceType"] != "DocumentReference"
-        or clinical_representation["valueElement"] != "valueCode"
-        or clinical_representation["cardinality"] != {"min": 1, "max": 1}
-        or clinical_representation["fixedValue"] != clinical_admission["admittedFHIRRelease"]
+        or clinical_content_types
+        != {
+            "dstu2": "application/fhir+json; fhirVersion=1.0",
+            "r4": "application/fhir+json; fhirVersion=4.0",
+        }
     ):
-        raise ValueError("HealthKit clinical-record admission must be exact R4 DocumentReference pass-through")
+        raise ValueError(
+            "HealthKit clinical-record admission must preserve exact DSTU2 or R4 in an R4 DocumentReference"
+        )
     ecg_claim = healthkit_catalog["sensorAdapterClaims"]["electrocardiogram"]
     correlated_symptom = ecg_claim["correlatedSymptomEvidence"]
     if len(ecg_claim["profiles"]) != profile_claims["observationAdapterClaim"]["cardinality"]:
@@ -597,6 +603,8 @@ def generate(catalog_directory: Path) -> str:
     if len(body_mass_index_profiles) != profile_claims["observationAdapterClaim"]["cardinality"]:
         raise ValueError("HealthKit body-mass-index row has the wrong direct profile cardinality")
     lines.extend([
+        "    public static let catalogVersion = "
+        f"{swift_string(healthkit_catalog['version'])}",
         "    public static let sourceTypeCodeSystem: FHIRPrimitive<FHIRURI> = "
         f"{swift_string(source_type_extension['valueSystem'])}",
         "    public static let sourceTypeExtension: FHIRPrimitive<FHIRURI> = "
@@ -613,10 +621,22 @@ def generate(catalog_directory: Path) -> str:
         f"{swift_string(bundle_identifier_identity['typeCode'])}",
         "    public static let clinicalRecordProfile: FHIRPrimitive<Canonical> = "
         f"{profile_reference(clinical_admission['profile'])}",
-        "    public static let clinicalFHIRReleaseExtension: FHIRPrimitive<FHIRURI> = "
-        f"{swift_string(clinical_representation['extensionUrl'])}",
-        "    public static let clinicalFHIRReleaseCode = "
-        f"{swift_string(clinical_representation['fixedValue'])}",
+        "    public static let clinicalFHIRPayloadFormatCode = "
+        f"{swift_string(clinical_admission['payloadFormat'])}",
+        "    public static let admittedClinicalFHIRReleaseCodes: Set<String> = [",
+    ])
+    for release in admitted_clinical_releases:
+        lines.append(f"        {swift_string(release)},")
+    lines.extend([
+        "    ]",
+        "    public static let clinicalFHIRContentTypeByRelease: [String: String] = [",
+    ])
+    for release in admitted_clinical_releases:
+        lines.append(
+            f"        {swift_string(release)}: {swift_string(clinical_content_types[release])},"
+        )
+    lines.extend([
+        "    ]",
         "    public static let electrocardiogramSourceTypeIdentifier = "
         f"{swift_string(ecg_claim['sourceTypeIdentifier'])}",
         "    public static let electrocardiogramProfiles: [FHIRPrimitive<Canonical>] = [",

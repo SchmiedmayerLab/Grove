@@ -67,6 +67,7 @@ struct QuestionnaireConformanceFixtureTests {
             authored: Date(timeIntervalSince1970: 1_700_000_000),
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
+        #expect(pair.questionnaire.subjectType?.map(\.value) == [.patient])
         let fixtures: [String: ResourceProxy] = [
             "questionnaire": ResourceProxy(with: pair.questionnaire),
             "questionnaire-response": ResourceProxy(with: pair.response)

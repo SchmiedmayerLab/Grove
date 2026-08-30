@@ -77,9 +77,9 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
     case intentionallyUnsupported(sampleType: String, reason: String)
     /// A clinical record carried no FHIR resource, so there is nothing to read.
     case clinicalRecordWithoutResource(UUID)
-    /// A clinical record's FHIR payload could not be decoded in the release it declares.
+    /// A clinical record's payload was not a readable FHIR JSON resource for this operation.
     case undecodableClinicalRecord(UUID)
-    /// A clinical record declares a FHIR release this adapter does not read.
+    /// A clinical record declares a FHIR release the selected conversion or inspection operation does not admit.
     case unsupportedClinicalRelease(String)
     /// A clinical record's attachment could not be read from the attachment store.
     case unreadableClinicalAttachment(UUID)

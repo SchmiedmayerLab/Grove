@@ -52,9 +52,11 @@ cover the actual pre-base64 bytes. That hash is change detection, not a signatur
 credential; a future stronger integrity mechanism must use a separately defined manifest element.
 
 HealthKit clinical records are admitted only when `HKFHIRVersion.fhirRelease` explicitly reports
-R4. The provider-issued bytes are then carried unchanged and the document receives the catalog's
-fixed `r4` release extension. DSTU2, missing, unknown, and future releases fail before Grove creates
-a `DocumentReference`; their JSON is never relabeled or inferred to be R4.
+`dstu2` or `r4`. The provider-issued bytes are carried unchanged under the release-neutral
+`fhir-resource` format. The R4 DocumentReference attachment declares the matching FHIR JSON media type:
+`application/fhir+json; fhirVersion=1.0` for DSTU2 or `application/fhir+json; fhirVersion=4.0` for R4.
+Grove never converts DSTU2 to R4 or claims conformance over the payload.
+Missing, unknown, and future releases fail before Grove creates a DocumentReference.
 
 ## The devices
 

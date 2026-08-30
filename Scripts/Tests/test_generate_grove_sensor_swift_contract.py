@@ -43,7 +43,7 @@ class SensorSwiftContractTests(unittest.TestCase):
         discriminator = "native-recording"
         adapter = pathlib.Path(directory) / "sensorkit-adapter.json"
         adapter.write_text(json.dumps({
-            "schemaVersion": 1,
+            "schemaVersion": 0,
             "version": "0.6.0",
             "fhirVersion": "4.0.1",
             "packageId": "org.grovealliance.fhir.sensorkit",
@@ -65,7 +65,7 @@ class SensorSwiftContractTests(unittest.TestCase):
             },
             "identity": {
                 "contract": "catalog/exchange-protocol.json",
-                "protocolVersion": 2,
+                "protocolVersion": 0,
                 "adapterId": "sensorkit",
                 "sourceRecord": {
                     "identityKind": "source-record",
@@ -109,11 +109,19 @@ class SensorSwiftContractTests(unittest.TestCase):
         }))
         registry = pathlib.Path(directory) / "format-registry.json"
         registry.write_text(json.dumps({
-            "schemaVersion": 1,
+            "schemaVersion": 0,
             "fhirVersion": "4.0.1",
             "version": "0.6.0",
             "formats": {
                 "grove-csv-1": {"title": "Grove CSV 1", "contentType": "text/csv", "status": "active"},
+                "fhir-resource": {
+                    "title": "FHIR Resource",
+                    "contentTypes": [
+                        "application/fhir+json; fhirVersion=1.0",
+                        "application/fhir+json; fhirVersion=4.0",
+                    ],
+                    "status": "active",
+                },
                 "native-json-1": {"title": "Native JSON 1", "contentType": "application/json", "status": "active"},
             },
         }))
@@ -135,6 +143,13 @@ class SensorSwiftContractTests(unittest.TestCase):
             # The registry is projected as a closed type, so an unlisted format cannot be named.
             self.assertIn('case groveCSV1 = "grove-csv-1"', generated)
             self.assertIn(
+                'case .fhirResource: ["application/fhir+json; fhirVersion=1.0", '
+                '"application/fhir+json; fhirVersion=4.0"]',
+                generated,
+            )
+            self.assertIn("public var registeredContentTypes: [String]", generated)
+            self.assertIn("public var registeredContentType: String?", generated)
+            self.assertIn(
                 "public enum RegisteredRecordingFormat: String, CaseIterable, Hashable, Sendable {",
                 generated,
             )
@@ -145,6 +160,7 @@ class SensorSwiftContractTests(unittest.TestCase):
             )
             self.assertNotIn("sourceRecordIdentifierSystem", generated)
             self.assertNotIn("outputIdentifierSystem", generated)
+            self.assertNotIn("ecgSessionGuidanceExtension", generated)
             self.assertNotIn("Codable", generated.split("public enum", 1)[1].split("{", 1)[0])
 
     def test_rejects_adapter_specific_legacy_identity(self):
@@ -208,6 +224,27 @@ class SensorSwiftContractTests(unittest.TestCase):
             sensor.write_text(json.dumps(value))
             with self.assertRaisesRegex(ValueError, "not an R4"):
                 MODULE.generate(sensor, adapter, registry)
+
+    def test_rejects_ambiguous_or_invalid_content_type_declarations(self):
+        invalid_declarations = [
+            {},
+            {"contentType": "application/json", "contentTypes": ["application/json"]},
+            {"contentTypes": []},
+            {"contentTypes": ["application/json", "application/json"]},
+            {"contentTypes": ["application/json", ""]},
+        ]
+        for declaration in invalid_declarations:
+            with self.subTest(declaration=declaration), tempfile.TemporaryDirectory() as directory:
+                sensor, adapter, registry = self.write_catalogs(directory)
+                value = json.loads(registry.read_text())
+                value["formats"]["native-json-1"] = {
+                    "title": "Native JSON 1",
+                    "status": "active",
+                    **declaration,
+                }
+                registry.write_text(json.dumps(value))
+                with self.assertRaisesRegex(ValueError, "invalid content-type set"):
+                    MODULE.generate(sensor, adapter, registry)
 
 
 if __name__ == "__main__":

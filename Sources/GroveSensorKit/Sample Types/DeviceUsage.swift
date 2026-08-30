@@ -104,6 +104,11 @@ extension SRDeviceUsageReport.SafeRepresentation {
             ///
             /// More information about what this category represents can be found in Apple's developer documentation
             public let identifier: String
+
+            /// Creates a source-neutral representation of one supplemental category.
+            public init(identifier: String) {
+                self.identifier = identifier
+            }
             
             @inlinable
             init(_ other: SRSupplementalCategory) {
@@ -117,6 +122,17 @@ extension SRDeviceUsageReport.SafeRepresentation {
             public let sessionType: SRTextInputSession.SessionType
             /// Unique identifier of keyboard session
             public let identifier: String
+
+            /// Creates a source-neutral representation of one text-input session.
+            public init(
+                duration: TimeInterval,
+                sessionType: SRTextInputSession.SessionType,
+                identifier: String
+            ) {
+                self.duration = duration
+                self.sessionType = sessionType
+                self.identifier = identifier
+            }
             
             @inlinable
             init(_ other: SRTextInputSession) {
@@ -131,7 +147,8 @@ extension SRDeviceUsageReport.SafeRepresentation {
         
         /// App start time relative to the first app start time in the report interval
         ///
-        /// relativeStartTime value for the very first app in the report interval is equal to 0, N seconds for the seccond app and so on.
+        /// `relativeStartTime` is zero for the first app in the interval, then records the offset of
+        /// each subsequent app use.
         /// This will allow to order app uses and determine the time between app uses.
         public let relativeStartTime: TimeInterval
         
@@ -145,13 +162,30 @@ extension SRDeviceUsageReport.SafeRepresentation {
         /// The text input session types that occurred during this application usage
         ///
         /// The list of text input sessions describes the order and type of text input that may
-        /// have occured during an application usage. Multiple sessions of the same text input
+        /// have occurred during an application usage. Multiple sessions of the same text input
         /// type will appear as separate array entries. If no text input occurred, this array
         /// will be empty.
         public let textInputSessions: [TextInputSession]
 
         /// Additional categories that describe this app
         public let supplementalCategories: [SupplementalCategory]
+
+        /// Creates a source-neutral representation of one application-usage entry.
+        public init(
+            bundleIdentifier: String?,
+            relativeStartTime: TimeInterval,
+            usageTime: TimeInterval,
+            reportApplicationIdentifier: String,
+            textInputSessions: [TextInputSession],
+            supplementalCategories: [SupplementalCategory]
+        ) {
+            self.bundleIdentifier = bundleIdentifier
+            self.relativeStartTime = relativeStartTime
+            self.usageTime = usageTime
+            self.reportApplicationIdentifier = reportApplicationIdentifier
+            self.textInputSessions = textInputSessions
+            self.supplementalCategories = supplementalCategories
+        }
         
         @inlinable
         init(_ other: SRDeviceUsageReport.ApplicationUsage) {
@@ -178,6 +212,15 @@ extension SRDeviceUsageReport.SafeRepresentation {
         
         /// The way that the user interacts with the notification.
         public let event: SRDeviceUsageReport.NotificationUsage.Event
+
+        /// Creates a source-neutral representation of one notification-usage entry.
+        public init(
+            bundleIdentifier: String?,
+            event: SRDeviceUsageReport.NotificationUsage.Event
+        ) {
+            self.bundleIdentifier = bundleIdentifier
+            self.event = event
+        }
         
         @inlinable
         init(_ other: SRDeviceUsageReport.NotificationUsage) {
@@ -193,6 +236,11 @@ extension SRDeviceUsageReport.SafeRepresentation {
     public struct WebUsage: Hashable, Sendable {
         /// The amount of web usage time that the report spans.
         public let totalUsageTime: TimeInterval
+
+        /// Creates a source-neutral representation of one web-usage entry.
+        public init(totalUsageTime: TimeInterval) {
+            self.totalUsageTime = totalUsageTime
+        }
         
         @inlinable
         init(_ other: SRDeviceUsageReport.WebUsage) {

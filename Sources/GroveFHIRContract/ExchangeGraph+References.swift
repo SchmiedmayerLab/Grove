@@ -31,6 +31,11 @@ extension ExchangeGraph {
         "http://hl7.org/fhir/StructureDefinition/observation-gatewayDevice": [.device],
         "http://hl7.org/fhir/StructureDefinition/workflow-researchStudy": [.researchStudy]
     ]
+    static let logicalPatientReservedSystems = Set([
+        Canonicals.identifierRoleCodeSystem,
+        Canonicals.lifecycleEventCodeSystem,
+        Canonicals.retractionTargetRoleCodeSystem
+    ].compactMap { $0.value?.url.absoluteString })
 
     static func validateGovernedReferenceTargets(
         entries: [BundleEntry]
@@ -56,6 +61,23 @@ extension ExchangeGraph {
         switch resource {
         case .observation(let observation):
             try validateObservationReferences(observation, context: context)
+        case .questionnaireResponse(let response):
+            try validateReference(
+                response.subject,
+                expected: [.patient],
+                context: context,
+                diagnosticBaseLocation: "QuestionnaireResponse.subject"
+            )
+        default:
+            try validateRemainingGovernedReferences(in: resource, context: context)
+        }
+    }
+
+    private static func validateRemainingGovernedReferences(
+        in resource: ResourceProxy?,
+        context: ReferenceResolutionContext
+    ) throws(ExchangeGraphError) {
+        switch resource {
         case .documentReference(let document):
             try validateReference(document.subject, expected: [.patient], context: context)
         case .visionPrescription(let prescription):
@@ -110,7 +132,8 @@ extension ExchangeGraph {
     static func validateReference(
         _ reference: Reference?,
         expected: Set<ResourceType>,
-        context: ReferenceResolutionContext
+        context: ReferenceResolutionContext,
+        diagnosticBaseLocation: String? = nil
     ) throws(ExchangeGraphError) {
         guard let reference else {
             return
@@ -119,36 +142,113 @@ extension ExchangeGraph {
         let literal = reference.reference?.value?.string
         let identifier = reference.identifier
         guard (literal != nil) != (identifier != nil) else {
-            throw .ruleViolation(.referenceShape)
+            throw referenceViolation(.referenceShape, baseLocation: diagnosticBaseLocation)
         }
         if let literal {
-            guard reference.identifier == nil else {
-                throw .ruleViolation(.referenceShape)
-            }
-            guard !literal.hasPrefix("#") else {
-                throw .ruleViolation(.containedResourceProhibited)
-            }
-            guard let actualType = context.resourceType(for: literal) else {
-                throw .ruleViolation(.resolvedReference)
-            }
-            guard expectedTokens.contains(actualType) else {
-                throw .ruleViolation(.referenceTargetType)
-            }
-            if let declaredType = reference.type?.value?.url.absoluteString,
-               declaredType != actualType {
-                throw .ruleViolation(.referenceDeclaredType)
-            }
+            try validateLiteralReference(
+                reference,
+                literal: literal,
+                expectedTokens: expectedTokens,
+                context: context,
+                diagnosticBaseLocation: diagnosticBaseLocation
+            )
             return
         }
         guard reference.reference == nil, let identifier else {
-            throw .ruleViolation(.referenceShape)
+            throw referenceViolation(.referenceShape, baseLocation: diagnosticBaseLocation)
         }
+        try validateLogicalReference(
+            reference,
+            identifier: identifier,
+            expected: expected,
+            expectedTokens: expectedTokens,
+            diagnosticBaseLocation: diagnosticBaseLocation
+        )
+    }
+
+    private static func validateLiteralReference(
+        _ reference: Reference,
+        literal: String,
+        expectedTokens: Set<String>,
+        context: ReferenceResolutionContext,
+        diagnosticBaseLocation: String?
+    ) throws(ExchangeGraphError) {
+        guard !literal.hasPrefix("#") else {
+            throw referenceViolation(
+                .containedResourceProhibited,
+                baseLocation: diagnosticBaseLocation,
+                field: "reference"
+            )
+        }
+        guard let actualType = context.resourceType(for: literal) else {
+            throw referenceViolation(
+                .resolvedReference,
+                baseLocation: diagnosticBaseLocation,
+                field: "reference"
+            )
+        }
+        guard expectedTokens.contains(actualType) else {
+            throw referenceViolation(
+                .referenceTargetType,
+                baseLocation: diagnosticBaseLocation,
+                field: "reference"
+            )
+        }
+        if let declaredType = reference.type?.value?.url.absoluteString,
+           declaredType != actualType {
+            throw referenceViolation(
+                .referenceDeclaredType,
+                baseLocation: diagnosticBaseLocation,
+                field: "type"
+            )
+        }
+    }
+
+    private static func validateLogicalReference(
+        _ reference: Reference,
+        identifier: Identifier,
+        expected: Set<ResourceType>,
+        expectedTokens: Set<String>,
+        diagnosticBaseLocation: String?
+    ) throws(ExchangeGraphError) {
         let logicalPatient = expected == [.patient]
         guard let declaredType = reference.type?.value?.url.absoluteString,
               expectedTokens.contains(declaredType),
-              (try? BusinessIdentifier(identifier)) != nil else {
-            throw .ruleViolation(logicalPatient ? .logicalPatientReference : .referenceShape)
+              let businessIdentifier = try? BusinessIdentifier(identifier) else {
+            throw referenceViolation(
+                logicalPatient ? .logicalPatientReference : .referenceShape,
+                baseLocation: diagnosticBaseLocation
+            )
         }
+        guard !logicalPatient || businessIdentifier.role == nil else {
+            throw referenceViolation(
+                .logicalPatientReference,
+                baseLocation: diagnosticBaseLocation,
+                field: "identifier.type"
+            )
+        }
+        guard !logicalPatient || !logicalPatientReservedSystems.contains(businessIdentifier.systemValue) else {
+            throw referenceViolation(
+                .logicalPatientReference,
+                baseLocation: diagnosticBaseLocation,
+                field: "identifier.system"
+            )
+        }
+    }
+
+    private static func referenceViolation(
+        _ rule: ExchangeGraphRule,
+        baseLocation: String?,
+        field: String? = nil
+    ) -> ExchangeGraphError {
+        guard let baseLocation else {
+            return .ruleViolation(rule)
+        }
+        return .contractViolation(ExchangeGraphDiagnostic(
+            code: rule.rawValue,
+            reason: rule.diagnostic.reason,
+            location: field.map { "\(baseLocation).\($0)" } ?? baseLocation
+        ))
     }
 
     static func validateGovernedExtensions(

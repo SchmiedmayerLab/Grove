@@ -156,6 +156,7 @@ extension AnchoredFetcher {
         ///
         /// This function advances the state as it moves through the fetches.
         private mutating func fetchNextBatch(isolation _: isolated (any Actor)?) async throws(Failure) -> Element? {
+            // Keep one immutable device handle for the complete fetch loop.
             let device = device
             // SAFETY:
             // this loop will terminate eventually:

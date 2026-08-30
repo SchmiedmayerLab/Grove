@@ -6,7 +6,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""Generate Swift Sensor/SensorKit producer contracts from grove-fhir v0.6 catalogs."""
+"""Generate Swift Sensor/SensorKit producer contracts from the Grove FHIR catalogs."""
 
 from __future__ import annotations
 
@@ -122,6 +122,22 @@ def swift_format_case(value: str) -> str:
     return "".join(parts)
 
 
+def registered_content_types(code: str, format_contract: dict[str, Any]) -> list[str]:
+    singular = format_contract.get("contentType")
+    plural = format_contract.get("contentTypes")
+    if isinstance(singular, str) and singular and plural is None:
+        return [singular]
+    if (
+        singular is None
+        and isinstance(plural, list)
+        and plural
+        and all(isinstance(value, str) and value for value in plural)
+        and len(plural) == len(set(plural))
+    ):
+        return plural
+    raise ValueError(f"registry format declares an invalid content-type set: {code}")
+
+
 def raw_formats(entry: dict[str, Any]) -> list[str]:
     if not raw_admitted(entry):
         return []
@@ -136,7 +152,7 @@ def raw_formats(entry: dict[str, Any]) -> list[str]:
 
 
 def validate_adapter(adapter: dict[str, Any], assertions: list[str]) -> list[dict[str, Any]]:
-    if adapter.get("schemaVersion") != 1 or adapter.get("packageId") != "org.grovealliance.fhir.sensorkit":
+    if adapter.get("schemaVersion") != 0 or adapter.get("packageId") != "org.grovealliance.fhir.sensorkit":
         raise ValueError("unexpected SensorKit adapter catalog identity")
     adapter_assertions = adapter.get("rawPayloadAdmission", {}).get("allowedAssertions")
     if adapter_assertions != assertions:
@@ -164,14 +180,14 @@ def validate_adapter(adapter: dict[str, Any], assertions: list[str]) -> list[dic
 
 
 def validate_identity_contract(adapter: dict[str, Any]) -> None:
-    """Require the adapter to delegate to the shared length-framed v2 identity contract."""
+    """Require the adapter to delegate to the shared length-framed identity contract."""
     identity = adapter.get("identity")
     if not isinstance(identity, dict):
         raise ValueError("SensorKit adapter catalog has no identity contract")
     if identity.get("contract") != "catalog/exchange-protocol.json":
         raise ValueError("SensorKit identity must delegate to catalog/exchange-protocol.json")
-    if identity.get("protocolVersion") != 2 or identity.get("adapterId") != "sensorkit":
-        raise ValueError("SensorKit identity must use the sensorkit v2 protocol coordinates")
+    if identity.get("protocolVersion") != 0 or identity.get("adapterId") != "sensorkit":
+        raise ValueError("SensorKit identity must use the sensorkit v0 protocol coordinates")
 
     expected = {
         "sourceRecord": (
@@ -204,7 +220,7 @@ def validate_identity_contract(adapter: dict[str, Any]) -> None:
         if declaration.get("identityKind") != role or declaration.get("identifierRole") != role:
             raise ValueError(f"SensorKit {name} must use the shared {role} identity role")
         if declaration.get("components") != components:
-            raise ValueError(f"SensorKit {name} component order differs from exchange protocol v2")
+            raise ValueError(f"SensorKit {name} component order differs from exchange protocol v0")
 
     artifact = identity.get("sourceArtifact")
     if not isinstance(artifact, dict):
@@ -265,7 +281,6 @@ def generate(sensor_path: Path, adapter_path: Path, registry_path: Path) -> str:
     constants = {
         "canonicalRoot": canonical,
         "sourceTypeExtension": f"{canonical}/StructureDefinition/sensorkit-source-type",
-        "ecgSessionGuidanceExtension": f"{canonical}/StructureDefinition/sensorkit-ecg-session-guidance",
         "visitLocationExtension": f"{canonical}/StructureDefinition/sensorkit-visit-location",
         "wristTemperatureAlgorithmVersionExtension": f"{canonical}/StructureDefinition/sensorkit-wrist-temperature-algorithm-version",
         "visitLocationIdentifierSystem": f"{canonical}/NamingSystem/sensorkit-visit-location-id",
@@ -281,7 +296,7 @@ def generate(sensor_path: Path, adapter_path: Path, registry_path: Path) -> str:
         "sensorConversionProvenanceProfile": sensor_profiles["conversion-provenance"],
         "recordingFormatCodeSystem": f"{sensor_canonical}/CodeSystem/grove-recording-format",
     }
-    lines.append("/// Generated canonical constants for the SensorKit v0.6 producer.")
+    lines.append("/// Generated canonical constants for the SensorKit producer.")
     lines.append("public enum SensorKitContract {")
     for name, value in constants.items():
         lines.append(f"    public static let {name} = {swift_string(value)}")
@@ -303,18 +318,30 @@ def generate(sensor_path: Path, adapter_path: Path, registry_path: Path) -> str:
     lines.append("public enum RegisteredRecordingFormat: String, CaseIterable, Hashable, Sendable {")
     for value in sorted(formats):
         lines.append(f"    case {swift_format_case(value)} = {swift_string(value)}")
-    lines.extend(["", "    /// The media type the registry publishes for this format."])
+    lines.extend(["", "    /// The media types the registry admits for this format."])
     lines.append("    ///")
-    lines.append("    /// This exact pair is closed by the registry; producers cannot supply an independent")
-    lines.append("    /// media type that contradicts the payload schema named by the format code.")
-    lines.append("    public var registeredContentType: String {")
+    lines.append("    /// Most formats admit one exact media type. A release-neutral format can admit several")
+    lines.append("    /// versioned representations of the same payload grammar.")
+    lines.append("    public var registeredContentTypes: [String] {")
     lines.append("        switch self {")
     for value in sorted(formats):
-        content_type = formats[value].get("contentType")
-        if not isinstance(content_type, str) or not content_type:
-            raise ValueError(f"registry format declares no content type: {value}")
-        lines.append(f"        case .{swift_format_case(value)}: {swift_string(content_type)}")
-    lines.extend(["        }", "    }", "}", "", ""])
+        content_types = ", ".join(
+            swift_string(content_type)
+            for content_type in registered_content_types(value, formats[value])
+        )
+        lines.append(f"        case .{swift_format_case(value)}: [{content_types}]")
+    lines.extend([
+        "        }",
+        "    }",
+        "",
+        "    /// The registry's exact media type when this format has only one representation.",
+        "    public var registeredContentType: String? {",
+        "        registeredContentTypes.count == 1 ? registeredContentTypes[0] : nil",
+        "    }",
+        "}",
+        "",
+        "",
+    ])
 
     # Each CSV format now declares its own closed column set, so the columns hang off the format
     # itself: a reader or writer asks the code it already has instead of a parallel string table.
