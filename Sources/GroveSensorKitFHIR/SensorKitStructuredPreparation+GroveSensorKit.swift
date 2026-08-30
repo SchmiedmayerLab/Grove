@@ -20,14 +20,10 @@ public import SensorKit
 /// Grove owns the evidence encoding because it must remain identical across clients. The client
 /// owns persistence and chooses whether generated native bytes are attached inline or as a sidecar.
 public struct SensorKitPreparedStructuredRecord: Sendable {
-    private enum Value: Sendable {
-        case visit(SRVisit.SafeRepresentation)
-        case onWrist(SensorKitOnWristEventSample)
-        case deviceUsage(SRDeviceUsageReport.SafeRepresentation)
-        case electrocardiogram(SensorKitECGSession)
-    }
-
-    private let value: Value
+    private let makeRecord: @Sendable (
+        _ sourceRecordID: SensorKitSourceRecordID,
+        _ nativeRecording: SensorKitNativeRecording?
+    ) throws -> SensorKitRecord
     public let retryEvidence: Data
     public let nativePayload: Data?
 
@@ -41,7 +37,16 @@ public struct SensorKitPreparedStructuredRecord: Sendable {
         try writer.writeFloat64(visit.departureDateInterval.start.timeIntervalSince1970)
         try writer.writeFloat64(visit.departureDateInterval.end.timeIntervalSince1970)
         writer.writeVarint(Int64(visit.locationCategory.rawValue))
-        self.value = .visit(visit)
+        self.makeRecord = { sourceRecordID, nativeRecording in
+            guard nativeRecording == nil else {
+                throw SensorKitRecordError.invalidRecordingFormat
+            }
+            return .visit(try SensorKitVisitRecord(
+                sourceRecordID: sourceRecordID,
+                visit: visit,
+                locationID: visit.locationId
+            ))
+        }
         self.retryEvidence = writer.data()
         self.nativePayload = nil
     }
@@ -55,43 +60,7 @@ public struct SensorKitPreparedStructuredRecord: Sendable {
         writer.writeVarint(Int64(sample.crownOrientation.rawValue))
         try writer.writeOptionalFloat64(sample.onWristDate?.timeIntervalSince1970)
         try writer.writeOptionalFloat64(sample.offWristDate?.timeIntervalSince1970)
-        self.value = .onWrist(sample)
-        self.retryEvidence = writer.data()
-        self.nativePayload = nil
-    }
-
-    @available(iOS 18, *)
-    public init(deviceUsage report: SRDeviceUsageReport.SafeRepresentation) throws {
-        let payload = try Self.encodeJSON(DeviceUsageEvidence(report))
-        self.value = .deviceUsage(report)
-        self.retryEvidence = payload
-        self.nativePayload = payload
-    }
-
-    @available(iOS 17.4, *)
-    public init(electrocardiogram session: SensorKitECGSession) throws {
-        let payload = try Self.encodeJSON(ECGEvidence(session))
-        self.value = .electrocardiogram(session)
-        self.retryEvidence = payload
-        self.nativePayload = payload
-    }
-
-    /// Creates the Grove record. Native evidence is required exactly when `nativePayload` is non-nil.
-    public func sensorKitRecord(
-        sourceRecordID: SensorKitSourceRecordID,
-        nativeRecording: SensorKitNativeRecording? = nil
-    ) throws -> SensorKitRecord {
-        switch value {
-        case .visit(let visit):
-            guard nativeRecording == nil else {
-                throw SensorKitRecordError.invalidRecordingFormat
-            }
-            return .visit(try SensorKitVisitRecord(
-                sourceRecordID: sourceRecordID,
-                visit: visit,
-                locationID: visit.locationId
-            ))
-        case .onWrist(let sample):
+        self.makeRecord = { sourceRecordID, nativeRecording in
             guard nativeRecording == nil else {
                 throw SensorKitRecordError.invalidRecordingFormat
             }
@@ -99,7 +68,15 @@ public struct SensorKitPreparedStructuredRecord: Sendable {
                 sourceRecordID: sourceRecordID,
                 sample: sample
             ))
-        case .deviceUsage(let report):
+        }
+        self.retryEvidence = writer.data()
+        self.nativePayload = nil
+    }
+
+    @available(iOS 18, *)
+    public init(deviceUsage report: SRDeviceUsageReport.SafeRepresentation) throws {
+        let payload = try Self.encodeJSON(DeviceUsageEvidence(report))
+        self.makeRecord = { sourceRecordID, nativeRecording in
             guard let nativeRecording else {
                 throw SensorKitRecordError.missingProviderValue("deviceUsage.nativeRecording")
             }
@@ -108,7 +85,15 @@ public struct SensorKitPreparedStructuredRecord: Sendable {
                 report: report,
                 nativeRecording: nativeRecording
             ))
-        case .electrocardiogram(let session):
+        }
+        self.retryEvidence = payload
+        self.nativePayload = payload
+    }
+
+    @available(iOS 17.4, *)
+    public init(electrocardiogram session: SensorKitECGSession) throws {
+        let payload = try Self.encodeJSON(ECGEvidence(session))
+        self.makeRecord = { sourceRecordID, nativeRecording in
             guard let nativeRecording else {
                 throw SensorKitRecordError.missingProviderValue("electrocardiogram.nativeRecording")
             }
@@ -118,6 +103,16 @@ public struct SensorKitPreparedStructuredRecord: Sendable {
                 nativeRecording: nativeRecording
             ))
         }
+        self.retryEvidence = payload
+        self.nativePayload = payload
+    }
+
+    /// Creates the Grove record. Native evidence is required exactly when `nativePayload` is non-nil.
+    public func sensorKitRecord(
+        sourceRecordID: SensorKitSourceRecordID,
+        nativeRecording: SensorKitNativeRecording? = nil
+    ) throws -> SensorKitRecord {
+        try makeRecord(sourceRecordID, nativeRecording)
     }
 
     /// Creates a record carrying Grove-generated native evidence at the requested location.
