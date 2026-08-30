@@ -13,10 +13,11 @@
 # workflow's `runs-on` uses to pick the self-hosted vs the GitHub-hosted runner.
 #
 # The logical sub-packages are defined in the repo-root packages.toml:
-#   platforms      = the platforms its unit tests run on (development selection may apply the
-#                    CI_PLATFORMS limit, which every run obeys)
+#   platforms      = the platforms its unit tests run on, narrowed to the platforms currently
+#                    enabled by CI_PLATFORMS for every selector mode
 #   uiTests        = the platforms its UI tests run on, straight from the UITests project's Xcode
-#                    config, narrowed by the UI_PLATFORMS limit, which every run obeys)
+#                    config, narrowed to the platforms currently enabled by UI_PLATFORMS for every
+#                    selector mode
 #   self-hosted-ci = which test kinds run on the self-hosted runner (vs GitHub-hosted): a subset of
 #                    ["unit", "ui"]. Optional; default ["ui"] (= today's behavior). Linux unit jobs
 #                    always run on GitHub-hosted ubuntu regardless (the self-hosted runner is macOS).
@@ -145,12 +146,12 @@ DEVELOPMENT_SCOPES = {
     "sensor": {"GroveSensorKit", "GroveSensorKitFHIR"},
 }
 
-# TEMPORARY: limit ordinary change-aware/development UNIT-test scheduling to these platforms.
-# `--full-readiness` and explicit all-runs bypass this list. Linux uses GitHub-hosted ubuntu.
+# TEMPORARY: limit UNIT-test scheduling to these currently enabled CI platforms, including explicit
+# all-package/full-readiness runs. Linux uses GitHub-hosted ubuntu.
 CI_PLATFORMS = ("iOS", "macOS", "watchOS", "Linux")
 
-# TEMPORARY: limit ordinary change-aware/development UI-test scheduling to these platforms.
-# `--full-readiness` and explicit all-runs schedule every per-project UI platform.
+# TEMPORARY: limit UI-test scheduling to these currently enabled CI platforms, including explicit
+# all-package/full-readiness runs.
 UI_PLATFORMS = ("iOS",)
 
 def parse_args():
@@ -164,7 +165,10 @@ def parse_args():
     parser.add_argument(
         "--full-readiness",
         action="store_true",
-        help="Run the complete repository matrix while retaining change-aware FHIR components.",
+        help=(
+            "Run every package on the currently enabled CI platforms while retaining "
+            "change-aware FHIR components."
+        ),
     )
     parser.add_argument(
         "--fhir-only",

@@ -6,16 +6,12 @@
 // SPDX-License-Identifier: MIT
 //
 
-import CryptoKit
 import FHIRQuestionnaires
-import Foundation
-import GroveFHIRContract
 import ModelsR4
 import ResearchKit
 import ResearchKitOnFHIR
 import ResearchKitSwiftUI
 import SwiftUI
-import UniformTypeIdentifiers
 
 
 /// Renders a ResearchKit task from the selected FHIR questionnaire
@@ -29,9 +25,7 @@ struct QuestionnaireView: View {
     var body: some View {
         if let activeQuestionnaire = questionnaire,
            let task = createTask(questionnaire: activeQuestionnaire) {
-            ORKOrderedTaskView(tasks: task) { result in
-                handleResult(result, questionnaire: activeQuestionnaire)
-            }
+            ORKOrderedTaskView(tasks: task, result: handleResult)
                 .ignoresSafeArea(.container, edges: .bottom)
                 .ignoresSafeArea(.keyboard, edges: .bottom)
         } else {
@@ -39,61 +33,43 @@ struct QuestionnaireView: View {
         }
     }
 
-    private func handleResult(_ result: TaskResult, questionnaire: Questionnaire) {
+    private func handleResult(_ result: TaskResult) {
         defer {
             dismiss()
         }
-        guard case let .completed(taskResult) = result else {
+        guard case let .completed(result) = result else {
             return // user cancelled
         }
+        // Convert the ResearchKit task results into FHIR
+        var fhirResponse = result.fhirResponse
+        // First, we will look for any attachments in the QuestionnaireResponse
+        // and move them from their temporary location to a permanent location.
         do {
-            guard let authored = taskResult.endDate else {
-                throw SampleConversionError.missingCompletionInstant
-            }
-            let participantID = try BusinessIdentifier(
-                system: "https://example.org/fhir/identifier/participant",
-                value: "example-participant"
+            // Get the path to the user's documents directory.
+            let documentDirectory = try FileManager.default.url(
+                for: .documentDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: false
             )
-            let subject = Reference(
-                identifier: participantID.fhirIdentifier,
-                type: "Patient".asFHIRURIPrimitive()
+            let outputDirectory = documentDirectory.appendingPathComponent(UUID().uuidString)
+            try FileManager.default.createDirectory(
+                at: outputDirectory,
+                withIntermediateDirectories: true,
+                attributes: nil
             )
-            let responseID = try BusinessIdentifier(
-                system: "https://example.org/fhir/identifier/questionnaire-response",
-                value: taskResult.taskRunUUID.uuidString.lowercased()
-            )
-            let context = try ResearchKitFHIRConversionContext(
-                questionnaire: questionnaire,
-                responseIdentifier: responseID,
-                subject: subject,
-                authored: authored,
-                authoredTimeZone: TimeZone(secondsFromGMT: 0)! // swiftlint:disable:this force_unwrapping
-            ) { _, localURL in
-                try Self.embeddedAttachment(at: localURL)
+            // Search for attachments in the QuestionnaireResponse and move them to the newly created directory.
+            fhirResponse.item?.modifyInPlace { item in
+                item.moveAttachments(to: outputDirectory)
             }
-            let fhirResponse = try taskResult.fhirResponse(using: context)
-            guard let questionnaireIdentifier = fhirResponse.questionnaire?.value?.url else {
-                throw SampleConversionError.missingQuestionnaireCanonical
-            }
-            responseStorage.append(fhirResponse, for: questionnaireIdentifier)
         } catch {
-            assertionFailure("FHIR conversion failed: \(error)")
+            print(error.localizedDescription)
         }
-    }
-
-    private static func embeddedAttachment(at url: URL) throws -> Attachment {
-        let data = try Data(contentsOf: url)
-        guard data.count <= Int(Int32.max),
-              let contentType = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType else {
-            throw SampleConversionError.invalidAttachment(url)
+        fhirResponse.subject = Reference(reference: FHIRPrimitive(FHIRString("My Patient")))
+        guard let questionnaireIdentifier = fhirResponse.questionnaire?.value?.url else {
+            return
         }
-        return Attachment(
-            contentType: contentType.asFHIRStringPrimitive(),
-            data: FHIRPrimitive(Base64Binary(with: data)),
-            hash: FHIRPrimitive(Base64Binary(with: Data(Insecure.SHA1.hash(data: data)))),
-            size: FHIRPrimitive(FHIRUnsignedInteger(Int32(data.count))),
-            title: url.lastPathComponent.asFHIRStringPrimitive()
-        )
+        responseStorage.append(fhirResponse, for: questionnaireIdentifier)
     }
 
     
@@ -107,12 +83,7 @@ struct QuestionnaireView: View {
         
         // Create a navigable task from the Questionnaire
         do {
-            return try ORKNavigableOrderedTask(
-                questionnaire: questionnaire,
-                evaluationInstant: .now,
-                evaluationTimeZone: .current,
-                completionStep: completionStep
-            )
+            return try ORKNavigableOrderedTask(questionnaire: questionnaire, completionStep: completionStep)
         } catch {
             print("Error creating task: \(error)")
         }
@@ -121,10 +92,39 @@ struct QuestionnaireView: View {
 }
 
 
-private enum SampleConversionError: Error {
-    case invalidAttachment(URL)
-    case missingCompletionInstant
-    case missingQuestionnaireCanonical
+extension QuestionnaireResponseItem {
+    mutating func moveAttachments(to newAttachmentsDir: URL) {
+        answer?.modifyInPlace { answer in
+            switch answer.value {
+            case .attachment(var attachment):
+                guard let fileUrl = attachment.url?.value?.url else {
+                    break
+                }
+                let newFileUrl = newAttachmentsDir.appendingPathComponent(fileUrl.lastPathComponent)
+                try! FileManager.default.moveItem(at: fileUrl, to: newFileUrl)
+                attachment.url = newFileUrl.asFHIRURIPrimitive()
+                answer.value = .attachment(attachment)
+            default:
+                break
+            }
+            answer.item?.modifyInPlace { item in
+                item.moveAttachments(to: newAttachmentsDir)
+            }
+        }
+        item?.modifyInPlace { item in
+            item.moveAttachments(to: newAttachmentsDir)
+        }
+    }
+}
+
+
+extension MutableCollection {
+    // intentionally not throwing as we'd end up with a half-updated collection...
+    mutating func modifyInPlace(_ transform: (inout Element) -> Void) {
+        for idx in indices {
+            transform(&self[idx])
+        }
+    }
 }
 
 

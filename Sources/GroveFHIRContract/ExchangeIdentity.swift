@@ -161,11 +161,11 @@ public enum ExchangeIdentity {
         }
     }
 
-    /// Whether a value has the canonical wire form of a v2 pseudonymous identity.
+    /// Whether a value has the canonical wire form of a Grove pseudonymous identity.
     public static func isCanonicalOpaqueIdentifierValue(_ value: String) -> Bool {
         let components = value.split(separator: ":", omittingEmptySubsequences: false)
         guard components.count == 4,
-              components[0] == "v2",
+              components[0] == "v0",
               !components[1].isEmpty,
               components[1].utf8.allSatisfy({
                   $0.isASCIIAlphaNumeric || $0 == 0x2D || $0 == 0x2E || $0 == 0x5F

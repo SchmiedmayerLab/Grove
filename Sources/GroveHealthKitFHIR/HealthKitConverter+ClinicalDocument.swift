@@ -14,14 +14,16 @@
 import Foundation
 import GroveFHIRContract
 public import HealthKit
-import ModelsR4
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitConverter {
-    /// Converts the exact provider-issued R4 JSON bytes surfaced by HealthKit into one validated
-    /// Grove exchange graph. Grove decodes only to prove the registered payload shape and never
-    /// re-encodes or claims conformance over the provider's resource.
+    /// Carries the exact provider-issued DSTU2 or R4 JSON bytes surfaced by HealthKit in one
+    /// validated R4 Grove exchange graph.
+    ///
+    /// The source release is mapped from `HKFHIRVersion.fhirRelease` to the attachment's versioned
+    /// FHIR JSON media type. Grove validates only that the bytes contain one FHIR resource envelope;
+    /// it never converts, re-encodes, or claims conformance over the provider's resource.
     public func convert(
         _ record: HKClinicalRecord,
         context: HealthKitConversionContext
@@ -30,34 +32,61 @@ extension HealthKitConverter {
             guard let fhirResource = record.fhirResource else {
                 throw HealthKitConversionError.clinicalRecordWithoutResource(record.uuid)
             }
-            guard !fhirResource.data.isEmpty else {
-                throw HealthKitConversionError.undecodableClinicalRecord(record.uuid)
-            }
-            _ = try Self.decodeR4ClinicalResource(
+            let evidence = try Self.clinicalRecordingEvidence(
                 data: fhirResource.data,
                 release: fhirResource.fhirVersion.fhirRelease,
                 versionDescription: fhirResource.fhirVersion.stringRepresentation,
-                sourceUUID: record.uuid
+                sourceUUID: record.uuid,
+                sourceTypeIdentifier: record.sampleType.identifier
             )
             return try Self.assembleDocumentGraph(
                 for: record,
-                evidence: HealthKitRecordingEvidence(
-                    outputRole: "clinical-record",
-                    format: .fhirR4Resource,
-                    title: HealthKitCatalog.entry(forSourceTypeIdentifier: record.sampleType.identifier)?.title
-                        ?? "Clinical FHIR resource",
-                    payload: fhirResource.data,
-                    profiles: [HealthKitContract.clinicalRecordProfile],
-                    clinicalRecordTypeCode: try Self.clinicalRecordTypeCode(
-                        sourceTypeIdentifier: record.sampleType.identifier
-                    ),
-                    clinicalFHIRReleaseCode: HealthKitContract.clinicalFHIRReleaseCode
-                ),
+                evidence: evidence,
                 context: context
             )
         } catch {
             throw HealthKitConversionError(conversionFailure: error)
         }
+    }
+
+    static func clinicalRecordingEvidence(
+        data: Data,
+        release: HKFHIRRelease,
+        versionDescription: String,
+        sourceUUID: UUID,
+        sourceTypeIdentifier: String
+    ) throws(HealthKitConversionError) -> HealthKitRecordingEvidence {
+        let releaseCode: String
+        switch release {
+        case .dstu2:
+            releaseCode = "dstu2"
+        case .r4:
+            releaseCode = "r4"
+        case .unknown:
+            throw .unsupportedClinicalRelease(versionDescription)
+        default:
+            throw .unsupportedClinicalRelease(versionDescription)
+        }
+        guard HealthKitContract.admittedClinicalFHIRReleaseCodes.contains(releaseCode) else {
+            throw .unsupportedClinicalRelease(versionDescription)
+        }
+        do {
+            try FHIRJSONResourcePayload.validate(data)
+        } catch {
+            throw .undecodableClinicalRecord(sourceUUID)
+        }
+        return HealthKitRecordingEvidence(
+            outputRole: "clinical-record",
+            format: .fhirResource,
+            title: HealthKitCatalog.entry(forSourceTypeIdentifier: sourceTypeIdentifier)?.title
+                ?? "Clinical FHIR resource",
+            payload: data,
+            profiles: [HealthKitContract.clinicalRecordProfile],
+            clinicalRecordTypeCode: try clinicalRecordTypeCode(
+                sourceTypeIdentifier: sourceTypeIdentifier
+            ),
+            clinicalFHIRReleaseCode: releaseCode
+        )
     }
 
     /// Carries one CDA document exactly as HealthKit delivered it.
@@ -97,7 +126,7 @@ extension HealthKitConverter {
 
     private static func clinicalRecordTypeCode(
         sourceTypeIdentifier: String
-    ) throws -> String {
+    ) throws(HealthKitConversionError) -> String {
         let code: String? = switch sourceTypeIdentifier {
         case "HKClinicalTypeIdentifierAllergyRecord": "allergy-record"
         case "HKClinicalTypeIdentifierClinicalNoteRecord": "clinical-note-record"

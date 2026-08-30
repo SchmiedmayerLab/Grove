@@ -367,8 +367,6 @@ var targets: [Target] = [
             .target(name: "GroveFHIRContract"),
             .target(name: "GroveHealthKit"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
-            // Clinical records are read in the release the institution authored them in.
-            .product(name: "ModelsDSTU2", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions")
         ],
         exclude: targetExcludes("GroveHealthKitFHIR"),
@@ -393,8 +391,7 @@ var targets: [Target] = [
             .product(name: "ResearchKitSwiftUI", package: "ResearchKit", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions"),
-            .target(name: "FHIRPathParser"),
-            .target(name: "GroveFHIRContract")
+            .target(name: "FHIRPathParser")
         ],
         exclude: targetExcludes("ResearchKitOnFHIR"),
         swiftSettings: defaultSwiftSettings,
@@ -404,8 +401,7 @@ var targets: [Target] = [
         name: "ResearchKitOnFHIRTests",
         dependencies: [
             .target(name: "ResearchKitOnFHIR", condition: .when(traits: [researchKitTrait])),
-            .target(name: "FHIRQuestionnaires"),
-            .target(name: "GroveQuestionnaireFHIR")
+            .target(name: "FHIRQuestionnaires")
         ],
         exclude: testTargetExcludes("ResearchKitOnFHIRTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,

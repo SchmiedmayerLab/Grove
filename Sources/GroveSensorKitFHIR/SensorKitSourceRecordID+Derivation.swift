@@ -6,46 +6,59 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if os(iOS)
+
 import CryptoKit
-public import Foundation
+import Foundation
+public import GroveSensorKit
 
 
-@available(iOS 18, macOS 15, watchOS 11, *)
+@available(iOS 18, *)
 extension SensorKitSourceRecordID {
-    /// Derives a record identity from the exact bytes a recording carries.
+    /// Derives the identity of one record at a durable SensorKit acquisition coordinate.
     ///
-    /// SensorKit publishes no durable sample identifier, and the contract permits reusing an id only
-    /// while every source field and byte is unchanged. Grove therefore derives it rather than leaving
-    /// each producer to invent a hash: identical bytes from the same stream and device converge on one
-    /// record across retries, and any change produces a new one. Two producers that derive it this way
-    /// agree; two that each invented a scheme do not.
+    /// SensorKit publishes no durable record identifier. Its anchored fetcher instead allocates an
+    /// `AcquisitionBatchCoordinate` before exposing a batch. Combining that coordinate
+    /// with the cursor's sensor and device partitions plus the record's ordinal preserves
+    /// multiplicity: byte-identical records delivered at different coordinates remain distinct,
+    /// while an exact retry reproduces the same identifier.
+    ///
+    /// Persist a digest of the source fields and native bytes beside this identifier. Before reusing
+    /// the identifier on a retry, compare the new digest with the persisted digest and fail the batch
+    /// if they differ. Content is deliberately not part of this derivation: changing content at the
+    /// same coordinate is a retry-integrity failure, not a new record.
     ///
     /// - Parameters:
-    ///   - payload: The exact recording bytes.
-    ///   - sourceToken: The stream's catalog token, so the same bytes from two streams stay distinct.
-    ///   - deviceDescriptor: A stable description of the recording device.
+    ///   - acquisitionBatch: The persisted coordinate supplied by `AnchoredBatch.info`.
+    ///   - sourceToken: The stream's closed SensorKit catalog token.
+    ///   - deviceProductType: The device partition supplied by `AnchoredBatch.info.device`.
+    ///   - recordOrdinal: The zero-based position of the record in `AnchoredBatch.samples`.
     public static func derived(
-        fromPayload payload: Data,
+        acquisitionBatch: SensorKit.AcquisitionBatchCoordinate,
         sourceToken: String,
-        deviceDescriptor: String
+        deviceProductType: String,
+        recordOrdinal: UInt64
     ) -> SensorKitSourceRecordID {
-        var hasher = SHA256()
-        // The prefix is length-delimited so that a token ending in the separator cannot collide with
-        // a device descriptor beginning with it.
-        hasher.update(data: Data("grove-sensorkit-record-id-v1".utf8))
-        for part in [sourceToken, deviceDescriptor] {
-            let utf8 = Data(part.utf8)
-            withUnsafeBytes(of: UInt64(utf8.count).bigEndian) { hasher.update(bufferPointer: $0) }
-            hasher.update(data: utf8)
+        var framed = Data()
+        for component in [
+            "org.grovealliance.sensorkit.source-record.v0",
+            sourceToken,
+            deviceProductType,
+            acquisitionBatch.stableValue,
+            String(recordOrdinal)
+        ] {
+            let bytes = Data(component.utf8)
+            var byteCount = UInt64(bytes.count).bigEndian
+            Swift.withUnsafeBytes(of: &byteCount) { framed.append(contentsOf: $0) }
+            framed.append(bytes)
         }
-        hasher.update(data: payload)
-        return SensorKitSourceRecordID(uuid(from: Data(hasher.finalize())))
+        return SensorKitSourceRecordID(version8UUID(from: Data(SHA256.hash(data: framed))))
     }
 
-    /// A UUID carrying the digest's leading bits, stamped version 4 and RFC 4122 variant.
-    private static func uuid(from digest: Data) -> UUID {
+    /// An RFC 9562 version-8 UUID carrying the leading bits of the framed SHA-256 digest.
+    private static func version8UUID(from digest: Data) -> UUID {
         var bytes = Array(digest.prefix(16))
-        bytes[6] = (bytes[6] & 0x0F) | 0x40
+        bytes[6] = (bytes[6] & 0x0F) | 0x80
         bytes[8] = (bytes[8] & 0x3F) | 0x80
         return UUID(uuid: (
             bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
@@ -53,3 +66,5 @@ extension SensorKitSourceRecordID {
         ))
     }
 }
+
+#endif

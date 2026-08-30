@@ -249,21 +249,18 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                         "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
                         "healthkit-clinical-record-document"
                     ),
-                    "payloadFormat": "fhir-r4-resource",
+                    "payloadFormat": "fhir-resource",
                     "sourceFHIRReleaseField": "HKFHIRVersion.fhirRelease",
-                    "admittedFHIRRelease": "r4",
+                    "admittedFHIRReleases": ["dstu2", "r4"],
                     "fhirRepresentation": {
                         "resourceType": "DocumentReference",
-                        "extensionUrl": (
-                            "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
-                            "healthkit-clinical-fhir-release"
-                        ),
-                        "valueElement": "valueCode",
-                        "cardinality": {"min": 1, "max": 1},
-                        "fixedValue": "r4",
+                        "contentTypeByRelease": {
+                            "dstu2": "application/fhir+json; fhirVersion=1.0",
+                            "r4": "application/fhir+json; fhirVersion=4.0",
+                        },
                     },
-                    "rejectedFHIRReleases": ["dstu2", "unknown"],
-                    "rule": "R4 only.",
+                    "rejectedFHIRReleases": ["unknown"],
+                    "rule": "DSTU2 or R4, byte-preserved.",
                 },
                 "producerCanonicalization": {
                     "effectivePrecision": "millisecond",
@@ -353,7 +350,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                 },
                 "entryIdentity": {
                     "fullUrl": {
-                        "algorithm": "uuid-v5-length-framed-system-value-v2",
+                        "algorithm": "UUID version 5 over length-framed system and value",
                         "namespace": "43df4575-bff7-5a57-9a80-2472cd2b0623",
                     }
                 },
@@ -415,6 +412,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         generated = self.generate(self.catalogs())
 
         self.assertIn("public enum HealthKitContract", generated)
+        self.assertIn('public static let catalogVersion = "0.6.0"', generated)
         self.assertIn("HKDataTypeIdentifierElectrocardiogram", generated)
         self.assertIn("HKQuantityTypeIdentifierBodyMassIndex", generated)
         self.assertIn("public static let bodyMassIndexProfiles", generated)
@@ -425,8 +423,14 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         self.assertIn("public static let appleBundleIdentifierSystem", generated)
         self.assertIn('public static let appleBundleIdentifierTypeCode = "apple-bundle-id"', generated)
         self.assertIn("public static let clinicalRecordProfile", generated)
-        self.assertIn("public static let clinicalFHIRReleaseExtension", generated)
-        self.assertIn('public static let clinicalFHIRReleaseCode = "r4"', generated)
+        self.assertNotIn("clinicalFHIRReleaseExtension", generated)
+        self.assertIn('public static let clinicalFHIRPayloadFormatCode = "fhir-resource"', generated)
+        self.assertIn("public static let admittedClinicalFHIRReleaseCodes: Set<String>", generated)
+        self.assertIn("public static let clinicalFHIRContentTypeByRelease: [String: String]", generated)
+        self.assertIn('        "dstu2",', generated)
+        self.assertIn('        "r4",', generated)
+        self.assertIn('        "dstu2": "application/fhir+json; fhirVersion=1.0",', generated)
+        self.assertIn('        "r4": "application/fhir+json; fhirVersion=4.0",', generated)
         self.assertIn("public static let adapterOnlyOutputProfiles", generated)
         self.assertIn("public static let documentProfileModes", generated)
         self.assertIn("public static let deviceProfileModes", generated)
@@ -446,11 +450,22 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "must be sorted"):
             self.generate(catalogs)
 
-    def test_rejects_non_r4_clinical_record_representation(self):
+    def test_rejects_mismatched_clinical_release_representation(self):
         catalogs = self.catalogs()
-        catalogs["healthkit-adapter.json"]["clinicalRecordAdmission"]["admittedFHIRRelease"] = "dstu2"
+        admission = catalogs["healthkit-adapter.json"]["clinicalRecordAdmission"]
+        admission["admittedFHIRReleases"] = ["r4"]
 
-        with self.assertRaisesRegex(ValueError, "exact R4 DocumentReference"):
+        with self.assertRaisesRegex(ValueError, "exact DSTU2 or R4"):
+            self.generate(catalogs)
+
+    def test_rejects_unversioned_clinical_fhir_content_type(self):
+        catalogs = self.catalogs()
+        admission = catalogs["healthkit-adapter.json"]["clinicalRecordAdmission"]
+        admission["fhirRepresentation"]["contentTypeByRelease"]["r4"] = (
+            "application/fhir+json"
+        )
+
+        with self.assertRaisesRegex(ValueError, "exact DSTU2 or R4"):
             self.generate(catalogs)
 
     def test_rejects_unpaired_multi_measurement_healthkit_row(self):

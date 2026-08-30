@@ -20,9 +20,9 @@ public import ModelsR4
 
 /// One attachment HealthKit stores alongside a clinical record.
 ///
-/// The bytes are the institution's own document. They are never inlined into the record: a
-/// discharge summary or imaging report is routinely larger than a resource should carry, so it
-/// travels as a sidecar payload the receiving system fetches, exactly as a sensor recording does.
+/// This value is not part of the Grove clinical-record exchange graph. The graph carries only the
+/// provider-issued FHIR resource from `HKClinicalRecord.fhirResource`; a caller that reads these
+/// separately stored documents must govern and exchange them through its own explicit contract.
 public struct HealthKitClinicalAttachment: Sendable {
     /// The attachment's media type as HealthKit reports it.
     public let contentType: String
@@ -50,20 +50,26 @@ public struct HealthKitClinicalRecord: Sendable {
     /// A decoded view for clients that need to inspect the provider-issued resource. Grove never
     /// serializes this value back into the carried payload.
     public let resource: any ModelsR4.Resource
-    /// The documents HealthKit stores alongside the record, when the caller asked for them.
+    /// Documents HealthKit stores alongside the record, returned for caller-managed use outside
+    /// the Grove clinical-record exchange graph.
     public let attachments: [HealthKitClinicalAttachment]
 }
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitConverter {
-    /// Reads a clinical record, and optionally the documents HealthKit stores with it.
+    /// Decodes an R4 clinical record for inspection, and optionally reads its associated documents.
+    ///
+    /// This typed inspection API rejects DSTU2. Transport does not require decoding: use
+    /// `convert(_:context:)` to carry either admitted release unchanged, and
+    /// `readAttachments(of:using:)` to load its associated documents for caller-managed use outside
+    /// the Grove clinical-record exchange graph.
     ///
     /// - Parameters:
     ///   - record: The clinical record to read.
     ///   - healthKit: The `HealthKit` instance used to reach the attachment store. Pass `nil` to
     ///     read the resource alone.
-    /// - Returns: The record's own resource plus any attachments.
+    /// - Returns: The record's own resource plus any separately managed HealthKit attachments.
     public func read(
         _ record: HKClinicalRecord,
         using healthKit: HealthKit? = nil
@@ -79,11 +85,7 @@ extension HealthKitConverter {
         )
         var attachments: [HealthKitClinicalAttachment] = []
         if let healthKit {
-            do {
-                attachments = try await Self.attachments(of: record, using: healthKit)
-            } catch {
-                throw .unreadableClinicalAttachment(record.uuid)
-            }
+            attachments = try await readAttachments(of: record, using: healthKit)
         }
         return HealthKitClinicalRecord(
             sourceUUID: record.uuid,
@@ -91,6 +93,22 @@ extension HealthKitConverter {
             resource: resource,
             attachments: attachments
         )
+    }
+
+    /// Reads provider documents HealthKit stores alongside a clinical record.
+    ///
+    /// This operation is independent of the record's FHIR release. Its results are not referenced
+    /// by the Grove clinical-record Bundle; a caller must not present them as part of that exchange
+    /// without a separate document identity, integrity, and retrieval contract.
+    public func readAttachments(
+        of record: HKClinicalRecord,
+        using healthKit: HealthKit
+    ) async throws(HealthKitConversionError) -> [HealthKitClinicalAttachment] {
+        do {
+            return try await Self.attachments(of: record, using: healthKit)
+        } catch {
+            throw .unreadableClinicalAttachment(record.uuid)
+        }
     }
 
     /// Fails before decoding unless HealthKit explicitly declares R4. Keeping this gate separate

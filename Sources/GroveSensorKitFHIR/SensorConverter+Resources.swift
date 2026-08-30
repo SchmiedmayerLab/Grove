@@ -156,8 +156,7 @@ extension SensorConverter {
                 attachment: try attachment(record),
                 format: Coding(
                     code: record.format.rawValue.asFHIRStringPrimitive(),
-                    system: SensorKitContract.recordingFormatCodeSystem.asFHIRURIPrimitive(),
-                    version: SensorKitCatalog.current.version.asFHIRStringPrimitive()
+                    system: SensorKitContract.recordingFormatCodeSystem.asFHIRURIPrimitive()
                 )
             )],
             context: related.isEmpty ? nil : DocumentReferenceContext(related: related),

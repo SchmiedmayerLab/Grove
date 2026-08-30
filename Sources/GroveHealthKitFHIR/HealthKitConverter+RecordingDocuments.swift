@@ -26,13 +26,13 @@ enum HealthKitRecordingFormat: String, Sendable {
     case beatIntervalSeries = "beat-interval-series"
     case locationTrackSamples = "location-track-samples"
     case clinicalDocument = "clinical-document"
-    case fhirR4Resource = "fhir-r4-resource"
+    case fhirResource = "fhir-resource"
 
-    var contentType: String {
+    var registeredContentType: String? {
         switch self {
         case .beatIntervalSeries, .locationTrackSamples: "text/csv"
         case .clinicalDocument: "application/hl7-cda+xml"
-        case .fhirR4Resource: "application/fhir+json"
+        case .fhirResource: nil
         }
     }
 }
@@ -47,6 +47,16 @@ struct HealthKitRecordingEvidence: Sendable {
     let profiles: [FHIRPrimitive<Canonical>]
     let clinicalRecordTypeCode: String?
     let clinicalFHIRReleaseCode: String?
+
+    var contentType: String? {
+        if format == .fhirResource {
+            guard let clinicalFHIRReleaseCode else {
+                return nil
+            }
+            return HealthKitContract.clinicalFHIRContentTypeByRelease[clinicalFHIRReleaseCode]
+        }
+        return format.registeredContentType
+    }
 
     init(
         outputRole: String,
@@ -72,16 +82,10 @@ struct HealthKitRecordingEvidence: Sendable {
 
 
 /// Canonicals the HealthKit recording document declares.
-///
-/// Hand-stated rather than read from ``Profile``: the generated contract is pinned to the
-/// grove-fhir release this package validates against, and these land there when that pin moves.
 enum HealthKitRecordingDocumentContract {
-    static let profile: FHIRPrimitive<Canonical> =
-        "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-recording-document"
+    static let profile = Profile.healthkitRecordingDocument
     static let formatCodeSystem: FHIRPrimitive<FHIRURI> =
         "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
-    /// The registry release a carried payload conforms to, written to `content.format.version`.
-    static let registryVersion = "0.6.0"
     static let clinicalRecordTypeCodeSystem: FHIRPrimitive<FHIRURI> =
         "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-clinical-record-type"
 }
@@ -313,8 +317,7 @@ extension HealthKitConverter {
                 attachment: try attachment(evidence),
                 format: Coding(
                     code: evidence.format.rawValue.asFHIRStringPrimitive(),
-                    system: HealthKitRecordingDocumentContract.formatCodeSystem,
-                    version: HealthKitRecordingDocumentContract.registryVersion.asFHIRStringPrimitive()
+                    system: HealthKitRecordingDocumentContract.formatCodeSystem
                 )
             )],
             context: context.researchStudies.isEmpty
@@ -332,12 +335,6 @@ extension HealthKitConverter {
             type: CodeableConcept(coding: [typeCoding])
         )
         applySourceTypeLineage(sourceTypeIdentifier, to: &document)
-        if let clinicalFHIRReleaseCode = evidence.clinicalFHIRReleaseCode {
-            document.append(extension: Extension(
-                    url: HealthKitContract.clinicalFHIRReleaseExtension,
-                    value: .code(clinicalFHIRReleaseCode.asFHIRStringPrimitive())
-                ))
-        }
         document.id = context.repositoryIDs.document?.primitive
         return document
     }
@@ -347,7 +344,7 @@ extension HealthKitConverter {
             throw HealthKitConversionError.recordingPayloadTooLarge(byteCount: evidence.payload.count)
         }
         return Attachment(
-            contentType: evidence.format.contentType.asFHIRStringPrimitive(),
+            contentType: evidence.contentType?.asFHIRStringPrimitive(),
             data: FHIRPrimitive(Base64Binary(with: evidence.payload)),
             hash: FHIRPrimitive(Base64Binary(with: Data(Insecure.SHA1.hash(data: evidence.payload)))),
             size: FHIRPrimitive(FHIRUnsignedInteger(size)),

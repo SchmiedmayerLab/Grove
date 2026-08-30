@@ -83,6 +83,7 @@ struct QueryAnchor: Hashable, Codable, Sendable {
     /// fail closed if SensorKit backfills or reorders the pending delivery.
     let pendingBatch: PendingBatch?
 
+    @available(iOS 18, macOS 15, watchOS 11, *)
     var acquisitionBatchCoordinate: SensorKit.AcquisitionBatchCoordinate {
         SensorKit.AcquisitionBatchCoordinate(
             cursorTimestamp: timestamp,
@@ -113,8 +114,8 @@ struct QueryAnchor: Hashable, Codable, Sendable {
     }
 
     init(from decoder: any Decoder) throws {
-        // Grove 0.5 and earlier encoded only a date. Decode that representation as generation zero
-        // so the first 0.6 reset can fence any old acknowledgement deterministically.
+        // The legacy representation encoded only a date. Decode it as generation zero so the first
+        // reset after migration can fence any earlier acknowledgement deterministically.
         if let timestamp = try? decoder.singleValueContainer().decode(Date.self) {
             self.init(timestamp: timestamp)
             return
@@ -128,6 +129,7 @@ struct QueryAnchor: Hashable, Codable, Sendable {
         )
     }
 
+    @available(iOS 18, macOS 15, watchOS 11, *)
     static func requireDeliveryAnchor(_ deliveredAnchor: Self?) throws -> Self {
         guard let deliveredAnchor else {
             throw SensorKit.QueryAnchorAcknowledgementError.missingDeliveryAnchor
@@ -152,6 +154,7 @@ struct QueryAnchor: Hashable, Codable, Sendable {
         )
     }
 
+    @available(iOS 18, macOS 15, watchOS 11, *)
     func committingPendingBatch() throws -> Self {
         guard let pendingBatch else {
             return self
@@ -185,7 +188,6 @@ struct QueryAnchor: Hashable, Codable, Sendable {
 @available(iOS 18, macOS 15, watchOS 11, *)
 public final class ManagedQueryAnchor: Sendable {
     private let get: @Sendable () throws -> QueryAnchor
-    private let set: @Sendable (QueryAnchor) throws -> Void
     private let compareExchange: @Sendable (QueryAnchor, QueryAnchor) throws -> Bool
     
     var value: QueryAnchor {
@@ -196,19 +198,15 @@ public final class ManagedQueryAnchor: Sendable {
     
     private init(
         get: @escaping @Sendable () throws -> QueryAnchor,
-        set: @escaping @Sendable (QueryAnchor) throws -> Void,
         compareExchange: @escaping @Sendable (QueryAnchor, QueryAnchor) throws -> Bool
     ) {
         self.get = get
-        self.set = set
         self.compareExchange = compareExchange
     }
     
     convenience init(storageKey: LocalStorageKey<QueryAnchor>, in localStorage: LocalStorage) {
         self.init {
             try localStorage.load(storageKey) ?? QueryAnchor()
-        } set: {
-            try localStorage.store($0, for: storageKey)
         } compareExchange: { expected, desired in
             let persistedExpected: QueryAnchor? = expected == QueryAnchor() ? nil : expected
             if try localStorage.compareExchange(expected: persistedExpected, desired: desired, for: storageKey) {
@@ -266,8 +264,6 @@ extension ManagedQueryAnchor {
         )
         return Self {
             storage.anchor.withLock { $0 }
-        } set: { newAnchor in
-            storage.anchor.withLock { $0 = newAnchor }
         } compareExchange: { expected, desired in
             storage.anchor.withLock { current in
                 guard current == expected else {

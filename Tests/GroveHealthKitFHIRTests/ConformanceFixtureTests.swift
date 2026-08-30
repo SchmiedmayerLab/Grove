@@ -562,7 +562,7 @@ struct ConformanceFixtureTests {
                 requirement: entry.requirement
             )
         }
-        let inventory = SourceInventory(schemaVersion: 1, rows: rows)
+        let inventory = SourceInventory(schemaVersion: 0, rows: rows)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
         let output = Self.inventoryURL

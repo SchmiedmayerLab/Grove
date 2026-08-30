@@ -56,7 +56,6 @@ extension HealthKitConverter {
         let sourceAuthor: SourceAuthorDevices?
         let primaryURL: String
         let converterURL: String
-        let converterHostURL: String
         let recordingDeviceURL: String?
         let sourceAuthorURL: String?
     }
@@ -117,7 +116,6 @@ extension HealthKitConverter {
             sourceAuthor: sourceAuthor,
             primaryURL: try ExchangeIdentity.fullURL(for: identities.primary),
             converterURL: try ExchangeIdentity.fullURL(for: converterApplication.identity),
-            converterHostURL: converterHostURL,
             recordingDeviceURL: recordingDeviceURL,
             sourceAuthorURL: sourceAuthorURL
         )

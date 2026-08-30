@@ -7,7 +7,7 @@
 //
 
 // The graph assembly keeps one complete exchange transaction together.
-// swiftlint:disable function_body_length file_length large_tuple
+// swiftlint:disable function_body_length file_length
 
 import CryptoKit
 import FHIRModelsExtensions
@@ -342,14 +342,13 @@ extension SensorConverter {
         var converterHost = hostDevice(context.converterHost)
         converterHost.id = context.repositoryIDs.converterHost?.primitive
         converterHost.identifier = [converterHostIdentity.fhirIdentifier]
-        var recordingDevice = zip(
-            context.recordingDevice,
-            recordingDeviceIdentity,
-            recordingDeviceSnapshot
-        ).map { source, identity, snapshot in
-            recordingDevice(source, identity: identity, snapshot: snapshot)
+        var recordingDeviceResource: Device?
+        if let source = context.recordingDevice,
+           let identity = recordingDeviceIdentity,
+           let snapshot = recordingDeviceSnapshot {
+            recordingDeviceResource = recordingDevice(source, identity: identity, snapshot: snapshot)
         }
-        recordingDevice?.id = context.repositoryIDs.recordingDevice?.primitive
+        recordingDeviceResource?.id = context.repositoryIDs.recordingDevice?.primitive
 
         let primaryResource = try primaryResource(
             record,
@@ -381,10 +380,10 @@ extension SensorConverter {
         var entries = [
             try ExchangeIdentity.entry(identifier: sourceOutput, resource: primaryProxy)
         ]
-        if let recordingDevice, let recordingDeviceSnapshot {
+        if let recordingDeviceResource, let recordingDeviceSnapshot {
             entries.append(try ExchangeIdentity.entry(
                 identifier: recordingDeviceSnapshot,
-                resource: ResourceProxy(with: recordingDevice)
+                resource: ResourceProxy(with: recordingDeviceResource)
             ))
         }
         entries.append(try ExchangeIdentity.entry(
@@ -439,7 +438,7 @@ extension SensorConverter {
                 provenance: provenanceNode.identifier
             ),
             primaryResource: retainedPrimary,
-            recordingDevice: recordingDevice,
+            recordingDevice: recordingDeviceResource,
             converterApplication: converterApplication,
             converterHost: converterHost,
             provenance: provenance,
@@ -517,12 +516,4 @@ extension SensorRecord {
         }
         return document.format
     }
-}
-
-
-private func zip<A, B, C>(_ first: A?, _ second: B?, _ third: C?) -> (A, B, C)? {
-    guard let first, let second, let third else {
-        return nil
-    }
-    return (first, second, third)
 }

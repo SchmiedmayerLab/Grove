@@ -11,8 +11,6 @@ import SwiftUI
 
 
 struct ContentView: View {
-    @State private var healthKitManager = HealthKitManager()
-    
     var body: some View {
         NavigationStack {
             Form {
@@ -34,6 +32,5 @@ struct ContentView: View {
             }
             .navigationBarTitle("GroveHealthKitFHIR Tests")
         }
-        .environment(healthKitManager)
     }
 }

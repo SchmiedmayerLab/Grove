@@ -51,10 +51,6 @@ struct GroveSensorKitFHIRConverterTests {
                 visitLocationIdentifierSystem: visitLocationIdentifierSystem,
                 sourceIdentifierDisclosurePolicy: sourceIdentifierDisclosurePolicy,
                 recordingDevice: SensorRecordingDevice(
-                    identifier: try BusinessIdentifier(
-                        system: "https://study.example.org/fhir/identifiers/device",
-                        value: "watch-42"
-                    ),
                     stableUnitToken: "watch-42",
                     name: "Example Watch"
                 ),
@@ -101,9 +97,9 @@ struct GroveSensorKitFHIRConverterTests {
             outputDiscriminator: discriminator
         )
         #expect(identifier.systemValue ==
-            "https://study.example.org/fhir/identifiers/pseudonym/source-output/test/1")
+            "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-output/test/1")
         #expect(identifier.role == .sourceOutput)
-        #expect(identifier.value.hasPrefix("v2:test:1:"))
+        #expect(identifier.value.hasPrefix("v0:test:1:"))
         #expect(!identifier.value.contains(sourceID.value))
         #expect(!identifier.value.contains(discriminator))
     }
@@ -245,6 +241,10 @@ struct GroveSensorKitFHIRConverterTests {
             FHIRPrimitive(Canonical(stringLiteral: SensorKitContract.sensorRecordingDocumentProfile)),
             FHIRPrimitive(Canonical(stringLiteral: SensorKitContract.recordingDocumentProfile))
         ])
+        let method = try #require(observation.method?.coding?.first)
+        #expect(method.system?.value?.url.absoluteString == SensorKitContract.valueCodeSystem)
+        #expect(method.code?.value?.string == "guided")
+        #expect(method.display?.value?.string == "Guided")
         let format = try #require(document.content.first?.format)
         #expect(format.system?.value?.url.absoluteString == SensorKitContract.recordingFormatCodeSystem)
         #expect(format.code?.value?.string == "native-recording")
@@ -359,9 +359,25 @@ struct GroveSensorKitFHIRConverterTests {
         }
         #expect(conversion.observations.isEmpty)
         #expect(conversion.recordingDocument?.content.first?.format?.code?.value?.string == "heart-rate-samples")
+        #expect(conversion.recordingDocument?.content.first?.format?.version == nil)
         #expect(conversion.recordingDocument?.context?.period?.start != nil)
         #expect(conversion.recordingDocument?.context?.period?.end != nil)
+        #expect(conversion.recordingDocument?.context?.related == nil)
         #expect(conversion.provenance.target.count == 1)
+    }
+
+    @Test("A one-instant raw acquisition retains exact point coverage")
+    func rawPointCoverageIsAdmitted() throws {
+        let record = try SensorKitRawRecord(
+            sourceRecordID: try Self.sourceID,
+            sourceToken: "SRSensor.heartRate",
+            effectivePeriod: DateInterval(start: Self.start, duration: 0),
+            nativeRecording: try Self.native(format: .heartRateSamples)
+        )
+        let conversion = try SensorKitConverter().convert(.raw(record), context: Self.context)
+        let period = try #require(conversion.recordingDocument?.context?.period)
+
+        #expect(period.start == period.end)
     }
 
     @Test("A raw-only source discloses its governed ID on the sole DocumentReference")

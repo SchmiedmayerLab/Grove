@@ -72,6 +72,29 @@ for failure in result.failures {
 }
 ```
 
+### Exchange a clinical record
+
+An `HKClinicalRecord` already carries provider-issued FHIR. Grove accepts an explicitly declared
+DSTU2 or R4 payload, preserves the exact provider JSON bytes, and places those bytes in an R4
+profiled recording-document graph with the matching versioned FHIR JSON media type:
+
+```swift
+let conversion = try HealthKitConverter().convert(
+    clinicalRecord,
+    context: try persistedContext(for: clinicalRecord)
+)
+try persist(conversion.bundle)
+```
+
+Persist and upload the complete ``HealthKitDocumentConversion/bundle``. The
+``HealthKitDocumentConversion/document`` alone omits the graph's Device snapshots, identities,
+references, and Provenance. ``HealthKitConverter/read(_:using:)`` is a separate inspection API that
+decodes an R4 provider resource; its decoded `resource` is not the exchange representation and must
+not replace the recording-document Bundle. ``HealthKitConverter/readAttachments(of:using:)`` can
+load documents HealthKit stores alongside either a DSTU2 or R4 record, but those documents are not
+referenced by this exchange graph. Exchange them only through a separate contract that defines
+their identity, integrity, and retrieval semantics.
+
 ### Convert an ECG
 
 ECG conversion uses the dedicated ``HealthKitECGRecord`` input, so the caller supplies the complete,
@@ -115,7 +138,7 @@ recording documents additionally carry `source-artifact`.
 
 Internal references use deterministic `urn:uuid` full URLs derived with UUIDv5 from the selected
 typed identifier's exact system/value pair. A logical id is emitted only when a caller supplies a
-repository-assigned ``RepositoryID``.
+repository-assigned `RepositoryID`.
 
 ## Topics
 
@@ -141,5 +164,3 @@ repository-assigned ``RepositoryID``.
 
 - ``HealthKitCatalog``
 - ``HealthKitCatalogEntry``
-- ``PseudonymousIdentityScope``
-- ``ExchangeEventIdentifier``

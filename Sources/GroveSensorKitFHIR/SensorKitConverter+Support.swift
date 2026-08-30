@@ -248,12 +248,11 @@ extension SensorKitConverter {
         guard entry.rawFormats.contains(code) else {
             throw SensorKitRecordError.recordingFormatNotAdmitted(code.rawValue)
         }
-        // The code names the payload's schema and stays stable; the release it belongs to
-        // travels in Coding.version, so a guide bump never invalidates an emitted code.
+        // The stable code names the payload's wire grammar. Guide release versions are not part of
+        // payload format Coding values.
         return Coding(
             code: code.rawValue.asFHIRStringPrimitive(),
-            system: SensorKitContract.recordingFormatCodeSystem.asFHIRURIPrimitive(),
-            version: SensorKitCatalog.current.version.asFHIRStringPrimitive()
+            system: SensorKitContract.recordingFormatCodeSystem.asFHIRURIPrimitive()
         )
     }
 

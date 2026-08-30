@@ -199,7 +199,7 @@ def create_manifest(
     if revision:
         producer["revision"] = revision
     return {
-        "schemaVersion": 1,
+        "schemaVersion": 0,
         "fhirVersion": "4.0.1",
         "producer": producer,
         "packages": packages,

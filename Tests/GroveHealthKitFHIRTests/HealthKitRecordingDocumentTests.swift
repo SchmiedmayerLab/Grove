@@ -98,8 +98,9 @@ struct HealthKitRecordingDocumentTests {
 
     /// A sample that supplies only the graph envelope's UUID, device, and source-revision evidence.
     private func envelopeSample() -> HKSample {
-        HKWorkout(
-            activityType: .running,
+        HKQuantitySample(
+            type: HKQuantityType(.heartRate),
+            quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 60),
             start: Self.seriesStart,
             end: Self.seriesStart.addingTimeInterval(600)
         )
@@ -173,7 +174,7 @@ struct HealthKitRecordingDocumentTests {
         #expect(content.format?.code?.value?.string == "beat-interval-series")
         #expect(content.format?.system?.value?.url.absoluteString
             == "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format")
-        #expect(content.format?.version?.value?.string == "0.6.0")
+        #expect(content.format?.version == nil)
         #expect(content.attachment.contentType?.value?.string == "text/csv")
         #expect(content.attachment.title?.value?.string == "Heartbeat series beat intervals")
         #expect(content.attachment.size?.value?.integer == 69)

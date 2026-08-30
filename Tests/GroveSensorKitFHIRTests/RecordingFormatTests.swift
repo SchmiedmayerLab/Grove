@@ -112,11 +112,21 @@ struct RecordingCSVWriterTests {
             let isTabular = RegisteredRecordingFormat.tabularFormats.contains(format)
             #expect((format.csvColumns != nil) == isTabular, "\(format.rawValue)")
             if isTabular {
-                #expect(format.registeredContentType == "text/csv", "\(format.rawValue)")
+                #expect(format.registeredContentTypes == ["text/csv"], "\(format.rawValue)")
             } else {
-                #expect(format.registeredContentType != "text/csv", "\(format.rawValue)")
+                #expect(!format.registeredContentTypes.contains("text/csv"), "\(format.rawValue)")
             }
         }
+    }
+
+    @Test
+    func fhirResourcePublishesItsVersionedRepresentations() {
+        #expect(RegisteredRecordingFormat.fhirResource.registeredContentTypes == [
+            "application/fhir+json; fhirVersion=1.0",
+            "application/fhir+json; fhirVersion=4.0"
+        ])
+        #expect(RegisteredRecordingFormat.fhirResource.registeredContentType == nil)
+        #expect(RegisteredRecordingFormat.fhirCollectionBundle.registeredContentType == "application/fhir+json")
     }
 }
 
@@ -281,16 +291,76 @@ struct RegisteredRecordingPayloadTests {
         }
     }
 
-    @Test("The single-resource R4 format parses one resource, never an array")
-    func r4ResourceShapeIsClosed() throws {
-        try RegisteredRecordingFormat.fhirR4Resource.validatePayload(
+    @Test("The release-neutral FHIR format accepts one resource object, never an array")
+    func fhirResourceShapeIsClosed() throws {
+        try RegisteredRecordingFormat.fhirResource.validatePayload(
             Data(#"{"resourceType":"Patient"}"#.utf8)
         )
         #expect(throws: RegisteredRecordingPayloadError.invalidFHIRJSON) {
-            try RegisteredRecordingFormat.fhirR4Resource.validatePayload(
+            try RegisteredRecordingFormat.fhirResource.validatePayload(
                 Data(#"[{"resourceType":"Patient"}]"#.utf8)
             )
         }
+        #expect(throws: RegisteredRecordingPayloadError.invalidFHIRJSON) {
+            try RegisteredRecordingFormat.fhirResource.validatePayload(
+                Data(#"{"resourceType":""}"#.utf8)
+            )
+        }
+        #expect(throws: RegisteredRecordingPayloadError.invalidFHIRJSON) {
+            try RegisteredRecordingFormat.fhirResource.validatePayload(
+                Data(#"{"resourceType":"observation"}"#.utf8)
+            )
+        }
+        #expect(throws: RegisteredRecordingPayloadError.invalidFHIRJSON) {
+            try RegisteredRecordingFormat.fhirResource.validatePayload(
+                Data(#"{"resourceType":"Patient","resourceType":"Observation"}"#.utf8)
+            )
+        }
+        #expect(throws: RegisteredRecordingPayloadError.invalidFHIRJSON) {
+            try RegisteredRecordingFormat.fhirResource.validatePayload(
+                Data([0xEF, 0xBB, 0xBF]) + Data(#"{"resourceType":"Patient"}"#.utf8)
+            )
+        }
+        let utf16Payload = try #require(
+            #"{"resourceType":"Patient"}"#.data(using: .utf16LittleEndian)
+        )
+        #expect(throws: RegisteredRecordingPayloadError.invalidFHIRJSON) {
+            try RegisteredRecordingFormat.fhirResource.validatePayload(
+                utf16Payload
+            )
+        }
+    }
+
+    @Test("A multi-representation format requires one exact registered media type")
+    func fhirResourceMediaTypeIsExplicit() throws {
+        let payload = Data(#"{"resourceType":"Patient"}"#.utf8)
+
+        #expect(throws: SensorKitRecordError.invalidContentType) {
+            try SensorKitNativeRecording(
+                title: "Provider-issued FHIR resource",
+                format: .fhirResource,
+                payload: .inline(payload),
+                admission: .callerAuthorizedOpaquePayload
+            )
+        }
+        #expect(throws: SensorKitRecordError.invalidContentType) {
+            try SensorKitNativeRecording(
+                title: "Provider-issued FHIR resource",
+                format: .fhirResource,
+                contentType: "application/fhir+json",
+                payload: .inline(payload),
+                admission: .callerAuthorizedOpaquePayload
+            )
+        }
+
+        let recording = try SensorKitNativeRecording(
+            title: "Provider-issued FHIR resource",
+            format: .fhirResource,
+            contentType: "application/fhir+json; fhirVersion=1.0",
+            payload: .inline(payload),
+            admission: .callerAuthorizedOpaquePayload
+        )
+        #expect(recording.contentType == "application/fhir+json; fhirVersion=1.0")
     }
 }
 

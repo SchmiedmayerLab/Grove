@@ -84,8 +84,8 @@ let converter = HealthKitApplication(
 
 ## Persisting the event identity
 
-The Bundle identifier is an ``ExchangeEventIdentifier``. Its wire value is
-`e2:<producer-instance UUID>:<positive monotonic sequence>`. The identifier system is
+The Bundle identifier is an `ExchangeEventIdentifier`. Its wire value is
+`e0:<producer-instance UUID>:<positive monotonic sequence>`. The identifier system is
 deployment-owned and stable for that producer instance.
 
 - Generate the producer UUID once and persist it.
@@ -99,7 +99,7 @@ monotonicity and can mint a new identity during a retry.
 
 ## Configuring pseudonymous identities
 
-``PseudonymousIdentityScope`` owns the HMAC key id, positive epoch, key material, and a distinct
+`PseudonymousIdentityScope` owns the HMAC key id, positive epoch, key material, and a distinct
 deployment-owned identifier system for each closed identity kind. Rotate by creating new
 key-epoch-specific systems; never reuse one system across kinds or deployments. The API rejects a
 short key, zero epoch, malformed URI, repeated system, wrong component count, or empty core field.
@@ -124,7 +124,7 @@ This converter keeps the distinct clocks explicit:
 
 The converter never reads the clock. This prevents a retry from silently changing the clinical graph.
 
-Before upload, validate the complete serialized graph with ``ExchangeGraph``. Its JSON initializer
+Before upload, validate the complete serialized graph with `ExchangeGraph`. Its JSON initializer
 preserves the shared conformance-corpus diagnostic even when a mutation changes `resourceType` so
 that ModelsR4 could not otherwise decode the resource. Validation closes entry types, direct profile
 modes, typed identities, governed target types, fixed UCUM system/code pairs, numeric domains,

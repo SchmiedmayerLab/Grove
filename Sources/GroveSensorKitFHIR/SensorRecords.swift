@@ -11,7 +11,7 @@
 
 public import Foundation
 public import GroveFHIRContract
-public import ModelsR4
+import ModelsR4
 
 
 /// Contract-level failures raised before Grove emits a Sensor FHIR resource.
@@ -318,7 +318,7 @@ public struct SensorRecordingDocument: Sendable {
     public let type: SensorCode
     public let title: String
     public let format: RegisteredRecordingFormat
-    public var contentType: String { format.registeredContentType }
+    public let contentType: String
     public let payload: Payload
     public let related: [BusinessIdentifier]
 
@@ -330,6 +330,7 @@ public struct SensorRecordingDocument: Sendable {
         type: SensorCode,
         title: String,
         format: RegisteredRecordingFormat,
+        contentType: String? = nil,
         payload: Payload,
         rawPayloadAdmission: SensorRawPayloadAdmission?,
         related: [BusinessIdentifier] = []
@@ -340,6 +341,7 @@ public struct SensorRecordingDocument: Sendable {
             type: type,
             title: title,
             format: format,
+            contentType: contentType,
             payload: payload,
             rawPayloadAdmission: rawPayloadAdmission,
             related: related,
@@ -353,6 +355,7 @@ public struct SensorRecordingDocument: Sendable {
         type: SensorCode,
         title: String,
         format: RegisteredRecordingFormat,
+        contentType: String?,
         payload: Payload,
         rawPayloadAdmission: SensorRawPayloadAdmission?,
         related: [BusinessIdentifier],
@@ -388,6 +391,10 @@ public struct SensorRecordingDocument: Sendable {
         } catch {
             throw SensorRecordError.invalidRegisteredPayload(format: format, reason: error)
         }
+        guard let contentType = format.resolveContentType(contentType) else {
+            throw SensorRecordError.invalidContentType
+        }
+        self.contentType = contentType
         self.nativeRecordID = nativeRecordID
         self.sourceTypeIdentifier = sourceTypeIdentifier
         self.type = type

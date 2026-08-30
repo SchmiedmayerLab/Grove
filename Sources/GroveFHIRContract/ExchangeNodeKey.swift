@@ -30,7 +30,7 @@ public struct ExchangeNodeKey: Hashable, Sendable {
             throw ExchangeIdentityError.invalidEntryNodeRole
         }
         let framed = try LengthFramedUTF8.encode([
-            "org.grovealliance.fhir.entry-node.v2",
+            "org.grovealliance.fhir.entry-node.v0",
             eventIdentifier.businessIdentifier.systemValue,
             eventIdentifier.businessIdentifier.value,
             nodeRole,
@@ -39,7 +39,7 @@ public struct ExchangeNodeKey: Hashable, Sendable {
         let digest = Data(SHA256.hash(data: framed)).entryNodeBase64URL
         self.identifier = try BusinessIdentifier(
             system: system,
-            value: "n2:\(nodeRole):\(ordinal.rawValue):\(digest)",
+            value: "n0:\(nodeRole):\(ordinal.rawValue):\(digest)",
             role: .entryNode
         )
         self.nodeRole = nodeRole
@@ -71,7 +71,7 @@ public struct ExchangeNodeKey: Hashable, Sendable {
         }
         let fields = identifier.value.split(separator: ":", omittingEmptySubsequences: false)
         guard fields.count == 4,
-              fields[0] == "n2",
+              fields[0] == "n0",
               let ordinal = try? CanonicalNonnegativeDecimal(String(fields[2])) else {
             throw ExchangeIdentityError.invalidEntryNodeValue(identifier.value)
         }

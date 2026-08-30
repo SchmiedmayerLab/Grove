@@ -29,7 +29,7 @@ public struct ResourceBuilder: Sendable {
     /// Creates a profiled QuestionnaireResponse with a complete business identifier.
     ///
     /// Use this when the response travels alone -- for example when the receiving system already
-    /// holds the Questionnaire. When both resources travel together, prefer ``pair(from:subject:author:responseSource:status:identifier:questionnaireRepositoryID:responseRepositoryID:valueSets:authored:)``,
+    /// holds the Questionnaire. When both resources travel together, prefer ``pair(from:subject:author:responseSource:status:identifier:questionnaireRepositoryID:responseRepositoryID:valueSets:authored:authoredTimeZone:)``,
     /// which also cross-validates the two against the published pair rules.
     ///
     /// ```swift
@@ -65,7 +65,7 @@ public struct ResourceBuilder: Sendable {
     /// Creates an exact Questionnaire/QuestionnaireResponse pair and validates them against each other.
     ///
     /// Unlike calling ``questionnaire(from:repositoryID:)`` and
-    /// ``response(from:subject:author:source:status:identifier:repositoryID:authored:)`` separately,
+    /// ``response(from:subject:author:source:status:identifier:repositoryID:authored:authoredTimeZone:)`` separately,
     /// the pair is checked against the published pair rules -- every answer's linkId, type, and
     /// enable-when relationship must line up -- so an inconsistent export fails here instead of at
     /// the receiving system.

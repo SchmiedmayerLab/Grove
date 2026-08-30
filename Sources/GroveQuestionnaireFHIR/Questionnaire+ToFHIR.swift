@@ -120,6 +120,10 @@ extension ModelsR4.Questionnaire {
         self.init(status: FHIRPrimitive(Self.publicationStatus(of: questionnaire.metadata.lifecycle)))
         self.id = repositoryID?.primitive
         self.meta = Meta(profile: [Profile.groveQuestionnaire])
+        // Grove questionnaires are administered to the app participant. Declaring Patient keeps
+        // every native export inside the Grove Questionnaire profile and lets pair validation reject
+        // a response whose subject targets a different resource type.
+        self.subjectType = [FHIRPrimitive(ResourceType.patient)]
         applyMetadata(questionnaire.metadata)
         let items = try Self.items(of: questionnaire)
         guard !items.isEmpty else {

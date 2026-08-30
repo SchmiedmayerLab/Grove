@@ -135,7 +135,7 @@ public struct PseudonymousIdentityScope: Sendable {
             )
         }
         let input = try LengthFramedUTF8.encode(
-            ["org.grovealliance.fhir.identity.v2", identityKind.rawValue] + components
+            ["org.grovealliance.fhir.identity.v0", identityKind.rawValue] + components
         )
         let authentication = HMAC<SHA256>.authenticationCode(
             for: input,
@@ -144,7 +144,7 @@ public struct PseudonymousIdentityScope: Sendable {
         let digest = Data(authentication).base64URLEncodedStringWithoutPadding
         return try BusinessIdentifier(
             system: systems[identityKind],
-            value: "v2:\(keyID):\(epoch.rawValue):\(digest)",
+            value: "v0:\(keyID):\(epoch.rawValue):\(digest)",
             role: role
         )
     }

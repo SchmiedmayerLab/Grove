@@ -50,7 +50,7 @@ public struct FHIRQuantityUnit: Hashable, Sendable {
 public protocol CodingProtocol: Hashable, Sendable {
     static var system: FHIRPrimitive<FHIRURI> { get }
     static var version: FHIRPrimitive<FHIRString>? { get }
-    
+
     var code: FHIRPrimitive<FHIRString> { get }
     var display: FHIRPrimitive<FHIRString>? { get }
 }
@@ -61,7 +61,7 @@ extension CodingProtocol {
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.code == rhs.code
     }
-    
+
     /// Hashes the code, which is what equality compares.
     public func hash(into hasher: inout Hasher) {
         hasher.combine(code)
@@ -73,12 +73,12 @@ extension CodingProtocol {
     public static var version: FHIRPrimitive<FHIRString>? {
         nil
     }
-    
+
     /// The system this coding's type belongs to.
     public var system: FHIRPrimitive<FHIRURI> {
         Self.system
     }
-    
+
     /// The terminology version this coding's type pins, if any.
     public var version: FHIRPrimitive<FHIRString>? {
         Self.version
@@ -121,7 +121,7 @@ extension ObservationComponent {
             value: value
         )
     }
-    
+
     /// Builds a component whose clinical concept and physical unit remain distinct.
     public init<C: CodingProtocol>(
         system: C.Type = C.self,

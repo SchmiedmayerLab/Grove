@@ -237,7 +237,7 @@ extension HealthKitConverter {
 
     private static func category(for id: String) -> Coding? {
         let code: (String, String)? = switch id {
-        case "heart-rate", "body-weight", "blood-pressure", "body-temperature",
+        case "heart-rate", "resting-heart-rate", "body-weight", "blood-pressure", "body-temperature",
              "respiratory-rate", "oxygen-saturation", "body-height", "body-mass-index":
             ("vital-signs", "Vital Signs")
         case "step-count", "distance", "active-energy", "sleep-stage":

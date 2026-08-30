@@ -595,7 +595,7 @@ struct HealthKitFHIRConverterTests {
         #expect(conversion.provenance.id?.value?.string == "provenance-1")
         let identifiers = try #require(conversion.recordingDevice?.identifier).map(BusinessIdentifier.init)
         #expect(identifiers.map(\.role) == [.deviceSnapshot, .recordingDevice])
-        #expect(identifiers.allSatisfy { $0.value.hasPrefix("v2:test:1:") })
+        #expect(identifiers.allSatisfy { $0.value.hasPrefix("v0:test:1:") })
         #expect(conversion.recordingDevice?.udiCarrier == nil)
     }
 
@@ -877,9 +877,79 @@ struct HealthKitFHIRConverterTests {
     }
 
     #if !os(watchOS)
-    @Test("DSTU2 clinical payloads fail closed instead of being relabeled as R4")
+    @Test("Clinical transport preserves exact DSTU2 and R4 bytes with their declared release")
     @available(iOS 18, macOS 15, *)
-    func rejectsDSTU2ClinicalPayload() throws {
+    func clinicalTransportPreservesAdmittedReleases() throws {
+        let sourceUUID = try #require(UUID(uuidString: "be22dfdc-8870-4413-9f8f-8c2aad0c9cbc"))
+        let dstu2JSON = Data("  {\"resourceType\":\"Observation\",\"id\":\"dstu2\"}\n".utf8)
+        let r4JSON = Data("{\n  \"resourceType\": \"Observation\", \"id\": \"r4\"\n}\n".utf8)
+
+        let dstu2 = try HealthKitConverter.clinicalRecordingEvidence(
+            data: dstu2JSON,
+            release: .dstu2,
+            versionDescription: "1.0.2",
+            sourceUUID: sourceUUID,
+            sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord"
+        )
+        let r4Evidence = try HealthKitConverter.clinicalRecordingEvidence(
+            data: r4JSON,
+            release: .r4,
+            versionDescription: "4.0.1",
+            sourceUUID: sourceUUID,
+            sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord"
+        )
+
+        #expect(dstu2.payload == dstu2JSON)
+        #expect(dstu2.format.rawValue == HealthKitContract.clinicalFHIRPayloadFormatCode)
+        #expect(dstu2.clinicalFHIRReleaseCode == "dstu2")
+        #expect(r4Evidence.payload == r4JSON)
+        #expect(r4Evidence.format.rawValue == HealthKitContract.clinicalFHIRPayloadFormatCode)
+        #expect(r4Evidence.clinicalFHIRReleaseCode == "r4")
+    }
+
+    @Test("Unknown clinical releases fail before Grove creates an exchange document")
+    @available(iOS 18, macOS 15, *)
+    func unknownClinicalReleaseFailsClosed() throws {
+        let sourceUUID = try #require(UUID(uuidString: "be22dfdc-8870-4413-9f8f-8c2aad0c9cbc"))
+        let payload = Data(#"{"resourceType":"Observation"}"#.utf8)
+
+        #expect(throws: HealthKitConversionError.unsupportedClinicalRelease("unknown")) {
+            _ = try HealthKitConverter.clinicalRecordingEvidence(
+                data: payload,
+                release: .unknown,
+                versionDescription: "unknown",
+                sourceUUID: sourceUUID,
+                sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord"
+            )
+        }
+    }
+
+    @Test(
+        "Clinical transport rejects payload syntax that the implementation guides do not admit",
+        arguments: [
+            Data(#"{"resourceType":"Observation","resourceType":"Patient"}"#.utf8),
+            Data(#"{"resourceType":"observation"}"#.utf8),
+            Data([0xEF, 0xBB, 0xBF]) + Data(#"{"resourceType":"Observation"}"#.utf8)
+        ]
+    )
+    @available(iOS 18, macOS 15, *)
+    func invalidClinicalResourceSyntaxFailsClosed(payload: Data) throws {
+        let sourceUUID = try #require(UUID(uuidString: "be22dfdc-8870-4413-9f8f-8c2aad0c9cbc"))
+
+        #expect(throws: HealthKitConversionError.undecodableClinicalRecord(sourceUUID)) {
+            _ = try HealthKitConverter.clinicalRecordingEvidence(
+                data: payload,
+                release: .r4,
+                versionDescription: "4.0.1",
+                sourceUUID: sourceUUID,
+                sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord"
+            )
+        }
+    }
+
+    @Test("Typed R4 inspection still rejects a DSTU2 payload without changing transport support")
+    @available(iOS 18, macOS 15, *)
+    func typedR4InspectionRejectsDSTU2() throws {
         let sourceUUID = try #require(UUID(uuidString: "be22dfdc-8870-4413-9f8f-8c2aad0c9cbc"))
         let dstu2JSON = Data(#"{"resourceType":"Observation","id":"dstu2"}"#.utf8)
 

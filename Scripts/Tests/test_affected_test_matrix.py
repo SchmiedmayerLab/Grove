@@ -370,7 +370,7 @@ tests = []
     def test_target_absent_from_the_graph_refuses_to_answer(self):
         self.assertIsNone(MODULE.packages_for_target("NotInGraph", {"targets": []}))
 
-    def test_healthkit_ready_pr_runs_every_package_within_the_platform_limits(self):
+    def test_healthkit_ready_pr_runs_every_package_on_enabled_platforms(self):
         result = run_selector(
             "Sources/GroveHealthKitFHIR/HealthKitConverter.swift",
             ".github/workflows/tests.yml",
@@ -391,8 +391,7 @@ tests = []
         }
         self.assertIn(("Grove", "iOS"), unit_jobs)
         self.assertIn(("GroveViews", "iOS"), ui_jobs)
-        # Full readiness widens the package set, never the platform set: CI_PLATFORMS and
-        # UI_PLATFORMS bound every run, so the dormant platforms stay unscheduled.
+        # Full readiness widens the package set, never the currently enabled platform set.
         self.assertNotIn(("Grove", "macCatalyst"), unit_jobs)
         self.assertNotIn(("Grove", "visionOS"), unit_jobs)
         self.assertNotIn(("GroveViews", "iPadOS"), ui_jobs)
@@ -445,6 +444,25 @@ tests = []
 
 
 class InfrastructureSelectionTests(unittest.TestCase):
+    def test_fhir_workflow_builds_each_selected_guide_set_once(self):
+        workflow = (SCRIPT.parents[1] / ".github/workflows/tests.yml").read_text()
+        build_step = workflow.split("- name: Build active implementation guides", 1)[1].split(
+            "- name: Validate resources emitted by Grove",
+            1,
+        )[0]
+
+        self.assertIn("add_guide()", build_step)
+        self.assertEqual(build_step.count("./Scripts/build-guides.sh"), 1)
+
+    def test_guide_cache_key_includes_the_resolved_contract_revision(self):
+        workflow = (SCRIPT.parents[1] / ".github/workflows/tests.yml").read_text()
+        cache_key_step = workflow.split("- name: Pin the implementation-guide cache key", 1)[1].split(
+            "- name: Restore built implementation guides",
+            1,
+        )[0]
+
+        self.assertIn("RESOLVED_GROVE_FHIR_SHA", cache_key_step)
+
     def test_documentation_content_does_not_run_package_tests(self):
         result = run_selector("Sources/Grove/Grove.docc/GettingStarted.md")
 

@@ -16,11 +16,11 @@ on:
   workflow_dispatch:
     inputs:
       grove_fhir_ref:
-        description: grove-fhir commit carrying the v0.6.0 development contract. Defaults to the current main revision.
+        description: grove-fhir commit carrying the Grove FHIR Implementation Guides contract. Defaults to the current main revision.
         type: string
-        default: 31197e876161e9c6d207760d472343231da527e2
+        default: 90b23e647f1dd728035c64348abede5746375529
       full_readiness:
-        description: Schedule every package and platform instead of only the ones the change touches.
+        description: Schedule every package on the currently enabled CI platforms instead of only the packages the change touches.
         type: boolean
         default: false
       fhir_only:
@@ -30,15 +30,15 @@ on:
   workflow_call:
     inputs:
       run_all:
-        description: Run every unit and UI test.
+        description: Run every package's unit and UI tests on the currently enabled CI platforms.
         type: boolean
         default: false
       grove_fhir_ref:
-        description: grove-fhir commit carrying the v0.6.0 development contract. Defaults to the current main revision.
+        description: grove-fhir commit carrying the Grove FHIR Implementation Guides contract. Defaults to the current main revision.
         type: string
-        default: 31197e876161e9c6d207760d472343231da527e2
+        default: 90b23e647f1dd728035c64348abede5746375529
       full_readiness:
-        description: Schedule every package and platform instead of only the ones the change touches.
+        description: Schedule every package on the currently enabled CI platforms instead of only the packages the change touches.
         type: boolean
         default: false
 
@@ -81,7 +81,7 @@ jobs:
             BASE_SHA="${{ github.event.before }}"
             git diff --name-only "$BASE_SHA" "${{ github.sha }}" > changed.txt
           else
-            echo "__ALL__" > changed.txt   # first push / unknown base -> test everything
+            echo "__ALL__" > changed.txt   # first push / unknown base -> test every enabled package lane
           fi
           echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
           if grep -Fxq "Package.swift" changed.txt; then
@@ -245,15 +245,17 @@ jobs:
         with:
           repository: SchmiedmayerLab/grove-fhir
           path: .fhir/grove-fhir
-          ref: ${{ inputs.grove_fhir_ref || '31197e876161e9c6d207760d472343231da527e2' }}
+          ref: ${{ inputs.grove_fhir_ref || '90b23e647f1dd728035c64348abede5746375529' }}
           persist-credentials: false
       - name: Record grove-fhir contract revision
         working-directory: .fhir/grove-fhir
         run: |
-          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || '31197e876161e9c6d207760d472343231da527e2' }}"
+          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || '90b23e647f1dd728035c64348abede5746375529' }}"
           echo "grove-fhir SHA: $(git rev-parse HEAD)"
       - name: Pin the implementation-guide cache key
-        run: echo "GROVE_FHIR_GUIDE_CACHE_KEY=grove-fhir-validation-${{ runner.os }}-${{ hashFiles('.github/GROVE_FHIR_DEVELOPMENT_SCOPE', '.fhir/grove-fhir/Gemfile.lock', '.fhir/grove-fhir/package-lock.json', '.fhir/grove-fhir/Scripts/**', '.fhir/grove-fhir/catalog/**', '.fhir/grove-fhir/mobile/**', '.fhir/grove-fhir/sensor/**', '.fhir/grove-fhir/sensorkit/**', '.fhir/grove-fhir/healthkit/**', '.fhir/grove-fhir/questionnaire/**') }}" >> "$GITHUB_ENV"
+        run: |
+          RESOLVED_GROVE_FHIR_SHA="$(git -C .fhir/grove-fhir rev-parse HEAD)"
+          echo "GROVE_FHIR_GUIDE_CACHE_KEY=grove-fhir-validation-${{ runner.os }}-$RESOLVED_GROVE_FHIR_SHA-${{ hashFiles('.github/GROVE_FHIR_DEVELOPMENT_SCOPE', '.fhir/grove-fhir/Gemfile.lock', '.fhir/grove-fhir/package-lock.json', '.fhir/grove-fhir/Scripts/**', '.fhir/grove-fhir/catalog/**', '.fhir/grove-fhir/mobile/**', '.fhir/grove-fhir/sensor/**', '.fhir/grove-fhir/sensorkit/**', '.fhir/grove-fhir/healthkit/**', '.fhir/grove-fhir/questionnaire/**') }}" >> "$GITHUB_ENV"
       - name: Restore built implementation guides
         id: guide-cache
         uses: actions/cache@v6
@@ -287,19 +289,29 @@ jobs:
           FHIR_COMPONENTS: ${{ needs.detect.outputs.fhir_components }}
         run: |
           npm ci
+          GUIDES=()
+          add_guide() {
+            local candidate="$1"
+            local existing
+            for existing in "${GUIDES[@]}"; do
+              [ "$existing" = "$candidate" ] && return
+            done
+            GUIDES+=("$candidate")
+          }
           IFS=',' read -r -a COMPONENTS <<< "$FHIR_COMPONENTS"
           for component in "${COMPONENTS[@]}"; do
             case "$component" in
-              healthkit) ./Scripts/build-guides.sh mobile sensor healthkit ;;
-              questionnaire) ./Scripts/build-guides.sh questionnaire ;;
-              sensor) ./Scripts/build-guides.sh mobile sensor sensorkit ;;
+              healthkit) add_guide mobile; add_guide sensor; add_guide healthkit ;;
+              questionnaire) add_guide questionnaire ;;
+              sensor) add_guide mobile; add_guide sensor; add_guide sensorkit ;;
               *) echo "::error::Unknown FHIR component '$component'."; exit 1 ;;
             esac
           done
+          ./Scripts/build-guides.sh "${GUIDES[@]}"
       - name: Validate resources emitted by Grove
         env:
           FHIR_COMPONENTS: ${{ needs.detect.outputs.fhir_components }}
-          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || '31197e876161e9c6d207760d472343231da527e2' }}
+          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || '90b23e647f1dd728035c64348abede5746375529' }}
         run: |
           IFS=',' read -r -a COMPONENTS <<< "$FHIR_COMPONENTS"
           for component in "${COMPONENTS[@]}"; do

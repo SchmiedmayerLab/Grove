@@ -136,7 +136,7 @@ public enum ExchangeGraphRule: String, Equatable, Sendable {
                 + "maximum, and integer-only domain without inventing a physiologic range."
             location = "Bundle.entry[2].resource.valueQuantity.value"
         case .eventIdentity:
-            reason = "Bundle.identifier.value must be the canonical e2 producer UUID and positive sequence form."
+            reason = "Bundle.identifier.value must be the canonical e0 producer UUID and positive sequence form."
             location = "Bundle.identifier.value"
         case .entryNodeDigest:
             reason = "An entry-node digest must be derived from the enclosing event identifier, role, and ordinal."
@@ -158,7 +158,7 @@ public enum ExchangeGraphRule: String, Equatable, Sendable {
             reason = "Every retraction target must carry exactly one closed Grove target-role code."
             location = "Provenance.target[0].extension"
         case .retractionOpaqueTarget:
-            reason = "A retraction target must use the exact canonical v2 HMAC identity previously emitted."
+            reason = "A retraction target must use the exact canonical v0 HMAC identity previously emitted."
             location = "Provenance.target[0].identifier.value"
         case .retractionNoClinicalCopy:
             reason = "A retraction event contains its lifecycle Provenance and optional Device agents, never a copied or mutilated clinical resource."
@@ -172,7 +172,7 @@ public enum ExchangeGraphRule: String, Equatable, Sendable {
                 + "an empty claim cannot bypass semantic validation."
             location = "Observation.meta.profile"
         case .referenceTargetType:
-            reason = "An Observation subject resolves to a Patient entry, not merely to any existing fullUrl."
+            reason = "Every governed Patient reference resolves to a Patient entry, not merely to any existing fullUrl."
             location = "Observation.subject.reference"
         case .referenceDeclaredType:
             reason = "When Reference.type is present it must equal the referenced entry's actual resourceType token."
@@ -187,11 +187,12 @@ public enum ExchangeGraphRule: String, Equatable, Sendable {
             reason = "A lifecycle Provenance identifies exactly one source-record entity."
             location = "Provenance.entity"
         case .referenceShape:
-            reason = "A governed Reference is exclusively resolving-literal or identifier-only logical, never both."
+            reason = "Each governed path has its declared singular or repeating shape and contains valid Reference objects "
+                + "that are exclusively resolving-literal or identifier-only logical, never both."
             location = "Observation.subject"
         case .logicalPatientReference:
             reason = "An identifier-only logical Patient Reference carries the exact Patient type and one complete "
-                + "absolute-system pseudonym Identifier."
+                + "absolute-system pseudonym Identifier without a Grove role or protocol-reserved system."
             location = "Observation.subject"
         case .entryResourceType:
             reason = "An active event admits only its closed output, supporting, and lifecycle resource type set."
@@ -206,8 +207,9 @@ public enum ExchangeGraphRule: String, Equatable, Sendable {
             reason = "Every active DocumentReference must directly claim exactly one admitted recording or clinical-document profile mode."
             location = "DocumentReference.meta.profile"
         case .clinicalFHIRRepresentation:
-            reason = "A HealthKit clinical-record document carries exactly one catalog-fixed R4 release extension."
-            location = "DocumentReference.extension"
+            reason = "A HealthKit clinical-record document carries the release-neutral "
+                + "FHIR-resource format and one admitted versioned FHIR JSON media type."
+            location = "DocumentReference.content[0]"
         case .deviceProfile:
             reason = "Every active Device must directly claim exactly one admitted Grove Device profile mode."
             location = "Device.meta.profile"

@@ -126,6 +126,10 @@ extension HealthKitConverter {
         guard let entry = HealthKitCatalog.entry(forSourceTypeIdentifier: identifier) else {
             return .unsupportedSampleType(identifier)
         }
+        if identifier == HKQuantityTypeIdentifier.bloodPressureSystolic.rawValue
+            || identifier == HKQuantityTypeIdentifier.bloodPressureDiastolic.rawValue {
+            return .componentSampleRequiresCorrelation(sampleType: identifier)
+        }
         switch entry.implementationStatus {
         case .intentionallyUnsupported:
             return .intentionallyUnsupported(sampleType: identifier, reason: entry.requirement ?? "")
@@ -133,9 +137,6 @@ extension HealthKitConverter {
             return .platformExclusiveDocument(sampleType: identifier)
         case .supported where identifier == HKWorkoutType.workoutType().identifier:
             return .notYetConvertible(sampleType: identifier)
-        case .supported where identifier == HKQuantityTypeIdentifier.bloodPressureSystolic.rawValue
-            || identifier == HKQuantityTypeIdentifier.bloodPressureDiastolic.rawValue:
-            return .componentSampleRequiresCorrelation(sampleType: identifier)
         case .supported:
             return .unsupportedSampleType(identifier)
         }
