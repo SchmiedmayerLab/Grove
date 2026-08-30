@@ -167,11 +167,8 @@ struct SensorConformanceFixtureTests {
             sourceRecordID: try Self.sourceID("cd44465f-cb2a-4e5c-a2e3-1d59ee36ba75"),
             session: DateInterval(start: timestamp.addingTimeInterval(-28_800), end: timestamp)
         )
-        let accelerometer = SensorKitAccelerometerRecord(
+        let accelerometer = try SensorKitAccelerometerRecord(
             sourceRecordID: try Self.sourceID("41a1d817-6b0b-4b90-a0b7-3e0969395d24"),
-            coverage: DateInterval(start: timestamp, duration: 60),
-            sampleCount: 18_000,
-            batchCount: 3,
             nativeRecording: try SensorKitNativeRecording(
                 title: "Exact SensorKit accelerometer batch",
                 format: .triaxialAccelerationSamples,
@@ -179,16 +176,12 @@ struct SensorConformanceFixtureTests {
                 admission: .verifiedSanitizedInput
             )
         )
-        let ppg = SensorKitPPGRecord(
+        let ppg = try SensorKitPPGRecord(
             sourceRecordID: try Self.sourceID("74b04bf3-e2ad-421c-8b98-84582f22cd7a"),
-            coverage: DateInterval(start: timestamp, duration: 30),
-            recordCount: 2,
-            opticalSampleCount: 512,
-            accelerometerSampleCount: 256,
             nativeRecording: try SensorKitNativeRecording(
                 title: "Exact SensorKit PPG batch",
                 format: .photoplethysmogramSamples,
-                payload: .inline(Data([0x02, 0x41, 0xDA, 0x9E, 0x9F, 0x8C, 0xE3, 0x60, 0x00])),
+                payload: .inline(try SensorKitPPGTestSupport.recording(start: timestamp).encoded()),
                 admission: .callerAuthorizedOpaquePayload
             )
         )

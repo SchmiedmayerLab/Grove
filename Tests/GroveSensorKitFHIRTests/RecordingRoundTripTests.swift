@@ -83,11 +83,11 @@ struct RecordingRoundTripTests {
         }
     }
 
-    @Test("Quoted fields carrying separators and terminators survive the round trip")
+    @Test("Quoted fields carrying separators and LF survive the round trip")
     func quotedFieldsSurvive() throws {
         let format = RegisteredRecordingFormat.wristTemperatureSamples
         let columns = try #require(format.csvColumns)
-        let awkward = "offWrist,onCharger\r\nstill \"quoted\""
+        let awkward = "offWrist,onCharger\nstill \"quoted\""
         var writer = RecordingCSVWriter(columns: columns)
         try writer.append(columns.indices.map { index in
             index == columns.count - 1 ? .text(awkward) : .number(Double(index))
@@ -95,6 +95,73 @@ struct RecordingRoundTripTests {
         let reader = try RecordingCSVReader(writer.data(), format: format)
         #expect(reader.rows.count == 1)
         #expect(reader.rows[0][columns[columns.count - 1]] == awkward)
+    }
+
+    @Test("A carriage return inside a quoted field is rejected")
+    func quotedCarriageReturnIsRejected() throws {
+        let columns = try #require(RegisteredRecordingFormat.wristTemperatureSamples.csvColumns)
+        let payload = Data("\(columns.joined(separator: ","))\n1,36.5,0.1,\"offWrist\rhidden\"\n".utf8)
+        #expect(throws: RecordingCSVReader.ReaderError.self) {
+            _ = try RecordingCSVReader(payload, format: .wristTemperatureSamples)
+        }
+    }
+
+    @Test("The complete PPG grammar round-trips and derives its summary")
+    func ppgRoundTrip() throws {
+        let start = Date(timeIntervalSince1970: 1_787_009_400)
+        let recording = SensorKitPPGTestSupport.recording(start: start)
+        let data = try recording.encoded()
+        let decoded = try SensorKitPPGRecording(data: data)
+
+        #expect(decoded == recording)
+        var expectedStart = start.timeIntervalSince1970.bitPattern.bigEndian
+        let expectedStartBytes = withUnsafeBytes(of: &expectedStart) { Array($0) }
+        #expect(Array(data.dropFirst().prefix(8)) == expectedStartBytes)
+        #expect(decoded.summary?.recordCount == 2)
+        #expect(decoded.summary?.opticalSampleCount == 2)
+        #expect(decoded.summary?.accelerometerSampleCount == 2)
+        #expect(decoded.summary?.coverage.start == start)
+        #expect(decoded.summary?.coverage.end == start.addingTimeInterval(1.5))
+    }
+
+    @Test("Prepared PPG evidence reuses one canonical byte buffer")
+    func preparedPPGReusesCanonicalBytes() throws {
+        let recording = SensorKitPPGTestSupport.recording(
+            start: Date(timeIntervalSince1970: 1_787_009_400)
+        )
+        let prepared = try recording.prepared()
+        let record = try prepared.sensorKitRecord(
+            sourceRecordID: SensorKitSourceRecordID(try #require(
+                UUID(uuidString: "879d9ea2-21cb-4527-b59b-2831dc4c84ab")
+            )),
+            title: "Exact SensorKit PPG batch",
+            location: .inline,
+            admission: .callerAuthorizedOpaquePayload
+        )
+        guard case .ppg(let ppg) = record else {
+            Issue.record("Expected a PPG record")
+            return
+        }
+
+        #expect(prepared.format == .photoplethysmogramSamples)
+        #expect(prepared.retryEvidence == prepared.data)
+        #expect(ppg.nativeRecording.bytes == prepared.data)
+    }
+
+    @Test("Malformed complete PPG payloads fail closed")
+    func malformedPPGFailsClosed() throws {
+        let recording = SensorKitPPGTestSupport.recording(
+            start: Date(timeIntervalSince1970: 1_787_009_400),
+            recordCount: 1
+        )
+        var payload = try recording.encoded()
+        payload.append(0)
+        #expect(throws: RecordingBinaryReader.ReaderError.trailingBytes(1)) {
+            _ = try SensorKitPPGRecording(data: payload)
+        }
+        #expect(throws: RegisteredRecordingPayloadError.invalidPhotoplethysmogramPayload) {
+            try RegisteredRecordingFormat.photoplethysmogramSamples.validatePayload(payload)
+        }
     }
 
     @Test("Binary primitives round-trip through the writer and reader")

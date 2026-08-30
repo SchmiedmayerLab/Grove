@@ -13,6 +13,36 @@ public import GroveSensorKit
 public import SensorKit
 
 
+@available(iOS 18, *)
+extension SensorKitCatalog {
+    /// The authoritative catalog token for a SensorKit source supported by Grove's FHIR adapter.
+    public static func sourceToken(for sensor: SRSensor) -> String? { // swiftlint:disable:this cyclomatic_complexity
+        switch sensor {
+        case .heartRate: "SRSensor.heartRate"
+        case .accelerometer: "SRSensor.accelerometer"
+        case .ambientLightSensor: "SRSensor.ambientLightSensor"
+        case .ambientPressure: "SRSensor.ambientPressure"
+        case .pedometerData: "SRSensor.pedometerData"
+        case .wristTemperature: "SRSensor.wristTemperature"
+        case .visits: "SRSensor.visits"
+        case .onWristState: "SRSensor.onWristState"
+        case .deviceUsageReport: "SRSensor.deviceUsageReport"
+        case .electrocardiogram: "SRSensor.electrocardiogram"
+        case .photoplethysmogram: "SRSensor.photoplethysmogram"
+        default: nil
+        }
+    }
+
+    /// Resolves a Grove SensorKit source directly from Grove's typed sensor facade.
+    public func entry(for sensor: some AnySensor) -> SensorKitCatalogEntry? {
+        guard let sourceToken = Self.sourceToken(for: sensor.srSensor) else {
+            return nil
+        }
+        return entry(sourceToken: sourceToken)
+    }
+}
+
+
 extension SensorKitRotationRateRecord {
     /// Creates a FHIR input from already-fetched Grove SensorKit values.
     ///
@@ -205,6 +235,104 @@ extension SensorKitVisitRecord {
                 rawValue: value.rawValue
             )
         }
+    }
+}
+
+
+@available(iOS 17.4, *)
+extension SensorKitPPGRecording {
+    /// Creates the registered PPG representation from already-fetched SensorKit values.
+    public init(samples: [SRPhotoplethysmogramSample.SafeRepresentation]) throws {
+        self.init(records: try samples.map { try Record($0.sample) })
+    }
+
+    /// Encodes this recording once and derives the corresponding FHIR summary from those bytes.
+    public func sensorKitRecord(
+        sourceRecordID: SensorKitSourceRecordID,
+        title: String,
+        location: SensorKitRecordingLocation,
+        admission: SensorRawPayloadAdmission
+    ) throws -> SensorKitRecord {
+        try prepared().sensorKitRecord(
+            sourceRecordID: sourceRecordID,
+            title: title,
+            location: location,
+            admission: admission
+        )
+    }
+}
+
+
+@available(iOS 17.4, *)
+extension SensorKitPPGRecording.Record {
+    init(_ sample: SRPhotoplethysmogramSample) throws {
+        self.init(
+            startDate: sample.startDate,
+            nanosecondsSinceStart: sample.nanosecondsSinceStart,
+            temperature: sample.temperature?.converted(to: .celsius).value,
+            usage: sample.usage.map(\.rawValue),
+            opticalSamples: try sample.opticalSamples.map { try .init($0) },
+            accelerometerSamples: sample.accelerometerSamples.map { .init($0) }
+        )
+    }
+}
+
+
+@available(iOS 17.4, *)
+extension SensorKitPPGRecording.OpticalSample {
+    init(_ sample: SRPhotoplethysmogramOpticalSample) throws {
+        let photodiodes = try sample.activePhotodiodeIndexes.map { value -> UInt64 in
+            guard let value = UInt64(exactly: value) else {
+                throw SensorKitRecordError.unsupportedProviderValue(
+                    field: "photoplethysmogram.activePhotodiodeIndexes",
+                    rawValue: value
+                )
+            }
+            return value
+        }
+        guard let emitter = Int64(exactly: sample.emitter),
+              let signalIdentifier = Int64(exactly: sample.signalIdentifier) else {
+            throw SensorKitRecordError.missingProviderValue("photoplethysmogram.integerRange")
+        }
+        self.init(
+            emitter: emitter,
+            activePhotodiodeIndexes: photodiodes,
+            signalIdentifier: signalIdentifier,
+            nominalWavelength: sample.nominalWavelength.converted(to: .nanometers).value,
+            effectiveWavelength: sample.effectiveWavelength.converted(to: .nanometers).value,
+            samplingFrequency: sample.samplingFrequency.converted(to: .hertz).value,
+            nanosecondsSinceStart: sample.nanosecondsSinceStart,
+            conditions: sample.conditions.map(\.rawValue),
+            noiseTerms: sample.noiseTerms.map { .init($0) },
+            normalizedReflectance: sample.normalizedReflectance
+        )
+    }
+}
+
+
+@available(iOS 17.4, *)
+extension SensorKitPPGRecording.NoiseTerms {
+    init(_ terms: SRPhotoplethysmogramOpticalSample.NoiseTerms) {
+        self.init(
+            whiteNoise: terms.whiteNoise,
+            pinkNoise: terms.pinkNoise,
+            backgroundNoise: terms.backgroundNoise,
+            backgroundNoiseOffset: terms.backgroundNoiseOffset
+        )
+    }
+}
+
+
+@available(iOS 17.4, *)
+extension SensorKitPPGRecording.AccelerometerSample {
+    init(_ sample: SRPhotoplethysmogramAccelerometerSample) {
+        self.init(
+            nanosecondsSinceStart: sample.nanosecondsSinceStart,
+            samplingFrequency: sample.samplingFrequency.converted(to: .hertz).value,
+            x: sample.x.converted(to: .gravity).value,
+            y: sample.y.converted(to: .gravity).value,
+            z: sample.z.converted(to: .gravity).value
+        )
     }
 }
 #endif

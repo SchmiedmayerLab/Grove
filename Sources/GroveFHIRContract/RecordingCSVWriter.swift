@@ -36,6 +36,8 @@ public struct RecordingCSVWriter: ~Copyable {
         case columnCountMismatch(expected: Int, actual: Int)
         /// A number the registry's decimal form cannot represent.
         case nonFiniteNumber(column: String)
+        /// CR is prohibited everywhere in a registered tabular payload, including quoted fields.
+        case carriageReturn(column: String)
     }
 
     private let columns: [String]
@@ -61,6 +63,8 @@ public struct RecordingCSVWriter: ~Copyable {
                 throw WriterError.nonFiniteNumber(column: column)
             case .timestamp(let date) where !date.timeIntervalSince1970.isFinite:
                 throw WriterError.nonFiniteNumber(column: column)
+            case .text(let value) where value.unicodeScalars.contains("\r"):
+                throw WriterError.carriageReturn(column: column)
             default:
                 break
             }
@@ -90,12 +94,10 @@ public struct RecordingCSVWriter: ~Copyable {
         case .timestamp(let date):
             return number(date.timeIntervalSince1970)
         case .text(let value):
-            // Quote exactly when the value contains a comma, a double quote, or a line break.
-            // Tested over unicode scalars rather than characters: Swift treats CRLF as one
-            // Character that equals neither "\n" nor "\r", so a character-wise test misses it and
-            // writes a raw line break that splits the row.
+            // Quote exactly when the value contains a comma, a double quote, or LF. CR is rejected
+            // before encoding because the registered grammar prohibits it even inside quotes.
             let needsQuoting = value.unicodeScalars.contains { scalar in
-                scalar == "," || scalar == "\"" || scalar == "\n" || scalar == "\r"
+                scalar == "," || scalar == "\"" || scalar == "\n"
             }
             guard needsQuoting else {
                 return value

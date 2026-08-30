@@ -64,10 +64,17 @@ struct GroveSensorKitFHIRConverterTests {
         admission: SensorRawPayloadAdmission = .verifiedSanitizedInput,
         format: RegisteredRecordingFormat = .nativeRecording
     ) throws -> SensorKitNativeRecording {
-        try SensorKitNativeRecording(
+        let payload: Data
+        switch format {
+        case .heartRateSamples:
+            payload = Data("timestamp,value,confidence,device\n1787009400,72,3,\"Watch7,1\"\n".utf8)
+        default:
+            payload = Data(#"{"flags":[0,2,1,0]}"#.utf8)
+        }
+        return try SensorKitNativeRecording(
             title: "Exact SensorKit native record",
             format: format,
-            payload: .inline(Data(#"{"flags":[0,2,1,0]}"#.utf8)),
+            payload: .inline(payload),
             admission: admission
         )
     }

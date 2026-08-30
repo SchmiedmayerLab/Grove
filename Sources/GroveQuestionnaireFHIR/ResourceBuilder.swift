@@ -29,7 +29,7 @@ public struct ResourceBuilder: Sendable {
     /// Creates a profiled QuestionnaireResponse with a complete business identifier.
     ///
     /// Use this when the response travels alone -- for example when the receiving system already
-    /// holds the Questionnaire. When both resources travel together, prefer ``pair(from:subject:author:responseSource:status:identifier:questionnaireRepositoryID:responseRepositoryID:valueSets:authored:authoredTimeZone:)``,
+    /// holds the Questionnaire. When both resources travel together, prefer ``pair(from:subject:author:responseSource:writerContext:status:identifier:questionnaireRepositoryID:responseRepositoryID:valueSets:authored:authoredTimeZone:)``,
     /// which also cross-validates the two against the published pair rules.
     ///
     /// ```swift
@@ -43,13 +43,14 @@ public struct ResourceBuilder: Sendable {
         subject: Reference? = nil,
         author: Reference? = nil,
         source responseSource: Reference? = nil,
+        writerContext: QuestionnaireWriterContext? = nil,
         status: QuestionnaireResponseStatus = .completed,
         identifier: Identifier? = nil,
         repositoryID: RepositoryID? = nil,
         authored: Date,
         authoredTimeZone: TimeZone
     ) throws -> ModelsR4.QuestionnaireResponse {
-        try ModelsR4.QuestionnaireResponse(
+        var response = try ModelsR4.QuestionnaireResponse(
             source,
             subject: subject,
             author: author,
@@ -60,12 +61,16 @@ public struct ResourceBuilder: Sendable {
             authored: authored,
             authoredTimeZone: authoredTimeZone
         )
+        if let writerContext {
+            response.apply(writerContext: writerContext)
+        }
+        return response
     }
 
     /// Creates an exact Questionnaire/QuestionnaireResponse pair and validates them against each other.
     ///
     /// Unlike calling ``questionnaire(from:repositoryID:)`` and
-    /// ``response(from:subject:author:source:status:identifier:repositoryID:authored:authoredTimeZone:)`` separately,
+    /// ``response(from:subject:author:source:writerContext:status:identifier:repositoryID:authored:authoredTimeZone:)`` separately,
     /// the pair is checked against the published pair rules -- every answer's linkId, type, and
     /// enable-when relationship must line up -- so an inconsistent export fails here instead of at
     /// the receiving system.
@@ -82,6 +87,7 @@ public struct ResourceBuilder: Sendable {
         subject: Reference? = nil,
         author: Reference? = nil,
         responseSource: Reference? = nil,
+        writerContext: QuestionnaireWriterContext? = nil,
         status: QuestionnaireResponseStatus = .completed,
         identifier: Identifier? = nil,
         questionnaireRepositoryID: RepositoryID? = nil,
@@ -99,6 +105,7 @@ public struct ResourceBuilder: Sendable {
             subject: subject,
             author: author,
             source: responseSource,
+            writerContext: writerContext,
             status: status,
             identifier: identifier,
             repositoryID: responseRepositoryID,

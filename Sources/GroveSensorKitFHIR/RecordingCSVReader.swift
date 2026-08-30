@@ -143,7 +143,7 @@ public struct RecordingCSVReader: Sendable {
         case unexpectedQuote(row: Int, column: Int, byteOffset: Int)
         /// Only a comma, LF, or end may follow a closing quote.
         case invalidCharacterAfterClosingQuote(row: Int, column: Int, byteOffset: Int)
-        /// The registered canonical grammar permits CR only as data inside a quoted field.
+        /// The registered canonical grammar prohibits CR everywhere, including quoted fields.
         case unexpectedCarriageReturn(row: Int, column: Int, byteOffset: Int)
         /// The payload does not end with the row terminator the registry mandates.
         case missingFinalRowTerminator
@@ -249,7 +249,9 @@ public struct RecordingCSVReader: Sendable {
                 default: field.unicodeScalars.append(scalar)
                 }
             case .quoted:
-                if scalar == "\"" {
+                if scalar == "\r" {
+                    throw locationError(ReaderError.unexpectedCarriageReturn)
+                } else if scalar == "\"" {
                     state = .afterQuote
                 } else {
                     field.unicodeScalars.append(scalar)
