@@ -164,3 +164,8 @@ repository-assigned `RepositoryID`.
 
 - ``HealthKitCatalog``
 - ``HealthKitCatalogEntry``
+
+### Reading observations back
+
+- ``HealthKitSampleProjection``
+- ``HealthKitSampleProjectionError``

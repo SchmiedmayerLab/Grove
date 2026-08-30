@@ -792,6 +792,7 @@ var targets: [Target] = [
             .target(name: "GroveFHIRContract"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
         ],
+        exclude: targetExcludes("GroveQuestionnaireExtraction"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
