@@ -40,6 +40,7 @@ path = [
     "Sources/GroveSpeechRecognizer/Resources/**",
     "Tests/GroveChatTests/UITests/TestApp/Resources/**",
     "Tests/GroveQuestionnaireTests/Resources/**",
+    "Tests/GroveQuestionnaireExtractionTests/Resources/**",
     "Tests/GroveQuestionnaireTests/UITests/TestApp/Resources/**"
 ]
 SPDX-FileCopyrightText = "2026 Stanford University and the project authors (see CONTRIBUTORS.md)"

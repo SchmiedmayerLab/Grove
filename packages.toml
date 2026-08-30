@@ -162,11 +162,14 @@ tests = ["GroveOnboardingTests"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
 
 [GroveQuestionnaire]
-platforms = ["iOS", "macOS"]
-targets = ["GroveQuestionnaire", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveQuestionnaireLegacy", "GroveQuestionnaireMacros", "GroveQuestionnaireMacrosImpl", "XCTGroveQuestionnaire"]
-tests = ["GroveQuestionnaireTests", "GroveQuestionnaireMacrosTests"]
+platforms = ["iOS", "macOS", "Linux"]
+targets = ["GroveQuestionnaire", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveQuestionnaireExtraction", "GroveQuestionnaireLegacy", "GroveQuestionnaireMacros", "GroveQuestionnaireMacrosImpl", "XCTGroveQuestionnaire"]
+tests = ["GroveQuestionnaireTests", "GroveQuestionnaireExtractionTests", "GroveQuestionnaireMacrosTests"]
 testPlatforms = { GroveQuestionnaireMacrosTests = ["macOS"] }
 uiTests = ["iOS", "iPadOS"]
+# The extraction chain is the server-relevant surface; the UI-typed questionnaire model
+# stays Apple-only until its UTType fields are reworked.
+linuxTargets = ["GroveQuestionnaireExtraction", "GroveQuestionnaireExtractionTests", "GroveFHIRContract"]
 
 [GroveScheduler]
 platforms = ["iOS", "macOS", "watchOS", "visionOS"]
