@@ -33,6 +33,8 @@ public enum ObservationExtractionError: Error, Equatable {
     case answerNotInMeasurement(linkID: String, code: String)
     case incompleteWriterContext
     case writerContextMissing
+    /// The instrument marks nothing for extraction, so there is no exchange event to state.
+    case noExtractableMeasurements
 }
 
 

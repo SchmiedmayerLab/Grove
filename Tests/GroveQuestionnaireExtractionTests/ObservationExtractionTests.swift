@@ -489,6 +489,29 @@ struct ObservationExtractionTests {
 
     // MARK: Refusals
 
+    @Test("An instrument marking nothing refuses before any identity is minted")
+    func unmarkedInstrumentRefuses() throws {
+        var questionnaire: ModelsR4.Questionnaire = try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self)
+        let response: ModelsR4.QuestionnaireResponse = try Self.fixture("HomeVitals_response", as: ModelsR4.QuestionnaireResponse.self)
+        questionnaire.item = questionnaire.item?.map { item in
+            var item = item
+            item.extension = nil
+            item.item = item.item?.map { child in
+                var child = child
+                child.extension = nil
+                return child
+            }
+            return item
+        }
+        #expect(throws: ObservationExtractionError.noExtractableMeasurements) {
+            try QuestionnaireExchangeProjection.exchangeGraph(
+                questionnaire: questionnaire,
+                response: response,
+                context: try Self.context()
+            )
+        }
+    }
+
     @Test("An in-progress response does not project")
     func inProgressResponseRefuses() throws {
         var response = try Self.fixture("HomeVitals_response", as: ModelsR4.QuestionnaireResponse.self)
