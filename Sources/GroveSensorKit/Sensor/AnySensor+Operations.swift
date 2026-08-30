@@ -172,6 +172,9 @@ private final class DevicesFetcherDelegate: NSObject, SRSensorReaderDelegate {
     }
     
     func sensorReader(_ reader: SRSensorReader, didFetch devices: [SRDevice]) {
+        // SensorKit owns these immutable device descriptors. The continuation transfers the
+        // array to the awaiting caller and this delegate does not retain or mutate it afterwards.
+        nonisolated(unsafe) let devices = devices
         continuation?.resume(returning: devices)
         continuation = nil
     }

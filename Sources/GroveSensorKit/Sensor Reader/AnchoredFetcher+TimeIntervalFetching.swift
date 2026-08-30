@@ -156,8 +156,9 @@ extension AnchoredFetcher {
         ///
         /// This function advances the state as it moves through the fetches.
         private mutating func fetchNextBatch(isolation _: isolated (any Actor)?) async throws(Failure) -> Element? {
-            // Keep one immutable device handle for the complete fetch loop.
-            let device = device
+            // SensorKit's device descriptor is immutable. Keep one handle for the complete fetch
+            // loop and confine the unchecked transfer to this SDK boundary.
+            nonisolated(unsafe) let device = device
             // SAFETY:
             // this loop will terminate eventually:
             // - if SensorKit returns at least one sample for the time range we're processing (i.e., the batch is not empty)
