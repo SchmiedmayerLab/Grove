@@ -217,7 +217,7 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
             {("GroveHealthKitFHIR", "iOS")},
         )
 
-    def test_fhir_development_scope_unions_fhir_and_direct_changes_with_their_ui(self):
+    def test_fhir_development_scope_caps_unrelated_direct_changes(self):
         result = run_selector(
             "Package.swift",
             ".github/workflows/tests.yml",
@@ -226,7 +226,7 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
             extra_arguments=("--development-scope", "fhir"),
         )
 
-        expected = (MODULE.FHIR_PACKAGES | {"GroveAccount"}) & set(MODULE.PKGS)
+        expected = MODULE.DEVELOPMENT_SCOPES["fhir"] & set(MODULE.PKGS)
         self.assertEqual(set(result["affected"].split(",")), expected)
         self.assertEqual(
             set(result["fhir_components"].split(",")),
@@ -236,7 +236,11 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
         self.assertEqual(result["has_ui_jobs"], "true")
         ui_packages = {job["package"] for job in json.loads(result["ui_matrix"])["include"]}
         self.assertLessEqual(ui_packages, expected)
-        self.assertTrue({"GroveAccount", "GroveHealthKitFHIR", "GroveQuestionnaire"} <= ui_packages)
+        self.assertNotIn("GroveAccount", ui_packages)
+        self.assertTrue(
+            {"GroveHealthKit", "GroveHealthKitFHIR", "GroveQuestionnaire", "GroveStudy"}
+            <= ui_packages
+        )
 
     def test_development_scope_rejects_unclassified_changed_target(self):
         with self.assertRaisesRegex(SystemExit, "cannot classify changed target 'Unclassified'"):
@@ -257,7 +261,7 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
                 "Sources/GroveAccount/AccountNotifyConstraint.swift",
                 extra_arguments=(
                     "--development-scope",
-                    "fhir",
+                    "healthkit",
                     "--head-package-dump",
                     head_dump.name,
                 ),
@@ -280,7 +284,7 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
                 "Sources/SharedMigrationTarget/Migration.swift",
                 extra_arguments=(
                     "--development-scope",
-                    "fhir",
+                    "healthkit",
                     "--head-package-dump",
                     head_dump.name,
                 ),
@@ -304,7 +308,7 @@ tests = []
                 "Sources/RemovedGroveAccountTarget/Removed.swift",
                 extra_arguments=(
                     "--development-scope",
-                    "fhir",
+                    "healthkit",
                     "--base-packages",
                     base_packages.name,
                 ),

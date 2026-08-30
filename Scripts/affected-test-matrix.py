@@ -134,13 +134,14 @@ FHIR_COMPONENT_PACKAGES = {
 }
 ALL_FHIR_COMPONENTS = set(FHIR_COMPONENT_PACKAGES)
 
-# Temporary stacked-PR scopes. A scope is honored only when the caller opts in explicitly. It
-# schedules the named FHIR packages plus the direct owner of every changed source/test target while
-# suppressing repository-wide fan-out from shared CI and manifest files. Configured unit and UI
-# lanes still run for that reduced package set. Release and main CI remain unaffected; delete
+# Temporary stacked-PR scopes. A scope is honored only when the caller opts in explicitly. The broad
+# FHIR scope is capped to the producer/consumer stack plus the HealthKit and Study support packages
+# changed by this branch; narrower scopes continue to include directly changed target owners. This
+# avoids rerunning unrelated packages already validated at earlier branch heads while retaining all
+# configured unit and UI lanes for the active stack. Release and main CI remain unaffected; delete
 # `.github/GROVE_FHIR_DEVELOPMENT_SCOPE` and run the explicit full-readiness workflow before merge.
 DEVELOPMENT_SCOPES = {
-    "fhir": FHIR_PACKAGES,
+    "fhir": FHIR_PACKAGES | {"GroveHealthKit", "GroveStudy"},
     "healthkit": {"GroveHealthKitFHIR"},
     "questionnaire": {"GroveQuestionnaire"},
     "sensor": {"GroveSensorKit", "GroveSensorKitFHIR"},
@@ -635,6 +636,9 @@ def main():
         # a concrete producer change, that producer already narrows the applicable IG closure.
         if shared_fhir_change or not development_scoped:
             fhir_components.update(ALL_FHIR_COMPONENTS)
+
+    if args.development_scope == "fhir":
+        affected.intersection_update(DEVELOPMENT_SCOPES["fhir"])
 
     if run_all or args.full_readiness:
         affected = set(PKGS.keys())
