@@ -93,43 +93,51 @@ public enum ExchangeIdentity {
         let data = try JSONEncoder().encode(bundle)
         let json = try JSONSerialization.jsonObject(with: data)
         var roleBySystem: [String: GroveIdentifierRole] = [:]
+        try walkJSONObjects(json) { object in
+            guard let type = object["type"] as? [String: Any],
+                  let codings = type["coding"] as? [[String: Any]] else {
+                return
+            }
+            let groveRoleCodings = codings.filter {
+                $0["system"] as? String
+                    == Canonicals.identifierRoleCodeSystem.value?.url.absoluteString
+            }
+            guard !groveRoleCodings.isEmpty else {
+                return
+            }
+            guard groveRoleCodings.count == 1,
+                  let rawRole = groveRoleCodings[0]["code"] as? String,
+                  let role = GroveIdentifierRole(rawValue: rawRole),
+                  let system = object["system"] as? String else {
+                throw ExchangeIdentityError.invalidIdentifierRole("missing")
+            }
+            _ = try IdentifierSystem(system)
+            if let first = roleBySystem[system], first != role {
+                throw ExchangeIdentityError.identifierSystemRoleMismatch(
+                    system: system,
+                    first: first,
+                    conflicting: role
+                )
+            }
+            roleBySystem[system] = role
+        }
+    }
 
-        func visit(_ value: Any) throws {
-            if let object = value as? [String: Any] {
-                if let type = object["type"] as? [String: Any],
-                   let codings = type["coding"] as? [[String: Any]] {
-                    let groveRoleCodings = codings.filter {
-                        $0["system"] as? String
-                            == Canonicals.identifierRoleCodeSystem.value?.url.absoluteString
-                    }
-                    if !groveRoleCodings.isEmpty {
-                        guard groveRoleCodings.count == 1,
-                              let rawRole = groveRoleCodings[0]["code"] as? String,
-                              let role = GroveIdentifierRole(rawValue: rawRole),
-                              let system = object["system"] as? String else {
-                            throw ExchangeIdentityError.invalidIdentifierRole("missing")
-                        }
-                        _ = try IdentifierSystem(system)
-                        if let first = roleBySystem[system], first != role {
-                            throw ExchangeIdentityError.identifierSystemRoleMismatch(
-                                system: system,
-                                first: first,
-                                conflicting: role
-                            )
-                        }
-                        roleBySystem[system] = role
-                    }
-                }
-                for child in object.values {
-                    try visit(child)
-                }
-            } else if let array = value as? [Any] {
-                for child in array {
-                    try visit(child)
-                }
+    /// Visits every JSON object of a decoded resource tree, parents before children.
+    static func walkJSONObjects<E: Error>(
+        _ value: Any,
+        visit: ([String: Any]) throws(E) -> Void
+    ) throws(E) {
+        if let object = value as? [String: Any] {
+            try visit(object)
+            for child in object.values {
+                try walkJSONObjects(child, visit: visit)
+            }
+        } else if let array = value as? [Any] {
+            for child in array {
+                try walkJSONObjects(child, visit: visit)
             }
         }
-        try visit(json)
     }
 
     /// Validates the exact, pre-decoding namespace text of every Grove-typed Identifier in JSON.
@@ -143,25 +151,19 @@ public enum ExchangeIdentity {
     }
 
     private static func validateSerializedIdentifierSystems(in value: Any) throws {
-        if let object = value as? [String: Any] {
-            if let type = object["type"] as? [String: Any],
-               let codings = type["coding"] as? [[String: Any]],
-               codings.contains(where: {
-                   $0["system"] as? String
-                       == Canonicals.identifierRoleCodeSystem.value?.url.absoluteString
-               }) {
-                guard let system = object["system"] as? String else {
-                    throw ExchangeIdentityError.missingIdentifierSystem
-                }
-                _ = try IdentifierSystem(system)
+        try walkJSONObjects(value) { object in
+            guard let type = object["type"] as? [String: Any],
+                  let codings = type["coding"] as? [[String: Any]],
+                  codings.contains(where: {
+                      $0["system"] as? String
+                          == Canonicals.identifierRoleCodeSystem.value?.url.absoluteString
+                  }) else {
+                return
             }
-            for child in object.values {
-                try validateSerializedIdentifierSystems(in: child)
+            guard let system = object["system"] as? String else {
+                throw ExchangeIdentityError.missingIdentifierSystem
             }
-        } else if let array = value as? [Any] {
-            for child in array {
-                try validateSerializedIdentifierSystems(in: child)
-            }
+            _ = try IdentifierSystem(system)
         }
     }
 
@@ -425,22 +427,17 @@ extension ExchangeIdentity {
         from value: Any,
         into references: inout [LiteralReference]
     ) {
-        if let object = value as? [String: Any] {
+        var collected: [LiteralReference] = []
+        walkJSONObjects(value) { object in
             if let reference = object["reference"] as? String,
                object["identifier"] == nil {
-                references.append(LiteralReference(
+                collected.append(LiteralReference(
                     value: reference,
                     declaredType: object["type"] as? String
                 ))
             }
-            for child in object.values {
-                collectInternalReferences(from: child, into: &references)
-            }
-        } else if let array = value as? [Any] {
-            for child in array {
-                collectInternalReferences(from: child, into: &references)
-            }
         }
+        references.append(contentsOf: collected)
     }
 }
 

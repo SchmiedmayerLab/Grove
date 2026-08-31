@@ -34,6 +34,8 @@ public enum Canonicals {
     public static let identifierRoleCodeSystem = uri("/mobile/CodeSystem/grove-identifier-role")
     public static let entryNodeKey = uri("/mobile/StructureDefinition/grove-exchange-entry-node-key")
     public static let retractionTargetRole = uri("/mobile/StructureDefinition/grove-retraction-target-role")
+    public static let retractionTargetNativeIdentifier =
+        uri("/mobile/StructureDefinition/grove-retraction-target-native-identifier")
     public static let retractionTargetRoleCodeSystem = uri("/mobile/CodeSystem/grove-retraction-target-role")
     public static let lifecycleEventCodeSystem = uri("/mobile/CodeSystem/grove-lifecycle-event")
     public static let healthKitRetainedMetadata = uri("/healthkit/StructureDefinition/healthkit-retained-metadata")
@@ -85,6 +87,13 @@ public enum Canonicals {
         "http://hl7.org/fhir/StructureDefinition/artifact-versionAlgorithm"
     public static let versionAlgorithmCodeSystem: FHIRPrimitive<FHIRURI> =
         "http://hl7.org/fhir/version-algorithm"
+    public static let mdc: FHIRPrimitive<FHIRURI> = "urn:iso:std:iso:11073:10101"
+    public static let ucumSystem = "http://unitsofmeasure.org"
+    public static let ucum = FHIRPrimitive(FHIRURI(stringLiteral: ucumSystem))
+    public static let provenanceParticipantType: FHIRPrimitive<FHIRURI> =
+        "http://terminology.hl7.org/CodeSystem/provenance-participant-type"
+    public static let isoLifecycleEvent: FHIRPrimitive<FHIRURI> =
+        "http://terminology.hl7.org/CodeSystem/iso-21089-lifecycle"
 
 
     private static func uri(_ suffix: String) -> FHIRPrimitive<FHIRURI> {

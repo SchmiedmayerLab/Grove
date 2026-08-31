@@ -27,6 +27,11 @@ public enum TypedReferenceError: Error, Equatable, Sendable {
 
 /// Shared logical Reference rules for Grove conversion contexts.
 public enum TypedReference {
+    /// The exact refusal every producer reports for a literal in a conversion context.
+    public static func literalRefusal(field: String) -> String {
+        "\(field) must use an identifier-only logical Reference; literals require a Bundle entry"
+    }
+
     /// Accepts a complete Identifier plus an exact resource-type token in `Reference.type`.
     ///
     /// Conversion contexts do not carry the referenced Patient or ResearchStudy resource, so a

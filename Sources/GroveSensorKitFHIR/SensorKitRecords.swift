@@ -11,6 +11,7 @@
 // swiftlint:disable file_types_order identifier_name type_contents_order
 
 public import Foundation
+public import GroveFHIRContract
 
 
 /// Fail-closed validation errors for SensorKit adapter inputs.

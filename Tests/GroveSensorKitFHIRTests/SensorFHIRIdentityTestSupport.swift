@@ -138,7 +138,7 @@ extension SensorConversionContext {
         graphIdentifierSystem: IdentifierSystem,
         recordingDevice: SensorRecordingDevice? = nil,
         converterWasGateway: Bool = false,
-        recordedAt: Date,
+        conversionInstant: Date,
         researchStudies: [Reference] = [],
         repositoryIDs: SensorRepositoryIDs = .init()
     ) {
@@ -158,7 +158,7 @@ extension SensorConversionContext {
             repositoryScope: try! SensorFHIRIdentityTestSupport.repositoryScope,
             recordingDevice: recordingDevice,
             converterWasGateway: converterWasGateway,
-            recordedAt: recordedAt,
+            conversionInstant: conversionInstant,
             researchStudies: researchStudies,
             repositoryIDs: repositoryIDs
         )

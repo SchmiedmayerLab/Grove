@@ -64,7 +64,7 @@ struct SensorConformanceFixtureTests {
                 ),
                 converterWasGateway: true,
                 sourceTimeZone: #require(TimeZone(identifier: "America/Los_Angeles")),
-                recordedAt: timestamp.addingTimeInterval(20)
+                conversionInstant: timestamp.addingTimeInterval(20)
             )
         }
         let rotation = SensorKitRotationRateRecord(

@@ -10,6 +10,7 @@
 // swiftlint:disable file_types_order type_contents_order identifier_name
 
 public import Foundation
+public import GroveFHIRContract
 
 
 /// One complete `photoplethysmogram-samples` payload.

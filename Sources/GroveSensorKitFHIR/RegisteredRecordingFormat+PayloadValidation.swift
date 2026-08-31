@@ -54,9 +54,9 @@ extension RegisteredRecordingFormat {
         switch self {
         case .nativeRecording, .providerRecording:
             do {
-                var validator = StrictJSONEnvelopeValidator(data)
-                try validator.validate()
-            } catch let error as StrictJSONEnvelopeError {
+                var scanner = StrictJSONScanner(data)
+                try scanner.validate()
+            } catch {
                 switch error {
                 case .byteOrderMark: throw .JSONByteOrderMark
                 case .scalarRoot: throw .expectedJSONObjectOrArray
@@ -64,8 +64,6 @@ extension RegisteredRecordingFormat {
                 case .nonFiniteNumber: throw .nonFiniteJSONNumber
                 case .invalidJSON, .nestingLimit: throw .invalidJSON
                 }
-            } catch {
-                throw .invalidJSON
             }
         case .photoplethysmogramSamples:
             do {
@@ -73,12 +71,18 @@ extension RegisteredRecordingFormat {
             } catch {
                 throw .invalidPhotoplethysmogramPayload
             }
-        case let format where Self.tabularFormats.contains(format):
+        case .ambientLightSamples, .ambientPressureSamples, .beatIntervalSeries, .heartRateSamples,
+             .locationTrackSamples, .odometerSamples, .pedometerSamples, .triaxialAccelerationSamples,
+             .triaxialRotationSamples, .wristTemperatureSamples:
             do {
-                _ = try RecordingCSVReader(data, format: format)
+                _ = try RecordingCSVReader(data, format: self)
             } catch {
                 throw .invalidTabularPayload
             }
+        case .clinicalDocument:
+            // The clinical document is carried byte-preserved: its grammar belongs to the issuing
+            // standard, and Grove asserts its identity and media type rather than re-parsing it.
+            break
         case .fhirCollectionBundle:
             let bundle: ModelsR4.Bundle
             do {
@@ -122,8 +126,6 @@ extension RegisteredRecordingFormat {
             } catch {
                 throw .invalidFHIRJSON
             }
-        default:
-            break
         }
     }
 }

@@ -40,7 +40,7 @@ extension HealthKitConverter {
             let occurrence = eventOccurrences[coordinate, default: 0]
             eventOccurrences[coordinate] = occurrence + 1
             let identity = try context.identityScope.sourceOutput(
-                adapterID: "healthkit",
+                adapterID: HealthKitConverter.adapterID,
                 sourceType: workout.sampleType.identifier,
                 repositoryScope: context.repositoryScope,
                 nativeRecordID: sourceUUID,
@@ -74,7 +74,7 @@ extension HealthKitConverter {
             let occurrence = activityOccurrences[coordinate, default: 0]
             activityOccurrences[coordinate] = occurrence + 1
             let identity = try context.identityScope.sourceOutput(
-                adapterID: "healthkit",
+                adapterID: HealthKitConverter.adapterID,
                 sourceType: workout.sampleType.identifier,
                 repositoryScope: context.repositoryScope,
                 nativeRecordID: sourceUUID,

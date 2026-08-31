@@ -30,7 +30,7 @@ struct SensorFHIRContextValidationTests {
                 version: "0.5.0"
             ),
             graphIdentifierSystem: "https://study.example.org/fhir/identifiers/sensor-graph",
-            recordedAt: start.addingTimeInterval(20),
+            conversionInstant: start.addingTimeInterval(20),
             researchStudies: researchStudies
         )
     }

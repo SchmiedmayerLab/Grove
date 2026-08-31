@@ -168,7 +168,10 @@ def validate_adapter(adapter: dict[str, Any], assertions: list[str]) -> list[dic
     if len(tokens) != len(set(tokens)):
         raise ValueError("SensorKit source tokens must be unique")
     vocabulary = adapter.get("statusVocabulary")
-    if not isinstance(vocabulary, list):
+    # The catalog states the vocabulary either as a bare list or as a status-to-definition mapping.
+    if isinstance(vocabulary, dict):
+        vocabulary = list(vocabulary)
+    if not isinstance(vocabulary, list) or not vocabulary:
         raise ValueError("SensorKit catalog has no status vocabulary")
     for entry in entries:
         if entry.get("status") not in vocabulary:
@@ -240,6 +243,91 @@ def requirement(entry: dict[str, Any]) -> str | None:
     return None
 
 
+def generate_registry(sensor_path: Path, registry_path: Path) -> str:
+    """Project the recording-format registry itself, which every adapter shares."""
+    sensor = read_json(sensor_path)
+    registry = read_json(registry_path)
+    sensor_canonical = sensor.get("canonical")
+    if not isinstance(sensor_canonical, str) or not sensor_canonical:
+        raise ValueError("sensor catalog has no canonical")
+    formats = registry.get("formats")
+    if not isinstance(formats, dict) or not formats:
+        raise ValueError("the recording-format registry declares no formats")
+
+    lines = [HEADER.rstrip(), ""]
+    lines.extend([
+        "/// Generated canonical constants for the Grove recording-format registry.",
+        "public enum RecordingFormatContract {",
+        f"    public static let recordingFormatCodeSystem = {swift_string(sensor_canonical + '/CodeSystem/grove-recording-format')}",
+        "}",
+        "",
+        "",
+    ])
+    lines.append("/// A payload format published by the Grove recording-format registry.")
+    lines.append("///")
+    lines.append("/// The whole registry is projected, not only the formats one adapter admits, so the type")
+    lines.append("/// means \"a registered format\" everywhere it appears. Whether a particular source may carry")
+    lines.append("/// one is a separate question each adapter catalog answers.")
+    lines.append("public enum RegisteredRecordingFormat: String, CaseIterable, Hashable, Sendable {")
+    for value in sorted(formats):
+        lines.append(f"    case {swift_format_case(value)} = {swift_string(value)}")
+    lines.extend(["", "    /// The media types the registry admits for this format."])
+    lines.append("    ///")
+    lines.append("    /// Most formats admit one exact media type. A release-neutral format can admit several")
+    lines.append("    /// versioned representations of the same payload grammar.")
+    lines.append("    public var registeredContentTypes: [String] {")
+    lines.append("        switch self {")
+    for value in sorted(formats):
+        content_types = ", ".join(
+            swift_string(content_type)
+            for content_type in registered_content_types(value, formats[value])
+        )
+        lines.append(f"        case .{swift_format_case(value)}: [{content_types}]")
+    lines.extend([
+        "        }",
+        "    }",
+        "",
+        "    /// The registry's exact media type when this format has only one representation.",
+        "    public var registeredContentType: String? {",
+        "        registeredContentTypes.count == 1 ? registeredContentTypes[0] : nil",
+        "    }",
+        "}",
+        "",
+        "",
+    ])
+
+    # Each CSV format declares its own closed column set, so the columns hang off the format
+    # itself: a reader or writer asks the code it already has instead of a parallel string table.
+    csv_formats = {
+        code: fmt for code, fmt in formats.items() if fmt.get("encoding") == "csv"
+    }
+    lines.extend([
+        "extension RegisteredRecordingFormat {",
+        "    /// The closed column set the registry publishes for this format, in order.",
+        "    ///",
+        "    /// A producer emits every declared column and no others; a reader requires the same",
+        "    /// header. `nil` for a format that is not tabular.",
+        "    public var csvColumns: [String]? {",
+        "        switch self {",
+    ])
+    for code in sorted(csv_formats):
+        names = ", ".join(swift_string(column["name"]) for column in csv_formats[code]["columns"])
+        lines.append(f"        case .{swift_format_case(code)}: [{names}]")
+    lines.extend([
+        "        default: nil",
+        "        }",
+        "    }",
+        "",
+        "    /// Every format the registry publishes as a tabular recording.",
+        "    public static var tabularFormats: [RegisteredRecordingFormat] {",
+        "        [" + ", ".join("." + swift_format_case(code) for code in sorted(csv_formats)) + "]",
+        "    }",
+        "}",
+        "",
+    ])
+    return "\n".join(lines)
+
+
 def generate(sensor_path: Path, adapter_path: Path, registry_path: Path) -> str:
     sensor = read_json(sensor_path)
     adapter = read_json(adapter_path)
@@ -257,12 +345,6 @@ def generate(sensor_path: Path, adapter_path: Path, registry_path: Path) -> str:
         claims["recordingDocument"]["sourceNeutralProfile"],
         claims["recordingDocument"]["adapterProfile"],
     ]
-    sensor_profiles = {
-        contract["id"]: contract["profile"]
-        for contract in sensor["contracts"]
-        if isinstance(contract, dict) and isinstance(contract.get("profile"), str)
-    }
-
     lines = [HEADER.rstrip(), ""]
     lines.extend([
         "/// The producer-side assertion that admits an opaque native sensor payload.",
@@ -292,9 +374,6 @@ def generate(sensor_path: Path, adapter_path: Path, registry_path: Path) -> str:
         "ecgObservationProfile": claims["hybridObservation"]["adapterProfile"],
         "recordingDocumentProfile": claims["recordingDocument"]["adapterProfile"],
         "conversionProvenanceProfile": claims["conversionProvenance"]["profile"],
-        "sensorRecordingDocumentProfile": claims["recordingDocument"]["sourceNeutralProfile"],
-        "sensorConversionProvenanceProfile": sensor_profiles["conversion-provenance"],
-        "recordingFormatCodeSystem": f"{sensor_canonical}/CodeSystem/grove-recording-format",
     }
     lines.append("/// Generated canonical constants for the SensorKit producer.")
     lines.append("public enum SensorKitContract {")
@@ -309,72 +388,6 @@ def generate(sensor_path: Path, adapter_path: Path, registry_path: Path) -> str:
     unregistered = sorted(admitted - set(formats))
     if unregistered:
         raise ValueError(f"adapter admits formats outside the registry: {unregistered}")
-
-    lines.append("/// A payload format published by the Grove recording-format registry.")
-    lines.append("///")
-    lines.append("/// The whole registry is projected, not only the formats this adapter admits, so the type")
-    lines.append("/// means \"a registered format\" everywhere it appears. Whether a particular source may carry")
-    lines.append("/// one is a separate question the catalog answers through ``SensorKitCatalogEntry/rawFormats``.")
-    lines.append("public enum RegisteredRecordingFormat: String, CaseIterable, Hashable, Sendable {")
-    for value in sorted(formats):
-        lines.append(f"    case {swift_format_case(value)} = {swift_string(value)}")
-    lines.extend(["", "    /// The media types the registry admits for this format."])
-    lines.append("    ///")
-    lines.append("    /// Most formats admit one exact media type. A release-neutral format can admit several")
-    lines.append("    /// versioned representations of the same payload grammar.")
-    lines.append("    public var registeredContentTypes: [String] {")
-    lines.append("        switch self {")
-    for value in sorted(formats):
-        content_types = ", ".join(
-            swift_string(content_type)
-            for content_type in registered_content_types(value, formats[value])
-        )
-        lines.append(f"        case .{swift_format_case(value)}: [{content_types}]")
-    lines.extend([
-        "        }",
-        "    }",
-        "",
-        "    /// The registry's exact media type when this format has only one representation.",
-        "    public var registeredContentType: String? {",
-        "        registeredContentTypes.count == 1 ? registeredContentTypes[0] : nil",
-        "    }",
-        "}",
-        "",
-        "",
-    ])
-
-    # Each CSV format now declares its own closed column set, so the columns hang off the format
-    # itself: a reader or writer asks the code it already has instead of a parallel string table.
-    csv_formats = {
-        code: fmt for code, fmt in registry["formats"].items() if fmt.get("encoding") == "csv"
-    }
-    lines.extend([
-        "",
-        "",
-        "extension RegisteredRecordingFormat {",
-        "    /// The closed column set the registry publishes for this format, in order.",
-        "    ///",
-        "    /// A producer emits every declared column and no others; a reader requires the same",
-        "    /// header. `nil` for a format that is not tabular.",
-        "    public var csvColumns: [String]? {",
-        "        switch self {",
-    ])
-    for code in sorted(csv_formats):
-        names = ", ".join(swift_string(column["name"]) for column in csv_formats[code]["columns"])
-        lines.append(f"        case .{swift_format_case(code)}: [{names}]")
-    lines.extend([
-        "        default: nil",
-        "        }",
-        "    }",
-        "",
-        "    /// Every format the registry publishes as a tabular recording.",
-        "    public static var tabularFormats: [RegisteredRecordingFormat] {",
-        "        [" + ", ".join("." + swift_format_case(code) for code in sorted(csv_formats)) + "]",
-        "    }",
-        "}",
-        "",
-        "",
-    ])
 
     lines.append("enum SensorKitGenerated {")
     lines.append("    static let catalog = SensorKitCatalog(")
@@ -422,17 +435,30 @@ def main() -> int:
         type=Path,
         default=Path("Sources/GroveSensorKitFHIR/SensorKitGenerated.swift"),
     )
+    parser.add_argument(
+        "--registry-output",
+        type=Path,
+        default=Path("Sources/GroveFHIRContract/RecordingFormatsGenerated.swift"),
+    )
     parser.add_argument("--check", action="store_true")
     arguments = parser.parse_args()
-    generated = generate(arguments.sensor_catalog, arguments.sensorkit_catalog, arguments.format_registry)
-    if arguments.check:
-        actual = arguments.output.read_text(encoding="utf-8") if arguments.output.exists() else ""
-        if actual != generated:
-            print("error: generated SensorKit Swift contract is stale", file=sys.stderr)
-            return 1
-        return 0
-    arguments.output.parent.mkdir(parents=True, exist_ok=True)
-    arguments.output.write_text(generated, encoding="utf-8")
+    outputs = {
+        arguments.registry_output: generate_registry(arguments.sensor_catalog, arguments.format_registry),
+        arguments.output: generate(
+            arguments.sensor_catalog,
+            arguments.sensorkit_catalog,
+            arguments.format_registry
+        ),
+    }
+    for path, generated in outputs.items():
+        if arguments.check:
+            actual = path.read_text(encoding="utf-8") if path.exists() else ""
+            if actual != generated:
+                print(f"error: generated Swift contract {path} is stale", file=sys.stderr)
+                return 1
+            continue
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(generated, encoding="utf-8")
     return 0
 
 

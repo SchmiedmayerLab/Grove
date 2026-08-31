@@ -21,27 +21,10 @@ import HealthKit
 import ModelsR4
 
 
-/// A payload format from the Grove recording-format registry that this adapter carries.
-enum HealthKitRecordingFormat: String, Sendable {
-    case beatIntervalSeries = "beat-interval-series"
-    case locationTrackSamples = "location-track-samples"
-    case clinicalDocument = "clinical-document"
-    case fhirResource = "fhir-resource"
-
-    var registeredContentType: String? {
-        switch self {
-        case .beatIntervalSeries, .locationTrackSamples: "text/csv"
-        case .clinicalDocument: "application/hl7-cda+xml"
-        case .fhirResource: nil
-        }
-    }
-}
-
-
 /// The published payload of one recording document, ready to be carried.
 struct HealthKitRecordingEvidence: Sendable {
     let outputRole: String
-    let format: HealthKitRecordingFormat
+    let format: RegisteredRecordingFormat
     let title: String
     let payload: Data
     let profiles: [FHIRPrimitive<Canonical>]
@@ -60,7 +43,7 @@ struct HealthKitRecordingEvidence: Sendable {
 
     init(
         outputRole: String,
-        format: HealthKitRecordingFormat,
+        format: RegisteredRecordingFormat,
         title: String,
         payload: Data,
         profiles: [FHIRPrimitive<Canonical>] = [
@@ -84,8 +67,9 @@ struct HealthKitRecordingEvidence: Sendable {
 /// Canonicals the HealthKit recording document declares.
 enum HealthKitRecordingDocumentContract {
     static let profile = Profile.healthkitRecordingDocument
-    static let formatCodeSystem: FHIRPrimitive<FHIRURI> =
-        "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
+    static let formatCodeSystem = FHIRPrimitive(FHIRURI(
+        stringLiteral: RecordingFormatContract.recordingFormatCodeSystem
+    ))
     static let clinicalRecordTypeCodeSystem: FHIRPrimitive<FHIRURI> =
         "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-clinical-record-type"
 }
@@ -93,20 +77,6 @@ enum HealthKitRecordingDocumentContract {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitConverter {
-    private static let beatIntervalColumns = ["timestamp", "precededByGap"]
-    private static let locationTrackColumns = [
-        "timestamp",
-        "latitude",
-        "longitude",
-        "altitude",
-        "horizontalAccuracy",
-        "verticalAccuracy",
-        "speed",
-        "speedAccuracy",
-        "course",
-        "courseAccuracy"
-    ]
-
     /// Converts a heartbeat series into the recording document that carries its beats.
     ///
     /// No shared measurement models a beat series, and reducing one to a single Observation value
@@ -180,7 +150,7 @@ extension HealthKitConverter {
         guard !heartbeats.isEmpty else {
             throw HealthKitConversionError.emptyRecordingSeries(sampleType: sampleType)
         }
-        var writer = RecordingCSVWriter(columns: beatIntervalColumns)
+        var writer = try RecordingCSVWriter(format: .beatIntervalSeries)
         for heartbeat in heartbeats {
             // Composed in epoch seconds rather than by offsetting the Date: `Date` is anchored to
             // 2001, so offsetting one and reading it back as epoch seconds rounds twice and lands
@@ -205,7 +175,7 @@ extension HealthKitConverter {
         guard !locations.isEmpty else {
             throw HealthKitConversionError.emptyRecordingSeries(sampleType: sampleType)
         }
-        var writer = RecordingCSVWriter(columns: locationTrackColumns)
+        var writer = try RecordingCSVWriter(format: .locationTrackSamples)
         for location in locations {
             try writer.append([
                 .timestamp(location.timestamp),
@@ -236,7 +206,7 @@ extension HealthKitConverter {
             outputDiscriminator: "single"
         )
         let artifactIdentity = try context.identityScope.sourceArtifact(
-            adapterID: "healthkit",
+            adapterID: HealthKitConverter.adapterID,
             sourceType: sample.sampleType.identifier,
             repositoryScope: context.repositoryScope,
             nativeRecordID: envelope.sourceUUID,

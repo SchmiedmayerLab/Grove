@@ -7,6 +7,7 @@
 //
 
 import Foundation
+public import GroveFHIRContract
 
 
 /// The relationship between one SensorKit source token and Grove's implementation.

@@ -129,7 +129,7 @@ public struct SensorConversionContext: Sendable {
     public let repositoryScope: BusinessIdentifier
     public let recordingDevice: SensorRecordingDevice?
     public let converterWasGateway: Bool
-    public let recordedAt: Date
+    public let conversionInstant: Date
     public let researchStudies: [Reference]
     public let repositoryIDs: SensorRepositoryIDs
 
@@ -145,7 +145,7 @@ public struct SensorConversionContext: Sendable {
         repositoryScope: BusinessIdentifier,
         recordingDevice: SensorRecordingDevice? = nil,
         converterWasGateway: Bool = false,
-        recordedAt: Date,
+        conversionInstant: Date,
         researchStudies: [Reference] = [],
         repositoryIDs: SensorRepositoryIDs = .init()
     ) {
@@ -160,7 +160,7 @@ public struct SensorConversionContext: Sendable {
         self.repositoryScope = repositoryScope
         self.recordingDevice = recordingDevice
         self.converterWasGateway = converterWasGateway
-        self.recordedAt = recordedAt
+        self.conversionInstant = conversionInstant
         self.researchStudies = researchStudies
         self.repositoryIDs = repositoryIDs
     }
@@ -257,13 +257,6 @@ public struct SensorConverter: Sendable {
 
 
 extension SensorConverter {
-    static let mdc: FHIRPrimitive<FHIRURI> = "urn:iso:std:iso:11073:10101"
-    static let ucum: FHIRPrimitive<FHIRURI> = "http://unitsofmeasure.org"
-    static let participantType: FHIRPrimitive<FHIRURI> =
-        "http://terminology.hl7.org/CodeSystem/provenance-participant-type"
-    static let lifecycleEvent: FHIRPrimitive<FHIRURI> =
-        "http://terminology.hl7.org/CodeSystem/iso-21089-lifecycle"
-
     private static func convertRecord(
         _ record: SensorRecord,
         context: SensorConversionContext
@@ -359,13 +352,17 @@ extension SensorConverter {
             recordingDeviceURL: recordingDeviceURL,
             converterURL: converterURL
         )
+        // The repository id is applied once; the proxy and the retained value are the same resource.
+        let retainedPrimary: SensorPrimaryResource
         let primaryProxy: ResourceProxy
         switch primaryResource {
         case .observation(var observation):
             observation.id = context.repositoryIDs.record?.primitive
+            retainedPrimary = .observation(observation)
             primaryProxy = ResourceProxy(with: observation)
         case .recordingDocument(var document):
             document.id = context.repositoryIDs.record?.primitive
+            retainedPrimary = .recordingDocument(document)
             primaryProxy = ResourceProxy(with: document)
         }
 
@@ -373,7 +370,7 @@ extension SensorConverter {
             sourceIdentifier: sourceRecord.fhirIdentifier,
             targetURL: recordURL,
             converterURL: converterURL,
-            recordedAt: context.recordedAt
+            recordedAt: context.conversionInstant
         )
         provenance.id = context.repositoryIDs.provenance?.primitive
 
@@ -398,13 +395,12 @@ extension SensorConverter {
             nodeKey: provenanceNode,
             resource: ResourceProxy(with: provenance)
         ))
-        try ExchangeIdentity.validate(entries: entries)
 
         var bundle = Bundle(
             entry: entries,
             identifier: context.eventIdentifier.businessIdentifier.fhirIdentifier,
             meta: Meta(profile: [Profile.groveMobileExchangeBundle]),
-            timestamp: FHIRPrimitive(try Instant(date: context.recordedAt)),
+            timestamp: FHIRPrimitive(try Instant(date: context.conversionInstant)),
             type: FHIRPrimitive(.collection)
         )
         bundle.id = context.repositoryIDs.bundle?.primitive
@@ -414,15 +410,6 @@ extension SensorConverter {
             bundle: bundle
         )
 
-        let retainedPrimary: SensorPrimaryResource
-        switch primaryResource {
-        case .observation(var observation):
-            observation.id = context.repositoryIDs.record?.primitive
-            retainedPrimary = .observation(observation)
-        case .recordingDocument(var document):
-            document.id = context.repositoryIDs.record?.primitive
-            retainedPrimary = .recordingDocument(document)
-        }
         return SensorConversion(
             sourceIdentifier: sourceRecord.fhirIdentifier,
             sourceTypeIdentifier: record.sourceTypeIdentifier,
@@ -446,24 +433,30 @@ extension SensorConverter {
         )
     }
 
+    /// The first converter field the exchange contract requires to be stated and is blank.
+    ///
+    /// Both producers in this module state the same converter facts, so they refuse on the same
+    /// field in the same order and differ only in which typed error they raise.
+    static func blankConverterField(
+        _ converter: SensorApplication,
+        host: SensorHostDevice
+    ) -> String? {
+        let stated = [
+            ("name", converter.name),
+            ("sourceDeviceToken", converter.sourceDeviceToken),
+            ("converterHost.sourceDeviceToken", host.sourceDeviceToken),
+            ("converterHost.operatingSystemVersion", host.operatingSystemVersion),
+            ("version", converter.version ?? "-")
+        ]
+        return stated.first { $0.1.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }?.0
+    }
+
     private static func validate(context: SensorConversionContext) throws {
         guard !context.adapterID.isEmpty else {
             throw SensorConversionError.invalidExchangeIdentity("adapterID is empty")
         }
-        guard !context.converter.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw SensorConversionError.invalidConverterApplication("name")
-        }
-        guard !context.converter.sourceDeviceToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw SensorConversionError.invalidConverterApplication("sourceDeviceToken")
-        }
-        guard !context.converterHost.sourceDeviceToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw SensorConversionError.invalidConverterApplication("converterHost.sourceDeviceToken")
-        }
-        guard !context.converterHost.operatingSystemVersion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw SensorConversionError.invalidConverterApplication("converterHost.operatingSystemVersion")
-        }
-        if context.converter.version?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
-            throw SensorConversionError.invalidConverterApplication("version")
+        if let blank = blankConverterField(context.converter, host: context.converterHost) {
+            throw SensorConversionError.invalidConverterApplication(blank)
         }
         if context.repositoryIDs.recordingDevice != nil, context.recordingDevice == nil {
             throw SensorConversionError.repositoryIDWithoutRecordingDevice
@@ -499,7 +492,7 @@ extension SensorConverter {
             switch error {
             case .literalRequiresBundleEntry:
                 throw .invalidExchangeIdentity(
-                    "\(field) must use an identifier-only logical Reference; literals require a Bundle entry"
+                    TypedReference.literalRefusal(field: field)
                 )
             case .invalidReference:
                 throw .invalidReference(field: field, expectedResourceType: expectedResourceType)

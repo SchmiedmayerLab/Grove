@@ -64,7 +64,7 @@ let context = SensorKitConversionContext(
     repositoryScope: sensorKitRepository,
     visitLocationIdentifierSystem: visitLocationSystem,
     sourceTimeZone: persistedSourceTimeZone,
-    recordedAt: persistedConversionInstant
+    conversionInstant: persistedConversionInstant
 )
 let conversion = try SensorKitConverter().convert(record, context: context)
 try persist(conversion.bundle)
@@ -133,9 +133,22 @@ release from payload bytes.
 
 Use the typed SensorKit records for structured measurements. If the source payload already is a
 complete R4 `collection` Bundle with a timestamp, nonempty entries, unique full URLs, and no request
-or response elements, declare ``RegisteredRecordingFormat/fhirCollectionBundle``; its initializer
+or response elements, declare the registry's `fhir-collection-bundle` format; its initializer
 validates that envelope before conversion. A JSON array of resources is not a FHIR resource and is
 not a registered recording format.
+
+## The source-neutral producer
+
+``SensorConverter`` is the same exchange contract without SensorKit: it converts
+``SensorRecord`` values a caller assembles from any sensor source into the identical graph shape,
+and imports no Apple sensor framework. It lives in this module because it shares the module's
+records, identity minting, resource builders, and recording readers and writers; splitting it out
+would duplicate all of them.
+
+Its records carry the payload directly — sampled data, an electrocardiogram, or a recording
+document — and ``SensorConversionContext`` states the adapter token that the SensorKit context
+fixes to `sensorkit`. Everything else — persisted event identity, deterministic entry URLs, device
+snapshots, conversion Provenance, retraction identity — behaves exactly as documented above.
 
 ## Topics
 
@@ -148,7 +161,28 @@ not a registered recording format.
 - ``SensorKitSourceRecordID``
 - ``SensorKitNativeRecording``
 - ``SensorRawPayloadAdmission``
-- ``RegisteredRecordingFormat``
+
+### Source-neutral conversion
+
+- ``SensorConverter``
+- ``SensorConversionContext``
+- ``SensorConversion``
+- ``SensorRecord``
+- ``SensorApplication``
+- ``SensorHostDevice``
+- ``SensorRecordingDevice``
+- ``SensorRecordingDocument``
+- ``SensorSampledDataRecord``
+- ``SensorECGRecord``
+- ``SensorCode``
+- ``SensorRecordError``
+
+### Recording payloads
+
+- ``RecordingCSVReader``
+- ``RecordingBinaryReader``
+- ``RecordingBinaryWriter``
+- ``SensorKitPPGRecording``
 
 ### Authoritative catalog
 

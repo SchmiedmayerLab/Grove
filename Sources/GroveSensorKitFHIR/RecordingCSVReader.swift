@@ -11,6 +11,7 @@
 // swiftlint:disable type_contents_order cyclomatic_complexity function_body_length
 
 public import Foundation
+public import GroveFHIRContract
 
 /// Reads a tabular Grove recording payload back into its published columns.
 ///

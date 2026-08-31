@@ -171,7 +171,7 @@ public struct SensorSampledDataRecord: Sendable {
             throw SensorRecordError.nonFiniteSample(index: index)
         }
         guard !unitCode.isEmpty else {
-            throw SensorRecordError.incompleteCode(system: Self.ucum, code: unitCode)
+            throw SensorRecordError.incompleteCode(system: Canonicals.ucumSystem, code: unitCode)
         }
         self.nativeRecordID = nativeRecordID
         self.sourceTypeIdentifier = sourceTypeIdentifier
@@ -445,9 +445,4 @@ public enum SensorRecord: Sendable {
         case .recordingDocument(let record): record.sourceTypeIdentifier
         }
     }
-}
-
-
-extension SensorSampledDataRecord {
-    fileprivate static let ucum = "http://unitsofmeasure.org"
 }
