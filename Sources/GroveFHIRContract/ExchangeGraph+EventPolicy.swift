@@ -402,10 +402,10 @@ extension ExchangeGraph {
     private static func validateRetractionTargets(
         _ targets: [Reference]
     ) throws(ExchangeGraphError) {
-        var logicalTargets: Set<RetractionTarget> = []
+        var logicalTargets: Set<BusinessIdentifier> = []
         for target in targets {
             let logicalTarget = try validatedRetractionTarget(target)
-            guard logicalTargets.insert(logicalTarget).inserted else {
+            guard logicalTargets.insert(logicalTarget.identifier).inserted else {
                 throw .ruleViolation(.retractionRoleTargetType)
             }
         }
@@ -431,17 +431,31 @@ extension ExchangeGraph {
               let role = RetractionTargetRole(rawValue: rawRole) else {
             throw .ruleViolation(.retractionTargetRole)
         }
+        let natives = target.extension?.filter { $0.url == Canonicals.retractionTargetNativeIdentifier } ?? []
+        guard natives.count <= 1 else {
+            throw .ruleViolation(.retractionNativeRecordIdentifier)
+        }
+        var nativeRecordIdentifier: Identifier?
+        if let native = natives.first {
+            guard case .identifier(let disclosed)? = native.value else {
+                throw .ruleViolation(.retractionNativeRecordIdentifier)
+            }
+            nativeRecordIdentifier = disclosed
+        }
         do {
             return try RetractionTarget(
                 identifier: businessIdentifier,
                 resourceType: resourceType,
-                role: role
+                role: role,
+                nativeRecordIdentifier: nativeRecordIdentifier
             )
-        } catch RetractionTargetError.identifierRoleMismatch,
-                RetractionTargetError.resourceTypeMismatch {
-            throw .ruleViolation(.retractionRoleTargetType)
         } catch {
-            throw .ruleViolation(.retractionTargetRole)
+            switch error {
+            case .identifierRoleMismatch, .resourceTypeMismatch:
+                throw .ruleViolation(.retractionRoleTargetType)
+            case .invalidNativeRecordIdentifier:
+                throw .ruleViolation(.retractionNativeRecordIdentifier)
+            }
         }
     }
 }

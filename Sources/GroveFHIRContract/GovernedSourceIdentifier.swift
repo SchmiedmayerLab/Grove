@@ -7,6 +7,7 @@
 //
 
 import Foundation
+public import ModelsR4
 
 
 /// Governs an additional source-store identifier carried beside mandatory opaque Grove keys.
@@ -15,6 +16,27 @@ public enum GovernedSourceIdentifierDisclosurePolicy: Hashable, Sendable {
     case omit
     /// Emit the exact source value under the caller-owned, store-scoped absolute system.
     case authorized(system: IdentifierSystem, type: GovernedSourceIdentifierType? = nil)
+
+    /// The disclosed identifier for one exact native record value, or nil when the deployment
+    /// omits clear source identifiers.
+    public func identifier(for value: String) -> Identifier? {
+        guard case let .authorized(system, type) = self else {
+            return nil
+        }
+        return Identifier(
+            system: FHIRPrimitive(FHIRURI(stringLiteral: system.rawValue)),
+            type: type.map { type in
+                CodeableConcept(coding: [
+                    Coding(
+                        code: type.code.asFHIRStringPrimitive(),
+                        display: type.display?.asFHIRStringPrimitive(),
+                        system: FHIRPrimitive(FHIRURI(stringLiteral: type.system.rawValue))
+                    )
+                ])
+            },
+            value: value.asFHIRStringPrimitive()
+        )
+    }
 }
 
 
