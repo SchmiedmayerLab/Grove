@@ -47,7 +47,7 @@ extension ExchangeGraph {
         case .invalidEntryNodeValue, .invalidEntryNodeRole:
             .entryNodeDigest
         default:
-            .entryNodeKey
+            .unclassified
         }
     }
 
