@@ -28,12 +28,19 @@ public struct RetractionTarget: Hashable, Sendable {
     public let identifier: BusinessIdentifier
     public let resourceType: ResourceType
     public let role: RetractionTargetRole
+    /// The adapter's own record identifier for the retracted record, carried beside the opaque
+    /// Grove identity so a consumer can delete the exact native record.
+    ///
+    /// It is disclosed only where the adapter's authorized-disclosure policy mints one — build it
+    /// with ``GovernedSourceIdentifierDisclosurePolicy/identifier(for:)`` rather than by hand.
+    public let nativeRecordIdentifier: Identifier?
 
     public init(
         identifier: BusinessIdentifier,
         resourceType: ResourceType,
-        role: RetractionTargetRole
-    ) throws {
+        role: RetractionTargetRole,
+        nativeRecordIdentifier: Identifier? = nil
+    ) throws(RetractionTargetError) {
         let expectedIdentifierRole: GroveIdentifierRole = switch role {
         case .primaryOutput, .sourceArtifact, .childOutput, .specimen:
             .sourceOutput
@@ -61,17 +68,45 @@ public struct RetractionTarget: Hashable, Sendable {
         guard allowedResourceTypes.contains(resourceType) else {
             throw RetractionTargetError.resourceTypeMismatch(role: role, resourceType: resourceType)
         }
+        guard Self.statesNativeRecord(nativeRecordIdentifier) else {
+            throw RetractionTargetError.invalidNativeRecordIdentifier
+        }
         self.identifier = identifier
         self.resourceType = resourceType
         self.role = role
+        self.nativeRecordIdentifier = nativeRecordIdentifier
+    }
+
+    /// A clear native identifier states the source store's own key; it never restates a Grove
+    /// graph identity under a Grove role.
+    private static func statesNativeRecord(_ identifier: Identifier?) -> Bool {
+        guard let identifier else {
+            return true
+        }
+        guard let system = identifier.system?.value?.url.absoluteString,
+              (try? IdentifierSystem(system)) != nil,
+              identifier.value?.value?.string.isEmpty == false else {
+            return false
+        }
+        // Any coding in the Grove role system restates a graph identity, whether or not its code parses.
+        return !(identifier.type?.coding ?? []).contains {
+            $0.system?.value?.url.absoluteString == Canonicals.identifierRoleCodeSystem.value?.url.absoluteString
+        }
     }
 
     var reference: Reference {
-        Reference(
-            extension: [Extension(
-                url: Canonicals.retractionTargetRole,
-                value: .code(role.rawValue.asFHIRStringPrimitive())
-            )],
+        var extensions = [Extension(
+            url: Canonicals.retractionTargetRole,
+            value: .code(role.rawValue.asFHIRStringPrimitive())
+        )]
+        if let nativeRecordIdentifier {
+            extensions.append(Extension(
+                url: Canonicals.retractionTargetNativeIdentifier,
+                value: .identifier(nativeRecordIdentifier)
+            ))
+        }
+        return Reference(
+            extension: extensions,
             identifier: identifier.fhirIdentifier,
             type: FHIRPrimitive(FHIRURI(stringLiteral: resourceType.rawValue))
         )
@@ -85,6 +120,8 @@ public enum RetractionTargetError: Error, Equatable, Sendable {
         identifierRole: GroveIdentifierRole?
     )
     case resourceTypeMismatch(role: RetractionTargetRole, resourceType: ResourceType)
+    /// The disclosed native identifier is incomplete or restates a Grove graph identity.
+    case invalidNativeRecordIdentifier
 }
 
 
@@ -134,7 +171,7 @@ public enum RetractionEventBuilder {
         guard !targets.isEmpty else {
             throw RetractionEventError.emptyTargets
         }
-        guard Set(targets).count == targets.count else {
+        guard Set(targets.map(\.identifier)).count == targets.count else {
             throw RetractionEventError.duplicateTarget
         }
         do {
@@ -201,7 +238,6 @@ public enum RetractionEventBuilder {
 public enum RetractionEventError: Error, Equatable, Sendable {
     case emptyTargets
     case duplicateTarget
-    case invalidEventIdentifier
     case invalidProducer
     case invalidSourceRecord
 }

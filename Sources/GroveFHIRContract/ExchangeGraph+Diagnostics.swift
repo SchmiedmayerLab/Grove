@@ -110,6 +110,7 @@ public enum ExchangeGraphRule: String, Equatable, Sendable {
     case recordingDocumentIdentity = "sensor-recording-document.identity-and-content"
     case retractionLogicalTarget = "mobile-retraction.logical-target"
     case retractionTargetRole = "mobile-retraction.target-role"
+    case retractionNativeRecordIdentifier = "mobile-retraction.native-record-identifier"
     case retractionRoleTargetType = "mobile-retraction.role-target-type"
     case retractionOpaqueTarget = "mobile-retraction.opaque-target"
     case retractionNoClinicalCopy = "mobile-retraction.no-clinical-copy"
@@ -157,6 +158,10 @@ public enum ExchangeGraphRule: String, Equatable, Sendable {
         case .retractionTargetRole:
             reason = "Every retraction target must carry exactly one closed Grove target-role code."
             location = "Provenance.target[0].extension"
+        case .retractionNativeRecordIdentifier:
+            reason = "An optional retraction native record identifier carries one complete Identifier in the "
+                + "adapter's own absolute native key space and never a Grove identifier-role coding."
+            location = "Provenance.target[0].extension.valueIdentifier.type"
         case .retractionOpaqueTarget:
             reason = "A retraction target must use the exact canonical v0 HMAC identity previously emitted."
             location = "Provenance.target[0].identifier.value"
