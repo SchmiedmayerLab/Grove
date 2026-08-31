@@ -51,7 +51,7 @@ struct FHIRPathEvaluatorTests {
                             "system": "https://example.org/scale",
                             "code": "nearly-every-day",
                             "extension": [{
-                                "url": "http://hl7.org/fhir/StructureDefinition/ordinalValue",
+                                "url": "http://hl7.org/fhir/StructureDefinition/itemWeight",
                                 "valueDecimal": 3
                             }]
                         }
@@ -294,6 +294,36 @@ struct FHIRPathEvaluatorTests {
         #expect(total == [.decimal(4)])
         // weight() also accepts the codings directly.
         #expect(try evaluate("item.answer.valueCoding.weight().sum()", context: context) == [.decimal(4)])
+    }
+
+    @Test
+    func retiredOrdinalValueDoesNotScore() throws {
+        let json = """
+        {
+            "resourceType": "QuestionnaireResponse",
+            "status": "completed",
+            "item": [{
+                "linkId": "q1",
+                "answer": [{
+                    "valueCoding": {
+                        "system": "https://example.org/scale",
+                        "code": "nearly-every-day",
+                        "extension": [{
+                            "url": "http://hl7.org/fhir/StructureDefinition/ordinalValue",
+                            "valueDecimal": 3
+                        }]
+                    }
+                }]
+            }]
+        }
+        """
+        let node = try FHIRPathNode(jsonData: Data(json.utf8))
+        let context = FHIRPathEvaluationContext(
+            focus: [.object(node)],
+            constants: ["resource": [.object(node)]],
+            evaluationInstant: Self.evaluationInstant
+        )
+        #expect(try evaluate("item.answer.weight()", context: context).isEmpty)
     }
 
     @Test

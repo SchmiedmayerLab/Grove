@@ -316,8 +316,8 @@ extension FHIRPathFunctionCall {
         }
     }
 
-    /// SDC: the scoring weight of a QR answer — read from the itemWeight
-    /// (or retired ordinalValue) extension carried on the answer's coding.
+    /// SDC: the scoring weight of a QR answer — read from the itemWeight extension carried on
+    /// the answer's coding.
     private func weights() -> [FHIRPathValue] {
         input.compactMap { value -> FHIRPathValue? in
             guard case .object(let node) = value else {
@@ -325,14 +325,13 @@ extension FHIRPathFunctionCall {
             }
             // Accept an answer object (look through to its coding) or a coding directly.
             let coding = node.children(named: "valueCoding").first ?? node
-            let urls = ["http://hl7.org/fhir/StructureDefinition/itemWeight", "http://hl7.org/fhir/StructureDefinition/ordinalValue"]
-            for url in urls {
-                if let ext = coding.children(named: "extension").first(where: { $0.stringMember("url") == url }),
-                   case .number(let weight) = ext.children(named: "valueDecimal").first {
-                    return .decimal(weight)
-                }
+            let marker = coding.children(named: "extension").first {
+                $0.stringMember("url") == "http://hl7.org/fhir/StructureDefinition/itemWeight"
             }
-            return nil
+            guard case .number(let weight) = marker?.children(named: "valueDecimal").first else {
+                return nil
+            }
+            return .decimal(weight)
         }
     }
 }
