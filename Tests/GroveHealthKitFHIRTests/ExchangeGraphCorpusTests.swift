@@ -302,7 +302,14 @@ struct ExchangeGraphCorpusTests {
 
         var tamperedNode = try bundle(named: "exchange-bundle.json")
         entries = try #require(tamperedNode.entry)
-        let provenanceIndex = entries.count - 1
+        // Tampering the Provenance's own key keeps the digest the only defect: giving another
+        // entry the conversion-provenance role would misnumber that role's ordinal instead.
+        let provenanceIndex = try #require(entries.firstIndex {
+            if case .provenance = $0.resource {
+                return true
+            }
+            return false
+        })
         var nodeExtensions = try #require(entries[provenanceIndex].extension)
         guard case .identifier(var nodeIdentifier)? = nodeExtensions[0].value else {
             Issue.record("Fixture entry key is not an Identifier")
