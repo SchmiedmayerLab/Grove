@@ -1,7 +1,7 @@
 //
 // This source file is part of the Grove open-source project
 //
-// SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
 // SPDX-License-Identifier: MIT
 //
@@ -46,9 +46,9 @@ struct HealthKitSampleProjectionTests {
             observation.extension = [
                 Extension(
                     url: Canonicals.recordingMethod,
-                    value: .codeableConcept(CodeableConcept(coding: [
+                    value: .coding(
                         Coding(code: "manual-entry", system: Canonicals.recordingMethodCodeSystem)
-                    ]))
+                    )
                 )
             ]
         }
@@ -156,6 +156,62 @@ struct HealthKitSampleProjectionTests {
         #expect(throws: HealthKitSampleProjectionError.measurementNotMappable(id: "speed")) {
             try HealthKitSampleProjection.sample(for: observation)
         }
+    }
+
+    @Test("A value stated under another dimension's unit refuses instead of reaching HealthKit")
+    func mismatchedUnitRefuses() throws {
+        var observation = try Self.observation(contract: MeasurementCatalog.bodyWeight, value: 72.5)
+        observation.value = .quantity(Quantity(
+            code: "mm[Hg]".asFHIRStringPrimitive(),
+            system: FHIRPrimitive(FHIRURI(stringLiteral: "http://unitsofmeasure.org")),
+            unit: "mmHg".asFHIRStringPrimitive(),
+            value: FHIRPrimitive(FHIRDecimal(72.5))
+        ))
+        #expect(throws: HealthKitSampleProjectionError.unitNotMappable(code: "mm[Hg]")) {
+            try HealthKitSampleProjection.sample(for: observation)
+        }
+    }
+
+    @Test("A blood pressure reading under another dimension's unit refuses")
+    func mismatchedComponentUnitRefuses() throws {
+        var observation = try Self.observation(contract: MeasurementCatalog.bloodPressure)
+        observation.component = MeasurementCatalog.bloodPressure.components.map { component in
+            ObservationComponent(
+                code: CodeableConcept(coding: [
+                    Coding(
+                        code: component.code.asFHIRStringPrimitive(),
+                        system: FHIRPrimitive(FHIRURI(stringLiteral: component.system))
+                    )
+                ]),
+                value: .quantity(Quantity(
+                    code: "kg".asFHIRStringPrimitive(),
+                    system: FHIRPrimitive(FHIRURI(stringLiteral: "http://unitsofmeasure.org")),
+                    unit: "kg".asFHIRStringPrimitive(),
+                    value: FHIRPrimitive(FHIRDecimal(118))
+                ))
+            )
+        }
+        #expect(throws: HealthKitSampleProjectionError.unitNotMappable(code: "kg")) {
+            try HealthKitSampleProjection.sample(for: observation)
+        }
+    }
+
+    @Test("An observation without a value refuses")
+    func valueMissingRefuses() throws {
+        let observation = try Self.observation(contract: MeasurementCatalog.bodyWeight)
+        #expect(throws: HealthKitSampleProjectionError.valueMissing(id: "body-weight")) {
+            try HealthKitSampleProjection.sample(for: observation)
+        }
+    }
+
+    @Test("A carried writer record version outranks the status-derived one")
+    func writerRecordVersionBecomesTheSyncVersion() throws {
+        var observation = try Self.observation(contract: MeasurementCatalog.bodyWeight, value: 72.5)
+        observation.extension = (observation.extension ?? []) + [
+            Extension(url: Canonicals.writerRecordVersion, value: .string("7".asFHIRStringPrimitive()))
+        ]
+        let sample = try HealthKitSampleProjection.sample(for: observation, syncIdentifier: "response-1|weight")
+        #expect(sample.metadata?[HKMetadataKeySyncVersion] as? Int == 7)
     }
 
     @Test("An observation without an effective instant refuses")

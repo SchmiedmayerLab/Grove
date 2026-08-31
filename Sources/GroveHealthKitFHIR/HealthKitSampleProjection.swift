@@ -1,7 +1,7 @@
 //
 // This source file is part of the Grove open-source project
 //
-// SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
 // SPDX-License-Identifier: MIT
 //
@@ -15,7 +15,7 @@ public import ModelsR4
 
 
 /// Why a Grove observation cannot become a HealthKit sample.
-public enum HealthKitSampleProjectionError: Error, Equatable {
+public enum HealthKitSampleProjectionError: Error, Equatable, Sendable {
     /// The observation's code names no Grove measurement.
     case measurementUnknown(system: String, code: String)
     /// The measurement has no unambiguous HealthKit quantity type to land on.
@@ -39,8 +39,9 @@ public enum HealthKitSampleProjectionError: Error, Equatable {
 /// The sample carries what the observation states beyond its value: a manual-entry recording
 /// method becomes `HKMetadataKeyWasUserEntered`, the effective instant's zone becomes
 /// `HKMetadataKeyTimeZone`, and the observation's minted source-output identity becomes
-/// `HKMetadataKeySyncIdentifier` with the sync version taken from the observation's status --
-/// an amended observation replaces the final one it corrects. An observation taken from a
+/// `HKMetadataKeySyncIdentifier` with the sync version taken from the writer record version the
+/// forward direction wrote, or from the status when the observation carries none -- an amended
+/// observation replaces the final one it corrects. An observation taken from a
 /// Grove exchange bundle therefore syncs under the same deterministic identity the exchange
 /// dedups on; one from elsewhere can pass an explicit identifier instead.
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -76,7 +77,7 @@ public enum HealthKitSampleProjection {
     public static func sample(
         for observation: ModelsR4.Observation,
         syncIdentifier: String? = nil
-    ) throws -> HKSample {
+    ) throws(HealthKitSampleProjectionError) -> HKSample {
         let contract = try contract(for: observation)
         let envelope = try envelope(of: observation, contract: contract, syncIdentifier: syncIdentifier)
         if contract.code.code == MeasurementCatalog.bloodPressure.code.code {
@@ -87,7 +88,7 @@ public enum HealthKitSampleProjection {
         }
         return HKQuantitySample(
             type: HKQuantityType(try quantityTypeIdentifier(for: contract.id)),
-            quantity: try healthKitQuantity(quantity, measurementID: contract.id),
+            quantity: try healthKitQuantity(quantity, contract: contract.quantity, measurementID: contract.id),
             start: envelope.date,
             end: envelope.date,
             metadata: envelope.metadata
@@ -98,7 +99,7 @@ public enum HealthKitSampleProjection {
 
     private static func contract(
         for observation: ModelsR4.Observation
-    ) throws -> HealthKitFHIRObservationContract {
+    ) throws(HealthKitSampleProjectionError) -> HealthKitFHIRObservationContract {
         let coding = observation.code.coding?.first
         let system = coding?.system?.value?.url.absoluteString ?? ""
         let code = coding?.code?.value?.string ?? ""
@@ -111,7 +112,9 @@ public enum HealthKitSampleProjection {
         return HealthKitFHIRObservationContract(shared: shared)
     }
 
-    private static func quantityTypeIdentifier(for measurementID: String) throws -> HKQuantityTypeIdentifier {
+    private static func quantityTypeIdentifier(
+        for measurementID: String
+    ) throws(HealthKitSampleProjectionError) -> HKQuantityTypeIdentifier {
         guard let identifier = quantityTypesByMeasurementID[measurementID] else {
             throw HealthKitSampleProjectionError.measurementNotMappable(id: measurementID)
         }
@@ -124,7 +127,7 @@ public enum HealthKitSampleProjection {
         of observation: ModelsR4.Observation,
         contract: HealthKitFHIRObservationContract,
         syncIdentifier: String?
-    ) throws -> SampleEnvelope {
+    ) throws(HealthKitSampleProjectionError) -> SampleEnvelope {
         guard case .dateTime(let effective)? = observation.effective,
               let dateTime = effective.value,
               let date = try? dateTime.asNSDate() else {
@@ -139,9 +142,19 @@ public enum HealthKitSampleProjection {
         }
         if let syncIdentifier = syncIdentifier ?? sourceOutputIdentity(of: observation) {
             metadata[HKMetadataKeySyncIdentifier] = syncIdentifier
-            metadata[HKMetadataKeySyncVersion] = observation.status.value == .amended ? 2 : 1
+            metadata[HKMetadataKeySyncVersion] = writerRecordVersion(of: observation)
+                ?? (observation.status.value == .amended ? 2 : 1)
         }
         return SampleEnvelope(date: date, metadata: metadata)
+    }
+
+    private static func writerRecordVersion(of observation: ModelsR4.Observation) -> Int? {
+        let marker = observation.extension?.first { $0.url == Canonicals.writerRecordVersion }
+        guard case .string(let value)? = marker?.value,
+              let version = value.value?.string else {
+            return nil
+        }
+        return Int(version)
     }
 
     private static func sourceOutputIdentity(of observation: ModelsR4.Observation) -> String? {
@@ -159,10 +172,10 @@ public enum HealthKitSampleProjection {
         let url = Canonicals.recordingMethod.value?.url.absoluteString
         return observation.extension?.contains { marker in
             guard marker.url.value?.url.absoluteString == url,
-                  case .codeableConcept(let concept)? = marker.value else {
+                  case .coding(let coding)? = marker.value else {
                 return false
             }
-            return concept.coding?.contains { $0.code?.value?.string == "manual-entry" } ?? false
+            return coding.code?.value?.string == "manual-entry"
         } ?? false
     }
 
@@ -172,23 +185,32 @@ public enum HealthKitSampleProjection {
         for observation: ModelsR4.Observation,
         contract: HealthKitFHIRObservationContract,
         envelope: SampleEnvelope
-    ) throws -> HKCorrelation {
-        func member(_ code: String, _ type: HKQuantityTypeIdentifier) throws -> HKQuantitySample {
+    ) throws(HealthKitSampleProjectionError) -> HKCorrelation {
+        func member(
+            _ componentID: String,
+            _ type: HKQuantityTypeIdentifier
+        ) throws(HealthKitSampleProjectionError) -> HKQuantitySample {
+            guard let declared = contract.components.first(where: { $0.id == componentID }) else {
+                throw HealthKitSampleProjectionError.componentMissing(id: contract.id, code: componentID)
+            }
             let component = observation.component?.first {
-                $0.code.coding?.contains { $0.code?.value?.string == code } ?? false
+                $0.code.coding?.contains { coding in
+                    coding.system?.value?.url.absoluteString == declared.system
+                        && coding.code?.value?.string == declared.code
+                } ?? false
             }
             guard let component, case .quantity(let quantity) = component.value else {
-                throw HealthKitSampleProjectionError.componentMissing(id: contract.id, code: code)
+                throw HealthKitSampleProjectionError.componentMissing(id: contract.id, code: declared.code)
             }
             return HKQuantitySample(
                 type: HKQuantityType(type),
-                quantity: try healthKitQuantity(quantity, measurementID: contract.id),
+                quantity: try healthKitQuantity(quantity, contract: declared.quantity, measurementID: contract.id),
                 start: envelope.date,
                 end: envelope.date
             )
         }
-        let systolic = try member("8480-6", .bloodPressureSystolic)
-        let diastolic = try member("8462-4", .bloodPressureDiastolic)
+        let systolic = try member("systolic", .bloodPressureSystolic)
+        let diastolic = try member("diastolic", .bloodPressureDiastolic)
         return HKCorrelation(
             type: HKCorrelationType(.bloodPressure),
             start: envelope.date,
@@ -198,12 +220,24 @@ public enum HealthKitSampleProjection {
         )
     }
 
-    private static func healthKitQuantity(_ quantity: Quantity, measurementID: String) throws -> HKQuantity {
+    /// The value under the unit its measurement contract fixes.
+    ///
+    /// The stated system and code are checked against the contract rather than looked up: a code
+    /// from another dimension would otherwise mint an HKQuantity that `HKQuantitySample` rejects
+    /// with an uncatchable exception.
+    private static func healthKitQuantity(
+        _ quantity: Quantity,
+        contract: QuantityContract?,
+        measurementID: String
+    ) throws(HealthKitSampleProjectionError) -> HKQuantity {
         guard let decimal = quantity.value?.value?.decimal else {
             throw HealthKitSampleProjectionError.valueMissing(id: measurementID)
         }
         let code = quantity.code?.value?.string ?? ""
-        guard let unit = HealthKitCatalog.unit(forUCUMCode: code) else {
+        guard let contract,
+              quantity.system?.value?.url.absoluteString == contract.system,
+              code == contract.code,
+              let unit = HealthKitCatalog.unit(forUCUMCode: contract.code) else {
             throw HealthKitSampleProjectionError.unitNotMappable(code: code)
         }
         return HKQuantity(unit: unit, doubleValue: NSDecimalNumber(decimal: decimal).doubleValue)
