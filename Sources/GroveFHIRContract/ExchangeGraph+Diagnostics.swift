@@ -95,6 +95,7 @@ public enum ExchangeGraphRule: String, CaseIterable, Equatable, Sendable {
     case entryResourceType = "mobile-exchange.entry-resource-type"
     case containedResourceProhibited = "mobile-exchange.contained-resource-prohibited"
     case entryNodeDigest = "mobile-exchange.entry-node-digest"
+    case entryNodeOrdinal = "mobile-exchange.entry-node-ordinal"
     case identitySystemRole = "mobile-exchange.identity-system-role"
     case sourceOutputRequired = "mobile-output.source-output-required"
     case semanticProfile = "mobile-output.semantic-profile"
@@ -150,6 +151,10 @@ public enum ExchangeGraphRule: String, CaseIterable, Equatable, Sendable {
             location = "Bundle.identifier.value"
         case .entryNodeDigest:
             reason = "An entry-node digest must be derived from the enclosing event identifier, role, and ordinal."
+            location = "Bundle.entry[0].extension.valueIdentifier.value"
+        case .entryNodeOrdinal:
+            reason = "An entry-node ordinal is the zero-based position of its entry among the entries "
+                + "sharing that node-role, in Bundle entry order."
             location = "Bundle.entry[0].extension.valueIdentifier.value"
         case .identitySystemRole:
             reason = "Within one event graph, each Grove Identifier.system names exactly one Grove identifier role; "

@@ -95,6 +95,7 @@ extension ExchangeGraph {
         entries: [BundleEntry],
         eventIdentifier: ExchangeEventIdentifier
     ) throws(ExchangeGraphError) {
+        var mintedPerNodeRole: [String: UInt64] = [:]
         for entry in entries {
             let keys = entry.extension?.filter { $0.url == Canonicals.entryNodeKey } ?? []
             guard keys.count == 1,
@@ -108,6 +109,7 @@ extension ExchangeGraph {
                 throw .ruleViolation(.entryNodeKey)
             }
             if businessIdentifier.role == .entryNode {
+                try validateEntryNodeOrdinal(businessIdentifier, mintedPerNodeRole: &mintedPerNodeRole)
                 do {
                     _ = try ExchangeNodeKey(
                         businessIdentifier,
@@ -119,6 +121,23 @@ extension ExchangeGraph {
             } else if !ExchangeIdentity.isCanonicalOpaqueIdentifierValue(businessIdentifier.value) {
                 throw .ruleViolation(.entryNodeDigest)
             }
+        }
+    }
+
+    /// The expected ordinal is counted from the Bundle's own per-role entry order rather than read
+    /// back from the key, because the digest covers the ordinal the key itself states: a
+    /// self-consistent key over a wrong ordinal would otherwise verify against its own claim.
+    private static func validateEntryNodeOrdinal(
+        _ identifier: BusinessIdentifier,
+        mintedPerNodeRole: inout [String: UInt64]
+    ) throws(ExchangeGraphError) {
+        guard let claim = ExchangeNodeKey.claim(in: identifier) else {
+            return
+        }
+        let expected = mintedPerNodeRole[claim.nodeRole, default: 0]
+        mintedPerNodeRole[claim.nodeRole] = expected + 1
+        guard claim.ordinal.rawValue == String(expected) else {
+            throw .ruleViolation(.entryNodeOrdinal)
         }
     }
 

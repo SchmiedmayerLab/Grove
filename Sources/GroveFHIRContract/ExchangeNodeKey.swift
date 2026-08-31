@@ -40,7 +40,7 @@ public struct ExchangeNodeKey: Hashable, Sendable {
             nodeRole,
             ordinal.rawValue
         ])
-        let digest = Data(SHA256.hash(data: framed)).entryNodeBase64URL
+        let digest = Data(SHA256.hash(data: framed)).base64URLEncodedStringWithoutPadding
         self.identifier = try BusinessIdentifier(
             system: system,
             value: "n0:\(nodeRole):\(ordinal.rawValue):\(digest)",
@@ -73,31 +73,29 @@ public struct ExchangeNodeKey: Hashable, Sendable {
         guard identifier.role == .entryNode else {
             throw ExchangeIdentityError.invalidEntryNodeRole
         }
-        let fields = identifier.value.split(separator: ":", omittingEmptySubsequences: false)
-        guard fields.count == 4,
-              fields[0] == "n0",
-              let ordinal = try? CanonicalNonnegativeDecimal(String(fields[2])) else {
+        guard let claim = Self.claim(in: identifier) else {
             throw ExchangeIdentityError.invalidEntryNodeValue(identifier.value)
         }
         let expected = try Self(
             system: identifier.system,
             eventIdentifier: eventIdentifier,
-            nodeRole: String(fields[1]),
-            ordinal: ordinal
+            nodeRole: claim.nodeRole,
+            ordinal: claim.ordinal
         )
         guard expected.identifier == identifier else {
             throw ExchangeIdentityError.invalidEntryNodeValue(identifier.value)
         }
         self = expected
     }
-}
 
-
-extension Data {
-    fileprivate var entryNodeBase64URL: String {
-        base64EncodedString()
-            .replacingOccurrences(of: "+", with: "-")
-            .replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "=", with: "")
+    /// The node-role and ordinal a persisted key states, read before any digest verification.
+    static func claim(in identifier: BusinessIdentifier) -> (nodeRole: String, ordinal: CanonicalNonnegativeDecimal)? {
+        let fields = identifier.value.split(separator: ":", omittingEmptySubsequences: false)
+        guard fields.count == 4,
+              fields[0] == "n0",
+              let ordinal = try? CanonicalNonnegativeDecimal(String(fields[2])) else {
+            return nil
+        }
+        return (String(fields[1]), ordinal)
     }
 }
