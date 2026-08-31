@@ -10,26 +10,7 @@ import FHIRPathParser
 import Foundation
 public import GroveQuestionnaire
 import ModelsR4
-
-
-/// Holds the most recently encoded response, keyed by the answers it was built from.
-@available(iOS 18, macOS 15, watchOS 11, *)
-private final class ResponseCache: @unchecked Sendable {
-    private let lock = NSLock()
-    private var entry: (responses: QuestionnaireResponses.Responses, node: FHIRPathNode)?
-
-    func node(for responses: QuestionnaireResponses.Responses) -> FHIRPathNode? {
-        lock.withLock {
-            entry?.responses == responses ? entry?.node : nil
-        }
-    }
-
-    func store(_ node: FHIRPathNode, for responses: QuestionnaireResponses.Responses) {
-        lock.withLock {
-            entry = (responses, node)
-        }
-    }
-}
+import Synchronization
 
 
 /// Evaluates SDC FHIRPath expressions against the in-progress `QuestionnaireResponse`.
@@ -60,7 +41,8 @@ public final class FHIRPathExpressionEngine: QuestionnaireExpressionEngine, Send
     /// The caller-supplied instant used by all clock-sensitive FHIRPath functions.
     private let evaluationInstant: Date
     /// The last encoded response, so a form-wide recalculation encodes it once.
-    private let responseCache = ResponseCache()
+    /// The most recently encoded response, keyed by the answers it was built from.
+    private let responseCache = Mutex<(responses: QuestionnaireResponses.Responses, node: FHIRPathNode)?>(nil)
 
     init(
         questionnaire: ModelsR4.Questionnaire,
@@ -115,11 +97,14 @@ public final class FHIRPathExpressionEngine: QuestionnaireExpressionEngine, Send
     /// half-entered number, say — drops out of the tree instead of failing every
     /// expression in the form at once.
     private func responseNode(for responses: QuestionnaireResponses) throws -> FHIRPathNode {
-        if let cached = responseCache.node(for: responses.responses) {
+        let cached = responseCache.withLock { entry in
+            entry?.responses == responses.responses ? entry?.node : nil
+        }
+        if let cached {
             return cached
         }
         let node = try FHIRPathNode.encoding(ModelsR4.QuestionnaireResponse(evaluating: responses))
-        responseCache.store(node, for: responses.responses)
+        responseCache.withLock { $0 = (responses.responses, node) }
         return node
     }
 

@@ -11,6 +11,7 @@
 import Grove
 import HealthKit
 import OSLog
+import Synchronization
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -65,53 +66,51 @@ extension HKHealthStore {
         }
     }
 
-    /// `@unchecked Sendable` safety: `completionHandler` is the only mutable field and every
-    /// access is serialized by `lock`; `call()` removes it under the lock before invoking the
-    /// captured handler, so concurrent callers can acknowledge the observer exactly once.
-    final class ObserverQueryCompletion: @unchecked Sendable {
-        private let lock = NSLock()
-        private var completionHandler: HKObserverQueryCompletionHandler?
+    /// The handler is taken under the lock before it is invoked, so concurrent callers
+    /// acknowledge the observer exactly once.
+    final class ObserverQueryCompletion: Sendable {
+        /// HealthKit's acknowledgement block is not `Sendable` although the SDK calls and expects it
+        /// on its own background queues; the box carries it out of the lock to be called once.
+        private struct Acknowledgement: @unchecked Sendable {
+            let call: HKObserverQueryCompletionHandler
+        }
+
+        private let acknowledgement: Mutex<Acknowledgement?>
 
         init(_ completionHandler: @escaping HKObserverQueryCompletionHandler) {
-            self.completionHandler = completionHandler
+            self.acknowledgement = Mutex(Acknowledgement(call: completionHandler))
         }
 
         func call() {
-            let completionHandler = lock.withLock {
-                defer { self.completionHandler = nil }
-                return self.completionHandler
+            let acknowledgement = self.acknowledgement.withLock { acknowledgement in
+                defer { acknowledgement = nil }
+                return acknowledgement
             }
-            completionHandler?()
+            acknowledgement?.call()
         }
     }
 
-    /// `@unchecked Sendable` safety: every read and mutation of `state` is serialized by `lock`.
-    /// The stored tasks and their `@MainActor @Sendable` operations cross isolation as immutable
-    /// values; cancellation snapshots are taken under the lock and awaited after releasing it.
-    final class BackgroundDeliveryTaskTracker: @unchecked Sendable {
+    final class BackgroundDeliveryTaskTracker: Sendable {
         private struct State {
             var invalidated = false
             var tasks: [UUID: Task<Void, Never>] = [:]
         }
 
-        private let lock = NSLock()
-        private var state = State()
+        private let state = Mutex(State())
 
         @discardableResult
         func schedule(_ operation: @escaping @MainActor @Sendable () async -> Void) -> Bool {
             let id = UUID()
-            lock.lock()
-            guard !state.invalidated else {
-                lock.unlock()
-                return false
+            return state.withLock { state in
+                guard !state.invalidated else {
+                    return false
+                }
+                state.tasks[id] = Task { @MainActor [self] in
+                    defer { self.remove(id) }
+                    await operation()
+                }
+                return true
             }
-            let task = Task { @MainActor [self] in
-                defer { self.remove(id) }
-                await operation()
-            }
-            state.tasks[id] = task
-            lock.unlock()
-            return true
         }
 
         func scheduleAcknowledging(
@@ -128,17 +127,13 @@ extension HKHealthStore {
         }
 
         private func remove(_ id: UUID) {
-            lock.withLock {
-                state.tasks[id] = nil
-            }
+            state.withLock { $0.tasks[id] = nil }
         }
 
         func cancelAndWait() async {
-            lock.withLock {
-                state.invalidated = true
-            }
+            state.withLock { $0.invalidated = true }
             while true {
-                let tasks = lock.withLock { Array(state.tasks.values) }
+                let tasks = state.withLock { Array($0.tasks.values) }
                 guard !tasks.isEmpty else {
                     return
                 }
@@ -151,8 +146,7 @@ extension HKHealthStore {
     }
 
     /// `@unchecked Sendable` safety: all strong fields are immutable, `query` is assigned once and
-    /// only weak-zeroed by the Swift runtime, `HKHealthStore` supports cross-thread query stop, and
-    /// concurrent task teardown is serialized by `BackgroundDeliveryTaskTracker`'s lock.
+    /// only weak-zeroed by the Swift runtime, and `HKHealthStore` supports cross-thread query stop.
     final class BackgroundObserverQueryInvalidator: @unchecked Sendable {
         private let healthStore: HKHealthStore
         private weak var query: HKQuery?
@@ -176,13 +170,10 @@ extension HKHealthStore {
         }
     }
     
-    private static let activeObservationsLock = NSLock()
-    /// Guarded by `activeObservationsLock`.
-    ///
     /// A member has no remaining local owner, but the last SDK disable failed. Keeping that state
     /// distinct from an active registration lets a later teardown retry without pretending the
     /// departed collector still owns a reference.
-    nonisolated(unsafe) private static var backgroundDeliveryOwnership = BackgroundDeliveryOwnership()
+    private static let backgroundDeliveryOwnership = Mutex(BackgroundDeliveryOwnership())
 
     @MainActor
     static func retryBackgroundDeliveryOperation(
@@ -271,9 +262,7 @@ extension HKHealthStore {
             for objectType in objectTypes {
                 try await self.enableBackgroundDelivery(for: objectType, frequency: .immediate)
                 enabledObjectTypes.insert(objectType)
-                Self.activeObservationsLock.withLock {
-                    Self.backgroundDeliveryOwnership.didEnable(objectType)
-                }
+                Self.backgroundDeliveryOwnership.withLock { $0.didEnable(objectType) }
             }
         } catch {
             HealthKit.logger.error("Could not enable HealthKit Backgound access for \(objectTypes): \(error.localizedDescription)")
@@ -288,8 +277,8 @@ extension HKHealthStore {
     func disableBackgroundDelivery(
         for objectTypes: Set<HKObjectType>
     ) async {
-        let objectTypesToDisable = Self.activeObservationsLock.withLock {
-            Self.backgroundDeliveryOwnership.requestDisable(for: objectTypes)
+        let objectTypesToDisable = Self.backgroundDeliveryOwnership.withLock {
+            $0.requestDisable(for: objectTypes)
         }
         for objectType in objectTypesToDisable {
             await disablePendingBackgroundDelivery(for: objectType)
@@ -301,9 +290,7 @@ extension HKHealthStore {
         guard await retryPendingBackgroundDeliveryDisable(for: objectType) else {
             return
         }
-        let completion = Self.activeObservationsLock.withLock {
-            Self.backgroundDeliveryOwnership.didDisable(objectType)
-        }
+        let completion = Self.backgroundDeliveryOwnership.withLock { $0.didDisable(objectType) }
         guard completion == .supersededByOwner else {
             return
         }
@@ -314,9 +301,7 @@ extension HKHealthStore {
     private func retryPendingBackgroundDeliveryDisable(for objectType: HKObjectType) async -> Bool {
         await Self.retryBackgroundDeliveryOperation(
             shouldContinue: {
-                Self.activeObservationsLock.withLock {
-                    Self.backgroundDeliveryOwnership.needsDisable(objectType)
-                }
+                Self.backgroundDeliveryOwnership.withLock { $0.needsDisable(objectType) }
             },
             operation: {
                 try await self.disableBackgroundDelivery(for: objectType)
@@ -347,9 +332,7 @@ extension HKHealthStore {
         // the race at the OS boundary, so restore delivery with the same owned bounded retry.
         let restored = await Self.retryBackgroundDeliveryOperation(
             shouldContinue: {
-                Self.activeObservationsLock.withLock {
-                    Self.backgroundDeliveryOwnership.hasActiveOwner(objectType)
-                }
+                Self.backgroundDeliveryOwnership.withLock { $0.hasActiveOwner(objectType) }
             },
             operation: {
                 try await self.enableBackgroundDelivery(for: objectType, frequency: .immediate)
@@ -376,9 +359,7 @@ extension HKHealthStore {
             HealthKit.logger.error(
                 "HealthKit background delivery for \(objectType) could not be restored for its active owner"
             )
-        } else if Self.activeObservationsLock.withLock({
-            Self.backgroundDeliveryOwnership.needsDisable(objectType)
-        }) {
+        } else if Self.backgroundDeliveryOwnership.withLock({ $0.needsDisable(objectType) }) {
             // The restoring owner departed while SDK enable was suspended. Complete that newer
             // teardown instead of leaving delivery enabled without a local owner.
             await disablePendingBackgroundDelivery(for: objectType)
