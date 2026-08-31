@@ -21,15 +21,19 @@ public enum ExchangeGraphError: Error, Equatable, Sendable {
     case ruleViolation(ExchangeGraphRule)
     case contractViolation(ExchangeGraphDiagnostic)
 
-    /// A machine-readable producer diagnostic when this failure corresponds to a normative rule.
-    public var diagnostic: ExchangeGraphDiagnostic? {
+    /// The machine-readable producer diagnostic this failure reports.
+    ///
+    /// A failure the registry does not name reports the registered unclassified diagnostic rather
+    /// than borrowing another rule's code.
+    public var diagnostic: ExchangeGraphDiagnostic {
         switch self {
         case .ruleViolation(let rule):
             rule.diagnostic
         case .contractViolation(let diagnostic):
             diagnostic
-        default:
-            nil
+        case .notCollectionBundle, .missingTimestamp, .missingEventIdentifier, .invalidEventIdentifier,
+             .eventIdentifierMismatch, .missingProfile, .invalidEntries:
+            ExchangeGraphRule.unclassified.diagnostic
         }
     }
 }
@@ -77,7 +81,8 @@ public enum GroveLifecycleContract {
 
 
 /// Stable Grove producer-rule identifiers shared by the conformance corpus and SDKs.
-public enum ExchangeGraphRule: String, Equatable, Sendable {
+public enum ExchangeGraphRule: String, CaseIterable, Equatable, Sendable {
+    case unclassified = "mobile-exchange.unclassified"
     case collectionHasRequestOrResponse = "mobile-exchange.collection-entry-operation"
     case entryNodeKey = "mobile-exchange.entry-node-key"
     case deterministicFullURL = "mobile-exchange.deterministic-full-url"
@@ -120,6 +125,10 @@ public enum ExchangeGraphRule: String, Equatable, Sendable {
         let reason: String
         let location: String
         switch self {
+        case .unclassified:
+            reason = "A producer-contract failure reached the exchange diagnostic boundary without a more specific "
+                + "registered rule; validation fails closed and the conformance kit must classify the gap."
+            location = "Bundle"
         case .entryNodeKey:
             reason = "Every Bundle entry must carry exactly one complete Grove exchange entry node key."
             location = "Bundle.entry[0]"
@@ -133,7 +142,7 @@ public enum ExchangeGraphRule: String, Equatable, Sendable {
             reason = "Every Quantity-valued catalog measurement uses the exact fixed system and code declared by its semantic profile contract."
             location = "Bundle.entry[2].resource.valueQuantity.code"
         case .quantityValueDomain:
-            reason = "Every Quantity-valued catalog measurement stays within its reviewed representational minimum, "
+            reason = "Every Quantity-valued catalog measurement stays within its catalog-declared representational minimum, "
                 + "maximum, and integer-only domain without inventing a physiologic range."
             location = "Bundle.entry[2].resource.valueQuantity.value"
         case .eventIdentity:
@@ -212,8 +221,8 @@ public enum ExchangeGraphRule: String, Equatable, Sendable {
             reason = "Every active DocumentReference must directly claim exactly one admitted recording or clinical-document profile mode."
             location = "DocumentReference.meta.profile"
         case .clinicalFHIRRepresentation:
-            reason = "A HealthKit clinical-record document carries the release-neutral "
-                + "FHIR-resource format and one admitted versioned FHIR JSON media type."
+            reason = "A HealthKit clinical-record envelope must carry the exact admitted FHIR release and "
+                + "preserve the source representation its adapter contract declares."
             location = "DocumentReference.content[0]"
         case .deviceProfile:
             reason = "Every active Device must directly claim exactly one admitted Grove Device profile mode."
@@ -225,16 +234,19 @@ public enum ExchangeGraphRule: String, Equatable, Sendable {
             reason = "Every supporting resource must be connected to an output or the lifecycle Provenance."
             location = "Bundle.entry"
         case .collectionHasRequestOrResponse:
-            reason = "A collection exchange entry never carries request, response, or search transaction metadata."
+            reason = "A Mobile exchange event is a collection Bundle; an entry may carry neither a request nor a "
+                + "response, because an event is an assertion and never a transaction instruction."
             location = "Bundle.entry"
         case .questionnaireResponseProfile:
-            reason = "Every active QuestionnaireResponse must directly claim the Grove QuestionnaireResponse profile."
+            reason = "Every supporting QuestionnaireResponse must directly claim exactly the Grove Questionnaire Response profile."
             location = "QuestionnaireResponse.meta.profile"
         case .recordingDeviceDualIdentity:
-            reason = "A Device snapshot must match one exact Device profile and its required typed identities."
+            reason = "A recording Device carries both its durable recording-device identity and its event-scoped "
+                + "device-snapshot identity; neither may stand alone."
             location = "Device.identifier"
         case .recordingDocumentIdentity:
-            reason = "A recording document carries exactly one source-record, source-output, and source-artifact identity and one content."
+            reason = "Every Sensor Recording Document carries its source-record, source-output, and source-artifact "
+                + "identities together with exactly one registered attachment payload."
             location = "DocumentReference.identifier"
         }
         return ExchangeGraphDiagnostic(

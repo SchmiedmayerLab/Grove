@@ -125,6 +125,34 @@ struct ExchangeGraphCorpusTests {
         }
     }
 
+    @Test("Every Swift producer rule is registered with the guide's exact code and reason")
+    func rulesMatchThePinnedRegistry() throws {
+        struct Registry: Decodable {
+            struct Diagnostic: Decodable {
+                let code: String
+                let reason: String
+            }
+
+            let producerDiagnostics: [Diagnostic]
+        }
+
+        let registry = try JSONDecoder().decode(
+            Registry.self,
+            from: Data(contentsOf: protocolCatalogURL)
+        )
+        let reasonsByCode = Dictionary(
+            uniqueKeysWithValues: registry.producerDiagnostics.map { ($0.code, $0.reason) }
+        )
+        for rule in ExchangeGraphRule.allCases {
+            let registered = reasonsByCode[rule.rawValue]
+            #expect(registered != nil, "Unregistered producer rule \(rule.rawValue)")
+            #expect(
+                registered == rule.diagnostic.reason,
+                "Reason drift for \(rule.rawValue): \(rule.diagnostic.reason)"
+            )
+        }
+    }
+
     @Test("Every shared mutation reports the exact structured Grove diagnostic")
     func reportsExactSharedCorpusDiagnostics() throws {
         let corpusURL = corpusDirectory.appendingPathComponent("corpus.json")
@@ -605,7 +633,7 @@ struct ExchangeGraphCorpusTests {
             )
             Issue.record("Fractional step count was accepted")
         } catch {
-            #expect(error.diagnostic?.code == ExchangeGraphRule.quantityValueDomain.rawValue)
+            #expect(error.diagnostic.code == ExchangeGraphRule.quantityValueDomain.rawValue)
         }
     }
 
@@ -641,10 +669,23 @@ struct ExchangeGraphCorpusTests {
             _ = try validate(bundle, kind: .active)
             Issue.record("Out-of-range high-precision percentage was accepted")
         } catch let error as ExchangeGraphError {
-            #expect(error.diagnostic?.code == ExchangeGraphRule.quantityValueDomain.rawValue)
+            #expect(error.diagnostic.code == ExchangeGraphRule.quantityValueDomain.rawValue)
         } catch {
             Issue.record("Unexpected validation error: \(error)")
         }
+    }
+
+    @Test("A failure the registry does not name reports the unclassified diagnostic")
+    func unregisteredFailuresReportUnclassified() throws {
+        var undated = try bundle(named: "exchange-bundle.json")
+        undated.timestamp = nil
+        do {
+            _ = try validate(undated, kind: .active)
+            Issue.record("A bundle without a timestamp was accepted")
+        } catch let error as ExchangeGraphError {
+            #expect(error.diagnostic == ExchangeGraphRule.unclassified.diagnostic)
+        }
+        #expect(ExchangeGraph.rule(for: .missingResource) == .unclassified)
     }
 
     @Test("The retraction builder carries its source-record entity")
@@ -682,6 +723,86 @@ struct ExchangeGraphCorpusTests {
             return
         }
         #expect(try BusinessIdentifier(#require(provenance.entity?.first?.what.identifier)) == sourceRecord)
+    }
+
+    @Test("An authorized native record identifier rides beside the opaque retraction target")
+    func retractionTargetCarriesTheNativeRecordIdentifier() throws {
+        let fixture = try bundle(named: "retraction-bundle.json")
+        guard case .provenance(let fixtureProvenance)? = fixture.entry?.first?.resource else {
+            Issue.record("Fixture lifecycle resource is not Provenance")
+            return
+        }
+        let sourceRecord = try BusinessIdentifier(
+            #require(fixtureProvenance.entity?.first?.what.identifier)
+        )
+        let fixtureTarget = try #require(fixtureProvenance.target.first)
+        let targetIdentifier = try BusinessIdentifier(#require(fixtureTarget.identifier))
+        let targetType = try #require(fixtureTarget.type?.value?.url.absoluteString)
+        let resourceType = try #require(ResourceType(rawValue: targetType))
+        let policy = GovernedSourceIdentifierDisclosurePolicy.authorized(
+            system: "https://study.example.org/fhir/NamingSystem/source-store"
+        )
+        let nativeRecordID = "8ad4f0f6-2f11-4f5a-9d0f-51f3a1c0b2e7"
+        let target = try RetractionTarget(
+            identifier: targetIdentifier,
+            resourceType: resourceType,
+            role: .primaryOutput,
+            nativeRecordIdentifier: policy.identifier(for: nativeRecordID)
+        )
+        let graph = try RetractionEventBuilder.build(
+            targets: [target],
+            context: RetractionEventContext(
+                eventIdentifier: ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier))),
+                entryNodeIdentifierSystem: "https://study.example.org/fhir/NamingSystem/retraction-node-v0",
+                producer: fixtureProvenance.agent[0].who,
+                sourceRecord: sourceRecord,
+                sourceRetractionTime: Date(timeIntervalSince1970: 1_787_299_200),
+                recordedAt: Date(timeIntervalSince1970: 1_787_299_201)
+            )
+        )
+        guard case .provenance(let provenance)? = graph.bundle.entry?.first?.resource else {
+            Issue.record("Builder did not emit Provenance")
+            return
+        }
+        let disclosed = try #require(provenance.target.first?.extension?.first {
+            $0.url == Canonicals.retractionTargetNativeIdentifier
+        })
+        guard case .identifier(let identifier)? = disclosed.value else {
+            Issue.record("The native record identifier is not an Identifier")
+            return
+        }
+        #expect(identifier.value?.value?.string == nativeRecordID)
+        #expect(identifier.system?.value?.url.absoluteString == "https://study.example.org/fhir/NamingSystem/source-store")
+
+        // The opaque Grove identity is never restated as the clear native one.
+        #expect(throws: RetractionTargetError.invalidNativeRecordIdentifier) {
+            try RetractionTarget(
+                identifier: targetIdentifier,
+                resourceType: resourceType,
+                role: .primaryOutput,
+                nativeRecordIdentifier: sourceRecord.fhirIdentifier
+            )
+        }
+
+        // A role coding refuses the target even when its code is not one Grove recognises.
+        let unrecognisedRole = Identifier(
+            system: FHIRPrimitive(FHIRURI(stringLiteral: "https://study.example.org/fhir/NamingSystem/source-store")),
+            type: CodeableConcept(coding: [
+    Coding(
+                    code: "not-a-grove-role".asFHIRStringPrimitive(),
+                    system: Canonicals.identifierRoleCodeSystem
+                )
+            ]),
+            value: nativeRecordID.asFHIRStringPrimitive()
+        )
+        #expect(throws: RetractionTargetError.invalidNativeRecordIdentifier) {
+            try RetractionTarget(
+                identifier: targetIdentifier,
+                resourceType: resourceType,
+                role: .primaryOutput,
+                nativeRecordIdentifier: unrecognisedRole
+            )
+        }
     }
 
     private func graph(named name: String, kind: ExchangeGraphKind) throws -> ExchangeGraph {
@@ -898,5 +1019,13 @@ struct ExchangeGraphCorpusTests {
 
     private var corpusDirectory: URL {
         exchangeGraphCorpusDirectory
+    }
+
+    private var protocolCatalogURL: URL {
+        exchangeGraphCorpusDirectory
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("catalog/exchange-protocol.json")
     }
 }
