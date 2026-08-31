@@ -17,11 +17,6 @@ import ModelsR4
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitConverter {
-    struct IdentifiedDevice {
-        var resource: Device
-        let identity: BusinessIdentifier
-    }
-
     struct SourceAuthorDevices {
         var author: IdentifiedDevice
         var host: IdentifiedDevice?
@@ -130,13 +125,13 @@ extension HealthKitConverter {
         let sourceUUID = sample.uuid.uuidString.lowercased()
         let sourceType = sample.sampleType.identifier
         let sourceRecord = try context.identityScope.sourceRecord(
-            adapterID: "healthkit",
+            adapterID: HealthKitConverter.adapterID,
             sourceType: sourceType,
             repositoryScope: context.repositoryScope,
             nativeRecordID: sourceUUID
         )
         let primaryIdentity = try context.identityScope.sourceOutput(
-            adapterID: "healthkit",
+            adapterID: HealthKitConverter.adapterID,
             sourceType: sourceType,
             repositoryScope: context.repositoryScope,
             nativeRecordID: sourceUUID,
@@ -274,7 +269,6 @@ extension HealthKitConverter {
             nodeKey: envelope.provenanceNode,
             resource: ResourceProxy(with: provenance)
         ))
-        try ExchangeIdentity.validate(entries: entries)
 
         var bundle = Bundle(
             entry: entries,

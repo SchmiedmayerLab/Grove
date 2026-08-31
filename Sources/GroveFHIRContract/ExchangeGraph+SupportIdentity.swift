@@ -65,18 +65,13 @@ extension ExchangeGraph {
         in value: Any,
         into references: inout Set<String>
     ) {
-        if let object = value as? [String: Any] {
+        var collected: Set<String> = []
+        ExchangeIdentity.walkJSONObjects(value) { object in
             if let reference = object["reference"] as? String {
-                references.insert(reference)
-            }
-            for child in object.values {
-                collectLiteralReferences(in: child, into: &references)
-            }
-        } else if let array = value as? [Any] {
-            for child in array {
-                collectLiteralReferences(in: child, into: &references)
+                collected.insert(reference)
             }
         }
+        references.formUnion(collected)
     }
 
     static func validateAdapterOnlyOutputProfile(

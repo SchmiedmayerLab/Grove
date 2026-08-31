@@ -76,21 +76,10 @@ extension HealthKitConverter {
         _ context: HealthKitConversionContext
     ) throws(HealthKitConversionError) {
         if case let .authorized(nativeSystem, _) = context.nativeIdentifierDisclosurePolicy {
-            let pseudonymous = context.identityScope.systems
-            let reservedSystems: Set<IdentifierSystem> = [
-                pseudonymous.sourceRecord,
-                pseudonymous.sourceOutput,
-                pseudonymous.writerRecord,
-                pseudonymous.providerRecord,
-                pseudonymous.providerOutput,
-                pseudonymous.sourceArtifact,
-                pseudonymous.providerArtifact,
-                pseudonymous.sourceContext,
-                pseudonymous.recordingDevice,
-                pseudonymous.deviceSnapshot,
+            let reservedSystems = Set(context.identityScope.systems.all + [
                 context.eventIdentifier.businessIdentifier.system,
                 context.entryNodeIdentifierSystem
-            ]
+            ])
             guard !reservedSystems.contains(nativeSystem) else {
                 throw HealthKitConversionError.invalidExchangeIdentity(
                     "native HealthKit identifier system must not reuse a Grove graph identity system"
@@ -146,7 +135,7 @@ extension HealthKitConverter {
             switch error {
             case .literalRequiresBundleEntry:
                 throw .invalidExchangeIdentity(
-                    "\(field) must use an identifier-only logical Reference; literals require a Bundle entry"
+                    TypedReference.literalRefusal(field: field)
                 )
             case .invalidReference:
                 throw .invalidReference(field: field, expectedResourceType: expectedResourceType)

@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-// The package facade and its deliberately small recursive scanner stay together so adapters cannot
+// The package facade and the one strict scanner it shares stay together so adapters cannot
 // accidentally select a less strict parser.
-// swiftlint:disable file_types_order type_contents_order
+// swiftlint:disable file_types_order
 
 package import Foundation
 
@@ -23,21 +23,17 @@ package enum FHIRJSONResourcePayload {
 
     /// Validates the syntax Grove can prove without interpreting or rewriting an issuer's resource.
     package static func validate(_ data: Data) throws(ValidationError) {
-        guard !data.starts(with: [0xEF, 0xBB, 0xBF]),
-              let source = String(data: data, encoding: .utf8) else {
-            throw .invalidJSON
-        }
         do {
-            var scanner = StrictJSONScanner(source)
+            var scanner = StrictJSONScanner(data)
             try scanner.validate()
-            let envelope = try JSONDecoder().decode(ResourceEnvelope.self, from: data)
-            guard Self.isFHIRResourceType(envelope.resourceType) else {
-                throw ValidationError.invalidResourceType
-            }
-        } catch let error as ValidationError {
-            throw error
+        } catch .duplicateMember(let name) {
+            throw .duplicateObjectKey(name)
         } catch {
             throw .invalidJSON
+        }
+        guard let envelope = try? JSONDecoder().decode(ResourceEnvelope.self, from: data),
+              Self.isFHIRResourceType(envelope.resourceType) else {
+            throw .invalidResourceType
         }
     }
 
@@ -61,160 +57,221 @@ private struct ResourceEnvelope: Decodable {
 }
 
 
-private struct StrictJSONScanner {
-    private let scalars: [Unicode.Scalar]
-    private var index = 0
-
-    init(_ source: String) {
-        scalars = Array(source.unicodeScalars)
+/// The one strict JSON recognizer Grove producers validate byte-preserved payloads with.
+///
+/// Foundation's JSON APIs accept duplicate object members and retain only one value, so a decoded
+/// dictionary alone cannot validate byte-preserved native evidence. The walk is over bytes and
+/// depth-capped, so a deeply nested payload refuses instead of overflowing the stack.
+package struct StrictJSONScanner {
+    package enum ScanError: Error, Equatable, Sendable {
+        case invalidJSON
+        case byteOrderMark
+        case scalarRoot
+        case duplicateMember(String)
+        case nonFiniteNumber
+        case nestingLimit
     }
 
-    mutating func validate() throws(FHIRJSONResourcePayload.ValidationError) {
+    private static let nestingLimit = 512
+
+    private let bytes: [UInt8]
+    private var offset = 0
+
+    private var current: UInt8? {
+        offset < bytes.count ? bytes[offset] : nil
+    }
+
+    package init(_ data: Data) {
+        bytes = Array(data)
+    }
+
+    package mutating func validate() throws(ScanError) {
+        guard !bytes.starts(with: [0xEF, 0xBB, 0xBF]) else {
+            throw .byteOrderMark
+        }
+        guard String(data: Data(bytes), encoding: .utf8) != nil else {
+            throw .invalidJSON
+        }
         skipWhitespace()
-        try parseValue()
+        guard let first = current, first == 0x7B || first == 0x5B else {
+            throw .scalarRoot
+        }
+        try parseValue(depth: 0)
         skipWhitespace()
-        guard isAtEnd else {
+        guard offset == bytes.count else {
             throw .invalidJSON
         }
     }
 
-    private mutating func parseValue() throws(FHIRJSONResourcePayload.ValidationError) {
-        guard let scalar = current else {
+    private mutating func parseValue(depth: Int) throws(ScanError) {
+        guard depth <= Self.nestingLimit else {
+            throw .nestingLimit
+        }
+        skipWhitespace()
+        guard let current else {
             throw .invalidJSON
         }
-        switch scalar {
-        case "{": try parseObject()
-        case "[": try parseArray()
-        case "\"": _ = try parseString()
-        default: try parsePrimitive()
+        switch current {
+        case 0x7B: try parseObject(depth: depth + 1)
+        case 0x5B: try parseArray(depth: depth + 1)
+        case 0x22: _ = try parseString()
+        case 0x74: try consume("true")
+        case 0x66: try consume("false")
+        case 0x6E: try consume("null")
+        case 0x2D, 0x30...0x39: try parseNumber()
+        default: throw .invalidJSON
         }
     }
 
-    private mutating func parseObject() throws(FHIRJSONResourcePayload.ValidationError) {
-        advance()
+    private mutating func parseObject(depth: Int) throws(ScanError) {
+        offset += 1
         skipWhitespace()
-        if consume("}") {
+        if current == 0x7D {
+            offset += 1
             return
         }
-        var keys: Set<String> = []
+        var members: Set<String> = []
         while true {
-            guard current == "\"" else {
-                throw .invalidJSON
-            }
-            let key = try parseString()
-            guard keys.insert(key).inserted else {
-                throw .duplicateObjectKey(key)
+            skipWhitespace()
+            let member = try parseString()
+            guard members.insert(member).inserted else {
+                throw .duplicateMember(member)
             }
             skipWhitespace()
-            guard consume(":") else {
-                throw .invalidJSON
-            }
+            try consumeByte(0x3A)
+            try parseValue(depth: depth)
             skipWhitespace()
-            try parseValue()
-            skipWhitespace()
-            if consume("}") {
+            if current == 0x7D {
+                offset += 1
                 return
             }
-            guard consume(",") else {
-                throw .invalidJSON
-            }
-            skipWhitespace()
+            try consumeByte(0x2C)
         }
     }
 
-    private mutating func parseArray() throws(FHIRJSONResourcePayload.ValidationError) {
-        advance()
+    private mutating func parseArray(depth: Int) throws(ScanError) {
+        offset += 1
         skipWhitespace()
-        if consume("]") {
+        if current == 0x5D {
+            offset += 1
             return
         }
         while true {
-            try parseValue()
+            try parseValue(depth: depth)
             skipWhitespace()
-            if consume("]") {
+            if current == 0x5D {
+                offset += 1
                 return
             }
-            guard consume(",") else {
-                throw .invalidJSON
-            }
-            skipWhitespace()
+            try consumeByte(0x2C)
         }
     }
 
-    private mutating func parseString() throws(FHIRJSONResourcePayload.ValidationError) -> String {
-        let start = index
-        guard consume("\"") else {
-            throw .invalidJSON
-        }
-        while let scalar = current {
-            if scalar == "\"" {
-                advance()
-                let literal = String(String.UnicodeScalarView(scalars[start..<index]))
-                guard let data = literal.data(using: .utf8),
-                      let value = try? JSONDecoder().decode(String.self, from: data) else {
-                    throw .invalidJSON
-                }
-                return value
-            }
-            if scalar == "\\" {
-                advance()
-                guard current != nil else {
-                    throw .invalidJSON
-                }
-                advance()
-                continue
-            }
-            guard scalar.value >= 0x20 else {
+    private mutating func parseString() throws(ScanError) -> String {
+        let start = offset
+        try consumeByte(0x22)
+        while let byte = current {
+            switch byte {
+            case 0x00...0x1F:
                 throw .invalidJSON
+            case 0x22:
+                offset += 1
+                let encoded = Data(bytes[start..<offset])
+                guard let decoded = try? JSONDecoder().decode(String.self, from: encoded) else {
+                    throw .invalidJSON
+                }
+                return decoded
+            case 0x5C:
+                try parseEscape()
+            default:
+                offset += 1
             }
-            advance()
         }
         throw .invalidJSON
     }
 
-    private mutating func parsePrimitive() throws(FHIRJSONResourcePayload.ValidationError) {
-        let start = index
-        while let scalar = current,
-              !Self.isValueDelimiter(scalar) {
-            advance()
-        }
-        guard index > start else {
+    private mutating func parseEscape() throws(ScanError) {
+        offset += 1
+        guard let escaped = current else {
             throw .invalidJSON
         }
+        guard escaped == 0x75 else {
+            guard [0x22, 0x5C, 0x2F, 0x62, 0x66, 0x6E, 0x72, 0x74].contains(escaped) else {
+                throw .invalidJSON
+            }
+            offset += 1
+            return
+        }
+        offset += 1
+        for _ in 0..<4 {
+            guard let scalar = current,
+                  (0x30...0x39).contains(scalar)
+                    || (0x41...0x46).contains(scalar)
+                    || (0x61...0x66).contains(scalar) else {
+                throw .invalidJSON
+            }
+            offset += 1
+        }
     }
 
-    private static func isValueDelimiter(_ scalar: Unicode.Scalar) -> Bool {
-        scalar == "," || scalar == "]" || scalar == "}" || isWhitespace(scalar)
+    private mutating func parseNumber() throws(ScanError) {
+        let start = offset
+        if current == 0x2D {
+            offset += 1
+        }
+        guard let first = current else {
+            throw .invalidJSON
+        }
+        if first == 0x30 {
+            offset += 1
+            if let current, (0x30...0x39).contains(current) {
+                throw .invalidJSON
+            }
+        } else {
+            guard (0x31...0x39).contains(first) else {
+                throw .invalidJSON
+            }
+            repeat { offset += 1 } while current.map { (0x30...0x39).contains($0) } == true
+        }
+        if current == 0x2E {
+            offset += 1
+            try consumeDigits()
+        }
+        if current == 0x65 || current == 0x45 {
+            offset += 1
+            if current == 0x2B || current == 0x2D {
+                offset += 1
+            }
+            try consumeDigits()
+        }
+        guard let value = Double(String(decoding: bytes[start..<offset], as: UTF8.self)), value.isFinite else {
+            throw .nonFiniteNumber
+        }
     }
 
-    private static func isWhitespace(_ scalar: Unicode.Scalar) -> Bool {
-        scalar == " " || scalar == "\t" || scalar == "\n" || scalar == "\r"
+    private mutating func consumeDigits() throws(ScanError) {
+        guard let current, (0x30...0x39).contains(current) else {
+            throw .invalidJSON
+        }
+        repeat { offset += 1 } while self.current.map { (0x30...0x39).contains($0) } == true
+    }
+
+    private mutating func consume(_ text: StaticString) throws(ScanError) {
+        for byte in String(describing: text).utf8 {
+            try consumeByte(byte)
+        }
+    }
+
+    private mutating func consumeByte(_ byte: UInt8) throws(ScanError) {
+        guard current == byte else {
+            throw .invalidJSON
+        }
+        offset += 1
     }
 
     private mutating func skipWhitespace() {
-        while let scalar = current, Self.isWhitespace(scalar) {
-            advance()
+        while let current, [0x20, 0x09, 0x0A, 0x0D].contains(current) {
+            offset += 1
         }
-    }
-
-    @discardableResult
-    private mutating func consume(_ scalar: Unicode.Scalar) -> Bool {
-        guard current == scalar else {
-            return false
-        }
-        advance()
-        return true
-    }
-
-    private var current: Unicode.Scalar? {
-        isAtEnd ? nil : scalars[index]
-    }
-
-    private var isAtEnd: Bool {
-        index == scalars.count
-    }
-
-    private mutating func advance() {
-        index += 1
     }
 }

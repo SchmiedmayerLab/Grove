@@ -87,10 +87,12 @@ tests = ["GroveDevicesTests", "GroveOmronTests"]
 uiTests = ["iOS"]
 
 [GroveFHIR]
-platforms = ["iOS", "macOS"]
+platforms = ["iOS", "macOS", "Linux"]
 targets = ["GroveFHIRContract", "GroveFHIR", "GroveFHIRMockPatients"]
 tests = ["GroveFHIRTests"]
 uiTests = ["iOS"]
+# The shared contract module builds on Linux and is gated here, where it lives.
+linuxTargets = ["GroveFHIRContract"]
 
 [GroveFileFormats]
 platforms = ["iOS", "macOS", "watchOS", "visionOS", "tvOS"]
@@ -169,7 +171,7 @@ testPlatforms = { GroveQuestionnaireMacrosTests = ["macOS"] }
 uiTests = ["iOS", "iPadOS"]
 # The extraction chain is the server-relevant surface; the UI-typed questionnaire model
 # stays Apple-only until its UTType fields are reworked.
-linuxTargets = ["GroveQuestionnaireExtraction", "GroveQuestionnaireExtractionTests", "GroveFHIRContract"]
+linuxTargets = ["GroveQuestionnaireExtraction", "GroveQuestionnaireExtractionTests"]
 
 [GroveScheduler]
 platforms = ["iOS", "macOS", "watchOS", "visionOS"]

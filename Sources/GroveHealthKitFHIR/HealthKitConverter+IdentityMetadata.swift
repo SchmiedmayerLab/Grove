@@ -99,25 +99,7 @@ extension HealthKitConverter {
         for sample: HKSample,
         policy: HealthKitNativeIdentifierDisclosurePolicy
     ) -> [Identifier] {
-        guard case let .authorized(system, type) = policy else {
-            return []
-        }
-        let identifierType = type.map { type in
-            CodeableConcept(coding: [
-                Coding(
-                    code: type.code.asFHIRStringPrimitive(),
-                    display: type.display?.asFHIRStringPrimitive(),
-                    system: FHIRPrimitive(FHIRURI(stringLiteral: type.system.rawValue))
-                )
-            ])
-        }
-        return [
-            Identifier(
-                system: FHIRPrimitive(FHIRURI(stringLiteral: system.rawValue)),
-                type: identifierType,
-                value: sample.uuid.uuidString.lowercased().asFHIRStringPrimitive()
-            )
-        ]
+        [policy.identifier(for: sample.uuid.uuidString.lowercased())].compactMap { $0 }
     }
 }
 

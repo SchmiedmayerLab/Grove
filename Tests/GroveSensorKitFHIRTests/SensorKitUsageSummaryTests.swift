@@ -42,7 +42,7 @@ struct GroveSensorKitUsageSummaryTests {
                 repositoryScope: try SensorFHIRIdentityTestSupport.repositoryScope,
                 visitLocationIdentifierSystem: SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem,
                 sourceTimeZone: try #require(TimeZone(identifier: "America/Los_Angeles")),
-                recordedAt: start.addingTimeInterval(60)
+                conversionInstant: start.addingTimeInterval(60)
             )
         }
     }

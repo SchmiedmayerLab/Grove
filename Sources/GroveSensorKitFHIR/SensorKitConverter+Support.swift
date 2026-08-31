@@ -24,9 +24,7 @@ extension SensorKitConverter {
     }
 
     static func catalogEntry(sourceToken: String) throws -> SensorKitCatalogEntry {
-        guard let entry = SensorKitCatalog.current.entries.first(where: {
-            $0.sourceToken == sourceToken
-        }) else {
+        guard let entry = SensorKitCatalog.current.entry(sourceToken: sourceToken) else {
             throw SensorKitRecordError.sourceTypeNotAdmitted(sourceToken)
         }
         return entry
@@ -92,12 +90,12 @@ extension SensorKitConverter {
         Provenance(
             activity: CodeableConcept(coding: [Coding(
                 code: "transform".asFHIRStringPrimitive(),
-                system: lifecycle
+                system: Canonicals.isoLifecycleEvent
             )]),
             agent: [ProvenanceAgent(
                 type: CodeableConcept(coding: [Coding(
                     code: "assembler".asFHIRStringPrimitive(),
-                    system: participantType
+                    system: Canonicals.provenanceParticipantType
                 )]),
                 who: reference(converterURL)
             )],
@@ -219,19 +217,23 @@ extension SensorKitConverter {
     }
 
     static func decimal(_ value: Double, field: String, index: Int?) throws -> Decimal {
-        guard value.isFinite,
-              let result = Decimal(
-                  string: String(value),
-                  locale: Locale(identifier: "en_US_POSIX")
-              ) else {
-            throw SensorKitRecordError.nonFiniteValue(field: field, index: index)
-        }
-        return result
+        try wireDecimal(value, field: field, index: index).decimal
     }
 
     static func plainDecimal(_ value: Double, field: String, index: Int?) throws -> String {
-        _ = try decimal(value, field: field, index: index)
-        return String(groveFHIRPlainDecimal: value)
+        try wireDecimal(value, field: field, index: index).lexical
+    }
+
+    private static func wireDecimal(
+        _ value: Double,
+        field: String,
+        index: Int?
+    ) throws -> GroveFHIRDecimal {
+        do {
+            return try GroveFHIRDecimal(value)
+        } catch {
+            throw SensorKitRecordError.nonFiniteValue(field: field, index: index)
+        }
     }
 
     static func period(start: Date, end: Date, timeZone: TimeZone) throws -> Period {
@@ -252,7 +254,7 @@ extension SensorKitConverter {
         // payload format Coding values.
         return Coding(
             code: code.rawValue.asFHIRStringPrimitive(),
-            system: SensorKitContract.recordingFormatCodeSystem.asFHIRURIPrimitive()
+            system: RecordingFormatContract.recordingFormatCodeSystem.asFHIRURIPrimitive()
         )
     }
 
@@ -304,7 +306,7 @@ extension SensorKitConverter {
     static func quantity(value: Decimal, code: String, unit: String?) -> Quantity {
         Quantity(
             code: code.asFHIRStringPrimitive(),
-            system: ucum,
+            system: Canonicals.ucum,
             unit: unit?.asFHIRStringPrimitive(),
             value: FHIRPrimitive(FHIRDecimal(value))
         )

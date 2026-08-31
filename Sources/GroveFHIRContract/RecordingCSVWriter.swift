@@ -38,6 +38,8 @@ public struct RecordingCSVWriter: ~Copyable {
         case nonFiniteNumber(column: String)
         /// CR is prohibited everywhere in a registered tabular payload, including quoted fields.
         case carriageReturn(column: String)
+        /// The registry publishes no column set for this format.
+        case notTabular(RegisteredRecordingFormat)
     }
 
     private let columns: [String]
@@ -48,6 +50,14 @@ public struct RecordingCSVWriter: ~Copyable {
         self.columns = columns
         self.bytes = Data()
         appendRow(columns.map { Self.encode(.text($0)) })
+    }
+
+    /// Creates a writer for the exact column set the registry publishes for a tabular format.
+    public init(format: RegisteredRecordingFormat) throws(WriterError) {
+        guard let columns = format.csvColumns else {
+            throw .notTabular(format)
+        }
+        self.init(columns: columns)
     }
 
     /// Appends one source sample, in source order.

@@ -273,28 +273,22 @@ extension ExchangeGraph {
         in value: Any,
         context: ReferenceResolutionContext
     ) throws(ExchangeGraphError) {
-        if let object = value as? [String: Any] {
-            if let url = object["url"] as? String,
-               let expected = governedExtensionTargets[url] {
-                guard let rawReference = object["valueReference"] as? [String: Any] else {
-                    throw .ruleViolation(.referenceShape)
-                }
-                let reference: Reference
-                do {
-                    let data = try JSONSerialization.data(withJSONObject: rawReference)
-                    reference = try JSONDecoder().decode(Reference.self, from: data)
-                } catch {
-                    throw .ruleViolation(.referenceTargetType)
-                }
-                try validateReference(reference, expected: expected, context: context)
+        try ExchangeIdentity.walkJSONObjects(value) { object throws(ExchangeGraphError) in
+            guard let url = object["url"] as? String,
+                  let expected = governedExtensionTargets[url] else {
+                return
             }
-            for child in object.values {
-                try validateGovernedExtensions(in: child, context: context)
+            guard let rawReference = object["valueReference"] as? [String: Any] else {
+                throw .ruleViolation(.referenceShape)
             }
-        } else if let array = value as? [Any] {
-            for child in array {
-                try validateGovernedExtensions(in: child, context: context)
+            let reference: Reference
+            do {
+                let data = try JSONSerialization.data(withJSONObject: rawReference)
+                reference = try JSONDecoder().decode(Reference.self, from: data)
+            } catch {
+                throw .ruleViolation(.referenceTargetType)
             }
+            try validateReference(reference, expected: expected, context: context)
         }
     }
 

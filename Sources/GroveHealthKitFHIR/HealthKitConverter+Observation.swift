@@ -90,19 +90,19 @@ extension HealthKitConverter {
         binding: HealthKitFHIRBinding,
         contract: HealthKitFHIRObservationContract
     ) throws {
-        if case .bloodPressure = binding {
+        switch binding {
+        case .bloodPressure:
             guard let correlation = sample as? HKCorrelation else {
                 throw HealthKitConversionError.invalidValue
             }
             observation.component = try bloodPressureComponents(correlation, contract: contract)
             return
-        }
-        switch binding {
         case .workout:
             observation.component = try workoutComponents(try workoutSample(sample))
         case .stateOfMind:
             observation.component = try stateOfMindComponents(try stateOfMindSample(sample))
-        default:
+        case .quantity, .percent, .sessionRate, .sessionDuration, .assessmentScore, .severity,
+             .presence, .categoryValue, .fixedCode, .notification, .sexualActivity, .sleepStage:
             break
         }
         observation.value = try result(for: binding, sample: sample, contract: contract)

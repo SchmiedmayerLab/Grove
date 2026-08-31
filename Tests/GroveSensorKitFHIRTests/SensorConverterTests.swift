@@ -38,7 +38,7 @@ struct SensorFHIRConverterTests {
                     modelNumber: "W42"
                 ),
                 converterWasGateway: true,
-                recordedAt: Self.start.addingTimeInterval(20)
+                conversionInstant: Self.start.addingTimeInterval(20)
             )
         }
     }
@@ -142,7 +142,7 @@ struct SensorFHIRConverterTests {
             converter: base.converter,
             graphIdentifierSystem: base.graphIdentifierSystem,
             recordingDevice: base.recordingDevice,
-            recordedAt: base.recordedAt,
+            conversionInstant: base.conversionInstant,
             repositoryIDs: SensorRepositoryIDs(
                 bundle: try RepositoryID("bundle-1"),
                 record: try RepositoryID("observation-1"),
@@ -190,7 +190,7 @@ struct SensorFHIRConverterTests {
         #expect(attachment.size?.value?.integer == 2)
         #expect(attachment.hash != nil)
         let format = try #require(document.content.first?.format)
-        #expect(format.system?.value?.url.absoluteString == SensorKitContract.recordingFormatCodeSystem)
+        #expect(format.system?.value?.url.absoluteString == RecordingFormatContract.recordingFormatCodeSystem)
         #expect(format.code?.value?.string == "native-recording")
         #expect(format.version == nil)
         #expect(conversion.provenance.meta?.profile == [
@@ -227,7 +227,7 @@ struct SensorFHIRConverterTests {
             converter: base.converter,
             graphIdentifierSystem: base.graphIdentifierSystem,
             recordingDevice: base.recordingDevice,
-            recordedAt: base.recordedAt,
+            conversionInstant: base.conversionInstant,
             repositoryIDs: SensorRepositoryIDs(
                 provenance: try RepositoryID("provenance-1")
             )

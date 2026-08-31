@@ -22,6 +22,14 @@ public struct PseudonymousIdentitySystems: Hashable, Sendable {
     public let recordingDevice: IdentifierSystem
     public let deviceSnapshot: IdentifierSystem
 
+    /// Every Grove-reserved identity namespace this deployment declares.
+    ///
+    /// Derived from the closed kind list, so a new identity kind cannot slip past a privacy
+    /// validator that would otherwise have to be extended by hand.
+    public var all: [IdentifierSystem] {
+        PseudonymousIdentityKind.allCases.map { self[$0] }
+    }
+
     public init(
         sourceRecord: IdentifierSystem,
         sourceOutput: IdentifierSystem,
@@ -61,7 +69,7 @@ public struct PseudonymousIdentitySystems: Hashable, Sendable {
         self.deviceSnapshot = deviceSnapshot
     }
 
-    subscript(kind: PseudonymousIdentityKind) -> IdentifierSystem {
+    public subscript(kind: PseudonymousIdentityKind) -> IdentifierSystem {
         switch kind {
         case .sourceRecord: sourceRecord
         case .sourceOutput: sourceOutput

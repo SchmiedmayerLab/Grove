@@ -30,11 +30,14 @@ public struct GroveFHIRDecimal: Hashable, Sendable {
         guard value.isFinite else {
             throw .nonFinite(value)
         }
+        // Representability is proven against the text, not against `NSDecimalNumber`: its
+        // Decimal-to-Double conversion is inexact for ordinary values such as 36.52 and would
+        // refuse them.
         let lexical = String(groveFHIRPlainDecimal: value)
         guard let decimal = Decimal(
             string: lexical,
             locale: Locale(identifier: "en_US_POSIX")
-        ), NSDecimalNumber(decimal: decimal).doubleValue == value else {
+        ), Double(lexical) == value else {
             throw .outsideFHIRDecimalDomain(lexical)
         }
         self.lexical = lexical

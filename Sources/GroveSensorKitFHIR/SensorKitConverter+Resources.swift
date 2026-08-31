@@ -17,12 +17,6 @@ import ModelsR4
 
 
 extension SensorKitConverter {
-    static let ucum: FHIRPrimitive<FHIRURI> = "http://unitsofmeasure.org"
-    static let lifecycle: FHIRPrimitive<FHIRURI> =
-        "http://terminology.hl7.org/CodeSystem/iso-21089-lifecycle"
-    static let participantType: FHIRPrimitive<FHIRURI> =
-        "http://terminology.hl7.org/CodeSystem/provenance-participant-type"
-
     static func buildObservations(
         _ record: SensorKitRecord,
         sourceIdentifier: BusinessIdentifier,
@@ -136,7 +130,7 @@ extension SensorKitConverter {
                 format: try recordingFormat(native.format, entry: entry)
             )],
             context: documentContext,
-            date: FHIRPrimitive(try exactInstant(context.recordedAt, timeZone: context.sourceTimeZone)),
+            date: FHIRPrimitive(try exactInstant(context.conversionInstant, timeZone: context.sourceTimeZone)),
             identifier: [
                 sourceIdentifier.fhirIdentifier,
                 outputNode.identifier.fhirIdentifier
@@ -263,7 +257,7 @@ extension SensorKitConverter {
             leadCodings.append(Coding(
                 code: "131329".asFHIRStringPrimitive(),
                 display: "MDC_ECG_ELEC_POTL_I".asFHIRStringPrimitive(),
-                system: "urn:iso:std:iso:11073:10101".asFHIRURIPrimitive()
+                system: Canonicals.mdc
             ))
         }
         observation.component = [ObservationComponent(

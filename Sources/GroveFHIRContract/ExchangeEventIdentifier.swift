@@ -21,9 +21,7 @@ public struct ExchangeEventIdentifier: Hashable, Sendable {
         sequence: CanonicalPositiveDecimal
     ) throws {
         let canonicalUUID = producerInstance.uuidString.lowercased()
-        let uuidCharacters = Array(canonicalUUID)
-        guard ("1"..."5").contains(String(uuidCharacters[14])),
-              "89ab".contains(uuidCharacters[19]) else {
+        guard Self.statesRFC4122Version(canonicalUUID) else {
             throw ExchangeIdentityError.invalidProducerInstance(producerInstance)
         }
         self.producerInstance = producerInstance
@@ -67,13 +65,20 @@ public struct ExchangeEventIdentifier: Hashable, Sendable {
               let sequence = try? CanonicalPositiveDecimal(String(components[2])) else {
             throw ExchangeIdentityError.invalidEventIdentifier(identifier.value)
         }
-        let uuidCharacters = Array(components[1])
-        guard ("1"..."5").contains(String(uuidCharacters[14])),
-              "89ab".contains(uuidCharacters[19]) else {
+        guard Self.statesRFC4122Version(String(components[1])) else {
             throw ExchangeIdentityError.invalidEventIdentifier(identifier.value)
         }
         self.businessIdentifier = identifier
         self.producerInstance = uuid
         self.sequence = sequence
+    }
+
+    /// Whether a canonical UUID text states one of RFC 4122's versions and its variant.
+    private static func statesRFC4122Version(_ canonicalUUID: String) -> Bool {
+        let characters = Array(canonicalUUID)
+        guard characters.count == 36 else {
+            return false
+        }
+        return ("1"..."5").contains(String(characters[14])) && "89ab".contains(characters[19])
     }
 }

@@ -156,11 +156,11 @@ extension SensorConverter {
                 attachment: try attachment(record),
                 format: Coding(
                     code: record.format.rawValue.asFHIRStringPrimitive(),
-                    system: SensorKitContract.recordingFormatCodeSystem.asFHIRURIPrimitive()
+                    system: RecordingFormatContract.recordingFormatCodeSystem.asFHIRURIPrimitive()
                 )
             )],
             context: related.isEmpty ? nil : DocumentReferenceContext(related: related),
-            date: FHIRPrimitive(try Instant(date: context.recordedAt)),
+            date: FHIRPrimitive(try Instant(date: context.conversionInstant)),
             identifier: [
                 sourceRecord.fhirIdentifier,
                 sourceOutput.fhirIdentifier,
@@ -188,7 +188,7 @@ extension SensorConverter {
             dimensions: FHIRPrimitive(FHIRPositiveInteger(Int32(dimensions))),
             origin: Quantity(
                 code: unitCode.asFHIRStringPrimitive(),
-                system: ucum,
+                system: Canonicals.ucum,
                 unit: unitDisplay?.asFHIRStringPrimitive(),
                 value: try GroveFHIRDecimal(origin).primitive
             ),
@@ -260,7 +260,7 @@ extension SensorConverter {
                 type: CodeableConcept(coding: [Coding(
                     code: "531975".asFHIRStringPrimitive(),
                     display: "MDC_ID_PROD_SPEC_SW".asFHIRStringPrimitive(),
-                    system: mdc
+                    system: Canonicals.mdc
                 )]),
                 value: version.asFHIRStringPrimitive()
             )]
@@ -331,13 +331,13 @@ extension SensorConverter {
             activity: CodeableConcept(coding: [Coding(
                 code: "transform".asFHIRStringPrimitive(),
                 display: "Transform/Translate Record Lifecycle Event".asFHIRStringPrimitive(),
-                system: lifecycleEvent
+                system: Canonicals.isoLifecycleEvent
             )]),
             agent: [ProvenanceAgent(
                 type: CodeableConcept(coding: [Coding(
                     code: "assembler".asFHIRStringPrimitive(),
                     display: "Assembler".asFHIRStringPrimitive(),
-                    system: participantType
+                    system: Canonicals.provenanceParticipantType
                 )]),
                 who: reference(converterURL)
             )],

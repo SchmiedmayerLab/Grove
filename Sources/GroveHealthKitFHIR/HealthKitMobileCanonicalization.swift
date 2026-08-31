@@ -9,6 +9,7 @@
 #if canImport(HealthKit)
 
 import Foundation
+import GroveFHIRContract
 import ModelsR4
 
 
@@ -18,14 +19,11 @@ import ModelsR4
 enum HealthKitMobileCanonicalization {
     /// Produces the exact Decimal value Grove will place on the wire for a binary64 scalar.
     static func scalarDecimalValue(_ value: Double) throws -> Decimal {
-        guard value.isFinite,
-              let decimal = Decimal(
-                string: String(value),
-                locale: Locale(identifier: "en_US_POSIX")
-              ) else {
+        do {
+            return try GroveFHIRDecimal(value).decimal
+        } catch {
             throw HealthKitConversionError.invalidValue
         }
-        return decimal
     }
 
     /// Produces a stable FHIR decimal without exposing Foundation's expanded IEEE-754 artifact.

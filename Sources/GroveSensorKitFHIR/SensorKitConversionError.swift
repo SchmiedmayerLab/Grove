@@ -38,6 +38,8 @@ extension SensorKitConversionError {
             self = .invalidRecord(error)
         case let error as ExchangeIdentityError:
             self = .invalidIdentity(String(describing: error))
+        case let error as ExchangeGraphError:
+            self = .invalidIdentity(String(describing: error))
         default:
             self = .unexpectedConversionFailure(String(reflecting: type(of: error)))
         }

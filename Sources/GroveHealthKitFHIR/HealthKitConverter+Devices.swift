@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-// Device and Provenance construction.
+// Device and Provenance literals follow the FHIR resource shape they build.
 // swiftlint:disable multiline_literal_brackets
 
 #if canImport(HealthKit)
@@ -41,7 +41,7 @@ extension HealthKitConverter {
             type: CodeableConcept(coding: [Coding(
                 code: "531975",
                 display: "MDC_ID_PROD_SPEC_SW",
-                system: mdc
+                system: Canonicals.mdc
             )]),
             value: application.version.asFHIRStringPrimitive()
         )]
@@ -118,7 +118,7 @@ extension HealthKitConverter {
             return nil
         }
         let stableIdentity = try context.identityScope.recordingDevice(
-            adapterID: "healthkit",
+            adapterID: HealthKitConverter.adapterID,
             subject: context.subjectIdentity,
             stableUnitToken: sourceDeviceToken
         )
@@ -208,7 +208,7 @@ extension HealthKitConverter {
                 type: CodeableConcept(coding: [Coding(
                     code: "author",
                     display: "Author",
-                    system: participantType
+                    system: Canonicals.provenanceParticipantType
                 )]),
                 who: Reference(reference: url.asFHIRStringPrimitive())
             )
@@ -222,13 +222,13 @@ extension HealthKitConverter {
             activity: CodeableConcept(coding: [Coding(
                 code: "transform",
                 display: "Transform/Translate Record Lifecycle Event",
-                system: lifecycleEvent
+                system: Canonicals.isoLifecycleEvent
             )]),
             agent: [ProvenanceAgent(
                 type: CodeableConcept(coding: [Coding(
                     code: "assembler",
                     display: "Assembler",
-                    system: participantType
+                    system: Canonicals.provenanceParticipantType
                 )]),
                 who: Reference(reference: converterURL.asFHIRStringPrimitive())
             )],
@@ -251,7 +251,7 @@ extension Array where Element == DeviceVersion {
             type: CodeableConcept(coding: [Coding(
                 code: code.asFHIRStringPrimitive(),
                 display: display.asFHIRStringPrimitive(),
-                system: "urn:iso:std:iso:11073:10101"
+                system: Canonicals.mdc
             )]),
             value: value.asFHIRStringPrimitive()
         ))

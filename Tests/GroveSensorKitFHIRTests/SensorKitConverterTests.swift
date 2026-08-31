@@ -56,7 +56,7 @@ struct GroveSensorKitFHIRConverterTests {
                 ),
                 converterWasGateway: true,
                 sourceTimeZone: try #require(TimeZone(identifier: "America/Los_Angeles")),
-                recordedAt: start.addingTimeInterval(60)
+                conversionInstant: start.addingTimeInterval(60)
         )
     }
 
@@ -245,7 +245,7 @@ struct GroveSensorKitFHIRConverterTests {
             FHIRPrimitive(Canonical(stringLiteral: SensorKitContract.ecgObservationProfile))
         ])
         #expect(document.meta?.profile == [
-            FHIRPrimitive(Canonical(stringLiteral: SensorKitContract.sensorRecordingDocumentProfile)),
+            Profile.groveSensorRecordingDocument,
             FHIRPrimitive(Canonical(stringLiteral: SensorKitContract.recordingDocumentProfile))
         ])
         let method = try #require(observation.method?.coding?.first)
@@ -253,7 +253,7 @@ struct GroveSensorKitFHIRConverterTests {
         #expect(method.code?.value?.string == "guided")
         #expect(method.display?.value?.string == "Guided")
         let format = try #require(document.content.first?.format)
-        #expect(format.system?.value?.url.absoluteString == SensorKitContract.recordingFormatCodeSystem)
+        #expect(format.system?.value?.url.absoluteString == RecordingFormatContract.recordingFormatCodeSystem)
         #expect(format.code?.value?.string == "native-recording")
         #expect(observation.derivedFrom?.first?.reference?.value?.string == entries[1].fullUrl?.value?.url.absoluteString)
         #expect(conversion.provenance.target.count == 2)

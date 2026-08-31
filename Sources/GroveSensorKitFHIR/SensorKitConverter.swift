@@ -8,7 +8,7 @@
 
 // One graph assembly transaction remains contiguous so identifiers, references, and repository ids
 // can be reviewed as a single deterministic operation against the exchange contract.
-// swiftlint:disable function_body_length multiline_literal_brackets file_length
+// swiftlint:disable function_body_length file_length
 
 import FHIRModelsExtensions
 public import Foundation
@@ -68,7 +68,7 @@ public struct SensorKitConversionContext: Sendable {
     public let recordingDevice: SensorRecordingDevice?
     public let converterWasGateway: Bool
     public let sourceTimeZone: TimeZone
-    public let recordedAt: Date
+    public let conversionInstant: Date
     public let researchStudies: [Reference]
     public let repositoryIDs: SensorKitRepositoryIDs
 
@@ -86,7 +86,7 @@ public struct SensorKitConversionContext: Sendable {
         recordingDevice: SensorRecordingDevice? = nil,
         converterWasGateway: Bool = false,
         sourceTimeZone: TimeZone,
-        recordedAt: Date,
+        conversionInstant: Date,
         researchStudies: [Reference] = [],
         repositoryIDs: SensorKitRepositoryIDs = .init()
     ) {
@@ -103,7 +103,7 @@ public struct SensorKitConversionContext: Sendable {
         self.recordingDevice = recordingDevice
         self.converterWasGateway = converterWasGateway
         self.sourceTimeZone = sourceTimeZone
-        self.recordedAt = recordedAt
+        self.conversionInstant = conversionInstant
         self.researchStudies = researchStudies
         self.repositoryIDs = repositoryIDs
     }
@@ -148,18 +148,17 @@ public struct SensorKitBatchResult: Sendable {
 
 /// A no-fetch SensorKit adapter that emits only catalog-admitted R4 graph shapes.
 public struct SensorKitConverter: Sendable {
+    /// The closed adapter token every SensorKit identity preimage carries.
+    static let adapterID = "sensorkit"
+
     public init() {}
 
     public func convert(
         _ record: SensorKitRecord,
         context: SensorKitConversionContext
-    ) throws -> SensorKitConversion {
+    ) throws(SensorKitConversionError) -> SensorKitConversion {
         do {
             return try Self.convertRecord(record, context: context)
-        } catch let error as SensorKitConversionError {
-            throw error
-        } catch let error as SensorKitRecordError {
-            throw SensorKitConversionError.invalidRecord(error)
         } catch {
             throw SensorKitConversionError(conversionFailure: error)
         }
@@ -286,7 +285,7 @@ extension SensorKitConverter {
     ) throws -> SensorKitConversion {
         try validate(record: record, context: context)
         let sourceIdentifier = try context.identityScope.sourceRecord(
-            adapterID: "sensorkit",
+            adapterID: Self.adapterID,
             sourceType: record.sourceToken,
             repositoryScope: context.repositoryScope,
             nativeRecordID: record.sourceRecordID.value
@@ -324,7 +323,7 @@ extension SensorKitConverter {
         let converterHostURL = try ExchangeIdentity.fullURL(for: converterHostIdentity)
         let recordingDeviceIdentity = try context.recordingDevice.map {
             try context.identityScope.recordingDevice(
-                adapterID: "sensorkit",
+                adapterID: Self.adapterID,
                 subject: context.subjectIdentity,
                 stableUnitToken: $0.stableUnitToken
             )
@@ -366,11 +365,11 @@ extension SensorKitConverter {
             document: &document
         )
 
-        var converterApplication = applicationDevice(context.converter)
+        var converterApplication = SensorConverter.applicationDevice(context.converter)
         converterApplication.id = context.repositoryIDs.converterApplication?.primitive
         converterApplication.identifier = [converterApplicationIdentity.fhirIdentifier]
         converterApplication.parent = Reference(reference: converterHostURL.asFHIRStringPrimitive())
-        var converterHost = hostDevice(context.converterHost)
+        var converterHost = SensorConverter.hostDevice(context.converterHost)
         converterHost.id = context.repositoryIDs.converterHost?.primitive
         converterHost.identifier = [converterHostIdentity.fhirIdentifier]
         var recordingDeviceResource = try recordingDeviceResource(
@@ -394,7 +393,7 @@ extension SensorKitConverter {
             sourceIdentifier: sourceIdentifier.fhirIdentifier,
             targetURLs: outputNodes.map(\.fullURL),
             converterURL: converterURL,
-            recordedAt: context.recordedAt,
+            recordedAt: context.conversionInstant,
             timeZone: context.sourceTimeZone
         )
         provenance.id = context.repositoryIDs.provenance?.primitive
@@ -430,13 +429,12 @@ extension SensorKitConverter {
             nodeKey: provenanceNodeKey,
             resource: ResourceProxy(with: provenance)
         ))
-        try ExchangeIdentity.validate(entries: entries)
 
         var bundle = Bundle(
             entry: entries,
             identifier: context.eventIdentifier.businessIdentifier.fhirIdentifier,
             meta: Meta(profile: [Profile.groveMobileExchangeBundle]),
-            timestamp: FHIRPrimitive(try exactInstant(context.recordedAt, timeZone: context.sourceTimeZone)),
+            timestamp: FHIRPrimitive(try exactInstant(context.conversionInstant, timeZone: context.sourceTimeZone)),
             type: FHIRPrimitive(.collection)
         )
         bundle.id = context.repositoryIDs.bundle?.primitive
@@ -476,9 +474,8 @@ extension SensorKitConverter {
             }
             observations[0].id = id.primitive
         }
-        if let governedIdentifier = governedSourceIdentifier(
-            value: record.sourceRecordID.value,
-            policy: context.sourceIdentifierDisclosurePolicy
+        if let governedIdentifier = context.sourceIdentifierDisclosurePolicy.identifier(
+            for: record.sourceRecordID.value
         ) {
             if structuredNode != nil {
                 guard !observations.isEmpty else {
@@ -517,7 +514,7 @@ extension SensorKitConverter {
                 "recording-device identity and event snapshot must be derived together"
             )
         }
-        return recordingDevice(source, identifier: identity, snapshot: snapshot)
+        return SensorConverter.recordingDevice(source, identity: identity, snapshot: snapshot)
     }
 
     private static func outputNode(
@@ -528,7 +525,7 @@ extension SensorKitConverter {
         context: SensorKitConversionContext
     ) throws -> OutputNode {
         let identifier = try context.identityScope.sourceOutput(
-            adapterID: "sensorkit",
+            adapterID: Self.adapterID,
             sourceType: record.sourceToken,
             repositoryScope: context.repositoryScope,
             nativeRecordID: record.sourceRecordID.value,
@@ -537,7 +534,7 @@ extension SensorKitConverter {
         )
         let artifactIdentifier = try record.nativeRecording.map { recording in
             try context.identityScope.sourceArtifact(
-                adapterID: "sensorkit",
+                adapterID: Self.adapterID,
                 sourceType: record.sourceToken,
                 repositoryScope: context.repositoryScope,
                 nativeRecordID: record.sourceRecordID.value,
@@ -551,27 +548,6 @@ extension SensorKitConverter {
             fullURL: try ExchangeIdentity.fullURL(for: identifier)
         )
     }
-
-    private static func governedSourceIdentifier(
-        value: String,
-        policy: GovernedSourceIdentifierDisclosurePolicy
-    ) -> Identifier? {
-        guard case let .authorized(system, type) = policy else {
-            return nil
-        }
-        return Identifier(
-            system: FHIRPrimitive(FHIRURI(stringLiteral: system.rawValue)),
-            type: type.map { type in
-                CodeableConcept(coding: [Coding(
-                    code: type.code.asFHIRStringPrimitive(),
-                    display: type.display?.asFHIRStringPrimitive(),
-                    system: FHIRPrimitive(FHIRURI(stringLiteral: type.system.rawValue))
-                )])
-            },
-            value: value.asFHIRStringPrimitive()
-        )
-    }
-
 
     /// One typed mapping, so a new reference failure cannot be flattened into a description string.
     private static func validatedReference(
@@ -588,7 +564,7 @@ extension SensorKitConverter {
             switch error {
             case .literalRequiresBundleEntry:
                 throw .invalidIdentity(
-                    "\(field) must use an identifier-only logical Reference; literals require a Bundle entry"
+                    TypedReference.literalRefusal(field: field)
                 )
             case .invalidReference:
                 throw .invalidReference("\(field) must reference a \(expectedResourceType)")
@@ -609,35 +585,13 @@ extension SensorKitConverter {
     }
 
     private static func validateConverter(_ context: SensorKitConversionContext) throws {
-        guard !context.converter.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw SensorKitConversionError.invalidConverterApplication("name")
-        }
-        guard !context.converter.sourceDeviceToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw SensorKitConversionError.invalidConverterApplication("sourceDeviceToken")
-        }
-        guard !context.converterHost.sourceDeviceToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw SensorKitConversionError.invalidConverterApplication("converterHost.sourceDeviceToken")
-        }
-        guard !context.converterHost.operatingSystemVersion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw SensorKitConversionError.invalidConverterApplication("converterHost.operatingSystemVersion")
-        }
-        if context.converter.version?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
-            throw SensorKitConversionError.invalidConverterApplication("version")
+        if let blank = SensorConverter.blankConverterField(context.converter, host: context.converterHost) {
+            throw SensorKitConversionError.invalidConverterApplication(blank)
         }
     }
 
     private static func validateIdentifierSystems(_ context: SensorKitConversionContext) throws {
-        let opaqueSystems = [
-            context.identityScope.systems.sourceRecord,
-            context.identityScope.systems.sourceOutput,
-            context.identityScope.systems.writerRecord,
-            context.identityScope.systems.providerRecord,
-            context.identityScope.systems.providerOutput,
-            context.identityScope.systems.sourceArtifact,
-            context.identityScope.systems.providerArtifact,
-            context.identityScope.systems.sourceContext,
-            context.identityScope.systems.recordingDevice,
-            context.identityScope.systems.deviceSnapshot,
+        let opaqueSystems = context.identityScope.systems.all + [
             context.eventIdentifier.businessIdentifier.system,
             context.entryNodeIdentifierSystem
         ]
@@ -675,87 +629,11 @@ extension SensorKitConverter {
     }
 
     private static func validateCatalogContract(_ record: SensorKitRecord) throws {
-        guard let entry = SensorKitCatalog.current.entries.first(where: {
-            $0.sourceToken == record.sourceToken
-        }) else {
+        guard let entry = SensorKitCatalog.current.entry(sourceToken: record.sourceToken) else {
             throw SensorKitRecordError.sourceTypeNotAdmitted(record.sourceToken)
         }
         if case .raw = record, entry.rawProfiles.isEmpty {
             throw SensorKitRecordError.sourceTypeHasNoRawContract(record.sourceToken)
         }
-    }
-
-    private static func applicationDevice(_ application: SensorApplication) -> Device {
-        var device = Device()
-        device.meta = Meta(profile: [Profile.groveApplicationDevice])
-        device.status = FHIRPrimitive(.active)
-        device.deviceName = [DeviceDeviceName(
-            name: application.name.asFHIRStringPrimitive(),
-            type: FHIRPrimitive(.userFriendlyName)
-        )]
-        if let version = application.version {
-            device.version = [DeviceVersion(
-                type: CodeableConcept(coding: [Coding(
-                    code: "531975".asFHIRStringPrimitive(),
-                    display: "MDC_ID_PROD_SPEC_SW".asFHIRStringPrimitive(),
-                    system: "urn:iso:std:iso:11073:10101".asFHIRURIPrimitive()
-                )]),
-                value: version.asFHIRStringPrimitive()
-            )]
-        }
-        if let build = application.build {
-            device.version = (device.version ?? []) + [DeviceVersion(
-                type: CodeableConcept(coding: [Coding(
-                    code: "build".asFHIRStringPrimitive(),
-                    display: "Build".asFHIRStringPrimitive(),
-                    system: Canonicals.groveApplicationVersionType
-                )]),
-                value: build.asFHIRStringPrimitive()
-            )]
-        }
-        return device
-    }
-
-    private static func hostDevice(_ host: SensorHostDevice) -> Device {
-        var device = Device()
-        device.meta = Meta(profile: [Profile.groveHostDevice])
-        device.status = FHIRPrimitive(.active)
-        device.manufacturer = host.manufacturer?.asFHIRStringPrimitive()
-        device.modelNumber = host.modelNumber?.asFHIRStringPrimitive()
-        if let name = host.name {
-            device.deviceName = [DeviceDeviceName(
-                name: name.asFHIRStringPrimitive(),
-                type: FHIRPrimitive(.userFriendlyName)
-            )]
-        }
-        device.version = [DeviceVersion(
-            type: CodeableConcept(coding: [Coding(
-                code: "os-version".asFHIRStringPrimitive(),
-                display: "Operating system version".asFHIRStringPrimitive(),
-                system: Canonicals.groveApplicationVersionType
-            )]),
-            value: host.operatingSystemVersion.asFHIRStringPrimitive()
-        )]
-        return device
-    }
-
-    private static func recordingDevice(
-        _ source: SensorRecordingDevice,
-        identifier: BusinessIdentifier,
-        snapshot: BusinessIdentifier
-    ) -> Device {
-        var device = Device()
-        device.meta = Meta(profile: [Profile.groveRecordingDevice])
-        device.status = FHIRPrimitive(.active)
-        device.identifier = [snapshot.fhirIdentifier, identifier.fhirIdentifier]
-        if let name = source.name {
-            device.deviceName = [DeviceDeviceName(
-                name: name.asFHIRStringPrimitive(),
-                type: FHIRPrimitive(.userFriendlyName)
-            )]
-        }
-        device.manufacturer = source.manufacturer?.asFHIRStringPrimitive()
-        device.modelNumber = source.modelNumber?.asFHIRStringPrimitive()
-        return device
     }
 }

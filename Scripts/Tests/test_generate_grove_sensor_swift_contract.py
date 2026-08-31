@@ -131,6 +131,7 @@ class SensorSwiftContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             sensor, adapter, registry = self.write_catalogs(directory)
             generated = MODULE.generate(sensor, adapter, registry)
+            projected_registry = MODULE.generate_registry(sensor, registry)
 
             self.assertLess(
                 generated.index("case callerAuthorizedOpaquePayload"),
@@ -138,25 +139,25 @@ class SensorSwiftContractTests(unittest.TestCase):
             )
             self.assertIn("sourceToken: \"SRSensor.accelerometer\"", generated)
             self.assertIn("status: .mappedStandard", generated)
-            self.assertIn("sensorConversionProvenanceProfile", generated)
+            self.assertIn("conversionProvenanceProfile", generated)
             self.assertIn("rawFormats: [.groveCSV1]", generated)
             # The registry is projected as a closed type, so an unlisted format cannot be named.
-            self.assertIn('case groveCSV1 = "grove-csv-1"', generated)
+            self.assertIn('case groveCSV1 = "grove-csv-1"', projected_registry)
             self.assertIn(
                 'case .fhirResource: ["application/fhir+json; fhirVersion=1.0", '
                 '"application/fhir+json; fhirVersion=4.0"]',
-                generated,
+                projected_registry,
             )
-            self.assertIn("public var registeredContentTypes: [String]", generated)
-            self.assertIn("public var registeredContentType: String?", generated)
+            self.assertIn("public var registeredContentTypes: [String]", projected_registry)
+            self.assertIn("public var registeredContentType: String?", projected_registry)
             self.assertIn(
                 "public enum RegisteredRecordingFormat: String, CaseIterable, Hashable, Sendable {",
-                generated,
+                projected_registry,
             )
             self.assertIn(
                 "recordingFormatCodeSystem = "
                 "\"https://example.org/sensor/CodeSystem/grove-recording-format\"",
-                generated,
+                projected_registry,
             )
             self.assertNotIn("sourceRecordIdentifierSystem", generated)
             self.assertNotIn("outputIdentifierSystem", generated)
@@ -244,7 +245,7 @@ class SensorSwiftContractTests(unittest.TestCase):
                 }
                 registry.write_text(json.dumps(value))
                 with self.assertRaisesRegex(ValueError, "invalid content-type set"):
-                    MODULE.generate(sensor, adapter, registry)
+                    MODULE.generate_registry(sensor, registry)
 
 
 if __name__ == "__main__":

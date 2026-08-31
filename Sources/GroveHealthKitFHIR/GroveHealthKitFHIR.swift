@@ -117,6 +117,8 @@ extension HealthKitConversionError {
             self = error
         case let error as ExchangeIdentityError:
             self = .invalidExchangeIdentity(String(describing: error))
+        case let error as ExchangeGraphError:
+            self = .invalidExchangeIdentity(String(describing: error))
         default:
             self = .unexpectedConversionFailure(String(reflecting: type(of: error)))
         }

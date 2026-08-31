@@ -42,7 +42,7 @@ struct GroveSensorKitRecordingSummaryTests {
                 repositoryScope: try SensorFHIRIdentityTestSupport.repositoryScope,
                 visitLocationIdentifierSystem: SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem,
                 sourceTimeZone: try #require(TimeZone(identifier: "America/Los_Angeles")),
-                recordedAt: start.addingTimeInterval(60)
+                conversionInstant: start.addingTimeInterval(60)
             )
         }
     }
@@ -130,7 +130,7 @@ struct GroveSensorKitRecordingSummaryTests {
         #expect(Self.componentCounts(observation) == ["sample-count": 1, "batch-count": 1])
         #expect(observation.derivedFrom?.first?.reference?.value?.string == entries[1].fullUrl?.value?.url.absoluteString)
         let format = try #require(document.content.first?.format)
-        #expect(format.system?.value?.url.absoluteString == SensorKitContract.recordingFormatCodeSystem)
+        #expect(format.system?.value?.url.absoluteString == RecordingFormatContract.recordingFormatCodeSystem)
         #expect(format.code?.value?.string == "triaxial-acceleration-samples")
         #expect(conversion.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
             sourceRecordID: try Self.sourceID,
