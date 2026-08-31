@@ -43,10 +43,12 @@ It is possible to ``BulkExportSession/pause()`` an export session, which can the
 
 This example implements a custom ``BatchProcessor``, which uploads the exported HealthKit samples received from the ``BulkHealthExporter`` into Firebase. 
 In this case, we implicitly define the Batch Processor's `Output` type as `Void`, since we're just interested in the uploading, and don't want to perform any additional on-device operations using the results of the individual batches. 
+The `conversionContext` closure both examples take mints one durable conversion context per sample; how to build it is documented in [GroveHealthKitFHIR](../../GroveHealthKitFHIR/GroveHealthKitFHIR.docc/ConfiguringAConversion.md).
 
 ```swift
 struct FirebaseUploader: BulkHealthExporter.BatchProcessor {
-    let subject: Reference   // the participant every exported observation is about
+    /// One durable conversion context per sample: a conversion event is never shared between samples.
+    let contextForSample: (HKSample) throws -> HealthKitConversionContext
     let converter = HealthKitConverter()
 
     func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) async throws {
@@ -55,8 +57,9 @@ struct FirebaseUploader: BulkHealthExporter.BatchProcessor {
             guard let sample = sample as? HKSample else {
                 throw HealthKitConversionError.invalidValue
             }
+            let conversion = try converter.convert(sample, context: contextForSample(sample))
             let document = db.collection("healthData").document(sample.uuid.uuidString)
-            try batch.setData(from: converter.convert(sample, for: subject).bundle, for: document)
+            try batch.setData(from: conversion.bundle, for: document)
         }
         try await batch.commit()
     }
@@ -73,7 +76,7 @@ extension BulkExportSessionIdentifier {
 let session = try await bulkExporter.session(
     withId: .backgroundExport,
     for: [SampleType.activeEnergy, SampleType.heartRate, SampleType.stepCount],
-    using: FirebaseUploader()
+    using: FirebaseUploader(contextForSample: conversionContext)
 )
 
 // start the session
@@ -95,17 +98,16 @@ extension BulkExportSessionIdentifier {
 }
 
 struct FHIREncodedJSONExporter: BatchProcessor {
-    let subject: Reference
+    let contextForSample: (HKSample) throws -> HealthKitConversionContext
 
     func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) throws -> URL {
-        let context = HealthKitConversionContext(subject: subject)
         let healthKitSamples = try samples.map { sample -> HKSample in
             guard let sample = sample as? HKSample else {
                 throw HealthKitConversionError.invalidValue
             }
             return sample
         }
-        let result = HealthKitConverter().convert(healthKitSamples, context: context)
+        let result = HealthKitConverter().convert(healthKitSamples, contextForSample: contextForSample)
         if let failure = result.failures.first {
             throw failure
         }
@@ -120,7 +122,7 @@ struct FHIREncodedJSONExporter: BatchProcessor {
 let session = try await bulkExporter.session(
     withId: .backgroundFHIRExport,
     for: [SampleType.activeEnergy, SampleType.heartRate, SampleType.stepCount],
-    using: FHIREncodedJSONExporter()
+    using: FHIREncodedJSONExporter(contextForSample: conversionContext)
 )
 
 // start the session

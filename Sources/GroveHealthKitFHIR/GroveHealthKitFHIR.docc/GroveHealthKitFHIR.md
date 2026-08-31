@@ -48,7 +48,7 @@ let patient = Reference(
 ```
 
 <doc:ConfiguringAConversion> explains the persisted event identifier, logical references, HMAC key
-epoch, deployment-owned systems, repository scope, device snapshots, and disclosure policies.
+epoch, deployment-owned systems, repository scope, and device snapshots.
 
 One successful conversion returns a ``HealthKitConversion`` containing the normalized
 `Observation`, recording and application `Device` resources when applicable, conversion
@@ -160,12 +160,38 @@ repository-assigned `RepositoryID`.
 - ``HealthKitBatchResult``
 - ``HealthKitRecordFailure``
 
+### Recording and clinical inputs
+
+- ``HealthKitHeartbeatSeriesRecord``
+- ``HealthKitHeartbeat``
+- ``HealthKitWorkoutRouteRecord``
+- ``HealthKitClinicalRecord``
+- ``HealthKitClinicalAttachment``
+- ``HealthKitDocumentConversion``
+
+### Disclosure policies
+
+- ``HealthKitSourceActor``
+- ``HealthKitRouteDisclosurePolicy``
+- ``HealthKitNativeIdentifierDisclosurePolicy``
+- ``HealthKitNativeIdentifierType``
+
+### Refusals
+
+- ``HealthKitConversionError``
+- ``HealthKitECGEvidenceFailure``
+- ``HealthKitSampleProjectionError``
+
 ### Coverage and identity
 
 - ``HealthKitCatalog``
 - ``HealthKitCatalogEntry``
+- ``HealthKitMeasurementContract``
+- ``HealthKitGraphIdentifiers``
+- ``HealthKitDocumentGraphIdentifiers``
+- ``HealthKitRepositoryIDs``
+- ``HealthKitUnitBinding``
 
 ### Reading observations back
 
 - ``HealthKitSampleProjection``
-- ``HealthKitSampleProjectionError``
