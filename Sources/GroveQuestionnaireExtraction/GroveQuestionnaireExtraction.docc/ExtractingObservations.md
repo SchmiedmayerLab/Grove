@@ -4,7 +4,7 @@
 #
 # This source file is part of the Grove open-source project
 #
-# SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+# SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 #
 # SPDX-License-Identifier: MIT
 #
@@ -59,7 +59,7 @@ let graph = try QuestionnaireExchangeProjection.exchangeGraph(
         identityScope: identityScope,
         repositoryScope: repositoryScope,
         entryNodeIdentifierSystem: nodeSystem,
-        conversionInstant: .now
+        conversionInstant: persistedConversionInstant
     )
 )
 ```
@@ -67,7 +67,7 @@ let graph = try QuestionnaireExchangeProjection.exchangeGraph(
 ## Consuming the bundle
 
 The graph is the exchange artifact: upload it, dedup on its identities, retract by them.
-A consumer can also read it back locally — `GroveHealthKitFHIR`'s sample projection turns each of the bundle's Observations into the HealthKit sample it describes, using the minted source-output identity as the HealthKit sync identifier, so HealthKit dedup and exchange dedup ride the same identity.
+A consumer can also read it back locally — `GroveHealthKitFHIR`'s sample projection turns each of the bundle's quantity Observations into the HealthKit sample it describes, using the minted source-output identity as the HealthKit sync identifier, so HealthKit dedup and exchange dedup ride the same identity.
 An app that only wants that local readback still projects the full graph and simply discards the bundle afterwards; the identities it minted stay deterministic, so nothing is lost by not keeping it.
 
 Extraction refuses loudly — ``ObservationExtractionError`` names the item and the contradiction — so an instrument is validated by projecting it, the same way the conformance gates do.

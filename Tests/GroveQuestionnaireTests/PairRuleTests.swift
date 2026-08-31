@@ -140,6 +140,16 @@ struct GroveQuestionnaireFHIRPairRuleTests {
         }
     }
 
+    @Test("The unmutated base pair is issue-free, so every mutation below is the cause")
+    func basePairIsIssueFree() throws {
+        let pair = try decodePair(try basePairObjects())
+        let issues = PairValidator().issues(
+            questionnaire: pair.questionnaire,
+            response: pair.response
+        )
+        #expect(issues.isEmpty)
+    }
+
     @Test("Rejects every deterministic answer-constraint family", arguments: AnswerRuleCase.allCases)
     func rejectsAnswerConstraintFamily(testCase: AnswerRuleCase) throws {
         var objects = try basePairObjects()

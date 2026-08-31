@@ -250,8 +250,8 @@ struct HealthKitFHIRConverterTests {
         // rather than scoped to an empty writer.
         #expect(syncIdentifier(first) == nil)
         #expect(syncVersion(first) == nil)
-        #expect(syncIdentifier(revision) == syncIdentifier(first))
-        #expect(syncVersion(revision) == syncVersion(first))
+        #expect(syncIdentifier(revision) == nil)
+        #expect(syncVersion(revision) == nil)
         // The object identifiers differ, which is exactly why the sync identity is needed.
         #expect(first.observation.identifier?.first != revision.observation.identifier?.first)
 
@@ -368,16 +368,16 @@ struct HealthKitFHIRConverterTests {
         )
     }
 
-    @Test("Every supported quantity emits its exact shared and adapter profile", arguments: QuantityCase.allCases)
-    func supportedQuantity(testCase: QuantityCase) throws {
+    /// The full-catalog matrix proves the profile, code, and lineage facts for every row; this
+    /// hand-picked set exists for the source units it converts from and its exact decimal scaling.
+    @Test("Every source unit normalizes to its contract unit and exact decimal", arguments: QuantityCase.allCases)
+    func normalizesSourceUnits(testCase: QuantityCase) throws {
         let sample = quantitySample(
             testCase.identifier,
             unit: testCase.sourceUnit,
             value: testCase.sourceValue
         )
         let conversion = try converter.convert(sample, context: context)
-        let codings = try #require(conversion.observation.code.coding)
-        let code = try #require(codings.first)
         let quantity: Quantity = try #require({
             guard case .quantity(let quantity) = conversion.observation.value else {
                 return nil
@@ -396,22 +396,6 @@ struct HealthKitFHIRConverterTests {
         if testCase != .bodyMassIndex {
             #expect(profileClaims.allSatisfy { !ProfileClaims.forbiddenExplicitProfiles.contains($0) })
         }
-        #expect(code.system?.value?.url.absoluteString == testCase.contract.code.system)
-        #expect(code.code?.value?.string == testCase.contract.code.code)
-        #expect(codings.count == 1 + testCase.contract.requiredCodings.count)
-        for (coding, required) in zip(codings.dropFirst(), testCase.contract.requiredCodings) {
-            #expect(coding.system?.value?.url.absoluteString == required.system)
-            #expect(coding.code?.value?.string == required.code)
-        }
-        let sourceType = conversion.observation.extension?.filter {
-            $0.url == Canonicals.healthKitSourceTypeExtension
-        }
-        #expect(sourceType?.count == 1)
-        guard case .code(let sourceCode) = sourceType?.first?.value else {
-            Issue.record("HealthKit source lineage must use valueCode")
-            return
-        }
-        #expect(sourceCode.value?.string == testCase.identifier.rawValue)
         #expect(quantity.system?.value?.url.absoluteString == testCase.contract.quantity?.system)
         #expect(quantity.code?.value?.string == testCase.contract.quantity?.code)
         #expect(conversion.observation.effective?.isPeriod == (testCase.contract.effective == .period))
