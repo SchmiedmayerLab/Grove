@@ -11,7 +11,6 @@
 import FHIRModelsExtensions
 import Foundation
 import GroveFHIRContract
-public import GroveHealthKit
 public import HealthKit
 import ModelsR4
 
@@ -63,61 +62,6 @@ extension HealthKitConverter {
                 voltageMeasurements: voltageMeasurements,
                 correlatedSymptoms: correlatedSymptoms
             ),
-            contextForSample: contextForSample
-        )
-    }
-
-    /// Fetches the ECG waveform and correlated samples, then converts every source event with its
-    /// own durable context.
-    public func convert(
-        _ electrocardiogram: HKElectrocardiogram,
-        using healthKit: HealthKit,
-        contextForSample: @Sendable (HKSample) async throws -> HealthKitConversionContext
-    ) async throws -> HealthKitConversionSet {
-        async let voltageMeasurements = electrocardiogram.rawVoltageMeasurements(from: healthKit.healthStore)
-        async let correlatedSymptoms = electrocardiogram.correlatedSymptomSamples(from: healthKit)
-        let record = HealthKitECGRecord(
-            electrocardiogram: electrocardiogram,
-            voltageMeasurements: try await voltageMeasurements,
-            correlatedSymptoms: try await correlatedSymptoms
-        )
-        let symptoms = try Self.validatedSymptomSamples(
-            record.correlatedSymptoms,
-            status: electrocardiogram.symptomsStatus
-        )
-        var symptomConversions: [HealthKitConversion] = []
-        symptomConversions.reserveCapacity(symptoms.count)
-        for symptom in symptoms {
-            symptomConversions.append(try Self.convertSample(
-                symptom,
-                context: try await contextForSample(symptom)
-            ))
-        }
-        return try Self.convertECG(
-            HealthKitECGRecord(
-                electrocardiogram: electrocardiogram,
-                voltageMeasurements: record.voltageMeasurements,
-                correlatedSymptoms: symptoms
-            ),
-            context: try await contextForSample(electrocardiogram),
-            symptomConversions: symptomConversions
-        )
-    }
-
-    /// Converts one sample, fetching evidence for ECG and otherwise producing one conversion set.
-    public func convert(
-        _ sample: HKSample,
-        using healthKit: HealthKit,
-        contextForSample: @Sendable (HKSample) async throws -> HealthKitConversionContext
-    ) async throws -> HealthKitConversionSet {
-        guard let electrocardiogram = sample as? HKElectrocardiogram else {
-            return HealthKitConversionSet(
-                primary: try convert(sample, context: try await contextForSample(sample))
-            )
-        }
-        return try await convert(
-            electrocardiogram,
-            using: healthKit,
             contextForSample: contextForSample
         )
     }
