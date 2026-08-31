@@ -3784,7 +3784,7 @@ public struct HealthKitContractRow: Sendable {
 public enum HealthKitContract {
     public static let catalogVersion = "0.6.0"
     public static let sourceTypeCodeSystem: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-source-type"
-    public static let sourceTypeExtension: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type-extension"
+    public static let sourceTypeExtension: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
     public static let conversionProvenanceProfile: FHIRPrimitive<Canonical> = Profile.healthkitConversionProvenance
     public static let applicationDeviceProfile: FHIRPrimitive<Canonical> = Profile.healthkitApplicationDevice
     public static let appleBundleIdentifierSystem: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id"
@@ -4553,7 +4553,7 @@ public enum HealthKitContract {
             measurementIDs: [],
             profiles: [Profile.healthkitMedicationDoseEvent],
             implementationStatus: .platformExclusive,
-            requirement: "A logged dose is admitted as a MedicationAdministration that keeps the exact HKMedicationDoseEvent.LogStatus and the schedule it was logged against beside the R4 status, which collapses six source cases onto three codes. The medication is named by the same HKHealthConceptIdentifier the tracked-medication statement carries."
+            requirement: "A logged dose is admitted as a MedicationAdministration that keeps the exact HKMedicationDoseEvent.LogStatus and the schedule it was logged against beside the coarser R4 status; this contract states no mapping from the source case onto an R4 status code, so a consumer reads the log status to learn what the person did. The medication is named by the same HKHealthConceptIdentifier the tracked-medication statement carries."
         ),
         HealthKitContractRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierActiveEnergyBurned",
