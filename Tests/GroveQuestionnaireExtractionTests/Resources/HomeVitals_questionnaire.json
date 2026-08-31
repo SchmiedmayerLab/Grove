@@ -140,36 +140,10 @@
           "display": "Blood pressure panel with all children optional"
         }
       ]
-    },
-    {
-      "extension": [
-        {
-          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-observationExtract",
-          "valueBoolean": true
-        },
-        {
-          "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-unit",
-          "valueCoding": {
-            "code": "{steps}",
-            "system": "http://unitsofmeasure.org",
-            "display": "{steps}"
-          }
-        }
-      ],
-      "linkId": "step-count",
-      "text": "Enter the step count displayed now.",
-      "type": "integer",
-      "code": [
-        {
-          "code": "step-count-total",
-          "system": "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement",
-          "display": "Step count total"
-        }
-      ]
     }
   ],
   "url": "https://grovealliance.org/fhir/questionnaire/Questionnaire/GroveHomeVitalsExample",
-  "version": "1.0.0",
+  "version": "0.6.0",
   "name": "GroveHomeVitals",
   "title": "Home Vitals",
   "status": "active"

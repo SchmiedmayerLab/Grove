@@ -55,7 +55,7 @@
     "system": "https://study.example.org/fhir/NamingSystem/questionnaire-response",
     "value": "home-vitals-2026-08-28"
   },
-  "questionnaire": "https://grovealliance.org/fhir/questionnaire/Questionnaire/GroveHomeVitalsExample|1.0.0",
+  "questionnaire": "https://grovealliance.org/fhir/questionnaire/Questionnaire/GroveHomeVitalsExample|0.6.0",
   "status": "completed",
   "subject": {
     "reference": "Patient/GroveQuestionnairePatientExample"
@@ -87,7 +87,7 @@
             {
               "valueQuantity": {
                 "value": 118,
-                "unit": "mmHg",
+                "unit": "mm[Hg]",
                 "system": "http://unitsofmeasure.org",
                 "code": "mm[Hg]"
               }
@@ -100,20 +100,12 @@
             {
               "valueQuantity": {
                 "value": 76,
-                "unit": "mmHg",
+                "unit": "mm[Hg]",
                 "system": "http://unitsofmeasure.org",
                 "code": "mm[Hg]"
               }
             }
           ]
-        }
-      ]
-    },
-    {
-      "linkId": "step-count",
-      "answer": [
-        {
-          "valueInteger": 8432
         }
       ]
     }

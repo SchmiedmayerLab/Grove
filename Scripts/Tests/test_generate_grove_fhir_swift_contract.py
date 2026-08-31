@@ -207,7 +207,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                 "sourceTypeExtension": {
                     "url": (
                         "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
-                        "healthkit-source-type-extension"
+                        "healthkit-source-type"
                     ),
                     "valueSystem": "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-source-type",
                     "valueElement": "valueCode",
