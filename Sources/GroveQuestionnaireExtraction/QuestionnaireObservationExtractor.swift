@@ -1,7 +1,7 @@
 //
 // This source file is part of the Grove open-source project
 //
-// SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
 // SPDX-License-Identifier: MIT
 //
@@ -15,17 +15,27 @@ import ModelsR4
 ///
 /// Every refusal names the exact defect: a projection that guesses is worse than none, so an
 /// instrument or response that leaves the extractor guessing does not project.
-public enum ObservationExtractionError: Error, Equatable {
+public enum ObservationExtractionError: Error, Equatable, Sendable {
     case responseNotCompleted(status: String)
+    case responseAuthoredMissing
     case responseIdentifierMissing
     case versionedQuestionnaireCanonicalMissing
     case subjectMissing
+    /// The response names an author other than its subject; Grove re-attributes nothing.
+    case authorIsNotTheSubject
+    /// The response names a source other than its subject; author and source are independent facts.
+    case sourceIsNotTheSubject
     case contradictoryExtractionMarking(linkID: String)
     case itemCodeMissing(linkID: String)
     case answerMissing(linkID: String)
+    /// A repeating item carried several answers; projecting one of them would lose the rest.
+    case multipleAnswers(linkID: String)
     case unitMissing(linkID: String)
     case unitMismatch(linkID: String, expected: String, answered: String)
     case measurementNotInCatalog(linkID: String, system: String, code: String)
+    /// The measurement is only ever effective over a Period, and a response states one authored
+    /// instant; stating that instant as the effective time would invent a duration the answer never gave.
+    case measurementRequiresEffectivePeriod(linkID: String, measurement: String)
     case componentNotInMeasurement(linkID: String, code: String)
     case componentIncomplete(measurement: String, missing: String)
     case unsupportedAnswer(linkID: String)
@@ -41,24 +51,14 @@ public enum ObservationExtractionError: Error, Equatable {
 /// One value extracted from an answered item, before identity and envelope are added.
 enum ExtractedValue: Equatable {
     case quantity(Quantity)
-    case components([(code: CodingContract, value: Quantity)])
+    case components([Component])
     case codeableConcept(CodeableConcept)
     case boolean(Bool)
 
-    static func == (lhs: ExtractedValue, rhs: ExtractedValue) -> Bool {
-        switch (lhs, rhs) {
-        case let (.quantity(left), .quantity(right)):
-            left == right
-        case let (.codeableConcept(left), .codeableConcept(right)):
-            left == right
-        case let (.boolean(left), .boolean(right)):
-            left == right
-        case let (.components(left), .components(right)):
-            left.count == right.count
-                && zip(left, right).allSatisfy { $0.code == $1.code && $0.value == $1.value }
-        default:
-            false
-        }
+    /// One component's fixed code and the value answered for it.
+    struct Component: Equatable {
+        let code: CodingContract
+        let value: Quantity
     }
 }
 
@@ -85,6 +85,20 @@ struct QuestionnaireObservationExtractor {
         (MeasurementCatalog.all + HealthKitMeasurementCatalog.all).first {
             $0.code.system == system && $0.code.code == code
         }
+    }
+
+    /// The item's one answer.
+    ///
+    /// A repeating item's further answers have no projection yet, and keeping only the first would
+    /// silently drop what the participant answered.
+    private static func singleAnswer(
+        of item: ModelsR4.QuestionnaireResponseItem,
+        linkID: String
+    ) throws -> QuestionnaireResponseItemAnswer? {
+        guard let answers = item.answer, answers.count > 1 else {
+            return item.answer?.first
+        }
+        throw ObservationExtractionError.multipleAnswers(linkID: linkID)
     }
 
     func extract() throws -> [ExtractedMeasurement] {
@@ -114,7 +128,8 @@ struct QuestionnaireObservationExtractor {
         into extracted: inout [ExtractedMeasurement]
     ) throws {
         let linkID = item.linkId.value?.string ?? ""
-        switch try item.extractionMarking() {
+        let marking = try item.extractionMarking()
+        switch marking {
         case .standalone, .independent:
             extracted.append(try measurement(for: item, answers: answers, linkID: linkID))
         case .member, .derived:
@@ -122,7 +137,7 @@ struct QuestionnaireObservationExtractor {
             // the relationship, so they refuse until the linkage is implemented.
             throw ObservationExtractionError.unsupportedRelationship(
                 linkID: linkID,
-                relationship: try item.extractionMarking() == .member ? "member" : "derived"
+                relationship: marking == .member ? "member" : "derived"
             )
         case .component, nil:
             // A bare component marking has no parent Observation here; it is consumed by the
@@ -150,6 +165,9 @@ struct QuestionnaireObservationExtractor {
         guard let contract = Self.measurement(system: system, code: code) else {
             throw ObservationExtractionError.measurementNotInCatalog(linkID: linkID, system: system, code: code)
         }
+        guard contract.effective != .period else {
+            throw ObservationExtractionError.measurementRequiresEffectivePeriod(linkID: linkID, measurement: contract.id)
+        }
         let value: ExtractedValue
         if contract.components.isEmpty {
             guard let answers else {
@@ -175,7 +193,7 @@ struct QuestionnaireObservationExtractor {
         contract: MeasurementContract,
         linkID: String
     ) throws -> ExtractedValue {
-        guard let answer = answers.answer?.first else {
+        guard let answer = try Self.singleAnswer(of: answers, linkID: linkID) else {
             throw ObservationExtractionError.answerMissing(linkID: linkID)
         }
         switch answer.value {
@@ -235,7 +253,7 @@ struct QuestionnaireObservationExtractor {
         answers: ModelsR4.QuestionnaireResponseItem?,
         contract: MeasurementContract
     ) throws -> ExtractedValue {
-        var components: [(code: CodingContract, value: Quantity)] = []
+        var components: [ExtractedValue.Component] = []
         for child in item.item ?? [] {
             guard try child.extractionMarking() == .component else {
                 continue
@@ -248,12 +266,12 @@ struct QuestionnaireObservationExtractor {
             guard let component = contract.components.first(where: { $0.code == code }) else {
                 throw ObservationExtractionError.componentNotInMeasurement(linkID: childLinkID, code: code)
             }
-            guard let answered = responseItem(linkID: childLinkID, in: answers?.item ?? []),
-                  let answer = answered.answer?.first,
+            let answered = responseItem(linkID: childLinkID, in: answers?.item ?? [])
+            guard let answer = try answered.flatMap({ try Self.singleAnswer(of: $0, linkID: childLinkID) }),
                   case .quantity(let quantity) = answer.value else {
                 throw ObservationExtractionError.answerMissing(linkID: childLinkID)
             }
-            components.append((
+            components.append(ExtractedValue.Component(
                 code: CodingContract(system: component.system, code: component.code),
                 value: try validated(quantity, against: component.quantity, linkID: childLinkID)
             ))
@@ -285,7 +303,10 @@ struct QuestionnaireObservationExtractor {
                 answered: answeredCode
             )
         }
-        return quantity
+        // An answer may spell the display as the UCUM code; the catalog owns the emitted display.
+        var normalized = quantity
+        normalized.unit = declared.unit.asFHIRStringPrimitive()
+        return normalized
     }
 
     private func fixedUnitQuantity(

@@ -1,7 +1,7 @@
 //
 // This source file is part of the Grove open-source project
 //
-// SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
 // SPDX-License-Identifier: MIT
 //
@@ -24,6 +24,10 @@ public struct QuestionnaireExtractionContext: Sendable {
     public let identityScope: PseudonymousIdentityScope
     public let repositoryScope: BusinessIdentifier
     public let entryNodeIdentifierSystem: IdentifierSystem
+    /// The instant of this projection event.
+    ///
+    /// Written to `Provenance.occurred`/`recorded` and `Bundle.timestamp`. Callers persist it with
+    /// the event and reuse it for an exact retry; Grove never reads the clock.
     public let conversionInstant: Date
     /// Writer facts for a local projection; a received response supplies its own instead.
     public let localWriter: QuestionnaireWriterContext?
@@ -80,11 +84,7 @@ public enum QuestionnaireExchangeProjection {
             entries.append(entry)
             observationURLs.append(url)
         }
-        entries.append(try frame.provenanceEntry(
-            targets: observationURLs,
-            ordinal: UInt64(entries.count)
-        ))
-        try ExchangeIdentity.validate(entries: entries)
+        entries.append(try frame.provenanceEntry(targets: observationURLs))
         return try frame.graph(entries: entries)
     }
 }
@@ -116,17 +116,20 @@ private struct GraphFrame {
         guard let nativeRecordID = response.identifier?.value?.value?.string else {
             throw ObservationExtractionError.responseIdentifierMissing
         }
-        guard let canonical = QuestionnaireCanonicalIdentity(response.questionnaire) else {
+        guard QuestionnaireCanonicalIdentity(response.questionnaire) != nil else {
             throw ObservationExtractionError.versionedQuestionnaireCanonicalMissing
         }
         guard let authored = response.authored?.value else {
-            throw ObservationExtractionError.responseNotCompleted(status: "authored missing")
+            throw ObservationExtractionError.responseAuthoredMissing
         }
+        try Self.validateActors(of: response)
         self.context = context
         self.response = response
         self.authored = authored
         self.nativeRecordID = nativeRecordID
-        let sourceType = "\(canonical.url.absoluteString)|\(canonical.version)"
+        // The source type names the record kind, as every adapter's does; which instrument was
+        // answered stays in the response the Observations derive from.
+        let sourceType = "QuestionnaireResponse"
         self.sourceType = sourceType
         self.sourceRecord = try context.identityScope.sourceRecord(
             adapterID: QuestionnaireExchangeProjection.adapterID,
@@ -139,7 +142,7 @@ private struct GraphFrame {
         self.patientReference = Reference(
             reference: try ExchangeIdentity.fullURL(for: patientNode.identifier).asFHIRStringPrimitive()
         )
-        let responseNode = try Self.nodeKey("questionnaire-response", ordinal: 1, context: context)
+        let responseNode = try Self.nodeKey("questionnaire-response", ordinal: 0, context: context)
         self.responseNode = responseNode
         self.responseURL = try ExchangeIdentity.fullURL(for: responseNode.identifier)
         let host = try Self.hostDevice(writer: writer, context: context)
@@ -154,6 +157,34 @@ private struct GraphFrame {
         self.applicationURL = try ExchangeIdentity.fullURL(for: application.identity)
     }
 
+    /// Refuses a response whose author or source is anyone but its subject.
+    ///
+    /// Author and source are independent facts the guide forbids inferring from one another, so a
+    /// caregiver-authored response refuses here instead of being silently re-attributed.
+    static func validateActors(of response: ModelsR4.QuestionnaireResponse) throws {
+        guard let subject = response.subject else {
+            throw ObservationExtractionError.subjectMissing
+        }
+        if let author = response.author, !denotesSameActor(author, as: subject) {
+            throw ObservationExtractionError.authorIsNotTheSubject
+        }
+        if let source = response.source, !denotesSameActor(source, as: subject) {
+            throw ObservationExtractionError.sourceIsNotTheSubject
+        }
+    }
+
+    /// Whether two references name the same actor, ignoring display text that does not.
+    static func denotesSameActor(_ reference: Reference, as subject: Reference) -> Bool {
+        guard reference.reference != nil || reference.identifier != nil else {
+            return false
+        }
+        return reference.reference?.value?.string == subject.reference?.value?.string
+            && reference.identifier == subject.identifier
+            && reference.type?.value?.url == subject.type?.value?.url
+    }
+
+    /// The ordinal counts within the node role, not across the Bundle, so a graph carrying one
+    /// node per keyless role numbers every one of them zero.
     static func nodeKey(
         _ role: String,
         ordinal: UInt64,
@@ -173,8 +204,9 @@ private struct GraphFrame {
 
 extension GraphFrame {
     func supportEntries() throws -> [BundleEntry] {
-        // The exchange copy of the response resolves its actor references inside the Bundle:
-        // a literal repository reference cannot resolve here.
+        // The exchange copy resolves the response's actor references inside the Bundle: a literal
+        // repository reference cannot resolve here, and the frame has already established that
+        // author and source, where stated, are the subject.
         var carriedResponse = response
         carriedResponse.subject = patientReference
         if carriedResponse.author != nil {
@@ -208,7 +240,7 @@ extension GraphFrame {
             repositoryScope: context.repositoryScope,
             nativeRecordID: nativeRecordID,
             outputRole: measurement.contract.id,
-            outputDiscriminator: measurement.linkID
+            outputDiscriminator: "single"
         )
         let entry = try ExchangeIdentity.entry(
             identifier: output,
@@ -217,9 +249,9 @@ extension GraphFrame {
         return (entry, try ExchangeIdentity.fullURL(for: output))
     }
 
-    func provenanceEntry(targets: [String], ordinal: UInt64) throws -> BundleEntry {
+    func provenanceEntry(targets: [String]) throws -> BundleEntry {
         try ExchangeIdentity.entry(
-            nodeKey: try Self.nodeKey("conversion-provenance", ordinal: ordinal, context: context),
+            nodeKey: try Self.nodeKey("conversion-provenance", ordinal: 0, context: context),
             resource: ResourceProxy(with: try provenance(targets: targets))
         )
     }
@@ -288,7 +320,9 @@ extension GraphFrame {
         observation.meta = Meta(profile: [measurement.contract.profile])
         observation.identifier = [sourceRecord.fhirIdentifier, sourceOutput.fhirIdentifier]
         observation.subject = patientReference
-        observation.performer = [patientReference]
+        if response.author != nil {
+            observation.performer = [patientReference]
+        }
         if !measurement.categories.isEmpty {
             observation.category = measurement.categories
         }
@@ -300,13 +334,11 @@ extension GraphFrame {
         observation.extension = [
             Extension(
                 url: Canonicals.recordingMethod,
-                value: .codeableConcept(CodeableConcept(coding: [
-    Coding(
-                        code: "manual-entry",
-                        display: "Manual entry",
-                        system: Canonicals.recordingMethodCodeSystem
-                    )
-                ]))
+                value: .coding(Coding(
+                    code: "manual-entry",
+                    display: "Manual entry",
+                    system: Canonicals.recordingMethodCodeSystem
+                ))
             ),
             Extension(
                 url: Canonicals.gatewayDevice,
@@ -322,11 +354,6 @@ extension GraphFrame {
 // MARK: Devices
 
 extension GraphFrame {
-    struct IdentifiedDevice {
-        let resource: Device
-        let identity: BusinessIdentifier
-    }
-
     static func hostDevice(
         writer: QuestionnaireWriterContext,
         context: QuestionnaireExtractionContext
@@ -392,7 +419,7 @@ extension GraphFrame {
                 type: CodeableConcept(coding: [
     Coding(
                         code: "531975",
-                        system: FHIRPrimitive(FHIRURI(stringLiteral: mdcSystem))
+                        system: Canonicals.mdc
                     )
                 ]),
                 value: writer.applicationVersion.asFHIRStringPrimitive()
@@ -421,9 +448,6 @@ extension GraphFrame {
 // MARK: Provenance
 
 extension GraphFrame {
-    static let participantType = "http://terminology.hl7.org/CodeSystem/provenance-participant-type"
-    static let lifecycleEvent = "http://terminology.hl7.org/CodeSystem/iso-21089-lifecycle"
-    static let mdcSystem = "urn:iso:std:iso:11073:10101"
     static let utcTimeZone = TimeZone(identifier: "UTC") ?? .current
 
     func provenance(targets: [String]) throws -> Provenance {
@@ -432,7 +456,7 @@ extension GraphFrame {
     Coding(
                     code: "transform",
                     display: "Transform/Translate Record Lifecycle Event",
-                    system: FHIRPrimitive(FHIRURI(stringLiteral: Self.lifecycleEvent))
+                    system: Canonicals.isoLifecycleEvent
                 )
             ]),
             agent: [
@@ -441,7 +465,7 @@ extension GraphFrame {
     Coding(
                             code: "assembler",
                             display: "Assembler",
-                            system: FHIRPrimitive(FHIRURI(stringLiteral: Self.participantType))
+                            system: Canonicals.provenanceParticipantType
                         )
                     ]),
                     who: Reference(reference: applicationURL.asFHIRStringPrimitive())

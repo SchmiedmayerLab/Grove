@@ -1,7 +1,7 @@
 //
 // This source file is part of the Grove open-source project
 //
-// SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
 // SPDX-License-Identifier: MIT
 //
@@ -87,7 +87,7 @@ struct ObservationExtractionTests {
             eventIdentifier: event,
             identityScope: scope,
             repositoryScope: try BusinessIdentifier(
-                system: IdentifierSystem("urn:uuid:1f5c58aa-6ec6-4e79-a682-829a9debd3f5"),
+                system: IdentifierSystem("https://study.example.org/fhir/NamingSystem/questionnaire-response"),
                 value: "default"
             ),
             entryNodeIdentifierSystem: try IdentifierSystem(
@@ -153,12 +153,12 @@ struct ObservationExtractionTests {
 
     // MARK: The Guide's Worked Example
 
-    @Test("The Home Vitals pair extracts its three documented Observations")
-    func extractsThreeObservations() throws {
+    @Test("The Home Vitals pair extracts its two documented Observations")
+    func extractsTwoObservations() throws {
         let (_, observations) = try Self.projected()
-        #expect(observations.count == 3)
+        #expect(observations.count == 2)
         let codes = Set(observations.compactMap { $0.code.coding?.first?.code?.value?.string })
-        #expect(codes == ["29463-7", "85354-9", "step-count-total"])
+        #expect(codes == ["29463-7", "85354-9"])
     }
 
     @Test("The weight takes the moment of answering and the answered unit")
@@ -215,17 +215,29 @@ struct ObservationExtractionTests {
         }
     }
 
-    @Test("The step count takes its fixed unit from the instrument")
-    func stepCountCarriesTheFixedUnit() throws {
-        let (_, observations) = try Self.projected()
-        let steps = try Self.observation(observations, code: "step-count-total")
-        guard case .quantity(let value)? = steps.value else {
-            Issue.record("step count has no quantity")
-            return
+    @Test("A measurement that is only ever effective over a Period does not extract")
+    func periodEffectiveMeasurementIsRefused() throws {
+        let (questionnaire, response) = try Self.syntheticPair(
+            code: (
+                system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement",
+                value: "step-count-total"
+            ),
+            marking: Extension(
+                url: FHIRPrimitive(FHIRURI(stringLiteral: ExtractionCanonical.observationExtract)),
+                value: .boolean(FHIRPrimitive(FHIRBool(true)))
+            ),
+            answer: .integer(FHIRPrimitive(FHIRInteger(8432)))
+        )
+        #expect(throws: ObservationExtractionError.measurementRequiresEffectivePeriod(
+            linkID: "synthetic",
+            measurement: "step-count"
+        )) {
+            try QuestionnaireExchangeProjection.exchangeGraph(
+                questionnaire: questionnaire,
+                response: response,
+                context: try Self.context()
+            )
         }
-        #expect(value.value?.value?.decimal == 8432)
-        #expect(value.code?.value?.string == "{steps}")
-        #expect(steps.category == nil)
     }
 
     @Test("Every output carries the envelope: identities, subject, manual entry, derivation")
@@ -237,15 +249,16 @@ struct ObservationExtractionTests {
             } ?? [])
             #expect(roles == ["source-record", "source-output"])
             #expect(observation.subject?.reference?.value?.string.hasPrefix("urn:uuid:") == true)
+            #expect(observation.performer == [try #require(observation.subject)])
             #expect(observation.derivedFrom?.count == 1)
             let recording = observation.extension?.first {
                 $0.url.value?.url.absoluteString.hasSuffix("grove-recording-method") == true
             }
-            guard case .codeableConcept(let method)? = recording?.value else {
+            guard case .coding(let method)? = recording?.value else {
                 Issue.record("recording method missing")
                 continue
             }
-            #expect(method.coding?.first?.code?.value?.string == "manual-entry")
+            #expect(method.code?.value?.string == "manual-entry")
         }
     }
 
@@ -295,7 +308,7 @@ struct ObservationExtractionTests {
     func bundleIsClosed() throws {
         let (graph, _) = try Self.projected()
         let entries = try #require(graph.bundle.entry)
-        #expect(entries.count == 8)
+        #expect(entries.count == 7)
         let urls = Set(entries.compactMap { $0.fullUrl?.value?.url.absoluteString })
         let kinds = entries.compactMap { entry -> String? in
             guard let resource = entry.resource else {
@@ -367,14 +380,14 @@ struct ObservationExtractionTests {
             }
         }
 
-        // Minted with Scripts/exchange_protocol.py and testVectors.keyHex, pinning
-        // Swift/Python cross-implementation equality of every contract preimage.
+        // The guide publishes these under testVectors.identities as
+        // questionnaire-extraction-{source-record,body-weight-output,blood-pressure-output},
+        // pinning Swift/Python cross-implementation equality of every contract preimage.
         let canonical: [String: String] = [
-            "29463-7": "v0:test-key:1:Sl5C8R49XC59xPZHI5adt_i54zOnqjWeZmQ77IPrb4I",
-            "85354-9": "v0:test-key:1:TNU37wfhgb5JNXgyf3KhIoH_efRZtu8I8O6O6pZzHxo",
-            "step-count-total": "v0:test-key:1:VhCT-zticF5TeGZ-vQWoWqsUvtSeCfzu5KGzr9J-DD0"
+            "29463-7": "v0:test-key:1:oY5ARo6F_wNj5wVdtFqORMdUwZ__B9kQ6GW1RSaEz10",
+            "85354-9": "v0:test-key:1:ljzpyfYa15oOpj_A37-cd-_8JXqQwwfomR9iT0gct6g"
         ]
-        let sourceRecord = "v0:test-key:1:3RRCwVrPwADSWhUldCvYs2p6H0SC4XvqI0lb7WoPU60"
+        let sourceRecord = "v0:test-key:1:7_7dmqTFxPH01QGTycmp8nIPty7WwphH2X0ZaV-p3wk"
         for observation in observations {
             let code = try #require(observation.code.coding?.first?.code?.value?.string)
             var values: [String: String] = [:]
@@ -545,6 +558,49 @@ struct ObservationExtractionTests {
                 response: response,
                 context: try Self.context()
             )
+        }
+    }
+
+    @Test("A response authored by someone other than the subject refuses instead of being re-attributed")
+    func foreignAuthorRefuses() throws {
+        var response = try Self.fixture("HomeVitals_response", as: ModelsR4.QuestionnaireResponse.self)
+        response.author = Reference(reference: "Practitioner/caregiver-7".asFHIRStringPrimitive())
+        #expect(throws: ObservationExtractionError.authorIsNotTheSubject) {
+            try QuestionnaireExchangeProjection.exchangeGraph(
+                questionnaire: try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self),
+                response: response,
+                context: try Self.context()
+            )
+        }
+    }
+
+    @Test("A response sourced from someone other than the subject refuses")
+    func foreignSourceRefuses() throws {
+        var response = try Self.fixture("HomeVitals_response", as: ModelsR4.QuestionnaireResponse.self)
+        response.source = Reference(reference: "RelatedPerson/partner-2".asFHIRStringPrimitive())
+        #expect(throws: ObservationExtractionError.sourceIsNotTheSubject) {
+            try QuestionnaireExchangeProjection.exchangeGraph(
+                questionnaire: try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self),
+                response: response,
+                context: try Self.context()
+            )
+        }
+    }
+
+    @Test("An authorless response states no performer instead of inventing one")
+    func authorlessResponseStatesNoPerformer() throws {
+        var response = try Self.fixture("HomeVitals_response", as: ModelsR4.QuestionnaireResponse.self)
+        response.author = nil
+        let graph = try QuestionnaireExchangeProjection.exchangeGraph(
+            questionnaire: try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self),
+            response: response,
+            context: try Self.context()
+        )
+        for entry in graph.bundle.entry ?? [] {
+            guard case .observation(let observation)? = entry.resource else {
+                continue
+            }
+            #expect(observation.performer == nil)
         }
     }
 
