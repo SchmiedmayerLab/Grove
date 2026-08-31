@@ -17,9 +17,6 @@ import ModelsR4
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitConverter {
-    private static let ecgMDC: FHIRPrimitive<FHIRURI> = "urn:iso:std:iso:11073:10101"
-    private static let ucum: FHIRPrimitive<FHIRURI> = "http://unitsofmeasure.org"
-
     static func convertECG(
         _ record: HealthKitECGRecord,
         context: HealthKitConversionContext,
@@ -40,18 +37,18 @@ extension HealthKitConverter {
             symptomOutputIdentifiers: symptomOutputs,
             context: context
         )
+        guard let output = HealthKitCatalog.primaryObservationOutput(
+            forSourceTypeIdentifier: ecg.sampleType.identifier
+        ) else {
+            throw HealthKitConversionError.unsupportedSampleType(ecg.sampleType.identifier)
+        }
         let primary = try assembleGraph(
             for: ecg,
             context: context,
-            outputRole: "electrocardiogram",
+            outputRole: output.role,
+            outputDiscriminator: output.discriminator,
             childBuilder: { envelope in
-                guard let companion = try ecgAverageHeartRateChild(
-                    input: input,
-                    envelope: envelope
-                ) else {
-                    return []
-                }
-                return [companion]
+                try ecgAverageHeartRateChild(input: input, envelope: envelope).map { [$0] } ?? []
             }
         ) { recordingDeviceURL, converterURL in
             try ecgObservation(
@@ -230,7 +227,7 @@ extension HealthKitConverter {
             throw HealthKitConversionError.invalidECGEvidence(.invalidAverageHeartRate)
         }
         let identity = try input.context.identityScope.sourceOutput(
-            adapterID: "healthkit",
+            adapterID: HealthKitConverter.adapterID,
             sourceType: input.source.sourceTypeIdentifier,
             repositoryScope: input.context.repositoryScope,
             nativeRecordID: envelope.sourceUUID,
@@ -291,7 +288,7 @@ extension HealthKitConverter {
                     Coding(
                         code: "131329",
                         display: "MDC_ECG_ELEC_POTL_I",
-                        system: ecgMDC
+                        system: Canonicals.mdc
                     )
                 ]
             ),
@@ -300,7 +297,7 @@ extension HealthKitConverter {
                 dimensions: 1,
                 origin: Quantity(
                     code: "mV",
-                    system: ucum,
+                    system: Canonicals.ucum,
                     unit: "mV",
                     value: 0.asFHIRDecimalPrimitive()
                 ),
@@ -442,7 +439,7 @@ extension HealthKitConverter {
         }
         return Quantity(
             code: code.asFHIRStringPrimitive(),
-            system: ucum,
+            system: Canonicals.ucum,
             unit: display.asFHIRStringPrimitive(),
             value: try HealthKitMobileCanonicalization.scalarDecimal(value)
         )

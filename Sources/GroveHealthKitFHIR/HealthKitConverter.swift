@@ -66,11 +66,8 @@ public struct HealthKitConverter: Sendable {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitConverter {
-    static let mdc: FHIRPrimitive<FHIRURI> = "urn:iso:std:iso:11073:10101"
-    static let participantType: FHIRPrimitive<FHIRURI> =
-        "http://terminology.hl7.org/CodeSystem/provenance-participant-type"
-    static let lifecycleEvent: FHIRPrimitive<FHIRURI> =
-        "http://terminology.hl7.org/CodeSystem/iso-21089-lifecycle"
+    /// The closed adapter token every HealthKit identity preimage carries.
+    static let adapterID = "healthkit"
 
     static func convertSample(
         _ sample: HKSample,
@@ -80,7 +77,10 @@ extension HealthKitConverter {
         if sample is HKElectrocardiogram {
             throw HealthKitConversionError.missingECGEvidence
         }
-        guard let binding = HealthKitCatalog.binding(for: sample) else {
+        guard let binding = HealthKitCatalog.binding(for: sample),
+              let output = HealthKitCatalog.primaryObservationOutput(
+                  forSourceTypeIdentifier: sample.sampleType.identifier
+              ) else {
             throw unconvertibleSampleError(forSourceTypeIdentifier: sample.sampleType.identifier)
         }
         let workoutChildren: ((GraphEnvelope) throws -> [GraphChildOutput])?
@@ -105,8 +105,8 @@ extension HealthKitConverter {
         return try assembleGraph(
             for: sample,
             context: context,
-            outputRole: binding.contract.id,
-            outputDiscriminator: sample is HKWorkout ? "session" : "single",
+            outputRole: output.role,
+            outputDiscriminator: output.discriminator,
             childBuilder: workoutChildren
         ) { recordingDeviceURL, converterURL in
             try observation(

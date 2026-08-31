@@ -98,6 +98,13 @@ struct HealthKitFHIRObservationContract: Sendable {
 }
 
 
+/// The primary source output ``HealthKitConverter`` mints for one source type's Observation.
+public struct HealthKitObservationOutput: Hashable, Sendable {
+    public let role: String
+    public let discriminator: String
+}
+
+
 /// One authoritative row in the HealthKit implementation matrix.
 public struct HealthKitCatalogEntry: Sendable {
     public let sourceTypeIdentifier: String
@@ -136,6 +143,29 @@ public enum HealthKitCatalog {
 
     static func entry(forSourceTypeIdentifier identifier: String) -> HealthKitCatalogEntry? {
         entriesBySourceTypeIdentifier[identifier]
+    }
+
+    /// The primary Observation output the converter mints for one source type, or `nil` where no
+    /// Observation conversion admits it.
+    ///
+    /// The converter itself reads this, so a caller holding only a source type — a deletion, whose
+    /// sample is already gone — names the exact output an addition minted. The catalog rows cannot
+    /// answer it: a multi-measurement row does not say which measurement the primary output carries,
+    /// and a row can be `supported` in the published matrix while no binding emits it yet.
+    public static func primaryObservationOutput(
+        forSourceTypeIdentifier identifier: String
+    ) -> HealthKitObservationOutput? {
+        if identifier == HKObjectType.electrocardiogramType().identifier {
+            return HealthKitObservationOutput(role: "electrocardiogram", discriminator: "single")
+        }
+        guard let binding = binding(forSourceTypeIdentifier: identifier) else {
+            return nil
+        }
+        return HealthKitObservationOutput(
+            role: binding.contract.id,
+            // A workout's session totals share their source record with the segments hanging off it.
+            discriminator: identifier == HKWorkoutType.workoutType().identifier ? "session" : "single"
+        )
     }
 
     static func binding(for sample: HKSample) -> HealthKitFHIRBinding? {
