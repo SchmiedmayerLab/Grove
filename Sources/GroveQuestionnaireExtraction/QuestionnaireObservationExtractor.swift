@@ -66,7 +66,6 @@ enum ExtractedValue: Equatable {
 /// One measurement the pair extracts to, bound to its catalog contract.
 struct ExtractedMeasurement {
     let contract: MeasurementContract
-    let linkID: String
     let value: ExtractedValue
     let categories: [CodeableConcept]
 }
@@ -179,7 +178,6 @@ struct QuestionnaireObservationExtractor {
         }
         return ExtractedMeasurement(
             contract: contract,
-            linkID: linkID,
             value: value,
             categories: item.extractionCategories
         )
