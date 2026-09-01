@@ -9,6 +9,7 @@
 import contextlib
 import importlib.util
 import io
+import json
 import pathlib
 import sys
 import tempfile
@@ -94,14 +95,14 @@ class AffectedManifestTests(unittest.TestCase):
         head = package_dump(
             [
                 target("GroveHealthKitFHIR"),
-                target("GroveHealthKitFHIRMacros", ["GroveHealthKitFHIR"]),
+                target("GroveFHIRContract"),
             ],
-            products=[{"name": "GroveHealthKitFHIRMacros", "targets": ["GroveHealthKitFHIRMacros"]}],
+            products=[{"name": "GroveFHIRContract", "targets": ["GroveFHIRContract"]}],
         )
 
         affected = MODULE.affected_by_manifest(base, head, MODULE.PKGS)
 
-        self.assertEqual(affected, {"GroveHealthKitFHIR"})
+        self.assertEqual(affected, {"GroveFHIR"})
 
     def test_new_unclassified_target_fails_instead_of_silently_disappearing(self):
         base = package_dump([])
@@ -136,20 +137,336 @@ class AffectedManifestTests(unittest.TestCase):
 
 
 class FHIRConformanceSelectionTests(unittest.TestCase):
+    def test_fhir_only_schedules_every_conformance_lane_and_no_package_jobs(self):
+        result = run_selector(
+            "Sources/GroveHealthKitFHIR/HealthKitConverter.swift",
+            extra_arguments=("--fhir-only",),
+        )
+
+        self.assertEqual(json.loads(result["matrix"]), {"include": []})
+        self.assertEqual(json.loads(result["ui_matrix"]), {"include": []})
+        self.assertEqual(result["has_jobs"], "false")
+        self.assertEqual(result["has_ui_jobs"], "false")
+        self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(
+            result["fhir_components"],
+            "healthkit,questionnaire,sensor",
+        )
+        self.assertEqual(result["affected"], "(none)")
+
+    def test_fhir_only_rejects_broader_selection_modes(self):
+        incompatible_modes = (
+            ("--full-readiness",),
+            ("--development-scope", "healthkit"),
+        )
+
+        for incompatible_mode in incompatible_modes:
+            with self.subTest(incompatible_mode=incompatible_mode):
+                with self.assertRaisesRegex(SystemExit, "cannot be combined"):
+                    run_selector(
+                        "Sources/GroveHealthKitFHIR/HealthKitConverter.swift",
+                        extra_arguments=("--fhir-only", *incompatible_mode),
+                    )
+
     def test_validator_script_runs_only_fhir_packages_and_conformance(self):
         result = run_selector("Scripts/validate-fhir-conformance.sh")
 
         self.assertEqual(result["has_fhir_conformance"], "true")
-        self.assertEqual(set(result["affected"].split(",")), MODULE.FHIR_PACKAGES)
+        self.assertEqual(
+            set(result["fhir_components"].split(",")),
+            MODULE.ALL_FHIR_COMPONENTS,
+        )
+        self.assertEqual(
+            set(result["affected"].split(",")),
+            MODULE.FHIR_PACKAGES & set(MODULE.PKGS),
+        )
+
+    def test_producer_manifest_generator_runs_fhir_conformance(self):
+        result = run_selector("Scripts/generate-grove-fhir-producer-manifest.py")
+
+        self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(
+            set(result["fhir_components"].split(",")),
+            MODULE.ALL_FHIR_COMPONENTS,
+        )
+        self.assertEqual(
+            set(result["affected"].split(",")),
+            MODULE.FHIR_PACKAGES & set(MODULE.PKGS),
+        )
 
     def test_unrelated_script_runs_full_matrix_without_conformance(self):
         result = run_selector("Scripts/run-package-tests.sh")
 
         self.assertEqual(result["has_fhir_conformance"], "false")
+        self.assertEqual(result["fhir_components"], "(none)")
         self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+
+    def test_healthkit_development_scope_suppresses_manifest_fanout(self):
+        result = run_selector(
+            "Package.swift",
+            ".github/workflows/tests.yml",
+            extra_arguments=("--development-scope", "healthkit"),
+        )
+
+        self.assertEqual(result["affected"], "GroveHealthKitFHIR")
+        self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(result["fhir_components"], "healthkit")
+        self.assertEqual(result["has_ui_jobs"], "true")
+        self.assertEqual(
+            {(job["package"], job["platform"]) for job in json.loads(result["ui_matrix"])["include"]},
+            {("GroveHealthKitFHIR", "iOS")},
+        )
+
+    def test_fhir_development_scope_caps_unrelated_direct_changes(self):
+        result = run_selector(
+            "Package.swift",
+            ".github/workflows/tests.yml",
+            "Sources/GroveAccount/AccountNotifyConstraint.swift",
+            "Tests/GroveHealthKitFHIRTests/HealthKitConverterTests.swift",
+            extra_arguments=("--development-scope", "fhir"),
+        )
+
+        expected = MODULE.DEVELOPMENT_SCOPES["fhir"] & set(MODULE.PKGS)
+        self.assertEqual(set(result["affected"].split(",")), expected)
+        self.assertEqual(
+            set(result["fhir_components"].split(",")),
+            MODULE.ALL_FHIR_COMPONENTS,
+        )
+        self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(result["has_ui_jobs"], "true")
+        ui_packages = {job["package"] for job in json.loads(result["ui_matrix"])["include"]}
+        self.assertLessEqual(ui_packages, expected)
+        self.assertNotIn("GroveAccount", ui_packages)
+        self.assertTrue(
+            {"GroveHealthKit", "GroveHealthKitFHIR", "GroveQuestionnaire", "GroveStudy"}
+            <= ui_packages
+        )
+
+    def test_development_scope_rejects_unclassified_changed_target(self):
+        with self.assertRaisesRegex(SystemExit, "cannot classify changed target 'Unclassified'"):
+            run_selector(
+                "Sources/Unclassified/Thing.swift",
+                extra_arguments=("--development-scope", "fhir"),
+            )
+
+    def test_development_scope_keeps_direct_owner_without_transitive_fanout(self):
+        dump = package_dump([
+            target("GroveAccount"),
+            target("GroveStudy", ["GroveAccount"]),
+        ])
+        with tempfile.NamedTemporaryFile(mode="w") as head_dump:
+            json.dump(dump, head_dump)
+            head_dump.flush()
+            result = run_selector(
+                "Sources/GroveAccount/AccountNotifyConstraint.swift",
+                extra_arguments=(
+                    "--development-scope",
+                    "healthkit",
+                    "--head-package-dump",
+                    head_dump.name,
+                ),
+            )
+
+        self.assertIn("GroveAccount", result["affected"].split(","))
+        self.assertNotIn("GroveStudy", result["affected"].split(","))
+
+    def test_development_scope_maps_shared_target_to_its_consuming_package(self):
+        dump = package_dump([
+            target("SharedMigrationTarget"),
+            target("UnownedAdapter", ["SharedMigrationTarget"]),
+            target("GroveAccount", ["UnownedAdapter"]),
+            target("GroveStudy", ["GroveAccount"]),
+        ])
+        with tempfile.NamedTemporaryFile(mode="w") as head_dump:
+            json.dump(dump, head_dump)
+            head_dump.flush()
+            result = run_selector(
+                "Sources/SharedMigrationTarget/Migration.swift",
+                extra_arguments=(
+                    "--development-scope",
+                    "healthkit",
+                    "--head-package-dump",
+                    head_dump.name,
+                ),
+            )
+
+        self.assertIn("GroveAccount", result["affected"].split(","))
+        self.assertNotIn("GroveStudy", result["affected"].split(","))
+
+    def test_development_scope_uses_base_owner_for_deleted_target(self):
+        with tempfile.NamedTemporaryFile(mode="w") as base_packages:
+            base_packages.write(
+                """
+[GroveAccount]
+platforms = ["iOS"]
+targets = ["RemovedGroveAccountTarget"]
+tests = []
+"""
+            )
+            base_packages.flush()
+            result = run_selector(
+                "Sources/RemovedGroveAccountTarget/Removed.swift",
+                extra_arguments=(
+                    "--development-scope",
+                    "healthkit",
+                    "--base-packages",
+                    base_packages.name,
+                ),
+            )
+
+        self.assertIn("GroveAccount", result["affected"].split(","))
+
+    def test_development_scope_ignores_package_removed_entirely_from_head(self):
+        with tempfile.NamedTemporaryFile(mode="w") as base_packages:
+            base_packages.write(
+                """
+[RemovedPackage]
+platforms = ["iOS"]
+targets = ["RemovedTarget"]
+tests = []
+"""
+            )
+            base_packages.flush()
+            result = run_selector(
+                "Sources/RemovedTarget/Removed.swift",
+                extra_arguments=(
+                    "--development-scope",
+                    "fhir",
+                    "--base-packages",
+                    base_packages.name,
+                ),
+            )
+
+        self.assertNotIn("RemovedPackage", result["affected"].split(","))
+
+    def test_development_scope_cannot_masquerade_as_full_readiness(self):
+        with self.assertRaisesRegex(SystemExit, "cannot be combined"):
+            run_selector(
+                "Sources/GroveHealthKitFHIR/HealthKitConverter.swift",
+                extra_arguments=("--development-scope", "healthkit", "--full-readiness"),
+            )
+
+    def test_shared_target_schedules_its_consumers_and_no_more(self):
+        """A target every package does not consume must not schedule every package."""
+        dump = {
+            "targets": [
+                {"name": "Vault", "dependencies": []},
+                {"name": "GroveViews", "dependencies": [{"target": ["Vault"]}]},
+                {"name": "GroveChat", "dependencies": [{"target": ["GroveViews"]}]},
+                {"name": "GroveBluetooth", "dependencies": []},
+            ]
+        }
+        packages = MODULE.packages_for_target("Vault", dump)
+        self.assertIn("GroveViews", packages)
+        self.assertIn("GroveChat", packages)
+        self.assertNotIn("GroveBluetooth", packages)
+
+    def test_unresolvable_consumer_refuses_to_answer(self):
+        """An unmapped consumer means the answer would under-schedule, so callers stay broad."""
+        dump = {
+            "targets": [
+                {"name": "Vault", "dependencies": []},
+                {"name": "SomeUnmappedTarget", "dependencies": [{"target": ["Vault"]}]},
+            ]
+        }
+        self.assertIsNone(MODULE.packages_for_target("Vault", dump))
+
+    def test_target_absent_from_the_graph_refuses_to_answer(self):
+        self.assertIsNone(MODULE.packages_for_target("NotInGraph", {"targets": []}))
+
+    def test_healthkit_ready_pr_runs_every_package_on_enabled_platforms(self):
+        result = run_selector(
+            "Sources/GroveHealthKitFHIR/HealthKitConverter.swift",
+            ".github/workflows/tests.yml",
+            extra_arguments=("--full-readiness",),
+        )
+
+        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+        self.assertEqual(result["fhir_components"], "healthkit")
+        self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(result["has_ui_jobs"], "true")
+        unit_jobs = {
+            (job["package"], job["platform"])
+            for job in json.loads(result["matrix"])["include"]
+        }
+        ui_jobs = {
+            (job["package"], job["platform"])
+            for job in json.loads(result["ui_matrix"])["include"]
+        }
+        self.assertIn(("Grove", "iOS"), unit_jobs)
+        self.assertIn(("GroveViews", "iOS"), ui_jobs)
+        # Full readiness widens the package set, never the currently enabled platform set.
+        self.assertNotIn(("Grove", "macCatalyst"), unit_jobs)
+        self.assertNotIn(("Grove", "visionOS"), unit_jobs)
+        self.assertNotIn(("GroveViews", "iPadOS"), ui_jobs)
+
+    def test_questionnaire_ready_pr_runs_only_questionnaire_ig(self):
+        result = run_selector(
+            "Sources/GroveQuestionnaire/Model/Questionnaire.swift",
+            "Scripts/validate-fhir-conformance.sh",
+            extra_arguments=("--full-readiness",),
+        )
+
+        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+        self.assertEqual(result["fhir_components"], "questionnaire")
+        self.assertEqual(result["has_fhir_conformance"], "true")
+
+    def test_sensor_ready_pr_runs_only_sensor_ig(self):
+        result = run_selector(
+            "Sources/GroveSensorKit/SensorKit.swift",
+            "Scripts/validate-fhir-conformance.sh",
+            extra_arguments=("--full-readiness",),
+        )
+
+        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+        self.assertEqual(result["fhir_components"], "sensor")
+        self.assertEqual(result["has_fhir_conformance"], "true")
+
+    def test_explicit_all_selects_every_implementation_conformance_lane(self):
+        result = run_selector("__ALL__")
+
+        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+        self.assertEqual(
+            set(result["fhir_components"].split(",")),
+            MODULE.ALL_FHIR_COMPONENTS,
+        )
+
+    def test_sensor_development_scope_runs_only_source_and_fhir_packages(self):
+        result = run_selector(
+            "Package.swift",
+            ".github/workflows/tests.yml",
+            extra_arguments=("--development-scope", "sensor"),
+        )
+
+        self.assertEqual(set(result["affected"].split(",")), {"GroveSensorKit", "GroveSensorKitFHIR"})
+        self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(result["has_ui_jobs"], "true")
+        self.assertEqual(
+            {(job["package"], job["platform"]) for job in json.loads(result["ui_matrix"])["include"]},
+            {("GroveSensorKit", "iOS")},
+        )
 
 
 class InfrastructureSelectionTests(unittest.TestCase):
+    def test_fhir_workflow_builds_each_selected_guide_set_once(self):
+        workflow = (SCRIPT.parents[1] / ".github/workflows/tests.yml").read_text()
+        build_step = workflow.split("- name: Build active implementation guides", 1)[1].split(
+            "- name: Validate resources emitted by Grove",
+            1,
+        )[0]
+
+        self.assertIn("add_guide()", build_step)
+        self.assertEqual(build_step.count("./Scripts/build-guides.sh"), 1)
+
+    def test_guide_cache_key_includes_the_resolved_contract_revision(self):
+        workflow = (SCRIPT.parents[1] / ".github/workflows/tests.yml").read_text()
+        cache_key_step = workflow.split("- name: Pin the implementation-guide cache key", 1)[1].split(
+            "- name: Restore built implementation guides",
+            1,
+        )[0]
+
+        self.assertIn("RESOLVED_GROVE_FHIR_SHA", cache_key_step)
+
     def test_documentation_content_does_not_run_package_tests(self):
         result = run_selector("Sources/Grove/Grove.docc/GettingStarted.md")
 
@@ -168,6 +485,10 @@ class InfrastructureSelectionTests(unittest.TestCase):
 
         self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
         self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(
+            set(result["fhir_components"].split(",")),
+            MODULE.ALL_FHIR_COMPONENTS,
+        )
 
     def test_shared_local_action_runs_every_package(self):
         result = run_selector(".github/actions/setup/action.yml")

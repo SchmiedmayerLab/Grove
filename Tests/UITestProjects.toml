@@ -72,13 +72,8 @@ test_products = ["XCTestExtensions"]
 "INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription" = "Uses Bluetooth for testing."
 
 [GroveFHIR]
-app_products = ["Grove", "GroveFHIR", "GroveHealthKitFHIR", "GroveFHIRMockPatients", "GroveHealthKit", "GroveViews"]
+app_products = ["Grove", "GroveFHIR", "GroveFHIRMockPatients", "GroveViews"]
 test_products = ["XCTestExtensions"]
-[GroveFHIR.app_settings]
-"CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
-"INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription" = "The Test App uses the health data to test the Grove FHIR Package."
-"INFOPLIST_KEY_NSHealthShareUsageDescription" = "The TestApp accesses your HealthKit data to run the tests."
-"INFOPLIST_KEY_NSHealthUpdateUsageDescription" = "The Test App uses the health data to test the Grove FHIR Package."
 
 [GroveFirebase]
 app_products = ["Grove", "GroveAccount", "GroveFirebaseAccount", "GroveFirebaseAccountStorage", "GroveFirestore", "GroveFirebaseStorage", "GrovePersonalInfo", "GroveValidation", "GroveViews"]
@@ -149,7 +144,7 @@ app_products = ["Grove", "GroveFoundation", "GroveOnboarding", "GroveViews"]
 test_products = ["XCTestExtensions"]
 
 [GroveQuestionnaire]
-app_products = ["FHIRQuestionnaires", "GroveQuestionnaire", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveViews"]
+app_products = ["FHIRQuestionnaires", "GroveQuestionnaire", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveQuestionnaireUI", "GroveViews"]
 test_products = ["XCTGroveQuestionnaire", "XCTestExtensions"]
 # Linked but not imported; kept so the linkage stays as it was.
 test_fixture_products = ["GroveFoundation"]

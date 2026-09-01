@@ -5,132 +5,159 @@
       "shouldTranslate" : false
     },
     "'%@' exceeds the maximum file size of %@" : {
-
-    },
-    "%lld questions still need an answer" : {
       "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "1 question still needs an answer"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld questions still need an answer"
-                }
-              }
-            }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%1$@“ überschreitet die maximale Dateigröße von %2$@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«%1$@» supera el tamaño máximo de archivo de %2$@"
           }
         }
       }
     },
-    "Annotate Image" : {
-
-    },
-    "Answer this question to continue" : {
-
-    },
-    "Answered" : {
-
-    },
-    "Checks your answers before continuing." : {
-
-    },
-    "Choose a date" : {
-
-    },
-    "Choose a date and time" : {
-
-    },
-    "Choose a time" : {
-
-    },
-    "Close" : {
-
-    },
-    "Continue" : {
-
-    },
-    "Date" : {
-
-    },
-    "Date & Time" : {
-
-    },
-    "Discard Answers" : {
-
-    },
-    "Discard Nested Responses" : {
-
-    },
-    "Dismiss Keyboard" : {
-
-    },
-    "Do you want to remove all annotations?" : {
-
-    },
-    "Done" : {
-
-    },
-    "Draw with one finger. Pinch or drag with two fingers to move the image." : {
-
-    },
     "Enter a number" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zahl eingeben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introduce un número"
+          }
+        }
+      }
     },
     "Enter a phone number" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Telefonnummer eingeben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introduce un número de teléfono"
+          }
+        }
+      }
     },
     "Enter a web address, like https://example.org" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webadresse eingeben, z. B. https://example.org"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introduce una dirección web, como https://example.org"
+          }
+        }
+      }
     },
     "Enter an email address, like name@example.org" : {
-
-    },
-    "Follow-Up" : {
-
-    },
-    "Follow-Up: %@" : {
-
-    },
-    "Image" : {
-
-    },
-    "Image annotation canvas" : {
-
-    },
-    "Image Missing" : {
-
-    },
-    "Incomplete" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-Mail-Adresse eingeben, z. B. name@example.org"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introduce una dirección de correo electrónico, como name@example.org"
+          }
+        }
+      }
     },
     "Internal Error" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interner Fehler"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error interno"
+          }
+        }
+      }
     },
     "Invalid Input" : {
-
-    },
-    "Keep Answering" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ungültige Eingabe"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrada no válida"
+          }
+        }
+      }
     },
     "Length must be between %lld and %lld" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Länge muss zwischen %1$lld und %2$lld liegen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "Length must be between %1$lld and %2$lld"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La longitud debe estar entre %1$lld y %2$lld"
           }
         }
       }
     },
     "Limited to %llu decimal places" : {
       "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Auf %llu Dezimalstelle begrenzt"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Auf %llu Dezimalstellen begrenzt"
+                }
+              }
+            }
+          }
+        },
         "en" : {
           "variations" : {
             "plural" : {
@@ -148,134 +175,207 @@
               }
             }
           }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Limitado a %llu decimal"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Limitado a %llu decimales"
+                }
+              }
+            }
+          }
         }
       }
     },
-    "Mark %@" : {
-
-    },
-    "Missing" : {
-
-    },
     "Missing response text for \"Other\" option" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antworttext für die Option „Sonstiges“ fehlt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falta el texto de respuesta para la opción «Otro»"
+          }
+        }
+      }
     },
     "Must be after %@" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muss nach %@ liegen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Debe ser posterior a %@"
+          }
+        }
+      }
     },
     "Must be at least %@" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muss mindestens %@ sein"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Debe ser como mínimo %@"
+          }
+        }
+      }
     },
     "Must be at least %lf" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muss mindestens %lf sein"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Debe ser como mínimo %lf"
+          }
+        }
+      }
     },
     "Must be at most %@" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Darf höchstens %@ sein"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Debe ser como máximo %@"
+          }
+        }
+      }
     },
     "Must be at most %lf" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Darf höchstens %lf sein"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Debe ser como máximo %lf"
+          }
+        }
+      }
     },
     "Must be before %@" : {
-
-    },
-    "No" : {
-
-    },
-    "Not Yet Implemented" : {
-
-    },
-    "Opens an editor with drawing and zoom controls." : {
-
-    },
-    "Option: %@, Not Selected" : {
-
-    },
-    "Option: %@, Selected" : {
-
-    },
-    "Other" : {
-
-    },
-    "Please answer the follow-up questions below, for the **'%@'** option you just selected." : {
-
-    },
-    "Question %lld of %lld" : {
-
-    },
-    "Questionnaire Complete" : {
-
-    },
-    "Questionnaire is Empty" : {
-
-    },
-    "Ready" : {
-
-    },
-    "Remove" : {
-
-    },
-    "Remove Annotations" : {
-
-    },
-    "Search options…" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muss vor %@ liegen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Debe ser anterior a %@"
+          }
+        }
+      }
     },
     "Select at least %lld options" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mindestens %lld Optionen auswählen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecciona al menos %lld opciones"
+          }
+        }
+      }
     },
     "Select at most %lld options" : {
-
-    },
-    "Select File" : {
-
-    },
-    "Select Files" : {
-
-    },
-    "Select Image" : {
-
-    },
-    "Select Images" : {
-
-    },
-    "Select Photo" : {
-
-    },
-    "Select Video" : {
-
-    },
-    "Select Videos" : {
-
-    },
-    "Select…" : {
-
-    },
-    "Submit" : {
-
-    },
-    "Submit Answers" : {
-
-    },
-    "Submitting…" : {
-
-    },
-    "Take Photo" : {
-
-    },
-    "Tap to annotate" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Höchstens %lld Optionen auswählen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecciona como máximo %lld opciones"
+          }
+        }
+      }
     },
     "This isn't in the format this question expects" : {
-
-    },
-    "This will de-select the '%@' option and discard all responses below." : {
-
-    },
-    "Time" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das entspricht nicht dem für diese Frage erwarteten Format"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esto no tiene el formato que espera esta pregunta"
+          }
+        }
+      }
     },
     "Too long: can be at most %lld characters" : {
       "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zu lang: höchstens %lld Zeichen"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zu lang: höchstens %lld Zeichen"
+                }
+              }
+            }
+          }
+        },
         "en" : {
           "variations" : {
             "plural" : {
@@ -293,11 +393,47 @@
               }
             }
           }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Demasiado largo: máximo %lld carácter"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Demasiado largo: máximo %lld caracteres"
+                }
+              }
+            }
+          }
         }
       }
     },
     "Too short: must be at least %lld characters" : {
       "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zu kurz: mindestens %lld Zeichen"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Zu kurz: mindestens %lld Zeichen"
+                }
+              }
+            }
+          }
+        },
         "en" : {
           "variations" : {
             "plural" : {
@@ -315,33 +451,26 @@
               }
             }
           }
-        }
-      }
-    },
-    "Unit" : {
-
-    },
-    "Yes" : {
-
-    },
-    "You've answered %lld of %lld questions." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You've answered %1$lld of %2$lld questions."
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Demasiado corto: mínimo %lld carácter"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Demasiado corto: mínimo %lld caracteres"
+                }
+              }
+            }
           }
         }
       }
-    },
-    "You've answered every question." : {
-
-    },
-    "Your answer" : {
-
-    },
-    "Your answers won't be saved." : {
-
     }
   },
   "version" : "1.0"

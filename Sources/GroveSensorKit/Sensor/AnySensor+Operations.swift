@@ -172,6 +172,8 @@ private final class DevicesFetcherDelegate: NSObject, SRSensorReaderDelegate {
     }
     
     func sensorReader(_ reader: SRSensorReader, didFetch devices: [SRDevice]) {
+        // SensorKit owns these immutable device descriptors. The continuation transfers the
+        // array to the awaiting caller and this delegate does not retain or mutate it afterwards.
         nonisolated(unsafe) let devices = devices
         continuation?.resume(returning: devices)
         continuation = nil
@@ -185,7 +187,11 @@ private final class DevicesFetcherDelegate: NSObject, SRSensorReaderDelegate {
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
-private final class SamplesFetcherDelegate<Sample: SensorKitSampleProtocol>: NSObject, SRSensorReaderDelegate {
+final class SamplesFetcherDelegate<Sample: SensorKitSampleProtocol>: NSObject, SRSensorReaderDelegate {
+    private enum FetchError: Error {
+        case unableToCopyResult
+    }
+
     private let logger = Logger(subsystem: "org.grovealliance.sensorKit", category: "SamplesFetcherDelegate")
     private let sensor: Sensor<Sample>
     var continuation: CheckedContinuation<[Sample.SafeRepresentation], any Error>?
@@ -198,20 +204,40 @@ private final class SamplesFetcherDelegate<Sample: SensorKitSampleProtocol>: NSO
     func sensorReader(_ reader: SRSensorReader, fetching fetchRequest: SRFetchRequest, didFetchResult result: SRFetchResult<AnyObject>) -> Bool {
         // The docs say that "If the caller needs to access the result at a later time, it must be copied not merely retained".
         guard let result = result.copy() as? SRFetchResult<AnyObject> else {
-            // should be unreachable
-            return true
+            fail(FetchError.unableToCopyResult)
+            return false
         }
+        return process {
+            try SensorKit.FetchResult(result, for: sensor)
+        }
+    }
+
+    func process(sample object: AnyObject, timestamp: SRAbsoluteTime) -> Bool {
+        process {
+            try SensorKit.FetchResult(sample: object, timestamp: timestamp, for: sensor)
+        }
+    }
+
+    private func process(_ fetchResult: () throws -> SensorKit.FetchResult<Sample>) -> Bool {
         do {
-            let fetchResult = try SensorKit.FetchResult(result, for: self.sensor)
-            self.results.append(fetchResult)
+            results.append(try fetchResult())
         } catch {
-            // SensorKit returned something we can't interpret; skip this batch rather than crash.
-            logger.error("Error processing fetch result: \(error)")
+            logger.error(
+                "SensorKit fetch-result processing failed; error type: \(String(reflecting: type(of: error)), privacy: .public)"
+            )
+            // Treat an uninterpretable native result as a failed fetch. Returning success here can
+            // make an all-malformed interval appear empty and advance an anchored fetch past it.
+            fail(error)
+            return false
         }
         return true
     }
     
     func sensorReader(_ reader: SRSensorReader, fetching fetchRequest: SRFetchRequest, failedWithError error: any Error) {
+        fail(error)
+    }
+
+    private func fail(_ error: any Error) {
         continuation?.resume(throwing: error)
         results = []
         continuation = nil

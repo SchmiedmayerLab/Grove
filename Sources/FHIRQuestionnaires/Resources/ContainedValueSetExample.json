@@ -4,11 +4,9 @@
   "title": "Contained ValueSet Example",
   "status": "draft",
   "publisher": "Stanford University",
-  "url": "https://grovealliance.org/fhir/core/Questionnaire/contained-valueset-example",
+  "url": "https://example.org/fhir/Questionnaire/contained-valueset-example",
+  "version": "1.0.0",
   "meta": {
-    "profile": [
-      "https://grovealliance.org/fhir/core/StructureDefinition/sdf-Questionnaire"
-    ],
     "tag": [
       {
         "system": "urn:ietf:bcp:47",
@@ -43,7 +41,7 @@
   ],
   "contained": [
     {
-      "url": "https://grovealliance.org/fhir/core/ValueSet/Predefined",
+      "url": "https://example.org/fhir/ValueSet/Predefined",
       "resourceType": "ValueSet",
       "id": "9523",
       "version": "1.0",

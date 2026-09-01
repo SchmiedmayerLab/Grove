@@ -7,8 +7,10 @@
 //
 
 import Foundation
-import HealthKit
+import GroveFHIRContract
 import GroveHealthKitFHIR
+import HealthKit
+import ModelsR4
 import SwiftUI
 
 
@@ -51,7 +53,7 @@ struct ExportDataView: View {
             runAsync {
                 try await healthStore.requestAuthorization(
                     toShare: [],
-                    read: [HKQuantityType(.activeEnergyBurned), HKQuantityType(.stepCount), HKQuantityType(.appleExerciseTime)]
+                    read: [HKQuantityType(.stepCount)]
                 )
             }
         }
@@ -59,11 +61,32 @@ struct ExportDataView: View {
         Button("Query Samples") {
             runAsync {
                 let fetchStartTS = CACurrentMediaTime()
-                let samples = try await healthStore.query(.init(.appleExerciseTime))
+                let samples = try await healthStore.query(.init(.stepCount))
                 let fetchEndTS = CACurrentMediaTime()
                 print("did fetch samples (#=\(samples.count)) (took \(fetchEndTS - fetchStartTS) sec)")
                 let mapResourcesStartTS = CACurrentMediaTime()
-                _ = try samples.mapIntoResourceProxies()
+                let now = Date.now
+                let sequenceBase = UInt64(max(1, Int64(now.timeIntervalSince1970 * 1_000_000)))
+                var sequenceBySource = Dictionary(
+                    uniqueKeysWithValues: samples.enumerated().map { offset, sample in
+                        (sample.uuid, sequenceBase + UInt64(offset))
+                    }
+                )
+                let result = HealthKitConverter().convert(
+                    samples.map { $0 as HKSample },
+                    contextForSample: { sample in
+                        guard let sequence = sequenceBySource.removeValue(forKey: sample.uuid) else {
+                            throw HealthKitConversionError.invalidValue
+                        }
+                        return try makeFHIRTestContext(
+                            sequence: sequence,
+                            conversionInstant: now
+                        )
+                    }
+                )
+                if let failure = result.failures.first {
+                    throw failure
+                }
                 let mapResourcesEndTS = CACurrentMediaTime()
                 print("did turn into resources (took \(mapResourcesEndTS - mapResourcesStartTS) sec)")
                 await MainActor.run {
@@ -76,7 +99,7 @@ struct ExportDataView: View {
     
     private func runAsync(_ operation: @Sendable @escaping () async throws -> Void) {
         precondition(viewState.isIdle)
-        Task {
+        Swift::Task {
             viewState = .processing
             do {
                 try await operation()

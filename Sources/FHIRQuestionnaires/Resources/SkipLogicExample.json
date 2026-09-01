@@ -6,9 +6,6 @@
   "status": "draft",
   "publisher": "Stanford University",
   "meta": {
-    "profile": [
-      "https://grovealliance.org/fhir/core/StructureDefinition/sdf-Questionnaire"
-    ],
     "tag": [
       {
         "system": "urn:ietf:bcp:47",
@@ -41,7 +38,8 @@
   "subjectType": [
     "Patient"
   ],
-  "url": "https://grovealliance.org/fhir/core/Questionnaire/skiplogicexample",
+  "url": "https://example.org/fhir/Questionnaire/skip-logic-example",
+  "version": "1.0.0",
   "item": [
     {
       "linkId": "f0f95365-96d2-4892-9ccf-2e2c0c74a87c",

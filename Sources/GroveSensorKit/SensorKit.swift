@@ -8,7 +8,7 @@
 
 public import Grove
 import GroveFoundation
-import GroveLocalStorage
+@_spi(Internal) import GroveLocalStorage
 public import Observation
 @_documentation(visibility: internal) @_exported public import SensorKit
 import SwiftUI
@@ -121,7 +121,7 @@ extension SensorKit {
     public func fetchAnchored<Sample>(
         _ sensor: Sensor<Sample>,
         batchSize: BatchSize? = nil
-    ) async throws -> some AsyncSequence<(SensorKit.BatchInfo, [Sample.SafeRepresentation]), any Error> {
+    ) async throws -> some AsyncSequence<SensorKit.AnchoredBatch<Sample.SafeRepresentation>, any Error> {
         try await AnchoredFetcher(sensor: sensor, batchSize: batchSize) { queryAnchorKey in
             let storageKey = self.queryAnchorKeys.storageKey(for: queryAnchorKey)
             return ManagedQueryAnchor(storageKey: storageKey, in: self.localStorage)
@@ -138,8 +138,11 @@ extension SensorKit {
     @_spi(Internal)
     public func queryAnchorValues(for sensor: any AnySensor) async throws -> [String: Date] {
         let devices = try await sensor.fetchDevices()
-        return devices.reduce(into: [:]) { dict, device in
-            dict[device.productType] = queryAnchorValue(for: sensor, deviceProductType: device.productType)
+        return try devices.reduce(into: [:]) { dict, device in
+            dict[device.productType] = try queryAnchorValue(
+                for: sensor,
+                deviceProductType: device.productType
+            )
         }
     }
     
@@ -147,25 +150,62 @@ extension SensorKit {
     ///
     /// - Important: This function is intended exclusively for debugging purposes; query anchors' internal representations are an implementation detail and may change without notice.
     @_spi(Internal)
-    public func queryAnchorValue(for sensor: any AnySensor, deviceProductType: String) -> Date? {
-        let storageKey = queryAnchorKeys.storageKey(for: QueryAnchorKey(sensor: sensor, deviceProductType: deviceProductType))
-        return (try? localStorage.load(storageKey))?.timestamp
+    public func queryAnchorValue(for sensor: any AnySensor, deviceProductType: String) throws -> Date? {
+        let storageKey = queryAnchorKeys.storageKey(for: QueryAnchorKey(
+            sensor: sensor,
+            deviceProductType: deviceProductType
+        ))
+        return try localStorage.load(storageKey)?.timestamp
     }
     
     /// Resets the query anchors for the specified sensor.
     ///
     /// This will cause subsequent calls to ``fetchAnchored(_:batchSize:)`` to potentially re-fetch already-processed samples.
-    public func resetQueryAnchors(for sensor: any AnySensor) throws {
-        try localStorage.deleteAll { rawKey in
-            rawKey.starts(with: "\(SensorKit.queryAnchorKeyPrefix).\(sensor.id)")
+    public func resetQueryAnchors(for sensor: any AnySensor) async throws {
+        let devices = try await sensor.fetchDevices()
+        try SensorKit.validateUniqueDevicePartitions(devices.map(\.productType))
+        let rawKeyPrefix = "\(Self.queryAnchorKeyPrefix).\(sensor.id)."
+        let persistedRawKeys = try localStorage.persistedRawKeys(withPrefix: rawKeyPrefix)
+        let partitions = Self.devicePartitionsToReset(
+            sensorID: sensor.id,
+            currentDeviceProductTypes: devices.map(\.productType),
+            cachedKeys: queryAnchorKeys.allKeys,
+            persistedRawKeys: persistedRawKeys
+        )
+        for deviceProductType in partitions.sorted() {
+            let key = QueryAnchorKey(sensor: sensor, deviceProductType: deviceProductType)
+            let storageKey = queryAnchorKeys.storageKey(for: key)
+            try ManagedQueryAnchor(storageKey: storageKey, in: localStorage).reset()
         }
     }
-    
-    /// Resets the query anchors for all sensors.
-    public func resetAllQueryAnchors() throws {
-        try localStorage.deleteAll { rawKey in
-            rawKey.starts(with: SensorKit.queryAnchorKeyPrefix)
-        }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension SensorKit {
+    static func devicePartitionsToReset(
+        sensorID: String,
+        currentDeviceProductTypes: [String],
+        cachedKeys: [QueryAnchorKey],
+        persistedRawKeys: [String]
+    ) -> Set<String> {
+        let rawKeyPrefix = "\(queryAnchorKeyPrefix).\(sensorID)."
+        var partitions = Set(currentDeviceProductTypes)
+        partitions.formUnion(
+            cachedKeys.lazy
+                .filter { $0.sensor.id == sensorID }
+                .map(\.deviceProductType)
+        )
+        partitions.formUnion(
+            persistedRawKeys.lazy.compactMap { rawKey in
+                guard rawKey.hasPrefix(rawKeyPrefix) else {
+                    return nil
+                }
+                let productType = rawKey.dropFirst(rawKeyPrefix.count)
+                return productType.isEmpty ? nil : String(productType)
+            }
+        )
+        return partitions
     }
 }
 

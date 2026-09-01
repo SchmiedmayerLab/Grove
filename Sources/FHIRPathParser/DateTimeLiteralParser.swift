@@ -23,13 +23,10 @@ struct DateTimeLiteralParser<Input: StringProtocol>: ~Copyable {
     }
     
     /// A `Date` as defined by FHIRPath.
-    /// - Note: FHIRPath allows for partial `Date`s, in which case only some of the components are specified and,
-    ///     starting at the first omitted component, all following components are omitted as well.
-    ///     We currently do not support this; partial `Date`s are treated and represented the same as non-partial `Date`s with the omitted components set to 0.
     struct Date: Equatable {
-        var year: Int = 0
-        var month: Int = 0
-        var day: Int = 0
+        var year: Int
+        var month: Int?
+        var day: Int?
         
         var components: DateComponents {
             DateComponents(year: year, month: month, day: day)
@@ -37,22 +34,20 @@ struct DateTimeLiteralParser<Input: StringProtocol>: ~Copyable {
     }
     
     /// A `Time` as defined by FHIRPath.
-    /// - Note: FHIRPath allows for partial `Time`s, in which case only some of the components are specified and,
-    ///     starting at the first omitted component, all following components are omitted as well.
-    ///     We currently do not support this; partial `Time`s are treated and represented the same as non-partial `Time`s with the omitted components set to 0.
     struct Time: Equatable {
-        var hour: Int = 0
-        var minute: Int = 0
-        var second: Int = 0
+        var hour: Int
+        var minute: Int?
+        var second: Int?
         
         var components: DateComponents {
             DateComponents(hour: hour, minute: minute, second: second)
         }
         
-        init() {}
-        
-        init?(hour: Int = 0, minute: Int = 0, second: Int = 0) {
-            guard (0..<24).contains(hour), (0..<60).contains(minute), (0..<60).contains(second) else {
+        init?(hour: Int, minute: Int? = nil, second: Int? = nil) {
+            guard (0..<24).contains(hour),
+                  minute.map({ (0..<60).contains($0) }) ?? true,
+                  second.map({ (0..<60).contains($0) }) ?? true,
+                  second == nil || minute != nil else {
                 return nil
             }
             self.hour = hour
@@ -62,20 +57,18 @@ struct DateTimeLiteralParser<Input: StringProtocol>: ~Copyable {
     }
     
     /// A `DateTime` as defined by FHIRPath.
-    /// - Note: FHIRPath allows for partial `DateTime`s, in which case the date component is specified, and the time component is omitted.
-    ///     We currently do not support this; partial `DateTime`s are treated and represented the same as non-partial `DateTime`s with the ``Time`` components all set to 0.
     struct DateTime: Equatable {
         var date: Date
-        var time: Time
+        var time: Time?
         
         var components: DateComponents {
             DateComponents(
                 year: date.year,
                 month: date.month,
                 day: date.day,
-                hour: time.hour,
-                minute: time.minute,
-                second: time.second
+                hour: time?.hour,
+                minute: time?.minute,
+                second: time?.second
             )
         }
     }
@@ -139,10 +132,15 @@ struct DateTimeLiteralParser<Input: StringProtocol>: ~Copyable {
         }
         var value = 0
         while let current, asciiDigits.contains(current) {
-            value *= 10
-            // Safety: we know that current is an ascii character, and we know that the "0" literal is an ascii character.
-            // Therefore, we can safely access the asciiValue for both of them.
-            value += Int(current.asciiValue! - ("0" as Character).asciiValue!) // swiftlint:disable:this force_unwrapping
+            guard let asciiValue = current.asciiValue else {
+                throw .unexpectedToken(expected: asciiDigits, found: current)
+            }
+            let (multiplied, multiplyOverflow) = value.multipliedReportingOverflow(by: 10)
+            let (nextValue, additionOverflow) = multiplied.addingReportingOverflow(Int(asciiValue - 0x30))
+            guard !multiplyOverflow, !additionOverflow else {
+                throw .invalidInput(reason: "Numeric component is too large")
+            }
+            value = nextValue
             consume()
         }
         return value
@@ -178,7 +176,7 @@ extension DateTimeLiteralParser {
             } else if current == "T" {
                 // Not just a Date, but a DateTime...
                 consume()
-                var dateTime = DateTime(date: date, time: .init())
+                var dateTime = DateTime(date: date, time: nil)
                 if isAtEnd {
                     // ...which is partial, and does not have any time information.
                     return (.dateTime(dateTime), nil)
@@ -245,16 +243,27 @@ extension DateTimeLiteralParser {
     private mutating func parseDateFormat() throws(ParseError) -> Date {
         // [0-9][0-9][0-9][0-9] ('-'[0-9][0-9] ('-'[0-9][0-9])?)?
         let year = try parseInt()
+        guard (1...9999).contains(year) else {
+            throw .invalidInput(reason: "Invalid year value '\(year)'")
+        }
         guard current == "-" else {
             return .init(year: year)
         }
         try expectAndConsume("-")
         let month = try parseInt()
+        guard (1...12).contains(month) else {
+            throw .invalidInput(reason: "Invalid month value '\(month)'")
+        }
         guard current == "-" else {
             return .init(year: year, month: month)
         }
         try expectAndConsume("-")
         let day = try parseInt()
+        var components = DateComponents(year: year, month: month, day: day)
+        components.timeZone = FHIRPathCalendar.utc
+        guard FHIRPathCalendar.gregorian().date(from: components) != nil else {
+            throw .invalidInput(reason: "Invalid date value '\(year)-\(month)-\(day)'")
+        }
         return .init(year: year, month: month, day: day)
     }
     
@@ -268,8 +277,7 @@ extension DateTimeLiteralParser {
         if current == "Z" {
             // if the time zone is 'Z', it is interpreted UTC.
             consume()
-            // Safety: it's guaranteed that a TimeZone with this identifier exists.
-            return TimeZone(identifier: "UTC")! // swiftlint:disable:this force_unwrapping
+            return FHIRPathCalendar.utc
         } else {
             let `operator` = try expectAnyOfAndConsume(["+", "-"])
             let hours = try parseInt()
@@ -279,7 +287,12 @@ extension DateTimeLiteralParser {
             offsetInSeconds += hours * 60 * 60
             offsetInSeconds += minutes * 60
             offsetInSeconds *= `operator` == "-" ? -1 : 1
-            return TimeZone(secondsFromGMT: offsetInSeconds)
+            guard hours <= 14, minutes < 60,
+                  !(hours == 14 && minutes != 0),
+                  let timeZone = TimeZone(secondsFromGMT: offsetInSeconds) else {
+                throw .invalidInput(reason: "Invalid time-zone offset")
+            }
+            return timeZone
         }
     }
 }

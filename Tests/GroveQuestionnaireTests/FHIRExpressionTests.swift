@@ -27,6 +27,7 @@ struct FHIRExpressionTests {
     private func makeQuestionnaire(items: [ModelsR4.QuestionnaireItem]) -> ModelsR4.Questionnaire {
         var questionnaire = ModelsR4.Questionnaire(status: FHIRPrimitive(PublicationStatus.active))
         questionnaire.url = "https://example.org/fhir/Questionnaire/expressions".asFHIRURIPrimitive()
+        questionnaire.version = "1.0.0".asFHIRStringPrimitive()
         questionnaire.item = items
         return questionnaire
     }
@@ -66,7 +67,7 @@ struct FHIRExpressionTests {
             value: .expression(fhirPath("%resource.item.where(linkId = 'age').answer.value.first() >= 18"))
         )
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [age, followUp]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [age, followUp]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         #expect(questionnaire.expressionEngine != nil)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let target = try #require(questionnaire.sections.flatMap(\.tasks).first { $0.id == "adult-only" })
@@ -96,13 +97,17 @@ struct FHIRExpressionTests {
         ]
         let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [
             weightedChoice("q1"), weightedChoice("q2"), total
-        ]))
+        ]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["q1"] = .init(value: .choice(.init(selectedOptions: ["https://example.org/scale|several-days"])))
         responses.responses["q2"] = .init(value: .choice(.init(selectedOptions: ["https://example.org/scale|nearly-every-day"])))
         #expect(responses.responses["total"].value == .number(4))
         // The hidden score item flows into the emitted response.
-        let fhirResponse = try ModelsR4.QuestionnaireResponse(responses)
+        let fhirResponse = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
+        )
         let totalItem = fhirResponse.item?.first { $0.linkId.value?.string == "total" }
         #expect(totalItem?.answer?.first?.value == .decimal(FHIRPrimitive(FHIRDecimal(4))))
     }
@@ -128,7 +133,7 @@ struct FHIRExpressionTests {
             value: .expression(scoreVariable)
         )
         ]
-        let converted = try GroveQuestionnaire.Questionnaire(questionnaire)
+        let converted = try GroveQuestionnaire.Questionnaire(questionnaire, evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: converted)
         let target = try #require(converted.sections.flatMap(\.tasks).first { $0.id == "flagged" })
         responses.responses["q1"] = .init(value: .choice(.init(selectedOptions: ["https://example.org/scale|several-days"])))
@@ -163,6 +168,7 @@ struct FHIRExpressionTests {
         patient.name = [HumanName(family: "Lovelace".asFHIRStringPrimitive(), given: ["Ada".asFHIRStringPrimitive()])]
         let questionnaire = try GroveQuestionnaire.Questionnaire(
             makeQuestionnaire(items: [name]),
+            evaluationInstant: questionnaireResponseTestAuthoredAt,
             using: .init(launchContext: ["patient": ResourceProxy(with: patient)])
         )
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
@@ -180,6 +186,54 @@ struct FHIRExpressionTests {
         #expect(exportedName.initial == nil, "an evaluated initialExpression must not become a static initial value")
     }
 
+    @Test
+    func explicitEvaluationInstantMakesClockSensitiveExportsByteStable() throws {
+        var capturedAt = ModelsR4.QuestionnaireItem(
+            linkId: "captured-at".asFHIRStringPrimitive(),
+            type: .init(.dateTime)
+        )
+        capturedAt.text = "Captured at".asFHIRStringPrimitive()
+        capturedAt.readOnly = FHIRPrimitive(FHIRBool(true))
+        capturedAt.extension = [
+            Extension(
+                url: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-initialExpression",
+                value: .expression(fhirPath("now()"))
+            )
+        ]
+
+        let source = makeQuestionnaire(items: [capturedAt])
+        let evaluationInstant = Date(timeIntervalSince1970: 1_700_000_000.125)
+        let authored = Date(timeIntervalSince1970: 1_700_000_100)
+        let identifier = Identifier(
+            system: "https://example.org/fhir/NamingSystem/questionnaire-responses".asFHIRURIPrimitive(),
+            value: "clock-sensitive-export".asFHIRStringPrimitive()
+        )
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+
+        func encodedResponse(evaluatedAt instant: Date) throws -> Data {
+            let questionnaire = try GroveQuestionnaire.Questionnaire(
+                source,
+                evaluationInstant: instant
+            )
+            let responses = QuestionnaireResponses(questionnaire: questionnaire)
+            let response = try ModelsR4.QuestionnaireResponse(
+                responses,
+                identifier: identifier,
+                authored: authored,
+                authoredTimeZone: questionnaireResponseTestTimeZone
+            )
+            return try encoder.encode(response)
+        }
+
+        let first = try encodedResponse(evaluatedAt: evaluationInstant)
+        let second = try encodedResponse(evaluatedAt: evaluationInstant)
+        let later = try encodedResponse(evaluatedAt: evaluationInstant.addingTimeInterval(60))
+
+        #expect(first == second)
+        #expect(first != later)
+    }
+
     // MARK: targetConstraint
 
     @Test
@@ -194,7 +248,7 @@ struct FHIRExpressionTests {
             Extension(url: "human", value: .string(FHIRPrimitive(ModelsR4.FHIRString("Please enter a plausible number of drinks per week."))))
         ]
         count.extension = [constraint]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [count]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [count]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let task = try #require(questionnaire.sections.flatMap(\.tasks).first)
         responses.responses["drinks"] = .init(value: .number(12))
@@ -204,7 +258,7 @@ struct FHIRExpressionTests {
             Issue.record("Expected the constraint to reject the value")
             return
         }
-        #expect(String(localized: message).contains("plausible number"))
+        #expect(message.contains("plausible number"))
     }
 
     // MARK: Runtime failures
@@ -219,7 +273,7 @@ struct FHIRExpressionTests {
             value: .expression(fhirPath("%resource.item.notAFunction()"))
         )
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [flagged]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [flagged]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let task = try #require(questionnaire.sections.flatMap(\.tasks).first)
         // The item still disappears — but the reason is recoverable rather than lost.
@@ -241,7 +295,7 @@ struct FHIRExpressionTests {
             Extension(url: "human", value: .string(FHIRPrimitive(ModelsR4.FHIRString("Unreachable."))))
         ]
         count.extension = [constraint]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [count]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [count]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let task = try #require(questionnaire.sections.flatMap(\.tasks).first)
         responses.responses["drinks"] = .init(value: .number(12))
@@ -265,8 +319,8 @@ struct FHIRExpressionTests {
             ))
         )
         ]
-        #expect(throws: GroveQuestionnaire.Questionnaire.FHIRConversionError.self) {
-            try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]))
+        #expect(throws: GroveQuestionnaire.Questionnaire.ConversionError.self) {
+            try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), evaluationInstant: questionnaireResponseTestAuthoredAt)
         }
     }
 }

@@ -9,13 +9,20 @@
 #if canImport(HealthKit)
 
 import Grove
+import GroveFoundation
 import HealthKit
 import OSLog
 import SwiftUI
 
+// Query/consumer/anchor commit remain together so the acknowledgement boundary is auditable.
+// swiftlint:disable closure_body_length function_body_length type_body_length
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDataCollector {
+    private enum AnchorCommitError: Error {
+        case staleAnchor
+    }
+
     /// How this ``HealthKitSampleCollector`` was created, i.e. what it was created for.
     ///
     /// The reason why this type exists is that in the case of the ``CollectSamples`` API specifically,
@@ -28,7 +35,7 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
     }
     
     private enum QueryVariant {
-        case anchorQuery(Task<Void, any Error>)
+        case anchorQuery(Task<Void, Never>)
         case backgroundDelivery(HKHealthStore.BackgroundObserverQueryInvalidator)
     }
     
@@ -43,11 +50,9 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
     let deliverySetting: HealthDataCollectorDeliverySetting
     @MainActor private(set) var isActive = false
     private var queryVariant: QueryVariant?
-    
-    @MainActor private var anchor: QueryAnchor {
-        get { healthKit.queryAnchors[sampleType] ?? QueryAnchor() }
-        set { healthKit.queryAnchors[sampleType] = newValue }
-    }
+    private var backgroundRetryTask: Task<Void, Never>?
+    private var backgroundRetryRequested = false
+    private let querySerialization = AsyncSemaphore(value: 1)
     
     private var healthStore: HKHealthStore { healthKit.healthStore }
     
@@ -77,6 +82,7 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
             return
         }
         let logger = healthKit.logger
+        isActive = true
         do {
             if deliverySetting.continueInBackground {
                 // set up a background query
@@ -85,39 +91,61 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
                         // if the sample collector has been turned off, we don't want to process these.
                         return
                     }
-                    switch result {
-                    case .failure(let error):
-                        logger.error("Error in background delivery: \(error)")
-                    case let .success((sampleTypes, completionHandler)):
-                        defer {
-                            // Inform to HealthKit that the data has been processed:
-                            // https://developer.apple.com/documentation/healthkit/hkobserverquerycompletionhandler
-                            completionHandler()
-                        }
-                        guard !sampleTypes.isEmpty else {
-                            return
-                        }
-                        let expectedSampleTypes = self.sampleType.effectiveSampleTypesForAuthentication.compactMapIntoSet { $0.hkSampleType }
-                        guard !sampleTypes.isDisjoint(with: expectedSampleTypes) else {
-                            logger.warning("Received Observation query types (\(sampleTypes)) are not corresponding to the CollectSamples type \(self.sampleType.hkSampleType)")
-                            return
-                        }
-                        do {
-                            try await self.anchoredSingleObjectQuery()
-                        } catch {
-                            logger.error("Could not query samples in a background update for \(self.sampleType.hkSampleType): \(error)")
-                        }
-                    }
+                    await self.handleBackgroundDelivery(result, logger: logger)
                 }
-                isActive = true
+                guard isActive else {
+                    await queryInvalidator.invalidateAndWait()
+                    await healthStore.disableBackgroundDelivery(for: [sampleType.hkSampleType])
+                    return
+                }
                 queryVariant = .backgroundDelivery(queryInvalidator)
             } else {
                 // set up a non-background query
                 try await anchoredContinuousObjectQuery()
-                isActive = true
             }
         } catch {
-            logger.error("Could not Process HealthKit data collection: \(error.localizedDescription)")
+            isActive = false
+            logger.error(
+                "HealthKit data collection failed; error type: \(String(reflecting: type(of: error)), privacy: .public)"
+            )
+        }
+    }
+
+
+    @MainActor
+    private func handleBackgroundDelivery(
+        _ result: Result<Set<HKSampleType>, any Error>,
+        logger: Logger
+    ) async {
+        switch result {
+        case .failure(let error):
+            logger.error(
+                "HealthKit background delivery failed; error type: \(String(reflecting: type(of: error)), privacy: .public)"
+            )
+        case .success(let sampleTypes):
+            guard !sampleTypes.isEmpty else {
+                return
+            }
+            let expectedSampleTypes = sampleType.effectiveSampleTypesForAuthentication.compactMapIntoSet { $0.hkSampleType }
+            guard !sampleTypes.isDisjoint(with: expectedSampleTypes) else {
+                logger.warning(
+                    "Received Observation query types (\(sampleTypes)) are not corresponding to the CollectSamples type \(self.sampleType.hkSampleType)"
+                )
+                return
+            }
+            do {
+                // The observer completion is invoked by the wrapper only after this handler returns.
+                // Perform one anchored fetch, durable consumer handoff, and anchor CAS while
+                // HealthKit grants background execution; scheduling a later task can suspend first.
+                try await anchoredSingleObjectQuery()
+            } catch is CancellationError {
+                return
+            } catch {
+                logger.error(
+                    "Observer delivery was retained for retry; error type: \(String(reflecting: type(of: error)), privacy: .public)"
+                )
+                startBackgroundRetryIfNeeded()
+            }
         }
     }
     
@@ -133,16 +161,68 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
             break
         case .anchorQuery(let task):
             task.cancel()
+            _ = await task.result
         case .backgroundDelivery(let invalidator):
-            invalidator.invalidate()
-            healthStore.disableBackgroundDelivery(for: [sampleType.hkSampleType])
+            await invalidator.invalidateAndWait()
+            await healthStore.disableBackgroundDelivery(for: [sampleType.hkSampleType])
+        }
+        let backgroundRetryTask = exchange(&backgroundRetryTask, with: nil)
+        backgroundRetryRequested = false
+        backgroundRetryTask?.cancel()
+        _ = await backgroundRetryTask?.result
+        // Fence reset/removal against a callback which entered immediately before invalidation.
+        // This wait is intentionally not cancellation-sensitive: returning before the in-flight query
+        // exits would let its anchor compare/exchange restore the cursor after reset.
+        await querySerialization.wait()
+        querySerialization.signal()
+    }
+
+
+    @MainActor
+    private func startBackgroundRetryIfNeeded() {
+        backgroundRetryRequested = true
+        guard isActive, backgroundRetryTask == nil else {
+            return
+        }
+        backgroundRetryTask = Task { @MainActor [weak self] in
+            guard let self else {
+                return
+            }
+            defer { self.backgroundRetryTask = nil }
+            var retryDelay = Duration.seconds(1)
+            while self.isActive, !Task.isCancelled {
+                self.backgroundRetryRequested = false
+                do {
+                    try await self.anchoredSingleObjectQuery()
+                    guard self.backgroundRetryRequested else {
+                        return
+                    }
+                    retryDelay = .seconds(1)
+                } catch is CancellationError {
+                    return
+                } catch {
+                    self.backgroundRetryRequested = true
+                    self.healthKit.logger.error(
+                        "HealthKit background retry retained its anchor; error type: \(String(reflecting: type(of: error)), privacy: .public)"
+                    )
+                    try? await Task.sleep(for: retryDelay)
+                    retryDelay = min(retryDelay * 2, .seconds(60))
+                }
+            }
         }
     }
 
 
     @MainActor
     private func anchoredSingleObjectQuery() async throws {
-        var anchor = self.anchor
+        try await querySerialization.waitCheckingCancellation()
+        defer { querySerialization.signal() }
+        guard isActive else {
+            throw CancellationError()
+        }
+
+        let persistedAnchor = try healthKit.queryAnchors.load(for: sampleType)
+        var anchor = persistedAnchor ?? QueryAnchor()
         nonisolated(unsafe) let predicate = self.predicate
         let (added, deleted) = try await healthKit.query(
             sampleType,
@@ -150,28 +230,84 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
             anchor: &anchor,
             predicate: predicate
         )
-        await handleQueryResult(added: added, deleted: deleted)
-        self.anchor = anchor
+        let commitActions = try await handleQueryResult(added: added, deleted: deleted)
+        guard try healthKit.queryAnchors.compareExchange(
+            expected: persistedAnchor,
+            desired: anchor,
+            for: sampleType
+        ) else {
+            // Another callback committed from the same cursor while this actor was suspended.
+            // Retrying is safe because the consumer must stage exact duplicates idempotently.
+            throw AnchorCommitError.staleAnchor
+        }
+        for action in commitActions {
+            await action()
+        }
     }
 
     
     @MainActor
     private func anchoredContinuousObjectQuery() async throws {
-        let samplePredicate = sampleType._makeSamplePredicate(
-            filter: NSCompoundPredicate(andPredicateWithSubpredicates: [timeRange.predicate, predicate].compactMap(\.self))
-        )
-        let queryDescriptor = HKAnchoredObjectQueryDescriptor(
-            predicates: [samplePredicate],
-            anchor: anchor.hkAnchor
-        )
-        let updateQueue = queryDescriptor.results(for: healthStore)
         let task = Task {
-            for try await update in updateQueue {
-                guard isActive else {
-                    return
+            var retryDelay = Duration.seconds(1)
+            while !Task.isCancelled {
+                let persistedAnchor: QueryAnchor?
+                do {
+                    persistedAnchor = try healthKit.queryAnchors.load(for: sampleType)
+                } catch {
+                    healthKit.logger.error(
+                        "HealthKit query-anchor load failed; error type: \(String(reflecting: type(of: error)), privacy: .public)"
+                    )
+                    try? await Task.sleep(for: retryDelay)
+                    retryDelay = min(retryDelay * 2, .seconds(60))
+                    continue
                 }
-                await handleQueryResult(added: update.addedSamples, deleted: update.deletedObjects)
-                self.anchor = QueryAnchor(update.newAnchor)
+                let samplePredicate = sampleType._makeSamplePredicate(
+                    filter: NSCompoundPredicate(
+                        andPredicateWithSubpredicates: [timeRange.predicate, predicate].compactMap(\.self)
+                    )
+                )
+                let queryDescriptor = HKAnchoredObjectQueryDescriptor(
+                    predicates: [samplePredicate],
+                    anchor: persistedAnchor?.hkAnchor
+                )
+                do {
+                    var expectedAnchor = persistedAnchor
+                    for try await update in queryDescriptor.results(for: healthStore) {
+                        guard isActive, !Task.isCancelled else {
+                            return
+                        }
+                        let commitActions = try await handleQueryResult(
+                            added: update.addedSamples,
+                            deleted: update.deletedObjects
+                        )
+                        let newAnchor = QueryAnchor(update.newAnchor)
+                        guard try healthKit.queryAnchors.compareExchange(
+                            expected: expectedAnchor,
+                            desired: newAnchor,
+                            for: sampleType
+                        ) else {
+                            throw AnchorCommitError.staleAnchor
+                        }
+                        for action in commitActions {
+                            await action()
+                        }
+                        expectedAnchor = newAnchor
+                        retryDelay = .seconds(1)
+                    }
+                    return
+                } catch is CancellationError {
+                    return
+                } catch {
+                    healthKit.logger.error(
+                        "HealthKit continuous delivery retained its anchor; error type: \(String(reflecting: type(of: error)), privacy: .public)"
+                    )
+                    guard isActive, !Task.isCancelled else {
+                        return
+                    }
+                    try? await Task.sleep(for: retryDelay)
+                    retryDelay = min(retryDelay * 2, .seconds(60))
+                }
             }
         }
         queryVariant = .anchorQuery(task)
@@ -179,13 +315,25 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
     
     
     @MainActor
-    private func handleQueryResult(added: some Collection<Sample> & Sendable, deleted: some Collection<HKDeletedObject> & Sendable) async {
-        if !deleted.isEmpty {
-            await standard.handleDeletedObjects(deleted, ofType: sampleType)
-        }
+    private func handleQueryResult(
+        added: some Collection<Sample> & Sendable,
+        deleted: some Collection<HKDeletedObject> & Sendable
+    ) async throws -> [HealthKitAnchorCommitAction] {
+        var commitActions: [HealthKitAnchorCommitAction] = []
         if !added.isEmpty {
-            await standard.handleNewSamples(added, ofType: sampleType)
+            if let action = try await standard.handleNewSamples(added, ofType: sampleType) {
+                commitActions.append(action)
+            }
         }
+        // An anchored delta may contain a sample that was both created and deleted between
+        // checkpoints. Stage additions first so the deletion can atomically elide/tombstone the
+        // never-published graph; the anchor still advances only after both callbacks succeed.
+        if !deleted.isEmpty {
+            if let action = try await standard.handleDeletedObjects(deleted, ofType: sampleType) {
+                commitActions.append(action)
+            }
+        }
+        return commitActions
     }
 }
 

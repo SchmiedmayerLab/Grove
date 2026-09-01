@@ -15,6 +15,10 @@ import Testing
 
 @Suite(.serialized) // needs to be serialized bc Antlr has concurrency issues
 struct FHIRPathParserTests { // swiftlint:disable:this type_body_length
+    private static let evaluationInstant = Date(timeIntervalSince1970: 1_700_000_000)
+    /// Mirrors the parser's explicit, locale-independent default temporal context.
+    private static let calendar = FHIRPathCalendar.gregorian()
+
     @Test
     func literalParsing() throws { // swiftlint:disable:this function_body_length
         enum ExpectedOutput {
@@ -33,6 +37,7 @@ struct FHIRPathParserTests { // swiftlint:disable:this type_body_length
         }
         
         let tz1 = try #require(TimeZone(identifier: "Europe/Berlin"))
+        let utc = try #require(TimeZone(secondsFromGMT: 0))
         
         let tests: [Test] = [
             Test(input: "@1998-06-02Z", expectedOutput: .invalid),
@@ -67,24 +72,24 @@ struct FHIRPathParserTests { // swiftlint:disable:this type_body_length
             switch test.expectedOutput {
             case .invalid:
                 #expect(throws: (any Error).self) {
-                    try FHIRPathExpression.evaluate(expression: test.input, as: Date.self)
+                    try FHIRPathExpression.evaluate(expression: test.input, evaluationInstant: Self.evaluationInstant, as: Date.self)
                 }
             case let .date(expectedComponentsWhenParsedAsDate, expectedComponentsWhenParsedAsComponents):
-                let cal = Calendar.current
+                let cal = Self.calendar
                 do {
-                    let parsedComponents = try FHIRPathExpression.evaluate(expression: test.input, as: DateComponents.self)
+                    let parsedComponents = try FHIRPathExpression.evaluate(expression: test.input, evaluationInstant: Self.evaluationInstant, as: DateComponents.self)
                     #expect(parsedComponents == expectedComponentsWhenParsedAsComponents)
                 }
                 do {
-                    let parsedDate = try FHIRPathExpression.evaluate(expression: test.input, as: Date.self)
+                    let parsedDate = try FHIRPathExpression.evaluate(expression: test.input, evaluationInstant: Self.evaluationInstant, as: Date.self)
                     let parsedDateComponents = try #require(cal.convert(
                         components: cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: parsedDate),
-                        bySettingTimeZoneTo: .gmt,
+                        bySettingTimeZoneTo: utc,
                         componentsToReturn: [.year, .month, .day, .hour, .minute, .second]
                     ))
                     let expectedComponents = try #require(cal.convert(
                         components: expectedComponentsWhenParsedAsDate,
-                        bySettingTimeZoneTo: .gmt,
+                        bySettingTimeZoneTo: utc,
                         componentsToReturn: [.year, .month, .day, .hour, .minute, .second]
                     ))
                     let expectedDate = try #require(cal.date(from: expectedComponents))
@@ -103,7 +108,7 @@ struct FHIRPathParserTests { // swiftlint:disable:this type_body_length
     
     @Test
     func dateTypeHasNoTime() throws {
-        let cal = Calendar.current
+        let cal = Self.calendar
         let inputs: [String] = [
             "today()",
             "@1998-06-02",
@@ -112,7 +117,7 @@ struct FHIRPathParserTests { // swiftlint:disable:this type_body_length
             "@2024-12-05"
         ]
         for expr in inputs {
-            let result: Date = try FHIRPathExpression.evaluate(expression: expr)
+            let result: Date = try FHIRPathExpression.evaluate(expression: expr, evaluationInstant: Self.evaluationInstant)
             let components = cal.dateComponents(
                 [.year, .month, .day, .hour, .minute, .second, .nanosecond],
                 from: result
@@ -140,13 +145,16 @@ struct FHIRPathParserTests { // swiftlint:disable:this type_body_length
         for (input, expected) in inputs {
             // (non-date) time objects cannot be parsed into `Date`
             #expect(throws: (any Error).self) {
-                try FHIRPathExpression.evaluate(expression: input, as: Date.self)
+                try FHIRPathExpression.evaluate(expression: input, evaluationInstant: Self.evaluationInstant, as: Date.self)
             }
             // ... but they can be parsed into `DateComponents`
-            let parsedComponents = try FHIRPathExpression.evaluate(expression: input, as: DateComponents.self)
+            let parsedComponents = try FHIRPathExpression.evaluate(expression: input, evaluationInstant: Self.evaluationInstant, as: DateComponents.self)
             switch expected {
             case .timeOfDay:
-                let nowComponents = Calendar.current.dateComponents([.hour, .minute, .second], from: .now)
+                let nowComponents = Self.calendar.dateComponents(
+                    [.hour, .minute, .second],
+                    from: Self.evaluationInstant
+                )
                 #expect(parsedComponents.hour == nowComponents.hour)
                 #expect(parsedComponents.minute == nowComponents.minute)
                 let parsedSecond = try #require(parsedComponents.second)
@@ -161,12 +169,12 @@ struct FHIRPathParserTests { // swiftlint:disable:this type_body_length
     
     @Test
     func basicAddExpression() throws {
-        let cal = Calendar.current
-        let result: Date = try FHIRPathExpression.evaluate(expression: "today() + 3 months")
+        let cal = Self.calendar
+        let result: Date = try FHIRPathExpression.evaluate(expression: "today() + 3 months", evaluationInstant: Self.evaluationInstant)
         let resultComponents = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: result)
         let nowComponents = cal.dateComponents(
             [.year, .month, .day],
-            from: try #require(cal.date(byAdding: .month, value: 3, to: .now))
+            from: try #require(cal.date(byAdding: .month, value: 3, to: Self.evaluationInstant))
         )
         #expect(resultComponents.year == nowComponents.year)
         #expect(resultComponents.month == nowComponents.month)
@@ -179,12 +187,12 @@ struct FHIRPathParserTests { // swiftlint:disable:this type_body_length
     
     @Test
     func basicSubtractExpression() throws {
-        let cal = Calendar.current
-        let result: Date = try FHIRPathExpression.evaluate(expression: "today() - 3 months")
+        let cal = Self.calendar
+        let result: Date = try FHIRPathExpression.evaluate(expression: "today() - 3 months", evaluationInstant: Self.evaluationInstant)
         let resultComponents = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: result)
         let nowComponents = cal.dateComponents(
             [.year, .month, .day],
-            from: try #require(cal.date(byAdding: .month, value: -3, to: .now))
+            from: try #require(cal.date(byAdding: .month, value: -3, to: Self.evaluationInstant))
         )
         #expect(resultComponents.year == nowComponents.year)
         #expect(resultComponents.month == nowComponents.month)
@@ -197,12 +205,12 @@ struct FHIRPathParserTests { // swiftlint:disable:this type_body_length
     
     @Test
     func unaryExpression() throws {
-        let cal = Calendar.current
-        let result: Date = try FHIRPathExpression.evaluate(expression: "today() + (- 3 months)")
+        let cal = Self.calendar
+        let result: Date = try FHIRPathExpression.evaluate(expression: "today() + (- 3 months)", evaluationInstant: Self.evaluationInstant)
         let resultComponents = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: result)
         let nowComponents = cal.dateComponents(
             [.year, .month, .day],
-            from: try #require(cal.date(byAdding: .month, value: -3, to: .now))
+            from: try #require(cal.date(byAdding: .month, value: -3, to: Self.evaluationInstant))
         )
         #expect(resultComponents.year == nowComponents.year)
         #expect(resultComponents.month == nowComponents.month)
@@ -215,9 +223,12 @@ struct FHIRPathParserTests { // swiftlint:disable:this type_body_length
     
     @Test
     func nowExpression() throws {
-        let cal = Calendar.current
-        let result: Date = try FHIRPathExpression.evaluate(expression: "now()")
-        let nowComponents = cal.dateComponents([.year, .month, .day, .hour, .minute], from: .now)
+        let cal = Self.calendar
+        let result: Date = try FHIRPathExpression.evaluate(expression: "now()", evaluationInstant: Self.evaluationInstant)
+        let nowComponents = cal.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: Self.evaluationInstant
+        )
         let resultComponents = cal.dateComponents([.year, .month, .day, .hour, .minute], from: result)
         #expect(resultComponents.year == nowComponents.year)
         #expect(resultComponents.month == nowComponents.month)
@@ -236,7 +247,7 @@ struct FHIRPathParserTests { // swiftlint:disable:this type_body_length
         ]
         for (input, expected) in inputs {
             do {
-                let parsedComponents = try FHIRPathExpression.evaluate(expression: input, as: DateComponents.self)
+                let parsedComponents = try FHIRPathExpression.evaluate(expression: input, evaluationInstant: Self.evaluationInstant, as: DateComponents.self)
                 #expect(parsedComponents.timeZone == expected.timeZone)
                 #expect(parsedComponents.year == expected.year)
                 #expect(parsedComponents.month == expected.month)
@@ -246,7 +257,7 @@ struct FHIRPathParserTests { // swiftlint:disable:this type_body_length
                 #expect(parsedComponents.second == expected.second)
             }
             do {
-                let parsedDate = try FHIRPathExpression.evaluate(expression: input, as: Date.self)
+                let parsedDate = try FHIRPathExpression.evaluate(expression: input, evaluationInstant: Self.evaluationInstant, as: Date.self)
                 var calendar = Calendar(identifier: .gregorian)
                 calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
                 let components = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: parsedDate)
@@ -264,15 +275,15 @@ struct FHIRPathParserTests { // swiftlint:disable:this type_body_length
     @Test
     func fixedDateExpression() throws {
         let inputs: [String: DateComponents] = [
-            "@2015-02-04": .init(timeZone: .current, year: 2015, month: 2, day: 4),
-            "@2015-02-04 + 1 day": .init(timeZone: .current, year: 2015, month: 2, day: 5),
-            "@2015-02-04 + 2 days": .init(timeZone: .current, year: 2015, month: 2, day: 6),
-            "@2015-02-04 - 7 days": .init(timeZone: .current, year: 2015, month: 1, day: 28),
-            "@2015-02-04 - 7 weeks": .init(timeZone: .current, year: 2014, month: 12, day: 17)
+            "@2015-02-04": .init(timeZone: Self.calendar.timeZone, year: 2015, month: 2, day: 4),
+            "@2015-02-04 + 1 day": .init(timeZone: Self.calendar.timeZone, year: 2015, month: 2, day: 5),
+            "@2015-02-04 + 2 days": .init(timeZone: Self.calendar.timeZone, year: 2015, month: 2, day: 6),
+            "@2015-02-04 - 7 days": .init(timeZone: Self.calendar.timeZone, year: 2015, month: 1, day: 28),
+            "@2015-02-04 - 7 weeks": .init(timeZone: Self.calendar.timeZone, year: 2014, month: 12, day: 17)
         ]
         for (input, expected) in inputs {
             do {
-                let parsedComponents = try FHIRPathExpression.evaluate(expression: input, as: DateComponents.self)
+                let parsedComponents = try FHIRPathExpression.evaluate(expression: input, evaluationInstant: Self.evaluationInstant, as: DateComponents.self)
                 #expect(parsedComponents.timeZone == nil || parsedComponents.timeZone == expected.timeZone)
                 #expect(parsedComponents.year == expected.year)
                 #expect(parsedComponents.month == expected.month)
@@ -282,8 +293,8 @@ struct FHIRPathParserTests { // swiftlint:disable:this type_body_length
                 #expect(parsedComponents.second == nil || parsedComponents.second == 0)
             }
             do {
-                let parsedDate = try FHIRPathExpression.evaluate(expression: input, as: Date.self)
-                let components = Calendar.current.dateComponents([.timeZone, .year, .month, .day], from: parsedDate)
+                let parsedDate = try FHIRPathExpression.evaluate(expression: input, evaluationInstant: Self.evaluationInstant, as: Date.self)
+                let components = Self.calendar.dateComponents([.timeZone, .year, .month, .day], from: parsedDate)
                 #expect(components == expected)
             }
         }
@@ -293,7 +304,7 @@ struct FHIRPathParserTests { // swiftlint:disable:this type_body_length
     @Test
     func unsupportedExpression() throws {
         do {
-            _ = try FHIRPathExpression.evaluate(expression: "today() = today()", as: Date.self)
+            _ = try FHIRPathExpression.evaluate(expression: "today() = today()", evaluationInstant: Self.evaluationInstant, as: Date.self)
             Issue.record("Expected an error to be thrown")
         } catch let error as ExpressionError {
             guard let dateError = error.underlyingError as? DateExpressionError else {

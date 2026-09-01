@@ -15,11 +15,117 @@ import Grove
 @testable import GroveHealthKit
 @testable import GroveHealthKitBulkExport
 import GroveTesting
+import Synchronization
 import Testing
 
 
 @Suite
 struct BulkExporterAPITests {
+    @MainActor
+    @Test
+    func batchTransitionsPersistOnlyCompleteSnapshots() throws {
+        let endDate = Date.now
+        let batch = ExportBatch(
+            sampleType: SampleType.stepCount,
+            timeRange: endDate.addingTimeInterval(-60)..<endDate
+        )
+        let recorder = DescriptorMutationRecorder(
+            descriptor: ExportSessionDescriptor(
+                sessionId: .init("snapshot-test"),
+                startDate: .oldestSample,
+                endDate: endDate
+            )
+        )
+        recorder.descriptor.pendingBatches = [batch]
+        recorder.snapshots.removeAll()
+
+        recorder.descriptor.record(batch, result: .success(()))
+
+        try #require(recorder.snapshots.count == 1)
+        let snapshot = recorder.snapshots[0]
+        #expect(snapshot.pendingBatches.isEmpty)
+        #expect(snapshot.completedBatches.count == 1)
+        #expect(snapshot.completedBatches[0].result == .success)
+
+        recorder.snapshots.removeAll()
+        recorder.descriptor.markPersistenceFailure(for: snapshot.completedBatches[0], error: PersistenceTestError.injected)
+
+        try #require(recorder.snapshots.count == 1)
+        let retrySnapshot = recorder.snapshots[0]
+        #expect(retrySnapshot.completedBatches.isEmpty)
+        #expect(retrySnapshot.pendingBatches.count == 1)
+        #expect(retrySnapshot.pendingBatches[0].result?.isFailure == true)
+    }
+
+
+    @Test
+    func descriptorPersistenceFlushPreservesMutationOrder() async {
+        let persistedSessionIds = Mutex<[String]>([])
+        let persister = SessionDescriptorPersisting { descriptor in
+            persistedSessionIds.withLock {
+                $0.append(descriptor.sessionId.rawValue)
+            }
+        }
+        for index in 0..<20 {
+            let descriptor = ExportSessionDescriptor(
+                sessionId: .init(String(index)),
+                startDate: .oldestSample,
+                endDate: .now
+            )
+            persister(descriptor)
+        }
+
+        await persister.flush()
+
+        #expect(persistedSessionIds.withLock { $0 } == (0..<20).map(String.init))
+    }
+
+
+    @Test
+    func descriptorPersistenceRecoversAfterFailedWrite() async throws {
+        let attempts = Mutex(0)
+        let persistedDescriptors = Mutex<[ExportSessionDescriptor]>([])
+        let persister = SessionDescriptorPersisting { descriptor in
+            let attempt = attempts.withLock { attempts in
+                attempts += 1
+                return attempts
+            }
+            if attempt == 1 {
+                throw PersistenceTestError.injected
+            }
+            persistedDescriptors.withLock {
+                $0.append(descriptor)
+            }
+        }
+        let failedDescriptor = ExportSessionDescriptor(
+            sessionId: .init("failed-write"),
+            startDate: .oldestSample,
+            endDate: .now
+        )
+        let recoveredDescriptor = ExportSessionDescriptor(
+            sessionId: .init("recovered-write"),
+            startDate: .oldestSample,
+            endDate: .now
+        )
+
+        let failedWrite = persister(failedDescriptor)
+        let recoveredWrite = persister(recoveredDescriptor)
+
+        do {
+            try await failedWrite.value
+            Issue.record("Expected the first descriptor write to fail")
+        } catch {
+            #expect(error is PersistenceTestError)
+        }
+        try await recoveredWrite.value
+
+        let persisted = persistedDescriptors.withLock { $0 }
+        try #require(persisted.count == 1)
+        let persistedDescriptor = persisted[0]
+        #expect(persistedDescriptor.sessionId == recoveredDescriptor.sessionId)
+    }
+
+
     @Test
     func sessionStartDate() async throws {
         // we need to pass in the module, but for the input we're specifying it won't be accessed.
@@ -162,13 +268,39 @@ struct BulkExporterAPITests {
 }
 
 
+@MainActor
+private final class DescriptorMutationRecorder {
+    var descriptor: ExportSessionDescriptor {
+        didSet {
+            snapshots.append(descriptor)
+        }
+    }
+    var snapshots: [ExportSessionDescriptor] = []
+
+    init(descriptor: ExportSessionDescriptor) {
+        self.descriptor = descriptor
+    }
+}
+
+
+private enum PersistenceTestError: Error {
+    case injected
+}
+
+
 private actor TestStandard: Standard, HealthKitConstraint {
-    func handleNewSamples<Sample>(_ addedSamples: some Collection<Sample>, ofType sampleType: SampleType<Sample>) {
-        // ...
+    func handleNewSamples<Sample>(
+        _ addedSamples: some Collection<Sample>,
+        ofType sampleType: SampleType<Sample>
+    ) -> HealthKitAnchorCommitAction? {
+        nil
     }
     
-    func handleDeletedObjects<Sample>(_ deletedObjects: some Collection<HKDeletedObject>, ofType sampleType: SampleType<Sample>) {
-        // ...
+    func handleDeletedObjects<Sample>(
+        _ deletedObjects: some Collection<HKDeletedObject>,
+        ofType sampleType: SampleType<Sample>
+    ) -> HealthKitAnchorCommitAction? {
+        nil
     }
 }
 

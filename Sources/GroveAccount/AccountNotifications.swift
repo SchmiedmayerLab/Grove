@@ -32,22 +32,22 @@ public final class AccountNotifications: Module, DefaultInitializable, Environme
         ///
         /// - Note: In previous releases of the package, this case was named `associatedAccount`.
         case didAssociate(_ details: AccountDetails)
-        
+
         /// The details of the currently associated account changed.
         case detailsChanged(_ old: AccountDetails, _ new: AccountDetails)
-        
+
         /// The currently associated account is about to be logged out.
         ///
         /// Note that this event is not guaranteed to always be emitted;
         /// e.g., if the account was deleted on the backend and the account service is responding to that by disassociating it locally,
         /// no `willLogOut` event will be triggered.
         case willLogOut(_ details: AccountDetails)
-        
+
         /// The account with the given details is being disassociated (e.g., because it was logged out or deleted).
         ///
         /// - Note: In previous releases of the package, this case was named `disassociatingAccount`.
         case didDisassociate(_ details: AccountDetails)
-        
+
         /// The currently associated user account is about to be deleted.
         ///
         /// This event signals that the user requested to have their account deleted, and that the user's data is about to be deleted.

@@ -90,18 +90,7 @@ extension QuestionnaireResponses.Response {
                     value: response.asFHIRDecimalPrimitive()
                 ))
             case .decimal:
-                if !config.unit.isEmpty || config.unitCode != nil {
-                    // Legacy behaviour: a decimal item carrying a unit extension is emitted
-                    // as a coded quantity so the unit is not lost.
-                    value = .quantity(Quantity(
-                        code: config.unitCode?.asFHIRStringPrimitive(),
-                        system: config.unitSystem?.asFHIRURIPrimitive(),
-                        unit: (config.unit.isEmpty ? config.unitCode : config.unit)?.asFHIRStringPrimitive(),
-                        value: response.asFHIRDecimalPrimitive()
-                    ))
-                } else {
-                    value = .decimal(response.asFHIRDecimalPrimitive())
-                }
+                value = .decimal(response.asFHIRDecimalPrimitive())
             }
             responseItem.answer = [.init(value: value)]
         case let .quantity(response, unitCode):
@@ -122,19 +111,16 @@ extension QuestionnaireResponses.Response {
             guard case .choice(let config) = task.kind.variant else {
                 throw FHIRResponseConversionError("Invalid Input")
             }
-            responseItem.answer = try response.selectedOptions.map { optionId in
-                // Option ids are `system|code` tokens; a bare code matches on the code alone,
-                // as conditions do.
-                guard let option = config.options.first(where: { $0.id == optionId })
-                    ?? config.options.first(where: { !optionId.contains("|") && $0.id.hasSuffix("|\(optionId)") }) else {
+            var answers = try response.selectedOptions.map { optionId in
+                guard let option = try ChoiceOptionResolver.token(optionId, in: config.options) else {
                     throw FHIRResponseConversionError("Unable to find option for '\(optionId)'")
                 }
                 return QuestionnaireResponseItemAnswer(value: try option.toFHIRAnswerValue())
             }
             if let otherText = response.freeTextOtherResponse {
-                // SAFETY: we just assigned a non-nil value above
-                responseItem.answer!.append(.init(value: .string(otherText.asFHIRStringPrimitive()))) // swiftlint:disable:this force_unwrapping
+                answers.append(.init(value: .string(otherText.asFHIRStringPrimitive())))
             }
+            responseItem.answer = answers
         case .attachments(let responses):
             responseItem.answer = try responses.map { attachment in
                 try .init(attachment)
@@ -169,12 +155,12 @@ extension QuestionnaireResponses.Response {
                     guard self.value.choiceValue.selectedOptions.contains(option.id) else {
                         throw FHIRResponseConversionError("Found a nested answer for a choice option that isn't selected ('\(option.id)')")
                     }
-                    guard let answerIdx = responseItem.answer?.firstIndex(where: { $0.value == .coding(option.toFHIRCoding()) }) else {
+                    guard var answers = responseItem.answer,
+                          let answerIdx = answers.firstIndex(where: { $0.value == .coding(option.toFHIRCoding()) }) else {
                         throw FHIRResponseConversionError("Unable to find answer for choice option")
                     }
-                    // SAFETY: the guard above proved `answer` is non-nil
-                    responseItem.answer![answerIdx].item = try responses.toFHIR(using: .init(allTasks: task.kind.followUpTasks))
-                    // swiftlint:disable:previous force_unwrapping
+                    answers[answerIdx].item = try responses.toFHIR(using: .init(allTasks: task.kind.followUpTasks))
+                    responseItem.answer = answers
                 }
             }
         default:

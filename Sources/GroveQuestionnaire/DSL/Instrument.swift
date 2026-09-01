@@ -15,7 +15,7 @@
 ///     static let interest = ChoiceQuestion<Frequency>("phq9-1", "Little interest…")
 ///     static let sleep = ChoiceQuestion<Frequency>("phq9-3", "Trouble sleeping?")
 ///
-///     static let questionnaire = Questionnaire(url: …, title: "PHQ-9") {
+///     static let questionnaire = Questionnaire(url: …, version: "1.0.0", title: "PHQ-9") {
 ///         Section("phq9", title: "Over the last two weeks") {
 ///             interest
 ///             sleep

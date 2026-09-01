@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import GroveFoundation
 import GroveQuestionnaire
 import SwiftUI
 import UniformTypeIdentifiers
@@ -19,6 +20,7 @@ extension Questionnaire {
         Metadata(
             id: "org.grovealliance.GroveQuestionnaire.demo.\(id)",
             url: URL(string: "https://grovealliance.org/questionnaires/demo/\(id)"),
+            version: "1.0.0",
             title: title,
             explainer: ""
         )
@@ -276,7 +278,7 @@ extension Questionnaire {
         metadata: metadata("file-attachment", "File Attachment"),
         sections: [.init(id: "s0", tasks: [
             .init(id: "t0", title: "Photo Question", kind: .fileAttachment(.init(
-                contentTypes: [.image],
+                contentTypes: [.png, .jpeg, "image/heic"],
                 maxSize: nil,
                 allowsMultipleSelection: false
             )))
@@ -418,7 +420,7 @@ extension Questionnaire.Task {
             ))
         ),
         .init(id: "taskAttachment", title: "Test Task: Attachment", kind: .fileAttachment(.init(
-            contentTypes: [.image],
+            contentTypes: [.png, .jpeg, "image/heic"],
             allowsMultipleSelection: true
         )))
     ]

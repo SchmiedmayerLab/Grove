@@ -30,6 +30,21 @@ extension QuestionnaireSheetNavigator {
         return scroll(dragDown, lookingFor: isFound)
     }
 
+    /// Whether a control of the page would take a tap where it is.
+    ///
+    /// `isHittable` asks about the window, not the page. A page that has scrolled a row up under
+    /// the status bar leaves it inside the window and clipped out of the page, so the tap is
+    /// delivered — to the bar, and the row is never touched.
+    func isReachable(_ element: XCUIElement) -> Bool {
+        guard element.isHittable else {
+            return false
+        }
+        let page = scrollablePage.frame
+        let underneath = navigationBar.exists ? navigationBar.frame.maxY : page.minY
+        // A tap lands in the middle of what it is aimed at, so that is what has to be in the clear.
+        return element.frame.midY >= underneath && element.frame.midY <= page.maxY
+    }
+
     /// Scrolls one way until `isFound` holds or the page stops moving.
     ///
     /// The page is looked up again for every swipe: a run that hands itself off mid-scan takes its
@@ -37,7 +52,7 @@ extension QuestionnaireSheetNavigator {
     private func scroll(_ swipe: (XCUIElement) -> Void, lookingFor isFound: () -> Bool) -> Bool {
         var lastSeen = visibleText
         for _ in 0..<Self.maximumScanSwipes {
-            let page = section
+            let page = scrollablePage
             guard page.exists else {
                 return false
             }

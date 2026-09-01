@@ -76,19 +76,22 @@ import GroveHealthKit
 
 actor ExampleStandard: Standard, HealthKitConstraint {
     // Add the newly collected HealthKit samples to your application.
+    // Throwing retains the query anchor, so the same batch is delivered again.
     func handleNewSamples<Sample>(
-        _ addedSamples: some Collection<Sample>,
+        _ addedSamples: some Collection<Sample> & Sendable,
         ofType sampleType: SampleType<Sample>
-    ) async {
+    ) async throws -> HealthKitAnchorCommitAction? {
         // ...
+        return nil
     }
 
     // Remove the deleted HealthKit objects from your application.
     func handleDeletedObjects<Sample>(
-        _ deletedObjects: some Collection<HKDeletedObject>,
+        _ deletedObjects: some Collection<HKDeletedObject> & Sendable,
         ofType sampleType: SampleType<Sample>
-    ) async {
+    ) async throws -> HealthKitAnchorCommitAction? {
         // ...
+        return nil
     }
 }
 ```

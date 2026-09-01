@@ -13,10 +13,22 @@ import Foundation
 /// A type can be evaluated from a FHIRPath expression.
 public protocol _FHIRPathValue { // swiftlint:disable:this type_name
     /// Evaluate the expression for the given type
+    ///
+    /// The instant is an input rather than a read of the clock so that every clock-sensitive
+    /// expression in one form agrees: a questionnaire whose `minValue` is `today()` and whose
+    /// `maxValue` is `today() + 3 months` must not straddle midnight between the two
+    /// evaluations. It also makes evaluation reproducible in a test.
+    /// Callers normally use ``FHIRPathExpression/evaluate(expression:evaluationInstant:as:)``,
+    /// Callers supply it explicitly so replay never reads a different wall clock.
+    ///
     /// - Parameter expression: The expression to evalaute.
+    /// - Parameter evaluationInstant: The explicit instant used by clock-sensitive functions.
     /// - Returns: The resulting value
     /// - Throws: Domain-specific error if the evaluation failed. Should use ``ExpressionError``.
-    static func evaluate(_ expression: FHIRPathParser.ExpressionContext) throws -> Self
+    static func evaluate(
+        _ expression: FHIRPathParser.ExpressionContext,
+        evaluationInstant: Date
+    ) throws -> Self
 }
 
 
@@ -28,18 +40,26 @@ public enum FHIRPathExpression {
     ///
     /// Below is a short code example on how to evaluate a Date expression:
     /// ```swift
-    /// let date: Date = try FHIRPathExpression.evalaute("today() + 3 months")
+    /// let date: Date = try FHIRPathExpression.evaluate(
+    ///     expression: "today() + 3 months",
+    ///     evaluationInstant: submittedAt
+    /// )
     /// ```
     ///
     /// - Parameters:
     ///   - expression: The FHIRPath expression to evaluate.
+    ///   - evaluationInstant: The explicit instant used by `now()`, `today()`, and `timeOfDay()`.
     ///   - value: The Swift Type the expression should be evalauted to.
     /// - Returns: The evalauted value.
     /// - Throws: Throws an error of ``ExpressionError`` if evaluation failed. Throws a respective parser error if the
     ///     provided expression doesn't follow the FHIRPath grammar.
-    public static func evaluate<Value: _FHIRPathValue>(expression: String, as value: Value.Type = Value.self) throws -> Value {
+    public static func evaluate<Value: _FHIRPathValue>(
+        expression: String,
+        evaluationInstant: Date,
+        as value: Value.Type = Value.self
+    ) throws -> Value {
         // Routed through the locked parse: ANTLR's shared caches are not thread-safe.
         let parsed = try Self.parse(expression)
-        return try value.evaluate(parsed.tree)
+        return try value.evaluate(parsed.tree, evaluationInstant: evaluationInstant)
     }
 }

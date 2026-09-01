@@ -98,7 +98,7 @@ struct FHIRToResearchKitTests {
     
     @Test("Regex extension")
     func testRegexExtension() throws {
-        let testRegex = Questionnaire.textValidationExample.item?.first?.validationRegularExpression
+        let testRegex = try Questionnaire.textValidationExample.item?.first?.validationRegularExpression
         // swiftlint:disable:next line_length
         let regex = try NSRegularExpression(pattern: "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
         #expect(regex == testRegex)
@@ -114,10 +114,18 @@ struct FHIRToResearchKitTests {
     
     
     @Test("Validation message extension")
-    func testValidationMessageExtension() throws {
-        let testValidationMessage = Questionnaire.textValidationExample.item?.first?.validationMessage
-        let validationMessage = "Please enter a valid email address."
-        #expect(validationMessage == testValidationMessage)
+    func testValidationMessageExtension() {
+        var item = QuestionnaireItem(linkId: "email", type: FHIRPrimitive(.string))
+        var constraint = Extension(url: "http://hl7.org/fhir/StructureDefinition/targetConstraint")
+        constraint.extension = [
+            Extension(
+                url: "human",
+                value: .string("Please enter a valid email address.".asFHIRStringPrimitive())
+            )
+        ]
+        item.extension = [constraint]
+
+        #expect(item.validationMessage == "Please enter a valid email address.")
     }
     
     
@@ -131,7 +139,7 @@ struct FHIRToResearchKitTests {
     
     @Test("Minimum value extension")
     func testMinValueExtension() throws {
-        let minValues = try #require(Questionnaire.numberExample.item).map(\.minValue)
+        let minValues = try #require(Questionnaire.numberExample.item).map { try $0.minValue }
         #expect(minValues == [
             NSNumber(value: 1),
             NSNumber(value: 1),
@@ -142,7 +150,7 @@ struct FHIRToResearchKitTests {
     
     @Test("Maximum value extension")
     func testMaxValueExtension() throws {
-        let minValues = try #require(Questionnaire.numberExample.item).map(\.maxValue)
+        let minValues = try #require(Questionnaire.numberExample.item).map { try $0.maxValue }
         #expect(minValues == [
             NSNumber(value: 100),
             NSNumber(value: 100),
@@ -153,7 +161,9 @@ struct FHIRToResearchKitTests {
     
     @Test("Minimum date value extension")
     func testMinDateValueExtension() throws {
-        let minDateValue = Questionnaire.dateTimeExample.item?.first?.minDateValue
+        let minDateValue = try Questionnaire.dateTimeExample.item?.first?.minDateValue(
+            evaluationInstant: Date(timeIntervalSince1970: 0)
+        )
         let unwrappedMinDate = try #require(minDateValue)
         #expect(unwrappedMinDate.year == 2001)
         #expect(unwrappedMinDate.month == 1)
@@ -163,7 +173,9 @@ struct FHIRToResearchKitTests {
     
     @Test("Maximum date value extension")
     func testMaxDateValueExtension() throws {
-        let maxDateValue = Questionnaire.dateTimeExample.item?.first?.maxDateValue
+        let maxDateValue = try Questionnaire.dateTimeExample.item?.first?.maxDateValue(
+            evaluationInstant: Date(timeIntervalSince1970: 0)
+        )
         let unwrappedMaxDate = try #require(maxDateValue)
         #expect(unwrappedMaxDate.year == 2024)
         #expect(unwrappedMaxDate.month == 1)

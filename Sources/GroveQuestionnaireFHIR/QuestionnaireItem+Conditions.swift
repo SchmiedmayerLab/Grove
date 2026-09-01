@@ -37,7 +37,7 @@ extension ModelsR4.QuestionnaireItem {
                 question: taskId.asFHIRStringPrimitive()
             )
         default:
-            throw FHIRExportError("Condition \(condition) is not representable as FHIR enableWhen; use enabledWhen with a FHIRPath expression instead")
+            throw ExportError("Condition \(condition) is not representable as FHIR enableWhen; use enabledWhen with a FHIRPath expression instead")
         }
     }
 
@@ -86,7 +86,7 @@ extension ModelsR4.QuestionnaireItem {
             )))
         }
         if components.hour != nil {
-            throw FHIRExportError("dateTime enableWhen conditions are not exportable yet; compare on a date instead")
+            throw ExportError("dateTime enableWhen conditions are not exportable yet; compare on a date instead")
         }
         return .date(FHIRPrimitive(FHIRDate(
             year: components.year ?? 0,

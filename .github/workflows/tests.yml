@@ -14,10 +14,31 @@ on:
       - main
   pull_request:
   workflow_dispatch:
+    inputs:
+      grove_fhir_ref:
+        description: grove-fhir commit carrying the Grove FHIR Implementation Guides contract. Defaults to the current main revision.
+        type: string
+        default: 444e06fb25680c3af29e5d3ccbebeb0249be7318
+      full_readiness:
+        description: Schedule every package on the currently enabled CI platforms instead of only the packages the change touches.
+        type: boolean
+        default: false
+      fhir_only:
+        description: Run only producer conformance against the selected grove-fhir development contract.
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       run_all:
-        description: Run every unit and UI test.
+        description: Run every package's unit and UI tests on the currently enabled CI platforms.
+        type: boolean
+        default: false
+      grove_fhir_ref:
+        description: grove-fhir commit carrying the Grove FHIR Implementation Guides contract. Defaults to the current main revision.
+        type: string
+        default: 444e06fb25680c3af29e5d3ccbebeb0249be7318
+      full_readiness:
+        description: Schedule every package on the currently enabled CI platforms instead of only the packages the change touches.
         type: boolean
         default: false
 
@@ -39,6 +60,8 @@ jobs:
       ui_matrix: ${{ steps.compute.outputs.ui_matrix }}
       has_jobs: ${{ steps.compute.outputs.has_jobs }}
       has_ui_jobs: ${{ steps.compute.outputs.has_ui_jobs }}
+      has_fhir_conformance: ${{ steps.compute.outputs.has_fhir_conformance }}
+      fhir_components: ${{ steps.compute.outputs.fhir_components }}
       affected: ${{ steps.compute.outputs.affected }}
     steps:
       - uses: actions/checkout@v7
@@ -58,7 +81,7 @@ jobs:
             BASE_SHA="${{ github.event.before }}"
             git diff --name-only "$BASE_SHA" "${{ github.sha }}" > changed.txt
           else
-            echo "__ALL__" > changed.txt   # first push / unknown base -> test everything
+            echo "__ALL__" > changed.txt   # first push / unknown base -> test every enabled package lane
           fi
           echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
           if grep -Fxq "Package.swift" changed.txt; then
@@ -77,7 +100,9 @@ jobs:
             echo "ui_test_projects_changed=false" >> "$GITHUB_OUTPUT"
           fi
           echo "Changed files:"; cat changed.txt
-      - name: Evaluate package graphs
+      - name: Evaluate head package graph
+        run: swift package dump-package > "$RUNNER_TEMP/head-package.json"
+      - name: Evaluate base package graph and configuration
         if: steps.changes.outputs.manifest_changed == 'true' || steps.changes.outputs.packages_changed == 'true' || steps.changes.outputs.ui_test_projects_changed == 'true'
         env:
           BASE_SHA: ${{ steps.changes.outputs.base_sha }}
@@ -92,7 +117,6 @@ jobs:
           fi
           if [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
             swift package --package-path "$BASE_WORKTREE" dump-package > "$RUNNER_TEMP/base-package.json"
-            swift package dump-package > "$RUNNER_TEMP/head-package.json"
           fi
       - name: Test affected-package selection
         env:
@@ -101,10 +125,9 @@ jobs:
       - name: Compute test matrix
         id: compute
         run: |
-          ARGS=(changed.txt)
+          ARGS=(changed.txt --head-package-dump "$RUNNER_TEMP/head-package.json")
           if [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
             ARGS+=(--base-package-dump "$RUNNER_TEMP/base-package.json")
-            ARGS+=(--head-package-dump "$RUNNER_TEMP/head-package.json")
           fi
           if [ "${{ steps.changes.outputs.packages_changed }}" = "true" ] || [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
             ARGS+=(--base-packages "$RUNNER_TEMP/base-packages.toml")
@@ -112,14 +135,33 @@ jobs:
           if [ "${{ steps.changes.outputs.ui_test_projects_changed }}" = "true" ] && [ -f "$RUNNER_TEMP/base-ui-test-projects.toml" ]; then
             ARGS+=(--base-ui-test-projects "$RUNNER_TEMP/base-ui-test-projects.toml")
           fi
+          if [ "${{ inputs.fhir_only }}" = "true" ]; then
+            ARGS+=(--fhir-only)
+          fi
+          if [ "${{ inputs.full_readiness }}" = "true" ]; then
+            ARGS+=(--full-readiness)
+          elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ inputs.run_all }}" != "true" ] && [ -f .github/GROVE_FHIR_DEVELOPMENT_SCOPE ]; then
+            DEVELOPMENT_SCOPE="$(sed -n '1p' .github/GROVE_FHIR_DEVELOPMENT_SCOPE)"
+            ARGS+=(--development-scope "$DEVELOPMENT_SCOPE")
+            echo "::warning::Temporary Grove FHIR development scope '$DEVELOPMENT_SCOPE' is active. Unit and UI tests are limited to FHIR packages plus directly changed target owners. Remove .github/GROVE_FHIR_DEVELOPMENT_SCOPE and run the full-readiness workflow before merge."
+          # Self-hosted runner capacity is the constraint, so a ready pull request stays scoped to what it
+          # changes. Set the FULL_READINESS_ON_PULL_REQUESTS variable once capacity allows the wider matrix.
+          elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ inputs.run_all }}" != "true" ] \
+              && [ "${{ vars.FULL_READINESS_ON_PULL_REQUESTS }}" = "true" ]; then
+            ARGS+=(--full-readiness)
+          fi
           python3 Scripts/affected-test-matrix.py "${ARGS[@]}" >> "$GITHUB_OUTPUT"
       - name: Dump matrix (debug)
         env:
           AFFECTED: ${{ steps.compute.outputs.affected }}
+          FHIR_COMPONENTS: ${{ steps.compute.outputs.fhir_components }}
+          HAS_FHIR_CONFORMANCE: ${{ steps.compute.outputs.has_fhir_conformance }}
           HAS_JOBS: ${{ steps.compute.outputs.has_jobs }}
           MATRIX: ${{ steps.compute.outputs.matrix }}
         run: |
           echo "has_jobs = $HAS_JOBS"
+          echo "has_fhir_conformance = $HAS_FHIR_CONFORMANCE"
+          echo "fhir_components = $FHIR_COMPONENTS"
           echo "affected = $AFFECTED"
           JOBS=$(printf '%s' "$MATRIX" | python3 -c 'import json,sys; print(len(json.load(sys.stdin).get("include",[])))' 2>/dev/null || echo "?")
           echo "scheduled jobs = $JOBS"
@@ -130,6 +172,7 @@ jobs:
             echo "**has_jobs:** \`$HAS_JOBS\`  •  **scheduled jobs:** \`$JOBS\`"
             echo ""
             echo "**Affected packages:** $AFFECTED"
+            echo "**Applicable FHIR producer lanes:** $FHIR_COMPONENTS"
             echo ""
             echo "<details><summary>Generated matrix JSON ($JOBS jobs)</summary>"
             echo ""
@@ -188,6 +231,93 @@ jobs:
           name: ${{ matrix.package }}-${{ matrix.platform }}-UITests.xcresult
           path: ${{ matrix.package }}-${{ matrix.platform }}-UITests.xcresult
 
+  fhir-conformance:
+    name: FHIR Output Conformance
+    needs: detect
+    if: needs.detect.outputs.has_fhir_conformance == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          repository: SchmiedmayerLab/grove-fhir
+          path: .fhir/grove-fhir
+          ref: ${{ inputs.grove_fhir_ref || '444e06fb25680c3af29e5d3ccbebeb0249be7318' }}
+          persist-credentials: false
+      - name: Record grove-fhir contract revision
+        working-directory: .fhir/grove-fhir
+        run: |
+          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || '444e06fb25680c3af29e5d3ccbebeb0249be7318' }}"
+          echo "grove-fhir SHA: $(git rev-parse HEAD)"
+      - name: Pin the implementation-guide cache key
+        run: |
+          RESOLVED_GROVE_FHIR_SHA="$(git -C .fhir/grove-fhir rev-parse HEAD)"
+          echo "GROVE_FHIR_GUIDE_CACHE_KEY=grove-fhir-validation-${{ runner.os }}-$RESOLVED_GROVE_FHIR_SHA-${{ hashFiles('.github/GROVE_FHIR_DEVELOPMENT_SCOPE', '.fhir/grove-fhir/Gemfile.lock', '.fhir/grove-fhir/package-lock.json', '.fhir/grove-fhir/Scripts/**', '.fhir/grove-fhir/catalog/**', '.fhir/grove-fhir/mobile/**', '.fhir/grove-fhir/sensor/**', '.fhir/grove-fhir/sensorkit/**', '.fhir/grove-fhir/healthkit/**', '.fhir/grove-fhir/questionnaire/**') }}" >> "$GITHUB_ENV"
+      - name: Restore built implementation guides
+        id: guide-cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            .fhir/grove-fhir/.build/fhir-home
+            .fhir/grove-fhir/.build/fhir-tools
+            .fhir/grove-fhir/mobile/output/package.tgz
+            .fhir/grove-fhir/sensor/output/package.tgz
+            .fhir/grove-fhir/sensorkit/output/package.tgz
+            .fhir/grove-fhir/healthkit/output/package.tgz
+            .fhir/grove-fhir/questionnaire/output/package.tgz
+          key: ${{ env.GROVE_FHIR_GUIDE_CACHE_KEY }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: .fhir/grove-fhir/package-lock.json
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: false
+      - name: Build active implementation guides
+        if: steps.guide-cache.outputs.cache-hit != 'true'
+        working-directory: .fhir/grove-fhir
+        env:
+          FHIR_COMPONENTS: ${{ needs.detect.outputs.fhir_components }}
+        run: |
+          npm ci
+          GUIDES=()
+          add_guide() {
+            local candidate="$1"
+            local existing
+            for existing in "${GUIDES[@]}"; do
+              [ "$existing" = "$candidate" ] && return
+            done
+            GUIDES+=("$candidate")
+          }
+          IFS=',' read -r -a COMPONENTS <<< "$FHIR_COMPONENTS"
+          for component in "${COMPONENTS[@]}"; do
+            case "$component" in
+              healthkit) add_guide mobile; add_guide sensor; add_guide healthkit ;;
+              questionnaire) add_guide questionnaire ;;
+              sensor) add_guide mobile; add_guide sensor; add_guide sensorkit ;;
+              *) echo "::error::Unknown FHIR component '$component'."; exit 1 ;;
+            esac
+          done
+          ./Scripts/build-guides.sh "${GUIDES[@]}"
+      - name: Validate resources emitted by Grove
+        env:
+          FHIR_COMPONENTS: ${{ needs.detect.outputs.fhir_components }}
+          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || '444e06fb25680c3af29e5d3ccbebeb0249be7318' }}
+        run: |
+          IFS=',' read -r -a COMPONENTS <<< "$FHIR_COMPONENTS"
+          for component in "${COMPONENTS[@]}"; do
+            ./Scripts/validate-fhir-conformance.sh "$component"
+          done
+
   # Single gate to use as the required status check in branch protection.
   # Does no work itself; it aggregates the unit and UI test jobs.
   # `if: always()` is required so it still runs (and reports pass/fail) when `test`
@@ -196,7 +326,7 @@ jobs:
   all-tests-pass:
     name: All tests pass
     if: always()
-    needs: [detect, test, test-ui]
+    needs: [detect, test, test-ui, fhir-conformance]
     runs-on: ubuntu-latest
     steps:
       - name: Verify test results
@@ -204,14 +334,15 @@ jobs:
           echo "detect  = ${{ needs.detect.result }}"
           echo "test    = ${{ needs.test.result }}"
           echo "test-ui = ${{ needs.test-ui.result }}"
+          echo "fhir    = ${{ needs.fhir-conformance.result }}"
           if [ "${{ needs.detect.result }}" != "success" ]; then
             echo "::error::The 'detect' job did not succeed — cannot determine which tests to run."
             exit 1
           fi
-          for r in "${{ needs.test.result }}" "${{ needs.test-ui.result }}"; do
+          for r in "${{ needs.test.result }}" "${{ needs.test-ui.result }}" "${{ needs.fhir-conformance.result }}"; do
             case "$r" in
               success|skipped) ;;
               *) echo "::error::One or more test jobs did not pass (result: $r)."; exit 1 ;;
             esac
           done
-          echo "All required unit and UI tests passed (or were not affected)."
+          echo "All required unit, UI, and FHIR conformance jobs passed (or were not affected)."

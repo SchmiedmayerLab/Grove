@@ -7,7 +7,7 @@
 //
 
 public import Foundation
-public import UniformTypeIdentifiers
+public import GroveFoundation
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -156,14 +156,14 @@ extension Questionnaire.Task.Kind {
 
     /// Configuration of a file selection question.
     public struct FileAttachmentConfig: Hashable, Sendable {
-        /// The content types allowed for attachments.
-        public let contentTypes: Set<UTType>
+        /// The MIME types allowed for attachments, as carried by FHIR's `mimeType` extension.
+        public let contentTypes: Set<MIMEType>
         /// The maximum file size allowed per attachment.
         public let maxSize: UInt64?
         /// Whether the user may select multiple attachments.
         public let allowsMultipleSelection: Bool
 
-        public init(contentTypes: Set<UTType>, maxSize: UInt64? = nil, allowsMultipleSelection: Bool) {
+        public init(contentTypes: Set<MIMEType>, maxSize: UInt64? = nil, allowsMultipleSelection: Bool) {
             self.contentTypes = contentTypes
             self.maxSize = maxSize
             self.allowsMultipleSelection = allowsMultipleSelection
@@ -271,7 +271,7 @@ extension Questionnaire.Task.Kind.ChoiceConfig {
         public let fhirCoding: FHIRCoding?
         /// The option's non-coding FHIR value, if it was created from one.
         public let answerValue: AnswerValue?
-        /// The option's scoring weight (FHIR `itemWeight`, or the retired `ordinalValue`).
+        /// The option's scoring weight (FHIR `itemWeight`).
         public let weight: Decimal?
         /// Whether selecting this option deselects all others (FHIR `questionnaire-optionExclusive`).
         public let isExclusive: Bool
