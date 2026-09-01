@@ -7,6 +7,7 @@
 //
 
 @testable import GroveQuestionnaire
+@testable import GroveQuestionnaireUI
 import Testing
 
 

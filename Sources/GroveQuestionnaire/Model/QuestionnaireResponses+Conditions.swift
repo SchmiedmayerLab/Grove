@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+private import Foundation
 private import GroveFoundation
 
 
@@ -29,7 +30,7 @@ extension QuestionnaireResponses {
     
     /// Determines whether the task should currently be enabled, based on its ``Questionnaire/Task/enabledCondition``
     /// and the conditions of the groups enclosing it.
-    func shouldEnable(task: Questionnaire.Task) -> Bool {
+    package func shouldEnable(task: Questionnaire.Task) -> Bool {
         shouldEnable(task: task, visited: [])
     }
 

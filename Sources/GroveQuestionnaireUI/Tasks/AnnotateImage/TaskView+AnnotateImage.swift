@@ -84,7 +84,7 @@ struct AnnotateImageView: View {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension AnnotateImageView {
     static func ink(for region: AnnotateImageConfig.Region) -> PKInk {
-        PKInk(.pen, color: UIColor(region.color))
+        PKInk(.pen, color: UIColor(Color(region.color)))
     }
 }
 

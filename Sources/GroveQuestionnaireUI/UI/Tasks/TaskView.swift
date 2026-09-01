@@ -245,7 +245,10 @@ struct TaskView: View {
         case .fileAttachment(let config):
             FileAttachmentQuestionView(config: config, attachments: $response.value.attachmentsValue.withDefault([]))
         case let .custom(questionKind, config):
-            questionKind.makeView(for: task, using: config, response: $response).intoAnyView()
+            // The model records the question kind; only a kind that also renders can contribute a view.
+            if let questionKind = questionKind as? any QuestionKindDefinitionWithViewSupport.Type {
+                questionKind.makeView(for: task, using: config, response: $response).intoAnyView()
+            }
         }
     }
     
@@ -308,7 +311,7 @@ struct TaskView: View {
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
-extension QuestionKindDefinition {
+extension QuestionKindDefinitionWithViewSupport {
     @MainActor
     @ViewBuilder
     fileprivate static func makeView(

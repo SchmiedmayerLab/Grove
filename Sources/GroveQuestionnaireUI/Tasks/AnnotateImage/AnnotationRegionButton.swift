@@ -21,7 +21,7 @@ struct AnnotationRegionButton: View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Circle()
-                    .fill(region.color)
+                    .fill(Color(region.color))
                     .frame(width: 18, height: 18)
                     .overlay {
                         Circle().stroke(.primary.opacity(0.25), lineWidth: 1)

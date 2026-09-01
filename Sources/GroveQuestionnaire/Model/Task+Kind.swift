@@ -44,7 +44,6 @@ extension Questionnaire.Task {
     ///
     /// ### Image Annotation Questions
     /// - ``annotateImage(_:)``
-    /// - ``AnnotateImageConfig``
     ///
     /// ### Custom Questions
     /// - ``custom(_:config:)``
