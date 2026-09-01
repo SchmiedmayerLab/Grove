@@ -224,7 +224,9 @@ extension QuestionnaireSheetNavigator {
     /// Waits for the navigation bar to carry `text`.
     @discardableResult
     public func waitUntilNavigationBarShows(_ text: String, timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        navigationBar.staticTexts.matching(label: text).firstMatch.waitForExistence(timeout: timeout)
+        // Across every bar rather than the topmost one: a sheet that has not been presented yet has no bar to
+        // bind to, and binding to the bar underneath it waits for a title that will never appear there.
+        app.navigationBars.staticTexts.matching(label: text).firstMatch.waitForExistence(timeout: timeout)
     }
 
     /// Scrolls the page down by roughly one screen.
