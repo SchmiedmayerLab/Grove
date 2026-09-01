@@ -9,10 +9,10 @@
 #if canImport(UniformTypeIdentifiers)
 
 public import Foundation
+public import GroveFoundation
 #if canImport(PDFKit)
 private import PDFKit
 #endif
-public import UniformTypeIdentifiers
 
 
 /// Extractor for PDF document content types.
@@ -33,15 +33,15 @@ public struct PDFContentExtractor: FHIRAttachmentContentExtractor {
     init() {}
     #endif
     
-    public func isCompatible(with contentType: UTType) -> Bool {
+    public func isCompatible(with contentType: MIMEType) -> Bool {
         #if canImport(PDFKit)
-        contentType.conforms(to: .pdf)
+        contentType.utType?.conforms(to: .pdf) ?? false
         #else
         false
         #endif
     }
     
-    public func extractContent(from data: Data) throws -> (UTType, Data) {
+    public func extractContent(from data: Data) throws -> (MIMEType, Data) {
         #if canImport(PDFKit)
         guard let pdf = documentProvider.createPDFDocument(from: data) else {
             throw FHIRAttachmentError.pdfParsingFailed

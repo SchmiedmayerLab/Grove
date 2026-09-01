@@ -10,6 +10,7 @@
 
 import Foundation
 @testable import GroveFHIR
+import GroveFoundation
 import Testing
 import UniformTypeIdentifiers
 
@@ -38,21 +39,9 @@ struct TextContentExtractorTests {
 
     @Test("Correctly identifies compatible content types")
     func testCompatibleContentTypes() {
-        if let textPlainUTType = UTType(mimeType: "text/plain") {
-            #expect(textExtractor.isCompatible(with: textPlainUTType))
-        } else {
-            Issue.record("Failed to create UTType for text/plain")
-        }
-        if let textHtmlUTType = UTType(mimeType: "text/html") {
-            #expect(textExtractor.isCompatible(with: textHtmlUTType))
-        } else {
-            Issue.record("Failed to create UTType for text/html")
-        }
-        if let applicationPdfUTType = UTType(mimeType: "application/pdf") {
-            #expect(!textExtractor.isCompatible(with: applicationPdfUTType))
-        } else {
-            Issue.record("Failed to create UTType for application/pdf")
-        }
+        #expect(textExtractor.isCompatible(with: .plainText))
+        #expect(textExtractor.isCompatible(with: "text/html"))
+        #expect(!textExtractor.isCompatible(with: .pdf))
     }
 }
 

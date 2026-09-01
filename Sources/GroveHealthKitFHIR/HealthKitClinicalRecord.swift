@@ -13,6 +13,7 @@
 
 public import Foundation
 internal import GroveFHIRContract
+public import GroveFoundation
 public import GroveHealthKit
 public import HealthKit
 public import ModelsR4
@@ -25,11 +26,11 @@ public import ModelsR4
 /// separately stored documents must govern and exchange them through its own explicit contract.
 public struct HealthKitClinicalAttachment: Sendable {
     /// The attachment's media type as HealthKit reports it.
-    public let contentType: String
+    public let contentType: MIMEType
     /// The attachment's exact bytes.
     public let data: Data
 
-    public init(contentType: String, data: Data) {
+    public init(contentType: MIMEType, data: Data) {
         self.contentType = contentType
         self.data = data
     }
@@ -139,7 +140,7 @@ extension HealthKitConverter {
         var loaded: [HealthKitClinicalAttachment] = []
         for attachment in try await store.attachments(for: record) {
             loaded.append(HealthKitClinicalAttachment(
-                contentType: attachment.contentType.preferredMIMEType ?? "application/octet-stream",
+                contentType: MIMEType(attachment.contentType) ?? .octetStream,
                 data: try await store.dataReader(for: attachment).data
             ))
         }

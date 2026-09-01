@@ -6,9 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-#if canImport(UniformTypeIdentifiers)
 
-import UniformTypeIdentifiers
+import GroveFoundation
 
 
 /// Errors thrown while interacting with FHIR attachment types.
@@ -26,7 +25,7 @@ enum FHIRAttachmentError: Error, Equatable {
     case pdfParsingFailed
 
     /// The content type is not supported by any available extractor.
-    case unsupportedContentType(UTType)
+    case unsupportedContentType(MIMEType)
 }
 
 
@@ -40,16 +39,17 @@ protocol FHIRAttachment: Sendable {
 
 
 extension FHIRAttachment {
-    /// Best effort parsing of the MIME type of the attachment.
-    /// Represents the content type of the attachment data (e.g., `text/plain`, `application/pdf`, etc).
-    var mimeType: UTType? {
+    /// The media type of the attachment data (e.g. `text/plain`, `application/pdf`).
+    ///
+    /// Carried through verbatim: a type the platform has no `UTType` for is still the type FHIR stated,
+    /// so it survives a read and is written back exactly as it came.
+    var mimeType: MIMEType? {
         get {
-            _contentTypeString.flatMap {
-                UTType(mimeType: $0)
-            }
+            // An empty `contentType` states nothing, so it reads as absent rather than as a blank type.
+            _contentTypeString.flatMap { $0.isEmpty ? nil : MIMEType(rawValue: $0) }
         }
         set {
-            _contentTypeString = newValue?.preferredMIMEType
+            _contentTypeString = newValue?.rawValue
         }
     }
 
@@ -67,7 +67,7 @@ extension FHIRAttachment {
     /// - Important: This function will unconditionally base64-encode its `data` input before writing it into the attachment
     ///
     /// - parameter data: The new contents for the attachments. Will be base64 encoded by this function.
-    mutating func setData(_ data: Data, mimeType: UTType) {
+    mutating func setData(_ data: Data, mimeType: MIMEType) {
         self._base64String = data.base64EncodedString()
         self.mimeType = mimeType
     }
@@ -77,5 +77,3 @@ extension FHIRAttachment {
         self.mimeType = .plainText
     }
 }
-
-#endif
