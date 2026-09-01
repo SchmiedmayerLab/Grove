@@ -28,9 +28,12 @@
 # Note: GroveFoundation's "CZlib" is a directory name (Sources/CZlib); its Swift target is "GroveCZlib".
 
 [FHIRModelsExtensions]
-platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "tvOS"]
+platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "tvOS", "Linux"]
 targets = ["FHIRModelsExtensions", "FHIRPathParser", "FHIRQuestionnaires"]
 tests = ["FHIRModelsExtensionsTests", "FHIRPathParserTests"]
+# Pure FHIR data handling, so the whole package compiles off-Apple; the test targets build
+# there too, which checks more than the sources alone.
+linuxTargets = ["FHIRQuestionnaires", "FHIRModelsExtensionsTests", "FHIRPathParserTests"]
 
 [ResearchKitOnFHIR]
 platforms = ["iOS"]
@@ -165,13 +168,14 @@ uiTests = ["iOS", "iPadOS", "visionOS"]
 
 [GroveQuestionnaire]
 platforms = ["iOS", "macOS", "Linux"]
-targets = ["GroveQuestionnaire", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveQuestionnaireExtraction", "GroveQuestionnaireLegacy", "GroveQuestionnaireMacros", "GroveQuestionnaireMacrosImpl", "XCTGroveQuestionnaire"]
+targets = ["GroveQuestionnaire", "GroveQuestionnaireUI", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveQuestionnaireExtraction", "GroveQuestionnaireLegacy", "GroveQuestionnaireMacros", "GroveQuestionnaireMacrosImpl", "XCTGroveQuestionnaire"]
 tests = ["GroveQuestionnaireTests", "GroveQuestionnaireExtractionTests", "GroveQuestionnaireMacrosTests"]
 testPlatforms = { GroveQuestionnaireMacrosTests = ["macOS"] }
 uiTests = ["iOS", "iPadOS"]
-# The extraction chain is the server-relevant surface; the UI-typed questionnaire model
-# stays Apple-only until its UTType fields are reworked.
-linuxTargets = ["GroveQuestionnaireExtraction", "GroveQuestionnaireExtractionTests"]
+# Everything that treats a questionnaire as data builds off-Apple; only GroveQuestionnaireUI,
+# which renders it, is Apple-bound. The annotate-image kind goes with the UI: its config names an
+# image asset and its answer is a PencilKit drawing, so off-Apple it is neither parsed nor encoded.
+linuxTargets = ["GroveQuestionnaire", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveQuestionnaireExtraction", "GroveQuestionnaireExtractionTests"]
 
 [GroveScheduler]
 platforms = ["iOS", "macOS", "watchOS", "visionOS"]

@@ -15,8 +15,6 @@ public import Foundation
 private import GroveFoundation
 public import GroveQuestionnaire
 public import ModelsR4
-private import struct SwiftUI.Color
-private import UniformTypeIdentifiers
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -895,7 +893,7 @@ extension ModelsR4.QuestionnaireItem {
             default:
                 return .fileAttachment(.init(
                     contentTypes: self.extensions(for: "http://hl7.org/fhir/StructureDefinition/mimeType").compactMapIntoSet { ext in
-                        ext.value?.stringValue.flatMap { UTType(mimeType: $0) }
+                        ext.value?.stringValue.map { MIMEType(rawValue: $0) }
                     },
                     maxSize: { () -> UInt64? in
                         if let value = self.extensions(for: "http://hl7.org/fhir/StructureDefinition/maxSize").first?.value?.intValue {

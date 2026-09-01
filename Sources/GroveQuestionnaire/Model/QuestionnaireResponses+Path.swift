@@ -53,11 +53,11 @@ extension QuestionnaireResponses {
             components = Array(path)
         }
         
-        func appending(taskId: Questionnaire.Task.ID) -> ResponsePath {
+        package func appending(taskId: Questionnaire.Task.ID) -> ResponsePath {
             ResponsePath(chain(components, CollectionOfOne(.task(taskId))))
         }
         
-        func appending(_ other: ResponsesPath) -> ResponsesPath {
+        package func appending(_ other: ResponsesPath) -> ResponsesPath {
             ResponsesPath(chain(components, other))
         }
         
@@ -81,7 +81,7 @@ extension QuestionnaireResponses {
             components.endIndex
         }
         
-        init(taskId: Questionnaire.Task.ID) {
+        package init(taskId: Questionnaire.Task.ID) {
             self.init(CollectionOfOne(.task(taskId)))
         }
         
@@ -90,7 +90,7 @@ extension QuestionnaireResponses {
             components = Array(path)
         }
         
-        func appending(choiceOption optionId: Questionnaire.Task.Kind.ChoiceConfig.Option.ID) -> ResponsesPath {
+        package func appending(choiceOption optionId: Questionnaire.Task.Kind.ChoiceConfig.Option.ID) -> ResponsesPath {
             ResponsesPath(chain(components, CollectionOfOne(.choiceOption(optionId))))
         }
         

@@ -7,8 +7,8 @@
 //
 
 public import Foundation
+private import GroveFoundation
 public import Observation
-private import OSLog
 
 
 /// Stores and manages responses to a questionnaire.
@@ -31,7 +31,6 @@ private import OSLog
 /// ### Response Data Types
 /// - ``Response``
 /// - ``ChoiceResponse``
-/// - ``ImageAnnotation``
 /// - ``CollectedAttachment``
 @available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
@@ -110,7 +109,7 @@ public final class QuestionnaireResponses: Identifiable {
     }
     
     /// The responses collected from the questionnaire.
-    public internal(set) var responses: Responses {
+    public package(set) var responses: Responses {
         get {
             switch _variant {
             case .root(let responses):
@@ -129,7 +128,7 @@ public final class QuestionnaireResponses: Identifiable {
         }
     }
     
-    init(id: UUID = UUID(), questionnaire: Questionnaire) {
+    package init(id: UUID = UUID(), questionnaire: Questionnaire) {
         self.id = id
         self.questionnaire = questionnaire
         _variant = .root(Responses())
@@ -149,7 +148,7 @@ public final class QuestionnaireResponses: Identifiable {
     }
     
     
-    func view(appending path: ResponsesPath) -> Self {
+    package func view(appending path: ResponsesPath) -> Self {
         Self(parent: self, pathFromParent: path)
     }
 
@@ -167,9 +166,13 @@ public final class QuestionnaireResponses: Identifiable {
             // A questionnaire declared in Swift carries no engine until `withExpressionEngine(evaluationInstant:)`
             // attaches one. Saying so beats leaving every computed value empty, which reads as
             // a scoring bug rather than a setup step.
-            Self.logger.warning(
-                "\(self.questionnaire.metadata.title, privacy: .public) has calculated expressions but no expression engine; call withExpressionEngine(evaluationInstant:) on it before presenting it."
-            )
+            let title = self.questionnaire.metadata.title
+            // os.Logger redacts interpolated values unless marked public; swift-log has no such concept.
+            #if canImport(os)
+            Self.logger.warning("\(title, privacy: .public) has calculated expressions but no expression engine; call withExpressionEngine(evaluationInstant:) on it before presenting it.")
+            #else
+            Self.logger.warning("\(title) has calculated expressions but no expression engine; call withExpressionEngine(evaluationInstant:) on it before presenting it.")
+            #endif
             return
         }
         isRecalculating = true
@@ -219,12 +222,12 @@ extension QuestionnaireResponses {
             }
             let reason = String(describing: error)
             expressionFailures.append(.init(taskId: taskId, expression: expression, reason: reason))
-            Self.logger.error(
-                """
-                Expression on '\(taskId ?? questionnaire.id, privacy: .public)' failed: \
-                \(expression, privacy: .public) — \(reason, privacy: .public)
-                """
-            )
+            let owner = taskId ?? questionnaire.id
+            #if canImport(os)
+            Self.logger.error("Expression on '\(owner, privacy: .public)' failed: \(expression, privacy: .public) — \(reason, privacy: .public)")
+            #else
+            Self.logger.error("Expression on '\(owner)' failed: \(expression) — \(reason)")
+            #endif
         case .view(let parent, pathFromParent: _):
             parent.recordExpressionFailure(expression, for: taskId, error: error)
         }
@@ -236,7 +239,7 @@ extension QuestionnaireResponses {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses {
-    func hasResponse(for task: Questionnaire.Task) -> Bool {
+    package func hasResponse(for task: Questionnaire.Task) -> Bool {
         switch task.kind.variant {
         case .instructional:
             // instructional tasks never collect a response; they are always considered as being complete.
@@ -247,14 +250,14 @@ extension QuestionnaireResponses {
     }
     
     
-    func isMissingResponse(for task: Questionnaire.Task) -> Bool {
+    package func isMissingResponse(for task: Questionnaire.Task) -> Bool {
         // NOTE: on platforms without UIKit (eg macOS, which isn't officially supported yet), a required annotate-image
         // task can never satisfy this check; see the non-UIKit branch of `AnnotateImageQuestionKind.makeView(for:using:response:)` for more info.
         // A hidden task is never shown, so it can never block completion.
         !task.isOptional && !task.isHidden && shouldEnable(task: task) && !hasResponse(for: task)
     }
     
-    func isMissingResponses(in section: Questionnaire.Section) -> Bool {
+    package func isMissingResponses(in section: Questionnaire.Section) -> Bool {
         section.tasks.contains { task in
             isMissingResponse(for: task)
         }
@@ -263,7 +266,7 @@ extension QuestionnaireResponses {
     /// Determines whether the questionnaire is currently complete in the specified section.
     ///
     /// This function returns `true` iff all currently enabled required tasks have responses, and none of these responses are invalid.
-    func isComplete(in section: Questionnaire.Section) -> Bool {
+    package func isComplete(in section: Questionnaire.Section) -> Bool {
         !isMissingResponses(in: section) && section.tasks.allSatisfy { task in
             // either the task is hidden or disabled, or its response is valid.
             task.isHidden || !shouldEnable(task: task) || validateResponse(for: task).isOk
@@ -282,7 +285,7 @@ extension QuestionnaireResponses {
     /// Determines the next section, taking into account the current responses and task conditions.
     ///
     /// This function automatically skips empty sections, if e.g. a section doesn't contain any tasks, or all of the section's tasks should be skipped, because of their conditions.
-    func nextSection(
+    package func nextSection(
         after section: Questionnaire.Section,
         in sections: some Collection<Questionnaire.Section>
     ) -> Questionnaire.Section? {
@@ -309,7 +312,7 @@ extension QuestionnaireResponses {
     ///
     /// This function goes through the entire questionnaire, in order, re-evaluates each task's ``Questionnaire/Task/enabledCondition``, and removes all responses whose task's
     /// are no longer enabled.
-    func purgeResponsesToDisabledTasks() {
+    package func purgeResponsesToDisabledTasks() {
         _purgeResponsesToDisabledTasks(questionnaire.sections.lazy.flatMap(\.tasks))
     }
     

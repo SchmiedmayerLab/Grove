@@ -14,10 +14,13 @@ extension QuestionnaireResponses {
     public enum ResponseValidationResult: Sendable {
         /// The response provided for the task is ok.
         case ok
-        /// The response provided for the task is invalid.
-        case invalid(message: LocalizedStringResource)
+        /// The response provided for the task is invalid, with the text to show the participant.
+        ///
+        /// Already resolved: a caller off-Apple has no catalogue to resolve against, and the only
+        /// consumer is the questionnaire UI, which displays it as-is.
+        case invalid(message: String)
         
-        var isOk: Bool {
+        package var isOk: Bool {
             switch self {
             case .ok:
                 true
@@ -38,9 +41,16 @@ extension QuestionnaireResponses {
         /// Creates a ``invalid(message:)`` localized to the specified bundle.
         ///
         /// - Important: Use this function when creating `invalid` results within the package, to ensure that the localization is picked up correctly.
+        #if canImport(Darwin)
         static func invalid(message: String.LocalizationValue, bundle: Bundle) -> Self {
-            .invalid(message: LocalizedStringResource(message, bundle: bundle))
+            .invalid(message: String(localized: message, bundle: bundle))
         }
+        #else
+        // No string catalogues off-Apple: the key is the message.
+        static func invalid(message: String, bundle: Bundle) -> Self {
+            .invalid(message: message)
+        }
+        #endif
     }
     
     
@@ -54,7 +64,7 @@ extension QuestionnaireResponses {
             .formatted(date: .omitted, time: .shortened)
     }
 
-    func validateResponse( // swiftlint:disable:this function_body_length cyclomatic_complexity
+    package func validateResponse( // swiftlint:disable:this function_body_length cyclomatic_complexity
         for task: Questionnaire.Task
     ) -> ResponseValidationResult {
         guard hasResponse(for: task) else {
@@ -68,7 +78,7 @@ extension QuestionnaireResponses {
             for constraint in task.constraints where constraint.severity == .error {
                 do {
                     if try engine.evaluateBoolean(constraint.expression, scope: .answer(task.id), in: self) == .false {
-                        return .invalid(message: LocalizedStringResource(stringLiteral: constraint.humanDescription))
+                        return .invalid(message: constraint.humanDescription)
                     }
                 } catch {
                     // A rule that cannot be evaluated proves nothing, so the answer stands;

@@ -265,6 +265,7 @@ var products: [Product] = [
     .library(name: "GroveOnboarding", targets: ["GroveOnboarding"]),
     // MARK: GroveQuestionnaire
     .library(name: "GroveQuestionnaire", targets: ["GroveQuestionnaire"]),
+    .library(name: "GroveQuestionnaireUI", targets: ["GroveQuestionnaireUI"]),
     .library(name: "GroveQuestionnaireCatalog", targets: ["GroveQuestionnaireCatalog"]),
     .library(name: "GroveQuestionnaireFHIR", targets: ["GroveQuestionnaireFHIR"]),
     .library(name: "GroveQuestionnaireExtraction", targets: ["GroveQuestionnaireExtraction"]),
@@ -1387,12 +1388,28 @@ var targets: [Target] = [
         name: "GroveQuestionnaire",
         dependencies: [
             .target(name: "GroveQuestionnaireMacrosImpl"),
+            .target(name: "GroveFoundation"),
+            .product(name: "Algorithms", package: "swift-algorithms"),
+            .product(name: "Numerics", package: "swift-numerics")
+        ],
+        exclude: targetExcludes("GroveQuestionnaire"),
+        resources: [
+            .process("Resources")
+        ],
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .target(
+        name: "GroveQuestionnaireUI",
+        dependencies: [
+            .target(name: "GroveQuestionnaire"),
+            .target(name: "GroveQuestionnaireMacrosImpl"),
             .target(name: "GroveQuestionnaireLegacy", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
             .target(name: "GroveViews", condition: applePlatformsOnly),
             .product(name: "MarkdownUI", package: "swift-markdown-ui", condition: applePlatformsOnly),
             .product(name: "Numerics", package: "swift-numerics")
         ],
-        exclude: targetExcludes("GroveQuestionnaire"),
+        exclude: targetExcludes("GroveQuestionnaireUI"),
         resources: [
             .process("Resources")
         ],
@@ -1413,6 +1430,7 @@ var targets: [Target] = [
             .target(name: "GroveQuestionnaireExtraction"),
             .target(name: "GroveFHIRContract"),
             .target(name: "GroveQuestionnaire"),
+            .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux])),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions"),
             .target(name: "FHIRPathParser"),
@@ -1447,6 +1465,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "GroveFHIRContract"),
             .target(name: "GroveQuestionnaire"),
+            .target(name: "GroveQuestionnaireUI"),
             .target(name: "GroveQuestionnaireCatalog"),
             .target(name: "GroveQuestionnaireFHIR"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),

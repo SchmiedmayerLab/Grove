@@ -235,7 +235,7 @@ struct QuestionnaireSectionView<Header: View>: View {
 
     /// Creates a ``QuestionnaireSectionView`` suitable for answering nested questions.
     ///
-    /// - parameter parentTask: The ``Questionnaire/Task`` within which the nested questions reside.
+    /// - parameter parentTask: The `Questionnaire/Task` within which the nested questions reside.
     /// - parameter selectedOptionTitle: The user-displayed title of the option in the `parentTask`, in response to which the nested questions are being asked.
     /// - parameter tasks: The nested tasks.
     /// - parameter completionStepConfig: Controls if there should be a completion step once all nested questions have been completed, and what this step should look like.

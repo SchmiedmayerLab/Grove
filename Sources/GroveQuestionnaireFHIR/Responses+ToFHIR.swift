@@ -6,7 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(CryptoKit)
 private import CryptoKit
+#else
+private import Crypto
+#endif
 public import Foundation
 public import GroveFHIRContract
 public import GroveQuestionnaire
@@ -436,8 +440,8 @@ extension QuestionnaireResponseItemAnswer {
         let sha1 = Insecure.SHA1.hash(data: data)
         self.init(value: .attachment(.init(
             // att-1: inline data requires a contentType; fall back to the generic binary
-            // type when the UTType lookup cannot produce a MIME type.
-            contentType: (attachment.contentType?.preferredMIMEType ?? "application/octet-stream").asFHIRStringPrimitive(),
+            // type when the platform did not record one for the file.
+            contentType: (attachment.contentType ?? .octetStream).rawValue.asFHIRStringPrimitive(),
 //                        creation: <#T##FHIRPrimitive<DateTime>?#>, // not easy bc eg an imported photo/file will likely not be brand new...
             data: FHIRPrimitive(Base64Binary(data.base64EncodedString())),
             hash: FHIRPrimitive(Base64Binary(Data(sha1).base64EncodedString())),

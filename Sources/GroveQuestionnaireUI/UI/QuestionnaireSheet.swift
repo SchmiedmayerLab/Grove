@@ -10,9 +10,9 @@ private import GroveViews
 public import SwiftUI
 
 
-/// Presents a ``Questionnaire`` for answering.
+/// Presents a `Questionnaire` for answering.
 ///
-/// Unless externally provided, the sheet implicitly creates and owns a ``QuestionnaireResponses`` instance,
+/// Unless externally provided, the sheet implicitly creates and owns a `QuestionnaireResponses` instance,
 /// which, upon successful completion of the questionnaire, will be made available via the result handler.
 ///
 /// The `QuestionnaireSheet` uses an internal `NavigationStack` to display the questionnaire's content;
@@ -89,8 +89,8 @@ public struct QuestionnaireSheet: View {
 
     /// Creates a new `QuestionnaireSheet`
     ///
-    /// - parameter questionnaire: The ``Questionnaire`` that should be answered.
-    /// - parameter responses: The ``QuestionnaireResponses`` that should be used when answering the questionnaire.
+    /// - parameter questionnaire: The `Questionnaire` that should be answered.
+    /// - parameter responses: The `QuestionnaireResponses` that should be used when answering the questionnaire.
     ///     If set to `nil`, a new, empty object will implicitly be created and used.
     ///     Use this parameter to display or edit existing, previously-collected responses.
     /// - parameter completionStepConfig: Whether the questionnaire sheet should present a completion page once the user has finished the questionnaire.

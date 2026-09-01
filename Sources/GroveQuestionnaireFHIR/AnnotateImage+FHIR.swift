@@ -9,7 +9,9 @@
 private import Foundation
 public import GroveQuestionnaire
 public import ModelsR4
-private import PencilKit
+#if canImport(UIKit)
+private import UIKit
+#endif
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses.ImageAnnotation: GroveQuestionnaire.QuestionnaireResponses.CustomResponseValueProtocolWithFHIRSupport {

@@ -13,7 +13,7 @@
 extension QuestionnaireResponses {
     /// Whether closing now would discard something the participant entered.
     ///
-    /// A seeded ``Questionnaire/Task/initialValue`` does not count: nobody has touched it yet,
+    /// A seeded `Questionnaire/Task/initialValue` does not count: nobody has touched it yet,
     /// so there is nothing to lose and nothing to confirm.
     func hasAnyResponses(in sections: some Collection<Questionnaire.Section>) -> Bool {
         sections.contains { section in

@@ -258,7 +258,7 @@ struct FHIRExpressionTests {
             Issue.record("Expected the constraint to reject the value")
             return
         }
-        #expect(String(localized: message).contains("plausible number"))
+        #expect(message.contains("plausible number"))
     }
 
     // MARK: Runtime failures

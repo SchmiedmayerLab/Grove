@@ -156,12 +156,15 @@ struct FilePicker: View {
         }
     }
     
+    /// - Parameter contentTypes: The MIME types to offer, as the questionnaire declares them. A type the
+    ///   platform does not know is dropped rather than silently widening the picker.
     init(
-        _ contentTypes: Set<UTType>,
+        _ contentTypes: Set<MIMEType>,
         allowMultipleSelection: Bool,
         selectionHandler: @escaping @Sendable ([Item]) -> Void
     ) {
-        self.enabledTypes = contentTypes.isEmpty ? [.data] : contentTypes
+        let utTypes = Set(contentTypes.compactMap(\.utType))
+        self.enabledTypes = utTypes.isEmpty ? [.data] : utTypes
         self.allowMultipleSelection = allowMultipleSelection
         self.selectionHandler = selectionHandler
     }

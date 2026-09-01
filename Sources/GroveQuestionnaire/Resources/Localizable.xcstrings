@@ -7,79 +7,6 @@
     "'%@' exceeds the maximum file size of %@" : {
 
     },
-    "%lld questions still need an answer" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "1 question still needs an answer"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld questions still need an answer"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "Annotate Image" : {
-
-    },
-    "Answer this question to continue" : {
-
-    },
-    "Answered" : {
-
-    },
-    "Checks your answers before continuing." : {
-
-    },
-    "Choose a date" : {
-
-    },
-    "Choose a date and time" : {
-
-    },
-    "Choose a time" : {
-
-    },
-    "Close" : {
-
-    },
-    "Continue" : {
-
-    },
-    "Date" : {
-
-    },
-    "Date & Time" : {
-
-    },
-    "Discard Answers" : {
-
-    },
-    "Discard Nested Responses" : {
-
-    },
-    "Dismiss Keyboard" : {
-
-    },
-    "Do you want to remove all annotations?" : {
-
-    },
-    "Done" : {
-
-    },
-    "Draw with one finger. Pinch or drag with two fingers to move the image." : {
-
-    },
     "Enter a number" : {
 
     },
@@ -92,31 +19,10 @@
     "Enter an email address, like name@example.org" : {
 
     },
-    "Follow-Up" : {
-
-    },
-    "Follow-Up: %@" : {
-
-    },
-    "Image" : {
-
-    },
-    "Image annotation canvas" : {
-
-    },
-    "Image Missing" : {
-
-    },
-    "Incomplete" : {
-
-    },
     "Internal Error" : {
 
     },
     "Invalid Input" : {
-
-    },
-    "Keep Answering" : {
 
     },
     "Length must be between %lld and %lld" : {
@@ -151,12 +57,6 @@
         }
       }
     },
-    "Mark %@" : {
-
-    },
-    "Missing" : {
-
-    },
     "Missing response text for \"Other\" option" : {
 
     },
@@ -178,100 +78,13 @@
     "Must be before %@" : {
 
     },
-    "No" : {
-
-    },
-    "Not Yet Implemented" : {
-
-    },
-    "Opens an editor with drawing and zoom controls." : {
-
-    },
-    "Option: %@, Not Selected" : {
-
-    },
-    "Option: %@, Selected" : {
-
-    },
-    "Other" : {
-
-    },
-    "Please answer the follow-up questions below, for the **'%@'** option you just selected." : {
-
-    },
-    "Question %lld of %lld" : {
-
-    },
-    "Questionnaire Complete" : {
-
-    },
-    "Questionnaire is Empty" : {
-
-    },
-    "Ready" : {
-
-    },
-    "Remove" : {
-
-    },
-    "Remove Annotations" : {
-
-    },
-    "Search options…" : {
-
-    },
     "Select at least %lld options" : {
 
     },
     "Select at most %lld options" : {
 
     },
-    "Select File" : {
-
-    },
-    "Select Files" : {
-
-    },
-    "Select Image" : {
-
-    },
-    "Select Images" : {
-
-    },
-    "Select Photo" : {
-
-    },
-    "Select Video" : {
-
-    },
-    "Select Videos" : {
-
-    },
-    "Select…" : {
-
-    },
-    "Submit" : {
-
-    },
-    "Submit Answers" : {
-
-    },
-    "Submitting…" : {
-
-    },
-    "Take Photo" : {
-
-    },
-    "Tap to annotate" : {
-
-    },
     "This isn't in the format this question expects" : {
-
-    },
-    "This will de-select the '%@' option and discard all responses below." : {
-
-    },
-    "Time" : {
 
     },
     "Too long: can be at most %lld characters" : {
@@ -317,31 +130,6 @@
           }
         }
       }
-    },
-    "Unit" : {
-
-    },
-    "Yes" : {
-
-    },
-    "You've answered %lld of %lld questions." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You've answered %1$lld of %2$lld questions."
-          }
-        }
-      }
-    },
-    "You've answered every question." : {
-
-    },
-    "Your answer" : {
-
-    },
-    "Your answers won't be saved." : {
-
     }
   },
   "version" : "1.0"
