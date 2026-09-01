@@ -9,16 +9,16 @@
 #if canImport(UniformTypeIdentifiers)
 
 public import Foundation
-public import UniformTypeIdentifiers
+public import GroveFoundation
 
 
 /// Extractor for plain text content types.
 public struct TextContentExtractor: FHIRAttachmentContentExtractor {
-    public func isCompatible(with contentType: UTType) -> Bool {
-        contentType.conforms(to: .text)
+    public func isCompatible(with contentType: MIMEType) -> Bool {
+        contentType.utType?.conforms(to: .text) ?? false
     }
     
-    public func extractContent(from data: Data) throws -> (UTType, Data) {
+    public func extractContent(from data: Data) throws -> (MIMEType, Data) {
         guard let string = String(data: data, encoding: .utf8) else {
             throw FHIRAttachmentError.textDecodingFailed
         }

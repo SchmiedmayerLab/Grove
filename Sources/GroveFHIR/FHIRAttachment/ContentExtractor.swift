@@ -6,10 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
-#if canImport(UniformTypeIdentifiers)
 
 public import Foundation
-public import UniformTypeIdentifiers
+public import GroveFoundation
 
 
 /// Protocol for content extraction strategies.
@@ -17,13 +16,11 @@ public protocol FHIRAttachmentContentExtractor {
     /// Determines if this extractor is compatible with the given content type.
     /// - Parameter contentType: The content type to check.
     /// - Returns: True if this extractor can handle the content type.
-    func isCompatible(with contentType: UTType) -> Bool
+    func isCompatible(with contentType: MIMEType) -> Bool
     
     /// Extract readable content from data.
     /// - Parameter data: Binary data to extract content from.
     /// - Returns: Extracted text content.
     /// - Throws: Error if extraction fails.
-    func extractContent(from data: Data) throws -> (UTType, Data)
+    func extractContent(from data: Data) throws -> (MIMEType, Data)
 }
-
-#endif

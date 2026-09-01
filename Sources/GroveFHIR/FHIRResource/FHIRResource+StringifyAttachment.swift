@@ -6,11 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-#if canImport(UniformTypeIdentifiers)
 
+private import GroveFoundation
 private import ModelsDSTU2
 private import ModelsR4
-private import UniformTypeIdentifiers
 
 
 extension FHIRResource {
@@ -29,7 +28,7 @@ extension FHIRResource {
             self.contentExtractors = contentExtractors
         }
         
-        fileprivate func extractor(for contentType: UTType) -> (any FHIRAttachmentContentExtractor)? {
+        fileprivate func extractor(for contentType: MIMEType) -> (any FHIRAttachmentContentExtractor)? {
             contentExtractors.first { $0.isCompatible(with: contentType) }
         }
     }
@@ -107,7 +106,7 @@ extension FHIRAttachment {
         }
     }
     
-    private func _stringify(using options: FHIRResource.StringificationOptions) throws -> (UTType, Data) {
+    private func _stringify(using options: FHIRResource.StringificationOptions) throws -> (MIMEType, Data) {
         guard let contentType = self.mimeType else {
             throw FHIRAttachmentError.missingMimeType
         }
@@ -120,5 +119,3 @@ extension FHIRAttachment {
         return try extractor.extractContent(from: data)
     }
 }
-
-#endif
