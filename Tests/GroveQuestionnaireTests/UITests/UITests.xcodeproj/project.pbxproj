@@ -11,6 +11,7 @@
 		6E0903667843622146D8344A /* GroveQuestionnaire in Frameworks */ = {isa = PBXBuildFile; productRef = D20F719B91D5AAC472919A27 /* GroveQuestionnaire */; };
 		38C2115B1A80EA14D675D584 /* GroveQuestionnaireCatalog in Frameworks */ = {isa = PBXBuildFile; productRef = 0540167D8D9184DE7B41DD03 /* GroveQuestionnaireCatalog */; };
 		7349A35D9018D27F054C54FE /* GroveQuestionnaireFHIR in Frameworks */ = {isa = PBXBuildFile; productRef = EE4A67E502F476C5FE7CBDD7 /* GroveQuestionnaireFHIR */; };
+		997B4E4154FA5E12D16BD2F7 /* GroveQuestionnaireUI in Frameworks */ = {isa = PBXBuildFile; productRef = 92FC71D8149BDF9E901CDE19 /* GroveQuestionnaireUI */; };
 		C9934E7909B78B00EB920667 /* GroveViews in Frameworks */ = {isa = PBXBuildFile; productRef = A68833A65A9C2EC4D251D40B /* GroveViews */; };
 		D7DB1C9F4693F54BC436E817 /* XCTGroveQuestionnaire in Frameworks */ = {isa = PBXBuildFile; productRef = 166D93F9DE4982629D816031 /* XCTGroveQuestionnaire */; };
 		05D8CAA91017B528ED3846C2 /* XCTestExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = 316F78420EBCF50C9924F88F /* XCTestExtensions */; };
@@ -53,6 +54,7 @@
 				6E0903667843622146D8344A /* GroveQuestionnaire in Frameworks */,
 				38C2115B1A80EA14D675D584 /* GroveQuestionnaireCatalog in Frameworks */,
 				7349A35D9018D27F054C54FE /* GroveQuestionnaireFHIR in Frameworks */,
+				997B4E4154FA5E12D16BD2F7 /* GroveQuestionnaireUI in Frameworks */,
 				C9934E7909B78B00EB920667 /* GroveViews in Frameworks */,
 			);
 		};
@@ -115,6 +117,7 @@
 				D20F719B91D5AAC472919A27 /* GroveQuestionnaire */,
 				0540167D8D9184DE7B41DD03 /* GroveQuestionnaireCatalog */,
 				EE4A67E502F476C5FE7CBDD7 /* GroveQuestionnaireFHIR */,
+				92FC71D8149BDF9E901CDE19 /* GroveQuestionnaireUI */,
 				A68833A65A9C2EC4D251D40B /* GroveViews */,
 			);
 			productName = TestApp;
@@ -527,6 +530,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 654293E43002D0F400AF6915 /* package */;
 			productName = GroveQuestionnaireFHIR;
+		};
+		92FC71D8149BDF9E901CDE19 /* GroveQuestionnaireUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 654293E43002D0F400AF6915 /* package */;
+			productName = GroveQuestionnaireUI;
 		};
 		A68833A65A9C2EC4D251D40B /* GroveViews */ = {
 			isa = XCSwiftPackageProductDependency;
