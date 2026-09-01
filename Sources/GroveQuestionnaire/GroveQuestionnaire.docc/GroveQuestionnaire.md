@@ -19,17 +19,15 @@ their scoring are ordinary declarations the compiler checks. Questionnaires publ
 someone else arrive as [FHIR R4 Questionnaires](https://hl7.org/fhir/R4/questionnaire.html)
 and are imported instead.
 
-Both paths produce the same ``Questionnaire``, render through the same
-``QuestionnaireSheet``, and export the same conformant FHIR `Questionnaire` and
-`QuestionnaireResponse`.
+Both paths produce the same ``Questionnaire`` and export the same conformant FHIR
+`Questionnaire` and `QuestionnaireResponse`.
 
-@Row {
-    @Column {
-        @Image(source: "Overview", alt: "Screenshot showing an FHIR Questionnaire rendered using the Questionnaire module."){
-            A questionnaire rendered by ``QuestionnaireSheet``.
-        }
-    }
-}
+This module is the instrument and the answers collected for it — no user interface. It builds
+anywhere Swift does, so a questionnaire can be read, converted, scored, and stored on a server
+exactly as it is on a device.
+
+> Tip: To put a questionnaire on screen, add `GroveQuestionnaireUI` and present its
+`QuestionnaireSheet`. Everything here describes the instrument that module renders.
 
 
 ## Setup
@@ -109,36 +107,19 @@ enum PHQ2 {
 }
 ```
 
-Present it, and read the answers back through the same declarations that made them:
+Read the answers back through the same declarations that made them:
 
 ```swift
 import GroveQuestionnaire
-import GroveQuestionnaireFHIR
-import SwiftUI
 
 
-struct DailyCheckIn: View {
-    @State private var isPresented = false
-    private let evaluationInstant = Date()
+let responses = QuestionnaireResponses(
+    questionnaire: try PHQ2.questionnaire.withExpressionEngine(evaluationInstant: evaluationInstant),
+    resuming: draft
+)
 
-    var body: some View {
-        Button("Answer the PHQ-2") {
-            isPresented = true
-        }
-        .sheet(isPresented: $isPresented) {
-            QuestionnaireSheet(try! PHQ2.questionnaire.withExpressionEngine(
-                evaluationInstant: evaluationInstant
-            )) { result in
-                guard case .completed(let responses) = result else {
-                    return
-                }
-                let score = responses[PHQ2.total]        // Double?
-                let mood = responses[PHQ2.mood]         // Frequency?
-                // ... store the responses
-            }
-        }
-    }
-}
+let score = responses[PHQ2.total]        // Double?
+let mood = responses[PHQ2.mood]          // Frequency?
 ```
 
 `responses[PHQ2.mood]` is a `Frequency?`, not a string looked up by linkId, and
@@ -165,14 +146,11 @@ FHIR import enables supported SDC conditions, initial values, and calculated FHI
 expressions. The explicit evaluation instant makes `now()`, `today()`, lifecycle
 warnings, and repeated exports reproducible.
 
-The result is an ordinary ``Questionnaire``, so it renders the same way, and the collected
+The result is an ordinary ``Questionnaire``, so it behaves the same way, and the collected
 answers export as a `QuestionnaireResponse`:
 
 ```swift
-QuestionnaireSheet(questionnaire) { result in
-    guard case .completed(let responses) = result else {
-        return
-    }
+func export(_ responses: QuestionnaireResponses) {
     do {
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
@@ -205,6 +183,3 @@ try questionnaire.checkDeclaration(of: PHQ2.self)
 
 ### Responses
 - ``QuestionnaireResponses``
-
-### UI
-- ``QuestionnaireSheet``

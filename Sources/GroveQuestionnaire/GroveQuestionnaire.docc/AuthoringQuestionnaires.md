@@ -263,14 +263,14 @@ Clock-sensitive expressions such as `today()` use the wall clock; pass `evaluati
 ``QuestionnaireResponses`` is subscripted by the declarations themselves:
 
 ```swift
-QuestionnaireSheet(Screener.questionnaire) { result in
-    guard case .completed(let responses) = result else {
-        return
-    }
-    let consented = responses[Screener.consent]           // Bool?
-    let age = responses[Screener.age]                     // Double?
-}
+let responses = QuestionnaireResponses(questionnaire: Screener.questionnaire, resuming: draft)
+
+let consented = responses[Screener.consent]           // Bool?
+let age = responses[Screener.age]                     // Double?
 ```
+
+> Tip: When the answers are collected on screen, `QuestionnaireSheet` in `GroveQuestionnaireUI`
+hands back the same ``QuestionnaireResponses`` to read exactly this way.
 
 The subscript writes as well as reads, which is how a questionnaire is pre-populated from
 data the app already holds. Handles erase to linkIds, so reading one out of a different
