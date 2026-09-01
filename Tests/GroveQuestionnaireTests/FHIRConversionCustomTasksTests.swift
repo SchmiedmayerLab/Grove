@@ -11,7 +11,6 @@ import Foundation
 @testable import GroveQuestionnaire
 @testable import GroveQuestionnaireFHIR
 import ModelsR4
-import SwiftUI
 import Testing
 
 
@@ -23,14 +22,6 @@ struct FHIRConversionCustomTasksTests {
             let options: [String]
         }
         struct RankChoicesTask: QuestionKindDefinition, QuestionKindDefinitionWithFHIRSupport {
-            static func makeView(
-                for task: GroveQuestionnaire.Questionnaire.Task,
-                using config: Config,
-                response: Binding<QuestionnaireResponses.Response>
-            ) -> some View {
-                EmptyView()
-            }
-            
             static func validate(
                 response: QuestionnaireResponses.Response,
                 for config: Config
