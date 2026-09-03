@@ -27,6 +27,8 @@ public struct LLMOpenAILikeSchema<PlatformDefinition: LLMOpenAILikePlatformDefin
     let functions: [String: any LLMTool]
     /// Whether the model may search the web to answer.
     public let searchesTheWeb: Bool
+    /// Whether the model may draw images in its answer.
+    public let generatesImages: Bool
     public let injectIntoContext: Bool
     
     
@@ -39,18 +41,23 @@ public struct LLMOpenAILikeSchema<PlatformDefinition: LLMOpenAILikePlatformDefin
     ///    - searchesTheWeb: Lets the model search the web and cite what it finds, defaults to `false`.
     ///     Searching costs more and sends the query to the provider's search infrastructure, so it is asked for
     ///     rather than assumed. Only the Responses API serves it — see ``LLMOpenAIAPIMode``.
+    ///    - generatesImages: Lets the model draw images, which arrive in the context as assistant messages,
+    ///     defaults to `false`. Only models whose ``LLMOpenAILikePlatformModelType/supportsImageGeneration``
+    ///     is `true` take the tool; for all others the request goes out without it.
     ///    - functions: The tools offered to the model.
     public init(
         parameters: LLMOpenAILikeParameters<PlatformDefinition>,
         modelParameters: LLMOpenAIModelParameters = .init(),
         injectIntoContext: Bool = false,
         searchesTheWeb: Bool = false,
+        generatesImages: Bool = false,
         @LLMToolBuilder _ functions: () -> _LLMToolCollection = { _LLMToolCollection() }
     ) {
         self.parameters = parameters
         self.modelParameters = modelParameters
         self.injectIntoContext = injectIntoContext
         self.searchesTheWeb = searchesTheWeb
+        self.generatesImages = generatesImages
         self.functions = functions().functions
     }
 }

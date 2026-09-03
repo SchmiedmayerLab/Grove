@@ -43,6 +43,20 @@ extension LLMOpenAILikeSession {
     /// The streamed path hand-parses events, so the annotations arrive as raw JSON rather than as decoded types.
     /// A finished item carries every annotation for that item at once, which is why this reads the item rather
     /// than following `response.output_text.annotation.added` event by event.
+    /// The image a finished `image_generation_call` output item carries, if the item is one.
+    ///
+    /// The tool streams progress events of its own, but the finished picture only ever travels in this item: a base64
+    /// payload in `result`, in the `output_format` the tool was asked for (PNG unless told otherwise).
+    static func generatedImage(fromOutputItem item: [String: Any]) -> LLMContextEntity._ImageContent? {
+        guard item["type"] as? String == "image_generation_call",
+              item["status"] as? String ?? "completed" == "completed",
+              let result = item["result"] as? String, !result.isEmpty else {
+            return nil
+        }
+        let format = item["output_format"] as? String ?? "png"
+        return .init(contentType: "image/\(format)", base64Image: result)
+    }
+
     static func citations(fromOutputItem item: [String: Any]) -> [LLMCitation] {
         guard let content = item["content"] as? [[String: Any]] else {
             return []

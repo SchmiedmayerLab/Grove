@@ -205,6 +205,14 @@ extension LLMContext {
         }
     }
 
+    /// Appends an image the assistant produced as a message of its own.
+    ///
+    /// Text the model writes before or after it keeps streaming into separate assistant entities, so the chat shows
+    /// the picture between the passages it belongs to.
+    package mutating func append(assistantImage image: LLMContextEntity._ImageContent, interactionId: LLMInteractionId? = nil) {
+        storage.append(.init(_role: .assistant, _imageContent: image, interactionId: interactionId))
+    }
+
     /// Records where an assistant answer drew from.
     ///
     /// Citations arrive after the text they belong to, so they are merged onto the answer already in the context

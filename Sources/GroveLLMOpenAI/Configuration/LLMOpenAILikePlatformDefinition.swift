@@ -107,6 +107,13 @@ public protocol LLMOpenAILikePlatformModelType: Hashable, RawRepresentable<Strin
     /// answers for its own models instead of the answer being inferred from the identifier. Defaults to `true`.
     var supportsSamplingControls: Bool { get }
 
+    /// Whether this model can draw images with the platform's hosted image generation tool.
+    ///
+    /// When `true` and ``LLMOpenAILikeSchema/generatesImages`` is set, `GroveLLMOpenAI` offers the tool on
+    /// requests made via the Responses API and stores every finished image in the `LLMContext` as an assistant
+    /// message. Defaults to `false`.
+    var supportsImageGeneration: Bool { get }
+
     /// Creates a `ModelType` from a raw string value
     init(rawValue: String)
 }
@@ -128,6 +135,10 @@ extension LLMOpenAILikePlatformModelType {
 
     public var supportsSamplingControls: Bool { // swiftlint:disable:this missing_docs
         true
+    }
+
+    public var supportsImageGeneration: Bool { // swiftlint:disable:this missing_docs
+        false
     }
 
     public init(stringLiteral value: String) { // swiftlint:disable:this missing_docs
