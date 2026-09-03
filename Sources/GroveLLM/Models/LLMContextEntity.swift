@@ -224,6 +224,24 @@ public struct LLMContextEntity: Codable, Equatable, Hashable, Identifiable, Send
             url: fileURL
         )
     }
+
+    package init(
+        _role: Role, // swiftlint:disable:this identifier_name
+        _imageContent: _ImageContent, // swiftlint:disable:this identifier_name
+        id: UUID = UUID(),
+        date: Date = .now,
+        interactionId: LLMInteractionId? = nil
+    ) {
+        self.id = id
+        self.date = date
+        self.role = _role
+        self.interactionId = interactionId
+        self.content = ""
+        self.complete = true
+        self.completionDate = date
+        self._imageContent = _imageContent
+        self._fileContent = nil
+    }
 }
 
 
@@ -253,23 +271,6 @@ extension LLMContextEntity {
         }
     }
 
-    package init(
-        _role: Role, // swiftlint:disable:this identifier_name
-        _imageContent: _ImageContent, // swiftlint:disable:this identifier_name
-        id: UUID = UUID(),
-        date: Date = .now,
-        interactionId: LLMInteractionId? = nil
-    ) {
-        self.id = id
-        self.date = date
-        self.role = _role
-        self.interactionId = interactionId
-        self.content = ""
-        self.complete = true
-        self.completionDate = date
-        self._imageContent = _imageContent
-        self._fileContent = nil
-    }
 
     /// - Important: This init is not stable and will be removed in an upcoming release.
     public init?(

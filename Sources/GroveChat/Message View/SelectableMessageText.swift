@@ -37,16 +37,6 @@ struct SelectableMessageText: ViewModifier {
     @Environment(\.chatMessageActions) private var enabledActions
     @Environment(ChatFollowUp.self) private var followUp: ChatFollowUp?
 
-    func body(content: Content) -> some View {
-        #if Textual
-        content
-            .textual.textSelection(.enabled)
-            .textual.textSelectionActions(selectionActions)
-        #else
-        content.textSelection(.enabled)
-        #endif
-    }
-
     #if Textual
     private var selectionActions: [TextSelectionAction] {
         guard enabledActions.contains(.followUp), let followUp else {
@@ -62,4 +52,14 @@ struct SelectableMessageText: ViewModifier {
         ]
     }
     #endif
+
+    func body(content: Content) -> some View {
+        #if Textual
+        content
+            .textual.textSelection(.enabled)
+            .textual.textSelectionActions(selectionActions)
+        #else
+        content.textSelection(.enabled)
+        #endif
+    }
 }
