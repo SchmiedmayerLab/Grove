@@ -80,7 +80,7 @@ private struct AssistantMessageView: View {
     /// Actions apply to a finished message; half a message is not worth copying or reading aloud.
     private var offersActions: Bool {
         // The follow-up lives on the text selection's own menu, so it alone puts no menu on the message.
-        !enabledActions.subtracting(.followUp).isEmpty == false && message.complete
+        !enabledActions.subtracting(.followUp).isEmpty && message.complete
     }
 
     var body: some View {

@@ -304,11 +304,6 @@ public struct MessagesView: View {
         self.init(.constant(chat), insets: insets, messagesVisibility: messagesVisibility, typingIndicator: typingIndicator)
     }
 
-    /// Scrolls to the foot of the conversation, where a drag would come to rest.
-    ///
-    /// Scrolling to the edge rather than to a view of our own at the end of the stack: an anchor view is
-    /// positioned without regard for the scroll view's content insets, so following an answer left the
-    /// conversation somewhere a participant could not have dragged it to.
     /// Whether the answer arrived a piece at a time, rather than all at once.
     ///
     /// An answer that streams grows a message the view is already showing, and following it keeps the newest
@@ -327,6 +322,11 @@ public struct MessagesView: View {
         return !previousLast.complete
     }
 
+    /// Scrolls to the foot of the conversation, where a drag would come to rest.
+    ///
+    /// Scrolling to the edge rather than to a view of our own at the end of the stack: an anchor view is
+    /// positioned without regard for the scroll view's content insets, so following an answer left the
+    /// conversation somewhere a participant could not have dragged it to.
     private func scrollToBottom(animated: Bool = true) {
         guard animated else {
             scrollPosition.scrollTo(edge: .bottom)

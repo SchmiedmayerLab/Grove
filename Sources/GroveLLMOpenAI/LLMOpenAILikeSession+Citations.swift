@@ -38,11 +38,6 @@ extension LLMOpenAILikeSession {
         }
     }
 
-    /// The citations carried by a streamed `response.output_item.done` payload.
-    ///
-    /// The streamed path hand-parses events, so the annotations arrive as raw JSON rather than as decoded types.
-    /// A finished item carries every annotation for that item at once, which is why this reads the item rather
-    /// than following `response.output_text.annotation.added` event by event.
     /// The image a finished `image_generation_call` output item carries, if the item is one.
     ///
     /// The tool streams progress events of its own, but the finished picture only ever travels in this item: a base64
@@ -57,6 +52,11 @@ extension LLMOpenAILikeSession {
         return .init(contentType: "image/\(format)", base64Image: result)
     }
 
+    /// The citations carried by a streamed `response.output_item.done` payload.
+    ///
+    /// The streamed path hand-parses events, so the annotations arrive as raw JSON rather than as decoded types.
+    /// A finished item carries every annotation for that item at once, which is why this reads the item rather
+    /// than following `response.output_text.annotation.added` event by event.
     static func citations(fromOutputItem item: [String: Any]) -> [LLMCitation] {
         guard let content = item["content"] as? [[String: Any]] else {
             return []
