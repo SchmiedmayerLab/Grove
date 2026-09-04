@@ -9,6 +9,7 @@
 import contextlib
 import importlib.util
 import io
+import json
 import pathlib
 import sys
 import tempfile
@@ -142,14 +143,22 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
         self.assertEqual(result["has_fhir_conformance"], "true")
         self.assertEqual(set(result["affected"].split(",")), MODULE.FHIR_PACKAGES)
 
-    def test_unrelated_script_runs_full_matrix_without_conformance(self):
+    def test_runner_script_runs_the_smoke_set_without_conformance(self):
         result = run_selector("Scripts/run-package-tests.sh")
 
         self.assertEqual(result["has_fhir_conformance"], "false")
-        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+        self.assertEqual(set(result["affected"].split(",")), MODULE.smoke_packages())
 
 
 class InfrastructureSelectionTests(unittest.TestCase):
+    def test_source_directory_outside_every_package_runs_full_matrix(self):
+        with contextlib.redirect_stderr(io.StringIO()):
+            result = run_selector("Sources/NotAPackage/File.swift")
+
+        self.assertEqual(result["has_jobs"], "true")
+        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+        self.assertEqual(result["has_fhir_conformance"], "true")
+
     def test_documentation_content_does_not_run_package_tests(self):
         result = run_selector("Sources/Grove/Grove.docc/GettingStarted.md")
 
@@ -163,21 +172,36 @@ class InfrastructureSelectionTests(unittest.TestCase):
         self.assertEqual(result["has_jobs"], "false")
         self.assertEqual(result["affected"], "(none)")
 
-    def test_tests_workflow_runs_every_package(self):
+    def test_tests_workflow_runs_the_smoke_set(self):
         result = run_selector(".github/workflows/tests.yml")
+
+        self.assertEqual(set(result["affected"].split(",")), MODULE.smoke_packages())
+        self.assertEqual(result["has_fhir_conformance"], "true")
+
+    def test_smoke_set_covers_every_configuration_shape_once(self):
+        smoke = MODULE.smoke_packages()
+        shapes = {
+            (tuple(sorted(info["platforms"])), tuple(sorted(info.get("uiTests", []))), bool(info.get("linuxTargets")),
+             tuple(sorted(info.get("self-hosted-ci", ["ui"]))), tuple(info.get("extra_runner_labels", [])))
+            for name, info in MODULE.PKGS.items() if name in smoke
+        }
+        self.assertEqual(len(shapes), len(smoke))
+        self.assertLess(len(smoke), len(MODULE.PKGS) // 2)
+
+    def test_shared_local_action_runs_the_smoke_set(self):
+        result = run_selector(".github/actions/setup/action.yml")
+
+        self.assertEqual(set(result["affected"].split(",")), MODULE.smoke_packages())
+
+    def test_unknown_script_must_be_classified(self):
+        with self.assertRaises(SystemExit):
+            run_selector("Scripts/new-build-tool.sh")
+
+    def test_version_specific_manifest_is_treated_as_the_manifest(self):
+        result = run_selector("Package@swift-6.1.swift")
 
         self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
         self.assertEqual(result["has_fhir_conformance"], "true")
-
-    def test_shared_local_action_runs_every_package(self):
-        result = run_selector(".github/actions/setup/action.yml")
-
-        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
-
-    def test_unknown_script_stays_conservative(self):
-        result = run_selector("Scripts/new-build-tool.sh")
-
-        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
 
     def test_shared_all_platform_test_plan_runs_every_package(self):
         result = run_selector("Tests/TestPlans/_All-iOS.xctestplan")
@@ -228,3 +252,39 @@ class UITestProjectsSelectionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SourceChangeSelectionTests(unittest.TestCase):
+    """A source change schedules its package and everything that builds on it."""
+
+    def run_with_head(self, *changed_paths, head):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as head_file:
+            head_file.write(json.dumps(head))
+            head_file.flush()
+            return run_selector(*changed_paths, extra_arguments=("--head-package-dump", head_file.name))
+
+    def test_a_changed_target_schedules_its_consumers(self):
+        head = package_dump([
+            target("GroveFoundation", path="Sources/GroveFoundation"),
+            target("GroveChat", ["GroveFoundation"], path="Sources/GroveChat"),
+            target("GroveLLM", ["GroveChat"], path="Sources/GroveLLM"),
+            target("GroveAccount", ["GroveFoundation"], path="Sources/GroveAccount"),
+        ])
+        result = self.run_with_head("Sources/GroveChat/ChatView.swift", head=head)
+
+        self.assertEqual(set(result["affected"].split(",")), {"GroveChat", "GroveLLM"})
+
+    def test_a_shared_module_without_a_package_schedules_its_consumers(self):
+        head = package_dump([
+            target("GroveLegacyIdentifiers", path="Sources/GroveLegacyIdentifiers"),
+            target("GroveFoundation", ["GroveLegacyIdentifiers"], path="Sources/GroveFoundation"),
+            target("GroveChat", ["GroveFoundation"], path="Sources/GroveChat"),
+        ])
+        result = self.run_with_head("Sources/GroveLegacyIdentifiers/Identifiers.swift", head=head)
+
+        self.assertEqual(set(result["affected"].split(",")), {"GroveFoundation", "GroveChat"})
+
+    def test_without_the_head_graph_only_the_owner_is_scheduled(self):
+        result = run_selector("Sources/GroveChat/ChatView.swift")
+
+        self.assertEqual(result["affected"], "GroveChat")
