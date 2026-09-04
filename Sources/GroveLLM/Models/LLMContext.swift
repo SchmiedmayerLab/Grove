@@ -26,7 +26,7 @@ public import Foundation
 /// - ``init(arrayLiteral:)``
 ///
 /// ### Operations
-/// - ``append(systemMessage:to:)``
+/// - ``append(systemMessage:to:id:)``
 /// - ``append(userMessage:id:date:interactionId:)``
 /// - ``append(assistantOutputDelta:isComplete:interactionId:)``
 /// - ``markAssistantOutputCompleted()``
