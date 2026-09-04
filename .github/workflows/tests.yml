@@ -88,7 +88,10 @@ jobs:
             echo "ui_test_projects_changed=false" >> "$GITHUB_OUTPUT"
           fi
           echo "Changed files:"; cat changed.txt
-      - name: Evaluate package graphs
+      - name: Evaluate the head package graph
+        # Every source change is resolved through the graph, so the head revision is always dumped.
+        run: swift package dump-package > "$RUNNER_TEMP/head-package.json"
+      - name: Evaluate the base package graph and configuration
         if: steps.changes.outputs.manifest_changed == 'true' || steps.changes.outputs.packages_changed == 'true' || steps.changes.outputs.ui_test_projects_changed == 'true'
         env:
           BASE_SHA: ${{ steps.changes.outputs.base_sha }}
@@ -103,7 +106,6 @@ jobs:
           fi
           if [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
             swift package --package-path "$BASE_WORKTREE" dump-package > "$RUNNER_TEMP/base-package.json"
-            swift package dump-package > "$RUNNER_TEMP/head-package.json"
           fi
       - name: Test affected-package selection
         env:
@@ -112,10 +114,9 @@ jobs:
       - name: Compute test matrix
         id: compute
         run: |
-          ARGS=(changed.txt)
+          ARGS=(changed.txt --head-package-dump "$RUNNER_TEMP/head-package.json")
           if [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
             ARGS+=(--base-package-dump "$RUNNER_TEMP/base-package.json")
-            ARGS+=(--head-package-dump "$RUNNER_TEMP/head-package.json")
           fi
           if [ "${{ steps.changes.outputs.packages_changed }}" = "true" ] || [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
             ARGS+=(--base-packages "$RUNNER_TEMP/base-packages.toml")
