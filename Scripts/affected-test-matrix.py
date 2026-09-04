@@ -33,8 +33,8 @@
 # that owns its target plus every package that consumes that target, transitively, so a change in a
 # shared module runs exactly what builds on it. Without the head graph the owner alone is scheduled.
 #
-# Only two kinds of change run the whole matrix: a lockfile (`Package.resolved`, `Package@*`) and a
-# manifest change the graph diff cannot classify. Changes to the test workflow, the shared actions,
+# Only a manifest change the graph diff cannot classify runs the whole matrix; no lockfile is
+# tracked (Package.resolved is ignored). Changes to the test workflow, the shared actions,
 # the runner script or the Xcode scheme run a smoke set instead: one package per distinct
 # configuration shape in packages.toml (platforms, UI tests, Linux targets, runner routing), which
 # exercises every job variant without repeating it for every package. An unknown script under
@@ -84,9 +84,6 @@ DIR2PKG = directory_to_package(PKGS)
 # Any change to these means "run everything" (shared test infrastructure, CI, or lint configuration).
 # The legacy-identifier vault is in here because it belongs to no single package: every string in it
 # names data already on a user's device, and fourteen targets read it.
-# A lockfile pins the dependencies of every package at once: the one change that still runs everything.
-LOCKFILE_PREFIXES = ("Package@", "Package.resolved")
-
 # Infrastructure every job shares; a change here is checked on the smoke set (see smoke_packages).
 INFRASTRUCTURE_PREFIXES = (".github/actions/", ".swiftpm/")
 
@@ -390,11 +387,9 @@ def main():
             run_all = True
             run_fhir_conformance = True
             continue
-        if path.startswith(LOCKFILE_PREFIXES):
-            run_all = True
-            run_fhir_conformance = True
-            continue
-        if path == "Package.swift":
+        if path == "Package.swift" or path.startswith("Package@"):
+            # A version-specific manifest is evaluated like the main one: dump-package already picks
+            # the manifest that applies to the toolchain running the tests.
             if not args.base_package_dump or not args.head_package_dump:
                 run_all = True
                 run_fhir_conformance = True

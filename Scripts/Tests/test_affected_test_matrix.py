@@ -196,10 +196,11 @@ class InfrastructureSelectionTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             run_selector("Scripts/new-build-tool.sh")
 
-    def test_lockfile_runs_every_package(self):
-        result = run_selector("Package.resolved")
+    def test_version_specific_manifest_is_treated_as_the_manifest(self):
+        result = run_selector("Package@swift-6.1.swift")
 
         self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+        self.assertEqual(result["has_fhir_conformance"], "true")
 
     def test_shared_all_platform_test_plan_runs_every_package(self):
         result = run_selector("Tests/TestPlans/_All-iOS.xctestplan")
