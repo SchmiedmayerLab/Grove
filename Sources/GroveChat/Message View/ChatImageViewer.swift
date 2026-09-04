@@ -21,11 +21,18 @@ struct ChatImageViewer: View {
 
     @State private var selection: Int
     @State private var shareSheetInput: ShareSheetInput?
+    /// The pictures behind URLs, decoded once they have loaded.
+    @State private var loadedImages: [Int: PlatformImage] = [:]
 
     private var shareableImage: ShareSheetInput? {
         guard images.indices.contains(selection) else {
             return nil
         }
+        #if os(iOS) || os(visionOS)
+        if let image = platformImage(for: images[selection], at: selection) {
+            return ShareSheetInput(image)
+        }
+        #endif
         switch images[selection] {
         case .image(let image):
             return ShareSheetInput(image)
@@ -37,7 +44,7 @@ struct ChatImageViewer: View {
     var body: some View {
         NavigationStack {
             pages
-                .background(.black)
+                .background(.background)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         DismissButton()
@@ -99,10 +106,35 @@ struct ChatImageViewer: View {
 
     @ViewBuilder
     private func zoomableImage(_ image: ChatEntity.Content.Image) -> some View {
+        #if os(iOS) || os(visionOS)
+        let index = images.firstIndex(of: image) ?? 0
+        if let loaded = platformImage(for: image, at: index) {
+            ZoomableImageView(image: loaded)
+                .ignoresSafeArea(edges: .bottom)
+        } else {
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .task(id: index) {
+                    if case .url(let url) = image, let (data, _) = try? await URLSession.shared.data(from: url) {
+                        loadedImages[index] = PlatformImage(data: data)
+                    }
+                }
+        }
+        #else
         ScrollView([.horizontal, .vertical]) {
             PlainMessageView.AttachedImagesView.imageContent(for: image, fillingTile: false)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .scrollBounceBehavior(.basedOnSize)
+        #endif
+    }
+
+    private func platformImage(for image: ChatEntity.Content.Image, at index: Int) -> PlatformImage? {
+        switch image {
+        case .image(let platformImage):
+            platformImage
+        case .url:
+            loadedImages[index]
+        }
     }
 }

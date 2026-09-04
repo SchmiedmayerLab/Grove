@@ -281,4 +281,13 @@ extension OpenAIPlatformDefinition.ModelType {
         }
         return ["o1", "o3", "o4", "gpt-5"].contains { rawValue.hasPrefix($0) }
     }
+
+    public var supportsImageGeneration: Bool {
+        guard apiMode == .responses, rawValue != Self.gpt5_chat.rawValue else {
+            return false
+        }
+        // The hosted tool is offered to the mainline models from `gpt-4o` on; the `o1`/`o4` reasoning models and
+        // the chat-latest alias do not take it.
+        return ["gpt-4o", "gpt-4.1", "gpt-5", "o3"].contains { rawValue.hasPrefix($0) }
+    }
 }

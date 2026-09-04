@@ -122,6 +122,8 @@ public struct MessagesView: View {
 
     /// How close (in points) to the bottom edge the user must be for the view to keep following new content.
     private static let followContentThreshold: CGFloat = 64
+    /// How far the typing indicator sits from the top when it is the only thing in the conversation.
+    private static let emptyConversationIndicatorInset: CGFloat = 16
 
     @Binding private var chat: Chat
     private let insets: EdgeInsets
@@ -133,6 +135,10 @@ public struct MessagesView: View {
     /// While pinned, the view follows streaming content; once the user scrolls up to read, it stops yanking
     /// them back down and only resumes following when they return to the bottom or send a message themselves.
     @State private var isNearBottom = true
+    /// Whether the conversation already had messages when the view appeared; only then does it open at the newest
+    /// one. A first answer arriving into an empty view would otherwise land the reader at its end.
+    @State private var opensAtNewestMessage = false
+    @State private var hasAppeared = false
     /// Whether the user is dragging the conversation, which is the only thing that stops it following.
     @State private var isScrolling = false
     @State private var scrollPosition = ScrollPosition()
@@ -184,6 +190,9 @@ public struct MessagesView: View {
             if shouldDisplayTypingIndicator {
                 TypingIndicator()
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    // With no messages above it the indicator sits against the navigation bar, which reads as
+                    // part of the chrome rather than as the answer being written.
+                    .padding(.top, messages.isEmpty ? Self.emptyConversationIndicatorInset : 0)
             }
             ChatErrorView(state: errorState)
         }
@@ -217,10 +226,17 @@ public struct MessagesView: View {
         #if !os(visionOS)
         .scrollDismissesKeyboard(.interactively)
         #endif
-        // A short conversation reads from the top; a longer one opens at its newest message. Growth is
-        // followed explicitly below, so scrolling up to read is not undone by the next token.
+        // A short conversation reads from the top; a longer one that is reopened starts at its newest message.
+        // Growth is followed explicitly below, so scrolling up to read is not undone by the next token.
         .defaultScrollAnchor(.top, for: .alignment)
-        .defaultScrollAnchor(.bottom, for: .initialOffset)
+        .defaultScrollAnchor(opensAtNewestMessage ? .bottom : .top, for: .initialOffset)
+        .onAppear {
+            guard !hasAppeared else {
+                return
+            }
+            hasAppeared = true
+            opensAtNewestMessage = !visibleMessages.isEmpty
+        }
         .scrollPosition($scrollPosition)
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentSize.height + geometry.contentInsets.bottom - geometry.visibleRect.maxY < Self.followContentThreshold
@@ -238,7 +254,7 @@ public struct MessagesView: View {
             if newValue.count > oldValue.count && newValue.last?.role == .user {
                 // The user just sent a message; always bring it into view.
                 scrollToBottom()
-            } else if isNearBottom {
+            } else if isNearBottom && Self.answerIsStreaming(from: oldValue, to: newValue) {
                 // Follow streaming content only while the user hasn't scrolled away to read.
                 scrollToBottom(animated: newValue.count != oldValue.count)
             }
@@ -297,6 +313,24 @@ public struct MessagesView: View {
         typingIndicator: TypingIndicatorDisplayMode? = nil
     ) {
         self.init(.constant(chat), insets: insets, messagesVisibility: messagesVisibility, typingIndicator: typingIndicator)
+    }
+
+    /// Whether the answer arrived a piece at a time, rather than all at once.
+    ///
+    /// An answer that streams grows a message the view is already showing, and following it keeps the newest
+    /// words in sight. One that lands whole — a provider without streaming, or the fallback after a stream
+    /// fails — would otherwise drop the reader at the end of a page they have not read, and every answer would
+    /// start with a scroll back up to its first line.
+    private static func answerIsStreaming(from previous: Chat, to current: Chat) -> Bool {
+        guard let last = current.last, last.role != .user else {
+            return false
+        }
+        guard let previousLast = previous.last, previousLast.id == last.id else {
+            // A message the view has not shown before: it is only being streamed if it arrived unfinished.
+            return !last.complete
+        }
+        // A finished message that changes again — a citation attached, say — is not being streamed either.
+        return !previousLast.complete
     }
 
     /// Scrolls to the foot of the conversation, where a drag would come to rest.
