@@ -15,9 +15,11 @@ import Testing
 
 @Suite(.serialized)
 final class LocalPreferenceTests {
-    let suiteName = "org.grovealliance.GroveFoundation.unitTests"
-    let suite: UserDefaults
-    let store: LocalPreferencesStore
+    private typealias Namespace = LocalPreferenceKeys.Namespace
+    
+    private let suiteName = "org.grovealliance.GroveFoundation.unitTests"
+    private let suite: UserDefaults
+    private let store: LocalPreferencesStore
     
     init() throws {
         suite = try #require(UserDefaults(suiteName: suiteName))
@@ -343,12 +345,12 @@ final class LocalPreferenceTests {
     
     @Test
     func namespaceRemoval() {
-        func countEntries(in namespace: LocalPreferenceKeys.Namespace) -> Int {
+        func countEntries(in namespace: Namespace) -> Int {
             store.defaults.dictionaryRepresentation().keys.count { key in
                 key.starts(with: namespace.format(keyName: "", applyKVOCompatibilityFixes: true))
             }
         }
-        func makeKey(_ key: String, in namespace: LocalPreferenceKeys.Namespace) -> LocalPreferenceKey<String> {
+        func makeKey(_ key: String, in namespace: Namespace) -> LocalPreferenceKey<String> {
             .init(LocalPreferenceKey<String>.Key(key, in: namespace), default: "")
         }
         
@@ -395,6 +397,63 @@ final class LocalPreferenceTests {
         store.removeAllEntries(in: .groveFoundationUnitTests)
         #expect(store[verbatimKey] == nil)
         #expect(store[nonVerbatimKey] == nil)
+    }
+    
+    
+    @Test
+    func nestedNamespaces() {
+        let outerNS: Namespace = .custom("outer")
+        let innerNS = outerNS.nested("inner")
+        #expect(outerNS.format(keyName: "key", applyKVOCompatibilityFixes: false) == "outer:key")
+        #expect(innerNS.format(keyName: "key", applyKVOCompatibilityFixes: false) == "outer:inner:key")
+        
+        let outerKey = LocalPreferenceKey<String?>(.init("key", in: outerNS))
+        #expect(outerKey.key.value == "outer:key")
+        let innerKey = LocalPreferenceKey<String?>(.init("key", in: innerNS))
+        #expect(innerKey.key.value == "outer:inner:key")
+        
+        #expect(!store.hasEntry(for: outerKey))
+        #expect(!store.hasEntry(for: innerKey))
+        #expect(!store.hasEntry(in: outerNS))
+        #expect(!store.hasEntry(in: innerNS))
+        
+        store[outerKey] = "Hey!"
+        #expect(store.hasEntry(for: outerKey))
+        #expect(!store.hasEntry(for: innerKey))
+        #expect(store.hasEntry(in: outerNS))
+        #expect(!store.hasEntry(in: innerNS))
+        #expect(store[outerKey] == "Hey!")
+        
+        store[innerKey] = "Hey :)"
+        #expect(store.hasEntry(for: outerKey))
+        #expect(store.hasEntry(for: innerKey))
+        #expect(store.hasEntry(in: outerNS))
+        #expect(store.hasEntry(in: innerNS))
+        #expect(store[outerKey] == "Hey!")
+        #expect(store[innerKey] == "Hey :)")
+        
+        // if we clear the inner namespace, its content get removed but those of the outer one remain
+        store.removeAllEntries(in: innerNS)
+        #expect(store.hasEntry(for: outerKey))
+        #expect(!store.hasEntry(for: innerKey))
+        #expect(store.hasEntry(in: outerNS))
+        #expect(!store.hasEntry(in: innerNS))
+        #expect(store[outerKey] == "Hey!")
+        #expect(store[innerKey] == nil)
+        
+        // but if we clear the outer ns, the inner one implicitly also gets cleared
+        store[innerKey] = "Hey :)"
+        #expect(store.hasEntry(for: outerKey))
+        #expect(store.hasEntry(for: innerKey))
+        #expect(store.hasEntry(in: outerNS))
+        #expect(store.hasEntry(in: innerNS))
+        #expect(store[outerKey] == "Hey!")
+        #expect(store[innerKey] == "Hey :)")
+        store.removeAllEntries(in: outerNS)
+        #expect(!store.hasEntry(for: outerKey))
+        #expect(!store.hasEntry(for: innerKey))
+        #expect(!store.hasEntry(in: outerNS))
+        #expect(!store.hasEntry(in: innerNS))
     }
     
     
