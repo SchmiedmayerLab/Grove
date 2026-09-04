@@ -90,7 +90,7 @@ jobs:
           echo "Changed files:"; cat changed.txt
       - name: Evaluate the head package graph
         # Every source change is resolved through the graph, so the head revision is always dumped.
-        run: swift package dump-package > "$RUNNER_TEMP/head-package.json"
+        run: swift package --manifest-cache none dump-package > "$RUNNER_TEMP/head-package.json"
       - name: Evaluate the base package graph and configuration
         if: steps.changes.outputs.manifest_changed == 'true' || steps.changes.outputs.packages_changed == 'true' || steps.changes.outputs.ui_test_projects_changed == 'true'
         env:
@@ -105,7 +105,7 @@ jobs:
             cp "$BASE_WORKTREE/Tests/UITestProjects.toml" "$RUNNER_TEMP/base-ui-test-projects.toml"
           fi
           if [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
-            swift package --package-path "$BASE_WORKTREE" dump-package > "$RUNNER_TEMP/base-package.json"
+            swift package --package-path "$BASE_WORKTREE" --manifest-cache none dump-package > "$RUNNER_TEMP/base-package.json"
           fi
       - name: Test affected-package selection
         env:

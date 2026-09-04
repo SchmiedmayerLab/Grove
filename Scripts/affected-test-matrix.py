@@ -255,8 +255,39 @@ def package_for_target(target_name, targets, directory_maps):
     return None
 
 
+def traits_by_name(dump):
+    return {
+        trait.get("name", ""): {**trait, "enabledTraits": sorted(trait.get("enabledTraits", []))}
+        for trait in dump.get("traits", [])
+    }
+
+
+def changed_traits(base_dump, head_dump):
+    """The traits whose definition or default state differs between the two manifests.
+
+    A trait only gates the dependencies that name it, so a trait change reaches exactly the targets
+    with such a dependency; toggling a trait in the `default` set counts as a change to that trait.
+    """
+    base, head = traits_by_name(base_dump), traits_by_name(head_dump)
+    changed = {name for name in set(base) | set(head) if base.get(name) != head.get(name)}
+    if "default" in changed:
+        changed.discard("default")
+        changed |= set(base.get("default", {}).get("enabledTraits", [])) ^ set(head.get("default", {}).get("enabledTraits", []))
+    return changed
+
+
+def dependency_traits(target):
+    """The traits any of the target's dependencies is conditioned on."""
+    traits = set()
+    for dependency in target.get("dependencies", []):
+        for value in dependency.values():
+            condition = next((item for item in value if isinstance(item, dict)), None)
+            traits.update((condition or {}).get("traits", []))
+    return traits
+
+
 def affected_by_manifest(base_dump, head_dump, base_packages):
-    ignored_keys = {"dependencies", "packageKind", "products", "targets"}
+    ignored_keys = {"dependencies", "packageKind", "products", "targets", "traits"}
     base_global = {key: value for key, value in base_dump.items() if key not in ignored_keys}
     head_global = {key: value for key, value in head_dump.items() if key not in ignored_keys}
     if base_global != head_global:
@@ -295,6 +326,11 @@ def affected_by_manifest(base_dump, head_dump, base_packages):
     if changed_dependencies:
         for name, target in {**base_targets, **head_targets}.items():
             if external_package_dependencies(target) & changed_dependencies:
+                changed_targets.add(name)
+    toggled_traits = changed_traits(base_dump, head_dump)
+    if toggled_traits:
+        for name, target in {**base_targets, **head_targets}.items():
+            if dependency_traits(target) & toggled_traits:
                 changed_targets.add(name)
 
     reverse_dependencies = {}
