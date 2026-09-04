@@ -135,6 +135,10 @@ public struct MessagesView: View {
     /// While pinned, the view follows streaming content; once the user scrolls up to read, it stops yanking
     /// them back down and only resumes following when they return to the bottom or send a message themselves.
     @State private var isNearBottom = true
+    /// Whether the conversation already had messages when the view appeared; only then does it open at the newest
+    /// one. A first answer arriving into an empty view would otherwise land the reader at its end.
+    @State private var opensAtNewestMessage = false
+    @State private var hasAppeared = false
     /// Whether the user is dragging the conversation, which is the only thing that stops it following.
     @State private var isScrolling = false
     @State private var scrollPosition = ScrollPosition()
@@ -222,10 +226,17 @@ public struct MessagesView: View {
         #if !os(visionOS)
         .scrollDismissesKeyboard(.interactively)
         #endif
-        // A short conversation reads from the top; a longer one opens at its newest message. Growth is
-        // followed explicitly below, so scrolling up to read is not undone by the next token.
+        // A short conversation reads from the top; a longer one that is reopened starts at its newest message.
+        // Growth is followed explicitly below, so scrolling up to read is not undone by the next token.
         .defaultScrollAnchor(.top, for: .alignment)
-        .defaultScrollAnchor(.bottom, for: .initialOffset)
+        .defaultScrollAnchor(opensAtNewestMessage ? .bottom : .top, for: .initialOffset)
+        .onAppear {
+            guard !hasAppeared else {
+                return
+            }
+            hasAppeared = true
+            opensAtNewestMessage = !visibleMessages.isEmpty
+        }
         .scrollPosition($scrollPosition)
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentSize.height + geometry.contentInsets.bottom - geometry.visibleRect.maxY < Self.followContentThreshold
