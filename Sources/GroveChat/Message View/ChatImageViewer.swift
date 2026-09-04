@@ -28,6 +28,11 @@ struct ChatImageViewer: View {
         guard images.indices.contains(selection) else {
             return nil
         }
+        #if os(iOS) || os(visionOS)
+        if let image = platformImage(for: images[selection], at: selection) {
+            return ShareSheetInput(image)
+        }
+        #endif
         switch images[selection] {
         case .image(let image):
             return ShareSheetInput(image)

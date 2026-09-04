@@ -15,6 +15,16 @@ import UIKit
 /// tap between fitted and doubled, always centred.
 @available(iOS 18, visionOS 2, *)
 struct ZoomableImageView: UIViewRepresentable {
+    /// The representable is updated before the view has a size, so the fit has to follow layout.
+    final class ScrollView: UIScrollView {
+        var onLayout: (() -> Void)?
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            onLayout?()
+        }
+    }
+
     final class Coordinator: NSObject, UIScrollViewDelegate {
         var imageView: UIImageView?
         var fitted = false
@@ -73,9 +83,14 @@ struct ZoomableImageView: UIViewRepresentable {
 
     let image: UIImage
 
-    func makeUIView(context: Context) -> UIScrollView {
-        let scrollView = UIScrollView()
+    func makeUIView(context: Context) -> ScrollView {
+        let scrollView = ScrollView()
         scrollView.delegate = context.coordinator
+        scrollView.onLayout = { [weak scrollView, coordinator = context.coordinator] in
+            if let scrollView {
+                coordinator.fit(scrollView)
+            }
+        }
         scrollView.showsVerticalScrollIndicator = false
         scrollView.showsHorizontalScrollIndicator = false
         scrollView.contentInsetAdjustmentBehavior = .never
@@ -90,7 +105,7 @@ struct ZoomableImageView: UIViewRepresentable {
         return scrollView
     }
 
-    func updateUIView(_ scrollView: UIScrollView, context: Context) {
+    func updateUIView(_ scrollView: ScrollView, context: Context) {
         let imageView = context.coordinator.imageView
         if imageView?.image !== image {
             imageView?.image = image
