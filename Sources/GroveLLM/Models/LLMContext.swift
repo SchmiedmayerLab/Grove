@@ -140,6 +140,7 @@ extension LLMContext {
     ///
     /// - parameter systemMessage: The actual prompt that should be added.
     /// - parameter position: Where the prompt should be placed within the context.
+    /// - parameter id: Identifies the entity, so ``set(systemMessage:id:to:)`` can replace it later. A fresh one by default.
     public mutating func append(
         systemMessage: some StringProtocol,
         to position: SystemMessageInsertDestination,
