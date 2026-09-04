@@ -413,6 +413,11 @@ def main():
             if pkg:
                 affected.add(pkg)
                 run_fhir_conformance |= pkg in FHIR_PACKAGES
+            else:
+                # A directory no package claims used to schedule nothing at all; running everything
+                # is the same answer the manifest path gives when it cannot classify a target.
+                sys.stderr.write(f"[affected-test-matrix] {parts[0]}/{parts[1]} is not in packages.toml; running everything\n")
+                run_all = True
         # files elsewhere (root docs, etc.) affect no package
 
     if run_all:

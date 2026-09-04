@@ -54,11 +54,22 @@ jobs:
             git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
             BASE_SHA="${{ github.event.pull_request.base.sha }}"
             git diff --name-only "$BASE_SHA...HEAD" > changed.txt
-          elif [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+          elif [ "${{ github.ref }}" != "refs/heads/${{ github.event.repository.default_branch }}" ]; then
+            # A branch is measured against where it left the default branch, so its first push, a
+            # force-push and a rebase all schedule what the branch changes instead of everything.
+            git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
+            BASE_SHA="$(git merge-base "origin/${{ github.event.repository.default_branch }}" HEAD || true)"
+            if [ -n "$BASE_SHA" ]; then
+              git diff --name-only "$BASE_SHA...HEAD" > changed.txt
+            else
+              echo "__ALL__" > changed.txt   # no shared history with the default branch
+            fi
+          elif [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ] \
+            && git cat-file -e "${{ github.event.before }}^{commit}" 2>/dev/null; then
             BASE_SHA="${{ github.event.before }}"
             git diff --name-only "$BASE_SHA" "${{ github.sha }}" > changed.txt
           else
-            echo "__ALL__" > changed.txt   # first push / unknown base -> test everything
+            echo "__ALL__" > changed.txt   # the default branch without a usable previous tip -> test everything
           fi
           echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
           if grep -Fxq "Package.swift" changed.txt; then

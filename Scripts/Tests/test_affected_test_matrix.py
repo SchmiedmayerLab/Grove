@@ -150,6 +150,13 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
 
 
 class InfrastructureSelectionTests(unittest.TestCase):
+    def test_source_directory_outside_every_package_runs_full_matrix(self):
+        with contextlib.redirect_stderr(io.StringIO()):
+            result = run_selector("Sources/NotAPackage/File.swift")
+
+        self.assertEqual(result["has_jobs"], "true")
+        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+
     def test_documentation_content_does_not_run_package_tests(self):
         result = run_selector("Sources/Grove/Grove.docc/GettingStarted.md")
 
