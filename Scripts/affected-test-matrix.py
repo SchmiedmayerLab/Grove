@@ -260,6 +260,8 @@ def affected_by_manifest(base_dump, head_dump, base_packages):
     base_global = {key: value for key, value in base_dump.items() if key not in ignored_keys}
     head_global = {key: value for key, value in head_dump.items() if key not in ignored_keys}
     if base_global != head_global:
+        changed = sorted(key for key in set(base_global) | set(head_global) if base_global.get(key) != head_global.get(key))
+        sys.stderr.write(f"[affected-test-matrix] manifest: top-level keys changed ({', '.join(changed)}); running everything\n")
         return None
 
     base_targets = keyed(base_dump.get("targets", []))
@@ -287,6 +289,7 @@ def affected_by_manifest(base_dump, head_dump, base_packages):
     base_dependencies, base_unknown_dependencies = dependencies_by_identity(base_dump)
     head_dependencies, head_unknown_dependencies = dependencies_by_identity(head_dump)
     if base_unknown_dependencies != head_unknown_dependencies:
+        sys.stderr.write("[affected-test-matrix] manifest: a dependency without an identity changed; running everything\n")
         return None
     changed_dependencies = changed_keys(base_dependencies, head_dependencies)
     if changed_dependencies:
@@ -331,6 +334,8 @@ def affected_by_manifest(base_dump, head_dump, base_packages):
             f"new Package.swift target(s) are not classified in packages.toml: {names}"
         )
     if unclassified_targets:
+        names = ", ".join(sorted(unclassified_targets))
+        sys.stderr.write(f"[affected-test-matrix] manifest: affected targets outside packages.toml ({names}); running everything\n")
         return None
     return affected_packages
 
@@ -416,6 +421,7 @@ def main():
             projects_affected = affected_by_ui_test_projects(load_toml(args.base_ui_test_projects))
             if projects_affected is None:
                 run_all = True
+                run_fhir_conformance = True
                 continue
             affected.update(projects_affected)
             run_fhir_conformance |= bool(projects_affected & FHIR_PACKAGES)
@@ -456,6 +462,7 @@ def main():
                 # the manifest path gives for a target it cannot classify.
                 sys.stderr.write(f"[affected-test-matrix] {parts[0]}/{parts[1]} is unknown; running everything\n")
                 run_all = True
+                run_fhir_conformance = True
                 continue
             affected.update(packages)
             run_fhir_conformance |= bool(packages & FHIR_PACKAGES)

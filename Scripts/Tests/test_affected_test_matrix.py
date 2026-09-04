@@ -157,6 +157,7 @@ class InfrastructureSelectionTests(unittest.TestCase):
 
         self.assertEqual(result["has_jobs"], "true")
         self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+        self.assertEqual(result["has_fhir_conformance"], "true")
 
     def test_documentation_content_does_not_run_package_tests(self):
         result = run_selector("Sources/Grove/Grove.docc/GettingStarted.md")
