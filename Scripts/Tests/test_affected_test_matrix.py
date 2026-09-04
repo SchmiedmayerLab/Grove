@@ -114,6 +114,27 @@ class AffectedManifestTests(unittest.TestCase):
         ):
             MODULE.affected_by_manifest(base, head, MODULE.PKGS)
 
+    def test_trait_order_is_not_a_manifest_change(self):
+        base = package_dump([target("GroveChat")], traits=[
+            {"name": "default", "enabledTraits": ["Textual", "MLX", "ResearchKit"]},
+            {"name": "MLX", "enabledTraits": []},
+        ])
+        head = package_dump([target("GroveChat")], traits=[
+            {"name": "MLX", "enabledTraits": []},
+            {"name": "default", "enabledTraits": ["ResearchKit", "Textual", "MLX"]},
+        ])
+
+        self.assertEqual(MODULE.affected_by_manifest(base, head, MODULE.PKGS), set())
+
+    def test_a_toggled_trait_reaches_the_targets_it_gates(self):
+        gated = target("GroveChat", path="Sources/GroveChat")
+        gated["dependencies"] = [{"product": ["Textual", "textual", None, {"platformNames": [], "traits": ["Textual"]}]}]
+        untouched = target("GroveAccount", path="Sources/GroveAccount")
+        base = package_dump([gated, untouched], traits=[{"name": "default", "enabledTraits": ["Textual"]}])
+        head = package_dump([gated, untouched], traits=[{"name": "default", "enabledTraits": []}])
+
+        self.assertEqual(MODULE.affected_by_manifest(base, head, MODULE.PKGS), {"GroveChat"})
+
     def test_global_manifest_change_falls_back_to_every_package(self):
         base = package_dump([], platforms=[{"platformName": "ios", "version": "15.0"}])
         head = package_dump([], platforms=[{"platformName": "ios", "version": "18.0"}])
