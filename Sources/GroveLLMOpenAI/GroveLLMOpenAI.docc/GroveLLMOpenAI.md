@@ -55,7 +55,7 @@ The core components of the ``GroveLLMOpenAI`` target are the ``LLMOpenAISchema``
 
 ### LLM OpenAI
 
-``LLMOpenAISchema`` offers a variety of configuration possibilities that are supported by the OpenAI API, such as the model type, the system prompt, the temperature of the model, and many more. These options can be set via the ``LLMOpenAILikeSchema/init(parameters:modelParameters:injectIntoContext:searchesTheWeb:_:)`` initializer and the ``LLMOpenAIParameters`` and ``LLMOpenAIModelParameters``.
+``LLMOpenAISchema`` offers a variety of configuration possibilities that are supported by the OpenAI API, such as the model type, the system prompt, the temperature of the model, and many more. These options can be set via the ``LLMOpenAILikeSchema/init(parameters:modelParameters:injectIntoContext:searchesTheWeb:generatesImages:_:)`` initializer and the ``LLMOpenAIParameters`` and ``LLMOpenAIModelParameters``.
 
 - Important: The OpenAI LLM abstractions shouldn't be used on it's own but always used together with the Grove `LLMRunner`.
 

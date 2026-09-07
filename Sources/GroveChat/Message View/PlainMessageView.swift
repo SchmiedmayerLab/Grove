@@ -77,6 +77,7 @@ extension PlainMessageView {
                         .code(.monospaced, .fontScale(0.85), .backgroundColor(.clear))
                 )
                 .textual.structuredTextStyle(.gitHub)
+                .textual.blockQuoteStyle(ChatQuoteStyle())
             #else
             Text(attributedText)
                 .textSelection(.enabled)

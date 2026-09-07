@@ -175,6 +175,11 @@ extension LLMOpenAILikeSession {
                             }
                         }
                     }
+                    if let item = payload["item"] as? [String: Any], let image = Self.generatedImage(fromOutputItem: item) {
+                        await MainActor.run {
+                            context.append(assistantImage: image, interactionId: interactionId)
+                        }
+                    }
                     // Function calls stream across multiple events, but the `function_call_arguments` deltas carry only an
                     // `item_id` and the partial argument string — notably not the function name, despite the spec marking it
                     // required. `response.output_item.done` instead carries the finalized item, which for a function call has

@@ -49,6 +49,8 @@ struct MessageInputView: View {
 
     @State private var speechRecognizer = SpeechRecognizer()
     @State private var message: String = ""
+    /// A passage of an earlier message the participant is asking about, staged until the message goes.
+    @State var quotation: String?
     @State var attachments: [Attachment] = []
     /// Why the last picked file was refused, shown until the next pick.
     @State var attachmentFailure: String?
@@ -77,7 +79,7 @@ struct MessageInputView: View {
             // A second message mid-answer either interleaves two responses or drops the first.
             return false
         }
-        return !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty
+        return !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty || quotation != nil
     }
 
     var body: some View {
@@ -133,6 +135,9 @@ struct MessageInputView: View {
             if !attachments.isEmpty || attachmentFailure != nil {
                 attachmentPreviews
             }
+            if quotation != nil {
+                quotationPreview
+            }
             TextField(text: $message, axis: .vertical) {
                 Text(placeholder)
             }
@@ -142,6 +147,7 @@ struct MessageInputView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .focused($textFieldIsFocused)
             .onSubmit(send)
+            .modifier(QuotationPickup(quotation: $quotation, isFocused: $textFieldIsFocused))
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -238,7 +244,7 @@ struct MessageInputView: View {
             return
         }
         speechRecognizer.stop()
-        let text = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = String.message(quoting: quotation, text: message.trimmingCharacters(in: .whitespacesAndNewlines))
         var parts = attachments.map { attachment in
             switch attachment.content {
             case .image(let image): ChatEntity.Content.Part(.image(.image(image)))
@@ -251,6 +257,7 @@ struct MessageInputView: View {
         let content = ChatEntity.Content(parts)
         chat.append(ChatEntity(role: .user, content: content))
         message = ""
+        quotation = nil
         attachments = []
         #if canImport(PhotosUI)
         photoSelection = []

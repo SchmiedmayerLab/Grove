@@ -19,6 +19,8 @@ struct LegacyMessageInputView: View {
 
     @State private var speechRecognizer = SpeechRecognizer()
     @State private var message: String = ""
+    /// A passage of an earlier message the participant is asking about, staged until the message goes.
+    @State private var quotation: String?
 
     @Environment(\.chatAccentColor) private var chatAccentColor
     @Environment(\.chatGeneration) private var generation
@@ -31,16 +33,35 @@ struct LegacyMessageInputView: View {
             // A second message mid-answer either interleaves two responses or drops the first.
             return false
         }
-        return !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || quotation != nil
     }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let quotation {
+                QuotationChip(text: quotation) {
+                    withAnimation(.smooth(duration: 0.25)) {
+                        self.quotation = nil
+                    }
+                }
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+            inputRow
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.bar)
+    }
+
+    /// The field and the controls flanking it.
+    private var inputRow: some View {
         HStack(alignment: .bottom, spacing: 8) {
             TextField(text: $message, axis: .vertical) {
                 Text(placeholder)
             }
             .accessibilityLabel(Text("MESSAGE_INPUT_TEXTFIELD", bundle: .module))
             .focused($textFieldIsFocused)
+            .modifier(QuotationPickup(quotation: $quotation, isFocused: $textFieldIsFocused))
             .lineLimit(1...5)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
@@ -55,9 +76,6 @@ struct LegacyMessageInputView: View {
             }
             sendButton
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(.bar)
     }
 
     private var sendButton: some View {
@@ -109,8 +127,10 @@ struct LegacyMessageInputView: View {
             return
         }
         speechRecognizer.stop()
-        chat.append(ChatEntity(role: .user, text: message.trimmingCharacters(in: .whitespacesAndNewlines)))
+        let text = String.message(quoting: quotation, text: message.trimmingCharacters(in: .whitespacesAndNewlines))
+        chat.append(ChatEntity(role: .user, text: text))
         message = ""
+        quotation = nil
     }
 
     private func toggleDictation() {

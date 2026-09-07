@@ -30,8 +30,17 @@
 # Usage:
 #   affected-test-matrix.py <changed-files.txt>     # one path per line; or the literal __ALL__
 #   git diff --name-only A B | affected-test-matrix.py
-# For a Package.swift change, the workflow additionally supplies SwiftPM `dump-package` JSON for
-# the base and head revisions. Without those graphs, manifest changes conservatively run everything.
+# The workflow always supplies SwiftPM `dump-package` JSON for the head revision, and for the base
+# revision as well when Package.swift changed. A changed source or test file schedules the package
+# that owns its target plus every package that consumes that target, transitively, so a change in a
+# shared module runs exactly what builds on it. Without the head graph the owner alone is scheduled.
+#
+# Only a manifest change the graph diff cannot classify runs the whole matrix; no lockfile is
+# tracked (Package.resolved is ignored). Changes to the test workflow, the shared actions,
+# the runner script or the Xcode scheme run a smoke set instead: one package per distinct
+# configuration shape in packages.toml (platforms, UI tests, Linux targets, runner routing), which
+# exercises every job variant without repeating it for every package. An unknown script under
+# Scripts/ is an error until it is classified below, as a new target must be assigned to a package.
 #
 # Emits (to stdout, GITHUB_OUTPUT format):
 #   matrix={"include":[{"package":"GroveAccount","platform":"macOS","selfHosted":false,"selfHostedLabels":"[...]"}, ...]}  # unit
@@ -76,16 +85,16 @@ def directory_to_package(packages):
 DIR2PKG = directory_to_package(PKGS)
 
 # Any change to these means "run everything" (shared test infrastructure, CI, or lint configuration).
-GLOBAL_PREFIXES = (
-    "Package@", "Package.resolved",
-    ".swiftpm/",
-)
+# The legacy-identifier vault is in here because it belongs to no single package: every string in it
+# names data already on a user's device, and fourteen targets read it.
+# Infrastructure every job shares; a change here is checked on the smoke set (see smoke_packages).
+INFRASTRUCTURE_PREFIXES = (".github/actions/", ".swiftpm/")
 
 # Declares one UI-test project per top-level table, keyed by logical package, so a change here can
 # be diffed per table instead of fanning out into every package's tests.
 UI_TEST_PROJECTS_PATH = "Tests/UITestProjects.toml"
 
-FULL_TEST_PATHS = {
+INFRASTRUCTURE_PATHS = {
     # value: whether the shared change can also affect the FHIR conformance job
     ".github/workflows/tests.yml": True,
     "Scripts/run-package-tests.sh": False,
@@ -98,6 +107,7 @@ NON_TEST_SCRIPT_PATHS = {
     "Scripts/build-documentation.sh",
     "Scripts/build-floor.sh",
     "Scripts/check-documentation-targets.py",
+    "Scripts/check-gyb-output.sh",
     "Scripts/ci-dryrun.sh",
     "Scripts/cleanup-generated-artifacts.sh",
     "Scripts/generate-ui-test-projects.py",
@@ -154,6 +164,45 @@ CI_PLATFORMS = ("iOS", "macOS", "watchOS", "Linux")
 # TEMPORARY: limit UI-test scheduling to these currently enabled CI platforms, including explicit
 # all-package/full-readiness runs.
 UI_PLATFORMS = ("iOS",)
+
+def smoke_packages(packages=None):
+    """One package per distinct configuration shape: enough to exercise every job variant."""
+    packages = packages or PKGS
+    shapes = {}
+    for name, info in packages.items():
+        shape = (
+            tuple(sorted(set(info["platforms"]) & set(CI_PLATFORMS))),
+            tuple(sorted(set(info.get("uiTests", [])) & set(UI_PLATFORMS))),
+            bool(info.get("linuxTargets")),
+            tuple(sorted(info.get("self-hosted-ci", ["ui"]))),
+            tuple(info.get("extra_runner_labels", [])),
+        )
+        shapes.setdefault(shape, []).append(name)
+    return {sorted(names, key=lambda name: (len(packages[name]["targets"]), name))[0] for names in shapes.values()}
+
+
+def packages_consuming(directory, head_dump):
+    """The packages owning the targets under `Sources/<directory>` or `Tests/<directory>` and every
+    package consuming them, transitively. None when the graph does not know the directory."""
+    targets = keyed(head_dump.get("targets", []))
+    roots = {
+        name for name, target in targets.items()
+        if (target.get("path") or "").split("/")[1:2] == [directory] or name == directory
+    }
+    if not roots:
+        return None
+    reverse = {}
+    for name, target in targets.items():
+        for dependency in target_dependencies(target):
+            reverse.setdefault(dependency, set()).add(name)
+    reached, pending = set(roots), list(roots)
+    while pending:
+        for dependent in reverse.get(pending.pop(), set()):
+            if dependent not in reached:
+                reached.add(dependent)
+                pending.append(dependent)
+    return {package for package in (package_for_target(name, targets, [DIR2PKG]) for name in reached) if package}
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -216,47 +265,12 @@ def target_dependencies(target):
 
 
 
-def packages_for_target(target_name, head_dump, directory_map=None):
-    """The changed target's package plus every package that consumes it, transitively.
-
-    Source changes are resolved through the manifest graph rather than through the directory
-    name alone, so a shared target schedules exactly its consumers -- no more, no less. Returns
-    None when the graph cannot answer completely, so the caller stays conservative instead of
-    silently under-scheduling.
-    """
-    directory_map = directory_map or DIR2PKG
-    targets = {target["name"]: target for target in head_dump.get("targets", [])}
-    if target_name not in targets:
-        return None
-    reverse = {}
-    for name, target in targets.items():
-        for dependency in target_dependencies(target):
-            reverse.setdefault(dependency, set()).add(name)
-    reached, pending = {target_name}, [target_name]
-    while pending:
-        current = pending.pop()
-        for dependent in reverse.get(current, set()):
-            if dependent not in reached:
-                reached.add(dependent)
-                pending.append(dependent)
-    # Every *consumer* must map to a package; an unmapped one would mean an incomplete answer.
-    # The changed target itself may legitimately belong to no package (a shared vault target),
-    # which is precisely the case this resolution exists to handle.
-    consumers = reached - {target_name}
-    if any(name not in directory_map for name in consumers):
-        return None
-    packages = {directory_map[name] for name in consumers}
-    if target_name in directory_map:
-        packages.add(directory_map[target_name])
-    return packages or None
-
-
 def direct_packages_for_target(target_name, package_dump, directory_map):
     """Returns the changed target's owner, or the nearest owners of an unowned shared target.
 
     Temporary development CI intentionally stops at the first mapped consumer instead of walking
     through that package to every transitive dependent. Full-readiness CI uses
-    ``packages_for_target`` and retains the complete reverse dependency closure.
+    ``packages_consuming`` and retains the complete reverse dependency closure.
     """
     if target_name in directory_map:
         return {directory_map[target_name]}
@@ -319,11 +333,44 @@ def package_for_target(target_name, targets, directory_maps):
     return None
 
 
+def traits_by_name(dump):
+    return {
+        trait.get("name", ""): {**trait, "enabledTraits": sorted(trait.get("enabledTraits", []))}
+        for trait in dump.get("traits", [])
+    }
+
+
+def changed_traits(base_dump, head_dump):
+    """The traits whose definition or default state differs between the two manifests.
+
+    A trait only gates the dependencies that name it, so a trait change reaches exactly the targets
+    with such a dependency; toggling a trait in the `default` set counts as a change to that trait.
+    """
+    base, head = traits_by_name(base_dump), traits_by_name(head_dump)
+    changed = {name for name in set(base) | set(head) if base.get(name) != head.get(name)}
+    if "default" in changed:
+        changed.discard("default")
+        changed |= set(base.get("default", {}).get("enabledTraits", [])) ^ set(head.get("default", {}).get("enabledTraits", []))
+    return changed
+
+
+def dependency_traits(target):
+    """The traits any of the target's dependencies is conditioned on."""
+    traits = set()
+    for dependency in target.get("dependencies", []):
+        for value in dependency.values():
+            condition = next((item for item in value if isinstance(item, dict)), None)
+            traits.update((condition or {}).get("traits", []))
+    return traits
+
+
 def affected_by_manifest(base_dump, head_dump, base_packages):
-    ignored_keys = {"dependencies", "packageKind", "products", "targets"}
+    ignored_keys = {"dependencies", "packageKind", "products", "targets", "traits"}
     base_global = {key: value for key, value in base_dump.items() if key not in ignored_keys}
     head_global = {key: value for key, value in head_dump.items() if key not in ignored_keys}
     if base_global != head_global:
+        changed = sorted(key for key in set(base_global) | set(head_global) if base_global.get(key) != head_global.get(key))
+        sys.stderr.write(f"[affected-test-matrix] manifest: top-level keys changed ({', '.join(changed)}); running everything\n")
         return None
 
     base_targets = keyed(base_dump.get("targets", []))
@@ -351,11 +398,17 @@ def affected_by_manifest(base_dump, head_dump, base_packages):
     base_dependencies, base_unknown_dependencies = dependencies_by_identity(base_dump)
     head_dependencies, head_unknown_dependencies = dependencies_by_identity(head_dump)
     if base_unknown_dependencies != head_unknown_dependencies:
+        sys.stderr.write("[affected-test-matrix] manifest: a dependency without an identity changed; running everything\n")
         return None
     changed_dependencies = changed_keys(base_dependencies, head_dependencies)
     if changed_dependencies:
         for name, target in {**base_targets, **head_targets}.items():
             if external_package_dependencies(target) & changed_dependencies:
+                changed_targets.add(name)
+    toggled_traits = changed_traits(base_dump, head_dump)
+    if toggled_traits:
+        for name, target in {**base_targets, **head_targets}.items():
+            if dependency_traits(target) & toggled_traits:
                 changed_targets.add(name)
 
     reverse_dependencies = {}
@@ -395,6 +448,8 @@ def affected_by_manifest(base_dump, head_dump, base_packages):
             f"new Package.swift target(s) are not classified in packages.toml: {names}"
         )
     if unclassified_targets:
+        names = ", ".join(sorted(unclassified_targets))
+        sys.stderr.write(f"[affected-test-matrix] manifest: affected targets outside packages.toml ({names}); running everything\n")
         return None
     return affected_packages
 
@@ -417,9 +472,8 @@ def affected_by_package_configuration(base_packages):
         for package in set(base_packages) | set(PKGS)
         if base_packages.get(package) != PKGS.get(package)
     }
-    if any(package not in PKGS for package in changed_packages):
-        return None
-    return changed_packages
+    # A package removed from the configuration has nothing left to test.
+    return {package for package in changed_packages if package in PKGS}
 
 
 def fhir_components_for_packages(packages):
@@ -490,37 +544,29 @@ def main():
             run_fhir_conformance = True
             shared_fhir_change = True
             continue
-        if path in FULL_TEST_PATHS:
-            run_all = True
-            run_fhir_conformance |= FULL_TEST_PATHS[path]
-            shared_fhir_change |= FULL_TEST_PATHS[path]
+        if path in INFRASTRUCTURE_PATHS or path.startswith(INFRASTRUCTURE_PREFIXES):
+            affected.update(smoke_packages())
+            run_fhir_conformance |= INFRASTRUCTURE_PATHS.get(path, False)
+            shared_fhir_change |= INFRASTRUCTURE_PATHS.get(path, False)
             continue
         if path in NON_TEST_SCRIPT_PATHS or path.startswith("Scripts/Tests/"):
             continue
         if path.startswith("Scripts/"):
-            # Unknown scripts stay conservative until their scope is classified above.
-            run_all = True
-            continue
-        if path.startswith(".github/actions/"):
-            # Local actions are shared test infrastructure, so changing one can affect every job.
-            run_all = True
-            continue
+            sys.exit(
+                f"error: {path} is not classified in affected-test-matrix.py; "
+                "add it to NON_TEST_SCRIPT_PATHS or INFRASTRUCTURE_PATHS"
+            )
         if path.startswith(".github/"):
-            # Workflow-specific checks validate their own configuration; only shared local actions
-            # and the Tests workflow itself can alter how package tests build or run.
+            # Other workflows validate their own configuration.
             continue
         if path == "__ALL__":
             run_all = True
             run_fhir_conformance = True
             fhir_components.update(ALL_FHIR_COMPONENTS)
             continue
-        if path.startswith(GLOBAL_PREFIXES):
-            run_all = True
-            if path.startswith(("Package@", "Package.resolved", ".swiftpm/", "Sources/GroveLegacyIdentifiers/")):
-                run_fhir_conformance = True
-                shared_fhir_change = True
-            continue
-        if path == "Package.swift":
+        if path == "Package.swift" or path.startswith("Package@"):
+            # A version-specific manifest is evaluated like the main one: dump-package already picks
+            # the manifest that applies to the toolchain running the tests.
             if not args.base_package_dump or not args.head_package_dump:
                 run_all = True
                 run_fhir_conformance = True
@@ -550,6 +596,7 @@ def main():
             projects_affected = affected_by_ui_test_projects(load_toml(args.base_ui_test_projects))
             if projects_affected is None:
                 run_all = True
+                run_fhir_conformance = True
                 continue
             affected.update(projects_affected)
             run_fhir_conformance |= bool(projects_affected & FHIR_PACKAGES)
@@ -616,16 +663,18 @@ def main():
                 # A package removed entirely from the head has no test job left to schedule.
                 packages &= set(PKGS)
             else:
-                packages = packages_for_target(parts[1], head_dump) if head_dump else None
+                packages = packages_consuming(parts[1], head_dump) if head_dump else None
+                if packages is None:
+                    owner = DIR2PKG.get(parts[1])
+                    packages = {owner} if owner else None
             if packages is None:
-                owner = DIR2PKG.get(parts[1])
-                if owner is None:
-                    # A directory no package claims and no graph to place it: stay conservative.
-                    run_all = True
-                    run_fhir_conformance = True
-                    shared_fhir_change = True
-                    continue
-                packages = {owner}
+                # Neither the graph nor packages.toml knows the directory: the same conservative answer
+                # the manifest path gives for a target it cannot classify.
+                sys.stderr.write(f"[affected-test-matrix] {parts[0]}/{parts[1]} is unknown; running everything\n")
+                run_all = True
+                run_fhir_conformance = True
+                shared_fhir_change = True
+                continue
             affected.update(packages)
             run_fhir_conformance |= bool(packages & FHIR_PACKAGES)
             fhir_components.update(fhir_components_for_packages(packages))

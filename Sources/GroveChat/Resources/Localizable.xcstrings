@@ -241,6 +241,16 @@
         }
       }
     },
+    "Ask a Follow-Up Question": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask a Follow-Up Question"
+          }
+        }
+      }
+    },
     "Copied": {
       "localizations": {
         "de": {
@@ -479,6 +489,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Eliminar adjunto"
+          }
+        }
+      }
+    },
+    "REMOVE_QUOTATION": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove quotation"
           }
         }
       }

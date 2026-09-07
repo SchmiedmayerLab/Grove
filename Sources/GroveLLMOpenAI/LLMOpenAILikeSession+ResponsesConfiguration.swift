@@ -86,6 +86,19 @@ extension LLMOpenAILikeSession {
             // from what it already knows and cites nothing.
             tools.append(.web_search(Components.Schemas.WebSearchTool(_type: .web_search)))
         }
+        if schema.generatesImages {
+            let modelType = schema.parameters.modelType
+            if modelType.supportsImageGeneration {
+                tools.append(.image_generation(Components.Schemas.ImageGenTool(_type: .image_generation)))
+            } else {
+                Self.logger.warning(
+                    """
+                    GroveLLMOpenAI: `generatesImages` is set, but \(modelType.rawValue) does not offer the hosted \
+                    image generation tool. The model will answer with text only.
+                    """
+                )
+            }
+        }
         return try tools + schema.functions.values.map { function in
             .function(
                 Components.Schemas.FunctionTool(
@@ -196,6 +209,10 @@ extension LLMContextEntity {
             }
             return [.EasyInputMessage(.init(role: .user, content: .case1(content)))]
         case .assistant:
+            // A generated image has no input form; a continued conversation keeps it server-side anyway.
+            guard _imageContent == nil else {
+                return []
+            }
             return [.EasyInputMessage(.init(role: .assistant, content: .case1(content)))]
         case .toolCalls(let toolCalls):
             return toolCalls.map { toolCall in

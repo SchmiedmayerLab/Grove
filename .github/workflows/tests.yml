@@ -18,7 +18,7 @@ on:
       grove_fhir_ref:
         description: grove-fhir commit carrying the Grove FHIR Implementation Guides contract. Defaults to the current main revision.
         type: string
-        default: 444e06fb25680c3af29e5d3ccbebeb0249be7318
+        default: 83668d2d33325d2c1c9d42638fdc7557314f3d88
       full_readiness:
         description: Schedule every package on the currently enabled CI platforms instead of only the packages the change touches.
         type: boolean
@@ -36,7 +36,7 @@ on:
       grove_fhir_ref:
         description: grove-fhir commit carrying the Grove FHIR Implementation Guides contract. Defaults to the current main revision.
         type: string
-        default: 444e06fb25680c3af29e5d3ccbebeb0249be7318
+        default: 83668d2d33325d2c1c9d42638fdc7557314f3d88
       full_readiness:
         description: Schedule every package on the currently enabled CI platforms instead of only the packages the change touches.
         type: boolean
@@ -77,11 +77,22 @@ jobs:
             git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
             BASE_SHA="${{ github.event.pull_request.base.sha }}"
             git diff --name-only "$BASE_SHA...HEAD" > changed.txt
-          elif [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+          elif [ "${{ github.ref }}" != "refs/heads/${{ github.event.repository.default_branch }}" ]; then
+            # A branch is measured against where it left the default branch, so its first push, a
+            # force-push and a rebase all schedule what the branch changes instead of everything.
+            git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
+            BASE_SHA="$(git merge-base "origin/${{ github.event.repository.default_branch }}" HEAD || true)"
+            if [ -n "$BASE_SHA" ]; then
+              git diff --name-only "$BASE_SHA...HEAD" > changed.txt
+            else
+              echo "__ALL__" > changed.txt   # no shared history with the default branch
+            fi
+          elif [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ] \
+            && git cat-file -e "${{ github.event.before }}^{commit}" 2>/dev/null; then
             BASE_SHA="${{ github.event.before }}"
             git diff --name-only "$BASE_SHA" "${{ github.sha }}" > changed.txt
           else
-            echo "__ALL__" > changed.txt   # first push / unknown base -> test every enabled package lane
+            echo "__ALL__" > changed.txt   # the default branch without a usable previous tip -> test every enabled package lane
           fi
           echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
           if grep -Fxq "Package.swift" changed.txt; then
@@ -100,9 +111,10 @@ jobs:
             echo "ui_test_projects_changed=false" >> "$GITHUB_OUTPUT"
           fi
           echo "Changed files:"; cat changed.txt
-      - name: Evaluate head package graph
-        run: swift package dump-package > "$RUNNER_TEMP/head-package.json"
-      - name: Evaluate base package graph and configuration
+      - name: Evaluate the head package graph
+        # Every source change is resolved through the graph, so the head revision is always dumped.
+        run: swift package --manifest-cache none dump-package > "$RUNNER_TEMP/head-package.json"
+      - name: Evaluate the base package graph and configuration
         if: steps.changes.outputs.manifest_changed == 'true' || steps.changes.outputs.packages_changed == 'true' || steps.changes.outputs.ui_test_projects_changed == 'true'
         env:
           BASE_SHA: ${{ steps.changes.outputs.base_sha }}
@@ -116,7 +128,7 @@ jobs:
             cp "$BASE_WORKTREE/Tests/UITestProjects.toml" "$RUNNER_TEMP/base-ui-test-projects.toml"
           fi
           if [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
-            swift package --package-path "$BASE_WORKTREE" dump-package > "$RUNNER_TEMP/base-package.json"
+            swift package --package-path "$BASE_WORKTREE" --manifest-cache none dump-package > "$RUNNER_TEMP/base-package.json"
           fi
       - name: Test affected-package selection
         env:
@@ -245,12 +257,12 @@ jobs:
         with:
           repository: SchmiedmayerLab/grove-fhir
           path: .fhir/grove-fhir
-          ref: ${{ inputs.grove_fhir_ref || '444e06fb25680c3af29e5d3ccbebeb0249be7318' }}
+          ref: ${{ inputs.grove_fhir_ref || '83668d2d33325d2c1c9d42638fdc7557314f3d88' }}
           persist-credentials: false
       - name: Record grove-fhir contract revision
         working-directory: .fhir/grove-fhir
         run: |
-          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || '444e06fb25680c3af29e5d3ccbebeb0249be7318' }}"
+          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || '83668d2d33325d2c1c9d42638fdc7557314f3d88' }}"
           echo "grove-fhir SHA: $(git rev-parse HEAD)"
       - name: Pin the implementation-guide cache key
         run: |
@@ -311,7 +323,7 @@ jobs:
       - name: Validate resources emitted by Grove
         env:
           FHIR_COMPONENTS: ${{ needs.detect.outputs.fhir_components }}
-          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || '444e06fb25680c3af29e5d3ccbebeb0249be7318' }}
+          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || '83668d2d33325d2c1c9d42638fdc7557314f3d88' }}
         run: |
           IFS=',' read -r -a COMPONENTS <<< "$FHIR_COMPONENTS"
           for component in "${COMPONENTS[@]}"; do

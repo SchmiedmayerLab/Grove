@@ -96,6 +96,8 @@ public struct ChatView: View {
 
     @State private var showShareSheet = false
     @FocusState private var inputTextFieldIsFocused: Bool
+    /// Carries a quoted message from the conversation to the composer, which are siblings here.
+    @State private var followUp = ChatFollowUp()
 
     public var body: some View {
         messagesView
@@ -108,6 +110,8 @@ public struct ChatView: View {
             .sheet(isPresented: $showShareSheet) {
                 shareSheet
             }
+            .environment(followUp)
+            .modifier(SingleTextSelection())
             #if os(macOS)
             .onChange(of: showShareSheet) { _, isPresented in
                 if isPresented, let exportFormat, let exportedData = Self.export(chat, as: exportFormat) {

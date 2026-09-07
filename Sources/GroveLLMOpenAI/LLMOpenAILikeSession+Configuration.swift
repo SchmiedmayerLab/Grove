@@ -44,16 +44,23 @@ extension LLMOpenAILikeSession {
     /// Only the Responses API offers the hosted search tool. Saying so is the difference between a model that chose
     /// not to search and a model that was never given the option — which look identical in the answer.
     private func warnAboutUnsupportedWebSearch() {
-        guard schema.searchesTheWeb else {
-            return
+        if schema.searchesTheWeb {
+            Self.logger.warning(
+                """
+                GroveLLMOpenAI: `searchesTheWeb` is set, but this model is being called through the Chat Completions \
+                API, which does not offer the hosted web search tool. The model will answer without searching and \
+                will cite nothing. Use a model that takes the Responses API, or set `apiMode` to `.fixed(.responses)`.
+                """
+            )
         }
-        Self.logger.warning(
-            """
-            GroveLLMOpenAI: `searchesTheWeb` is set, but this model is being called through the Chat Completions \
-            API, which does not offer the hosted web search tool. The model will answer without searching and will \
-            cite nothing. Use a model that takes the Responses API, or set `apiMode` to `.fixed(.responses)`.
-            """
-        )
+        if schema.generatesImages {
+            Self.logger.warning(
+                """
+                GroveLLMOpenAI: `generatesImages` is set, but this model is being called through the Chat Completions \
+                API, which does not offer the hosted image generation tool. The model will answer with text only.
+                """
+            )
+        }
     }
 
     /// Builds an `Operations.createChatCompletion.Input` for the Chat Completions API.
