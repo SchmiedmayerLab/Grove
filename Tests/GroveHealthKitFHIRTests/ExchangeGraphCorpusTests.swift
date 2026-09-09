@@ -83,6 +83,33 @@ struct ExchangeGraphCorpusTests {
         _ = try graph(named: "retraction-bundle.json", kind: .retraction)
     }
 
+    @Test("Serialized shared fixtures preserve their event identity", arguments: [
+        ("exchange-bundle.json", ExchangeGraphKind.active),
+        ("retraction-bundle.json", ExchangeGraphKind.retraction)
+    ])
+    func acceptsSerializedSharedFixtures(name: String, kind: ExchangeGraphKind) throws {
+        let bytes = try Data(contentsOf: corpusDirectory.appendingPathComponent(name))
+        let parsed = try ExchangeGraph(kind: kind, jsonData: bytes)
+        let expected = try graph(named: name, kind: kind)
+        #expect(parsed.eventIdentifier == expected.eventIdentifier)
+        #expect(parsed.bundle == expected.bundle)
+    }
+
+    @Test("An otherwise valid graph cannot hide a duplicated JSON member", arguments: [
+        ("exchange-bundle.json", ExchangeGraphKind.active),
+        ("retraction-bundle.json", ExchangeGraphKind.retraction)
+    ])
+    func rejectsDuplicateMemberInValidGraph(name: String, kind: ExchangeGraphKind) throws {
+        let bytes = try Data(contentsOf: corpusDirectory.appendingPathComponent(name))
+        _ = try ExchangeGraph(kind: kind, jsonData: bytes)
+        var json = String(decoding: bytes, as: UTF8.self)
+        let root = try #require(json.firstIndex(of: "{"))
+        json.insert(contentsOf: #""resourceType":"Bundle","#, at: json.index(after: root))
+        #expect(throws: ExchangeGraphError.invalidEntries("Serialized event is not strict JSON")) {
+            try ExchangeGraph(kind: kind, jsonData: Data(json.utf8))
+        }
+    }
+
     @Test("Provider-owned semantics require their exact provider envelope")
     func providerOwnedSemanticEnvelope() throws {
         let semantic = Profile.ouraReadinessScore
@@ -695,8 +722,8 @@ struct ExchangeGraphCorpusTests {
         #expect(ExchangeGraph.rule(for: .missingResource) == .unclassified)
     }
 
-    @Test("The retraction builder carries its source-record entity")
-    func retractionBuilderCarriesSourceEntity() throws {
+    @Test("The retraction builder preserves source identity and known time bounds", arguments: [false, true])
+    func retractionBuilderCarriesSourceEntity(unknownStart: Bool) throws {
         let fixture = try bundle(named: "retraction-bundle.json")
         guard case .provenance(let fixtureProvenance)? = fixture.entry?.first?.resource else {
             Issue.record("Fixture lifecycle resource is not Provenance")
@@ -714,6 +741,8 @@ struct ExchangeGraphCorpusTests {
             role: .primaryOutput
         )
         let event = try ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier)))
+        let time = try DateTime(date: Date(timeIntervalSince1970: 1_787_299_200))
+        let occurred: Provenance.OccurredX = unknownStart ? .period(.init(end: .init(time))) : .dateTime(.init(time))
         let graph = try RetractionEventBuilder.build(
             targets: [target],
             context: RetractionEventContext(
@@ -721,7 +750,7 @@ struct ExchangeGraphCorpusTests {
                 entryNodeIdentifierSystem: "https://study.example.org/fhir/NamingSystem/retraction-node-v0",
                 producer: fixtureProvenance.agent[0].who,
                 sourceRecord: sourceRecord,
-                sourceRetractionTime: Date(timeIntervalSince1970: 1_787_299_200),
+                occurred: occurred,
                 recordedAt: Date(timeIntervalSince1970: 1_787_299_201)
             )
         )
@@ -730,6 +759,7 @@ struct ExchangeGraphCorpusTests {
             return
         }
         #expect(try BusinessIdentifier(#require(provenance.entity?.first?.what.identifier)) == sourceRecord)
+        #expect(provenance.occurred == occurred)
     }
 
     @Test("An authorized native record identifier rides beside the opaque retraction target")
@@ -763,7 +793,7 @@ struct ExchangeGraphCorpusTests {
                 entryNodeIdentifierSystem: "https://study.example.org/fhir/NamingSystem/retraction-node-v0",
                 producer: fixtureProvenance.agent[0].who,
                 sourceRecord: sourceRecord,
-                sourceRetractionTime: Date(timeIntervalSince1970: 1_787_299_200),
+                occurred: .dateTime(.init(try DateTime(date: Date(timeIntervalSince1970: 1_787_299_200)))),
                 recordedAt: Date(timeIntervalSince1970: 1_787_299_201)
             )
         )

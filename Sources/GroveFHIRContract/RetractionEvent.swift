@@ -131,7 +131,9 @@ public struct RetractionEventContext: Sendable {
     public let entryNodeIdentifierSystem: IdentifierSystem
     public let producer: Reference
     public let sourceRecord: BusinessIdentifier
-    public let sourceRetractionTime: Date
+    /// The source's retraction time or known time bounds; do not substitute a precise
+    /// deletion timestamp when an adapter only knows when it observed the deletion.
+    public let occurred: Provenance.OccurredX
     public let recordedAt: Date
     public let repositoryBundleID: RepositoryID?
     public let repositoryProvenanceID: RepositoryID?
@@ -141,7 +143,7 @@ public struct RetractionEventContext: Sendable {
         entryNodeIdentifierSystem: IdentifierSystem,
         producer: Reference,
         sourceRecord: BusinessIdentifier,
-        sourceRetractionTime: Date,
+        occurred: Provenance.OccurredX,
         recordedAt: Date,
         repositoryBundleID: RepositoryID? = nil,
         repositoryProvenanceID: RepositoryID? = nil
@@ -150,7 +152,7 @@ public struct RetractionEventContext: Sendable {
         self.entryNodeIdentifierSystem = entryNodeIdentifierSystem
         self.producer = producer
         self.sourceRecord = sourceRecord
-        self.sourceRetractionTime = sourceRetractionTime
+        self.occurred = occurred
         self.recordedAt = recordedAt
         self.repositoryBundleID = repositoryBundleID
         self.repositoryProvenanceID = repositoryProvenanceID
@@ -203,7 +205,7 @@ public enum RetractionEventBuilder {
                 what: Reference(identifier: context.sourceRecord.fhirIdentifier)
             )],
             meta: Meta(profile: [GroveLifecycleContract.retractionProvenanceProfile]),
-            occurred: .dateTime(FHIRPrimitive(try DateTime(date: context.sourceRetractionTime))),
+            occurred: context.occurred,
             recorded: FHIRPrimitive(try Instant(date: context.recordedAt)),
             target: targets.map(\.reference)
         )

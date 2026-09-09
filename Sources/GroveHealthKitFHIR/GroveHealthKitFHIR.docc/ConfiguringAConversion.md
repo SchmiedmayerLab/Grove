@@ -66,6 +66,34 @@ For this converter, two things follow:
   but the converter never substitutes it for the FHIR reference.
 - Never send an email address, display label, bare value, or literal URL in place of the pair.
 
+## Associating Studies Without Asserting a Protocol
+
+Supply optional identifier-only, typed references in `researchStudies` when constructing the
+context. An empty array is valid when attribution is entirely receiver-owned.
+
+```swift
+let studySystem = try IdentifierSystem("https://example.org/identifiers/study")
+let researchStudies = try ["study-a", "study-b"].map { studyID in
+    try BusinessIdentifier(system: studySystem, value: studyID)
+        .reference(to: .researchStudy)
+}
+```
+
+Observations carry these references through `workflow-researchStudy`; recording documents use
+`DocumentReference.context.related`. This converter does not emit the referenced study resources.
+The receiving repository resolves each historical `ResearchStudy.protocol` Reference to its exact
+`PlanDefinition.url` and `version`: for example, study A may use protocol A version 2 while study B
+uses protocol B version 4. Preserve the historical study representation when a protocol changes;
+resolving only the latest study cannot establish the original revision.
+
+Study relevance does not establish that a measurement was performed under a protocol, nor does it
+grant access. The converter therefore does not infer `instantiatesCanonical`. Its standard extension
+definition remains available for deliberate uses outside this convenience API. Consent and access
+decisions belong to the receiver, and study-scoped exports must omit unrelated study associations.
+
+Persist the initial references with the complete conversion context and reuse them unchanged for
+retries. A later study association is a receiver decision, not a reconversion with altered metadata.
+
 ## Identifying the converting application
 
 `converter` records which app produced the graph. `converterHost` is the separate device on which it

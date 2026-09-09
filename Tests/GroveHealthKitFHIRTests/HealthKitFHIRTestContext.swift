@@ -62,7 +62,6 @@ extension HealthKitConversionContext {
         udiDisclosurePolicy: HealthKitUDIDisclosurePolicy = .omit,
         nativeIdentifierDisclosurePolicy: HealthKitNativeIdentifierDisclosurePolicy = .omit,
         routeDisclosurePolicy: HealthKitRouteDisclosurePolicy = .omit,
-        protocolCanonical: String? = nil,
         researchStudies: [Reference] = [],
         repositoryIDs: HealthKitRepositoryIDs = .init()
     ) {
@@ -117,7 +116,6 @@ extension HealthKitConversionContext {
             udiDisclosurePolicy: udiDisclosurePolicy,
             nativeIdentifierDisclosurePolicy: nativeIdentifierDisclosurePolicy,
             routeDisclosurePolicy: routeDisclosurePolicy,
-            protocolCanonical: protocolCanonical,
             researchStudies: researchStudies,
             repositoryIDs: repositoryIDs
         )
