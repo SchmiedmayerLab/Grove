@@ -55,6 +55,7 @@ struct NameOverview: View {
                 }
             }
         }
+            .softScrollEdge()
             .navigationTitle(model.accountIdentifierLabel(configuration: account.configuration, accountDetails))
 #if !os(macOS) && !os(tvOS)
             .navigationBarTitleDisplayMode(.inline)

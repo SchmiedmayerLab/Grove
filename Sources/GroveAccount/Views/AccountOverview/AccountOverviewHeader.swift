@@ -16,15 +16,15 @@ struct AccountOverviewHeader: View {
 
     
     var body: some View {
-        VStack {
+        VStack(spacing: 4) {
             Group {
                 if let profileViewName = model.profileViewName {
                     UserProfileView(name: profileViewName)
-                        .frame(height: 90)
+                        .frame(height: 96)
                 } else {
                     Image(systemName: "person.crop.circle.fill")
                         .resizable()
-                        .frame(width: 40, height: 40)
+                        .frame(width: 96, height: 96)
                     #if os(macOS) || os(tvOS)
                         .foregroundColor(Color(.systemGray))
                     #elseif !os(watchOS)
@@ -34,11 +34,12 @@ struct AccountOverviewHeader: View {
                 }
             }
                 .accessibilityHidden(true)
+                .padding(.bottom, 8)
 
             if let accountHeadline = model.accountHeadline {
                 Text(accountHeadline)
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                    .font(.title)
+                    .bold()
             }
 
             if let accountSubheadline = model.accountSubheadline {

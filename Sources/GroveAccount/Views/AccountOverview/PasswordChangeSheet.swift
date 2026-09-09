@@ -46,6 +46,7 @@ struct PasswordChangeSheet: View {
                     .environment(\.accountViewType, .overview(mode: .new))
                     .environment(\.defaultErrorDescription, model.defaultErrorDescription)
             }
+                .softScrollEdge()
                 .viewStateAlert(state: $viewState)
                 .navigationTitle(Text("CHANGE_PASSWORD", bundle: .module))
 #if !os(macOS) && !os(tvOS)

@@ -56,6 +56,7 @@ struct AccountOverviewForm<AdditionalSections: View>: View {
                 )
             }
         }
+            .softScrollEdge()
             .navigationTitle(Text("ACCOUNT_OVERVIEW", bundle: .module))
     #if !os(macOS) && !os(tvOS)
             .navigationBarTitleDisplayMode(.inline)

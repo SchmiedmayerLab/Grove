@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import GroveViews
 public import SwiftUI
 
 
@@ -21,26 +22,29 @@ public struct DefaultAccountSetupHeader: View {
     private var setupState
 
     public var body: some View {
-        VStack(alignment: ProcessInfo.isIOSAtLeast26 ? .leading : .center) {
-            Text("ACCOUNT_WELCOME", bundle: .module)
-                .font(.largeTitle)
-                .bold()
-                .multilineTextAlignment(ProcessInfo.isIOSAtLeast26 ? .leading : .center)
-                .padding(.bottom)
-                .padding(.top, 30)
+        PageHeader(title: LocalizedStringResource("ACCOUNT_WELCOME", bundle: .atURL(from: .module)), subtitle: subtitle, image: image)
+    }
 
-            Group {
-                if account.signedIn, case .presentingExistingAccount = setupState {
-                    Text("ACCOUNT_WELCOME_SIGNED_IN_SUBTITLE", bundle: .module)
-                } else {
-                    Text("ACCOUNT_WELCOME_SUBTITLE", bundle: .module)
-                }
-            }
-            .multilineTextAlignment(ProcessInfo.isIOSAtLeast26 ? .leading : .center)
+    private var image: Image {
+        // swiftlint:disable:next accessibility_label_for_image
+        Image(systemName: isSignedIn ? "person.crop.circle.badge.checkmark" : "person.crop.circle")
+    }
+
+    private var isSignedIn: Bool {
+        guard case .presentingExistingAccount = setupState else {
+            return false
+        }
+        return account.signedIn
+    }
+
+    private var subtitle: LocalizedStringResource {
+        if isSignedIn {
+            LocalizedStringResource("ACCOUNT_WELCOME_SIGNED_IN_SUBTITLE", bundle: .atURL(from: .module))
+        } else {
+            LocalizedStringResource("ACCOUNT_WELCOME_SUBTITLE", bundle: .atURL(from: .module))
         }
     }
 
-    /// Initialize a new account header.
     public init() {}
 }
 

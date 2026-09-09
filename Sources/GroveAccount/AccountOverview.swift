@@ -11,6 +11,8 @@ public import SwiftUI
 
 /// View and modify the currently associated user account details.
 ///
+/// ![The account overview with the user's initials, name, e-mail address and details.](AccountOverview)
+///
 /// This provides an overview of the current account details. Further, it allows the user to modify their
 /// account values.
 ///

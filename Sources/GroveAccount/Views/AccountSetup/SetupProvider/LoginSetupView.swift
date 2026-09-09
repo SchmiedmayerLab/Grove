@@ -48,32 +48,29 @@ struct LoginSetupView<PasswordReset: View>: View {
     }
 
     var body: some View {
-        VStack {
+        VStack(spacing: 16) {
             fields
-                .padding(.vertical, 0)
 
             AsyncButton(state: $state, action: loginButtonAction) {
                 Text("UP_LOGIN", bundle: .module)
-                    .padding(8)
+                    .bold()
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyleGlassProminent()
-            .disabled(!validation.allInputValid)
+            .actionButtonStyle(.primary)
+            .controlSize(.large)
             .environment(\.defaultErrorDescription, .init("UP_LOGIN_FAILED_DEFAULT_ERROR", bundle: .atURL(from: .module)))
-            .padding(.bottom, 12)
-            .padding(.top)
 
 
             if supportsSignup {
-                HStack {
-                    Text("UP_NO_ACCOUNT_YET", bundle: .module)
-                    Button(action: {
-                        presentingSignupSheet = true
-                    }) {
-                        Text("UP_SIGNUP", bundle: .module)
-                    }
+                Button(action: {
+                    presentingSignupSheet = true
+                }) {
+                    Text("UP_SIGNUP_LINK", bundle: .module)
+                        .bold()
+                        .frame(maxWidth: .infinity)
                 }
-                .font(.footnote)
+                .actionButtonStyle(.secondary)
+                .controlSize(.large)
             }
         }
         .disableDismissiveActions(isProcessing: state)
@@ -81,12 +78,14 @@ struct LoginSetupView<PasswordReset: View>: View {
         .receiveValidation(in: $validation)
         .sheet(isPresented: $presentingPasswordForgetSheet) {
             passwordReset
+                .presentationBackground(.background)
         }
     }
 
 
+    /// The two fields share a card, the way everything that asks for input does across Grove.
     @ViewBuilder @MainActor private var fields: some View {
-        VStack { // swiftlint:disable:this closure_body_length
+        VStack(spacing: 0) { // swiftlint:disable:this closure_body_length
             Group {
                 VerifiableTextField(userIdConfiguration.idType.localizedStringResource, text: $userId)
                     .validate(input: userId, rules: .nonEmpty)
@@ -95,7 +94,9 @@ struct LoginSetupView<PasswordReset: View>: View {
 #if !os(macOS) && !os(watchOS)
                     .keyboardType(userIdConfiguration.keyboardType)
 #endif
-                    .padding(.bottom, 0.5)
+                    .accountCardRow()
+
+                Divider()
 
                 VerifiableTextField(.init("UP_PASSWORD", bundle: .atURL(from: .module)), text: $password, type: .secure) {
                     if !(passwordReset is EmptyView) {
@@ -118,19 +119,13 @@ struct LoginSetupView<PasswordReset: View>: View {
                     .validate(input: password, rules: .nonEmpty)
                     .focused($focusedField, equals: .password)
                     .textContentType(.password)
-
-                if passwordReset is EmptyView {
-                    Spacer()
-                        .frame(maxWidth: .infinity, maxHeight: 10)
-                }
+                    .accountCardRow()
             }
                 .environment(\.validationConfiguration, .hideFailedValidationOnEmptySubmit)
                 .disableFieldAssistants()
-#if !os(tvOS) && !os(watchOS)
-                .textFieldStyle(.roundedBorder)
-#endif
-                .font(.title3)
+                .textFieldStyle(.plain)
         }
+            .accountCard()
     }
 
 

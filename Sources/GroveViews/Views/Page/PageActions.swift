@@ -29,6 +29,14 @@ public import SwiftUI
 ///     }
 /// )
 /// ```
+///
+/// Both buttons rest while either one works. To hold one back on its own, name it with
+/// ``SwiftUICore/View/actionButtonDisabled(_:_:)``:
+///
+/// ```swift
+/// PageActions(primaryTitle: "Waiting", primaryAction: wait, secondaryTitle: "Skip", secondaryAction: skip)
+///     .actionButtonDisabled(.primary)
+/// ```
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct PageActions: View {
     private struct ButtonConfig {
@@ -44,6 +52,7 @@ public struct PageActions: View {
     @State private var internalPrimaryViewState: ViewState = .idle
     // periphery:ignore - read through its projected value
     @State private var internalSecondaryViewState: ViewState = .idle
+    @Environment(\.disabledActionButtons) private var disabledActionButtons
 
 
     @_documentation(visibility: internal)
@@ -57,12 +66,14 @@ public struct PageActions: View {
                     .frame(maxWidth: .infinity)
             }
             .actionButtonStyle(.primary)
+            .disabled(disabledActionButtons.contains(.primary))
             if let secondaryButton {
                 AsyncButton(state: secondaryViewStateBinding, action: secondaryButton.action) {
                     secondaryButton.title
                         .frame(maxWidth: .infinity)
                 }
                 .actionButtonStyle(.secondary)
+                .disabled(disabledActionButtons.contains(.secondary))
             }
         }
         .controlSize(.large)

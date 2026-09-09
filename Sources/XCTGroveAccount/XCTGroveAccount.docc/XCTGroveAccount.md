@@ -14,13 +14,18 @@ SPDX-License-Identifier: MIT
 
 ## Topics
 
-### Login
+### Sign In
 
 - ``XCUIAutomation/XCUIApplication/login(email:password:)``
 - ``XCUIAutomation/XCUIApplication/login(username:password:)``
+- ``XCUIAutomation/XCUIApplication/signInButton``
 
-### Signup Form
+### Sign-Up Form
 
+- ``XCUIAutomation/XCUIApplication/createAccountLink``
+- ``XCUIAutomation/XCUIApplication/signUpButton``
+- ``XCUIAutomation/XCUIApplication/firstNameField``
+- ``XCUIAutomation/XCUIApplication/lastNameField``
 - ``XCUIAutomation/XCUIApplication/fillSignupForm(email:password:name:genderIdentity:supplyDateOfBirth:)``
 - ``XCUIAutomation/XCUIApplication/updateGenderIdentity(from:to:file:line:)``
 - ``XCUIAutomation/XCUIApplication/changeDateOfBirth()``

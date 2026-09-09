@@ -16,13 +16,11 @@ public import SwiftUI
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct FollowUpInfoFormHeader: View {
     var body: some View {
-        ListHeader {
-            Image(systemName: "person.crop.rectangle.badge.plus") // swiftlint:disable:this accessibility_label_for_image
-        } title: {
-            Text("FOLLOW_UP_INFORMATION_TITLE", bundle: .module)
-        } instructions: {
-            Text("FOLLOW_UP_INFORMATION_INSTRUCTIONS", bundle: .module)
-        }
+        PageHeader(
+            title: LocalizedStringResource("FOLLOW_UP_INFORMATION_TITLE", bundle: .atURL(from: .module)),
+            subtitle: LocalizedStringResource("FOLLOW_UP_INFORMATION_INSTRUCTIONS", bundle: .atURL(from: .module)),
+            image: Image(systemName: "person.crop.circle.dashed") // swiftlint:disable:this accessibility_label_for_image
+        )
     }
 
     init() {}
@@ -70,6 +68,7 @@ public struct FollowUpInfoSheet: View {
     @FocusState private var isFocused: Bool
 
     @State private var presentingCancellationConfirmation = false
+    @State private var incompleteAttempts = 0
 
 
     public var body: some View {
@@ -113,30 +112,25 @@ public struct FollowUpInfoSheet: View {
     }
 
     @ViewBuilder private var form: some View {
-        Form {
+        PageView {
             FollowUpInfoFormHeader()
-                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                .listRowBackground(Color.clear)
-                .padding(.top, -3)
-
-            SignupSectionsView(sections: accountKeyByCategory)
+        } content: {
+            SignupSectionsView(sections: accountKeyByCategory, layout: .cards)
                 .environment(\.accountServiceConfiguration, account.accountService.configuration)
                 .environment(\.accountViewType, .signup)
                 .environment(detailsBuilder)
                 .focused($isFocused)
-
+        } footer: {
             AsyncButton(state: $viewState, action: completeButtonAction) {
                 Text("FOLLOW_UP_INFORMATION_COMPLETE", bundle: .module)
-                    .padding(16)
+                    .bold()
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyleGlassProminent()
-            .padding()
-            .padding(-36)
-            .listRowBackground(Color.clear)
-            .disabled(!validation.allInputValid)
+            .actionButtonStyle(.primary)
+            .controlSize(.large)
         }
         .environment(\.defaultErrorDescription, .init("ACCOUNT_OVERVIEW_EDIT_DEFAULT_ERROR", bundle: .atURL(from: .module)))
+        .sensoryFeedback(.warning, trigger: incompleteAttempts)
     }
 
 
@@ -174,6 +168,7 @@ public struct FollowUpInfoSheet: View {
 
     private func completeButtonAction() async throws {
         guard validation.validateSubviews() else {
+            incompleteAttempts += 1
             account.logger.debug("Failed to save updated account information. Validation failed!")
             return
         }

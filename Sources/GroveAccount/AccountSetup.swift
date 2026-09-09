@@ -12,6 +12,8 @@ public import SwiftUI
 
 /// Login or signup for a user account.
 ///
+/// ![The account setup page with e-mail and password fields, a sign-in button and Sign in with Apple.](AccountSetup)
+///
 /// This view handles account setup for a user. It will show all enabled ``IdentityProvider``s from the configured ``AccountService``.
 /// Account setup or login is then handled through the view components provided by the `AccountService`.
 ///
@@ -80,12 +82,23 @@ public struct AccountSetup<Header: View, Continue: View>: View {
     }
 
     public var body: some View {
-        GeometryReader { proxy in
-            ScrollView(.vertical) {
-                scrollableContentView
-                    .padding(.horizontal, ViewSizing.outerHorizontalPadding)
-                    .frame(minHeight: proxy.size.height)
-                    .frame(maxWidth: .infinity)
+        Group {
+            if let details = account.details, !details.isAnonymous, case .presentingExistingAccount = setupState {
+                PageView {
+                    pageHeader
+                } content: {
+                    AccountSummaryBox(details: details)
+                } footer: {
+                    ExistingAccountActions {
+                        continueButton
+                    }
+                }
+            } else {
+                PageView {
+                    pageHeader
+                } content: {
+                    setupContent
+                }
             }
         }
             .onChange(of: [account.signedIn, account.details?.isAnonymous, account.details?.isIncomplete]) {
@@ -104,23 +117,21 @@ public struct AccountSetup<Header: View, Continue: View>: View {
             }
     }
     
-    @ViewBuilder private var scrollableContentView: some View {
+    @ViewBuilder private var pageHeader: some View {
+        if hasSetupComponents {
+            header
+                .environment(\.accountSetupState, setupState)
+        }
+    }
+
+    @ViewBuilder private var setupContent: some View {
         VStack {
-            if hasSetupComponents {
-                header
-                    .environment(\.accountSetupState, setupState)
-            }
-            Spacer()
             if let details = account.details, !details.isAnonymous {
                 switch setupState {
                 case let .requiringAdditionalInfo(keys):
                     followUpInformationSheet(details, requiredKeys: keys)
-                case .loadingExistingAccount, .presentingSignup:
+                case .loadingExistingAccount, .presentingSignup, .presentingExistingAccount:
                     ProgressView()
-                case .presentingExistingAccount:
-                    ExistingAccountView(details: details) {
-                        continueButton
-                    }
                 }
             } else {
                 accountSetupView
@@ -128,9 +139,6 @@ public struct AccountSetup<Header: View, Continue: View>: View {
                         setupState = .presentingSignup
                     }
             }
-            Spacer()
-            Spacer()
-            Spacer()
         }
     }
 
@@ -157,7 +165,6 @@ public struct AccountSetup<Header: View, Continue: View>: View {
                     }
                 }
             }
-                .padding(.horizontal, ViewSizing.innerHorizontalPadding)
                 .frame(maxWidth: ViewSizing.maxFrameWidth) // landscape optimizations
                 .dynamicTypeSize(.medium ... .xxxLarge) // ui doesn't make sense on size larger than .xxxLarge
                 .receiveSignupProviderCompliance { [$compliance] compliance in

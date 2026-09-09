@@ -17,87 +17,39 @@ struct AccountSummaryBox: View {
     private let model: AccountDisplayModel
 
     var body: some View {
-        ListHeader {
-            if let profileViewName = model.profileViewName {
-                UserProfileView(name: profileViewName)
-                    .frame(height: 80)
-            } else {
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable()
-                    .frame(maxWidth: 80, maxHeight: 80)
-#if os(macOS) || os(tvOS)
-                    .foregroundColor(Color(.systemGray))
-#elseif os(watchOS)
-                    .foregroundColor(Color(.gray))
-#else
-                    .foregroundColor(Color(uiColor: .systemGray3))
-#endif
-                    .accessibilityHidden(true)
-            }
-        } title: {
-            if let accountHeadline = model.accountHeadline {
-                Text(accountHeadline)
-            } else {
-                Text("Anonymous User", bundle: .module)
-            }
-        } instructions: {
-            if let subheadline = model.accountSubheadline {
-                Text(subheadline)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-        }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .foregroundStyle(.regularMaterial)
-                    // .shadow(color: .gray, radius: 2)
-            )
-            .frame(maxWidth: ViewSizing.maxFrameWidth)
-            .accessibilityElement(children: .combine)
-
-        /*
         HStack(spacing: 16) {
-            Group {
-                if let profileViewName = model.profileViewName {
-                    UserProfileView(name: profileViewName)
-                        .frame(height: 40)
-                } else {
-                    Image(systemName: "person.crop.circle.fill")
-                        .resizable()
-                        .frame(width: 40, height: 40)
-#if os(macOS)
-                        .foregroundColor(Color(.systemGray))
-#else
-                        .foregroundColor(Color(uiColor: .systemGray3))
-#endif
-                        .accessibilityHidden(true)
-                }
-            }
+            profileImage
+                .frame(width: 48, height: 48)
                 .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 4) {
-                if let accountHeadline = model.accountHeadline {
-                    Text(accountHeadline)
-                } else {
-                    Text("Anonymous User", bundle: .module)
-                }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(headline)
+                    .font(.headline)
                 if let subheadline = model.accountSubheadline {
                     Text(subheadline)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
-            Spacer()
+            Spacer(minLength: 0)
         }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(.background)
-                    .shadow(color: .gray, radius: 2)
-            )
-            .frame(maxWidth: ViewSizing.maxFrameWidth)
-            .accessibilityElement(children: .combine)*/
+        .accountCardRow()
+        .accountCard()
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder private var profileImage: some View {
+        if let profileViewName = model.profileViewName {
+            UserProfileView(name: profileViewName)
+        } else {
+            Image(systemName: "person.crop.circle.fill") // swiftlint:disable:this accessibility_label_for_image
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .foregroundStyle(.tertiary)
+        }
+    }
+
+    private var headline: String {
+        model.accountHeadline ?? String(localized: "Anonymous User", bundle: .module)
     }
 
     /// Create a new `AccountSummaryBox`
@@ -124,12 +76,6 @@ struct AccountSummaryBox: View {
 @available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     AccountSummaryBox(details: .createMock(userId: "leland.stanford", name: nil))
-        .padding(.horizontal, ViewSizing.innerHorizontalPadding)
-}
-
-@available(iOS 18, macOS 15, watchOS 11, *)
-#Preview {
-    AccountSummaryBox(details: .createMock(name: nil))
         .padding(.horizontal, ViewSizing.innerHorizontalPadding)
 }
 #endif
