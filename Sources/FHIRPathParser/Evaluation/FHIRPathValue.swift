@@ -196,7 +196,8 @@ extension FHIRPathValue {
         guard components.timeZone != nil else {
             return nil
         }
-        return Calendar(identifier: .gregorian).date(from: components)
+        return FHIRPathCalendar.gregorian(timeZone: components.timeZone ?? FHIRPathCalendar.utc)
+            .date(from: components)
     }
 
     /// FHIRPath equality (`=`); `.empty` where the spec makes the comparison empty

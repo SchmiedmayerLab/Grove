@@ -5,11 +5,9 @@
   "language": "en-US",
   "status": "draft",
   "publisher": "Stanford University",
-  "url": "https://grovealliance.org/fhir/core/Questionnaire/text-validation-example",
+  "url": "https://example.org/fhir/Questionnaire/text-validation-example",
+  "version": "1.0.0",
   "meta": {
-    "profile": [
-      "https://grovealliance.org/fhir/core/StructureDefinition/sdf-Questionnaire"
-    ],
     "tag": [
       {
         "system": "urn:ietf:bcp:47",
@@ -51,10 +49,6 @@
         {
           "url": "http://hl7.org/fhir/StructureDefinition/regex",
           "valueString": "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
-        },
-        {
-          "url": "https://grovealliance.org/fhir/core/StructureDefinition/validationText",
-          "valueString": "Please enter a valid email address."
         }
       ],
       "required": true

@@ -24,7 +24,7 @@ struct FHIRResourceStringifyTests {
         let docRef = try ModelsR4Mocks.createDocumentReference(
             attachments: [try ModelsR4Mocks.createTextAttachment()]
         )
-        var resource = FHIRResource(versionedResource: .r4(docRef), displayName: "Text Document")
+        var resource = try FHIRResource(versionedResource: .r4(docRef), displayName: "Text Document")
         let originalBase64 = try #require((resource.r4 as? ModelsR4.DocumentReference)?.content.first?.attachment._base64String)
         
         try resource.stringifyAttachments(using: .init())
@@ -45,7 +45,7 @@ struct FHIRResourceStringifyTests {
         let docRef = try ModelsR4Mocks.createDocumentReference(
             attachments: [try ModelsR4Mocks.createTextAttachment()]
         )
-        var resource = FHIRResource(versionedResource: .r4(docRef), displayName: "R4 Document")
+        var resource = try FHIRResource(versionedResource: .r4(docRef), displayName: "R4 Document")
         var attachmentContent: String? {
             (resource.r4 as? ModelsR4.DocumentReference)?.content[0].attachment.data?.value?.dataString
         }
@@ -60,7 +60,7 @@ struct FHIRResourceStringifyTests {
         let docRef = try ModelsR4Mocks.createDocumentReference(
             attachments: [try ModelsR4Mocks.createPDFAttachment()]
         )
-        var resource = FHIRResource(versionedResource: .r4(docRef), displayName: "PDF Document")
+        var resource = try FHIRResource(versionedResource: .r4(docRef), displayName: "PDF Document")
         let originalBase64 = try #require((resource.r4 as? ModelsR4.DocumentReference)?.content.first?.attachment._base64String)
         
         try resource.stringifyAttachments(using: .init())
@@ -77,7 +77,7 @@ struct FHIRResourceStringifyTests {
     @Test("R4 document with mixed attachments should process all attachments")
     func testR4MixedAttachmentsProcessing() throws {
         let docRef = try ModelsR4Mocks.createMixedDocumentReference()
-        var resource = FHIRResource(versionedResource: .r4(docRef), displayName: "Mixed Document")
+        var resource = try FHIRResource(versionedResource: .r4(docRef), displayName: "Mixed Document")
         var attachments: [ModelsR4::Attachment] {
             (resource.r4 as? ModelsR4::DocumentReference)?.content.map(\.attachment) ?? []
         }
@@ -97,7 +97,7 @@ struct FHIRResourceStringifyTests {
     @Test("Empty document reference should process no attachments")
     func testEmptyDocumentReferenceProcessesNoAttachments() throws {
         let docRef = try ModelsR4Mocks.createDocumentReference(attachments: [])
-        var resource = FHIRResource(versionedResource: .r4(docRef), displayName: "Empty Document")
+        var resource = try FHIRResource(versionedResource: .r4(docRef), displayName: "Empty Document")
 
         try resource.stringifyAttachments(using: .init())
 
@@ -112,7 +112,7 @@ struct FHIRResourceStringifyTests {
         let docRef = try ModelsDSTU2Mocks.createDocumentReference(
             attachments: [try ModelsDSTU2Mocks.createTextAttachment()]
         )
-        var resource = FHIRResource(versionedResource: .dstu2(docRef), displayName: "DSTU2 Document")
+        var resource = try FHIRResource(versionedResource: .dstu2(docRef), displayName: "DSTU2 Document")
         
         #expect((resource.dstu2 as? ModelsDSTU2.DocumentReference)?.content[0].attachment._base64String == "V2VsY29tZSB0byBHcm92ZUZISVI=")
         #expect((resource.dstu2 as? ModelsDSTU2.DocumentReference)?.content[0].attachment.mimeType == .plainText)
@@ -126,7 +126,7 @@ struct FHIRResourceStringifyTests {
     func testDSTU2PDFAttachmentStringification() throws {
         // Arrange - Create a document with a PDF attachment
         let docRef = try ModelsDSTU2Mocks.createDocumentReference(attachments: [try ModelsDSTU2Mocks.createPDFAttachment()])
-        var resource = FHIRResource(versionedResource: .dstu2(docRef), displayName: "DSTU2 PDF Document")
+        var resource = try FHIRResource(versionedResource: .dstu2(docRef), displayName: "DSTU2 PDF Document")
         
         let originalBase64 = try #require((resource.dstu2 as? ModelsDSTU2.DocumentReference)?.content.first?.attachment._base64String)
 

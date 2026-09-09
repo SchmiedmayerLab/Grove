@@ -10,6 +10,7 @@
 
 import Foundation
 @testable import GroveFHIR
+import GroveFoundation
 import PDFKit
 import Testing
 import UniformTypeIdentifiers
@@ -93,7 +94,7 @@ struct PDFContentExtractorTests {
             documentProvider: MockPDFDocumentProvider(result: .success(mockPDFDocument))
         )
 
-        let (outputType, extracted) = try extractor.extractContent(from: Data())
+        let (_, extracted) = try extractor.extractContent(from: Data())
         #expect(String(decoding: extracted, as: UTF8.self) == expectedText)
     }
 
@@ -127,7 +128,7 @@ struct PDFContentExtractorTests {
             documentProvider: MockPDFDocumentProvider(result: .success(MockPartialPagesPDFDocument()))
         )
 
-        let (outputType, extracted) = try extractor.extractContent(from: Data())
+        let (_, extracted) = try extractor.extractContent(from: Data())
         let extractedText = String(decoding: extracted, as: UTF8.self)
         #expect(extractedText.contains("Page 1 content"))
         #expect(!extractedText.contains("Page 2 content"))
@@ -148,17 +149,9 @@ struct PDFContentExtractorTests {
     func testCompatibleContentTypes() {
         let extractor = PDFContentExtractor()
 
-        if let applicationPdfUTType = UTType(mimeType: "application/pdf") {
-            #expect(extractor.isCompatible(with: applicationPdfUTType))
-        } else {
-            Issue.record("Failed to create UTType for application/pdf")
-        }
+        #expect(extractor.isCompatible(with: .pdf))
 
-        if let textPlainUTType = UTType(mimeType: "text/plain") {
-            #expect(!extractor.isCompatible(with: textPlainUTType))
-        } else {
-            Issue.record("Failed to create UTType for text/plain")
-        }
+        #expect(!extractor.isCompatible(with: .plainText))
     }
 }
 

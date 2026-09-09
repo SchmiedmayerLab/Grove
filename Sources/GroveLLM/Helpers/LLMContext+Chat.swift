@@ -9,6 +9,7 @@
 #if canImport(GroveChat)
 import Foundation
 public import GroveChat
+private import GroveFoundation
 import UniformTypeIdentifiers
 
 
@@ -206,7 +207,7 @@ extension LLMContextEntity {
             let file = ChatEntity.Content.File(
                 name: fileContent.filename,
                 url: url,
-                contentTypeIdentifier: UTType(mimeType: fileContent.contentType)?.identifier
+                contentTypeIdentifier: fileContent.contentType.utType?.identifier
             )
             var parts = [ChatEntity.Content.Part(.file(file), entityID: id, index: 0)]
             if !content.isEmpty {
@@ -230,11 +231,11 @@ extension ChatEntity.Content.File {
     ///
     /// ``ChatEntity/Content/File/contentTypeIdentifier`` is a uniform type identifier so the chat model stays
     /// Foundation-only; the wire wants a MIME type, and an unrecognised kind travels as opaque bytes.
-    fileprivate var mimeType: String {
+    fileprivate var mimeType: MIMEType {
         contentTypeIdentifier
             .flatMap(UTType.init)
-            .flatMap(\.preferredMIMEType)
-            ?? "application/octet-stream"
+            .flatMap(MIMEType.init)
+            ?? .octetStream
     }
 }
 

@@ -86,14 +86,25 @@ struct SampleTypeScopedLocalStorage<Value: SendableMetatype> {
     private func storageKey(for sampleType: SampleType<some Any>) -> LocalStorageKey<Value> {
         LocalStorageKeysHandling.localStorageKey(forValueType: Value.self, sampleType: sampleType, defaultValue: makeStorageKey(sampleType))
     }
-    
-    subscript(sampleType: SampleType<some Any>) -> Value? {
-        get {
-            try? localStorage.load(storageKey(for: sampleType))
-        }
-        nonmutating set {
-            try? localStorage.store(newValue, for: storageKey(for: sampleType))
-        }
+
+    func load(for sampleType: SampleType<some Any>) throws -> Value? {
+        try localStorage.load(storageKey(for: sampleType))
+    }
+
+    func store(_ value: Value?, for sampleType: SampleType<some Any>) throws {
+        try localStorage.store(value, for: storageKey(for: sampleType))
+    }
+
+    func compareExchange(
+        expected expectedValue: Value?,
+        desired desiredValue: Value?,
+        for sampleType: SampleType<some Any>
+    ) throws -> Bool where Value: Equatable {
+        try localStorage.compareExchange(
+            expected: expectedValue,
+            desired: desiredValue,
+            for: storageKey(for: sampleType)
+        )
     }
 }
 #endif

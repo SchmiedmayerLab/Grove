@@ -14,10 +14,13 @@ extension QuestionnaireResponses {
     public enum ResponseValidationResult: Sendable {
         /// The response provided for the task is ok.
         case ok
-        /// The response provided for the task is invalid.
-        case invalid(message: LocalizedStringResource)
+        /// The response provided for the task is invalid, with the text to show the participant.
+        ///
+        /// Already resolved: a caller off-Apple has no catalogue to resolve against, and the only
+        /// consumer is the questionnaire UI, which displays it as-is.
+        case invalid(message: String)
         
-        var isOk: Bool {
+        package var isOk: Bool {
             switch self {
             case .ok:
                 true
@@ -38,13 +41,30 @@ extension QuestionnaireResponses {
         /// Creates a ``invalid(message:)`` localized to the specified bundle.
         ///
         /// - Important: Use this function when creating `invalid` results within the package, to ensure that the localization is picked up correctly.
+        #if canImport(Darwin)
         static func invalid(message: String.LocalizationValue, bundle: Bundle) -> Self {
-            .invalid(message: LocalizedStringResource(message, bundle: bundle))
+            .invalid(message: String(localized: message, bundle: bundle))
         }
+        #else
+        // No string catalogues off-Apple: the key is the message.
+        static func invalid(message: String, bundle: Bundle) -> Self {
+            .invalid(message: message)
+        }
+        #endif
     }
     
     
-    func validateResponse( // swiftlint:disable:this function_body_length cyclomatic_complexity
+    /// Renders an hour/minute/second bound like "9:30 AM" for a validation message.
+    ///
+    /// The components are anchored to the fixed reference date, not today: `date(bySettingHour:)`
+    /// on a daylight-saving transition day can shift or skip the requested wall time.
+    private static func formattedTime(hour: Int, minute: Int, second: Int) -> String? {
+        Calendar.current
+            .date(bySettingHour: hour, minute: minute, second: second, of: Date(timeIntervalSinceReferenceDate: 0))?
+            .formatted(date: .omitted, time: .shortened)
+    }
+
+    package func validateResponse( // swiftlint:disable:this function_body_length cyclomatic_complexity
         for task: Questionnaire.Task
     ) -> ResponseValidationResult {
         guard hasResponse(for: task) else {
@@ -58,7 +78,7 @@ extension QuestionnaireResponses {
             for constraint in task.constraints where constraint.severity == .error {
                 do {
                     if try engine.evaluateBoolean(constraint.expression, scope: .answer(task.id), in: self) == .false {
-                        return .invalid(message: LocalizedStringResource(stringLiteral: constraint.humanDescription))
+                        return .invalid(message: constraint.humanDescription)
                     }
                 } catch {
                     // A rule that cannot be evaluated proves nothing, so the answer stands;
@@ -145,30 +165,14 @@ extension QuestionnaireResponses {
             case .timeOnly:
                 let response = (response.hour ?? 0, response.minute ?? 0, response.second ?? 0)
                 if let minValue = config.minValue.map({ ($0.hour ?? 0, $0.minute ?? 0, $0.second ?? 0) }), !(response >= minValue) {
-                    let minValueDesc = cal
-                        .date(
-                            bySettingHour: minValue.0,
-                            minute: minValue.1,
-                            second: minValue.2,
-                            of: .now
-                        )?
-                        .formatted(date: .omitted, time: .shortened)
                     return .invalid(
-                        message: "Must be after \(minValueDesc ?? (config.minValue ?? .init()).description)", // will never be nil.
+                        message: "Must be after \(Self.formattedTime(hour: minValue.0, minute: minValue.1, second: minValue.2) ?? (config.minValue ?? .init()).description)",
                         bundle: .module
                     )
                 }
                 if let maxValue = config.maxValue.map({ ($0.hour ?? 0, $0.minute ?? 0, $0.second ?? 0) }), !(response <= maxValue) {
-                    let maxValueDesc = cal
-                        .date(
-                            bySettingHour: maxValue.0,
-                            minute: maxValue.1,
-                            second: maxValue.2,
-                            of: .now
-                        )?
-                        .formatted(date: .omitted, time: .shortened)
                     return .invalid(
-                        message: "Must be before \(maxValueDesc ?? (config.maxValue ?? .init()).description)", // will never be nil.
+                        message: "Must be before \(Self.formattedTime(hour: maxValue.0, minute: maxValue.1, second: maxValue.2) ?? (config.maxValue ?? .init()).description)",
                         bundle: .module
                     )
                 }

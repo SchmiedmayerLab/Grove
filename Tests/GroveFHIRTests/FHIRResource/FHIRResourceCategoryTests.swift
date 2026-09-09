@@ -44,7 +44,7 @@ extension FHIRResourceTests {
         
         try testCases.forEach { creator, expectedCategory in
             let resource = try creator()
-            let fhirResource = FHIRResource(versionedResource: .r4(resource), displayName: "")
+            let fhirResource = try FHIRResource(versionedResource: .r4(resource), displayName: "")
             #expect(fhirResource.category == expectedCategory, "Failed for resource type: \(type(of: resource))")
         }
     }
@@ -80,7 +80,7 @@ extension FHIRResourceTests {
         
         try testCases.forEach { creator, expectedCategory in
             let resource = try creator()
-            let fhirResource = FHIRResource(versionedResource: .dstu2(resource), displayName: "")
+            let fhirResource = try FHIRResource(versionedResource: .dstu2(resource), displayName: "")
             #expect(fhirResource.category == expectedCategory, "Failed for resource type: \(type(of: resource))")
         }
     }

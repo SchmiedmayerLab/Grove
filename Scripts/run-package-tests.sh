@@ -65,7 +65,7 @@ DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$PWD/.derivedData}"
 PACKAGE_CACHE_PATH="${PACKAGE_CACHE_PATH:-${RUNNER_TEMP:-$PWD}/.packageCache}"
 mkdir -p "$PACKAGE_CACHE_PATH"
 
-PACKAGES="FHIRModelsExtensions ResearchKitOnFHIR Grove GroveAccessGuard GroveAccount GroveBluetooth GroveChat GroveConsent GroveContact GroveDevices GroveFHIR GroveFileFormats GroveFirebase GroveFoundation GroveHealthKit GroveHealthKitFHIR GroveLLM GroveLicense GroveLocation GroveNetworking GroveNotifications GroveOnboarding GroveQuestionnaire GroveScheduler GroveSensorKit GroveSpeech GroveStorage GroveStudy GroveViews ThreadLocal XCTHealthKit RuntimeAssertions XCTestExtensions"
+PACKAGES="FHIRModelsExtensions ResearchKitOnFHIR Grove GroveAccessGuard GroveAccount GroveBluetooth GroveChat GroveConsent GroveContact GroveDevices GroveFHIR GroveFileFormats GroveFirebase GroveFoundation GroveHealthKit GroveHealthKitFHIR GroveLLM GroveLicense GroveLocation GroveNetworking GroveNotifications GroveOnboarding GroveQuestionnaire GroveScheduler GroveSensorKit GroveSensorKitFHIR GroveSpeech GroveStorage GroveStudy GroveViews ThreadLocal XCTHealthKit RuntimeAssertions XCTestExtensions"
 
 test_targets_for() {
   python3 - "$1" "$2" <<'PY'
@@ -111,6 +111,7 @@ platforms_for() { case "$1" in
     GroveQuestionnaire) echo "iOS macOS" ;;
     GroveScheduler) echo "iOS macOS visionOS watchOS" ;;
     GroveSensorKit) echo "iOS" ;;
+    GroveSensorKitFHIR) echo "iOS macOS" ;;
     GroveSpeech) echo "iOS visionOS macOS" ;;
     GroveStorage) echo "iOS macOS macCatalyst watchOS visionOS" ;;
     GroveStudy) echo "iOS macOS macCatalyst watchOS visionOS" ;;

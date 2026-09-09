@@ -23,11 +23,29 @@ struct FHIRConversionTests {
         for input in allR4Inputs {
             // simply test that we can import all of the sample questionnaires without failure
             // IDEA maybe also test that they are what we expect
-            _ = try GroveQuestionnaire.Questionnaire(input)
+            _ = try GroveQuestionnaire.Questionnaire(input, evaluationInstant: questionnaireResponseTestAuthoredAt)
         }
     }
-    
-    
+
+
+    /// Every bundled example must survive the round trip, not just be readable.
+    ///
+    /// A response carries the canonical of the exact questionnaire version it answers, so an
+    /// example without a version imports cleanly and then strands the participant at submission.
+    @Test
+    func everyBundledExampleExports() throws {
+        let allR4Inputs = ModelsR4.Questionnaire.exampleQuestionnaires + ModelsR4.Questionnaire.researchQuestionnaires
+        for input in allR4Inputs {
+            let questionnaire = try GroveQuestionnaire.Questionnaire(input, evaluationInstant: questionnaireResponseTestAuthoredAt)
+            _ = try ModelsR4.QuestionnaireResponse(
+                QuestionnaireResponses(questionnaire: questionnaire),
+                authored: questionnaireResponseTestAuthoredAt,
+                authoredTimeZone: questionnaireResponseTestTimeZone
+            )
+        }
+    }
+
+
     @Test
     func convertToFHIR() throws {
         let questionnaire = GroveQuestionnaire.Questionnaire.phq9
@@ -44,7 +62,11 @@ struct FHIRConversionTests {
                 return
             }
         }
-        var fhirResponse = try ModelsR4.QuestionnaireResponse(responses)
+        var fhirResponse = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
+        )
         var expected = try JSONDecoder().decode(
             ModelsR4.QuestionnaireResponse.self,
             from: Data(
@@ -83,6 +105,7 @@ struct FHIRConversionTests {
             metadata: .init(
                 id: "numeric-answer",
                 url: URL(string: "https://example.org/fhir/Questionnaire/numeric-answer"),
+                version: "1.0.0",
                 title: "",
                 explainer: ""
             ),
@@ -94,7 +117,11 @@ struct FHIRConversionTests {
         )
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["t0"].value.numberValue = 123
-        let fhir = try ModelsR4.QuestionnaireResponse(responses)
+        let fhir = try ModelsR4.QuestionnaireResponse(
+            responses,
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
+        )
         let items = try #require(fhir.item)
         #expect(items.count == 1)
         let item = try #require(items.first)
@@ -165,16 +192,18 @@ struct FHIRConversionTests {
                 linkId: "section1".asFHIRStringPrimitive(),
                 type: .init(.group)
             )
-            let questionnaire = ModelsR4.Questionnaire(
+            var questionnaire = ModelsR4.Questionnaire(
                 id: "test-questionnaire".asFHIRStringPrimitive(),
                 item: [group],
                 status: .init(.active)
             )
+            questionnaire.url = "https://example.org/fhir/Questionnaire/enable-when-coding".asFHIRURIPrimitive()
+            questionnaire.version = "1.0.0".asFHIRStringPrimitive()
             return questionnaire
         }()
         
         // Convert to GroveQuestionnaire
-        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire, evaluationInstant: questionnaireResponseTestAuthoredAt)
         
         // Retrieve the converted tasks
         let section = try #require(questionnaire.sections.first)

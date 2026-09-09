@@ -44,8 +44,7 @@ extension SchedulerNotifications {
         }
         LegacyIdentifierReport.encountered(
             LegacyNotifications.schedulerPrefix,
-            in: "GroveScheduler",
-            .duringMigration
+            in: "GroveScheduler"
         )
         return true
     }

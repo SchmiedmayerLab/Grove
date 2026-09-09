@@ -6,28 +6,55 @@
 // SPDX-License-Identifier: MIT
 //
 
-// swiftlint:disable file_types_order
-
-public import FHIRModelsExtensions
 public import Foundation
-import GroveLegacyIdentifiers
 public import ModelsDSTU2
 public import ModelsR4
 
-
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension FHIRExtensionURL {
-    /// The resource's associated HealthKit HKSample identifier, if applicable.
-    public static let hkSampleId = Self(
-        FHIRResource.hkSampleIdentifier.canonical,
-        superseding: FHIRResource.hkSampleIdentifier.superseded
-    )
-}
 
 /// Represents a FHIR (Fast Healthcare Interoperability Resources) entity.
 ///
 /// Handles both DSTU2 and R4 versions, providing a unified interface to interact with different FHIR versions.
 public struct FHIRResource: Identifiable, Hashable, Sendable {
+    public enum ValidationError: Error, Equatable, Sendable {
+        case missingStableIdentity(resourceType: String)
+        case invalidIdentityValue(String)
+        case invalidBundleFullURL(String)
+    }
+
+    /// A resource key that is stable and collision-free across supported FHIR versions and types.
+    public struct ID: Hashable, Sendable, CustomStringConvertible {
+        public enum FHIRVersion: String, Hashable, Sendable {
+            case r4 // swiftlint:disable:this identifier_name
+            case dstu2
+        }
+
+        public enum Source: Hashable, Sendable {
+            case logicalID(String)
+            case bundleFullURL(String)
+            case explicit(String)
+        }
+
+        public let version: FHIRVersion
+        public let resourceType: String
+        public let source: Source
+
+        public var description: String {
+            let sourceDescription = switch source {
+            case .logicalID(let value): "id:\(value)"
+            case .bundleFullURL(let value): "fullUrl:\(value)"
+            case .explicit(let value): "explicit:\(value)"
+            }
+            return "\(version.rawValue)/\(resourceType)/\(sourceDescription)"
+        }
+    }
+
+    /// Caller-provided identity for a resource whose wire representation intentionally has no
+    /// `Resource.id`. Bundle ingestion uses `bundleFullURL`; standalone callers use `explicit`.
+    public enum IdentitySource: Hashable, Sendable {
+        case bundleFullURL(String)
+        case explicit(String)
+    }
+
     /// Version-specific FHIR resources.
     public enum VersionedFHIRResource: Hashable, Sendable {
         /// R4 version of FHIR resources.
@@ -58,41 +85,11 @@ public struct FHIRResource: Identifiable, Hashable, Sendable {
         }
     }
     
-    public struct ID: Hashable, Codable, Sendable {
-        @_spi(Testing) public let fhirResourceId: String
-        @_spi(Testing) public let healthKitUUID: String?
-    }
-    
-    /// The FHIR extension holding a resource's associated HealthKit HKSample identifier.
-    ///
-    /// Clinical records arrive already carrying the originating institution's
-    /// `identifier` list, so the platform's record id rides in this extension rather
-    /// than joining it. Grove-authored Observations use `Observation.identifier`.
-    ///
-    /// String-backed so that it — unlike the `FHIRExtensionURL`-typed ``FHIRExtensionURL/hkSampleId``,
-    /// which derives from it — is usable below the iOS-18 availability floor.
-    static let hkSampleIdentifier = FHIRCanonicalURL(
-        "https://grovealliance.org/fhir/core/StructureDefinition/grove-source-record-id",
-        superseding: SupersededFHIRURLs.healthKitSampleId
-    )
-
-    /// The identifier system of HealthKit records.
-    public static let healthKitSampleIdSystem = "https://grovealliance.org/fhir/sid/healthkit-sample-id"
-    
     /// The version-specific FHIR resource.
     public let versionedResource: VersionedFHIRResource
     /// Human-readable name or description of the resource.
     public let displayName: String
-    
-    
-    public var id: ID {
-        guard let fhirId else {
-            preconditionFailure(
-                "A stable identifier must be present when wrapping content in a FHIRResource. The identifier might have been changed."
-            )
-        }
-        return ID(fhirResourceId: fhirId, healthKitUUID: healthKitSampleId)
-    }
+    public let id: ID
     
     /// The `id` of the underlying FHIR `Resource`.
     public var fhirId: String? {
@@ -104,26 +101,6 @@ public struct FHIRResource: Identifiable, Hashable, Sendable {
         }
     }
 
-    /// The `uuid` of the `HKSample` from which this FHIRResource was created, if applicable.
-    var healthKitSampleId: String? {
-        // Goes through FHIRModels' own String-keyed API (declared on the DomainResource protocol
-        // itself): the FHIRTypeWithExtensions overloads only exist on the concrete types, so they
-        // aren't visible on an `any DomainResource` existential.
-        // Canonical spelling first, so a resource carrying both is read as the newer writer meant it.
-        for spelling in Self.hkSampleIdentifier.allSpellings {
-            let value: String? = switch versionedResource {
-            case .r4(let resource):
-                (resource as? any ModelsR4.DomainResource)?.extensions(for: spelling).first?.recordIdValue
-            case .dstu2(let resource):
-                (resource as? any ModelsDSTU2.DomainResource)?.extensions(for: spelling).first?.recordIdValue
-            }
-            if let value {
-                return value
-            }
-        }
-        return nil
-    }
-    
     /// The type of the FHIR resource represented as a string. It provides an easy way to identify the kind of FHIR entity (e.g., Observation, MedicationOrder).
     public var resourceType: String {
         switch versionedResource {
@@ -136,7 +113,20 @@ public struct FHIRResource: Identifiable, Hashable, Sendable {
     
     /// JSON representation of the FHIR resource with specified formatting. Useful for serialization and debugging.
     public var jsonDescription: String {
-        json(withConfiguration: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
+        get throws {
+            try json(withConfiguration: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
+        }
+    }
+
+    package var nonLogicalIdentitySource: IdentitySource? {
+        switch id.source {
+        case .logicalID:
+            nil
+        case .bundleFullURL(let value):
+            .bundleFullURL(value)
+        case .explicit(let value):
+            .explicit(value)
+        }
     }
     
     
@@ -144,56 +134,110 @@ public struct FHIRResource: Identifiable, Hashable, Sendable {
     /// - Parameters:
     ///   - versionedResource: The specific version (DSTU2 or R4) of the FHIR resource.
     ///   - displayName: A user-friendly name for the resource.
-    public init(versionedResource: VersionedFHIRResource, displayName: String) {
-        // We fail in debug builds to inform developers about the need to define identifier.
-        // We fallback to generating unique ids in production builds.
-        var versionedResource = versionedResource
+    ///   - identitySource: A stable bundle full URL or caller-defined identity used when the resource has no logical id.
+    public init(
+        versionedResource: VersionedFHIRResource,
+        displayName: String,
+        identitySource: IdentitySource? = nil
+    ) throws(ValidationError) {
+        let version: ID.FHIRVersion
+        let resourceType: String
+        let logicalID: String?
         switch versionedResource {
-        case .r4(var resource):
-            if resource.id?.value?.string == nil {
-                assertionFailure("Could not find a stable identifier for the resources. Be sure that your resouces as the `id` field set.")
-                resource.id = FHIRPrimitive(stringLiteral: UUID().uuidString)
-                versionedResource = .r4(resource)
-            }
-        case .dstu2(var resource):
-            if resource.id?.value?.string == nil {
-                assertionFailure("Could not find a stable identifier for the resources. Be sure that your resouces as the `id` field set.")
-                resource.id = FHIRPrimitive(stringLiteral: UUID().uuidString)
-                versionedResource = .dstu2(resource)
+        case .r4(let resource):
+            version = .r4
+            resourceType = ModelsR4.ResourceProxy(with: resource).resourceType
+            logicalID = resource.id?.value?.string
+        case .dstu2(let resource):
+            version = .dstu2
+            resourceType = ModelsDSTU2.ResourceProxy(with: resource).resourceType
+            logicalID = resource.id?.value?.string
+        }
+
+        let source: ID.Source
+        if let logicalID, !logicalID.isEmpty {
+            try Self.validateIdentityValue(logicalID)
+            source = .logicalID(logicalID)
+        } else {
+            switch identitySource {
+            case .bundleFullURL(let value):
+                try Self.validateIdentityValue(value)
+                guard let url = URL(string: value), url.scheme != nil else {
+                    throw .invalidBundleFullURL(value)
+                }
+                source = .bundleFullURL(value)
+            case .explicit(let value):
+                try Self.validateIdentityValue(value)
+                source = .explicit(value)
+            case nil:
+                throw .missingStableIdentity(resourceType: resourceType)
             }
         }
         self.versionedResource = versionedResource
         self.displayName = displayName
+        self.id = ID(version: version, resourceType: resourceType, source: source)
     }
     
     /// Convenience initializer for R4 version of FHIR resources.
     /// - Parameters:
     ///   - resource: An R4 FHIR resource.
     ///   - displayName: A user-friendly name for the resource.
-    public init(resource: any ModelsR4.Resource, displayName: String) {
-        self.init(versionedResource: .r4(resource), displayName: displayName)
+    ///   - identitySource: A stable bundle full URL or caller-defined identity used when the resource has no logical id.
+    public init(
+        resource: any ModelsR4.Resource,
+        displayName: String,
+        identitySource: IdentitySource? = nil
+    ) throws(ValidationError) {
+        try self.init(versionedResource: .r4(resource), displayName: displayName, identitySource: identitySource)
     }
     
     /// Convenience initializer for DSTU2 version of FHIR resources.
     /// - Parameters:
     ///   - resource: A DSTU2 FHIR resource.
     ///   - displayName: A user-friendly name for the resource.
-    public init(resource: any ModelsDSTU2.Resource, displayName: String) {
-        self.init(versionedResource: .dstu2(resource), displayName: displayName)
+    ///   - identitySource: A stable bundle full URL or caller-defined identity used when the resource has no logical id.
+    public init(
+        resource: any ModelsDSTU2.Resource,
+        displayName: String,
+        identitySource: IdentitySource? = nil
+    ) throws(ValidationError) {
+        try self.init(versionedResource: .dstu2(resource), displayName: displayName, identitySource: identitySource)
     }
-    
-    
+
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    private static func validateIdentityValue(_ value: String) throws(ValidationError) {
+        guard !value.isEmpty,
+              value == value.trimmingCharacters(in: .whitespacesAndNewlines),
+              value.unicodeScalars.allSatisfy({ !CharacterSet.controlCharacters.contains($0) }) else {
+            throw .invalidIdentityValue(value)
+        }
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    /// Whether both wrappers carry the same complete resource and presentation value.
+    package func hasSameContents(as other: Self) -> Bool {
+        id == other.id
+            && versionedResource == other.versionedResource
+            && displayName == other.displayName
+    }
+
     /// Generates a JSON string representation of the resource with specified formatting options.
     /// - Parameter outputFormatting: JSON encoding options such as pretty printing.
     /// - Returns: A JSON string representing the resource.
-    public func json(withConfiguration outputFormatting: JSONEncoder.OutputFormatting) -> String {
+    public func json(withConfiguration outputFormatting: JSONEncoder.OutputFormatting) throws -> String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = outputFormatting
         switch versionedResource {
         case let .r4(resource):
-            return (try? String(decoding: encoder.encode(resource), as: UTF8.self)) ?? "{}"
+            return String(decoding: try encoder.encode(resource), as: UTF8.self)
         case let .dstu2(resource):
-            return (try? String(decoding: encoder.encode(resource), as: UTF8.self)) ?? "{}"
+            return String(decoding: try encoder.encode(resource), as: UTF8.self)
         }
     }
 }
@@ -220,37 +264,6 @@ extension FHIRResource {
         }
     }
 }
-
-
-extension ModelsR4.Extension {
-    /// The record id an extension carries, in the current `Identifier` shape or the retired bare-id one.
-    fileprivate var recordIdValue: String? {
-        switch value {
-        case .identifier(let identifier):
-            identifier.value?.value?.string
-        case .id(let value):
-            value.value?.string
-        default:
-            nil
-        }
-    }
-}
-
-
-extension ModelsDSTU2.Extension {
-    /// The record id an extension carries, in the current `Identifier` shape or the retired bare-id one.
-    fileprivate var recordIdValue: String? {
-        switch value {
-        case .identifier(let identifier):
-            identifier.value?.value?.string
-        case .id(let value):
-            value.value?.string
-        default:
-            nil
-        }
-    }
-}
-
 
 extension Equatable {
     fileprivate func isEqual(_ other: Any) -> Bool {

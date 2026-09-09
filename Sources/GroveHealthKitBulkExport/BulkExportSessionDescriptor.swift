@@ -23,7 +23,7 @@ public import HealthKit
 /// It keeps track of the session's identity, and the stores the individual batches that need to be processed as part of the session.
 /// It also keeps track of the already-completed sample types, to prevent unnecessary duplicates when exporting.
 @available(iOS 18, macOS 15, watchOS 11, *)
-struct ExportSessionDescriptor: Codable {
+struct ExportSessionDescriptor: Codable, Sendable {
     let sessionId: BulkExportSessionIdentifier
     let startDate: ExportSessionStartDate
     let endDate: Date
@@ -90,6 +90,35 @@ struct ExportSessionDescriptor: Codable {
             }
             pendingBatches[idx] = batch
         }
+    }
+
+    mutating func record(_ batch: ExportBatch, result: Result<Void, any Error>) {
+        guard let batchIdx = pendingBatches.firstIndex(of: batch) else {
+            preconditionFailure("Unable to find to-be-removed batch")
+        }
+        var batch = pendingBatches.remove(at: batchIdx)
+        switch result {
+        case .success:
+            batch.result = .success
+            completedBatches.append(batch)
+        case .failure(let error) where error is CancellationError:
+            batch.result = nil
+            pendingBatches.insert(batch, at: 0)
+        case .failure(let error):
+            batch.result = .failure(errorDescription: error.localizedDescription)
+            pendingBatches.append(batch)
+        }
+    }
+
+    mutating func markPersistenceFailure(for completedBatch: ExportBatch, error: any Error) {
+        guard let batchIdx = completedBatches.firstIndex(where: {
+            $0.sampleType == completedBatch.sampleType && $0.timeRange == completedBatch.timeRange
+        }) else {
+            preconditionFailure("Unable to find completed batch whose descriptor failed to persist")
+        }
+        var batch = completedBatches.remove(at: batchIdx)
+        batch.result = .failure(errorDescription: error.localizedDescription)
+        pendingBatches.append(batch)
     }
 }
 

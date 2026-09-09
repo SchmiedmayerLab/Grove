@@ -86,7 +86,10 @@ extension FHIRPathEvaluator {
         case .boolean, .integer, .decimal, .string, .quantity, .object:
             throw FHIRPathEvaluationError.typeMismatch("Calendar arithmetic on a non-temporal value")
         }
-        guard let result = Calendar.current.components(byAdding: delta, to: components) else {
+        let calendar = FHIRPathCalendar.gregorian(
+            timeZone: components.timeZone ?? FHIRPathCalendar.utc
+        )
+        guard let result = calendar.components(byAdding: delta, to: components) else {
             throw FHIRPathEvaluationError.typeMismatch("Date arithmetic failed")
         }
         return Self.narrowed(result, like: temporal, timeZone: components.timeZone)

@@ -1,7 +1,7 @@
 //
 // This source file is part of the Grove open-source project
 //
-// SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
 // SPDX-License-Identifier: MIT
 //
@@ -12,7 +12,6 @@ public import ModelsR4
 
 extension Observation {
     /// Sets the `Observation`'s effective date.
-    @inlinable
     public mutating func setEffective(startDate: Date, endDate: Date, timeZone: TimeZone) throws {
         if startDate == endDate {
             effective = .dateTime(FHIRPrimitive(try DateTime(date: startDate, timeZone: timeZone)))
@@ -25,7 +24,6 @@ extension Observation {
     }
     
     /// Sets the `Observation`'s issued date.
-    @inlinable
     public mutating func setIssued(on date: Date) throws {
         issued = FHIRPrimitive(try Instant(date: date))
     }

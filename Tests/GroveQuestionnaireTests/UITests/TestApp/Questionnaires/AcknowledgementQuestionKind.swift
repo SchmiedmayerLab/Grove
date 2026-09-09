@@ -7,6 +7,7 @@
 //
 
 import GroveQuestionnaire
+import GroveQuestionnaireUI
 import SwiftUI
 
 
@@ -15,7 +16,7 @@ import SwiftUI
 /// The validation rule is what makes it more than a boolean — a section holding an
 /// unaccepted disclaimer never counts as complete, and the message is what the renderer
 /// shows beneath the question.
-struct AcknowledgementQuestionKind: QuestionKindDefinition {
+struct AcknowledgementQuestionKind: QuestionKindDefinitionWithViewSupport {
     struct Config: QuestionKindConfig {
         let disclaimerText: String
         let consentButtonTitle: String

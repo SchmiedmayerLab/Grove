@@ -8,16 +8,12 @@
 
 import Grove
 import GroveFHIR
-import GroveHealthKit
 
 
 class TestAppDelegate: GroveAppDelegate {
     override var configuration: Configuration {
         Configuration(standard: TestingStandard()) {
             FHIRStore()
-            HealthKit {
-                RequestReadAccess(other: TestingStandard.recordTypes)
-            }
         }
     }
 }

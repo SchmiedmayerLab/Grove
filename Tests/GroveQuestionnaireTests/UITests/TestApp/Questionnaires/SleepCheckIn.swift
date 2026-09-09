@@ -128,7 +128,9 @@ enum SleepCheckIn {
 extension GroveQuestionnaire.Questionnaire {
     /// The Swift-declared ``SleepCheckIn`` instrument, with the engine that evaluates its score.
     static let sleepCheckIn: GroveQuestionnaire.Questionnaire = {
+        // swiftlint:disable:next force_try
         try! SleepCheckIn.questionnaire.checkDeclaration(of: SleepCheckIn.self)
-        return try! SleepCheckIn.questionnaire.withExpressionEngine()
+        // swiftlint:disable:next force_try
+        return try! SleepCheckIn.questionnaire.withExpressionEngine(evaluationInstant: .now)
     }()
 }

@@ -13,16 +13,6 @@
       "targets" : [
       {
         "containerPath" : "container:",
-        "identifier" : "GroveHealthKitFHIRMacrosImpl",
-        "name" : "GroveHealthKitFHIRMacrosImpl"
-      },
-      {
-        "containerPath" : "container:",
-        "identifier" : "GroveHealthKitFHIRMacros",
-        "name" : "GroveHealthKitFHIRMacros"
-      },
-      {
-        "containerPath" : "container:",
         "identifier" : "GroveHealthKitFHIR",
         "name" : "GroveHealthKitFHIR"
       }
@@ -35,13 +25,6 @@
           "containerPath" : "container:",
           "identifier" : "GroveHealthKitFHIRTests",
           "name" : "GroveHealthKitFHIRTests"
-        }
-      },
-      {
-        "target" : {
-          "containerPath" : "container:",
-          "identifier" : "GroveHealthKitFHIRMacrosTests",
-          "name" : "GroveHealthKitFHIRMacrosTests"
         }
       }
   ],

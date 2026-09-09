@@ -15,7 +15,7 @@ private import GroveFoundation
 /// ## Overview
 ///
 /// Questionnaires consist of a sequence of ``Section``s, each of which contains a list of ``Task``s.
-/// When using the ``QuestionnaireSheet`` to answer a questionnaire, each section is displayed as a separate page on a `NavigationStack`.
+/// A section is the unit a renderer pages through: `GroveQuestionnaireUI` shows each one as its own page.
 ///
 /// ### Interoperability
 ///
@@ -94,7 +94,7 @@ public struct Questionnaire: Hashable, Identifiable, Sendable {
 
 
     /// Creates a functionally identical copy of this questionnaire, with all ``Condition``s simplified.
-    func withConditionsSimplified() -> Self {
+    package func withConditionsSimplified() -> Self {
         var copy = Questionnaire(
             unchecked: metadata,
             sections: sections.map { section in
@@ -114,7 +114,7 @@ public struct Questionnaire: Hashable, Identifiable, Sendable {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension Questionnaire.Task {
     /// Creates a functionally identical copy of this task, with all ``Condition``s simplified.
-    func withConditionsSimplified() -> Self {
+    package func withConditionsSimplified() -> Self {
         var copy = self
         copy.enabledCondition.simplify()
         for index in copy.groupPath.indices {
@@ -287,7 +287,7 @@ extension Questionnaire {
         ///     Note that the condition may only reference tasks that precede this section within the questionnaire.
         ///     If the section's `enabledCondition` evaluates to `true`, but all of the section's task ``Questionnaire/Task/enabledCondition``s evaluate to `false`, the section will be skipped entirely.
         /// - parameter tasks: The section's ``Questionnaire/Task``s.
-        ///     Note that if a section does not contain any tasks, it may be skipped unconditionally by the ``QuestionnaireSheet``.
+        ///     Note that if a section does not contain any tasks, it may be skipped unconditionally by the `QuestionnaireSheet`.
         /// - parameter fhirGroupId: The linkId of the FHIR group this section mirrors, if any.
         public init(
             id: String,
@@ -314,7 +314,7 @@ extension Questionnaire {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension Questionnaire.Section {
-    func nextEnabledTask(after task: Questionnaire.Task, using responses: QuestionnaireResponses) -> Questionnaire.Task? {
+    package func nextEnabledTask(after task: Questionnaire.Task, using responses: QuestionnaireResponses) -> Questionnaire.Task? {
         guard let taskIdx = tasks.firstIndex(of: task) else {
             return nil
         }

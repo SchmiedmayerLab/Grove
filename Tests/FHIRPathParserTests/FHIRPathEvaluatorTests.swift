@@ -14,7 +14,13 @@ import Testing
 
 @Suite
 struct FHIRPathEvaluatorTests {
-    private func evaluate(_ expression: String, context: FHIRPathEvaluationContext = .init()) throws -> [FHIRPathValue] {
+    private static let evaluationInstant = Date(timeIntervalSince1970: 1_700_000_000)
+
+    private func evaluate(_ expression: String) throws -> [FHIRPathValue] {
+        try evaluate(expression, context: .init(evaluationInstant: Self.evaluationInstant))
+    }
+
+    private func evaluate(_ expression: String, context: FHIRPathEvaluationContext) throws -> [FHIRPathValue] {
         try FHIRPathExpression.evaluate(expression: expression, context: context)
     }
 
@@ -45,7 +51,7 @@ struct FHIRPathEvaluatorTests {
                             "system": "https://example.org/scale",
                             "code": "nearly-every-day",
                             "extension": [{
-                                "url": "http://hl7.org/fhir/StructureDefinition/ordinalValue",
+                                "url": "http://hl7.org/fhir/StructureDefinition/itemWeight",
                                 "valueDecimal": 3
                             }]
                         }
@@ -65,7 +71,8 @@ struct FHIRPathEvaluatorTests {
         let node = try FHIRPathNode(jsonData: Data(json.utf8))
         return FHIRPathEvaluationContext(
             focus: [.object(node)],
-            constants: ["resource": [.object(node)]]
+            constants: ["resource": [.object(node)]],
+            evaluationInstant: Date(timeIntervalSince1970: 1_700_000_000)
         )
     }
 
@@ -139,9 +146,8 @@ struct FHIRPathEvaluatorTests {
     func temporalComparisons() throws {
         #expect(try evaluate("@2026-01-01 < @2026-02-01") == [.boolean(true)])
         #expect(try evaluate("@2026-03-14 = @2026-03-14") == [.boolean(true)])
-        // Deviation from full FHIRPath: the literal parser zero-fills partial dates,
-        // so differing precision compares on the filled fields instead of being empty.
-        #expect(try evaluate("@2026-01 = @2026-01-15") == [.boolean(false)])
+        // FHIRPath equality is unknown when the operands have different date precision.
+        #expect(try evaluate("@2026-01 = @2026-01-15").isEmpty)
         #expect(try evaluate("@T10:30 < @T11:00") == [.boolean(true)])
     }
 
@@ -169,10 +175,27 @@ struct FHIRPathEvaluatorTests {
     func dateArithmetic() throws {
         #expect(try evaluate("@2020-01-31 + 1 month") == [.date(DateComponents(year: 2020, month: 2, day: 29))])
         #expect(try evaluate("@2026-08-14 - 18 years") == [.date(DateComponents(year: 2008, month: 8, day: 14))])
-        let fixed = try #require(Calendar.current.date(from: DateComponents(year: 2026, month: 8, day: 14, hour: 12)))
-        let context = FHIRPathEvaluationContext(now: fixed)
+        let timeZone = try #require(TimeZone(secondsFromGMT: 0))
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let fixed = try #require(calendar.date(from: DateComponents(year: 2026, month: 8, day: 14, hour: 12)))
+        let context = FHIRPathEvaluationContext(evaluationInstant: fixed, evaluationTimeZone: timeZone)
         #expect(try evaluate("today()", context: context) == [.date(DateComponents(year: 2026, month: 8, day: 14))])
         #expect(try evaluate("today() - 18 years < @2010-01-01", context: context) == [.boolean(true)])
+    }
+
+    @Test
+    func evaluationTimeZoneInitialization() throws {
+        let instant = Date(timeIntervalSince1970: 1_700_000_000)
+        let defaultContext = FHIRPathEvaluationContext(evaluationInstant: instant)
+        #expect(defaultContext.evaluationTimeZone.secondsFromGMT(for: instant) == 0)
+
+        let explicitTimeZone = try #require(TimeZone(identifier: "America/Los_Angeles"))
+        let explicitContext = FHIRPathEvaluationContext(
+            evaluationInstant: instant,
+            evaluationTimeZone: explicitTimeZone
+        )
+        #expect(explicitContext.evaluationTimeZone == explicitTimeZone)
     }
 
     // MARK: Collections
@@ -271,6 +294,36 @@ struct FHIRPathEvaluatorTests {
         #expect(total == [.decimal(4)])
         // weight() also accepts the codings directly.
         #expect(try evaluate("item.answer.valueCoding.weight().sum()", context: context) == [.decimal(4)])
+    }
+
+    @Test
+    func retiredOrdinalValueDoesNotScore() throws {
+        let json = """
+        {
+            "resourceType": "QuestionnaireResponse",
+            "status": "completed",
+            "item": [{
+                "linkId": "q1",
+                "answer": [{
+                    "valueCoding": {
+                        "system": "https://example.org/scale",
+                        "code": "nearly-every-day",
+                        "extension": [{
+                            "url": "http://hl7.org/fhir/StructureDefinition/ordinalValue",
+                            "valueDecimal": 3
+                        }]
+                    }
+                }]
+            }]
+        }
+        """
+        let node = try FHIRPathNode(jsonData: Data(json.utf8))
+        let context = FHIRPathEvaluationContext(
+            focus: [.object(node)],
+            constants: ["resource": [.object(node)]],
+            evaluationInstant: Self.evaluationInstant
+        )
+        #expect(try evaluate("item.answer.weight()", context: context).isEmpty)
     }
 
     @Test

@@ -4,9 +4,6 @@
   "language": "en-GB",
   "status": "draft",
   "meta": {
-    "profile": [
-      "http://spezi.health/fhir/StructureDefinition/sdf-Questionnaire"
-    ],
     "tag": [
       {
         "system": "urn:ietf:bcp:47",

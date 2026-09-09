@@ -57,6 +57,9 @@ Since most sensors' returned samples aren't thread-safe, GroveSensorKit provides
 When you fetch data from a sensor (e.g., using ``Sensor/fetch(from:timeRange:)`` or ``SensorKit-class/fetchAnchored(_:batchSize:)``), GroveSensorKit automatically transforms the raw SensorKit samples into their respective safe representations.
 For some sensors this step also performs additional pre-processing; for example, when fetching ECG data, SensorKit returns a bunch of individual [`SRElectrocardiogramSample`](https://developer.apple.com/documentation/sensorkit/srelectrocardiogramsample) objects each of which represents just a small part of the total ECG.
 Fetching ECG data via GroveSensorKit implicitly processes the raw `SRElectrocardiogramSample`s into ``SensorKitECGSession``s, each of which represents a logical ECG session.
+The safe representation retains the source session identifier, every observed provider session state,
+the per-point flags, and the waveform values. This lets downstream persistence preserve the complete
+native evidence instead of reconstructing it from the clinical waveform alone.
 
 
 #### Fetching Data: Standalone One-Off Queries

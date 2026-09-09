@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-@testable @_spi(Testing) import GroveFHIR
+@testable import GroveFHIR
 import ModelsR4
 import Observation
 import Testing
@@ -21,7 +21,7 @@ struct FHIRStoreObservationChangesTests {
     @Test
     func testChangesOnInsert() async throws {
         let observation = try ModelsR4Mocks.createObservation()
-        let resource = FHIRResource(resource: observation, displayName: "Test Observation")
+        let resource = try FHIRResource(resource: observation, displayName: "Test Observation")
 
         await confirmation { observationsExpectation in
             withObservationTracking {
@@ -41,12 +41,12 @@ struct FHIRStoreObservationChangesTests {
     @Test
     func testChangesOnBulkInsert() async throws {
         let observation = try ModelsR4Mocks.createObservation()
-        let observationResource = FHIRResource(resource: observation, displayName: "Test Observation")
+        let observationResource = try FHIRResource(resource: observation, displayName: "Test Observation")
         
         let medication = ModelsR4Mocks.createMedication()
-        let medicationResource = FHIRResource(resource: medication, displayName: "Test Medication")
+        let medicationResource = try FHIRResource(resource: medication, displayName: "Test Medication")
 
-        await confirmation("Observations and medications should change", expectedCount: 3) { changeExpectation in
+        try await confirmation("Observations and medications should change", expectedCount: 3) { changeExpectation in
             withObservationTracking {
                 #expect(store.procedures.isEmpty)
                 #expect(store.observations.isEmpty)
@@ -73,7 +73,7 @@ struct FHIRStoreObservationChangesTests {
                 changeExpectation()
             }
             
-            store.insert(contentsOf: [observationResource, medicationResource])
+            try store.insert(contentsOf: [observationResource, medicationResource])
             
             #expect(store.procedures.isEmpty)
             #expect(store.observations.count == 1)
@@ -84,7 +84,7 @@ struct FHIRStoreObservationChangesTests {
     @Test
     func testChangesOnRemove() async throws {
         let observation = try ModelsR4Mocks.createObservation()
-        let resource = FHIRResource(resource: observation, displayName: "Test Observation")
+        let resource = try FHIRResource(resource: observation, displayName: "Test Observation")
         
         store.insert(resource)
         
@@ -96,7 +96,7 @@ struct FHIRStoreObservationChangesTests {
                 observationsExpectation()
             }
             
-            store.removeResource(withId: resource.id.fhirResourceId)
+            store.removeResource(withID: resource.id)
             
             #expect(store.procedures.isEmpty)
             #expect(store.observations.isEmpty)
@@ -107,33 +107,36 @@ struct FHIRStoreObservationChangesTests {
     @Test
     func testChangesOnRemoveAll() async throws {
         let allergyIntolerance = ModelsR4Mocks.createAllergyIntolerance()
-        let allergyIntoleranceResource = FHIRResource(resource: allergyIntolerance, displayName: "Test Allergy Intolerance")
+        let allergyIntoleranceResource = try FHIRResource(
+            resource: allergyIntolerance,
+            displayName: "Test Allergy Intolerance"
+        )
         
         let condition = try ModelsR4Mocks.createCondition()
-        let conditionResource = FHIRResource(resource: condition, displayName: "Test Condition")
+        let conditionResource = try FHIRResource(resource: condition, displayName: "Test Condition")
         
         let diagnostic = try ModelsR4Mocks.createDiagnosticReport()
-        let diagnosticResource = FHIRResource(resource: diagnostic, displayName: "Test Diagnostic")
+        let diagnosticResource = try FHIRResource(resource: diagnostic, displayName: "Test Diagnostic")
         
         let encounter = try ModelsR4Mocks.createEncounter()
-        let encounterResource = FHIRResource(resource: encounter, displayName: "Test Encounter")
+        let encounterResource = try FHIRResource(resource: encounter, displayName: "Test Encounter")
         
         let immunization = try ModelsR4Mocks.createImmunization()
-        let immunizationResource = FHIRResource(resource: immunization, displayName: "Test Immunization")
+        let immunizationResource = try FHIRResource(resource: immunization, displayName: "Test Immunization")
         
         let observation = try ModelsR4Mocks.createObservation()
-        let observationResource = FHIRResource(resource: observation, displayName: "Test Observation")
+        let observationResource = try FHIRResource(resource: observation, displayName: "Test Observation")
         
         let medication = ModelsR4Mocks.createMedication()
-        let medicationResource = FHIRResource(resource: medication, displayName: "Test Medication")
+        let medicationResource = try FHIRResource(resource: medication, displayName: "Test Medication")
 
         let procedure = try ModelsR4Mocks.createProcedure()
-        let procedureResource = FHIRResource(resource: procedure, displayName: "Test Procedure")
+        let procedureResource = try FHIRResource(resource: procedure, displayName: "Test Procedure")
         
         let other = try ModelsR4Mocks.createProvenance()
-        let otherResource = FHIRResource(resource: other, displayName: "Test Other")
+        let otherResource = try FHIRResource(resource: other, displayName: "Test Other")
         
-        store.insert(contentsOf: [
+        try store.insert(contentsOf: [
             allergyIntoleranceResource,
             conditionResource,
             diagnosticResource,

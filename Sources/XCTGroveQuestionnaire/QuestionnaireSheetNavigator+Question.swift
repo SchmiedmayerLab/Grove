@@ -99,7 +99,7 @@ extension QuestionnaireSheetNavigator {
         /// to do when a test reaches past where the participant is — in either direction: a page
         /// builds a row shortly before it shows it, so reaching a control is not touching it.
         fileprivate func tap(_ element: XCUIElement) {
-            navigator.scan { element.isHittable }
+            navigator.scan { navigator.isReachable(element) }
             element.tap()
         }
     }

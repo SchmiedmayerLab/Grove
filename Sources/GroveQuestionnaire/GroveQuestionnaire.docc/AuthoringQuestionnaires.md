@@ -248,8 +248,7 @@ still parsed at build time inside an ``Instrument()`` type.
 Calculated values recompute as the participant answers, and ride into the exported
 `QuestionnaireResponse` like any other answer.
 
-Install the FHIR expression engine before presenting a questionnaire that contains
-calculated values or raw FHIRPath expressions:
+Install the FHIR expression engine before presenting a questionnaire that contains calculated values or raw FHIRPath expressions:
 
 ```swift
 import GroveQuestionnaireFHIR
@@ -257,19 +256,21 @@ import GroveQuestionnaireFHIR
 let questionnaire = try Screener.questionnaire.withExpressionEngine()
 ```
 
+Clock-sensitive expressions such as `today()` use the wall clock; pass `evaluationInstant:` to pin them to a fixed instant, for example when re-evaluating a stored submission.
+
 ### Reading the answers
 
 ``QuestionnaireResponses`` is subscripted by the declarations themselves:
 
 ```swift
-QuestionnaireSheet(Screener.questionnaire) { result in
-    guard case .completed(let responses) = result else {
-        return
-    }
-    let consented = responses[Screener.consent]           // Bool?
-    let age = responses[Screener.age]                     // Double?
-}
+let responses = QuestionnaireResponses(questionnaire: Screener.questionnaire, resuming: draft)
+
+let consented = responses[Screener.consent]           // Bool?
+let age = responses[Screener.age]                     // Double?
 ```
+
+> Tip: When the answers are collected on screen, `QuestionnaireSheet` in `GroveQuestionnaireUI`
+hands back the same ``QuestionnaireResponses`` to read exactly this way.
 
 The subscript writes as well as reads, which is how a questionnaire is pre-populated from
 data the app already holds. Handles erase to linkIds, so reading one out of a different

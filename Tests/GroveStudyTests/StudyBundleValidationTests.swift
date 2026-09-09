@@ -493,20 +493,66 @@ struct StudyBundleValidationTests { // swiftlint:disable:this type_body_length
             expectEqualIgnoringOrder(Set(issues), [
                 .questionnaire(.missingField(
                     fileRef: .init(fileRef: fileRef, localization: .enUS),
-                    path: .root.item[1].extensions["http://hl7.org/fhir/StructureDefinition/questionnaire-unit"],
-                    comment: "'http://hl7.org/fhir/StructureDefinition/questionnaire-unit' is a required extension in this context"
+                    path: .root.item[1].extensions["http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption"],
+                    comment: "'http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption' is a required extension in this context"
                 )),
                 .questionnaire(.missingField(
                     fileRef: .init(fileRef: fileRef, localization: .enGB),
-                    path: .root.item[1].extensions["http://hl7.org/fhir/StructureDefinition/questionnaire-unit"],
-                    comment: "'http://hl7.org/fhir/StructureDefinition/questionnaire-unit' is a required extension in this context"
+                    path: .root.item[1].extensions["http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption"],
+                    comment: "'http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption' is a required extension in this context"
                 )),
                 .questionnaire(.mismatchingFieldValues(
                     baseFileRef: .init(fileRef: fileRef, localization: .enUS),
                     localizedFileRef: .init(fileRef: fileRef, localization: .enGB),
-                    path: .root.item[2].extensions["http://hl7.org/fhir/StructureDefinition/questionnaire-unit"].valueCoding.code,
-                    baseValue: Value("lbs"),
-                    localizedValue: Value("kg")
+                    path: .root.item[0]
+                        .extensions["http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-minQuantity"]
+                        .valueQuantity.value,
+                    baseValue: Value(1),
+                    localizedValue: Value(2)
+                )),
+                .questionnaire(.mismatchingFieldValues(
+                    baseFileRef: .init(fileRef: fileRef, localization: .enUS),
+                    localizedFileRef: .init(fileRef: fileRef, localization: .enGB),
+                    path: .root.item[0]
+                        .extensions["http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-maxQuantity"]
+                        .valueQuantity.system,
+                    baseValue: Value(URL(string: "http://unitsofmeasure.org")),
+                    localizedValue: Value(URL(string: "https://example.org/units"))
+                )),
+                .questionnaire(.mismatchingFieldValues(
+                    baseFileRef: .init(fileRef: fileRef, localization: .enUS),
+                    localizedFileRef: .init(fileRef: fileRef, localization: .enGB),
+                    path: .root.item[0]
+                        .extensions["http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-maxQuantity"]
+                        .valueQuantity.code,
+                    baseValue: Value("kg"),
+                    localizedValue: Value("g")
+                )),
+                .questionnaire(.mismatchingFieldValues(
+                    baseFileRef: .init(fileRef: fileRef, localization: .enUS),
+                    localizedFileRef: .init(fileRef: fileRef, localization: .enGB),
+                    path: .root.item[0]
+                        .extensions["http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption"]
+                        .valueCoding.system,
+                    baseValue: Value(URL(string: "http://unitsofmeasure.org")),
+                    localizedValue: Value(URL(string: "https://example.org/units"))
+                )),
+                .questionnaire(.mismatchingFieldValues(
+                    baseFileRef: .init(fileRef: fileRef, localization: .enUS),
+                    localizedFileRef: .init(fileRef: fileRef, localization: .enGB),
+                    path: .root.item[0]
+                        .extensions["http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption"]
+                        .valueCoding.code,
+                    baseValue: Value("kg"),
+                    localizedValue: Value("g")
+                )),
+                .questionnaire(.invalidField(
+                    fileRef: .init(fileRef: fileRef, localization: .enGB),
+                    path: .root.item[2]
+                        .extensions["http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption"]
+                        .length,
+                    fieldValue: Value(2),
+                    failureReason: "Grove study definitions currently require exactly one extension entry for 'http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption'"
                 ))
             ])
         default:

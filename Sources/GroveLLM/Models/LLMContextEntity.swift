@@ -7,6 +7,7 @@
 //
 
 public import Foundation
+package import GroveFoundation
 #if canImport(UIKit)
 public import class UIKit.UIImage
 #elseif canImport(AppKit)
@@ -97,10 +98,10 @@ public struct LLMContextEntity: Codable, Equatable, Hashable, Identifiable, Send
 
     /// - Important: This type is not stable and will be removed in an upcoming release.
     package struct _ImageContent: Codable, Hashable, Sendable { // swiftlint:disable:this type_name
-        package let contentType: String
+        package let contentType: MIMEType
         package let base64Image: String
 
-        package init(contentType: String, base64Image: String) {
+        package init(contentType: MIMEType, base64Image: String) {
             self.contentType = contentType
             self.base64Image = base64Image
         }
@@ -109,7 +110,7 @@ public struct LLMContextEntity: Codable, Equatable, Hashable, Identifiable, Send
     /// - Important: This type is not stable and will be removed in an upcoming release.
     package struct _FileContent: Codable, Hashable, Sendable { // swiftlint:disable:this type_name
         package let filename: String
-        package let contentType: String
+        package let contentType: MIMEType
         package let base64Data: String
         /// Where the file was read from, so the chat can show and preview it again.
         package let url: URL?
@@ -200,7 +201,7 @@ public struct LLMContextEntity: Codable, Equatable, Hashable, Identifiable, Send
     package init?(
         _role: Role, // swiftlint:disable:this identifier_name
         fileURL: URL,
-        contentType: String,
+        contentType: MIMEType,
         filename: String? = nil,
         id: UUID = UUID(),
         date: Date = .now,
@@ -261,7 +262,7 @@ extension LLMContextEntity {
         case png
         case jpeg(compressionFactor: Double)
 
-        fileprivate var contentType: String {
+        fileprivate var contentType: MIMEType {
             switch self {
             case .png:
                 "image/png"

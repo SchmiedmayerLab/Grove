@@ -195,19 +195,21 @@ extension QuestionnaireItem {
             }
             return ORKTextChoiceAnswerFormat(style: choiceAnswerStyle, textChoices: answerOptions)
         case .date:
+            let evaluationInstant = Date()
             return ORKDateAnswerFormat(
                 style: .date,
                 defaultDate: nil,
-                minimumDate: minDateValue.flatMap { Calendar.current.date(from: $0) },
-                maximumDate: maxDateValue.flatMap { Calendar.current.date(from: $0) },
+                minimumDate: try minDateValue(evaluationInstant: evaluationInstant).flatMap { Calendar.current.date(from: $0) },
+                maximumDate: try maxDateValue(evaluationInstant: evaluationInstant).flatMap { Calendar.current.date(from: $0) },
                 calendar: nil
             )
         case .dateTime:
+            let evaluationInstant = Date()
             return ORKDateAnswerFormat(
                 style: .dateAndTime,
                 defaultDate: nil,
-                minimumDate: minDateValue.flatMap { Calendar.current.date(from: $0) },
-                maximumDate: maxDateValue.flatMap { Calendar.current.date(from: $0) },
+                minimumDate: try minDateValue(evaluationInstant: evaluationInstant).flatMap { Calendar.current.date(from: $0) },
+                maximumDate: try maxDateValue(evaluationInstant: evaluationInstant).flatMap { Calendar.current.date(from: $0) },
                 calendar: nil
             )
         case .time:
@@ -215,23 +217,25 @@ extension QuestionnaireItem {
         case .decimal, .quantity:
             let answerFormat = ORKNumericAnswerFormat.decimalAnswerFormat(withUnit: unit)
             answerFormat.maximumFractionDigits = maximumDecimalPlaces
-            answerFormat.minimum = minValue
-            answerFormat.maximum = maxValue
+            answerFormat.minimum = try minValue
+            answerFormat.maximum = try maxValue
             return answerFormat
         case .integer:
             if itemControl == "slider" {
+                let maximum = try maxValue
+                let minimum = try minValue
                 let answerFormat = ORKScaleAnswerFormat(
-                    maximumValue: maxValue?.intValue ?? 0,
-                    minimumValue: minValue?.intValue ?? 0,
-                    defaultValue: minValue?.intValue ?? 0,
+                    maximumValue: maximum?.intValue ?? 0,
+                    minimumValue: minimum?.intValue ?? 0,
+                    defaultValue: minimum?.intValue ?? 0,
                     step: Int(truncating: sliderStepValue ?? 1)
                 )
                 return answerFormat
             }
 
             let answerFormat = ORKNumericAnswerFormat.integerAnswerFormat(withUnit: nil)
-            answerFormat.minimum = minValue
-            answerFormat.maximum = maxValue
+            answerFormat.minimum = try minValue
+            answerFormat.maximum = try maxValue
             return answerFormat
         case .text, .string:
             let maximumLength = Int(maxLength?.value?.integer ?? 0)
@@ -254,7 +258,7 @@ extension QuestionnaireItem {
             answerFormat.placeholder = self.placeholderText
 
             // Applies a regular expression for validation, if defined
-            if let validationRegularExpression = validationRegularExpression {
+            if let validationRegularExpression = try validationRegularExpression {
                 answerFormat.validationRegularExpression = validationRegularExpression
                 answerFormat.invalidMessage = validationMessage ?? "Invalid input"
             }

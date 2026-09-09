@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import GroveFoundation
 @testable import GroveLocalStorage
 import GroveTesting
 import XCTest
@@ -22,6 +23,9 @@ extension LocalStorageKeys { // swiftlint:disable:this file_types_order
 
 
 final class LocalStorageTests: XCTestCase {
+    private enum InjectedResourceValueError: Error {
+        case failed
+    }
     override func setUp() async throws {
         try await super.setUp()
         // Before each test, we want to fully reset the LocalStorage
@@ -204,6 +208,55 @@ final class LocalStorageTests: XCTestCase {
         }
         
         XCTAssertEqual(try localStorage.load(key), increments)
+    }
+
+    @MainActor
+    func testCompareExchangeRejectsStaleAndConcurrentWriters() async throws {
+        let localStorage = LocalStorage()
+        withDependencyResolution {
+            localStorage
+        }
+        let key = LocalStorageKey<Int>("compareExchangeAnchor", setting: .unencrypted())
+        try localStorage.store(1, for: key)
+
+        let results = try await withThrowingTaskGroup(of: Bool.self) { group in
+            for desired in [2, 3] {
+                group.addTask {
+                    try localStorage.compareExchange(expected: 1, desired: desired, for: key)
+                }
+            }
+            var results: [Bool] = []
+            for try await result in group {
+                results.append(result)
+            }
+            return results
+        }
+
+        XCTAssertEqual(results.filter(\.self).count, 1)
+        XCTAssertTrue([2, 3].contains(try XCTUnwrap(localStorage.load(key))))
+        XCTAssertFalse(try localStorage.compareExchange(expected: 1, desired: 4, for: key))
+    }
+
+    @MainActor
+    func testCompareExchangeDoesNotCommitWhenResourceMetadataFails() throws {
+        let namespace = StorageNamespace.custom("edu.stanford.grove.local-storage-atomic-test")
+        let key = LocalStorageKey<Int>("metadataFailureAnchor", setting: .unencrypted())
+        let workingStorage = LocalStorage(namespace: namespace)
+        withDependencyResolution {
+            workingStorage
+        }
+        workingStorage.configure()
+        defer { try? workingStorage.deleteAll() }
+        try workingStorage.store(1, for: key)
+
+        let failingStorage = LocalStorage(namespace: namespace) { _, _ in
+            throw InjectedResourceValueError.failed
+        }
+        withDependencyResolution {
+            failingStorage
+        }
+        XCTAssertThrowsError(try failingStorage.compareExchange(expected: 1, desired: 2, for: key))
+        XCTAssertEqual(try workingStorage.load(key), 1)
     }
     
     

@@ -50,7 +50,6 @@ struct PermittedBackgroundTaskIdentifier: RawRepresentable, Hashable, Sendable, 
             LegacyIdentifierReport.encountered(
                 legacy.rawValue,
                 in: "GroveScheduler",
-                .duringMigration,
                 remedy: "Replace it with '\(current.rawValue)' in BGTaskSchedulerPermittedIdentifiers."
             )
             return legacy

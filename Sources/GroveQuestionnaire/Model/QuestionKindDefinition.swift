@@ -8,50 +8,35 @@
 
 // swiftlint:disable file_types_order
 
-public import SwiftUI
-
 
 // MARK: Question Kind
 
 /// Defines a question kind.
 ///
-/// See also <doc:QuestionKinds>
+/// A question kind that is presented on screen additionally conforms to
+/// `QuestionKindDefinitionWithViewSupport`, which adds the SwiftUI view it renders.
 ///
 /// ## Topics
 ///
 /// ### Static Methods
-/// - ``makeView(for:using:response:)``
 /// - ``validate(response:for:)``
 /// - ``evaluateResponseValueComparison(for:response:operator:value:)``
 ///
 /// ### Associated Types
 /// - ``Config``
-/// - ``View``
 ///
 /// ### Related Types
 /// - ``QuestionKindConfig``
 @available(iOS 18, macOS 15, watchOS 11, *)
 public protocol QuestionKindDefinition: Sendable, SendableMetatype {
     associatedtype Config: QuestionKindConfig = EmptyQuestionKindConfig
-    associatedtype View: SwiftUI.View
-    
-    /// Constructs a SwiftUI view usable for responding to a question of this kind.
-    ///
-    /// - Note: The resulting view will be placed into a `Section` within a `Form`, i.e. each element in the view will become a row in the `Form`.
-    @MainActor
-    @ViewBuilder
-    static func makeView(
-        for task: Questionnaire.Task,
-        using config: Config,
-        response: Binding<QuestionnaireResponses.Response>
-    ) -> View
-    
+
     /// Validates a response collected to a question of this kind, against the question's config.
     static func validate(
         response: QuestionnaireResponses.Response,
         for config: Config
     ) -> QuestionnaireResponses.ResponseValidationResult
-    
+
     /// Evaluates a ``Questionnaire/Condition/responseValueComparison(taskId:operator:value:)`` condition against a response collected to a question of this kind.
     ///
     /// - Note: By default, this function always returns `false`.
@@ -92,7 +77,7 @@ extension QuestionKindDefinition {
 public protocol QuestionKindConfig: Hashable, Sendable {
     /// Any follow-up tasks a task with this config will ask, in response to some specific event (e.g., a selection)
     var followUpTasks: [Questionnaire.Task] { get }
-    
+
     /// Creates a functionally identical copy of the config, with any ``Questionnaire/Condition``s contained within simplified.
     func withConditionsSimplified() -> Self
 }
@@ -102,7 +87,7 @@ public protocol QuestionKindConfig: Hashable, Sendable {
 extension QuestionKindConfig {
     // swiftlint:disable missing_docs
     public var followUpTasks: [Questionnaire.Task] { [] }
-    
+
     public func withConditionsSimplified() -> Self {
         self
     }

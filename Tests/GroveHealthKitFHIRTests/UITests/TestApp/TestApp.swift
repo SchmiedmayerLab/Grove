@@ -37,10 +37,14 @@ actor TestAppStandard: Standard, HealthKitConstraint {
     func handleNewSamples<Sample>(
         _ addedSamples: some Collection<Sample> & Sendable,
         ofType sampleType: SampleType<Sample>
-    ) {}
+    ) -> HealthKitAnchorCommitAction? {
+        nil
+    }
     
     func handleDeletedObjects<Sample>(
         _ deletedObjects: some Collection<HKDeletedObject> & Sendable,
         ofType sampleType: SampleType<Sample>
-    ) {}
+    ) -> HealthKitAnchorCommitAction? {
+        nil
+    }
 }

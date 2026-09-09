@@ -134,6 +134,11 @@ public struct QuestionnaireSheetNavigator {
 // MARK: Finding the Questionnaire
 
 extension QuestionnaireSheetNavigator {
+    /// The navigation stack that owns the complete questionnaire run.
+    var questionnaireRoot: XCUIElement {
+        app.descendants(matching: .any).matching(identifier: "GroveQuestionnaireNavStack").firstMatch
+    }
+
     /// The scrolling content of the section on screen.
     ///
     /// A section is drawn as a `Form`, whose element type differs between OS versions, so this
@@ -142,21 +147,30 @@ extension QuestionnaireSheetNavigator {
         app.descendants(matching: .any).matching(identifier: "GroveQuestionnaireSection").firstMatch
     }
 
+    /// The element that scrolls the current page.
+    ///
+    /// SwiftUI can omit a `Form`'s accessibility identifier when the form is the sole page in its
+    /// navigation stack. The stack remains a collection view in that case and provides the same
+    /// scrolling surface.
+    var scrollablePage: XCUIElement {
+        section.exists ? section : questionnaireRoot
+    }
+
     /// Whether any page of the questionnaire — a section, or the completion page — is on screen.
     public var isPresented: Bool {
-        section.exists || completionPage.exists
+        questionnaireRoot.exists
     }
 
     /// Waits until the questionnaire is on screen.
     @discardableResult
     public func waitUntilPresented(timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        section.waitForExistence(timeout: timeout) || completionPage.exists
+        questionnaireRoot.waitForExistence(timeout: timeout)
     }
 
     /// Waits until the questionnaire has gone, which is what a handed-off or discarded run looks like.
     @discardableResult
     public func waitUntilDismissed(timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        section.waitForNonExistence(timeout: timeout) && completionPage.waitForNonExistence(timeout: timeout)
+        questionnaireRoot.waitForNonExistence(timeout: timeout)
     }
 }
 
@@ -189,12 +203,12 @@ extension QuestionnaireSheetNavigator {
     /// Choice options are buttons rather than text, so they are not in here; ask the question
     /// they belong to about those.
     public var visibleText: [String] {
-        section.staticTexts.allElementsBoundByIndex.map(\.label)
+        scrollablePage.staticTexts.allElementsBoundByIndex.map(\.label)
     }
 
     /// Whether `text` appears anywhere on the page, above or below the fold.
     public func showsText(_ text: String) -> Bool {
-        scan { section.staticTexts.matching(label: text).firstMatch.exists }
+        scan { scrollablePage.staticTexts.matching(label: text).firstMatch.exists }
     }
 
     /// Whether the navigation bar carries `text`, as the page's title or as its subtitle.
@@ -210,7 +224,9 @@ extension QuestionnaireSheetNavigator {
     /// Waits for the navigation bar to carry `text`.
     @discardableResult
     public func waitUntilNavigationBarShows(_ text: String, timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        navigationBar.staticTexts.matching(label: text).firstMatch.waitForExistence(timeout: timeout)
+        // Across every bar rather than the topmost one: a sheet that has not been presented yet has no bar to
+        // bind to, and binding to the bar underneath it waits for a title that will never appear there.
+        app.navigationBars.staticTexts.matching(label: text).firstMatch.waitForExistence(timeout: timeout)
     }
 
     /// Scrolls the page down by roughly one screen.

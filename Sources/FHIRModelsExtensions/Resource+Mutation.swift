@@ -1,7 +1,7 @@
 //
 // This source file is part of the Grove open-source project
 //
-// SPDX-FileCopyrightText: 2022 Stanford University and the project authors (see CONTRIBUTORS.md)
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
 //
 // SPDX-License-Identifier: MIT
 //
@@ -9,15 +9,14 @@
 public import FMCore
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRType {
     /// Appends an element to a `Collection`-typed property.
-    @inlinable
     public mutating func append<C: RangeReplaceableCollection>(_ element: C.Element, to keyPath: WritableKeyPath<Self, C?>) {
         append(CollectionOfOne(element), to: keyPath)
     }
     
     /// Appends multiple elements to a `Collection`-typed property.
-    @inlinable
     public mutating func append<C: RangeReplaceableCollection>(
         _ elements: some Collection<C.Element>,
         to keyPath: WritableKeyPath<Self, C?>
@@ -43,7 +42,6 @@ extension FHIRType {
     /// Also sets the property to `nil` if there are no elements remaining after the removal.
     ///
     /// - returns: the removed element, if any.
-    @inlinable
     public mutating func removeFirst<C: RangeReplaceableCollection>(
         of keyPath: WritableKeyPath<Self, C?>,
         where predicate: (C.Element) -> Bool
@@ -61,7 +59,6 @@ extension FHIRType {
     /// Also sets the property to `nil` if there are no elements remaining after the removal.
     ///
     /// - returns: the removed elements, if any.
-    @inlinable
     public mutating func removeAll<C: RangeReplaceableCollection>(
         of keyPath: WritableKeyPath<Self, C?>,
         where predicate: (C.Element) -> Bool
@@ -78,9 +75,10 @@ extension FHIRType {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RangeReplaceableCollection {
-    @inlinable
-    mutating func removeElements(at indices: some Collection<Index>) {
+    /// Removes the elements at the given indices, highest first so earlier ones stay valid.
+    public mutating func removeElements(at indices: some Collection<Index>) {
         for idx in indices.sorted().reversed() {
             self.remove(at: idx)
         }

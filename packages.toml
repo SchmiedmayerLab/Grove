@@ -28,9 +28,12 @@
 # Note: GroveFoundation's "CZlib" is a directory name (Sources/CZlib); its Swift target is "GroveCZlib".
 
 [FHIRModelsExtensions]
-platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "tvOS"]
+platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "tvOS", "Linux"]
 targets = ["FHIRModelsExtensions", "FHIRPathParser", "FHIRQuestionnaires"]
 tests = ["FHIRModelsExtensionsTests", "FHIRPathParserTests"]
+# Pure FHIR data handling, so the whole package compiles off-Apple; the test targets build
+# there too, which checks more than the sources alone.
+linuxTargets = ["FHIRQuestionnaires", "FHIRModelsExtensionsTests", "FHIRPathParserTests"]
 
 [ResearchKitOnFHIR]
 platforms = ["iOS"]
@@ -87,10 +90,12 @@ tests = ["GroveDevicesTests", "GroveOmronTests"]
 uiTests = ["iOS"]
 
 [GroveFHIR]
-platforms = ["iOS", "macOS"]
-targets = ["GroveFHIR", "GroveFHIRMockPatients"]
+platforms = ["iOS", "macOS", "Linux"]
+targets = ["GroveFHIRContract", "GroveFHIR", "GroveFHIRMockPatients"]
 tests = ["GroveFHIRTests"]
 uiTests = ["iOS"]
+# The shared contract module builds on Linux and is gated here, where it lives.
+linuxTargets = ["GroveFHIRContract"]
 
 [GroveFileFormats]
 platforms = ["iOS", "macOS", "watchOS", "visionOS", "tvOS"]
@@ -119,8 +124,8 @@ uiTests = ["iOS"]
 # UITests project keeps a home and CI stays granular -- the test matrix is directory-based.
 [GroveHealthKitFHIR]
 platforms = ["iOS", "macOS", "watchOS"]
-targets = ["GroveHealthKitFHIR", "GroveHealthKitFHIRMacros", "GroveHealthKitFHIRMacrosImpl"]
-tests = ["GroveHealthKitFHIRTests", "GroveHealthKitFHIRMacrosTests"]
+targets = ["GroveHealthKitFHIR"]
+tests = ["GroveHealthKitFHIRTests"]
 uiTests = ["iOS"]
 
 [GroveLLM]
@@ -162,11 +167,15 @@ tests = ["GroveOnboardingTests"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
 
 [GroveQuestionnaire]
-platforms = ["iOS", "macOS"]
-targets = ["GroveQuestionnaire", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveQuestionnaireLegacy", "GroveQuestionnaireMacros", "GroveQuestionnaireMacrosImpl", "XCTGroveQuestionnaire"]
-tests = ["GroveQuestionnaireTests", "GroveQuestionnaireMacrosTests"]
+platforms = ["iOS", "macOS", "Linux"]
+targets = ["GroveQuestionnaire", "GroveQuestionnaireUI", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveQuestionnaireExtraction", "GroveQuestionnaireLegacy", "GroveQuestionnaireMacros", "GroveQuestionnaireMacrosImpl", "XCTGroveQuestionnaire"]
+tests = ["GroveQuestionnaireTests", "GroveQuestionnaireExtractionTests", "GroveQuestionnaireMacrosTests"]
 testPlatforms = { GroveQuestionnaireMacrosTests = ["macOS"] }
 uiTests = ["iOS", "iPadOS"]
+# Everything that treats a questionnaire as data builds off-Apple; only GroveQuestionnaireUI,
+# which renders it, is Apple-bound. The annotate-image kind goes with the UI: its config names an
+# image asset and its answer is a PencilKit drawing, so off-Apple it is neither parsed nor encoded.
+linuxTargets = ["GroveQuestionnaire", "GroveQuestionnaireCatalog", "GroveQuestionnaireFHIR", "GroveQuestionnaireExtraction", "GroveQuestionnaireExtractionTests"]
 
 [GroveScheduler]
 platforms = ["iOS", "macOS", "watchOS", "visionOS"]
@@ -179,6 +188,11 @@ platforms = ["iOS"]
 targets = ["GroveSensorKit"]
 tests = ["GroveSensorKitTests"]
 uiTests = ["iOS"]
+
+[GroveSensorKitFHIR]
+platforms = ["iOS", "macOS"]
+targets = ["GroveSensorKitFHIR"]
+tests = ["GroveSensorKitFHIRTests"]
 
 [GroveSpeech]
 platforms = ["iOS", "macOS", "visionOS"]
