@@ -171,6 +171,12 @@ jobs:
         if: matrix.platform == 'Linux'
         uses: SwiftyLab/setup-swift@v1
       - name: Test ${{ matrix.package }} on ${{ matrix.platform }}
+        env:
+          # Package fetches would otherwise leave the runner anonymous, and GitHub throttles anonymous
+          # clones per address once a stack of PRs fans out across the self-hosted runners.
+          GIT_CONFIG_COUNT: 1
+          GIT_CONFIG_KEY_0: url.https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/.insteadOf
+          GIT_CONFIG_VALUE_0: https://github.com/
         run: Scripts/run-package-tests.sh "${{ matrix.package }}" "${{ matrix.platform }}"
       - name: Upload .xcresult
         if: always() && matrix.platform != 'Linux'   # always upload (pass or fail); Linux is a compile-check (no .xcresult)
@@ -192,6 +198,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: UI test ${{ matrix.package }} on ${{ matrix.platform }}
+        env:
+          # Package fetches would otherwise leave the runner anonymous, and GitHub throttles anonymous
+          # clones per address once a stack of PRs fans out across the self-hosted runners.
+          GIT_CONFIG_COUNT: 1
+          GIT_CONFIG_KEY_0: url.https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/.insteadOf
+          GIT_CONFIG_VALUE_0: https://github.com/
         run: Scripts/run-package-tests.sh "${{ matrix.package }}" "${{ matrix.platform }}" ui
       - name: Upload .xcresult
         if: always()   # always upload the result bundle (pass or fail)
