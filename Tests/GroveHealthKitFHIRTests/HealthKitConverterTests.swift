@@ -186,6 +186,10 @@ struct HealthKitFHIRConverterTests {
     private let timestamp = Date(timeIntervalSince1970: 1_787_148_600)
 
     private var context: HealthKitConversionContext {
+        conversionContext()
+    }
+
+    private func conversionContext(researchStudies: [Reference] = []) -> HealthKitConversionContext {
         HealthKitConversionContext(
             subject: .testPatient,
             converter: HealthKitApplication(
@@ -194,7 +198,8 @@ struct HealthKitFHIRConverterTests {
                 version: "2.0.0 (42)"
             ),
             graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-            conversionInstant: timestamp
+            conversionInstant: timestamp,
+            researchStudies: researchStudies
         )
     }
 
@@ -1258,6 +1263,47 @@ struct HealthKitFHIRConverterTests {
 
         #expect(throws: HealthKitConversionError.duplicateReference(field: "researchStudies")) {
             try converter.convert(sample, context: duplicateContext)
+        }
+    }
+
+    @Test("Study relevance preserves quantities and identities without asserting a protocol", arguments: [0, 1, 2])
+    func studyRelevancePreservesQuantity(studyCount: Int) throws {
+        let sample = quantitySample(.heartRate, unit: .count().unitDivided(by: .minute()), value: 72)
+        let studies = (0..<studyCount).map { Reference.testResearchStudy("study-\($0)") }
+        let studyContext = conversionContext(researchStudies: studies)
+        let baseline = try converter.convert(sample, context: context)
+        let conversion = try converter.convert(sample, context: studyContext)
+        let references = conversion.observation.extension?.filter { $0.url == Canonicals.researchStudy } ?? []
+        #expect(references.map(\.value) == studies.map { .reference($0) })
+        #expect(conversion.observation.extension?.contains { $0.url == Canonicals.instantiatesCanonical } != true)
+        #expect(conversion.observation.value == baseline.observation.value)
+        #expect(conversion.observation.effective == baseline.observation.effective)
+        #expect(conversion.graphIdentifiers == baseline.graphIdentifiers)
+        #expect(conversion.provenance == baseline.provenance)
+        #expect(conversion.bundle.identifier == baseline.bundle.identifier)
+        #expect(conversion.bundle.entry?.map(\.fullUrl) == baseline.bundle.entry?.map(\.fullUrl))
+        _ = try ExchangeGraph(
+            kind: .active,
+            eventIdentifier: studyContext.eventIdentifier,
+            bundle: conversion.bundle
+        )
+    }
+
+    @Test("Study references must be typed logical references", arguments: [
+        (Reference.testPatient, HealthKitConversionError.invalidReference(
+            field: "researchStudies", expectedResourceType: .researchStudy
+        )),
+        (Reference(reference: "ResearchStudy/absent", type: "ResearchStudy"), .invalidExchangeIdentity(
+            "researchStudies must use an identifier-only logical Reference; literals require a Bundle entry"
+        ))
+    ])
+    func invalidStudyReferenceFailsClosed(reference: Reference, expected: HealthKitConversionError) {
+        let studyContext = HealthKitConversionContext(subject: .testPatient, researchStudies: [reference])
+        #expect(throws: expected) {
+            try converter.convert(
+                quantitySample(.heartRate, unit: .count().unitDivided(by: .minute()), value: 72),
+                context: studyContext
+            )
         }
     }
 

@@ -81,7 +81,8 @@ struct HealthKitRecordingDocumentTests {
     private let converter = HealthKitConverter()
 
     private func context(
-        routeDisclosurePolicy: HealthKitRouteDisclosurePolicy = .omit
+        routeDisclosurePolicy: HealthKitRouteDisclosurePolicy = .omit,
+        researchStudies: [Reference] = []
     ) -> HealthKitConversionContext {
         HealthKitConversionContext(
             subject: .testPatient,
@@ -92,7 +93,8 @@ struct HealthKitRecordingDocumentTests {
             ),
             graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
             conversionInstant: Date(timeIntervalSince1970: 1_755_624_060),
-            routeDisclosurePolicy: routeDisclosurePolicy
+            routeDisclosurePolicy: routeDisclosurePolicy,
+            researchStudies: researchStudies
         )
     }
 
@@ -294,6 +296,41 @@ struct HealthKitRecordingDocumentTests {
     }
 
     #endif
+}
+
+extension HealthKitRecordingDocumentTests {
+    @Test("Study relevance preserves recording bytes and identities", arguments: [0, 1, 2])
+    func studyRelevancePreservesRecording(studyCount: Int) throws {
+        let sample = envelopeSample()
+        let studies = (0..<studyCount).map { Reference.testResearchStudy("study-\($0)") }
+        let evidence = HealthKitRecordingEvidence(
+            outputRole: "native-recording",
+            format: .beatIntervalSeries,
+            title: "Heartbeat series beat intervals",
+            payload: try HealthKitConverter.beatIntervalPayload(
+                seriesStart: Self.seriesStart,
+                heartbeats: Self.heartbeats,
+                sampleType: HKDataTypeIdentifierHeartbeatSeries
+            )
+        )
+        let baseline = try HealthKitConverter.assembleDocumentGraph(
+            for: sample, evidence: evidence, context: context()
+        )
+        let conversion = try HealthKitConverter.assembleDocumentGraph(
+            for: sample, evidence: evidence, context: context(researchStudies: studies)
+        )
+        #expect(conversion.document.context?.related ?? [] == studies)
+        #expect(conversion.document.extension?.contains { $0.url == Canonicals.instantiatesCanonical } != true)
+        #expect(conversion.graphIdentifiers == baseline.graphIdentifiers)
+        #expect(conversion.document.content == baseline.document.content)
+        #expect(conversion.provenance == baseline.provenance)
+        #expect(conversion.bundle.identifier == baseline.bundle.identifier)
+        _ = try ExchangeGraph(
+            kind: .active,
+            eventIdentifier: context().eventIdentifier,
+            bundle: conversion.bundle
+        )
+    }
 }
 
 #endif

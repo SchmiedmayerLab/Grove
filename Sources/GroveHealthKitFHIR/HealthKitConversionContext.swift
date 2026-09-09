@@ -85,12 +85,9 @@ public struct HealthKitConversionContext: Sendable {
     public let nativeIdentifierDisclosurePolicy: HealthKitNativeIdentifierDisclosurePolicy
     /// Whether a workout's recorded route may be disclosed.
     public let routeDisclosurePolicy: HealthKitRouteDisclosurePolicy
-    /// The versioned protocol a measurement was collected under, as `PlanDefinition.url|version`.
-    ///
-    /// `workflow-researchStudy` links the study, whose protocol moves on; this states the exact
-    /// revision in force when the measurement was taken. The guide's study model already versions
-    /// the PlanDefinition, so nothing new is invented to carry it.
-    public let protocolCanonical: String?
+    /// Optional study relevance recorded when this event is created, not consent or access grants.
+    /// The receiver resolves each study's historical protocol separately. Exact retries preserve
+    /// these references; late attribution does not reconvert the event.
     public let researchStudies: [Reference]
     public let repositoryIDs: HealthKitRepositoryIDs
 
@@ -128,7 +125,6 @@ public struct HealthKitConversionContext: Sendable {
         udiDisclosurePolicy: HealthKitUDIDisclosurePolicy = .omit,
         nativeIdentifierDisclosurePolicy: HealthKitNativeIdentifierDisclosurePolicy = .omit,
         routeDisclosurePolicy: HealthKitRouteDisclosurePolicy = .omit,
-        protocolCanonical: String? = nil,
         researchStudies: [Reference] = [],
         repositoryIDs: HealthKitRepositoryIDs = .init()
     ) {
@@ -147,7 +143,6 @@ public struct HealthKitConversionContext: Sendable {
         self.udiDisclosurePolicy = udiDisclosurePolicy
         self.nativeIdentifierDisclosurePolicy = nativeIdentifierDisclosurePolicy
         self.routeDisclosurePolicy = routeDisclosurePolicy
-        self.protocolCanonical = protocolCanonical
         self.researchStudies = researchStudies
         self.repositoryIDs = repositoryIDs
     }

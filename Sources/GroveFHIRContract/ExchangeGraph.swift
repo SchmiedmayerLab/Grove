@@ -62,6 +62,19 @@ public struct ExchangeGraph: Sendable {
         kind: ExchangeGraphKind,
         jsonData: Data
     ) throws(ExchangeGraphError) {
+        // Validate the original bytes before Foundation can collapse duplicate members or
+        // ModelsR4 can normalize an identifier namespace through Foundation.URL.
+        do {
+            var scanner = StrictJSONScanner(jsonData)
+            try scanner.validate()
+        } catch {
+            throw .invalidEntries("Serialized event is not strict JSON")
+        }
+        do {
+            try ExchangeIdentity.validateSerializedIdentifierSystems(in: jsonData)
+        } catch {
+            throw .ruleViolation(.identitySystemRole)
+        }
         try Self.validateSerializedEntryPolicy(kind: kind, data: jsonData)
         let decodedBundle: ModelsR4.Bundle
         do {

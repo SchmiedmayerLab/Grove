@@ -359,15 +359,6 @@ extension HealthKitConverter {
                 value: .reference(study)
             ))
         }
-        if let protocolCanonical = context.protocolCanonical {
-            observation.append(
-                extension: Extension(
-                    url: Canonicals.instantiatesCanonical,
-                    value: .canonical(FHIRPrimitive(Canonical(stringLiteral: protocolCanonical)))
-                ),
-                behaviour: .replace
-            )
-        }
     }
 
     private static func effectivePeriod(
