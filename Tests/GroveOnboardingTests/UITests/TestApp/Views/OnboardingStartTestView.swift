@@ -55,8 +55,15 @@ struct OnboardingStartTestView: View {
                 }
             }
         }
+        #if os(macOS)
         .sheet(isPresented: $isShowingScreenshotsFlow) {
             ScreenshotsFlow()
         }
+        #else
+        // Full screen, so the documentation screenshots show the flow the way an app presents it.
+        .fullScreenCover(isPresented: $isShowingScreenshotsFlow) {
+            ScreenshotsFlow()
+        }
+        #endif
     }
 }

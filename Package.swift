@@ -1106,7 +1106,7 @@ var targets: [Target] = [
             .target(name: "Grove"),
             .target(name: "GroveChat", condition: applePlatformsOnly),
             .target(name: "GroveKeychainStorage", condition: applePlatformsOnly),
-            .target(name: "GroveOnboarding", condition: applePlatformsOnly)
+            .target(name: "GroveViews", condition: applePlatformsOnly)
         ],
         exclude: targetExcludes("GroveLLMOpenAI"),
         resources: [
@@ -1174,7 +1174,7 @@ var targets: [Target] = [
             .target(name: "GroveLLM"),
             .target(name: "GroveFoundation"),
             .target(name: "GroveKeychainStorage", condition: applePlatformsOnly),
-            .target(name: "GroveOnboarding", condition: applePlatformsOnly),
+            .target(name: "GroveViews", condition: applePlatformsOnly),
             .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime")
         ],
         exclude: targetExcludes("GeneratedOpenAIClient", additional: [
@@ -1206,6 +1206,7 @@ var targets: [Target] = [
     .target(
         name: "GroveLicense",
         dependencies: [
+            .target(name: "GroveViews"),
             .product(name: "SwiftPackageList", package: "swift-package-list")
         ],
         exclude: targetExcludes("GroveLicense"),

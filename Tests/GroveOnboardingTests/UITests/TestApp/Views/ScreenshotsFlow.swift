@@ -20,6 +20,7 @@ struct ScreenshotsFlow: View {
             Welcome()
             InterestingModules()
             HealthKitPermissions()
+            StudyDetails()
         }
     }
 }
@@ -29,39 +30,39 @@ private struct Welcome: View {
     @Environment(ManagedNavigationStack.Path.self) private var path
     
     var body: some View {
-        OnboardingView {
-            OnboardingTitleView(
-                title: "Grove Template Application",
-                subtitle: "This application demonstrates several Grove features & modules"
+        PageView {
+            PageHeader(
+                title: "Heart Health Study",
+                subtitle: "How everyday activity shapes a healthy heart."
             )
         } content: {
             OnboardingInformationView {
                 OnboardingInformationView.Area(
-                    iconSymbol: "apps.iphone",
-                    title: "The Grove Framework",
-                    description: "The Grove Framework builds the foundation of this template application."
+                    iconSymbol: "applewatch",
+                    title: "Wear Your Watch",
+                    description: "Heart rate and activity are recorded the way they already are; nothing extra to do."
                 )
                 OnboardingInformationView.Area(
-                    iconSymbol: "shippingbox",
-                    title: "Swift Package Manager",
-                    description: "Grove is imported into applications using the Swift Package Manager."
+                    iconSymbol: "list.clipboard",
+                    title: "Weekly Check-Ins",
+                    description: "A short questionnaire once a week asks how you have been feeling and what your days were like."
                 )
                 OnboardingInformationView.Area(
-                    iconSymbol: "square.3.layers.3d",
-                    title: "Grove Modules",
-                    description: "Grove offers several modules including HealthKit integration, questionnaires, account management, and more."
+                    iconSymbol: "lock.shield",
+                    title: "Your Data Stays Yours",
+                    description: "Everything stays on your device until you choose to share it with the study team."
                 )
                 OnboardingInformationView.Area(
-                    iconSymbol: "shuffle",
-                    title: "HL7 FHIR Integration",
-                    description: "Many of Grove's modules offer native support for FHIR-based data sharing with existing systems and workflows."
+                    iconSymbol: "chart.line.uptrend.xyaxis",
+                    title: "See What Changes",
+                    description: "Your own trends are shown back to you as the weeks go by, alongside what the study learns."
                 )
             }
         } footer: {
-            OnboardingActionsView(
+            PageActions(
                 primaryTitle: "Learn More",
                 primaryAction: { path.nextStep() },
-                secondaryTitle: "Also Learn More",
+                secondaryTitle: "Not Now",
                 secondaryAction: { path.nextStep() }
             )
         }
@@ -74,13 +75,13 @@ private struct InterestingModules: View {
     
     var body: some View {
         SequentialOnboardingView(
-            title: "Interesting Modules",
-            subtitle: "Here are a few key Grove modules and features",
+            title: "What to Expect",
+            subtitle: "Four steps, and the study begins.",
             steps: [
-                .init(title: "Onboarding", description: "The Onboarding module allows you to build an onboarding flow like this one."),
-                .init(title: "Account", description: "GroveAccount enables user log in and sign up, using Firebase and other services."),
-                .init(title: "HealthKit", description: "Work with Health data collected by the user's iPhone and Watch."),
-                .init(title: "Scheduler", description: "Via Grove's Scheduler module, users can be prompted to complete tasks based on schedules.")
+                .init(title: "Consent", description: "Read what taking part means and sign on the next page."),
+                .init(title: "Health Access", description: "Allow the app to read heart rate and activity from Apple Health."),
+                .init(title: "First Check-In", description: "Answer the first weekly questionnaire; it takes about two minutes."),
+                .init(title: "Reminders", description: "Choose the evening you would like to be reminded each week.")
             ],
             actionText: "Continue"
         ) {
@@ -94,14 +95,13 @@ private struct HealthKitPermissions: View {
     @Environment(ManagedNavigationStack.Path.self) private var path
     
     var body: some View {
-        OnboardingView {
-            OnboardingTitleView(title: "Health Access", subtitle: "")
+        PageView {
+            PageHeader(
+                title: "Health Access",
+                subtitle: "Your Health data stays on your device unless you decide otherwise.",
+                image: Image(systemName: "heart.text.square") // swiftlint:disable:this accessibility_label_for_image
+            )
         } content: {
-            Image(systemName: "heart.text.square.fill")
-                .font(.system(size: 150))
-                .foregroundColor(.accentColor)
-                .accessibilityHidden(true)
-                .padding(.bottom, 40)
             VStack(alignment: .leading) {
                 Text(
                     """
@@ -112,7 +112,7 @@ private struct HealthKitPermissions: View {
                 )
             }
         } footer: {
-            OnboardingActionsView(
+            PageActions(
                 primaryTitle: "Grant Access",
                 primaryAction: {
                     path.nextStep()
@@ -122,6 +122,41 @@ private struct HealthKitPermissions: View {
                     path.nextStep()
                 }
             )
+        }
+    }
+}
+
+
+private struct StudyDetails: View {
+    private static let sections = [
+        "Taking part is voluntary. You can stop at any time, without giving a reason and without any effect on your care.",
+        "The study reads heart rate and activity data from Apple Health on this device, and the answers you give in the weekly check-ins.",
+        "Nothing leaves your device until you choose to share it. Shared data is encrypted in transit and at rest and stored on servers of the study team.",
+        "The study team sees your data under a participant number, not your name. Your name is kept separately, for the consent record only.",
+        "You can ask for your data to be deleted at any time; data already included in published results cannot be withdrawn.",
+        "The study runs for eight weeks. Each week's check-in is available from Friday evening and takes about two minutes.",
+        "Results are shared with you at the end of the study, together with a summary of what the study learned across all participants.",
+        "Questions about the study go to the study team through the app, and questions about your rights as a participant to the review board named in the consent."
+    ]
+
+    @Environment(ManagedNavigationStack.Path.self) private var path
+
+    var body: some View {
+        PageView {
+            PageHeader(
+                title: "Study Details",
+                subtitle: "What taking part means, in full."
+            )
+        } content: {
+            VStack(alignment: .leading, spacing: 16) {
+                ForEach(Array(Self.sections.enumerated()), id: \.offset) { index, section in
+                    Text("\(index + 1). \(section)")
+                }
+            }
+        } footer: {
+            PageActions("I Understand") {
+                path.nextStep()
+            }
         }
     }
 }

@@ -10,15 +10,28 @@
 #       
 -->
 
-Provides a view that renders a list of all package dependecies used in the project.
+Provides a view that renders a list of all package dependencies used in the project.
 
 
 ## Overview
 
 The Grove License module provides a quick way to inform users about the tools and packages you have leveraged in your project including their license information.
-You use the ``ContributionsList`` abstraction within your views to visualize a list of all Swift package dependecies used in your Xcode project.
+You use the ``ContributionsList`` within your views to visualize a list of all Swift package dependencies used in your Xcode project.
 
-This package builds on Felix Hermann's' [SwiftPackageList](https://github.com/FelixHerrmann/swift-package-list) library under the hood.
+@Row {
+    @Column {
+        @Image(source: "ContributionsList", alt: "A list headed by the app's own license, followed by every Swift package the app depends on with its license and version.") {
+            The ``ContributionsList`` opens with the project's own license and lists every package dependency with its license and version.
+        }
+    }
+    @Column {
+        @Image(source: "PackageLicense", alt: "The full license text of a single package, with the package name in the navigation bar and a button to open its repository.") {
+            Tapping a package shows its full license text and offers to open the repository in the browser.
+        }
+    }
+}
+
+This package builds on Felix Herrmann's [SwiftPackageList](https://github.com/FelixHerrmann/swift-package-list) library under the hood.
 
 
 ## Setup
@@ -38,7 +51,7 @@ Add the SwiftPackageListPlugin to the "Run Build Tool Plug-ins" in your Build Ph
 
 ### Contributions List
 
-The ContributionsList allows you to render a list containing all used Swift packages in your Xcode project including license infromation.
+The ``ContributionsList`` renders a list of all Swift packages used in your Xcode project including their license information.
 The code example below showcases how to render a simple list view with all used package dependencies.
 
 

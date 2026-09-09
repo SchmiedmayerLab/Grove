@@ -6,10 +6,13 @@
 // SPDX-License-Identifier: MIT
 //
 
+import GroveViews
 public import SwiftUI
 
 
 /// A `TextField` that automatically handles validation of input.
+///
+/// ![Text fields marked red with the failing rule under each.](Validation)
 ///
 /// This text field expects a ``ValidationEngine`` object in the environment. The engine is used
 /// to validate the text field input. A ``ValidationResultsView`` is used to automatically display
@@ -32,6 +35,9 @@ public struct VerifiableTextField<FieldLabel: View, FieldFooter: View>: View {
 
     @Environment(ValidationEngine.self)
     var validationEngine: ValidationEngine?
+    private var isMarked: Bool {
+        !(validationEngine?.displayedValidationResults.isEmpty ?? true)
+    }
 
     public var body: some View {
         VStack {
@@ -54,6 +60,8 @@ public struct VerifiableTextField<FieldLabel: View, FieldFooter: View>: View {
                 textFieldFooter
             }
         }
+        // The row or card around the field paints the mark, so it always matches the form it sits in.
+        .reportsBlocking(isMarked)
     }
 
 

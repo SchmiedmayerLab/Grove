@@ -56,9 +56,15 @@ extension View {
     /// }
     /// ```
     ///
-    /// @Image(source: "Skeleton-Loading", alt: "The `skeletonLoading` view modifier on a `RoundedRectangle` as placeholder cells.”)  {
-    ///     Using the `skeletonLoading` view modifier on a `RoundedRectangle` as placeholder cells.
+    /// @Row {
+    ///     @Column {
+    ///         @Image(source: "SkeletonLoading", alt: "Five shimmering placeholder rows that fade out towards the bottom of the screen.") {
+    ///             Five placeholder cells replicated from one `RoundedRectangle`, shimmering while the content loads.
+    ///         }
+    ///     }
     /// }
+    ///
+    /// ![A list whose rows are shimmering placeholder shapes.](SkeletonLoading)
     ///
     /// - Parameters:
     ///   - replicationCount: The number of skeleton cells to display.

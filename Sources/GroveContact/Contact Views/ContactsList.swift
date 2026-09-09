@@ -6,10 +6,13 @@
 // SPDX-License-Identifier: MIT
 //
 
+import GroveViews
 public import SwiftUI
 
 
 /// Display different `Contact`s in a card-like style in a scroll view.
+///
+/// ![Contact cards with call, e-mail and text buttons and an address.](ContactsList)
 ///
 /// You pass multiple ``Contact``s to the `ContactsList` to populate its content:
 /// ```swift
@@ -31,6 +34,7 @@ public struct ContactsList: View {
                 }
             }
         }
+        .softScrollEdge()
     }
     
     

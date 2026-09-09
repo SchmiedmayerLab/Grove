@@ -15,19 +15,11 @@ struct SignatureViewBackground: View {
     private let footer: SignatureView.Footer
     private let lineOffset: CGFloat
 
-    #if !os(macOS)
-    private let backgroundColor: UIColor
-    #else
-    private let backgroundColor: NSColor
-    #endif
+    private let backgroundColor: Color
     
     
     var body: some View {
-        #if !os(macOS)
-        Color(uiColor: backgroundColor)
-        #else
-        Color(nsColor: backgroundColor)
-        #endif
+        backgroundColor
         Rectangle()
             .fill(.secondary)
             .frame(maxWidth: .infinity, maxHeight: 1)
@@ -67,30 +59,25 @@ struct SignatureViewBackground: View {
     /// Creates a new instance of an `SignatureViewBackground`.
     /// - Parameters:
     ///   - footer: The footer's content.
-    ///   - formattedDate: The formatted date that is displayed under the signature line.
     ///   - lineOffset: Defines the distance of the signature line from the bottom of the view. The default value is 30.
     ///   - backgroundColor: The color of the background of the signature canvas.
-    #if !os(macOS)
-    init(
-        footer: SignatureView.Footer,
-        lineOffset: CGFloat = 30,
-        backgroundColor: UIColor = .secondarySystemBackground
-    ) {
+    init(footer: SignatureView.Footer, lineOffset: CGFloat = 30, backgroundColor: Color = .signaturePaper) {
         self.footer = footer
         self.lineOffset = lineOffset
         self.backgroundColor = backgroundColor
     }
-    #else
-    init(
-        footer: SignatureView.Footer,
-        lineOffset: CGFloat = 30,
-        backgroundColor: NSColor = .secondarySystemFill
-    ) {
-        self.footer = footer
-        self.lineOffset = lineOffset
-        self.backgroundColor = backgroundColor
+}
+
+
+extension Color {
+    /// The paper a signature is written on: lighter than the card around it, so the field reads as the place to sign.
+    static var signaturePaper: Color {
+        #if os(macOS)
+        Color(nsColor: .textBackgroundColor)
+        #else
+        Color(uiColor: .tertiarySystemBackground)
+        #endif
     }
-    #endif
 }
 
 

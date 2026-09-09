@@ -11,6 +11,8 @@ public import SwiftUI
 
 /// A key-value-based List row.
 ///
+/// ![A list row with a city on the left and its weather on the right.](ListRow)
+///
 /// Display key-value-based row elements within a List that automatically adjust to the size constraints
 /// of the current device.
 ///

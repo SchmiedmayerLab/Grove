@@ -13,6 +13,8 @@ public import SwiftUI
 
 /// Devices view showing grid of paired devices and provides functionality to pair new devices.
 ///
+/// ![A grid of paired devices with their battery state.](PairedDevices)
+///
 /// - Note: Make sure to place this view into an `NavigationStack`.
 @available(iOS 18, macOS 15, watchOS 11, *)
 @available(macOS, unavailable)

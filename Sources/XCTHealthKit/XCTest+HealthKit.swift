@@ -87,7 +87,7 @@ extension XCUIApplication {
         }
         // The nav bar renders before healthd has populated the type list, so the row has to be waited for.
         let turnOnAll = self.tables.staticTexts["Turn On All"]
-        XCTAssert(turnOnAll.wait(for: \.isHittable, toEqual: true, timeout: 10), "The Health permissions sheet did not finish loading")
+        XCTAssert(turnOnAll.wait(for: \.isHittable, toEqual: true, timeout: 30), "The Health permissions sheet did not finish loading")
         turnOnAll.tap()
         let allow = self.buttons["Allow"]
         XCTAssert(allow.wait(for: \.isHittable, toEqual: true, timeout: 10), "'Allow' never became hittable")

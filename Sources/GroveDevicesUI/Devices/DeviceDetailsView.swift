@@ -15,6 +15,8 @@ public import SwiftUI
 
 
 /// Show the device details of a paired device.
+///
+/// ![A device's details with its picture, name, battery and a forget button.](DeviceDetails)
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct DeviceDetailsView: View {
     private enum Event {
@@ -72,6 +74,7 @@ public struct DeviceDetailsView: View {
                 }
             }
         }
+            .softScrollEdge()
             .navigationTitle(Text("Device Details", bundle: .module))
 #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)

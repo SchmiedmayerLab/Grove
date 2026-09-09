@@ -30,6 +30,14 @@ extension QuestionnaireSheetNavigator {
         return scroll(dragDown, lookingFor: isFound)
     }
 
+    /// Whether a tap on `element` lands on it.
+    ///
+    /// The page scrolls under its navigation bar, and a row peeking out from beneath the bar still
+    /// reports itself hittable while the tap goes to the bar.
+    func isReachable(_ element: XCUIElement) -> Bool {
+        element.isHittable && element.frame.minY >= navigationBar.frame.maxY
+    }
+
     /// Scrolls one way until `isFound` holds or the page stops moving.
     ///
     /// The page is looked up again for every swipe: a run that hands itself off mid-scan takes its

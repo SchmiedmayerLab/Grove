@@ -8,7 +8,6 @@
 
 #if MLX
 public import GroveLLMLocal
-import GroveOnboarding
 import GroveViews
 import MLXLLM
 public import SwiftUI
@@ -60,7 +59,7 @@ public struct LLMLocalDownloadView: View {
 
     
     public var body: some View {
-        OnboardingView(
+        PageView(
             content: {
                 VStack {
                     informationView
@@ -91,7 +90,7 @@ public struct LLMLocalDownloadView: View {
                 .transition(.opacity)
                 .animation(.easeInOut, value: isDownloading || modelExist)
             }, footer: {
-                OnboardingActionsView(.init("LLM_DOWNLOAD_NEXT_BUTTON", bundle: .atURL(from: .module))) {
+                PageActions(.init("LLM_DOWNLOAD_NEXT_BUTTON", bundle: .atURL(from: .module))) {
                     try await self.action()
                 }
                 .disabled(!modelExist)
@@ -104,7 +103,7 @@ public struct LLMLocalDownloadView: View {
     
     /// Presents information about the model download.
     @MainActor @ViewBuilder private var informationView: some View {
-        OnboardingTitleView(
+        PageHeader(
             title: .init("LLM_DOWNLOAD_TITLE", bundle: .atURL(from: .module)),
             subtitle: .init("LLM_DOWNLOAD_SUBTITLE", bundle: .atURL(from: .module))
         )
@@ -124,12 +123,13 @@ public struct LLMLocalDownloadView: View {
             downloadManager.startDownload()
         } label: {
             Text("LLM_DOWNLOAD_BUTTON", bundle: .module)
-                .padding(.horizontal)
-                .padding(.vertical, 6)
+                .bold()
+                .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.borderedProminent)
+        .actionButtonStyle(.primary)
+        .controlSize(.large)
         .disabled(isDownloading)
-        .padding()
+        .padding(.vertical)
     }
     
     /// A progress view indicating the state of the download
