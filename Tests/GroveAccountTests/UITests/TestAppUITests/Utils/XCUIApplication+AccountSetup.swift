@@ -13,8 +13,8 @@ import XCTGroveAccount
 
 extension XCUIApplication {
     func openSignup() {
-        XCTAssertTrue(buttons["Signup"].waitForExistence(timeout: 3.0))
-        buttons["Signup"].tap()
+        XCTAssertTrue(createAccountLink.waitForExistence(timeout: 3.0))
+        createAccountLink.tap()
 
         XCTAssertTrue(staticTexts["Please fill out the details below to create your new account."].waitForExistence(timeout: 3.0))
     }

@@ -113,6 +113,7 @@ modifiers on their own to give a page of your own the same title, footer and edg
 - ``PageActions``
 - ``ActionButtonRole``
 - ``SwiftUICore/View/actionButtonStyle(_:)``
+- ``SwiftUICore/View/actionButtonDisabled(_:_:)``
 - ``SwiftUICore/View/floatingActions(_:)``
 - ``SwiftUICore/View/fadesIntoBottomEdge()``
 - ``SwiftUICore/View/risesIntoNavigationBar(_:)``

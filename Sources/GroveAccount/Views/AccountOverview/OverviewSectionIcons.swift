@@ -13,7 +13,7 @@ struct DetailsSectionIcon: View {
     var body: some View {
         Image(systemName: "person.text.rectangle.fill")
             .accessibilityHidden(true)
-            .font(.footnote)
+            .font(.callout)
             .foregroundStyle(.white)
             .graySquareBackground()
     }
@@ -25,10 +25,10 @@ struct SecuritySectionIcon: View {
         ZStack {
             Image(systemName: "shield.fill")
                 .foregroundStyle(.white)
-                .font(.title3)
+                .font(.title2)
             Image(systemName: "key.fill")
                 .foregroundStyle(.gray)
-                .font(.caption)
+                .font(.footnote)
         }
             .accessibilityHidden(true)
             .graySquareBackground()
@@ -39,7 +39,7 @@ struct SecuritySectionIcon: View {
 extension View {
     fileprivate func graySquareBackground() -> some View {
         background {
-            RoundedRectangle(cornerSize: .init(width: 4, height: 4))
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
                 .aspectRatio(1, contentMode: .fill)
                 .frame(height: 30)
                 .foregroundStyle(.gray)

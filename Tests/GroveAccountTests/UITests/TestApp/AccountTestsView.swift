@@ -64,12 +64,21 @@ struct AccountTestsView: View {
                 }
             }
                 .navigationTitle("Grove Account")
+#if os(macOS)
                 .sheet(isPresented: $showSetup) {
                     setupSheet()
                 }
                 .sheet(isPresented: $showOverview) {
                     overviewSheet
                 }
+#else
+                .fullScreenCover(isPresented: $showSetup) {
+                    setupSheet()
+                }
+                .fullScreenCover(isPresented: $showOverview) {
+                    overviewSheet
+                }
+#endif
         }
             .accountRequired(features.accountRequiredModifier) {
                 setupSheet(closeable: false)

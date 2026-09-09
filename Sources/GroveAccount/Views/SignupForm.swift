@@ -14,8 +14,11 @@ public import SwiftUI
 
 /// A generalized signup form used with arbitrary ``AccountService`` implementations.
 ///
-/// A `Form` that collects all configured account values (a ``AccountValueConfiguration`` supplied to ``AccountConfiguration``)
-/// split into `Section`s according the their ``AccountKeyCategory`` (see ``AccountKey/category``).
+/// ![The sign-up form with credentials, name and personal details on cards and a sign-up button.](SignUp)
+///
+/// An onboarding page that collects all configured account values (a ``AccountValueConfiguration`` supplied to ``AccountConfiguration``)
+/// on one card per ``AccountKeyCategory`` (see ``AccountKey/category``). The sign-up button stays in reach at the bottom; tapping it
+/// with something missing marks the field and moves the focus there.
 ///
 /// - Note: This view is built with the assumption to be placed inside a `NavigationStack` within a Sheet modifier.
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -36,6 +39,7 @@ public struct SignupForm<Header: View>: View {
 
     @State private var compliance: SignupProviderCompliance?
     @State private var presentingCloseConfirmation = false
+    @State private var incompleteAttempts = 0
 
     @MainActor private var accountKeyByCategory: OrderedDictionary<AccountKeyCategory, [any AccountKey.Type]> {
         var result = account.configuration.allCategorized(
@@ -104,30 +108,28 @@ public struct SignupForm<Header: View>: View {
     }
 
     @MainActor @ViewBuilder var form: some View {
-        Form {
+        PageView {
             header
-                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                .listRowBackground(Color.clear)
-                .padding(.top, -3)
-
-            SignupSectionsView(sections: accountKeyByCategory)
+        } content: {
+            SignupSectionsView(sections: accountKeyByCategory, layout: .cards)
                 .environment(\.accountServiceConfiguration, account.accountService.configuration)
                 .environment(\.accountViewType, .signup)
                 .environment(signupDetailsBuilder)
-
+                // The setup page behind the sheet has fields of the same names; tests scope into this container.
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("Sign-Up Form")
+        } footer: {
             AsyncButton(state: $viewState, action: signupButtonAction) {
                 Text("UP_SIGNUP", bundle: .module)
-                    .padding(16)
+                    .bold()
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyleGlassProminent()
-            .padding()
-            .padding(-36)
-            .listRowBackground(Color.clear)
-            .disabled(!validation.allInputValid)
+            .actionButtonStyle(.primary)
+            .controlSize(.large)
         }
         .environment(\.defaultErrorDescription, .init("UP_SIGNUP_FAILED_DEFAULT_ERROR", bundle: .atURL(from: .module)))
         .receiveValidation(in: $validation)
+        .sensoryFeedback(.warning, trigger: incompleteAttempts)
     }
 
     public init(signup: @escaping (AccountDetails) async throws -> Void, @ViewBuilder header: () -> Header = { SignupFormHeader() }) {
@@ -147,6 +149,7 @@ public struct SignupForm<Header: View>: View {
     @MainActor
     private func signupButtonAction() async throws {
         guard validation.validateSubviews() else {
+            incompleteAttempts += 1
             return
         }
 

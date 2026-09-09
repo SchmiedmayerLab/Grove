@@ -35,10 +35,31 @@ extension XCUIApplication {
         try textFields[field].enter(value: String(userId))
         try secureTextFields["Password"].enter(value: String(password))
 
-        XCTAssertTrue(buttons["Login"].waitForExistence(timeout: 0.5)) // might need time to to get enabled
-        XCTAssertTrue(buttons["Login"].isEnabled)
-        buttons["Login"].tap()
+        XCTAssertTrue(signInButton.waitForExistence(timeout: 0.5)) // might need time to to get enabled
+        XCTAssertTrue(signInButton.isEnabled)
+        signInButton.tap()
         
         dismissSavePasswordAlert(timeout: 7)
+    }
+}
+
+
+extension XCUIApplication {
+    /// The button that signs an existing user in on the account setup page.
+    ///
+    /// Tests reach the button through this property rather than by its title, so a change of wording or layout
+    /// in the account views is fixed here once.
+    public var signInButton: XCUIElement {
+        buttons["Sign In"]
+    }
+
+    /// The button that submits the sign-up form.
+    public var signUpButton: XCUIElement {
+        buttons["Sign Up"]
+    }
+
+    /// The button on the account setup page that opens the sign-up form.
+    public var createAccountLink: XCUIElement {
+        buttons["Create Account"]
     }
 }

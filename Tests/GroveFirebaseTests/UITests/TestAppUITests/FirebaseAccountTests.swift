@@ -167,8 +167,8 @@ final class FirebaseAccountTests: XCTestCase { // swiftlint:disable:this type_bo
         XCTAssertTrue(app.alerts["Authentication Required"].waitForExistence(timeout: 2.0))
         XCTAssertTrue(app.alerts["Authentication Required"].secureTextFields["Password"].waitForExistence(timeout: 0.5))
         app.typeText("TestPassword") // the password field has focus already
-        XCTAssertTrue(app.alerts["Authentication Required"].buttons["Login"].waitForExistence(timeout: 0.5))
-        app.alerts["Authentication Required"].buttons["Login"].tap()
+        XCTAssertTrue(app.alerts["Authentication Required"].buttons["Sign In"].waitForExistence(timeout: 0.5))
+        app.alerts["Authentication Required"].buttons["Sign In"].tap()
 
         try await FirebaseClient.waitForAccounts([])
     }
@@ -202,8 +202,8 @@ final class FirebaseAccountTests: XCTestCase { // swiftlint:disable:this type_bo
         app.buttons["Name, Username Test"].tap()
         XCTAssertTrue(app.navigationBars.staticTexts["Name"].waitForExistence(timeout: 10.0))
 
-        try app.textFields["enter last name"].delete(count: 4, options: .disableKeyboardDismiss)
-        try app.textFields["enter last name"].enter(value: "Test1", options: .skipTextFieldSelection)
+        try app.lastNameField.delete(count: 4, options: .disableKeyboardDismiss)
+        try app.lastNameField.enter(value: "Test1", options: .skipTextFieldSelection)
 
         XCTAssertTrue(app.buttons["Done"].wait(for: \.isHittable, toEqual: true, timeout: 5.0))
         app.buttons["Done"].tap()
@@ -224,8 +224,8 @@ final class FirebaseAccountTests: XCTestCase { // swiftlint:disable:this type_bo
         XCTAssertTrue(app.alerts["Authentication Required"].waitForExistence(timeout: 2.0))
         XCTAssertTrue(app.alerts["Authentication Required"].secureTextFields["Password"].waitForExistence(timeout: 0.5))
         app.typeText("TestPassword") // the password field has focus already
-        XCTAssertTrue(app.alerts["Authentication Required"].buttons["Login"].waitForExistence(timeout: 0.5))
-        app.alerts["Authentication Required"].buttons["Login"].tap()
+        XCTAssertTrue(app.alerts["Authentication Required"].buttons["Sign In"].waitForExistence(timeout: 0.5))
+        app.alerts["Authentication Required"].buttons["Sign In"].tap()
 
         XCTAssertTrue(app.navigationBars.staticTexts["Name, E-Mail Address"].waitForExistence(timeout: 4.0))
         XCTAssertTrue(app.staticTexts["E-Mail Address, test@username.de"].waitForExistence(timeout: 5.0))
@@ -265,8 +265,8 @@ final class FirebaseAccountTests: XCTestCase { // swiftlint:disable:this type_bo
 
         XCTAssertTrue(app.navigationBars.staticTexts["Change Password"].waitForExistence(timeout: 2.0))
 
-        try app.secureTextFields["enter password"].enter(value: "1234567890")
-        try app.secureTextFields["re-enter password"].enter(value: "1234567890")
+        try app.secureTextFields["New Password"].enter(value: "1234567890")
+        try app.secureTextFields["Repeat Password"].enter(value: "1234567890")
 
         XCTAssertTrue(app.buttons["Done"].wait(for: \.isHittable, toEqual: true, timeout: 5.0))
         app.buttons["Done"].tap()
@@ -282,8 +282,8 @@ final class FirebaseAccountTests: XCTestCase { // swiftlint:disable:this type_bo
         XCTAssertTrue(app.alerts["Authentication Required"].waitForExistence(timeout: 2.0))
         XCTAssertTrue(app.alerts["Authentication Required"].secureTextFields["Password"].waitForExistence(timeout: 0.5))
         app.typeText("TestPassword") // the password field has focus already
-        XCTAssertTrue(app.alerts["Authentication Required"].buttons["Login"].waitForExistence(timeout: 0.5))
-        app.alerts["Authentication Required"].buttons["Login"].tap()
+        XCTAssertTrue(app.alerts["Authentication Required"].buttons["Sign In"].waitForExistence(timeout: 0.5))
+        app.alerts["Authentication Required"].buttons["Sign In"].tap()
 
         XCTAssertTrue(app.navigationBars.buttons["Account Overview"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.navigationBars.buttons["Account Overview"].tap() // back button
@@ -308,8 +308,8 @@ final class FirebaseAccountTests: XCTestCase { // swiftlint:disable:this type_bo
         XCTAssertTrue(app.alerts["Authentication Required"].waitForExistence(timeout: 2.0))
         XCTAssertTrue(app.alerts["Authentication Required"].secureTextFields["Password"].waitForExistence(timeout: 0.5))
         app.typeText("Wrong!") // the password field has focus already
-        XCTAssertTrue(app.alerts["Authentication Required"].buttons["Login"].waitForExistence(timeout: 0.5))
-        app.alerts["Authentication Required"].buttons["Login"].tap()
+        XCTAssertTrue(app.alerts["Authentication Required"].buttons["Sign In"].waitForExistence(timeout: 0.5))
+        app.alerts["Authentication Required"].buttons["Sign In"].tap()
 
 
         XCTAssertTrue(app.alerts["Invalid Credentials"].waitForExistence(timeout: 2.0))
@@ -498,7 +498,7 @@ extension XCUIApplication {
     func login(username: String, password: String, close: Bool = true) throws {
         XCTAssertTrue(buttons["Account Setup"].wait(for: \.isHittable, toEqual: true, timeout: 5.0))
         buttons["Account Setup"].tap()
-        XCTAssertTrue(self.buttons["Login"].waitForExistence(timeout: 2.0))
+        XCTAssertTrue(self.signInButton.waitForExistence(timeout: 2.0))
 
         try login(email: username, password: password)
 
@@ -512,26 +512,26 @@ extension XCUIApplication {
     func signup(username: String, password: String, givenName: String, familyName: String, biography: String? = nil) throws {
         XCTAssertTrue(buttons["Account Setup"].wait(for: \.isHittable, toEqual: true, timeout: 5.0))
         buttons["Account Setup"].tap()
-        XCTAssertTrue(buttons["Signup"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
-        buttons["Signup"].tap()
+        XCTAssertTrue(createAccountLink.wait(for: \.isHittable, toEqual: true, timeout: 2.0))
+        createAccountLink.tap()
 
         XCTAssertTrue(staticTexts["Please fill out the details below to create your new account."].waitForExistence(timeout: 6.0))
 
-        try collectionViews.textFields["E-Mail Address"].enter(value: username)
-        try collectionViews.secureTextFields["Password"].enter(value: password)
+        try signupForm.textFields["E-Mail Address"].enter(value: username)
+        try signupForm.secureTextFields["Password"].enter(value: password)
         
-        try textFields["enter first name"].enter(value: givenName)
-        try textFields["enter last name"].enter(value: familyName)
+        try firstNameField.enter(value: givenName)
+        try lastNameField.enter(value: familyName)
 
         if let biography {
             try textFields["Biography"].enter(value: biography)
         }
 
-        XCTAssertTrue(collectionViews.buttons["Signup"].wait(for: \.isHittable, toEqual: true, timeout: 5.0))
-        collectionViews.buttons["Signup"].tap()
+        XCTAssertTrue(signUpButton.wait(for: \.isHittable, toEqual: true, timeout: 5.0))
+        signUpButton.tap()
         dismissSavePasswordAlert(timeout: 7)
 
-        XCTAssertTrue(staticTexts["Create a new Account"].waitForNonExistence(timeout: 10.0))
+        XCTAssertTrue(staticTexts["Create a New Account"].waitForNonExistence(timeout: 10.0))
         XCTAssertTrue(staticTexts["Your Account"].waitForExistence(timeout: 10.0))
         XCTAssertTrue(navigationBars.buttons["Close"].wait(for: \.isHittable, toEqual: true, timeout: 5.0))
         navigationBars.buttons["Close"].tap()

@@ -19,7 +19,14 @@ public struct CaseIterablePickerEntryView<Key: AccountKey>: DataEntryView where 
     @Binding private var value: Key.Value
 
     public var body: some View {
-        CaseIterablePicker(Key.name, selection: $value)
+        // The row names itself, so it reads the same on a card as in a form, where only the form would show a picker's label.
+        LabeledContent {
+            CaseIterablePicker(Key.name, selection: $value)
+                .labelsHidden()
+                .accessibilityLabel(Text(Key.name))
+        } label: {
+            Text(Key.name)
+        }
     }
 
     /// Create a new entry view.

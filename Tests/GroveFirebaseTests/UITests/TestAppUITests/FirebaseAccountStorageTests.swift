@@ -70,8 +70,8 @@ final class FirebaseAccountStorageTests: XCTestCase {
         XCTAssertTrue(app.alerts["Authentication Required"].waitForExistence(timeout: 2.0))
         XCTAssertTrue(app.alerts["Authentication Required"].secureTextFields["Password"].waitForExistence(timeout: 0.5))
         app.typeText("TestPassword1") // the password field has focus already
-        XCTAssertTrue(app.alerts["Authentication Required"].buttons["Login"].waitForExistence(timeout: 0.5))
-        app.alerts["Authentication Required"].buttons["Login"].tap()
+        XCTAssertTrue(app.alerts["Authentication Required"].buttons["Sign In"].waitForExistence(timeout: 0.5))
+        app.alerts["Authentication Required"].buttons["Sign In"].tap()
 
         try await FirebaseClient.waitForAccounts([])
     }
