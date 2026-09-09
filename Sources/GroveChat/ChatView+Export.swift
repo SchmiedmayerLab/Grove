@@ -148,7 +148,7 @@ extension ChatEntity {
 extension ChatEntity.Content.Image {
     fileprivate var exportDescription: String {
         switch self {
-        case .image:
+        case .image, .generating:
             "[image]"
         case .url(let url):
             // Data URLs inline the whole payload; dumping them into a text export helps no one.

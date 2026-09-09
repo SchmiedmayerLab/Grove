@@ -44,7 +44,7 @@ struct SelectableMessageText: ViewModifier {
         }
         return [
             TextSelectionAction(
-                title: String(localized: "Ask a Follow-Up Question", bundle: .module),
+                title: String(localized: "Follow Up", bundle: .module),
                 systemImage: "quote.bubble"
             ) { selectedText in
                 followUp.quote(selectedText)
@@ -57,7 +57,7 @@ struct SelectableMessageText: ViewModifier {
         #if Textual
         content
             .textual.textSelection(.enabled)
-            .textual.textSelectionActions(selectionActions)
+            .textual.textSelectionActions(selectionActions, prominence: .prominent)
         #else
         content.textSelection(.enabled)
         #endif

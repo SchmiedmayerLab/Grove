@@ -14,25 +14,31 @@ Provides UI components for building chat-based applications.
 
 ## Overview
 
-The ``GroveChat`` module provides views that can be used to implement chat-based use cases, such as a message view or a voice input field.
+The ``GroveChat`` module provides the views of a conversation: the messages, the composer they are written in, and everything a message can carry.
 
 @Row {
     @Column {
-        @Image(source: "ChatView.png", alt: "Screenshot displaying the regular chat view.") {
-            A ``ChatView`` allows you to display a messages in a typical chat-like manner.
+        @Image(source: "Conversation", alt: "Screenshot displaying a conversation with a photo the user attached and a picture the assistant generated.") {
+            A ``ChatView`` lays the conversation out the way a messaging app does: Markdown, attached photos and files, and pictures the assistant draws, which grow out of a placeholder as they arrive.
         }
     }
     @Column {
-        @Image(source: "ChatView+TextInput.png", alt: "Screenshot displaying the text input chat view.") {
-            A ``ChatView`` enables the input of new messages via text.
+        @Image(source: "FollowUp", alt: "Screenshot displaying a passage of an answer quoted above the composer, ready for a follow-up question.") {
+            Selecting a passage of an answer offers to follow up on it; the quote sits above the composer and goes out with the next message.
         }
     }
     @Column {
-        @Image(source: "ChatView+VoiceInput.png", alt: "Screenshot displaying the voice input chat view.") {
-            A ``ChatView`` allows users to use their voice for input (speech-to-text).
+        @Image(source: "ImageViewer", alt: "Screenshot displaying a generated picture full screen with a share button.") {
+            Any picture opens full screen, zooms, pages through the message's other pictures and shares as an image.
+        }
+    }
+    @Column {
+        @Image(source: "Composer", alt: "Screenshot displaying the chat view with the keyboard up and a message being typed.") {
+            Messages are typed into the composer, dictated through the microphone next to it, or sent with photos and files attached.
         }
     }
 }
+
 
 ## Setup
 
@@ -140,12 +146,34 @@ Tapping any image in the conversation — attached or generated — opens it ful
 the message's images, and offers the one on screen to the share sheet. A file opens in Quick Look, so every format
 the system can preview works without the chat knowing about any of them.
 
+### Pictures the Assistant Draws
+
+A generated picture arrives in two steps. While the model is still drawing, the message carries
+``ChatEntity/Content-swift.struct/Image/generating``, which the conversation shows as a card of moving dots; when the
+picture is there, the card grows to its size and dissolves into it. Sessions from the
+[GroveLLM](../../GroveLLM/GroveLLM.docc/GroveLLM.md) module manage this for you; a chat that produces its own
+messages appends the placeholder first and replaces it, under the same identifier, once the picture exists.
+
+### Following Up on a Passage
+
+Selecting text in an answer offers a follow-up on it. The passage is quoted above the composer and sent along with
+the next message, so a question can point at exactly the sentence it is about. The option is part of the message
+actions, which ``SwiftUICore/View/chatMessageActions(_:presentation:)`` chooses from; `.followUp` turns it off, or on by itself.
+
 ### Showing Where an Answer Came From
 
 A model that searches the web or reads a document reports what it drew on, and those sources arrive as
 ``ChatEntity/Citation``s on the message. The chat shows them as one quiet line under the answer rather than as
 links through the text; tapping it lists them, and a web source opens in a Safari view without leaving the
 conversation.
+
+@Row {
+    @Column {
+        @Image(source: "Citations", alt: "Screenshot showing an answer followed by the web pages and the file it drew on.") {
+            The sources of an answer sit under it, web pages and files alike, and open on a tap.
+        }
+    }
+}
 
 ```swift
 ChatEntity(
@@ -162,6 +190,14 @@ Reasoning models expose their progress via ``ChatEntity/Role-swift.enum/assistan
 timer while the model works and as a "Thought for …" disclosure once it finishes. Tool calls and their responses use
 ``ChatEntity/Role-swift.enum/AssistantMessageKind-swift.enum/toolCall`` and
 ``ChatEntity/Role-swift.enum/AssistantMessageKind-swift.enum/toolResponse``.
+
+@Row {
+    @Column {
+        @Image(source: "ToolCall", alt: "Screenshot showing the assistant calling a tool to read health samples before answering.") {
+            A tool call and its result are folded into the conversation above the answer they led to.
+        }
+    }
+}
 
 Use ``MessagesView/MessagesVisibility`` to choose which of these the user sees:
 

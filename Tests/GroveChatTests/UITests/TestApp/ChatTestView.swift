@@ -19,6 +19,16 @@ struct ChatTestView: View {
         ProcessInfo.processInfo.arguments.contains("--hideInternalInput")
     }
 
+    /// Whether this launch offers only the follow-up action, so a long press selects text instead of opening a menu.
+    private static var offersFollowUpOnly: Bool {
+        ProcessInfo.processInfo.arguments.contains("--followUpOnly")
+    }
+
+    /// Whether this launch asks for a drawing right away, so the placeholder and its reveal can be watched from outside.
+    private static var drawsOnLaunch: Bool {
+        ProcessInfo.processInfo.arguments.contains("--drawOnLaunch")
+    }
+
     @State private var chat: Chat = ChatTestView.initialChat
     @State private var muted = true
     @State private var isGenerating = false
@@ -32,7 +42,7 @@ struct ChatTestView: View {
             exportFormat: .pdf,
             messagePendingAnimation: .automatic
         )
-            .chatMessageActions(.all)
+            .chatMessageActions(Self.offersFollowUpOnly ? [.followUp] : .all)
             .chatHiddenMessages(Self.hidesInternalInput ? [Self.internalInput.id] : [])
             .chatEmptyState(
                 "Ask Me Anything",
@@ -49,7 +59,7 @@ struct ChatTestView: View {
             }
             .speak(chat, muted: muted)
             .speechToolbarButton(muted: $muted)
-            .navigationTitle("GroveChat")
+            .navigationTitle(DocumentationConversation.isRequested ? DocumentationConversation.title : "GroveChat")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("New Chat", systemImage: "square.and.pencil") {
@@ -57,6 +67,13 @@ struct ChatTestView: View {
                         lastError = nil
                         chat = []
                     }
+                }
+            }
+            .task {
+                if Self.drawsOnLaunch {
+                    chat.append(ChatEntity(role: .user, text: "draw"))
+                } else if DocumentationConversation.isRequested, let last = chat.last {
+                    respond(to: last)
                 }
             }
             .onChange(of: chat) { _, newValue in
@@ -86,7 +103,9 @@ struct ChatTestView: View {
     private func generateAssistantMessage(for userMessage: ChatEntity) async throws { // swiftlint:disable:this function_body_length
         let prompt = userMessage.content.text ?? ""
         try await Task.sleep(for: .seconds(3))
-        if prompt.localizedCaseInsensitiveContains("call") {
+        if DocumentationConversation.isRequested {
+            try await respondForDocumentation(to: prompt)
+        } else if prompt.localizedCaseInsensitiveContains("call") {
             chat.append(.init(role: .assistant(.toolCall), text: "call_test_func({ test: true })"))
             try await Task.sleep(for: .seconds(1))
             chat.append(.init(role: .assistant(.toolResponse), text: "{ some: response }"))
@@ -145,10 +164,15 @@ struct ChatTestView: View {
             try await Task.sleep(for: .seconds(1))
             chat.append(.init(role: .assistant(.response), text: "**Assistant** Message Response!"))
         } else if prompt.localizedCaseInsensitiveContains("draw") {
-            chat.append(.init(
+            // The picture is announced first and drawn a moment later, the way a generated one arrives.
+            let placeholder = ChatEntity(role: .assistant(.response), content: .images([.generating], text: ""))
+            chat.append(placeholder)
+            try await Task.sleep(for: .seconds(4))
+            chat[chat.count - 1] = ChatEntity(
                 role: .assistant(.response),
-                content: .images([.image(Self.generatedImage())], text: "Here's what I came up with.")
-            ))
+                content: .images([.image(Self.generatedImage())], text: "Here's what I came up with."),
+                id: placeholder.id
+            )
         } else if prompt.localizedCaseInsensitiveContains("fail") {
             throw ChatTestError.generationFailed
         } else if prompt.localizedCaseInsensitiveContains("fib") {
@@ -164,6 +188,25 @@ struct ChatTestView: View {
                 """))
         } else {
             chat.append(.init(role: .assistant(.response), text: "**Assistant** Message Response!"))
+        }
+    }
+
+    /// The documentation conversation's answers: a question about the numbers is answered with sources, a question
+    /// about the data through a tool, and anything else with a drawing.
+    private func respondForDocumentation(to prompt: String) async throws {
+        if prompt.localizedCaseInsensitiveContains("normal") {
+            chat.append(DocumentationConversation.citedAnswer)
+        } else if prompt.localizedCaseInsensitiveContains("average") {
+            chat.append(DocumentationConversation.toolCall)
+            try await Task.sleep(for: .seconds(1))
+            chat.append(DocumentationConversation.toolResponse)
+            try await Task.sleep(for: .seconds(1))
+            chat.append(DocumentationConversation.toolAnswer)
+        } else {
+            let placeholder = ChatEntity(role: .assistant(.response), content: .images([.generating], text: ""))
+            chat.append(placeholder)
+            try await Task.sleep(for: .seconds(4))
+            chat[chat.count - 1] = ChatEntity(role: .assistant(.response), content: DocumentationConversation.drawing, id: placeholder.id)
         }
     }
 
@@ -189,6 +232,9 @@ struct ChatTestView: View {
     private static var initialChat: Chat {
         guard !ProcessInfo.processInfo.arguments.contains("--emptyChat") else {
             return []
+        }
+        if DocumentationConversation.isRequested {
+            return DocumentationConversation.chat
         }
         var chat: Chat = [ChatEntity(role: .hidden(type: .unknown), text: "Hidden Message!")]
         if hidesInternalInput {

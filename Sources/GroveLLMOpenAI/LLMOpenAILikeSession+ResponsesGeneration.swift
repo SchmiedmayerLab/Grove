@@ -166,6 +166,13 @@ extension LLMOpenAILikeSession {
                             context.markAssistantOutputCompleted()
                         }
                     }
+                case .responseOutputItemAdded:
+                    // An image item opens long before its bytes arrive; the chat shows where the picture will be.
+                    if let item = payload["item"] as? [String: Any], item["type"] as? String == "image_generation_call" {
+                        await MainActor.run {
+                            context.append(assistantImage: .generating, interactionId: interactionId)
+                        }
+                    }
                 case .responseOutputItemDone:
                     if let item = payload["item"] as? [String: Any], item["type"] as? String == "message" {
                         let citations = Self.citations(fromOutputItem: item)
@@ -177,7 +184,7 @@ extension LLMOpenAILikeSession {
                     }
                     if let item = payload["item"] as? [String: Any], let image = Self.generatedImage(fromOutputItem: item) {
                         await MainActor.run {
-                            context.append(assistantImage: image, interactionId: interactionId)
+                            context.complete(assistantImage: image, interactionId: interactionId)
                         }
                     }
                     // Function calls stream across multiple events, but the `function_call_arguments` deltas carry only an
@@ -302,6 +309,7 @@ extension LLMOpenAILikeSession {
     func cleanUpInterruptedStreaming(interactionId: LLMInteractionId) async {
         await MainActor.run {
             context.removeIncompleteAssistantThinking(for: interactionId)
+            context.removeGeneratingImages(for: interactionId)
             if schema.injectIntoContext {
                 context.markAssistantOutputCompleted()
             }

@@ -28,6 +28,7 @@ struct AttachedFilesView: View {
         VStack(alignment: .leading, spacing: 4) {
             ForEach(files, id: \.url) { file in
                 Button {
+                    dismissKeyboard()
                     previewedFile = file.url
                 } label: {
                     chip(for: file)

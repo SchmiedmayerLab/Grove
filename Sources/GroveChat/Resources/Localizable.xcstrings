@@ -241,16 +241,6 @@
         }
       }
     },
-    "Ask a Follow-Up Question": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ask a Follow-Up Question"
-          }
-        }
-      }
-    },
     "Copied": {
       "localizations": {
         "de": {
@@ -339,6 +329,28 @@
         }
       }
     },
+    "Follow Up": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nachfrage"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow Up"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pregunta de seguimiento"
+          }
+        }
+      }
+    },
     "FUNCTION_F_OF_X": {
       "localizations": {
         "de": {
@@ -357,6 +369,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Función F de X"
+          }
+        }
+      }
+    },
+    "GENERATING_IMAGE": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bild wird erstellt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generating image"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generando imagen"
           }
         }
       }

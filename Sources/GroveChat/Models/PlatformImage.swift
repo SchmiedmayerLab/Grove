@@ -61,7 +61,7 @@ extension ChatEntity.Content.Image {
             image
         case .url(let url) where url.scheme == "data":
             (try? Data(contentsOf: url)).flatMap(PlatformImage.init(data:))
-        case .url:
+        case .url, .generating:
             nil
         }
     }

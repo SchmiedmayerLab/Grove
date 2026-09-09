@@ -146,6 +146,8 @@ public import Foundation
         public enum Image: Hashable, Sendable {
             case image(PlatformImage)
             case url(URL)
+            /// The assistant is still drawing this one; the chat keeps its place with a placeholder.
+            case generating
         }
 
         /// A file the user attached.
@@ -439,13 +441,15 @@ extension ChatEntity.Content.Part: Codable {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ChatEntity.Content.Image: Codable {
     private enum CodingKeys: CodingKey, CaseIterable {
-        case data, url
+        case data, url, generating
     }
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         if let url = try container.decodeIfPresent(URL.self, forKey: .url) {
             self = .url(url)
+        } else if try container.decodeIfPresent(Bool.self, forKey: .generating) == true {
+            self = .generating
         } else if let data = try container.decodeIfPresent(Data.self, forKey: .data) {
             guard let image = PlatformImage(data: data) else {
                 throw DecodingError.dataCorruptedError(
@@ -471,6 +475,8 @@ extension ChatEntity.Content.Image: Codable {
         switch self {
         case .url(let url):
             try container.encode(url, forKey: .url)
+        case .generating:
+            try container.encode(true, forKey: .generating)
         case .image(let image):
             guard let pngData = image.pngData() else {
                 throw EncodingError.invalidValue(image, .init(codingPath: container.codingPath, debugDescription: "Unable to obtain PNG data"))
