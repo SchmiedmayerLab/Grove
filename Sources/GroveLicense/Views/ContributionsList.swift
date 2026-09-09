@@ -6,11 +6,14 @@
 // SPDX-License-Identifier: MIT
 //
 
+import GroveViews
 public import SwiftPackageList
 public import SwiftUI
 
 
 /// Present a `ContributionsList` including all used Swift Packages to the user.
+///
+/// ![The app and its dependencies listed with their licenses and versions.](ContributionsList)
 ///
 /// The following example shows how to use the ContributionsList:
 /// ```swift
@@ -55,6 +58,7 @@ public struct ContributionsList: View {
                 Text("Please refer to the individual repository links for packages without license labels.", bundle: .module)
             }
         }
+        .softScrollEdge()
         .navigationTitle(LocalizedStringResource("License Information", bundle: .module))
         .navigationBarTitleDisplayMode(.inline)
     }

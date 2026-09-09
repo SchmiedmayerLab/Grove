@@ -15,8 +15,8 @@ extension XCUIApplication {
         consentText: String,
         continueButton: XCUIElement
     ) throws {
-        func assertContinueButtonEnabledState(_ isEnabled: Bool) {
-            XCTAssert(continueButton.wait(for: \.isEnabled, toEqual: isEnabled, timeout: 2))
+        func assertContinueButtonEnabledState(_ isEnabled: Bool, line: UInt = #line) {
+            assertReady(continueButton, isEnabled, line: line)
         }
         
         XCTAssert(staticTexts[consentTitle].waitForExistence(timeout: 2))
@@ -37,8 +37,8 @@ extension XCUIApplication {
         XCTAssert(staticTexts["Name: Leland Stanford"].waitForExistence(timeout: 2))
 
         #if !os(macOS)
-        XCTAssert(buttons["Clear"].waitForExistence(timeout: 2.0))
-        XCTAssertFalse(buttons["Clear"].isEnabled)
+        // The eraser only appears once there is ink to clear.
+        XCTAssertFalse(buttons["Clear"].exists)
         
         assertContinueButtonEnabledState(false)
         staticTexts["Name: Leland Stanford"].swipeRight()
@@ -48,9 +48,7 @@ extension XCUIApplication {
         XCTAssert(buttons["Clear"].isEnabled)
         buttons["Clear"].tap()
         assertContinueButtonEnabledState(false)
-        
-        XCTAssert(buttons["Clear"].waitForExistence(timeout: 2.0))
-        XCTAssertFalse(buttons["Clear"].isEnabled)
+        XCTAssert(buttons["Clear"].waitForNonExistence(timeout: 2.0))
         
         XCTAssert(scrollViews["Signature Field"].waitForExistence(timeout: 2))
         scrollViews["Signature Field"].swipeRight()
@@ -81,9 +79,8 @@ extension XCUIApplication {
         XCTAssert(shareButton.waitForExistence(timeout: 1))
         
         func assertExpectedCompletion(_ isComplete: Bool, line: UInt = #line) {
-            for button in [continueButton, shareButton] {
-                XCTAssert(button.wait(for: \.isEnabled, toEqual: isComplete, timeout: 5), line: line)
-            }
+            assertReady(continueButton, isComplete, line: line)
+            XCTAssert(shareButton.wait(for: \.isEnabled, toEqual: isComplete, timeout: 5), line: line)
         }
 
         assertExpectedCompletion(false)
@@ -108,8 +105,19 @@ extension XCUIApplication {
             let noSelectionTitle = "(No selection)"
             let button = buttons["ConsentForm:\(elementId)"]
             XCTAssert(button.waitForExistence(timeout: 5), line: line)
+            // A tap while the keyboard is up only puts it away; the menu opens on the next one.
+            if keyboards.firstMatch.exists {
+                staticTexts[consentTitle].firstMatch.tap()
+            }
+            // Entering the names leaves the first picker scrolled under the bars, where a tap never opens its menu.
+            let barBottom = navigationBars.firstMatch.frame.maxY
+            if button.frame.minY < barBottom {
+                let start = coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 24, dy: barBottom + 24))
+                start.press(forDuration: 0.1, thenDragTo: start.withOffset(CGVector(dx: 0, dy: barBottom - button.frame.minY + 24)))
+            }
             XCTAssert(button.staticTexts[expectedCurrentSelection ?? noSelectionTitle].waitForExistence(timeout: 3), line: line)
             button.tap()
+            XCTAssert(buttons[option ?? noSelectionTitle].waitForExistence(timeout: 3), line: line)
             buttons[option ?? noSelectionTitle].tap()
             XCTAssert(button.staticTexts[expectedCurrentSelection ?? noSelectionTitle].waitForNonExistence(timeout: 3), line: line)
             XCTAssert(button.staticTexts[option ?? noSelectionTitle].waitForExistence(timeout: 3), line: line)
@@ -154,7 +162,28 @@ extension XCUIApplication {
         shareButton.tap()
         assertShareSheetTextElementExists(consentTitle)
         navigationBars["UIActivityContentView"].buttons["header.closeButton"].tap()
-        
+        // The share sheet is a remote view; the app reports idle while it is still sliding away, and a tap
+        // that lands during the dismissal is swallowed.
+        XCTAssert(navigationBars["UIActivityContentView"].waitForNonExistence(timeout: 5))
+        XCTAssert(continueButton.wait(for: \.isHittable, toEqual: true, timeout: 5))
         continueButton.tap()
+    }
+}
+
+
+extension XCUIApplication {
+    /// The onboarding's button stays tappable and reports readiness as its value; a plain button reports it as enabled.
+    fileprivate func assertReady(_ button: XCUIElement, _ isReady: Bool, line: UInt = #line) {
+        XCTAssert(button.waitForExistence(timeout: 5), line: line)
+        if let value = button.value as? String, ["Ready", "Incomplete"].contains(value) {
+            let expected = isReady ? "Ready" : "Incomplete"
+            let deadline = Date().addingTimeInterval(5)
+            while (button.value as? String) != expected && Date() < deadline {
+                usleep(200_000)
+            }
+            XCTAssertEqual(button.value as? String, expected, line: line)
+        } else {
+            XCTAssert(button.wait(for: \.isEnabled, toEqual: isReady, timeout: 5), line: line)
+        }
     }
 }

@@ -12,6 +12,8 @@ public import SwiftUI
 
 /// A `NameTextField` that always shows a description in front of the text field.
 ///
+/// ![A form with first, middle and last name rows.](NameFields)
+///
 /// The `NameFieldRow` uses the `DescriptionGridRow` and is to be placed into a [Grid](https://developer.apple.com/documentation/swiftui/grid)
 /// view to provide a description text in front of the ``NameTextField``.
 ///

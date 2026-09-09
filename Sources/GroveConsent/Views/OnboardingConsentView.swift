@@ -34,7 +34,7 @@ public struct OnboardingConsentView: View {
     public var body: some View {
         OnboardingView {
             if let title {
-                OnboardingTitleView(title: title)
+                PageHeader(title: title)
             }
         } content: {
             Group {

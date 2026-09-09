@@ -10,11 +10,12 @@
 import GeneratedOpenAIClient
 import Grove
 import GroveKeychainStorage
-import GroveOnboarding
 public import SwiftUI
 
 
 /// View to display an onboarding step for the user to enter an API key for an OpenAI-like platform.
+///
+/// ![An onboarding page asking for an API key.](APITokenStep)
 ///
 /// - Warning: Ensure that the ``LLMOpenAIPlatform`` is specified within the Grove `Configuration` when using this view in the onboarding flow.
 ///

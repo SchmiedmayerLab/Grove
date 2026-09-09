@@ -11,6 +11,8 @@ public import SwiftUI
 
 /// A tile-like view with header, footer and an optional action.
 ///
+/// ![Three tiles with their headers aligned leading, center and trailing.](Tiles)
+///
 /// Below is a code example on how to use a tile view with specifying a body and a footer.
 ///
 /// ```swift
@@ -34,18 +36,8 @@ public import SwiftUI
 ///
 /// @Row {
 ///     @Column {
-///         @Image(source: "Tile-Leading", alt: "A `SimpleTile` view with a `TileHeader` view with `leading` alignment.") {
-///             Using the `SimpleTile` view with the default ``TileHeader`` and `leading` alignment.
-///         }
-///     }
-///     @Column {
-///     @Image(source: "Tile-Center", alt: "A `SimpleTile` view with a `TileHeader` view with `center` alignment.") {
-///             Using the `SimpleTile` view with the default ``TileHeader`` and `center` alignment.
-///         }
-///     }
-///     @Column {
-///         @Image(source: "Tile-Trailing", alt: "A `SimpleTile` view with a `TileHeader` view with `center` alignment.") {
-///             Using the `SimpleTile` view with the default ``TileHeader`` and `trailing` alignment.
+///         @Image(source: "Tiles", alt: "Three tiles in a list, their headers aligned leading, center and trailing.") {
+///             The same tile with a ``TileHeader`` and `leading`, `center` and `trailing` alignment.
 ///         }
 ///     }
 /// }

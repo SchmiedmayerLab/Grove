@@ -208,9 +208,19 @@ extension QuestionnaireSheetNavigator {
     }
 
     /// Waits for the navigation bar to carry `text`.
+    ///
+    /// The bar is looked up afresh on every check: a follow-up sheet brings a bar of its own, which
+    /// is not there yet when the wait begins.
     @discardableResult
     public func waitUntilNavigationBarShows(_ text: String, timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        navigationBar.staticTexts.matching(label: text).firstMatch.waitForExistence(timeout: timeout)
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            if navigationBarShows(text) {
+                return true
+            }
+            usleep(200_000)
+        } while Date() < deadline
+        return false
     }
 
     /// Scrolls the page down by roughly one screen.

@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import GroveViews
 public import SwiftUI
 
 /// A view that displays the results of a ``ValidationEngine``.
@@ -16,14 +17,12 @@ public struct ValidationResultsView: View {
     private let results: [FailedValidationResult]
 
     public var body: some View {
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 4) {
             ForEach(results) { result in
-                Text(result.message)
+                BlockingMessage(Text(result.message))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-            .font(.footnote)
-            .foregroundColor(.red)
     }
 
     /// Create a new view.

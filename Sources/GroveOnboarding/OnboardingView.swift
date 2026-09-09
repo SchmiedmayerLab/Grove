@@ -6,23 +6,17 @@
 // SPDX-License-Identifier: MIT
 //
 
-import GroveViews
+public import GroveViews
 public import SwiftUI
 
 
-/// Present onboarding information in a unified style.
+/// An onboarding step is a page.
 ///
-/// The default style of the `OnboardingView` uses a combination of an ``OnboardingTitleView``, ``OnboardingInformationView``,
-/// and ``OnboardingActionsView``.
+/// ![An onboarding page with a title, information areas and a floating primary button.](Welcome)
 ///
-/// - Tip: The ``SequentialOnboardingView`` provides an alternative to provide
-/// sequential information that is displayed step by step.
-///
-/// ### Usage
-///
-/// The following example demonstrates the usage of the ``OnboardingView`` using its default configuration. The default configuration divides up
-/// each screen into sections and allows you to add a title and subtitle for the overall view itself, as well as create separate information areas. Finally,
-/// there is an option for an action that should be performed (which can be used to go to the next screen in the onboarding flow).
+/// The `OnboardingView` is GroveViews' `PageView`: a `PageHeader` and content that scroll, and `PageActions` floating
+/// over them. Onboarding adds the ``OnboardingInformationView`` for the content and an initializer that composes the
+/// three from a title, its areas and an action.
 ///
 /// ```swift
 /// OnboardingView(
@@ -46,191 +40,68 @@ public import SwiftUI
 /// }
 /// ```
 ///
-/// In implementation, you can treat the header, content, and footer as regular SwiftUI Views.
-/// However, to simplify things, you can also use the built-in ``OnboardingTitleView`` and built-in ``OnboardingActionsView``, as demonstrated below.
-/// ``` swift
-/// OnboardingView {
-///     OnboardingTitleView(
-///         title: "Title",
-///         subtitle: "Subtitle"
-///     )
-/// } content: {
-///     VStack {
-///         Text("This is the onboarding content.")
-///             .font(.headline)
-///     }
-/// } footer: {
-///     OnboardingActionsView("Continue") {
-///         // navigate to next onboarding page
-///     }
-/// }
-/// ```
+/// - Tip: The ``SequentialOnboardingView`` shows information step by step instead.
 @available(iOS 18, macOS 15, watchOS 11, *)
-public struct OnboardingView<Header: View, Content: View, Footer: View>: View {
-    @Environment(\.verticalScrollIndicatorVisibility) private var scrollIndicatorVisibility
-    @Environment(\.isInManagedNavigationStack) private var isInManagedNavigationStack
-    @Environment(\.isFirstInManagedNavigationStack) private var isFirstInManagedNavigationStack
-    @Environment(\.onboardingViewEdgesWithPaddingDisabled) private var edgesWithPaddingDisabled
-    
-    private let wrapInScrollView: Bool
-    private let header: Header
-    private let content: Content
-    private let footer: Footer
-    
-    @_documentation(visibility: internal)
-    public var body: some View {
-        GeometryReader { geometry in
-            if wrapInScrollView {
-                ScrollView {
-                    makeContents(geometry: geometry)
-                }
-                .scrollIndicators(effectiveScrollIndicatorVisibility, axes: .vertical)
-            } else {
-                makeContents(geometry: geometry)
-            }
-        }
-    }
-    
-    /// The set of edges for which we want to apply implicit padding.
-    ///
-    /// - Note: This excludes the bottom edge, which is handled separately.
-    private var edgesWithImplicitPadding: Edge.Set {
-        // if the view is used as part of an `ManagedNavigationStack`, we don't want the extra padding at the top,
-        // since that's where the navigation bar will be and we're already getting some padding via that.
-        let edges: Edge.Set = isInManagedNavigationStack ? .horizontal : [.horizontal, .top]
-        return edges.subtracting(edgesWithPaddingDisabled)
-    }
-    
-    private var bottomPadding: CGFloat {
-        // 34, because we hav 10 points of default padding we want, plus the 24 points added to the view as a whole.
-        edgesWithPaddingDisabled.contains(.bottom) ? 0 : 34
-    }
-    
-    private var effectiveScrollIndicatorVisibility: ScrollIndicatorVisibility {
-        let visibility = scrollIndicatorVisibility
-        return visibility == .automatic ? .hidden : visibility
-    }
-    
-    
-    /// Creates a customized `OnboardingView` allowing a complete customization of the  `OnboardingView`.
-    /// 
-    /// - Parameters:
-    ///   - wrapInScrollView: Whether the `OnboardingView` should wrap its body (i.e., the `header`, the `content`, and the `footer`) in a `ScrollView`.
-    ///       Defaults to `true`, but can be set to `false` to work around some edge cased, like e.g. when the `content` is/contains
-    ///       a `Form` (which already wraps its content in a `ScrollView`), in which case this parameter allows you to avoid getting double, nested `ScrollView`s.
-    ///   - header: The header view displayed at the top.
-    ///   - content: The content view.
-    ///   - footer: The footer view displayed at the bottom.
-    public init(
-        wrapInScrollView: Bool = true,
-        @ViewBuilder header: () -> Header = { EmptyView() },
-        @ViewBuilder content: () -> Content,
-        @ViewBuilder footer: () -> Footer
-    ) {
-        self.wrapInScrollView = wrapInScrollView
-        self.header = header()
-        self.content = content()
-        self.footer = footer()
-    }
-    
-    
-    /// Creates the default style of the `OnboardingView` uses a combination of an ``OnboardingTitleView``, ``OnboardingInformationView``,
-    /// and ``OnboardingActionsView``.
+public typealias OnboardingView = PageView
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension PageView where Header == PageHeader, Content == OnboardingInformationView, Footer == PageActions {
+    /// Creates an onboarding step from a title, its information areas and a primary action.
     ///
     /// - Parameters:
-    ///   - title: The onboarding view's localized title.
-    ///   - subtitle: The onboarding view's optional localized subtitle.
-    ///   - areas: The onboarding view's, defining the view's main content.
-    ///   - actionText: The localized text that should appear on the ``OnboardingView``'s primary button.
-    ///   - action: The close that is called then the primary button is pressed.
+    ///   - title: The step's localized title.
+    ///   - subtitle: The step's optional localized subtitle.
+    ///   - image: A symbol or picture shown large and tinted above the title.
+    ///   - areas: The step's information areas, its main content.
+    ///   - actionText: The localized text of the primary button.
+    ///   - action: The closure that is called when the primary button is pressed.
     public init(
         title: LocalizedStringResource,
         subtitle: LocalizedStringResource? = nil,
+        image: Image? = nil,
         areas: [OnboardingInformationView.Area],
         actionText: LocalizedStringResource,
         action: @escaping @MainActor () async throws -> Void
-    ) where Header == OnboardingTitleView, Content == OnboardingInformationView, Footer == OnboardingActionsView {
+    ) {
         self.init {
-            OnboardingTitleView(title: title, subtitle: subtitle)
+            PageHeader(title: title, subtitle: subtitle, image: image)
         } content: {
             OnboardingInformationView(areas: areas)
         } footer: {
-            OnboardingActionsView(actionText) {
+            PageActions(actionText) {
                 try await action()
             }
         }
     }
-    
-    /// Creates the default style of the `OnboardingView` uses a combination of an ``OnboardingTitleView``, ``OnboardingInformationView``,
-    /// and ``OnboardingActionsView``.
-    /// 
+
+    /// Creates an onboarding step from a title, its information areas and a primary action.
+    ///
     /// - Parameters:
     ///   - title: The title without localization.
     ///   - subtitle: The subtitle without localization.
-    ///   - areas: The onboarding view's, defining the view's main content.
-    ///   - actionText: The text that should appear on the `OnboardingView`'s primary button without localization.
-    ///   - action: The close that is called then the primary button is pressed.
+    ///   - image: A symbol or picture shown large and tinted above the title.
+    ///   - areas: The step's information areas, its main content.
+    ///   - actionText: The text of the primary button without localization.
+    ///   - action: The closure that is called when the primary button is pressed.
     @_disfavoredOverload
     public init(
         title: some StringProtocol,
         subtitle: (some StringProtocol)? = String?.none,
+        image: Image? = nil,
         areas: [OnboardingInformationView.Area],
         actionText: some StringProtocol,
         action: @escaping @MainActor () async throws -> Void
-    ) where Header == OnboardingTitleView, Content == OnboardingInformationView, Footer == OnboardingActionsView {
+    ) {
         self.init {
-            OnboardingTitleView(title: title, subtitle: subtitle)
+            PageHeader(title: title, subtitle: subtitle, image: image)
         } content: {
             OnboardingInformationView(areas: areas)
         } footer: {
-            OnboardingActionsView(actionText) {
+            PageActions(actionText) {
                 try await action()
             }
         }
-    }
-    
-    
-    @ViewBuilder
-    private func makeContents(geometry: GeometryProxy) -> some View {
-        VStack(alignment: .center) {
-            VStack {
-                header
-                content
-                    // if we don't have a footer, we apply the bottom padding here
-                    .padding(.bottom, footer is EmptyView ? bottomPadding : 0)
-            }
-            if !(footer is EmptyView) {
-                Spacer(minLength: 40)
-                footer
-                    // if we do have a footer, we apply it here
-                    .padding(.bottom, bottomPadding)
-            }
-        }
-        .padding(edgesWithImplicitPadding)
-        // if this is the first view in a Stack, we need to add an implicit extra top padding,
-        // in order to compensate for the fact that the other steps in the stack will get some de-facto
-        // top padding via the navigation bar (which won't be present in the first step).
-        .padding(.top, isFirstInManagedNavigationStack ? 24 : 0)
-        .frame(minHeight: geometry.size.height)
-        .frame(maxWidth: .infinity, alignment: .center)
-    }
-}
-
-
-extension EnvironmentValues {
-    @Entry fileprivate var onboardingViewEdgesWithPaddingDisabled: Edge.Set = []
-}
-
-
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension OnboardingView {
-    /// Disables the ``OnboardingView``'s implicit padding for the specified edges.
-    ///
-    /// If this modifier is applied multiple times, the outermost call will take precedence.
-    ///
-    /// - Note: If the ``OnboardingView`` is contained in a `ManagedNavigationStack`, its top edge will already be disabled implicitly.
-    public func disablePadding(_ edges: Edge.Set) -> some View {
-        self.environment(\.onboardingViewEdgesWithPaddingDisabled, edges)
     }
 }
 
@@ -238,28 +109,26 @@ extension OnboardingView {
 #if DEBUG
 @available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
-    let mock: [OnboardingInformationView.Area] = [
-        OnboardingInformationView.Area(
-            iconSymbol: "pc",
-            title: String("PC"),
-            description: String("This is a PC. And we can write a lot about PCs in a section like this. A very long text!")
-        ),
-        OnboardingInformationView.Area(
-            iconSymbol: "desktopcomputer",
-            title: String("Mac"),
-            description: String("This is an iMac")
-        ),
-        OnboardingInformationView.Area(
-            iconSymbol: "laptopcomputer",
-            title: String("MacBook"),
-            description: String("This is a MacBook")
-        )
-    ]
-
     OnboardingView(
         title: String("Title"),
         subtitle: String("Subtitle"),
-        areas: mock,
+        areas: [
+            OnboardingInformationView.Area(
+                iconSymbol: "pc",
+                title: String("PC"),
+                description: String("This is a PC. And we can write a lot about PCs in a section like this. A very long text!")
+            ),
+            OnboardingInformationView.Area(
+                iconSymbol: "desktopcomputer",
+                title: String("Mac"),
+                description: String("This is an iMac")
+            ),
+            OnboardingInformationView.Area(
+                iconSymbol: "laptopcomputer",
+                title: String("MacBook"),
+                description: String("This is a MacBook")
+            )
+        ],
         actionText: String("Primary Button")
     ) {
         print("Primary!")

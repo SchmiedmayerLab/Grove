@@ -17,10 +17,13 @@ SPDX-License-Identifier: MIT
 `GroveValidation` can be used to perform input validation on `String`-based inputs and provides easy-to-use
 mechanism to communicate validation feedback back to the user.
 The library is based on a rule-based approach using ``ValidationRule``s.
+Failed input is marked the way every Grove module marks what still needs attention: the row or card holding the field takes the shared red tint that questionnaires put on an unanswered question and consent forms on a missing choice, so a participant learns one signal and recognises it everywhere. The field only reports that it blocks (`reportsBlocking(_:)` from GroveViews); a form row paints itself, and a card paints its own shape through `highlightsBlockingContent(in:)`.
 
-@Column {
-    @Image(source: "Validation", alt: "Three different kinds of text fields showing validation errors in red text.") {
-        Perform and visualize input validation with ease using ``SwiftUI/View/validate(input:rules:)-(_,ValidationRule...)`` and ``VerifiableTextField``.
+@Row {
+    @Column {
+        @Image(source: "Validation", alt: "A signup form whose email, password and username fields are marked red, each with the failed rule below the input.") {
+            A ``VerifiableTextField`` that fails a ``ValidationRule`` is marked in the same red as an unanswered question or consent element, with the rule's message below the input, until the input passes.
+        }
     }
 }
 

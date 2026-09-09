@@ -19,19 +19,18 @@ A module that allows you to interact with GPT-based Large Language Models (LLMs)
 
 @Row {
     @Column {
-        @Image(source: "LLMOpenAIAPITokenOnboardingStep", alt: "Screenshot displaying the OpenAI API Token Onboarding view from Grove OpenAI") {
+        @Image(source: "APITokenStep", alt: "Screenshot displaying the OpenAI API Token Onboarding view from Grove OpenAI") {
             ``LLMOpenAIAPITokenOnboardingStep``
         }
     }
     @Column {
-        @Image(source: "LLMOpenAIModelOnboardingStep", alt: "Screenshot displaying the Open AI Model Selection Onboarding Step"){
+        @Image(source: "ModelStep", alt: "Screenshot displaying the Open AI Model Selection Onboarding Step"){
             ``LLMOpenAIModelOnboardingStep``
         }
     }
-    @Column {
-        @Image(source: "ChatView", alt: "Screenshot displaying the usage of the LLMOpenAI with the GroveChat Chat View."){
-            ``LLMOpenAISession``
-        }
+}
+
+An ``LLMOpenAISession`` drives the conversation shown by the [GroveChat](../../GroveChat/GroveChat.docc/GroveChat.md) module's `ChatView`.
     }
 }
 
@@ -47,7 +46,7 @@ You need to add the GroveLLM Swift package to
 
 ## Grove LLM OpenAI Components
 
-The core components of the ``GroveLLMOpenAI`` target are the ``LLMOpenAISchema``, ``LLMOpenAISession`` as well as ``LLMOpenAIPlatform``. They heavily use the OpenAI API to perform textual inference on the GPT-3.5 or GPT-4 models from OpenAI.
+The core components of the ``GroveLLMOpenAI`` target are the ``LLMOpenAISchema``, ``LLMOpenAISession`` as well as ``LLMOpenAIPlatform``. They use the OpenAI API to run inference on OpenAI's models, stream the answer into the chat, and, for models that can draw, hand generated pictures to the conversation as they arrive.
 
 > Important: To utilize an LLM from OpenAI, an OpenAI API Key is required. Ensure that the OpenAI account associated with the key has enough resources to access the specified model as well as enough credits to perform the actual inference.
 
@@ -56,6 +55,8 @@ The core components of the ``GroveLLMOpenAI`` target are the ``LLMOpenAISchema``
 ### LLM OpenAI
 
 ``LLMOpenAISchema`` offers a variety of configuration possibilities that are supported by the OpenAI API, such as the model type, the system prompt, the temperature of the model, and many more. These options can be set via the ``LLMOpenAILikeSchema/init(parameters:modelParameters:injectIntoContext:searchesTheWeb:generatesImages:_:)`` initializer and the ``LLMOpenAIParameters`` and ``LLMOpenAIModelParameters``.
+
+Pass `generatesImages: true` to let a model that supports it answer with pictures; the session enables OpenAI's image generation tool, and the [GroveChat](../../GroveChat/GroveChat.docc/GroveChat.md) `ChatView` shows the picture where the assistant's placeholder stood.
 
 - Important: The OpenAI LLM abstractions shouldn't be used on it's own but always used together with the Grove `LLMRunner`.
 

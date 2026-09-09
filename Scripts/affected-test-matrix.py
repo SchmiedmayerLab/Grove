@@ -106,6 +106,7 @@ NON_TEST_SCRIPT_PATHS = {
     "Scripts/check-documentation-targets.py",
     "Scripts/ci-dryrun.sh",
     "Scripts/cleanup-generated-artifacts.sh",
+    "Scripts/documentation-screenshots.sh",
     "Scripts/generate-ui-test-projects.py",
     "Scripts/run-periphery.sh",
 }

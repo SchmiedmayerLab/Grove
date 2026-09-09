@@ -50,7 +50,6 @@ struct ScheduleView: View {
         NavigationStack {
             scheduleList
                 .navigationTitle("Schedule")
-                .navigationBarTitleDisplayMode(.inline)
                 .viewStateAlert(state: $model.viewState)
                 .toolbar {
                     if !hidden {

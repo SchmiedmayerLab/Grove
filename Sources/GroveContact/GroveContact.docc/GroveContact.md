@@ -19,8 +19,8 @@ The Grove Contact Swift Package provides views and infrastructure to display con
 
 @Row {
     @Column {
-        @Image(source: "Overview", alt: "Screenshow showing a ContactsList rendered within the Grove Template Application.") {
-            A ``ContactsList`` rendered in the Grove Template Application.
+        @Image(source: "ContactsList", alt: "A list of contact cards, each with a name, title, organization, description, a row of call, text, email and website buttons, and a postal address.") {
+            A ``ContactsList`` stacks one ``ContactView`` card per ``Contact``, each with its contact options and postal address.
         }
     }
 }
@@ -29,7 +29,7 @@ The Grove Contact Swift Package provides views and infrastructure to display con
 
 ### Add Grove Contact as a Dependency
 
-You need to add the Grove Mock Web Service Swift package to
+You need to add the GroveContact Swift package to
 [your app in Xcode](https://developer.apple.com/documentation/xcode/adding-package-dependencies-to-your-app#) or
 [Swift package](https://developer.apple.com/documentation/xcode/creating-a-standalone-swift-package-with-xcode#Add-a-dependency-on-another-Swift-package).
 

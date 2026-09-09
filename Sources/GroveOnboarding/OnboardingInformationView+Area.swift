@@ -7,10 +7,10 @@
 //
 
 import GroveFoundation
-import GroveViews
 public import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OnboardingInformationView {
     /// A block of content within an `OnboardingInformationView`
     ///
@@ -83,7 +83,7 @@ extension OnboardingInformationView.Area {
     /// - parameter title: The area's localized title, displayed to the right of the `icon`.
     /// - parameter description: The area's localized description, displayed below its `title`.
     public init(iconSymbol: String, title: LocalizedStringResource, description: LocalizedStringResource) {
-        self.init(icon: { Image(systemName: iconSymbol) }, title: title, description: description)
+        self.init(icon: { Image(systemName: iconSymbol).resizable().scaledToFit() }, title: title, description: description)
     }
     
     /// Creates a new area, using a system symbol icon and non-localized string contents.
@@ -93,6 +93,6 @@ extension OnboardingInformationView.Area {
     /// - parameter description: The area's description, displayed below its `title`.
     @_disfavoredOverload
     public init(iconSymbol: String, title: some StringProtocol, description: some StringProtocol) {
-        self.init(icon: { Image(systemName: iconSymbol) }, title: title, description: description)
+        self.init(icon: { Image(systemName: iconSymbol).resizable().scaledToFit() }, title: title, description: description)
     }
 }

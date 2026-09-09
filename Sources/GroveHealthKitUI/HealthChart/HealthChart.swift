@@ -16,6 +16,10 @@ import HealthKit
 public import SwiftUI
 
 
+/// Charts the samples of one or more HealthKit queries and follows the store as they change.
+///
+/// ![A line chart of HealthKit samples.](HealthChart)
+///
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct HealthChart: View {
     public typealias ContentBuilder = ArrayBuilder<any HealthChartEntryProtocol>
