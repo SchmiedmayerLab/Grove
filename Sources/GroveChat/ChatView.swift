@@ -13,6 +13,8 @@ public import SwiftUI
 /// Provides a basic reusable chat view which includes a message input field. The input can be typed out via the keyboard,
 /// dictated as voice input, or accompanied by images picked from the photo library.
 ///
+/// ![A conversation with a chart the assistant drew and the message composer.](Conversation)
+///
 /// The actual content of the ``ChatView`` is defined by a ``Chat``, which contains an ordered array of ``ChatEntity``s representing the individual messages within the ``ChatView``.
 /// The ``Chat`` is passed to the ``ChatView`` as a SwiftUI `Binding`, which enables modification of the ``Chat`` from outside of the view, for example via a SwiftUI `.onChange()` `View` modifier.
 ///

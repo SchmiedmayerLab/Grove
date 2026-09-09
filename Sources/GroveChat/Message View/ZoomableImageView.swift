@@ -29,13 +29,24 @@ struct ZoomableImageView: UIViewRepresentable {
         var imageView: UIImageView?
         var fitted = false
         private var fittedBounds = CGSize.zero
+        private var isFitting = false
 
         /// Sizes the image to the scroll view and starts from the fitted scale; re-fits when the bounds change.
+        ///
+        /// The frame is only ever set at a zoom scale of 1: a zoomed scroll view scales its content view through its
+        /// transform, and a frame assigned underneath that transform inflates the bounds by the inverse scale, which
+        /// shows the picture at pixel size with no way to zoom back out. Assigning the zoom scale lays out again, so
+        /// the method also guards against re-entering itself.
         func fit(_ scrollView: UIScrollView) {
-            guard let imageView, let image = imageView.image, scrollView.bounds.size != .zero,
+            guard !isFitting, let imageView, let image = imageView.image, scrollView.bounds.size != .zero,
                   !fitted || scrollView.bounds.size != fittedBounds else {
                 return
             }
+            isFitting = true
+            defer { isFitting = false }
+            scrollView.minimumZoomScale = 1
+            scrollView.maximumZoomScale = 1
+            scrollView.zoomScale = 1
             imageView.frame = CGRect(origin: .zero, size: image.size)
             scrollView.contentSize = image.size
             let fittingScale = min(scrollView.bounds.width / image.size.width, scrollView.bounds.height / image.size.height)

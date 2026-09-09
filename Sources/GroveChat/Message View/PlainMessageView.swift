@@ -129,10 +129,14 @@ extension PlainMessageView {
                 case 0:
                     EmptyView()
                 case 1:
-                    Self.imageContent(for: images[0], fillingTile: false)
+                    RevealingImage(image: images[0], fillingTile: false)
                         .frame(maxHeight: Self.maximumHeight)
                         .clipShape(.rect(cornerRadius: Self.cornerRadius, style: .continuous))
                         .onTapGesture {
+                            guard images[0] != .generating else {
+                                return
+                            }
+                            dismissKeyboard()
                             viewedImage = ViewedImage(id: 0)
                         }
                 default:
@@ -140,6 +144,8 @@ extension PlainMessageView {
                 }
             }
             .accessibilityElement(children: .contain)
+            // Grows the placeholder to the picture's size; the picture itself follows on the transition's own clock.
+            .animation(.smooth(duration: 0.4), value: images)
             .sheet(item: $viewedImage) { viewed in
                 ChatImageViewer(images: images, startingAt: viewed.id)
             }
@@ -155,38 +161,88 @@ extension PlainMessageView {
                     Color.clear
                         .aspectRatio(1, contentMode: .fit)
                         .overlay {
-                            Self.imageContent(for: image, fillingTile: true)
+                            RevealingImage(image: image, fillingTile: true)
                         }
                         .clipShape(.rect(cornerRadius: 8, style: .continuous))
                         .contentShape(.rect)
                         .onTapGesture {
+                            guard image != .generating else {
+                                return
+                            }
+                            dismissKeyboard()
                             viewedImage = ViewedImage(id: index)
                         }
                 }
             }
         }
+    }
+}
 
-        /// The image itself, either fitted to its own proportions or filling a square tile.
-        @ViewBuilder
-        static func imageContent(for image: ChatEntity.Content.Image, fillingTile: Bool) -> some View {
-            Group {
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension PlainMessageView.AttachedImagesView {
+    /// The image itself, either fitted to its own proportions or filling a square tile.
+    ///
+    /// A picture that replaces a placeholder arrives in two beats: the frame grows to the picture's size with the
+    /// dots still on it, then the dots dissolve into the picture.
+    struct RevealingImage: View {
+        /// Waits for the frame to settle, then arrives on the same clock as the dots leave.
+        private static var reveal: AnyTransition {
+            AnyTransition(.blurReplace).animation(.smooth(duration: 0.7).delay(0.35))
+        }
+
+        let image: ChatEntity.Content.Image
+        let fillingTile: Bool
+
+        /// Keeps the dots on while the frame grows; a view already being removed would freeze at its old size.
+        @State private var dotsLinger = false
+
+        var body: some View {
+            // A container of its own: without one the swap from placeholder to picture ignores the animation.
+            ZStack {
                 switch image {
                 case .image(let image):
-                    resized(Image(platformImage: image), fillingTile: fillingTile)
+                    resized(Image(platformImage: image))
+                        .transition(Self.reveal)
                 case .url(let url):
                     AsyncImage(url: url) { image in
-                        resized(image, fillingTile: fillingTile)
+                        resized(image)
                     } placeholder: {
                         ProgressView()
                             .frame(maxWidth: .infinity, minHeight: fillingTile ? 0 : 120)
                     }
+                    .transition(Self.reveal)
+                case .generating:
+                    // Only sizes the placeholder; the dots sit in the overlay so they can follow the frame as it grows.
+                    Color.clear
+                        .frame(maxWidth: fillingTile ? nil : 280, minHeight: fillingTile ? 0 : 150)
+                        .transition(.identity)
+                }
+            }
+            .overlay {
+                if image == .generating || dotsLinger {
+                    GeneratingImageView()
+                        .transition(.blurReplace)
+                }
+            }
+            .onChange(of: image) { old, new in
+                if old == .generating && new != .generating {
+                    dotsLinger = true
+                }
+            }
+            .task(id: dotsLinger) {
+                guard dotsLinger, (try? await Task.sleep(for: .seconds(0.35))) != nil else {
+                    return
+                }
+                withAnimation(.smooth(duration: 0.7)) {
+                    dotsLinger = false
                 }
             }
             .accessibilityLabel(Text("ATTACHED_IMAGE", bundle: .module))
         }
 
         @ViewBuilder
-        private static func resized(_ image: Image, fillingTile: Bool) -> some View {
+        private func resized(_ image: Image) -> some View {
             if fillingTile {
                 image
                     .resizable()

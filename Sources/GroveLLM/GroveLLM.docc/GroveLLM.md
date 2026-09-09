@@ -167,6 +167,18 @@ The ``LLMChatView`` is passed an ``LLMSession`` that represents the LLM in execu
 
 > Tip: By default, the ``LLMChatView`` presents no share button in the toolbar that exports the current `GroveChat/Chat`. To add this element or change the export functionality, pass the desired export format for the `exportFormat` parameter in ``LLMChatView/init(session:exportFormat:messagesVisibility:attachments:)``.
 
+### Generated Images
+
+A session that can draw announces the picture before it exists: the context carries a generating image, the chat shows a placeholder in its place, and the finished picture replaces it once it arrives. The ``LLMContext`` turns the placeholder into the picture when the session completes it, and clears one an interrupted stream left behind. The [GroveLLMOpenAI](../../GroveLLMOpenAI/GroveLLMOpenAI.docc/GroveLLMOpenAI.md) session does this for models that support image generation.
+
+@Row {
+    @Column {
+        @Image(source: "ImageGeneration", alt: "Screenshot showing a conversation in which the assistant answered with a generated picture.") {
+            A picture the assistant drew, shown in the conversation by the [GroveChat](../../GroveChat/GroveChat.docc/GroveChat.md) module.
+        }
+    }
+}
+
 #### Usage
 
 An example usage of the ``LLMChatViewSchema`` can be seen in the following example.

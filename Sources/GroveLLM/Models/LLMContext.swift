@@ -214,6 +214,17 @@ extension LLMContext {
         storage.append(.init(_role: .assistant, _imageContent: image, interactionId: interactionId))
     }
 
+    /// Fills in the picture the assistant announced with ``append(assistantImage:interactionId:)`` and
+    /// ``LLMContextEntity/_ImageContent/generating``; appends it when nothing announced it.
+    package mutating func complete(assistantImage image: LLMContextEntity._ImageContent, interactionId: LLMInteractionId? = nil) {
+        guard let index = storage.lastIndex(where: { $0.interactionId == interactionId && $0._imageContent?.isGenerating == true }) else {
+            append(assistantImage: image, interactionId: interactionId)
+            return
+        }
+        let placeholder = storage[index]
+        storage[index] = .init(_role: .assistant, _imageContent: image, id: placeholder.id, date: placeholder.date, interactionId: interactionId)
+    }
+
     /// Records where an assistant answer drew from.
     ///
     /// Citations arrive after the text they belong to, so they are merged onto the answer already in the context
@@ -326,5 +337,10 @@ extension LLMContext {
         if let last, last.role == .assistantThinking, !last.complete, last.interactionId == interactionId {
             storage.removeLast()
         }
+    }
+
+    /// Drops the pictures an interaction announced but never delivered.
+    package mutating func removeGeneratingImages(for interactionId: LLMInteractionId) {
+        storage.removeAll { $0.interactionId == interactionId && $0._imageContent?.isGenerating == true }
     }
 }

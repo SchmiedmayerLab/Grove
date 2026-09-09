@@ -97,8 +97,15 @@ public struct LLMContextEntity: Codable, Equatable, Hashable, Identifiable, Send
 
     /// - Important: This type is not stable and will be removed in an upcoming release.
     package struct _ImageContent: Codable, Hashable, Sendable { // swiftlint:disable:this type_name
+        /// A picture the assistant has started but not finished; the chat shows a placeholder in its place.
+        package static let generating = Self(contentType: "", base64Image: "")
+
         package let contentType: String
         package let base64Image: String
+
+        package var isGenerating: Bool {
+            base64Image.isEmpty
+        }
 
         package init(contentType: String, base64Image: String) {
             self.contentType = contentType
