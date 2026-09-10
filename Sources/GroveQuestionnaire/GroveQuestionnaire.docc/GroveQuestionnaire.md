@@ -21,12 +21,23 @@ and are imported instead.
 
 Both paths produce the same ``Questionnaire``, render through the same
 ``QuestionnaireSheet``, and export the same conformant FHIR `Questionnaire` and
-`QuestionnaireResponse`.
+`QuestionnaireResponse`. Every page keeps its action floating at the bottom and lifts its
+title into the navigation bar as it scrolls, like every other Grove page.
 
 @Row {
     @Column {
-        @Image(source: "Overview", alt: "Screenshot showing an FHIR Questionnaire rendered using the Questionnaire module."){
-            A questionnaire rendered by ``QuestionnaireSheet``.
+        @Image(source: "Overview", alt: "Screenshot showing the first page of a questionnaire rendered by the Questionnaire module."){
+            A questionnaire rendered by ``QuestionnaireSheet``, one question to a card.
+        }
+    }
+    @Column {
+        @Image(source: "Validation", alt: "Screenshot showing an unanswered question marked in red after the participant tried to continue."){
+            Continuing early marks what still needs an answer and brings the page back to it.
+        }
+    }
+    @Column {
+        @Image(source: "Score", alt: "Screenshot showing a score computed from the chosen options, and an instruction that appeared once it crossed a threshold."){
+            Questions follow from answers: a score computed from the option weights updates as they are chosen, and an instruction appears once it crosses a threshold.
         }
     }
 }

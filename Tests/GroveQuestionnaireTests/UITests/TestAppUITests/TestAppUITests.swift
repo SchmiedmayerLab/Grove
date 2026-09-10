@@ -182,6 +182,6 @@ class TestAppUITests: XCTestCase, @unchecked Sendable {
     @MainActor
     private func waitForQuestionnaire(titled title: String) {
         XCTAssert(questionnaire.waitUntilPresented())
-        XCTAssert(questionnaire.waitUntilNavigationBarShows(title))
+        XCTAssert(questionnaire.waitUntilTitled(title))
     }
 }

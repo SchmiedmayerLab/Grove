@@ -257,6 +257,14 @@ import GroveQuestionnaireFHIR
 let questionnaire = try Screener.questionnaire.withExpressionEngine()
 ```
 
+@Row {
+    @Column {
+        @Image(source: "Score", alt: "Screenshot showing a score computed from the chosen options, and an instruction that appeared once it crossed a threshold.") {
+            The score updates as options are chosen, and a condition on it shows an instruction once it crosses a threshold.
+        }
+    }
+}
+
 ### Reading the answers
 
 ``QuestionnaireResponses`` is subscripted by the declarations themselves:

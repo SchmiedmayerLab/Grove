@@ -349,7 +349,8 @@ extension ModelsR4.QuestionnaireItem {
             // do we want to allow this? be a little more lenient here?
             throw .other("Empty top-level group!")
         }
-        let groupCondition = try GroveQuestionnaire.Questionnaire.Condition(self, using: context)
+        // A group gates its items with enableWhen or an SDC enableWhenExpression, like any item.
+        let groupCondition = try enabledCondition(using: context)
         let itemContext = ConversionContext(
             options: context.options,
             questionnaire: context.questionnaire,

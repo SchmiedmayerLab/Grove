@@ -38,15 +38,15 @@ struct CompletionPage: View {
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
-            // Nothing scrolls here, so the button simply ends the stack.
-            doneButton
         }
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // The same inset the questions were answered at, so the page the participant lands on
-        // is the page they have been on all along, one screen further.
         .padding(.horizontal, 16)
-        .padding(.bottom, 20)
+        // Where the questions' action was, so the page the participant lands on is the page they
+        // have been on all along, one screen further.
+        .floatingActions {
+            doneButton
+        }
         .makeBackgroundMatchFormBackground()
         .viewStateAlert(state: $viewState)
         #if os(iOS)

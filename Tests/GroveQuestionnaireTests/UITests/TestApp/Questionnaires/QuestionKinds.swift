@@ -80,8 +80,11 @@ enum QuestionKinds {
         .optional()
 
     static let day = DateQuestion("day", "Date")
+        .optional()
     static let moment = DateQuestion.time("moment", "Time")
+        .optional()
     static let dayAndMoment = DateQuestion.dateTime("day-and-moment", "Date and time")
+        .optional()
 
     static let rating = NumberQuestion("rating", "Decimal, as a slider")
         .range(-5...12)

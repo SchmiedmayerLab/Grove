@@ -250,7 +250,7 @@ extension QuestionnaireSheetNavigator.Question {
         answeringFollowUp: (QuestionnaireSheetNavigator) -> Void
     ) {
         select(title, timeout: timeout, file: file, line: line)
-        guard navigator.waitUntilNavigationBarShows("Follow-Up: \(title)", timeout: timeout) else {
+        guard navigator.waitUntilTitled("Follow-Up: \(title)", timeout: timeout) else {
             XCTFail("Selecting '\(title)' on question '\(linkId)' did not open any follow-up questions.", file: file, line: line)
             return
         }

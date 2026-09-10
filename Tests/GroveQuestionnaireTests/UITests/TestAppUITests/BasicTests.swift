@@ -33,8 +33,6 @@ final class BasicTests: TestAppUITests, @unchecked Sendable {
         tap(app.otherElements["Task:1.2"].buttons["Option: Obeys commands, Not Selected"])
         tap(app.otherElements["Task:1.3"].buttons["Option: Eye opening to verbal command, Not Selected"])
 
-        // the action is the page's last row, so a page this long has to be scrolled to reach it
-        questionnaire.scrollToPrimaryAction()
         let primaryAction = app.buttons.matching(identifier: "PrimaryAction").allElementsBoundByIndex.last
         XCTAssertEqual(primaryAction?.label, "Submit")
         XCTAssertEqual(primaryAction?.value as? String, "Ready")
@@ -76,7 +74,6 @@ final class BasicTests: TestAppUITests, @unchecked Sendable {
     func testScanningForSomethingThePageDoesNotHave() {
         launchAppAndStartExample("Patient Health Questionnaire-9", in: .modelValues)
         XCTAssert(questionnaire.question("H1/T1/Q1").waitUntilAsked())
-        XCTAssert(questionnaire.scrollToPrimaryAction())
 
         XCTAssertFalse(questionnaire.showsText("Nothing on this page"))
         XCTAssert(questionnaire.section.exists)
