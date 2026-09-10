@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import GroveViews
 import SwiftUI
 
 
@@ -18,15 +19,8 @@ struct QuestionMessage: View {
     private let message: Text
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Image(systemName: "exclamationmark.circle.fill")
-                .accessibilityHidden(true)
-            message
-        }
-        .font(.footnote)
-        .foregroundStyle(.red)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        BlockingMessage(message)
+            .padding(.vertical, 8)
     }
 
     init(_ message: Text) {

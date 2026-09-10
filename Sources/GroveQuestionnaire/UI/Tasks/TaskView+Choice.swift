@@ -214,17 +214,12 @@ extension TaskView.ChoiceAnswering {
                             response.nestedResponses[.choiceOption(option.id)] = nil
                         }
                     } header: {
-                        VStack(alignment: .leading) {
-                            Text("Follow-Up", bundle: .module)
-                                .font(.headline)
-                            Text(
-                                "Please answer the follow-up questions below, for the **'\(option.title)'** option you just selected.",
-                                bundle: .module
-                            )
-                            .font(.subheadline)
-                        }
+                        Text(
+                            "Please answer the follow-up questions below, for the **'\(option.title)'** option you just selected.",
+                            bundle: .module
+                        )
+                        .font(.subheadline)
                     }
-                    .navigationTitle(Text("Follow-Up: \(option.title)", bundle: .module))
                 }
                 .accessibilityIdentifier("GroveQuestionnaireNavStack")
                 .interactiveDismissDisabled()

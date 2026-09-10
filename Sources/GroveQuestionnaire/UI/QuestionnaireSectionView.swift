@@ -24,10 +24,8 @@ struct QuestionnaireSectionView<Header: View>: View {
 
         var allSections: [Questionnaire.Section] {
             switch self {
-            case .regular(let questionnaire):
-                questionnaire.sections
-            case .answerNestedQuestions(parentTask: _, selectedOptionTitle: _, let sections):
-                sections
+            case .regular(let questionnaire): questionnaire.sections
+            case .answerNestedQuestions(parentTask: _, selectedOptionTitle: _, let sections): sections
             }
         }
     }
@@ -52,32 +50,13 @@ struct QuestionnaireSectionView<Header: View>: View {
     @AccessibilityFocusState private var focusedTask: Questionnaire.Task.ID?
 
     var body: some View {
-        @Bindable var responses = responses
         let runs = TaskRun.runs(of: renderedTasks)
-        let positions = questionPositions
         ScrollViewReader { scrollViewProxy in
             Form {
-                header
-                // One card per question: two questions sharing a card read as one.
-                // FHIR questionnaire-hidden: hidden tasks carry values but are never rendered.
-                ForEach(runs) { run in
-                    let caption = TaskRun.Caption(
-                        intro: run.id == runs.first?.id ? introText : nil,
-                        groups: run.groupHeadings(otherThan: barTitle)
-                    )
-                    ForEach(run.tasks) { task in
-                        cardSection(
-                            for: task,
-                            response: $responses.responses[task.id],
-                            at: positions[task.id],
-                            headedBy: task.id == run.tasks[0].id ? caption : nil
-                        )
-                    }
-                }
-                // disallow mutating responses while an action is being performed
-                .disabled(viewState == .processing)
-
-                actionSection
+                titleSection
+                cards(in: runs)
+                    // disallow mutating responses while an action is being performed
+                    .disabled(viewState == .processing)
             }
             // Conditional and follow-up questions come and go as answers change; letting SwiftUI
             // animate the rows themselves keeps the arrival visible without any state of our own.
@@ -93,6 +72,8 @@ struct QuestionnaireSectionView<Header: View>: View {
             // form's default gap only pushes the page longer.
             .listSectionSpacing(.compact)
             #endif
+            .acceptsRisingTitle()
+            .floatingActions { primaryAction }
             .toolbar {
                 ToolbarItem(placement: QuestionnaireExitButton.placement) {
                     QuestionnaireExitButton(stakes: exitStakes, isProcessing: viewState == .processing) { outcome in
@@ -102,14 +83,6 @@ struct QuestionnaireSectionView<Header: View>: View {
             }
         }
         .viewStateAlert(state: $viewState)
-        .navigationTitle(titleConfig)
-        #if os(iOS)
-        // A large bar shows fewer characters than an inline one, which once made it the wrong
-        // choice. It is the right one now that the bar carries only names — a short name written
-        // for constrained space, or the instrument's own short title — and a name still says which
-        // page you are on when the bar abbreviates it. The text it might have cut is on the page.
-        .navigationBarTitleDisplayMode(.large)
-        #endif
         // disallow navigating around while an action is being performed;
         // SDC entryMode `sequential` forbids revisiting earlier answers entirely.
         .navigationBarBackButtonHidden(viewState == .processing || isSequentialEntry)
@@ -118,73 +91,11 @@ struct QuestionnaireSectionView<Header: View>: View {
         .interactiveDismissDisabled(responses.hasAnyResponses(in: context.allSections))
     }
 
-    /// The page's action, as the form's last row.
-    private var actionSection: some View {
-        SwiftUI.Section {
-            primaryAction
-                .formActionRow()
-        }
-    }
-
     private var isSequentialEntry: Bool {
-        switch context {
-        case .regular(let questionnaire):
-            questionnaire.metadata.entryMode == .sequential
-        case .answerNestedQuestions:
-            false
+        guard case .regular(let questionnaire) = context else {
+            return false
         }
-    }
-
-    /// The section's own text, which always reaches the page, or the short name standing in for
-    /// a text it was never given.
-    ///
-    /// The fallback matters on the one page where a sole group's short name takes the bar: the
-    /// section's own short name is then not in the bar either, and without this the name the
-    /// author wrote would appear nowhere.
-    private var introText: String? {
-        guard section.title.isEmpty else {
-            return section.title
-        }
-        guard let shortTitle = section.shortTitle, !shortTitle.isEmpty, shortTitle != barTitle else {
-            return nil
-        }
-        return shortTitle
-    }
-
-    /// The name in the navigation bar: the most specific short name the page was given, and the
-    /// instrument's own name where it was given none.
-    ///
-    /// Only an authored `shortText` names a bar. It was written for a display too narrow for the
-    /// text it stands for, so it is the one thing a bar can cut without losing anything — every
-    /// authored `text` reaches the page instead. A group lends its name only when it is the only
-    /// group on the page: a name in a bar has to describe everything under it, and with two
-    /// groups neither one does.
-    private var barTitle: String? {
-        guard case let .regular(questionnaire) = context else {
-            return nil
-        }
-        let shortNames = [soleVisibleGroup?.shortTitle, section.shortTitle].compactMap { $0 }
-        return shortNames.first { !$0.isEmpty } ?? questionnaire.metadata.title
-    }
-
-    private var titleConfig: ViewTitleConfig? {
-        guard case let .regular(questionnaire) = context, let barTitle else {
-            return nil
-        }
-        let instrumentName = questionnaire.metadata.title
-        return ViewTitleConfig(title: barTitle, subtitle: barTitle == instrumentName ? nil : instrumentName)
-    }
-
-    /// The group every rendered task belongs to, when they all share exactly one.
-    private var soleVisibleGroup: Questionnaire.Task.Group? {
-        var group: Questionnaire.Task.Group?
-        for task in renderedTasks {
-            guard let innermost = task.groupPath.last, innermost == (group ?? innermost) else {
-                return nil
-            }
-            group = innermost
-        }
-        return group
+        return questionnaire.metadata.entryMode == .sequential
     }
 
     /// The tasks this page shows, in order.
@@ -240,7 +151,7 @@ struct QuestionnaireSectionView<Header: View>: View {
     /// - parameter tasks: The nested tasks.
     /// - parameter completionStepConfig: Controls if there should be a completion step once all nested questions have been completed, and what this step should look like.
     /// - parameter resultHandler: Called when the user taps the primary action after all nested questions have been answered.
-    /// - parameter header: An optional header view that is displayed at the top of the `Form`, above the first task.
+    /// - parameter header: An optional view shown under the page's title, above the first task.
     init(
         nestedQuestionsFor parentTask: Questionnaire.Task,
         selectedOptionTitle: String,
@@ -275,6 +186,28 @@ struct QuestionnaireSectionView<Header: View>: View {
             scrollViewProxy.scrollTo(task, anchor: .top)
         }
         taskToRevisit = nil
+    }
+
+    /// One card per question: two questions sharing a card read as one.
+    ///
+    /// FHIR questionnaire-hidden: hidden tasks carry values but are never rendered.
+    private func cards(in runs: [TaskRun]) -> some View {
+        @Bindable var responses = responses
+        let positions = questionPositions
+        return ForEach(runs) { run in
+            let caption = TaskRun.Caption(
+                intro: run.id == runs.first?.id ? introText : nil,
+                groups: run.groupHeadings(otherThan: pageTitle)
+            )
+            ForEach(run.tasks) { task in
+                cardSection(
+                    for: task,
+                    response: $responses.responses[task.id],
+                    at: positions[task.id],
+                    headedBy: task.id == run.tasks[0].id ? caption : nil
+                )
+            }
+        }
     }
 
     /// One question's card, under the caption the page opens above it.
@@ -323,7 +256,7 @@ struct QuestionnaireSectionView<Header: View>: View {
             position: position.map { QuestionPosition(index: $0.index, total: $0.total) }
         ) {
             if indicateBlockingTasks && responses.isMissingResponse(for: task) {
-                missingResponseMark
+                QuestionMessage(Text("Answer this question to continue", bundle: .module))
             }
         }
         // FHIR item.readOnly: the value is displayed but not editable.
@@ -338,16 +271,91 @@ struct QuestionnaireSectionView<Header: View>: View {
 }
 
 
+// MARK: Naming the Page
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension QuestionnaireSectionView {
+    /// The page's name and whatever introduces it, heading the cards at their width.
+    private var titleSection: some View {
+        SwiftUI.Section {
+        } header: {
+            VStack(alignment: .leading, spacing: 8) {
+                if !pageTitle.isEmpty {
+                    PageHeader(title: pageTitle, subtitle: pageSubtitle, spacing: .compact)
+                }
+                header
+            }
+            // A header rather than a row: a row's rounded cell clips the first glyph of a title set into its corner.
+            // Pulled up out of the room the form leaves above its first section, to where a large navigation title
+            // sits, and inset to the text edge of the cards, where the captions start too.
+            .textCase(nil)
+            .foregroundStyle(.primary)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: -4, trailing: 16))
+        }
+    }
+
+    /// The section's own text, which always reaches the page, or the short name standing in for
+    /// a text it was never given.
+    ///
+    /// The fallback matters on the one page where a sole group's short name takes the bar: the
+    /// section's own short name is then not in the bar either, and without this the name the
+    /// author wrote would appear nowhere.
+    private var introText: String? {
+        guard section.title.isEmpty else {
+            return section.title
+        }
+        guard let shortTitle = section.shortTitle, !shortTitle.isEmpty, shortTitle != pageTitle else {
+            return nil
+        }
+        return shortTitle
+    }
+
+    /// The page's name, which the navigation bar takes over once it scrolls out of view: the most
+    /// specific short name the page was given, and the instrument's own name where it was given none.
+    ///
+    /// Only an authored `shortText` names a page. It was written for a display too narrow for the
+    /// text it stands for, so it is the one thing a bar can cut without losing anything. Every
+    /// authored `text` reaches the page instead. A group lends its name only when it is the only
+    /// group on the page: a name in a bar has to describe everything under it, and with two
+    /// groups neither one does.
+    private var pageTitle: String {
+        switch context {
+        case .regular(let questionnaire):
+            let shortNames = [soleVisibleGroup?.shortTitle, section.shortTitle].compactMap { $0 }
+            return shortNames.first { !$0.isEmpty } ?? questionnaire.metadata.title
+        case .answerNestedQuestions(parentTask: _, let selectedOptionTitle, sections: _):
+            return String(localized: "Follow-Up: \(selectedOptionTitle)", bundle: .module)
+        }
+    }
+
+    /// The instrument's name, on a page named after one of its parts.
+    private var pageSubtitle: String? {
+        guard case let .regular(questionnaire) = context, questionnaire.metadata.title != pageTitle else {
+            return nil
+        }
+        return questionnaire.metadata.title
+    }
+
+    /// The group every rendered task belongs to, when they all share exactly one.
+    private var soleVisibleGroup: Questionnaire.Task.Group? {
+        var group: Questionnaire.Task.Group?
+        for task in renderedTasks {
+            guard let innermost = task.groupPath.last, innermost == (group ?? innermost) else {
+                return nil
+            }
+            group = innermost
+        }
+        return group
+    }
+}
+
+
 // MARK: The Primary Action
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireSectionView {
-    private var isLastSection: Bool {
-        responses.nextRenderedSection(after: section, in: context.allSections) == nil
-    }
-
     private var primaryActionTitle: LocalizedStringResource {
-        guard isLastSection else {
+        guard responses.nextRenderedSection(after: section, in: context.allSections) == nil else {
             return LocalizedStringResource("Continue", bundle: .module)
         }
         switch completionAction {
@@ -358,10 +366,6 @@ extension QuestionnaireSectionView {
                 ? LocalizedStringResource("Submitting…", bundle: .module)
                 : LocalizedStringResource("Submit", bundle: .module)
         }
-    }
-
-    private var missingResponseMark: some View {
-        QuestionMessage(Text("Answer this question to continue", bundle: .module))
     }
 
     /// Where a question sits in the run, when the questionnaire asks for it to be shown.
@@ -377,7 +381,7 @@ extension QuestionnaireSectionView {
         }
     }
 
-    /// The one prominent control on the page, its last row.
+    /// The one prominent control on the page, floating over the foot of it.
     ///
     /// It stays enabled and fully tinted even when the section is incomplete: a section can run
     /// several screens long, so the question that blocks it is usually off-screen, and a dimmed

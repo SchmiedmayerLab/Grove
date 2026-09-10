@@ -17,7 +17,7 @@ struct AnnotationPreviewImage: View {
     @Binding var drawing: PKDrawing
 
     var body: some View {
-        ImageAnnotationView(image: image, drawing: $drawing, tool: .init(.pen))
+        ImageAnnotationView(image: image, drawing: $drawing, tool: PKInkingTool(.pen))
             .accessibilityLabel(Text("Image", bundle: .module))
             .frame(height: 100)
             .disabled(true)

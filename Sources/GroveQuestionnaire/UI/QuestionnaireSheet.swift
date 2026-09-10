@@ -12,11 +12,14 @@ public import SwiftUI
 
 /// Presents a ``Questionnaire`` for answering.
 ///
+/// ![A questionnaire page with one question per card and a continue button.](Overview)
+///
 /// Unless externally provided, the sheet implicitly creates and owns a ``QuestionnaireResponses`` instance,
 /// which, upon successful completion of the questionnaire, will be made available via the result handler.
 ///
 /// The `QuestionnaireSheet` uses an internal `NavigationStack` to display the questionnaire's content;
-/// each section in the input questionnaire is displayed as one page on the stack.
+/// each section in the input questionnaire is displayed as one page on the stack. A page's action floats
+/// over the foot of its questions, and its title rises into the navigation bar once it scrolls out of view.
 ///
 /// - Note: The presenting parent view is responsible for dismissing the `QuestionnaireSheet` after the result handler has completed.
 ///

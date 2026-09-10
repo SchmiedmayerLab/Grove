@@ -20,7 +20,7 @@ struct ZoomableImageAnnotationView: UIViewRepresentable {
 
     let image: UIImage
     @Binding var drawing: PKDrawing
-    let tool: PKInkingTool
+    let tool: any PKTool
     let isDrawingEnabled: Bool
     let contentInsets: UIEdgeInsets
     let history: AnnotationHistoryController

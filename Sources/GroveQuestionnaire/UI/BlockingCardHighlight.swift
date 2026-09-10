@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import GroveViews
 import SwiftUI
 
 
@@ -14,12 +15,8 @@ private struct BlockingCardHighlight: ViewModifier {
 
     let isBlocking: Bool
 
-    /// A dark card takes more of the tint than a white one before it reads as marked at all.
     private var tint: Color {
-        guard isBlocking else {
-            return .clear
-        }
-        return Color.red.opacity(colorScheme == .dark ? 0.22 : 0.1)
+        isBlocking ? .blockingTint(for: colorScheme) : .clear
     }
 
     func body(content: Content) -> some View {

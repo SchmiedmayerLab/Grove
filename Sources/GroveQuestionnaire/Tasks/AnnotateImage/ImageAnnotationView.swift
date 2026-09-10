@@ -19,7 +19,7 @@ struct ImageAnnotationView: View {
     private let image: UIImage
     private let imageSizeInPixels: CGSize
     @Binding private var drawing: PKDrawing
-    private let tool: PKInkingTool
+    private let tool: any PKTool
     @State private var imageViewSize: CGSize = .zero
     
     var body: some View {
@@ -34,8 +34,9 @@ struct ImageAnnotationView: View {
             .overlay {
                 CanvasView(
                     drawing: $drawing,
-                    tool: tool,
-                    drawingPolicy: .anyInput
+                    tool: .constant(tool),
+                    drawingPolicy: .anyInput,
+                    showToolPicker: .constant(false)
                 )
                 // we want the canvas' size to match that of the image
                 .frame(
@@ -56,10 +57,10 @@ struct ImageAnnotationView: View {
     ///
     /// - parameter image: The image being annotated.
     /// - parameter drawing: A `Binding` to the variable containing the drawing.
-    /// - parameter tool: The `PKInkingTool` that should be used when the user draws on the image.
+    /// - parameter tool: The `PKTool` that should be used when the user draws on the image.
     ///
     /// The `drawing` will be
-    init(image: UIImage, drawing: Binding<PKDrawing>, tool: PKInkingTool) {
+    init(image: UIImage, drawing: Binding<PKDrawing>, tool: any PKTool) {
         self.image = image
         self.imageSizeInPixels = image.size.applying(.identity.scaledBy(x: image.scale, y: image.scale))
         self._drawing = drawing

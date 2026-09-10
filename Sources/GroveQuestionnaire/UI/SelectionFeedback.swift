@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import GroveViews
 import SwiftUI
 
 
@@ -20,8 +21,7 @@ enum SelectionFeedback {
     /// Eased out rather than sprung, so the mark arrives at speed and settles: the fast start is what
     /// makes answering feel immediate, and it is also what lets the page follow this soon after.
     static let confirmation: Animation = .easeOut(duration: 0.14)
-    /// Short enough that the mark and the page read as one movement rather than two.
-    static let scroll: Animation = .snappy(duration: 0.25)
+    static let scroll: Animation = .revisit
 
     /// Records an answer, and moves on once its confirmation has played.
     ///

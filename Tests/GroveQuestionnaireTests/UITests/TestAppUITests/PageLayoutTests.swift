@@ -12,34 +12,36 @@ import XCTGroveQuestionnaire
 
 /// What a page says about itself: what names it, what heads its content, and how far along it is.
 ///
-/// A short name (SDC `shortText`) names the navigation bar and nothing else does; everything the
-/// author wrote reaches the page, so no page can lose a name it was given.
+/// A short name (SDC `shortText`) names the page and nothing else does; everything the author
+/// wrote reaches the page, so no page can lose a name it was given. The name heads the content
+/// and rises into the navigation bar as the page scrolls, so ``QuestionnaireSheetNavigator/isTitled(_:)``
+/// reads it from either.
 final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
-    /// A group's short name names the bar, and the text it stands for still heads the questions.
+    /// A group's short name names the page, and the text it stands for still heads the questions.
     @MainActor
     func testAGroupsShortNameNamesTheBar() {
         startPageShapes(upTo: "morning-note")
 
-        XCTAssert(questionnaire.navigationBarShows("Mornings"))
+        XCTAssert(questionnaire.isTitled("Mornings"))
         XCTAssert(questionnaire.showsText("Everything you do before you leave the house"))
-        XCTAssertFalse(questionnaire.navigationBarShows("Everything you do before you leave the house"))
+        XCTAssertFalse(questionnaire.isTitled("Everything you do before you leave the house"))
         XCTAssertFalse(questionnaire.sectionIntro.exists)
     }
 
 
-    /// With no short name anywhere on the page, the instrument's own name is what the bar has.
+    /// With no short name anywhere on the page, the instrument's own name is what names it.
     @MainActor
     func testWithoutAShortNameTheInstrumentNamesTheBar() {
         startPageShapes(upTo: "evening-note")
 
-        XCTAssert(questionnaire.navigationBarShows("Page Titles"))
+        XCTAssert(questionnaire.isTitled("Page Titles"))
         XCTAssert(questionnaire.showsText("Evening wind-down"))
-        XCTAssertFalse(questionnaire.navigationBarShows("Evening wind-down"))
+        XCTAssertFalse(questionnaire.isTitled("Evening wind-down"))
     }
 
 
-    /// A name in the bar has to describe everything under it, so two groups head themselves
-    /// on the page and the section's short name takes the bar.
+    /// A page's name has to describe everything under it, so two groups head themselves
+    /// on the page and the section's short name names it.
     ///
     /// The section's own text is a prompt rather than a name, and a prompt stops meaning anything
     /// the moment a bar cuts it — it heads the content, in full.
@@ -47,12 +49,12 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
     func testEachGroupSharingAPageHeadsItself() {
         startPageShapes(upTo: "weekday-note")
 
-        XCTAssert(questionnaire.navigationBarShows("Your Week"))
+        XCTAssert(questionnaire.isTitled("Your Week"))
         XCTAssert(questionnaire.showsText("Weekdays"))
         XCTAssert(questionnaire.showsText("Weekends"))
         XCTAssert(questionnaire.sectionIntro.exists)
         XCTAssertEqual(questionnaire.sectionIntro.label, "How would you describe a normal week for you?")
-        XCTAssertFalse(questionnaire.navigationBarShows("How would you describe a normal week for you?"))
+        XCTAssertFalse(questionnaire.isTitled("How would you describe a normal week for you?"))
     }
 
 
@@ -66,7 +68,7 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
 
         XCTAssert(questionnaire.showsText("Daytime"))
         XCTAssert(questionnaire.showsText("Sleep"))
-        XCTAssert(questionnaire.navigationBarShows("Page Titles"))
+        XCTAssert(questionnaire.isTitled("Page Titles"))
     }
 
 
@@ -75,8 +77,8 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
     func testAShortNameIdenticalToTheTitleIsNotRepeatedOnThePage() {
         startPageShapes(upTo: "check-in-note")
 
-        XCTAssert(questionnaire.navigationBarShows("Check-In"))
-        XCTAssertFalse(questionnaire.showsText("Check-In"))
+        XCTAssert(questionnaire.isTitled("Check-In"))
+        XCTAssertEqual(questionnaire.visibleText.count { $0 == "Check-In" }, 1)
     }
 
 
@@ -85,7 +87,7 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
     func testAPageWithNothingNamedOnIt() {
         startPageShapes(upTo: "unnamed-note")
 
-        XCTAssert(questionnaire.navigationBarShows("Page Titles"))
+        XCTAssert(questionnaire.isTitled("Page Titles"))
         XCTAssertFalse(questionnaire.sectionIntro.exists)
     }
 
@@ -120,7 +122,7 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
     }
 
 
-    /// FHIR that authors no `shortText` names every bar after the instrument, and puts each
+    /// FHIR that authors no `shortText` names every page after the instrument, and puts each
     /// group's text on the page it heads.
     @MainActor
     func testFHIRWithoutShortTextKeepsTheInstrumentInTheBar() {
@@ -133,20 +135,20 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
 
         XCTAssert(questionnaire.sectionIntro.waitForExistence(timeout: 10))
         XCTAssertEqual(questionnaire.sectionIntro.label, "Let's talk about ice cream.")
-        XCTAssert(questionnaire.navigationBarShows("Form Example"))
+        XCTAssert(questionnaire.isTitled("Form Example"))
     }
 
 
     /// A group's text is as often the stem its questions hang off as it is a name, and the stem
-    /// has to stay on screen in full or the questions below it stop making sense.
+    /// has to stay on the page in full or the questions below it stop making sense.
     @MainActor
     func testALongGroupTextHeadsTheContentRatherThanTheBar() {
         launchAppAndStartFHIRExample("Generalized Anxiety Disorder - 7")
 
         XCTAssert(questionnaire.sectionIntro.waitForExistence(timeout: 10))
         XCTAssert(questionnaire.sectionIntro.label.hasPrefix("How often have you been bothered"))
-        XCTAssertFalse(questionnaire.navigationBarShows(questionnaire.sectionIntro.label))
-        XCTAssert(questionnaire.navigationBarShows("Generalized Anxiety Disorder - 7"))
+        XCTAssertFalse(questionnaire.isTitled(questionnaire.sectionIntro.label))
+        XCTAssert(questionnaire.isTitled("Generalized Anxiety Disorder - 7"))
     }
 
 

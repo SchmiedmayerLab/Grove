@@ -28,6 +28,24 @@ GroveQuestionnaire supports the following built-in question kinds:
 | File Attachment | Imports a user-selected file | \[``QuestionnaireResponses/CollectedAttachment``\] |
 | [Annotate Image](#Image-Annotations) | Prompts the user to mark regions on an image. | ``QuestionnaireResponses/ImageAnnotation`` |
 
+@Row {
+    @Column {
+        @Image(source: "TextAndChoice", alt: "Screenshot showing choice, boolean and text questions, some of them answered."){
+            Single and multiple choice, a drop-down, a yes-or-no question and free text, one card each.
+        }
+    }
+    @Column {
+        @Image(source: "DatesAndTimes", alt: "Screenshot showing date, time and date-and-time questions."){
+            A date, a time, or both, picked with the system's own controls.
+        }
+    }
+    @Column {
+        @Image(source: "Numbers", alt: "Screenshot showing numeric questions as a slider, as fields and as a quantity with a unit."){
+            Numbers as a slider, as decimal and integer fields, and as a quantity with its unit.
+        }
+    }
+}
+
 > Tip:
 Additional question kinds can be defined via the ``QuestionKindDefinition`` protocol; see also [here](#Custom-Question-Kinds).
 
@@ -40,6 +58,14 @@ The question kind's config (``AnnotateImageConfig``) defines which image should 
 A region is a label and color, which the user can select to highlight the parts of the image matching that region.
 
 For example, a question asking the user to highlight where they feel pain and/or stiffness would define two regions: one for pain and one for stiffness.
+
+@Row {
+    @Column {
+        @Image(source: "AnnotateImage", alt: "Screenshot showing a body map on which the participant marks where they feel pain or stiffness."){
+            A body map with two regions to choose from; the participant paints the parts of the image that apply.
+        }
+    }
+}
 
 Use the `QuestionKindDefinition` protocol to define a custom question kind, with full support for all functionality offered by GroveQuestionnaire.
 
@@ -58,6 +84,14 @@ This struct has the following responsibilities:
 In addition to the built-in question kinds listed above, apps and packages can also define additional, custom question kinds.
 
 A custom question kind is defined via a Swift struct conforming to the ``QuestionKindDefinition`` protocol.
+
+@Row {
+    @Column {
+        @Image(source: "CustomKind", alt: "Screenshot showing a stopwatch question an app defined itself, rendered like the built-in kinds."){
+            A stopwatch, defined by the app: its card, validation and FHIR export work like those of the built-in kinds.
+        }
+    }
+}
 This type provides the question kind's UI (used when a matching question is displayed in a ``QuestionnaireSheet``).
 It also implements validation and response-handling-related logic.
 

@@ -71,9 +71,6 @@
     "Dismiss Keyboard" : {
 
     },
-    "Do you want to remove all annotations?" : {
-
-    },
     "Done" : {
 
     },
@@ -92,7 +89,7 @@
     "Enter an email address, like name@example.org" : {
 
     },
-    "Follow-Up" : {
+    "Eraser" : {
 
     },
     "Follow-Up: %@" : {
@@ -209,12 +206,6 @@
 
     },
     "Ready" : {
-
-    },
-    "Remove" : {
-
-    },
-    "Remove Annotations" : {
 
     },
     "Search options…" : {

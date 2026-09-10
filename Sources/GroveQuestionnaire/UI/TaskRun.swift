@@ -60,10 +60,10 @@ struct TaskRun: Identifiable {
     /// A group is headed whenever it was named at all: by its text, or by the short name standing
     /// in for a text it was never given. Only the bar suppresses a name, and only when it is
     /// already carrying that exact string.
-    func groupHeadings(otherThan barTitle: String?) -> [String] {
+    func groupHeadings(otherThan pageTitle: String) -> [String] {
         openedGroups.compactMap { group in
             let heading = group.title.isEmpty ? (group.shortTitle ?? "") : group.title
-            guard !heading.isEmpty, heading != barTitle else {
+            guard !heading.isEmpty, heading != pageTitle else {
                 return nil
             }
             return heading
