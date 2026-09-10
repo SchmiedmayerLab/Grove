@@ -24,79 +24,74 @@ Open-source framework for the rapid development of modern, interoperable digital
 
 Grove introduces a module-based approach to building digital health applications.
 
-<table style="width: 80%">
+<table style="width: 100%">
   <tr>
-    <td align="center" width="33.33333%">
-      <img src="Sources/GroveConsent/GroveConsent.docc/Resources/Consent1.png#gh-light-mode-only" alt="Screenshot displaying the UI of the consent module" width="80%"/>
-      <img src="Sources/GroveConsent/GroveConsent.docc/Resources/Consent1~dark.png#gh-dark-mode-only" alt="Screenshot displaying the UI of the consent module" width="80%"/>
+    <td align="center" width="25%">
+      <img src="Sources/GroveOnboarding/GroveOnboarding.docc/Resources/Welcome.png#gh-light-mode-only" alt="An onboarding page with a title, information areas and floating action buttons" width="90%"/>
+      <img src="Sources/GroveOnboarding/GroveOnboarding.docc/Resources/Welcome~dark.png#gh-dark-mode-only" alt="An onboarding page with a title, information areas and floating action buttons" width="90%"/>
     </td>
-    <td align="center" width="33.33333%">
-      <img src="Sources/GroveDevicesUI/GroveDevicesUI.docc/Resources/PairedDevices.png#gh-light-mode-only" alt="Screenshot displaying Grove Devices and Bluetooth pairing user interface" width="80%"/>
-      <img src="Sources/GroveDevicesUI/GroveDevicesUI.docc/Resources/PairedDevices~dark.png#gh-dark-mode-only" alt="Screenshot displaying Grove Devices and Bluetooth pairing user interface" width="80%"/>
+    <td align="center" width="25%">
+      <img src="Sources/GroveAccount/GroveAccount.docc/Resources/AccountSetup.png#gh-light-mode-only" alt="The account setup view with email and password fields, Sign In, Create Account and Sign in with Apple" width="90%"/>
+      <img src="Sources/GroveAccount/GroveAccount.docc/Resources/AccountSetup~dark.png#gh-dark-mode-only" alt="The account setup view with email and password fields, Sign In, Create Account and Sign in with Apple" width="90%"/>
     </td>
-    <td align="center" width="33.33333%">
-      <img src="Sources/GroveQuestionnaire/GroveQuestionnaire.docc/Resources/Overview.png#gh-light-mode-only" alt="Screenshot displaying the UI of the questionnaire module" width="80%"/>
-      <img src="Sources/GroveQuestionnaire/GroveQuestionnaire.docc/Resources/Overview~dark.png#gh-dark-mode-only" alt="Screenshot displaying the UI of the questionnaire module" width="80%"/>
+    <td align="center" width="25%">
+      <img src="Sources/GroveConsent/GroveConsent.docc/Resources/SignedConsent.png#gh-light-mode-only" alt="A signed consent document with its name and signature fields" width="90%"/>
+      <img src="Sources/GroveConsent/GroveConsent.docc/Resources/SignedConsent~dark.png#gh-dark-mode-only" alt="A signed consent document with its name and signature fields" width="90%"/>
+    </td>
+    <td align="center" width="25%">
+      <img src="Sources/GroveSchedulerUI/GroveSchedulerUI.docc/Resources/Schedule.png#gh-light-mode-only" alt="Scheduled tasks listed for the day" width="90%"/>
+      <img src="Sources/GroveSchedulerUI/GroveSchedulerUI.docc/Resources/Schedule~dark.png#gh-dark-mode-only" alt="Scheduled tasks listed for the day" width="90%"/>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/groveonboarding">
-        <code>Grove Onboarding</code>
-      </a> and
-      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/groveconsent">
-        <code>Grove Consent</code>
-      </a>
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/groveonboarding"><code>Grove Onboarding</code></a>
     </td>
     <td align="center">
-      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/grovebluetooth">
-        <code>Grove Bluetooth</code>
-      </a> and
-      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/grovedevices">
-        <code>Grove Devices</code>
-      </a>
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/groveaccount"><code>Grove Account</code></a>
     </td>
     <td align="center">
-      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/grovequestionnaire">
-        <code>Grove Questionnaire</code>
-      </a>
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/groveconsent"><code>Grove Consent</code></a>
+    </td>
+    <td align="center">
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/grovescheduler"><code>Grove Scheduler</code></a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="25%">
+      <img src="Sources/GroveDevicesUI/GroveDevicesUI.docc/Resources/PairedDevices.png#gh-light-mode-only" alt="The paired devices list of the Bluetooth device modules" width="90%"/>
+      <img src="Sources/GroveDevicesUI/GroveDevicesUI.docc/Resources/PairedDevices~dark.png#gh-dark-mode-only" alt="The paired devices list of the Bluetooth device modules" width="90%"/>
+    </td>
+    <td align="center" width="25%">
+      <img src="Sources/GroveQuestionnaire/GroveQuestionnaire.docc/Resources/Overview.png#gh-light-mode-only" alt="A questionnaire page with a choice, a multiple choice, a slider and a time question on cards" width="90%"/>
+      <img src="Sources/GroveQuestionnaire/GroveQuestionnaire.docc/Resources/Overview~dark.png#gh-dark-mode-only" alt="A questionnaire page with a choice, a multiple choice, a slider and a time question on cards" width="90%"/>
+    </td>
+    <td align="center" width="25%">
+      <img src="Sources/GroveChat/GroveChat.docc/Resources/Conversation.png#gh-light-mode-only" alt="A conversation with an attached chart and a picture the assistant generated" width="90%"/>
+      <img src="Sources/GroveChat/GroveChat.docc/Resources/Conversation~dark.png#gh-dark-mode-only" alt="A conversation with an attached chart and a picture the assistant generated" width="90%"/>
+    </td>
+    <td align="center" width="25%">
+      <img src="Sources/GroveChat/GroveChat.docc/Resources/ToolCall.png#gh-light-mode-only" alt="A conversation in which the assistant calls a function to read health samples before answering" width="90%"/>
+      <img src="Sources/GroveChat/GroveChat.docc/Resources/ToolCall~dark.png#gh-dark-mode-only" alt="A conversation in which the assistant calls a function to read health samples before answering" width="90%"/>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img src="Sources/GroveAccount/GroveAccount.docc/Resources/AccountSetup.png#gh-light-mode-only" alt="Screenshot displaying the account setup view with email and password prompt and Sign In with Apple button" width="80%"/>
-      <img src="Sources/GroveAccount/GroveAccount.docc/Resources/AccountSetup~dark.png#gh-dark-mode-only" alt="Screenshot displaying the account setup view with email and password prompt and Sign In with Apple button" width="80%"/>
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/grovedevices"><code>Grove Devices</code></a>
     </td>
     <td align="center">
-      <img src="Sources/GroveValidation/GroveValidation.docc/Resources/Validation.png#gh-light-mode-only" alt="Three different text fields showing validation errors with Grove Validation" width="80%"/>
-      <img src="Sources/GroveValidation/GroveValidation.docc/Resources/Validation~dark.png#gh-dark-mode-only" alt="Three different text fields showing validation errors with Grove Validation" width="80%"/>
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/grovequestionnaire"><code>Grove Questionnaire</code></a>
     </td>
     <td align="center">
-      <img src="Sources/GroveLLMLocal/GroveLLMLocal.docc/Resources/ChatView.png#gh-light-mode-only" alt="Chat view of a locally executed LLM using the Grove LLM module" width="80%"/>
-      <img src="Sources/GroveLLMLocal/GroveLLMLocal.docc/Resources/ChatView~dark.png#gh-dark-mode-only" alt="Chat view of a locally executed LLM using the Grove LLM module" width="80%"/>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/groveaccount">
-        <code>Grove Account</code>
-      </a>
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/grovechat"><code>Grove Chat</code></a>
     </td>
     <td align="center">
-      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/groveviews">
-        <code>Grove Views</code>
-      </a>, including
-      <a href="Sources/GroveValidation/GroveValidation.docc/GroveValidation.md">
-        <code>GroveValidation</code>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/grovellm">
-        <code>Grove LLM</code>
-      </a>
+      <a href="https://swiftpackageindex.com/SchmiedmayerLab/Grove/documentation/grovellm"><code>Grove LLM</code></a>
     </td>
   </tr>
 </table>
+
+The conversations in the last two tiles run over OpenAI, Anthropic, Gemini, Apple's Foundation Models or a model on the device, and the assistant calls into your app when it needs data.
 
 
 ### An Ecosystem of Modules
