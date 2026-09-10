@@ -18,18 +18,23 @@ GroveConsent implements consent-flow-related infrastructure, providing both a da
 
 @Row {
     @Column {
-        @Image(source: "Consent1", alt: "Screenshot displaying a simple consent form") {
+        @Image(source: "SignedConsent", alt: "Screenshot displaying a simple consent form") {
             At its core, a ``ConsentDocument`` is a simple markdown document which the user is asked to sign.
         }
     }
     @Column {
-        @Image(source: "Consent2", alt: "Screenshot displaying an interactive consent form") {
+        @Image(source: "InteractiveElements", alt: "Screenshot displaying an interactive consent form") {
             In addition to standard markdown elements, the consent form may also contain custom, interactive toggle or selection components.
         }
     }
     @Column {
-        @Image(source: "Consent3", alt: "Screenshot displaying an Interactive Consent Form with selection requirements.") {
+        @Image(source: "RequiredSelection", alt: "Screenshot displaying an Interactive Consent Form with selection requirements.") {
             If specified, the consent form will validate the user's selection against an expected value, preventing the user from advancing unless they provide the correct response.
+        }
+    }
+    @Column {
+        @Image(source: "IncompleteForm", alt: "Screenshot displaying a consent form whose required choice is marked in red after the user tried to continue.") {
+            Continuing with an incomplete form marks what still needs an answer and scrolls to it, the same way a questionnaire does.
         }
     }
 }
@@ -40,6 +45,8 @@ A consent form consists of Markdown content (e.g.: text, headings, lists, etc), 
 For example, your app could define a consent document consisting of markdown text, followed by a toggle (which the user needs to explicitly set to true in order to confirm their willingness to participate in your study), and a signature field where the user needs to sign their signature.
 
 The ``ConsentDocument`` type handles the state of a (potentially interactive) consent form; it is passed into e.g. a ``ConsentDocumentView`` or an ``OnboardingConsentView``, which present the consent form to a user, allowing them to sign the form and fill out its interactive elements.
+The ``OnboardingConsentView`` keeps its button at the bottom of the screen, floating over the document like every other onboarding step.
+Everything that asks for an answer sits on a card: toggles, selections, the name fields and the signature. The button can always be tapped; on an incomplete form it marks the elements that still need an answer in red, says under each what is missing, and scrolls to the first of them.
 Once the user has completed the form, you use the ``ConsentDocument/export(using:)`` function to obtain a PDF representation of the signed document.
 
 

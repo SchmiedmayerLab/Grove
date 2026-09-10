@@ -7,14 +7,15 @@
 //
 
 public import Foundation
-private import GroveOnboarding
 public import GroveViews
 public import SwiftUI
 
 
 /// Onboarding view to display markdown-based consent documents that can be signed and exported.
 ///
-/// The ``OnboardingConsentView`` embeds a ``ConsentDocumentView`` into an `OnboardingView` that is compatible with GroveOnboarding's Onboarding Stack API.
+/// ![A consent page with the document, the name fields and a drawn signature.](SignedConsent)
+///
+/// The ``OnboardingConsentView`` embeds a ``ConsentDocumentView`` into a `PageView`, so it takes its place in an onboarding flow like any other step.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct OnboardingConsentView: View {
     /// Provides default localization values for necessary fields in the ``OnboardingConsentView``.
@@ -30,14 +31,18 @@ public struct OnboardingConsentView: View {
     private let currentDateInSignature: Bool
     private var consentDocument: ConsentDocument?
     @Binding private var viewState: ViewState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Counts the taps that found the form incomplete, so each of them can be felt.
+    @State private var incompleteAttempts = 0
     
     public var body: some View {
-        OnboardingView {
-            if let title {
-                PageHeader(title: title)
-            }
-        } content: {
-            Group {
+        // The reader wraps the page, so the button floating over it can still scroll the document.
+        ScrollViewReader { proxy in
+            PageView {
+                if let title {
+                    PageHeader(title: title)
+                }
+            } content: {
                 if let consentDocument {
                     ConsentDocumentView(
                         consentDocument: consentDocument,
@@ -50,25 +55,16 @@ public struct OnboardingConsentView: View {
                 } else {
                     ProgressView(LocalizedStringResource("Loading…", bundle: .module))
                 }
+            } footer: {
+                actionButton(scrollingWith: proxy)
             }
-            .padding(.bottom)
-        } footer: {
-            AsyncButton(state: $viewState) {
-                try await action()
-            } label: {
-                Text("CONSENT_ACTION", bundle: .module)
-                    .bold()
-                    .frame(maxWidth: .infinity, minHeight: 38)
-                    .processingOverlay(isProcessing: backButtonHidden)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(!actionButtonsEnabled)
-            .animation(.easeInOut(duration: 0.2), value: actionButtonsEnabled)
-            .interactiveGlassEffect()
-            .id("ActionButton")
         }
         .scrollDisabled(consentDocument?.isSigning == true)
         .navigationBarBackButtonHidden(backButtonHidden)
+    }
+
+    private var isComplete: Bool {
+        consentDocument?.completionState == .complete
     }
 
     private var backButtonHidden: Bool {
@@ -78,15 +74,7 @@ public struct OnboardingConsentView: View {
         return consentDocument.isExporting
     }
 
-    private var actionButtonsEnabled: Bool {
-        if let consentDocument {
-            !consentDocument.isExporting && consentDocument.completionState == .complete
-        } else {
-            false
-        }
-    }
-    
-    
+
     /// Creates an `OnboardingConsentView` for a file-based consent document.
     ///
     /// - parameter consentDocument: The Consent Document.
@@ -94,7 +82,7 @@ public struct OnboardingConsentView: View {
     /// - parameter title: The title of the view displayed at the top. Can be `nil`, meaning no title is displayed.
     /// - parameter currentDateInSignature: Whether the current date should be included in the consent form's signature fields.
     /// - parameter viewState: A binding that provides the `ViewState` the view should use.
-    /// - parameter action: The action to perform when the user has completed the consent form and taps the Onboarding View's "Continue" button.
+    /// - parameter action: The action to perform when the user has completed the consent form and taps the button below it.
     public init(
         consentDocument: ConsentDocument?,
         title: LocalizedStringResource? = LocalizationDefaults.consentFormTitle,
@@ -108,21 +96,39 @@ public struct OnboardingConsentView: View {
         self._viewState = viewState
         self.action = action
     }
-}
 
-
-extension View {
-    @ViewBuilder
-    fileprivate func interactiveGlassEffect() -> some View {
-        #if !os(visionOS)
-        if #available(iOS 26, macOS 26, tvOS 26, watchOS 26, *) {
-            self.glassEffect(.regular.interactive())
-        } else {
-            self
+    private func actionButton(scrollingWith proxy: ScrollViewProxy) -> some View {
+        AsyncButton(state: $viewState) {
+            try await confirm(scrollingWith: proxy)
+        } label: {
+            Text("CONSENT_ACTION", bundle: .module)
+                .bold()
+                .frame(maxWidth: .infinity)
+                .processingOverlay(isProcessing: backButtonHidden)
         }
-        #else
-        self
-        #endif
+        .actionButtonStyle(.primary)
+        .controlSize(.large)
+        .disabled(consentDocument == nil || consentDocument?.isExporting == true)
+        .accessibilityValue(isComplete ? Text("CONSENT_STATE_READY", bundle: .module) : Text("CONSENT_STATE_INCOMPLETE", bundle: .module))
+        .accessibilityHint(Text("CONSENT_ACTION_HINT", bundle: .module))
+        .sensoryFeedback(.warning, trigger: incompleteAttempts)
+    }
+
+    /// Continues with a complete form; an incomplete one is marked where it is missing an answer and scrolled there.
+    private func confirm(scrollingWith proxy: ScrollViewProxy) async throws {
+        guard let consentDocument else {
+            return
+        }
+        guard case .incomplete(let firstIncompleteId) = consentDocument.completionState else {
+            try await action()
+            return
+        }
+        incompleteAttempts += 1
+        AccessibilityNotification.Announcement(String(localized: "CONSENT_INCOMPLETE_ANNOUNCEMENT", bundle: .module)).post()
+        withAnimation(reduceMotion ? nil : .revisit) {
+            consentDocument.highlightsIncompleteSections = true
+            proxy.scrollTo(firstIncompleteId, anchor: .center)
+        }
     }
 }
 

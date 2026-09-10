@@ -24,7 +24,7 @@ private struct ScreenshotView: View {
     var body: some View {
         OnboardingConsentView(
             consentDocument: document,
-            title: "Consent",
+            title: "Study Consent",
             currentDateInSignature: true,
             viewState: $viewState
         ) {
@@ -49,16 +49,22 @@ private struct ScreenshotView: View {
 
 struct ScreenshotView1: View {
     private static let markdown = """
-        Grove can render *markdown-based* **consent** documents.
-        
-        ---
-        
-        Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua.
-        At vero eos et accusam et justo duo dolores et ea rebum.
-        Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+        You are invited to take part in a research study on how everyday activity relates to heart health.
+        Taking part means wearing your Apple Watch as you normally would and answering a short check-in once a week for eight weeks.
+
+        The study reads heart rate and activity data from Apple Health on this device, together with the answers you give in the weekly check-ins.
+        Nothing leaves your device until you choose to share it. Shared data is encrypted in transit and stored on servers of the study team.
+
+        The study team sees your data under a participant number, not your name. Your name is kept separately, for the consent record only.
+        You can ask for your data to be deleted at any time. Data already included in published results cannot be withdrawn.
+
+        You can withdraw at any time without giving a reason, and withdrawing has no effect on your care.
+        Results are shared with you at the end of the study, together with a summary of what the study learned across all participants.
+
+        Please sign below to confirm that you have read this and agree to take part.
         <signature id=sig1 />
         """
-    
+
     var body: some View {
         ScreenshotView(markdown: Self.markdown)
     }
@@ -67,22 +73,22 @@ struct ScreenshotView1: View {
 
 struct ScreenshotView2: View {
     private static let markdown = """
-        A consent document can also contain interactive elements.
-        
+        Before we begin, a few choices about your participation.
+
         <toggle id=t1>
-            Would you like to be informed about future, related studies?
+            Let me know about related studies I could join later.
         </toggle>
-        
+
         <select id=s1>
-            How often do you participate in research studies like this one?
+            How often have you taken part in research studies like this one?
             <option id=o1>Never</>
             <option id=o2>Sometimes</>
             <option id=o3>Frequently</>
         </select>
-        
+
         <signature id=sig1 />
         """
-    
+
     var body: some View {
         ScreenshotView(markdown: Self.markdown)
     }
@@ -91,17 +97,17 @@ struct ScreenshotView2: View {
 
 struct ScreenshotView3: View {
     private static let markdown = """
-        You can even require certain selections for the user to be allowed to proceed.
-        
+        To take part, please confirm the following.
+
         <select id=t1 initial-value=n expected-value=y>
-            I understand that as part of this research study, my anonymized health data will be collected and used for scientific research purposes.
+            I understand that my anonymized health data will be collected and used for scientific research.
             <option id=y>Yes</>
             <option id=n>No</>
         </select>
-        
+
         <signature id=sig1 />
         """
-    
+
     var body: some View {
         ScreenshotView(markdown: Self.markdown)
     }
