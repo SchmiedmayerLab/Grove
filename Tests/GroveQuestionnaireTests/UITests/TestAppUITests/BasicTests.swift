@@ -155,4 +155,23 @@ final class BasicTests: TestAppUITests, @unchecked Sendable {
         // reopened for review rather than for handing off, so the last button says so
         XCTAssertEqual(questionnaire.offeredAction, .done)
     }
+
+    /// The keyboard goes the way a form lets it go: moving between fields keeps it, a tap beside them lets it go.
+    @MainActor
+    func testATapBesideTheFieldsDismissesTheKeyboard() throws {
+        launchAppAndStartExample("Simple Number Entry", in: .modelValues)
+        let first = questionnaire.question("t0").element.textFields.firstMatch
+        XCTAssert(first.waitForExistence(timeout: 10))
+        first.tap()
+        guard app.keyboards.firstMatch.waitForExistence(timeout: 3) else {
+            throw XCTSkip("A hardware keyboard is attached; there is no keyboard to dismiss.")
+        }
+
+        questionnaire.question("t1").element.textFields.firstMatch.tap()
+        XCTAssert(app.keyboards.firstMatch.exists, "moving to the next field keeps the keyboard")
+
+        // The form's margin beside the first card: above the keyboard, and on no field.
+        questionnaire.section.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.25)).tap()
+        XCTAssert(app.keyboards.firstMatch.waitForNonExistence(timeout: 3), "a tap beside the fields lets it go")
+    }
 }

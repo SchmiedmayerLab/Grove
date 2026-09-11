@@ -131,7 +131,6 @@ extension TaskView {
                 }()
             )
             .accessibilityLabel(spokenLabel)
-            .enableDismissalViaKeyboardAccessory()
         }
 
         @ViewBuilder

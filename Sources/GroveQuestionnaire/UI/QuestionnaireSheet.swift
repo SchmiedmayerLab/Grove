@@ -19,7 +19,8 @@ public import SwiftUI
 ///
 /// The `QuestionnaireSheet` uses an internal `NavigationStack` to display the questionnaire's content;
 /// each section in the input questionnaire is displayed as one page on the stack. A page's action floats
-/// over the foot of its questions, and its title rises into the navigation bar once it scrolls out of view.
+/// over the foot of its questions, and the navigation bar names the page: inline, with the progress bar hanging
+/// off it, or rising into the bar as the page scrolls when there is none.
 ///
 /// - Note: The presenting parent view is responsible for dismissing the `QuestionnaireSheet` after the result handler has completed.
 ///
@@ -56,11 +57,14 @@ public struct QuestionnaireSheet: View {
     /// page the navigation stack is rooted at out from under the participant.
     private let firstSection: Questionnaire.Section?
     private let completionStepConfig: CompletionStepConfig
-    private let questionProgressConfig: QuestionProgressConfig
+    private let progress: QuestionnaireProgress
+    private let progressRange: ClosedRange<Double>
+    private let hints: QuestionnaireHints
     private let completionAction: CompletionAction
     private let resultHandler: @MainActor (Result) async throws -> Void
 
     @State private var responses: QuestionnaireResponses
+    @State private var progressState = QuestionnaireProgressState()
 
     @_documentation(visibility: internal)
     public var body: some View {
@@ -70,7 +74,7 @@ public struct QuestionnaireSheet: View {
                     questionnaire: questionnaire,
                     section: section,
                     completionStepConfig: completionStepConfig,
-                    questionProgressConfig: questionProgressConfig,
+                    progress: progress,
                     completionAction: completionAction
                 ) { result in
                     responses.purgeResponsesToDisabledTasks()
@@ -84,6 +88,23 @@ public struct QuestionnaireSheet: View {
             }
         }
         .accessibilityIdentifier("GroveQuestionnaireNavStack")
+        // The bar is the sheet's, not a page's: pages come and go beneath it while it eases to the next value.
+        .overlay(alignment: .top) {
+            ZStack {
+                // Not before the page has said where its content starts: the line would sit on the top edge for a frame.
+                if let fraction = progressState.fraction, progressState.contentTop > 0 {
+                    QuestionnaireProgressBar(fraction: progressRange.lowerBound + fraction * (progressRange.upperBound - progressRange.lowerBound))
+                        .padding(.top, progressState.contentTop)
+                        .transition(.opacity)
+                }
+            }
+            .animation(.default, value: progressState.fraction == nil)
+            // From the stack's own top edge: the page measures its inset from there, status bar included when the
+            // sheet covers the whole screen.
+            .ignoresSafeArea(edges: .top)
+        }
+        .environment(progressState)
+        .environment(\.questionnaireHints, hints)
         // The sheet knows the shape its content wants; asking every app to say so again only
         // gives them a way to get it wrong.
         .presentationSizing(.page)
@@ -98,7 +119,12 @@ public struct QuestionnaireSheet: View {
     ///     Use this parameter to display or edit existing, previously-collected responses.
     /// - parameter completionStepConfig: Whether the questionnaire sheet should present a completion page once the user has finished the questionnaire.
     ///     Most questionnaires do not need one, so there is none unless asked for.
-    /// - parameter questionProgressConfig: Whether the sheet tells the participant how far along they are.
+    /// - parameter progress: How the sheet tells the participant how far along they are; the bar, unless asked otherwise.
+    /// - parameter progressRange: The part of the bar this questionnaire fills, from where it starts to where it ends. The whole
+    ///     bar, unless the questionnaire is one step of a longer flow: a questionnaire that is the second of four steps would
+    ///     pass `0.25...0.5`, so the bar picks up where the flow left off and hands over where the next step begins.
+    ///     Bounds outside `0...1` are clamped.
+    /// - parameter hints: The lines added to a question to say how it wants to be answered; none, unless asked for.
     /// - parameter completionAction: How the final button describes itself. Responses that are handed off to the app are submitted;
     ///     use ``CompletionAction/done`` only if the participant is editing a record they can reopen.
     /// - parameter resultHandler: A closure that is invoked when the questionnaire is completed, or cancelled by the user.
@@ -109,7 +135,9 @@ public struct QuestionnaireSheet: View {
         _ questionnaire: Questionnaire,
         responses: QuestionnaireResponses? = nil,
         completionStepConfig: CompletionStepConfig = .disable,
-        questionProgressConfig: QuestionProgressConfig = .disable,
+        progress: QuestionnaireProgress = .bar,
+        progressRange: ClosedRange<Double> = 0...1,
+        hints: QuestionnaireHints = [],
         completionAction: CompletionAction = .submit,
         resultHandler: @escaping @MainActor (Result) async throws -> Void
     ) {
@@ -118,11 +146,34 @@ public struct QuestionnaireSheet: View {
         self.questionnaire = simplified
         self.firstSection = simplified.sections.first { responses.rendersContent(in: $0) }
         self.completionStepConfig = completionStepConfig
-        self.questionProgressConfig = questionProgressConfig
+        self.progress = progress
+        self.progressRange = progressRange
+        self.hints = hints
         self.completionAction = completionAction
         self.responses = responses
         self.resultHandler = resultHandler
     }
+
+    // swiftlint:disable function_default_parameter_at_end
+    @available(*, deprecated, message: "Pass a QuestionnaireProgress as progress instead.")
+    public init(
+        _ questionnaire: Questionnaire,
+        responses: QuestionnaireResponses? = nil,
+        completionStepConfig: CompletionStepConfig = .disable,
+        questionProgressConfig: QuestionProgressConfig,
+        completionAction: CompletionAction = .submit,
+        resultHandler: @escaping @MainActor (Result) async throws -> Void
+    ) {
+        self.init(
+            questionnaire,
+            responses: responses,
+            completionStepConfig: completionStepConfig,
+            progress: questionProgressConfig.progress,
+            completionAction: completionAction,
+            resultHandler: resultHandler
+        )
+    }
+    // swiftlint:enable function_default_parameter_at_end
 }
 
 

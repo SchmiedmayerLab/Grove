@@ -68,13 +68,13 @@
     "Discard Nested Responses" : {
 
     },
-    "Dismiss Keyboard" : {
-
-    },
     "Done" : {
 
     },
     "Draw with one finger. Pinch or drag with two fingers to move the image." : {
+
+    },
+    "Drawing" : {
 
     },
     "Enter a number" : {
@@ -178,9 +178,6 @@
     "No" : {
 
     },
-    "Not Yet Implemented" : {
-
-    },
     "Opens an editor with drawing and zoom controls." : {
 
     },
@@ -196,6 +193,9 @@
     "Please answer the follow-up questions below, for the **'%@'** option you just selected." : {
 
     },
+    "Progress" : {
+
+    },
     "Question %lld of %lld" : {
 
     },
@@ -208,7 +208,16 @@
     "Ready" : {
 
     },
+    "Redo" : {
+
+    },
+    "Remove" : {
+
+    },
     "Search options…" : {
+
+    },
+    "Select all that apply" : {
 
     },
     "Select at least %lld options" : {
@@ -308,6 +317,9 @@
           }
         }
       }
+    },
+    "Undo" : {
+
     },
     "Unit" : {
 
