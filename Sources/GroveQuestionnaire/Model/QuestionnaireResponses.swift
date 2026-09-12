@@ -9,6 +9,7 @@
 public import Foundation
 public import Observation
 private import OSLog
+private import Synchronization
 
 
 /// Stores and manages responses to a questionnaire.
@@ -60,14 +61,10 @@ public final class QuestionnaireResponses: Identifiable {
         case view(parent: QuestionnaireResponses, pathFromParent: ResponsesPath)
     }
 
-    /// A state of a root's answers; see ``revision``.
-    public struct Revision: Hashable, Sendable {
-        /// The root the answers belong to.
-        public let root: UUID
-        /// How many changes the root has seen.
-        public let change: Int
-    }
-    
+    /// Numbers every change to any root's answers, so a revision names one state of one root, a draft resumed
+    /// under the same ``id`` included.
+    private static let revisions = Atomic<Int>(0)
+
     /// An id identifying this responses instance
     public let id: UUID
     
@@ -89,7 +86,7 @@ public final class QuestionnaireResponses: Identifiable {
                 if sanitized != responses {
                     _variant = .root(sanitized)
                 }
-                _revision &+= 1
+                _revision = Self.revisions.add(1, ordering: .relaxed).newValue
                 recalculateExpressions()
             case .view:
                 break
@@ -139,19 +136,17 @@ public final class QuestionnaireResponses: Identifiable {
         }
     }
     
-    /// Counts the changes to the root's answers; not observed, it is read while views render.
-    @ObservationIgnored private var _revision = 0
-    /// Tells this root's revisions from another's, a draft resumed under the same ``id`` included.
-    @ObservationIgnored private let _revisionRoot = UUID()
+    /// The root's current revision; not observed, it is read while views render.
+    @ObservationIgnored private var _revision = revisions.add(1, ordering: .relaxed).newValue
 
     /// Which state the answers are in: the same as long as nothing changed, whichever view they are read through.
     ///
     /// Anything derived from the answers, like an expression engine's encoding of them, can be kept for as long
     /// as the revision stays.
-    public var revision: Revision {
+    package var revision: Int {
         switch _variant {
         case .root:
-            Revision(root: _revisionRoot, change: _revision)
+            _revision
         case let .view(parent, _):
             parent.revision
         }
