@@ -12,22 +12,132 @@ public import GroveQuestionnaire
 import ModelsR4
 
 
-/// Holds the most recently encoded response, keyed by the answers it was built from.
-@available(iOS 18, macOS 15, watchOS 11, *)
-private final class ResponseCache: @unchecked Sendable {
+/// A parsed expression per source string, so an expression evaluated on every render is parsed once.
+private final class ParsedExpressions: @unchecked Sendable {
     private let lock = NSLock()
-    private var entry: (responses: QuestionnaireResponses.Responses, node: FHIRPathNode)?
+    private var parsed: [String: ParsedFHIRPathExpression] = [:]
 
-    func node(for responses: QuestionnaireResponses.Responses) -> FHIRPathNode? {
-        lock.withLock {
-            entry?.responses == responses ? entry?.node : nil
-        }
+    /// How many expressions have been parsed, for the tests that hold parsing to once per expression.
+    var count: Int {
+        lock.withLock { parsed.count }
     }
 
-    func store(_ node: FHIRPathNode, for responses: QuestionnaireResponses.Responses) {
-        lock.withLock {
-            entry = (responses, node)
+    func expression(_ source: String) throws -> ParsedFHIRPathExpression {
+        if let known = lock.withLock({ parsed[source] }) {
+            return known
         }
+        let expression = try FHIRPathExpression.parse(source)
+        lock.withLock {
+            parsed[source] = expression
+        }
+        return expression
+    }
+}
+
+
+/// What one state of the answers yields, derived once while the answers stay as they are: the encoded response,
+/// its items by linkId, the questionnaire-level variables, and every result already asked of it.
+///
+/// A form asks for the same conditions on every render and for every task on a page; without this, each ask
+/// encoded the response, evaluated every variable and walked the tree again.
+@available(iOS 18, macOS 15, watchOS 11, *)
+private final class ResponseState: @unchecked Sendable {
+    struct ResultKey: Hashable {
+        let expression: String
+        let scope: GroveQuestionnaire.Questionnaire.ExpressionScope
+    }
+
+    let revision: QuestionnaireResponses.Revision
+    let node: FHIRPathNode
+    let items: [String: [FHIRPathNode]]
+    /// The instant every expression of this state reads as `now()`: time moves on with the answers, so a page
+    /// asked twice about the same answers hears the same thing.
+    let created = Date()
+    /// `%resource.descendants()`, walked once for this state; the questionnaire's come from the engine.
+    let descendants: FHIRPathDescendantsCache
+    private let lock = NSLock()
+    private var globals: [String: [FHIRPathValue]] = [:]
+    private var hasGlobals = false
+    private var booleans: [ResultKey: GroveQuestionnaire.Questionnaire.ExpressionBoolean] = [:]
+    private var values: [ResultKey: QuestionnaireResponses.Response.Value?] = [:]
+
+    init(
+        revision: QuestionnaireResponses.Revision,
+        node: FHIRPathNode,
+        items: [String: [FHIRPathNode]],
+        questionnaireDescendants: FHIRPathDescendantsCache
+    ) {
+        self.revision = revision
+        self.node = node
+        self.items = items
+        self.descendants = FHIRPathDescendantsCache(constants: ["resource"], parent: questionnaireDescendants)
+    }
+
+    /// The questionnaire-level variables, evaluated on first use and kept for the state's lifetime.
+    func globals(_ evaluate: () throws -> [String: [FHIRPathValue]]) rethrows -> [String: [FHIRPathValue]] {
+        if let known = lock.withLock({ hasGlobals ? globals : nil }) {
+            return known
+        }
+        let evaluated = try evaluate()
+        lock.withLock {
+            globals = evaluated
+            hasGlobals = true
+        }
+        return evaluated
+    }
+
+    func boolean(
+        _ key: ResultKey,
+        _ evaluate: () throws -> GroveQuestionnaire.Questionnaire.ExpressionBoolean
+    ) rethrows -> GroveQuestionnaire.Questionnaire.ExpressionBoolean {
+        if let known = lock.withLock({ booleans[key] }) {
+            return known
+        }
+        let result = try evaluate()
+        lock.withLock {
+            booleans[key] = result
+        }
+        return result
+    }
+
+    func value(
+        _ key: ResultKey,
+        _ evaluate: () throws -> QuestionnaireResponses.Response.Value?
+    ) rethrows -> QuestionnaireResponses.Response.Value? {
+        if let known = lock.withLock({ values[key] }) {
+            return known
+        }
+        let result = try evaluate()
+        lock.withLock {
+            values[key] = result
+        }
+        return result
+    }
+}
+
+
+/// Holds the state of the answers most recently asked about.
+@available(iOS 18, macOS 15, watchOS 11, *)
+private final class ResponseStates: @unchecked Sendable {
+    private let lock = NSLock()
+    private var current: ResponseState?
+    private var builtCount = 0
+
+    /// How many states have been built, for the tests that hold encoding to once per revision.
+    var built: Int {
+        lock.withLock { builtCount }
+    }
+
+    func state(for revision: QuestionnaireResponses.Revision, build: () throws -> ResponseState) rethrows -> ResponseState {
+        if let current = lock.withLock({ current }), current.revision == revision {
+            return current
+        }
+        let state = try build()
+        lock.withLock {
+            current = state
+            builtCount += 1
+        }
+        return state
     }
 }
 
@@ -53,15 +163,26 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
     }
 
     private let questionnaireNode: FHIRPathNode
+    /// The questionnaire's items by linkId, at any depth.
+    private let questionnaireItems: [String: [FHIRPathNode]]
     /// `variable` declarations, in document order.
     private let variables: [Variable]
     /// App-supplied launch-context resources, keyed by their declared name.
     private let launchContext: [String: FHIRPathNode]
-    /// The last encoded response, so a form-wide recalculation encodes it once.
-    private let responseCache = ResponseCache()
+    private let expressions = ParsedExpressions()
+    private let states = ResponseStates()
+    /// `%questionnaire.descendants()`, walked once for the engine's lifetime: the questionnaire never changes.
+    private let questionnaireDescendants = FHIRPathDescendantsCache(constants: ["questionnaire"])
+
+    /// What the engine has done so far: expressions parsed and states of the answers encoded.
+    var work: (parsedExpressions: Int, encodedStates: Int) {
+        (expressions.count, states.built)
+    }
 
     init(questionnaire: ModelsR4.Questionnaire, variables: [Variable], launchContext: [String: FHIRPathNode]) throws {
-        self.questionnaireNode = try FHIRPathNode.encoding(questionnaire)
+        let questionnaireNode = try FHIRPathNode.encoding(questionnaire)
+        self.questionnaireNode = questionnaireNode
+        self.questionnaireItems = Self.itemsByLinkId(in: questionnaireNode)
         self.variables = variables
         self.launchContext = launchContext
     }
@@ -71,11 +192,14 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
         scope: GroveQuestionnaire.Questionnaire.ExpressionScope,
         in responses: QuestionnaireResponses
     ) throws -> GroveQuestionnaire.Questionnaire.ExpressionBoolean {
-        let context = try evaluationContext(scope: scope, qrNode: responseNode(for: responses))
-        return switch try FHIRPathExpression.evaluateBoolean(expression: expression, context: context) {
-        case .true: .true
-        case .false: .false
-        case .empty: .empty
+        let state = try state(for: responses)
+        return try state.boolean(.init(expression: expression, scope: scope)) {
+            let context = try evaluationContext(scope: scope, state: state)
+            return switch try expressions.expression(expression).evaluateBoolean(context: context) {
+            case .true: .true
+            case .false: .false
+            case .empty: .empty
+            }
         }
     }
 
@@ -84,9 +208,12 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
         for task: GroveQuestionnaire.Questionnaire.Task,
         in responses: QuestionnaireResponses
     ) throws -> QuestionnaireResponses.Response.Value? {
-        let context = try evaluationContext(scope: .item(task.id), qrNode: responseNode(for: responses))
-        let result = try FHIRPathExpression.evaluate(expression: expression, context: context)
-        return try Self.responseValue(from: result, for: task)
+        let state = try state(for: responses)
+        return try state.value(.init(expression: expression, scope: .item(task.id))) {
+            let context = try evaluationContext(scope: .item(task.id), state: state)
+            let result = try expressions.expression(expression).evaluate(context: context)
+            return try Self.responseValue(from: result, for: task)
+        }
     }
 
     /// Evaluates an expression with no response yet (SDC `initialExpression`).
@@ -94,25 +221,29 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
         _ expression: String,
         for task: GroveQuestionnaire.Questionnaire.Task
     ) throws -> QuestionnaireResponses.Response.Value? {
-        let context = try evaluationContext(scope: .item(task.id), qrNode: nil)
-        let result = try FHIRPathExpression.evaluate(expression: expression, context: context)
+        let context = try evaluationContext(scope: .item(task.id), state: nil)
+        let result = try expressions.expression(expression).evaluate(context: context)
         return try Self.responseValue(from: result, for: task)
     }
 
     // MARK: Context Assembly
 
-    /// The response the expressions see.
+    /// The response the expressions see, with what has been derived from it so far.
     ///
     /// Encoded best-effort: an answer that cannot be expressed in FHIR yet — a
     /// half-entered number, say — drops out of the tree instead of failing every
     /// expression in the form at once.
-    private func responseNode(for responses: QuestionnaireResponses) throws -> FHIRPathNode {
-        if let cached = responseCache.node(for: responses.responses) {
-            return cached
+    private func state(for responses: QuestionnaireResponses) throws -> ResponseState {
+        let revision = responses.revision
+        return try states.state(for: revision) {
+            let node = try FHIRPathNode.encoding(ModelsR4.QuestionnaireResponse(evaluating: responses))
+            return ResponseState(
+                revision: revision,
+                node: node,
+                items: Self.itemsByLinkId(in: node),
+                questionnaireDescendants: questionnaireDescendants
+            )
         }
-        let node = try FHIRPathNode.encoding(ModelsR4.QuestionnaireResponse(evaluating: responses))
-        responseCache.store(node, for: responses.responses)
-        return node
     }
 
     /// Binds the SDC evaluation environment: `%resource` is the whole response,
@@ -120,31 +251,40 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
     /// `%qitem` is the questionnaire item they answer.
     private func evaluationContext(
         scope: GroveQuestionnaire.Questionnaire.ExpressionScope,
-        qrNode: FHIRPathNode?
+        state: ResponseState?
     ) throws -> FHIRPathEvaluationContext {
         var constants: [String: [FHIRPathValue]] = [:]
         constants["questionnaire"] = [.object(questionnaireNode)]
         for (name, node) in launchContext {
             constants[name] = [.object(node)]
         }
+        let qrNode = state?.node
         if let qrNode {
             constants["resource"] = [.object(qrNode)]
             constants["context"] = [.object(qrNode)]
         }
-        var context = FHIRPathEvaluationContext(focus: qrNode.map { [.object($0)] } ?? [], constants: constants)
-        // `variable`s may reference earlier variables and the response; each is visible
+        var context = FHIRPathEvaluationContext(
+            focus: qrNode.map { [.object($0)] } ?? [],
+            constants: constants,
+            now: state?.created ?? .now
+        )
+        context.descendants = state?.descendants ?? questionnaireDescendants
+        // `variable`s may reference earlier variables and the response. A questionnaire-level one reads the
+        // same response for every expression, so a state evaluates it once; an item-level one is visible
         // only to the item that declares it and that item's descendants.
-        for variable in variables where variable.isVisible(to: scope.taskId) {
-            context.constants[variable.name] = try FHIRPathExpression.evaluate(expression: variable.expression, context: context)
+        let globals = try state?.globals { try evaluateVariables(in: context) } ?? evaluateVariables(in: context)
+        context.constants.merge(globals) { _, global in global }
+        for variable in variables where variable.isItemScoped && variable.isVisible(to: scope.taskId) {
+            context.constants[variable.name] = try expressions.expression(variable.expression).evaluate(context: context)
         }
         guard let taskId = scope.taskId else {
             return context
         }
-        context.constants["qitem"] = Self.items(withLinkId: taskId, in: questionnaireNode).map { .object($0) }
-        guard let qrNode else {
+        context.constants["qitem"] = (questionnaireItems[taskId] ?? []).map { .object($0) }
+        guard let state else {
             return context
         }
-        let responseItems = Self.items(withLinkId: taskId, in: qrNode)
+        let responseItems = state.items[taskId] ?? []
         context.constants["context"] = responseItems.map { .object($0) }
         switch scope {
         case .questionnaire:
@@ -158,11 +298,30 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
         }
         return context
     }
+
+    /// The questionnaire-level variables, each evaluated in the context the earlier ones extend.
+    private func evaluateVariables(in context: FHIRPathEvaluationContext) throws -> [String: [FHIRPathValue]] {
+        var context = context
+        var evaluated: [String: [FHIRPathValue]] = [:]
+        for variable in variables where !variable.isItemScoped {
+            let value = try expressions.expression(variable.expression).evaluate(context: context)
+            context.constants[variable.name] = value
+            evaluated[variable.name] = value
+        }
+        return evaluated
+    }
 }
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRQuestionnaireExpressionEngine.Variable {
+    var isItemScoped: Bool {
+        if case .items = scope {
+            return true
+        }
+        return false
+    }
+
     /// Whether the declaration is in scope for an expression on the given item.
     func isVisible(to taskId: GroveQuestionnaire.Questionnaire.Task.ID?) -> Bool {
         switch scope {
@@ -196,12 +355,12 @@ extension FHIRQuestionnaireExpressionEngine {
         }
     }
 
-    /// Every item with the given linkId, at any depth (including beneath an answer).
-    private static func items(withLinkId linkId: String, in node: FHIRPathNode) -> [FHIRPathNode] {
-        var found: [FHIRPathNode] = []
+    /// Every item by linkId, at any depth (including beneath an answer), in document order.
+    private static func itemsByLinkId(in node: FHIRPathNode) -> [String: [FHIRPathNode]] {
+        var found: [String: [FHIRPathNode]] = [:]
         func visit(_ node: FHIRPathNode) {
-            if node.stringMember("linkId") == linkId {
-                found.append(node)
+            if let linkId = node.stringMember("linkId") {
+                found[linkId, default: []].append(node)
             }
             for child in node.children(named: "item") {
                 visit(child)
