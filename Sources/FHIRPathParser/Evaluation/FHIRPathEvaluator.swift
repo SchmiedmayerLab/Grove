@@ -25,8 +25,11 @@ struct FHIRPathEvaluator {
             guard let lhs = ctx.expression(), let invocation = ctx.invocation() else {
                 throw FHIRPathEvaluationError.malformedExpression("invocation expression without operands")
             }
-            let input = try evaluate(lhs, focus: focus)
-            return try evaluate(invocation: invocation, input: input, focus: focus)
+            let walk = { try self.evaluate(invocation: invocation, input: self.evaluate(lhs, focus: focus), focus: focus) }
+            if let cache = context.descendants, let constant = Self.constantName(of: lhs), cache.keeps(constant), Self.isDescendants(invocation) {
+                return try cache.descendants(of: constant, walk)
+            }
+            return try walk()
         case let ctx as FHIRPathParser.IndexerExpressionContext:
             return try evaluateIndexer(ctx, focus: focus)
         default:
@@ -104,5 +107,25 @@ struct FHIRPathEvaluator {
             }
             return node.children(named: name).map(FHIRPathValue.init(node:))
         }
+    }
+}
+
+
+extension FHIRPathEvaluator {
+    /// The `%name` a term reads, when it is one.
+    fileprivate static func constantName(of ctx: FHIRPathParser.ExpressionContext) -> String? {
+        guard let term = (ctx as? FHIRPathParser.TermExpressionContext)?.term() as? FHIRPathParser.ExternalConstantTermContext,
+              let constant = term.externalConstant() else {
+            return nil
+        }
+        return unquote(constant.identifier()?.getText() ?? constant.STRING()?.getText() ?? "")
+    }
+
+    /// Whether the invocation is a bare `descendants()`.
+    fileprivate static func isDescendants(_ ctx: FHIRPathParser.InvocationContext) -> Bool {
+        guard let function = (ctx as? FHIRPathParser.FunctionInvocationContext)?.function() else {
+            return false
+        }
+        return function.identifier()?.getText() == "descendants" && (function.paramList()?.expression() ?? []).isEmpty
     }
 }

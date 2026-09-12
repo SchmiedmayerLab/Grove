@@ -80,6 +80,9 @@ extension FHIRPathFunctionCall {
         switch name {
         case "where":
             try requireParams(1...1)
+            if let filter = MemberFilter(criteria: params[0]) {
+                return input.filter(filter.matches)
+            }
             return try iterate(0) { criteria, item in
                 try FHIRPathEvaluator.singletonBoolean(of: criteria) == .true ? [item] : []
             }

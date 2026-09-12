@@ -346,7 +346,7 @@ extension FHIRPathEvaluator {
 
 extension ParserRuleContext {
     /// The first terminal (operator) token's text, e.g. `+` in an additive expression.
-    fileprivate var operatorText: String? {
+    var operatorText: String? {
         guard let children else {
             return nil
         }
