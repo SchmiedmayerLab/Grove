@@ -22,6 +22,8 @@ struct ExpressionPerformanceTests {
     private static let codeSystem = "https://example.org/yes-no"
     /// The sizes the budgets are set for: a long intake, and one four times as long, which may take four times as long.
     private static let sizes = [12, 48]
+    /// A frame on a ProMotion display, the shortest the main thread gets between two renders.
+    private static let frame = Swift.Duration.milliseconds(1000.0 / 120)
 
     /// The questionnaire, generated: `pages` pages of `questionsPerPage` yes/no questions each, plus a number, a
     /// nested pair of follow-ups, a score per page and one outcome.
@@ -171,8 +173,8 @@ struct ExpressionPerformanceTests {
         #expect(afterSecondAnswer.encodedStates - afterFirstAnswer.encodedStates <= 2, "the recalculation's pass and its check")
     }
 
-    /// The budgets are wide, to hold on a busy runner: what they catch is a pass that evaluates rather than looks up,
-    /// which is tens of times slower.
+    /// A render pass over the form is answered from what the engine remembers and leaves the frame to SwiftUI: half
+    /// a ProMotion frame for twelve pages, against a pass that evaluates, which is tens of times slower.
     @Test(arguments: sizes)
     func aRenderPassIsQuick(pages: Int) throws {
         let responses = try Self.responses(pages: pages)
@@ -182,21 +184,28 @@ struct ExpressionPerformanceTests {
                 Self.pass(over: responses)
             }
         } / 20
-        #expect(steady < Self.budget(.milliseconds(25), pages: pages), "a pass over \(pages) pages took \(steady)")
+        #expect(steady < Self.budget(Self.frame / 2, pages: pages), "a pass over \(pages) pages took \(steady)")
     }
 
-    /// An answer invalidates what was known, recomputes every score and outcome, and the next render still lands.
+    /// An answer encodes the form twice, once to recompute every score and once to see them settle, and the render
+    /// after it evaluates every gate anew: three ProMotion frames for twelve pages, on a runner that is slower and
+    /// busier than a phone, and one for a real intake a third the size. The quickest of three rounds counts, so
+    /// tests running alongside do not read as a regression.
     @Test(arguments: sizes)
     func anAnswerReachesTheNextRenderQuickly(pages: Int) throws {
         let responses = try Self.responses(pages: pages)
         Self.pass(over: responses)
-        let perAnswer = ContinuousClock().measure {
-            for page in 0..<pages {
-                Self.answer("p\(page).q1", yes: page.isMultiple(of: 2), in: responses)
-                Self.pass(over: responses)
-            }
-        } / pages
-        #expect(perAnswer < Self.budget(.milliseconds(200), pages: pages), "answering and re-rendering \(pages) pages took \(perAnswer) per answer")
+        var perAnswer = Swift.Duration.seconds(1)
+        for round in 0..<3 {
+            let measured = ContinuousClock().measure {
+                for page in 0..<pages {
+                    Self.answer("p\(page).q1", yes: (page + round).isMultiple(of: 2), in: responses)
+                    Self.pass(over: responses)
+                }
+            } / pages
+            perAnswer = min(perAnswer, measured)
+        }
+        #expect(perAnswer < Self.budget(Self.frame * 3, pages: pages), "answering and re-rendering \(pages) pages took \(perAnswer) per answer")
     }
 
     /// What the engine remembers follows the answers: a page opens and closes with the variable it hangs on.
