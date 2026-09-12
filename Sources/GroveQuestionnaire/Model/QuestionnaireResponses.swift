@@ -63,7 +63,7 @@ public final class QuestionnaireResponses: Identifiable {
 
     /// Numbers every change to any root's answers, so a revision names one state of one root, a draft resumed
     /// under the same ``id`` included.
-    private static let revisions = Atomic<Int>(0)
+    private static let revisions = Mutex(0)
 
     /// An id identifying this responses instance
     public let id: UUID
@@ -86,7 +86,7 @@ public final class QuestionnaireResponses: Identifiable {
                 if sanitized != responses {
                     _variant = .root(sanitized)
                 }
-                _revision = Self.revisions.wrappingAdd(1, ordering: .relaxed).newValue
+                _revision = Self.nextRevision()
                 recalculateExpressions()
             case .view:
                 break
@@ -137,7 +137,7 @@ public final class QuestionnaireResponses: Identifiable {
     }
     
     /// The root's current revision; not observed, it is read while views render.
-    @ObservationIgnored private var _revision = revisions.wrappingAdd(1, ordering: .relaxed).newValue
+    @ObservationIgnored private var _revision = nextRevision()
 
     /// Which state the answers are in: the same as long as nothing changed, whichever view they are read through.
     ///
@@ -170,6 +170,13 @@ public final class QuestionnaireResponses: Identifiable {
         id = parent.id
         questionnaire = parent.questionnaire
         _variant = .view(parent: parent, pathFromParent: pathFromParent)
+    }
+
+    private static func nextRevision() -> Int {
+        revisions.withLock { revision in
+            revision += 1
+            return revision
+        }
     }
     
     
