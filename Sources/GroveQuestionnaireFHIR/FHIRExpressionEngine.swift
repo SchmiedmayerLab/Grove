@@ -10,25 +10,25 @@ import FHIRPathParser
 import Foundation
 public import GroveQuestionnaire
 import ModelsR4
+import Synchronization
 
 
 /// A parsed expression per source string, so an expression evaluated on every render is parsed once.
-private final class ParsedExpressions: @unchecked Sendable {
-    private let lock = NSLock()
-    private var parsed: [String: ParsedFHIRPathExpression] = [:]
+private final class ParsedExpressions: Sendable {
+    private let parsed = Mutex<[String: ParsedFHIRPathExpression]>([:])
 
     /// How many expressions have been parsed, for the tests that hold parsing to once per expression.
     var count: Int {
-        lock.withLock { parsed.count }
+        parsed.withLock(\.count)
     }
 
     func expression(_ source: String) throws -> ParsedFHIRPathExpression {
-        if let known = lock.withLock({ parsed[source] }) {
+        if let known = parsed.withLock({ $0[source] }) {
             return known
         }
         let expression = try FHIRPathExpression.parse(source)
-        lock.withLock {
-            parsed[source] = expression
+        parsed.withLock {
+            $0[source] = expression
         }
         return expression
     }
@@ -41,13 +41,16 @@ private final class ParsedExpressions: @unchecked Sendable {
 /// A form asks for the same conditions on every render and for every task on a page; without this, each ask
 /// encoded the response, evaluated every variable and walked the tree again.
 @available(iOS 18, macOS 15, watchOS 11, *)
-private final class ResponseState: @unchecked Sendable {
-    struct ResultKey: Hashable {
-        let expression: String
-        let scope: GroveQuestionnaire.Questionnaire.ExpressionScope
+private final class ResponseState: Sendable {
+    /// What has been asked of the state so far, by the scope it was asked in and the expression asked.
+    private struct Results {
+        var globals: [String: [FHIRPathValue]] = [:]
+        var hasGlobals = false
+        var booleans: [GroveQuestionnaire.Questionnaire.ExpressionScope: [String: GroveQuestionnaire.Questionnaire.ExpressionBoolean]] = [:]
+        var values: [GroveQuestionnaire.Questionnaire.ExpressionScope: [String: QuestionnaireResponses.Response.Value?]] = [:]
     }
 
-    let revision: QuestionnaireResponses.Revision
+    let revision: Int
     let node: FHIRPathNode
     let items: [String: [FHIRPathNode]]
     /// The instant every expression of this state reads as `now()`: time moves on with the answers, so a page
@@ -55,14 +58,10 @@ private final class ResponseState: @unchecked Sendable {
     let created = Date()
     /// `%resource.descendants()`, walked once for this state; the questionnaire's come from the engine.
     let descendants: FHIRPathDescendantsCache
-    private let lock = NSLock()
-    private var globals: [String: [FHIRPathValue]] = [:]
-    private var hasGlobals = false
-    private var booleans: [ResultKey: GroveQuestionnaire.Questionnaire.ExpressionBoolean] = [:]
-    private var values: [ResultKey: QuestionnaireResponses.Response.Value?] = [:]
+    private let results = Mutex(Results())
 
     init(
-        revision: QuestionnaireResponses.Revision,
+        revision: Int,
         node: FHIRPathNode,
         items: [String: [FHIRPathNode]],
         questionnaireDescendants: FHIRPathDescendantsCache
@@ -75,41 +74,43 @@ private final class ResponseState: @unchecked Sendable {
 
     /// The questionnaire-level variables, evaluated on first use and kept for the state's lifetime.
     func globals(_ evaluate: () throws -> [String: [FHIRPathValue]]) rethrows -> [String: [FHIRPathValue]] {
-        if let known = lock.withLock({ hasGlobals ? globals : nil }) {
+        if let known = results.withLock({ $0.hasGlobals ? $0.globals : nil }) {
             return known
         }
         let evaluated = try evaluate()
-        lock.withLock {
-            globals = evaluated
-            hasGlobals = true
+        results.withLock {
+            $0.globals = evaluated
+            $0.hasGlobals = true
         }
         return evaluated
     }
 
     func boolean(
-        _ key: ResultKey,
+        _ expression: String,
+        in scope: GroveQuestionnaire.Questionnaire.ExpressionScope,
         _ evaluate: () throws -> GroveQuestionnaire.Questionnaire.ExpressionBoolean
     ) rethrows -> GroveQuestionnaire.Questionnaire.ExpressionBoolean {
-        if let known = lock.withLock({ booleans[key] }) {
+        if let known = results.withLock({ $0.booleans[scope]?[expression] }) {
             return known
         }
         let result = try evaluate()
-        lock.withLock {
-            booleans[key] = result
+        results.withLock {
+            $0.booleans[scope, default: [:]][expression] = result
         }
         return result
     }
 
     func value(
-        _ key: ResultKey,
+        _ expression: String,
+        in scope: GroveQuestionnaire.Questionnaire.ExpressionScope,
         _ evaluate: () throws -> QuestionnaireResponses.Response.Value?
     ) rethrows -> QuestionnaireResponses.Response.Value? {
-        if let known = lock.withLock({ values[key] }) {
+        if let known = results.withLock({ $0.values[scope]?[expression] }) {
             return known
         }
         let result = try evaluate()
-        lock.withLock {
-            values[key] = result
+        results.withLock {
+            $0.values[scope, default: [:]][expression] = result
         }
         return result
     }
@@ -118,24 +119,21 @@ private final class ResponseState: @unchecked Sendable {
 
 /// Holds the state of the answers most recently asked about.
 @available(iOS 18, macOS 15, watchOS 11, *)
-private final class ResponseStates: @unchecked Sendable {
-    private let lock = NSLock()
-    private var current: ResponseState?
-    private var builtCount = 0
+private final class ResponseStates: Sendable {
+    private let current = Mutex<(state: ResponseState?, built: Int)>((nil, 0))
 
     /// How many states have been built, for the tests that hold encoding to once per revision.
     var built: Int {
-        lock.withLock { builtCount }
+        current.withLock(\.built)
     }
 
-    func state(for revision: QuestionnaireResponses.Revision, build: () throws -> ResponseState) rethrows -> ResponseState {
-        if let current = lock.withLock({ current }), current.revision == revision {
-            return current
+    func state(for revision: Int, build: () throws -> ResponseState) rethrows -> ResponseState {
+        if let state = current.withLock(\.state), state.revision == revision {
+            return state
         }
         let state = try build()
-        lock.withLock {
-            current = state
-            builtCount += 1
+        current.withLock {
+            $0 = (state, $0.built + 1)
         }
         return state
     }
@@ -193,7 +191,7 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
         in responses: QuestionnaireResponses
     ) throws -> GroveQuestionnaire.Questionnaire.ExpressionBoolean {
         let state = try state(for: responses)
-        return try state.boolean(.init(expression: expression, scope: scope)) {
+        return try state.boolean(expression, in: scope) {
             let context = try evaluationContext(scope: scope, state: state)
             return switch try expressions.expression(expression).evaluateBoolean(context: context) {
             case .true: .true
@@ -209,7 +207,7 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
         in responses: QuestionnaireResponses
     ) throws -> QuestionnaireResponses.Response.Value? {
         let state = try state(for: responses)
-        return try state.value(.init(expression: expression, scope: .item(task.id))) {
+        return try state.value(expression, in: .item(task.id)) {
             let context = try evaluationContext(scope: .item(task.id), state: state)
             let result = try expressions.expression(expression).evaluate(context: context)
             return try Self.responseValue(from: result, for: task)
