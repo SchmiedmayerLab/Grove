@@ -14,6 +14,7 @@ import Synchronization
 
 
 /// A parsed expression per source string, so an expression evaluated on every render is parsed once.
+@available(iOS 18, macOS 15, watchOS 11, *)
 private final class ParsedExpressions: Sendable {
     private let parsed = Mutex<[String: ParsedFHIRPathExpression]>([:])
 
