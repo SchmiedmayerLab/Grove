@@ -168,7 +168,7 @@ var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/huggingface/swift-transformers.git", from: "1.0.0"),
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing.git", from: "1.19.2"),
     .package(url: "https://github.com/SchmiedmayerLab/ResearchKit.git", "3.1.4"..<"3.2.0"),
-    .package(url: "https://github.com/swiftlang/swift-syntax.git", "602.0.0"..<"604.0.0"),
+    .package(url: "https://github.com/swiftlang/swift-syntax.git", "603.0.0"..<"604.0.0"),
     .package(url: "https://github.com/dfed/swift-testing-expectation.git", .upToNextMinor(from: "0.1.4")),
     .package(url: "https://github.com/techprimate/TPPDF.git", from: "2.6.1"),
     .package(url: "https://github.com/SchmiedmayerLab/zstd.git", exact: "1.5.8-beta.1")
