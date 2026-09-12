@@ -70,16 +70,21 @@ struct MemberFilter {
         return FHIRPathEvaluator.unquote(literal.getText())
     }
 
-    /// Whether an element has the member as a single string among the literals, which is when the criteria
-    /// evaluate to `true` on it.
-    func matches(_ value: FHIRPathValue) -> Bool {
+    /// The element's member, when it is a single string.
+    static func string(_ member: String, of value: FHIRPathValue) -> String? {
         guard case .object(let node) = value else {
-            return false
+            return nil
         }
         let children = node.children(named: member)
         guard children.count == 1, case .string(let string) = children[0] else {
-            return false
+            return nil
         }
-        return literals.contains(string)
+        return string
+    }
+
+    /// Whether an element has the member as a single string among the literals, which is when the criteria
+    /// evaluate to `true` on it.
+    func matches(_ value: FHIRPathValue) -> Bool {
+        Self.string(member, of: value).map(literals.contains) ?? false
     }
 }

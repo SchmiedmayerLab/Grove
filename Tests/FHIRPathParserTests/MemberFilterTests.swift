@@ -40,8 +40,10 @@ struct MemberFilterTests {
         return withExtendedLifetime(parsed) { MemberFilter(criteria: parsed.tree) }
     }
 
-    private static func linkIds(_ expression: String) throws -> [String] {
-        try FHIRPathExpression.evaluate(expression: expression, context: context()).compactMap { value in
+    private static func linkIds(_ expression: String, cache: FHIRPathDescendantsCache? = nil) throws -> [String] {
+        var context = try context()
+        context.descendants = cache
+        return try FHIRPathExpression.evaluate(expression: expression, context: context).compactMap { value in
             if case .object(let node) = value {
                 node.stringMember("linkId")
             } else {
@@ -67,6 +69,24 @@ struct MemberFilterTests {
         #expect(try Self.linkIds("%resource.descendants().where(linkId = 'a')") == ["a"])
         #expect(try Self.linkIds("%resource.descendants().where(linkId = 'b' or linkId = 'b.1')") == ["b", "b.1"])
         #expect(try Self.linkIds("%resource.item.where(linkId = 'a' or linkId = 'nope')") == ["a"])
+    }
+
+    /// With the descendants kept, `descendants().where(member = ...)` is answered from an index of the member.
+    @Test
+    func findsKeptDescendantsTheSameWay() throws {
+        let cache = FHIRPathDescendantsCache(constants: ["questionnaire"], parent: .init(constants: ["resource"]))
+        for _ in 0..<2 {
+            #expect(try Self.linkIds("%resource.descendants().where(linkId = 'a')", cache: cache) == ["a"])
+            #expect(try Self.linkIds("%resource.descendants().where(linkId = 'b.1' or linkId = 'b')", cache: cache) == ["b", "b.1"])
+            #expect(try Self.linkIds("%resource.descendants().where(linkId = 'c')", cache: cache).isEmpty)
+            #expect(try Self.linkIds("%resource.descendants().where(text = 'no linkId')", cache: cache).isEmpty)
+            #expect(try Self.linkIds("%resource.descendants().where(linkId = 'nope')", cache: cache).isEmpty)
+        }
+        let answers = try FHIRPathExpression.evaluate(
+            expression: "%resource.descendants().where(linkId = 'a').answer.value.where(code = 'yes')",
+            context: Self.context()
+        )
+        #expect(answers.count == 1)
     }
 
     @Test
