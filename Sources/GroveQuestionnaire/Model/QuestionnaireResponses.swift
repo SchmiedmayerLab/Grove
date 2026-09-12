@@ -86,7 +86,7 @@ public final class QuestionnaireResponses: Identifiable {
                 if sanitized != responses {
                     _variant = .root(sanitized)
                 }
-                _revision = Self.revisions.add(1, ordering: .relaxed).newValue
+                _revision = Self.revisions.wrappingAdd(1, ordering: .relaxed).newValue
                 recalculateExpressions()
             case .view:
                 break
@@ -137,7 +137,7 @@ public final class QuestionnaireResponses: Identifiable {
     }
     
     /// The root's current revision; not observed, it is read while views render.
-    @ObservationIgnored private var _revision = revisions.add(1, ordering: .relaxed).newValue
+    @ObservationIgnored private var _revision = revisions.wrappingAdd(1, ordering: .relaxed).newValue
 
     /// Which state the answers are in: the same as long as nothing changed, whichever view they are read through.
     ///
