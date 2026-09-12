@@ -151,8 +151,8 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
         enum Scope {
             /// A questionnaire-level declaration, visible to every expression in the form.
             case global
-            /// An item-level declaration, visible to the declaring item and its descendants.
-            case items(Set<String>)
+            /// An item-level declaration, evaluated on the declaring item and visible to it and its descendants.
+            case item(String, covering: Set<String>)
         }
 
         let name: String
@@ -269,39 +269,41 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
         context.descendants = state?.descendants ?? questionnaireDescendants
         // `variable`s may reference earlier variables and the response. A questionnaire-level one reads the
         // same response for every expression, so a state evaluates it once; an item-level one is visible
-        // only to the item that declares it and that item's descendants.
+        // only to the item that declares it and that item's descendants, and reads the declaring item.
         let globals = try state?.globals { try evaluateVariables(in: context) } ?? evaluateVariables(in: context)
         context.constants.merge(globals) { _, global in global }
-        for variable in variables where variable.isItemScoped && variable.isVisible(to: scope.taskId) {
-            context.constants[variable.name] = try expressions.expression(variable.expression).evaluate(context: context)
+        for variable in variables {
+            guard case let .item(declaring, covered) = variable.scope, let taskId = scope.taskId, covered.contains(taskId) else {
+                continue
+            }
+            var declaringContext = context
+            bind(&declaringContext, to: declaring, state: state, answers: false)
+            context.constants[variable.name] = try expressions.expression(variable.expression).evaluate(context: declaringContext)
         }
-        guard let taskId = scope.taskId else {
-            return context
+        if let taskId = scope.taskId {
+            bind(&context, to: taskId, state: state, answers: scope.isAnswer)
         }
+        return context
+    }
+
+    /// Makes the item the expression's own: `%qitem`, `%context` and the focus, or the focus its answers.
+    private func bind(_ context: inout FHIRPathEvaluationContext, to taskId: String, state: ResponseState?, answers: Bool) {
         context.constants["qitem"] = (questionnaireItems[taskId] ?? []).map { .object($0) }
         guard let state else {
-            return context
+            return
         }
         let responseItems = state.items[taskId] ?? []
         context.constants["context"] = responseItems.map { .object($0) }
-        switch scope {
-        case .questionnaire:
-            break
-        case .item:
-            context.focus = responseItems.map { .object($0) }
-        case .answer:
-            context.focus = responseItems.flatMap { item in
-                item.children(named: "answer").flatMap { $0.children(named: "value") }.map(Self.value(of:))
-            }
-        }
-        return context
+        context.focus = answers
+            ? responseItems.flatMap { item in item.children(named: "answer").flatMap { $0.children(named: "value") }.map(Self.value(of:)) }
+            : responseItems.map { .object($0) }
     }
 
     /// The questionnaire-level variables, each evaluated in the context the earlier ones extend.
     private func evaluateVariables(in context: FHIRPathEvaluationContext) throws -> [String: [FHIRPathValue]] {
         var context = context
         var evaluated: [String: [FHIRPathValue]] = [:]
-        for variable in variables where !variable.isItemScoped {
+        for variable in variables where variable.isGlobal {
             let value = try expressions.expression(variable.expression).evaluate(context: context)
             context.constants[variable.name] = value
             evaluated[variable.name] = value
@@ -313,21 +315,22 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRQuestionnaireExpressionEngine.Variable {
-    var isItemScoped: Bool {
-        if case .items = scope {
+    var isGlobal: Bool {
+        if case .global = scope {
             return true
         }
         return false
     }
+}
 
-    /// Whether the declaration is in scope for an expression on the given item.
-    func isVisible(to taskId: GroveQuestionnaire.Questionnaire.Task.ID?) -> Bool {
-        switch scope {
-        case .global:
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension GroveQuestionnaire.Questionnaire.ExpressionScope {
+    fileprivate var isAnswer: Bool {
+        if case .answer = self {
             return true
-        case .items(let linkIds):
-            return taskId.map(linkIds.contains) ?? false
         }
+        return false
     }
 }
 

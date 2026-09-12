@@ -175,6 +175,40 @@ struct FHIRExpressionTests {
         #expect(expression.expression?.value?.string == "%resource.item.answer.weight().sum()")
     }
 
+    /// An item's variable is visible beneath it but reads the item it is declared on: `%qitem` is that item and
+    /// `%context` its answers, not the descendant asking.
+    @Test
+    func inheritedVariablesReadTheDeclaringItem() throws {
+        var first = ModelsR4.QuestionnaireItem(linkId: "g.a".asFHIRStringPrimitive(), type: .init(.boolean))
+        first.text = "first".asFHIRStringPrimitive()
+        var second = ModelsR4.QuestionnaireItem(linkId: "g.b".asFHIRStringPrimitive(), type: .init(.boolean))
+        second.text = "second".asFHIRStringPrimitive()
+        second.extension = [
+            Extension(
+                url: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-enableWhenExpression",
+                value: .expression(fhirPath("%declaring = 'g' and %firstAnswer"))
+            )
+        ]
+        var group = ModelsR4.QuestionnaireItem(linkId: "g".asFHIRStringPrimitive(), type: .init(.group))
+        group.text = "group".asFHIRStringPrimitive()
+        group.item = [first, second]
+        var declaring = fhirPath("%qitem.linkId")
+        declaring.name = FHIRPrimitive(ModelsR4.FHIRString("declaring"))
+        var firstAnswer = fhirPath("%context.item.where(linkId = 'g.a').answer.value")
+        firstAnswer.name = FHIRPrimitive(ModelsR4.FHIRString("firstAnswer"))
+        group.extension = [declaring, firstAnswer].map {
+            Extension(url: "http://hl7.org/fhir/StructureDefinition/variable", value: .expression($0))
+        }
+        let converted = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [group]))
+        let responses = QuestionnaireResponses(questionnaire: converted)
+        let target = try #require(converted.sections.flatMap(\.tasks).first { $0.id == "g.b" })
+        responses.responses["g.a"] = .init(value: .bool(false))
+        #expect(!responses.shouldEnable(task: target))
+        responses.responses["g.a"] = .init(value: .bool(true))
+        #expect(responses.shouldEnable(task: target))
+        #expect(responses.expressionFailures.isEmpty)
+    }
+
     // MARK: launchContext + initialExpression
 
     @Test
