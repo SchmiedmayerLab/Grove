@@ -217,7 +217,7 @@ extension GroveQuestionnaire.Questionnaire {
                 if let linkId = item.linkId.value?.string, !seenIds.insert(linkId).inserted {
                     throw .other("Duplicate linkId '\(linkId)' in questionnaire.")
                 }
-                try collectVariables(of: item, scope: .items(item.linkIdsIncludingDescendants()))
+                try collectVariables(of: item, scope: .item(item.linkId.value?.string ?? "", covering: item.linkIdsIncludingDescendants()))
                 if SDCExpressionURLs.all.contains(where: { !item.extensions(for: $0).isEmpty }) {
                     usesExpressions = true
                 }
