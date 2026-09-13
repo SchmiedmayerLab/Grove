@@ -243,6 +243,11 @@ public final class ConsentDocument: Sendable {
     public package(set) var isSigning = false
     /// Indicates whether the document is currently being exported.
     public private(set) var isExporting = false
+    /// Whether the views showing the document mark the elements that still keep it from being complete.
+    ///
+    /// Set once the user tries to continue with an incomplete document; the marks then stay on the elements that need
+    /// an answer until they have one.
+    public var highlightsIncompleteSections = false
     
     /// Creates a Consent Document by parsing a Markdown String
     ///

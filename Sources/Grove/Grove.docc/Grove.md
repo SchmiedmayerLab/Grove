@@ -23,35 +23,45 @@ Unfortunately, DocC currently does not support dark mode images: https://github.
 -->
 @Row {
     @Column {
-        @Image(source: "Consent1", alt: "Screenshot displaying the UI of the consent module.") {
-            The [Grove Onboarding](../../GroveOnboarding/GroveOnboarding.docc/GroveOnboarding.md) and [Grove Consent](../../GroveConsent/GroveConsent.docc/GroveConsent.md) modules.
+        @Image(source: "Onboarding", alt: "Screenshot displaying an onboarding page with a title, information areas and floating action buttons.") {
+            [Grove Onboarding](../../GroveOnboarding/GroveOnboarding.docc/GroveOnboarding.md): welcome, information and permission pages that read like the system's own.
         }
     }
     @Column {
-        @Image(source: "PairedDevices", alt: "Screenshot displaying Grove Devices and Bluetooth pairing user interface.") {
-            The [Grove Bluetooth](../../GroveBluetooth/GroveBluetooth.docc/GroveBluetooth.md) and [Grove Devices](../../GroveDevices/GroveDevices.docc/GroveDevices.md) modules.
+        @Image(source: "AccountSetup", alt: "Screenshot displaying the account setup view with email and password prompt and Sign In with Apple button using the Grove Account module.") {
+            [Grove Account](../../GroveAccount/GroveAccount.docc/GroveAccount.md): sign-up, sign-in and account details, backed by Firebase or a service of your own.
         }
     }
     @Column {
-        @Image(source: "QuestionnaireOverview", alt: "Screenshot displaying the UI of the questionnaire module.") {
-            The [Grove Questionnaire](../../GroveQuestionnaire/GroveQuestionnaire.docc/GroveQuestionnaire.md) module.
+        @Image(source: "Consent", alt: "Screenshot displaying a signed consent document.") {
+            [Grove Consent](../../GroveConsent/GroveConsent.docc/GroveConsent.md): Markdown consent documents with toggles, choices and a signature, exported as PDF.
+        }
+    }
+    @Column {
+        @Image(source: "Schedule", alt: "Screenshot displaying the tasks scheduled for a day.") {
+            [Grove Scheduler](../../GroveScheduler/GroveScheduler.docc/GroveScheduler.md): tasks on a schedule, listed for the day and completed in place.
         }
     }
 }
 @Row {
     @Column {
-        @Image(source: "AccountSetup", alt: "Screenshot displaying the account setup view with email and password prompt and Sign In with Apple button using the Grove Account module.") {
-            The [Grove Account](../../GroveAccount/GroveAccount.docc/GroveAccount.md) module.
+        @Image(source: "PairedDevices", alt: "Screenshot displaying Grove Devices and Bluetooth pairing user interface.") {
+            [Grove Bluetooth](../../GroveBluetooth/GroveBluetooth.docc/GroveBluetooth.md) and [Grove Devices](../../GroveDevices/GroveDevices.docc/GroveDevices.md): pairing and reading Bluetooth health devices.
         }
     }
     @Column {
-        @Image(source: "Validation", alt: "Three different text fields showing validation errors with the Grove Validation package.") {
-            The [Grove Views](../../GroveViews/GroveViews.docc/GroveViews.md) module, including the [GroveValidation](../../GroveValidation/GroveValidation.docc/GroveValidation.md) target.
+        @Image(source: "Questionnaire", alt: "Screenshot displaying a questionnaire page with a choice, a multiple choice, a slider and a time question on cards.") {
+            [Grove Questionnaire](../../GroveQuestionnaire/GroveQuestionnaire.docc/GroveQuestionnaire.md): questionnaires declared in Swift or imported from FHIR, with branching, scoring and validation.
         }
     }
     @Column {
-        @Image(source: "ChatView", alt: "Chat view of a locally executed LLM using the Grove LLM module.") {
-            The [Grove LLM](../../GroveLLM/GroveLLM.docc/GroveLLM.md) module.
+        @Image(source: "Chat", alt: "Screenshot displaying a conversation with an attached photo and a generated picture.") {
+            [Grove Chat](../../GroveChat/GroveChat.docc/GroveChat.md): conversations with pictures, citations and follow-ups, streamed as the model answers.
+        }
+    }
+    @Column {
+        @Image(source: "ToolCall", alt: "Screenshot displaying a conversation in which the assistant calls a function to read health samples before answering.") {
+            [Grove LLM](../../GroveLLM/GroveLLM.docc/GroveLLM.md): one chat over OpenAI, Anthropic, Gemini, Apple's Foundation Models or a model running on the device, with function calling into your app.
         }
     }
 }
