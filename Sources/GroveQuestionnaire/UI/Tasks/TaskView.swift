@@ -18,8 +18,8 @@ struct QuestionPosition: Hashable, Sendable {
 
 /// How long the room for a message takes to open, and to close: a little longer than the answer's
 /// confirmation, which fades the line and the mark meanwhile.
-private let messageOpening: TimeInterval = 0.4
-private let messageClosing: TimeInterval = 0.2
+private let messageOpening: TimeInterval = 0.28
+private let messageClosing: TimeInterval = 0.14
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

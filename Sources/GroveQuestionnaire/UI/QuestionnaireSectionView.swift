@@ -30,6 +30,10 @@ struct QuestionnaireSectionView<Header: View>: View {
         }
     }
 
+    /// The room between two cards. Half of it is kept above the content, so a card scrolled to the top stops
+    /// halfway into the gap it shares with the one before rather than against the navigation bar.
+    private static var cardGap: CGFloat { 16 }
+
     @Environment(ManagedNavigationStack.Path.self) private var navigationPath
     @Environment(QuestionnaireResponses.self) private var responses
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -54,7 +58,6 @@ struct QuestionnaireSectionView<Header: View>: View {
         // Without a name to head the page, an empty section would still hold its room above the cards; a header
         // written for the page is taken to show something.
         let showsTitleSection = !progress.contains(.bar) || Header.self != EmptyView.self
-        let leadsWithACard = !showsTitleSection && (runs.first.map { caption(for: $0, in: runs).isEmpty } ?? true)
         ScrollViewReader { scrollViewProxy in
             Form {
                 if showsTitleSection {
@@ -76,12 +79,10 @@ struct QuestionnaireSectionView<Header: View>: View {
             #if os(iOS)
             // Questions sit closer together: the card edges already separate them, so the
             // form's default gap only pushes the page longer.
-            .listSectionSpacing(.compact)
+            .listSectionSpacing(Self.cardGap)
             #endif
             .dismissesKeyboardLikeAForm()
-            // Room above a card scrolled to the top, so it reads as one card among others; only where a card
-            // leads, so a caption stays where a form's first header sits.
-            .contentMargins(.top, leadsWithACard ? 8 : 0, for: .scrollContent)
+            .contentMargins(.top, Self.cardGap / 2, for: .scrollContent)
             .modifier(PageNaming(title: pageTitle, subtitle: pageSubtitle, inBar: progress.contains(.bar)))
             .modifier(PageProgressReporting(fraction: pageFraction))
             .floatingActions { primaryAction }

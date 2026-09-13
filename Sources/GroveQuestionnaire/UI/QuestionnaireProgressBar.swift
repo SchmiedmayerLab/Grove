@@ -84,7 +84,7 @@ struct QuestionnaireProgressBar: View {
         .frame(height: Self.height)
         .allowsHitTesting(false)
         // Smooth rather than snappy: the bar reports, it does not react, and it should be seen travelling.
-        .animation(reduceMotion ? nil : .smooth(duration: 0.55), value: fraction)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.4), value: fraction)
         .accessibilityElement()
         .accessibilityLabel(Text("Progress", bundle: .module))
         .accessibilityValue(Text(fraction, format: .percent.precision(.fractionLength(0))))
