@@ -77,9 +77,10 @@ struct CompletionPage: View {
         } label: {
             Text("Done", bundle: .module)
                 .bold()
-                .frame(maxWidth: .infinity, minHeight: 44)
+                .frame(maxWidth: .infinity)
         }
-        .buttonStyleGlassProminent()
+        .actionButtonStyle(.primary)
+        .controlSize(.large)
         .accessibilityIdentifier("PrimaryAction")
         .accessibilityValue(Text("Ready", bundle: .module))
     }

@@ -30,7 +30,7 @@ struct QuestionnaireSectionView<Header: View>: View {
         }
     }
 
-    /// The room between two cards. Half of it is kept above the content, so a card scrolled to the top stops
+    /// The room between two cards. Half of it deepens the form's safe area, so a card scrolled to the top stops
     /// halfway into the gap it shares with the one before rather than against the navigation bar.
     private static var cardGap: CGFloat { 16 }
 
@@ -82,7 +82,9 @@ struct QuestionnaireSectionView<Header: View>: View {
             .listSectionSpacing(Self.cardGap)
             #endif
             .dismissesKeyboardLikeAForm()
-            .contentMargins(.top, Self.cardGap / 2, for: .scrollContent)
+            // A content margin only pads the first card; a scroll aligns to the safe area. Inside the progress
+            // reporting, which keeps measuring the navigation bar's own edge for the line.
+            .safeAreaPadding(.top, Self.cardGap / 2)
             .modifier(PageNaming(title: pageTitle, subtitle: pageSubtitle, inBar: progress.contains(.bar)))
             .modifier(PageProgressReporting(fraction: pageFraction))
             .floatingActions { primaryAction }
@@ -383,9 +385,10 @@ extension QuestionnaireSectionView {
         } label: {
             Text(primaryActionTitle)
                 .bold()
-                .frame(maxWidth: .infinity, minHeight: 44)
+                .frame(maxWidth: .infinity)
         }
-        .buttonStyleGlassProminent()
+        .actionButtonStyle(.primary)
+        .controlSize(.large)
         .accessibilityIdentifier("PrimaryAction")
         .accessibilityValue(responses.isComplete(in: section)
             ? Text("Ready", bundle: .module)

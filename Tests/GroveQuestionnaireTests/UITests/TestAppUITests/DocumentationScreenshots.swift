@@ -124,8 +124,14 @@ final class DocumentationScreenshots: TestAppUITests, @unchecked Sendable {
     /// A popover closes on a tap outside it; the navigation bar is always outside.
     @MainActor
     private func closePopover() {
-        app.navigationBars.firstMatch.tap()
-        sleep(1)
+        // A compact date picker can leave its calendar up behind the time wheels; one tap outside closes only the top.
+        let dismissRegion = app.otherElements["PopoverDismissRegion"].firstMatch
+        var attempts = 0
+        repeat {
+            app.navigationBars.firstMatch.tap()
+            sleep(1)
+            attempts += 1
+        } while dismissRegion.exists && attempts < 3
     }
 
     /// Turns a wheel picker's wheels to `values`, one per wheel, as far as it has wheels.
