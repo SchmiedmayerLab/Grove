@@ -192,12 +192,12 @@ struct ChatTestView: View {
         }
     }
 
-    /// The documentation conversation's answers: a question about the numbers is answered with sources, a question
+    /// The documentation conversation's answers: a question about the oats is answered with sources, a question
     /// about the data through a tool, and anything else with a drawing.
     private func respondForDocumentation(to prompt: String) async throws {
-        if prompt.localizedCaseInsensitiveContains("normal") {
+        if prompt.localizedCaseInsensitiveContains("oats") {
             chat.append(DocumentationConversation.citedAnswer)
-        } else if prompt.localizedCaseInsensitiveContains("average") {
+        } else if prompt.localizedCaseInsensitiveContains("last time") {
             chat.append(DocumentationConversation.toolCall)
             try await Task.sleep(for: .seconds(1))
             chat.append(DocumentationConversation.toolResponse)
@@ -206,7 +206,8 @@ struct ChatTestView: View {
         } else {
             let placeholder = ChatEntity(role: .assistant(.response), content: .images([.generating], text: ""))
             chat.append(placeholder)
-            try await Task.sleep(for: .seconds(4))
+            // The documentation's picture of the queue needs the drawing to take long enough to queue two messages meanwhile.
+            try await Task.sleep(for: .seconds(prompt.localizedCaseInsensitiveContains("also") ? 24 : 4))
             chat[chat.count - 1] = ChatEntity(role: .assistant(.response), content: DocumentationConversation.drawing, id: placeholder.id)
         }
     }
