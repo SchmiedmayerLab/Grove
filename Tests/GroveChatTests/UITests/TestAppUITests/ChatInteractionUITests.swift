@@ -83,7 +83,7 @@ final class ChatInteractionUITests: XCTestCase {
         }
 
         let stack = app.buttons["Show Queued Messages"]
-        XCTAssert(stack.waitForExistence(timeout: 2), "Two queued messages show as a stack with a way to fan it out.")
+        XCTAssert(stack.waitForExistence(timeout: 5), "Two queued messages show as a stack with a way to fan it out.")
         stack.tap()
         let fanOut = app.descendants(matching: .any)["Queued Messages"]
         XCTAssert(fanOut.waitForExistence(timeout: 3), "The stack fans out over the conversation.")

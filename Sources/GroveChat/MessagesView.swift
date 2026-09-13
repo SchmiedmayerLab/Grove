@@ -124,6 +124,8 @@ public struct MessagesView: View {
     private static let followContentThreshold: CGFloat = 64
     /// How far the typing indicator sits from the top when it is the only thing in the conversation.
     private static let emptyConversationIndicatorInset: CGFloat = 16
+    /// Room between two turns of the conversation.
+    private static let messageSpacing: CGFloat = 24
 
     @Binding private var chat: Chat
     private let insets: EdgeInsets
@@ -155,8 +157,9 @@ public struct MessagesView: View {
         // A chat that reports its generation state has already answered this question, and answers it better:
         // the indicator then tracks the request itself rather than guessing from who spoke last — which would
         // leave it spinning after a cancelled answer, since the user's message is still the most recent one.
+        // Once the answer's own words, or a picture's placeholder, are on screen they show the work themselves.
         if let generation {
-            return generation.isGenerating
+            return generation.isGenerating && chat.last?.role != .assistant(.response)
         }
         return switch typingIndicator {
         case .automatic:
@@ -180,11 +183,12 @@ public struct MessagesView: View {
         let messages = visibleMessages
         // A conversation is small enough to lay out eagerly, and a lazily materialized first row can
         // miss its appear events entirely — leaving a streamed answer parsed but never rendered.
-        return VStack(spacing: 24) {
+        return VStack(spacing: 0) {
             ForEach(Array(messages.enumerated()), id: \.element.id) { index, message in
                 // Only the last message of a sender's run carries the bubble's tail, the way Messages
                 // marks where a turn ends.
                 MessageView(message, endsSenderRun: messages[safe: index + 1]?.role != message.role)
+                    .padding(.top, messages[safe: index - 1].map { Self.spacing(from: $0, to: message) } ?? 0)
                     .id(message.id)
             }
             if shouldDisplayTypingIndicator {
@@ -192,9 +196,10 @@ public struct MessagesView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     // With no messages above it the indicator sits against the navigation bar, which reads as
                     // part of the chrome rather than as the answer being written.
-                    .padding(.top, messages.isEmpty ? Self.emptyConversationIndicatorInset : 0)
+                    .padding(.top, messages.isEmpty ? Self.emptyConversationIndicatorInset : Self.messageSpacing)
             }
             ChatErrorView(state: errorState)
+                .padding(.top, Self.messageSpacing)
         }
     }
 
@@ -333,6 +338,18 @@ public struct MessagesView: View {
         return !previousLast.complete
     }
 
+    /// Room between a message and the one before it.
+    ///
+    /// A tool's call and its result are one step of the answer rather than two turns, so they sit close
+    /// together, and the answer they lead to follows them more closely than it would a message of the user's.
+    private static func spacing(from previous: ChatEntity, to message: ChatEntity) -> CGFloat {
+        switch (previous.role.isToolInteraction, message.role.isToolInteraction) {
+        case (true, true): 8
+        case (true, false): 16
+        case (false, _): messageSpacing
+        }
+    }
+
     /// Scrolls to the foot of the conversation, where a drag would come to rest.
     ///
     /// Scrolling to the edge rather than to a view of our own at the end of the stack: an anchor view is
@@ -346,6 +363,14 @@ public struct MessagesView: View {
         withAnimation(.smooth(duration: 0.3)) {
             scrollPosition.scrollTo(edge: .bottom)
         }
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension ChatEntity.Role {
+    fileprivate var isToolInteraction: Bool {
+        self == .assistant(.toolCall) || self == .assistant(.toolResponse)
     }
 }
 
