@@ -23,35 +23,26 @@ import PhotosUI
 /// message fits on one line.
 @available(iOS 26, macOS 26, visionOS 26, *)
 struct MessageInputView: View {
-    /// An image the user staged for the next message, with an identity of its own so that
-    /// removal targets the right item even while insertions and removals animate.
-    struct Attachment: Identifiable {
-        /// What the user staged.
-        enum Content {
-            case image(PlatformImage)
-            case file(ChatEntity.Content.File)
-        }
+    typealias Attachment = DraftAttachment
 
-        let id = UUID()
-        /// The photo library identifier the image was loaded from, when it has one; guards against
-        /// staging the same photo twice when picker selections overlap.
-        let itemIdentifier: String?
-        let content: Content
-    }
-
-    private static let cornerRadius: CGFloat = 22
+    nonisolated static let cornerRadius: CGFloat = 22
     /// The side length of the circular controls flanking the field, matching its collapsed height.
     nonisolated static let controlSize: CGFloat = 40
 
-    @Binding private var chat: Chat
+    @Binding var chat: Chat
     private let placeholder: LocalizedStringResource
     let speechToText: Bool
 
-    @State private var speechRecognizer = SpeechRecognizer()
-    @State private var message: String = ""
+    @State var speechRecognizer = SpeechRecognizer()
+    @State var message: String = ""
     /// A passage of an earlier message the participant is asking about, staged until the message goes.
     @State var quotation: String?
     @State var attachments: [Attachment] = []
+    /// What was written before dictation began, to fall back to if it is cancelled.
+    @State var dictationBase = ""
+    @State var dictationStart: Date?
+    /// The voice as heard so far, for the waveform.
+    @State var dictationLevels: [Float] = []
     /// Why the last picked file was refused, shown until the next pick.
     @State var attachmentFailure: String?
     #if canImport(PhotosUI)
@@ -64,36 +55,66 @@ struct MessageInputView: View {
 
     @Environment(\.chatAccentColor) private var chatAccentColor
     @Environment(\.chatAttachmentKinds) var attachmentKinds
-    @Environment(\.chatGeneration) private var generation
+    @Environment(\.chatGeneration) var generation
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.isEnabled) var isEnabled
+    @Environment(ChatMessageQueue.self) var queue
     @Environment(ChatAttachmentStore.self) var attachmentStore: ChatAttachmentStore?
 
-    @FocusState<Bool>.Binding private var textFieldIsFocused: Bool
+    @FocusState<Bool>.Binding var textFieldIsFocused: Bool
 
     private var palette: ChatPalette {
         ChatPalette(accent: chatAccentColor, colorScheme: colorScheme)
     }
 
-    private var canSend: Bool {
-        guard generation?.isGenerating != true else {
-            // A second message mid-answer either interleaves two responses or drops the first.
-            return false
-        }
-        return !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty || quotation != nil
+    var isGenerating: Bool {
+        generation?.isGenerating == true
+    }
+
+    /// Whether there is anything to send; mid-answer it is queued rather than sent.
+    var canSend: Bool {
+        !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty || quotation != nil
     }
 
     var body: some View {
         GlassEffectContainer(spacing: 8) {
-            HStack(alignment: .bottom, spacing: 8) {
-                attachButton
-                inputField
-                trailingAction
+            VStack(spacing: 8) {
+                queuedMessages
+                if speechToText && speechRecognizer.isRecording {
+                    dictationRow
+                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                } else {
+                    HStack(alignment: .bottom, spacing: 8) {
+                        leadingAction
+                        inputField
+                        trailingAction
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                }
+            }
+        }
+        .onChange(of: speechRecognizer.level) { _, level in
+            dictationLevels.append(level)
+            if dictationLevels.count > 120 {
+                dictationLevels.removeFirst(dictationLevels.count - 120)
             }
         }
         .animation(.smooth(duration: 0.3), value: attachments.count)
+        .animation(.smooth(duration: 0.3), value: queue.messages.map(\.id))
+        .onChange(of: queue.messageToEdit?.id) { _, id in
+            if id != nil, let message = queue.messageToEdit {
+                queue.messageToEdit = nil
+                edit(message)
+            }
+        }
         .animation(.smooth(duration: 0.2), value: canSend)
         .animation(.smooth(duration: 0.2), value: speechRecognizer.isRecording)
         .animation(.smooth(duration: 0.2), value: generation?.isGenerating)
+        .onChange(of: generation?.isGenerating) { _, generating in
+            if generating == false {
+                sendNextQueued()
+            }
+        }
         .padding(.horizontal, 12)
         .padding(.bottom, 8)
         #if os(iOS) || os(visionOS)
@@ -160,15 +181,14 @@ struct MessageInputView: View {
         }
     }
 
-    /// Dictation while the field is empty, sending once there is something to send.
-    ///
-    /// Both stay up while dictating, so that a dictated message can be either stopped or sent straight away.
+    /// Dictation while the field is empty, sending once there is something to send; while an answer that can be
+    /// stopped arrives, the stop button gets the send button beside it once there is something to queue.
     @ViewBuilder private var trailingAction: some View {
-        if generation?.isGenerating == true {
+        if isGenerating, generation?.cancel != nil {
             stopButton
-        } else if speechToText && speechRecognizer.isRecording {
-            microphoneButton
-            sendButton
+            if canSend {
+                sendButton
+            }
         } else if canSend || !speechToText {
             sendButton
         } else {
@@ -176,30 +196,26 @@ struct MessageInputView: View {
         }
     }
 
-    /// Interrupts the answer in flight, standing in for the send button until it finishes.
-    @ViewBuilder private var stopButton: some View {
-        if let cancel = generation?.cancel {
-            Button {
-                cancel()
-            } label: {
-                Image(systemName: "stop.fill")
-                    .font(.system(size: 14, weight: .bold))
-                    .accessibilityLabel(Text("STOP_GENERATING", bundle: .module))
-                    .foregroundStyle(palette.onAccent)
-                    .frame(width: Self.controlSize, height: Self.controlSize)
-                    .background(palette.accent, in: .circle)
-            }
-            .buttonStyle(.plain)
-        } else {
-            sendButton
+    /// Interrupts the answer in flight.
+    private var stopButton: some View {
+        Button {
+            generation?.cancel?()
+        } label: {
+            Image(systemName: "stop.fill")
+                .font(.system(size: 14, weight: .bold))
+                .accessibilityLabel(Text("STOP_GENERATING", bundle: .module))
+                .foregroundStyle(palette.onAccent)
+                .frame(width: Self.controlSize, height: Self.controlSize)
+                .background(palette.accent, in: .circle)
         }
+        .buttonStyle(.plain)
     }
 
     private var sendButton: some View {
         Button(action: send) {
             Image(systemName: "arrow.up")
                 .font(.system(size: 16, weight: .bold))
-                .accessibilityLabel(Text("SEND_MESSAGE", bundle: .module))
+                .accessibilityLabel(Text(LocalizedStringKey(isGenerating ? "QUEUE_MESSAGE" : "SEND_MESSAGE"), bundle: .module))
                 .foregroundStyle(canSend ? AnyShapeStyle(palette.onAccent) : AnyShapeStyle(.secondary))
                 .frame(width: Self.controlSize, height: Self.controlSize)
                 .background(canSend ? AnyShapeStyle(palette.accent) : AnyShapeStyle(.quaternary), in: .circle)
@@ -211,12 +227,11 @@ struct MessageInputView: View {
 
     private var microphoneButton: some View {
         Button(action: toggleDictation) {
-            Image(systemName: speechRecognizer.isRecording ? "waveform" : "mic.fill")
+            Image(systemName: "mic.fill")
                 .font(.system(size: 16))
                 .accessibilityLabel(Text("MICROPHONE_BUTTON", bundle: .module))
-                .foregroundStyle(speechRecognizer.isRecording ? AnyShapeStyle(Color.red) : AnyShapeStyle(.secondary))
+                .foregroundStyle(.secondary)
                 .frame(width: Self.controlSize, height: Self.controlSize)
-                .symbolEffect(.variableColor.iterative, isActive: speechRecognizer.isRecording)
         }
         .buttonStyle(.plain)
         .glassEffect(.regular.interactive(), in: .circle)
@@ -237,48 +252,6 @@ struct MessageInputView: View {
         self.placeholder = placeholder ?? LocalizedStringResource("Type Your Message…", bundle: .module)
         self._textFieldIsFocused = isFocused
         self.speechToText = speechToText
-    }
-
-    private func send() {
-        guard canSend else {
-            return
-        }
-        speechRecognizer.stop()
-        let text = String.message(quoting: quotation, text: message.trimmingCharacters(in: .whitespacesAndNewlines))
-        var parts = attachments.map { attachment in
-            switch attachment.content {
-            case .image(let image): ChatEntity.Content.Part(.image(.image(image)))
-            case .file(let file): ChatEntity.Content.Part(.file(file), label: file.name)
-            }
-        }
-        if !text.isEmpty {
-            parts.append(ChatEntity.Content.Part(.text(text)))
-        }
-        let content = ChatEntity.Content(parts)
-        chat.append(ChatEntity(role: .user, content: content))
-        message = ""
-        quotation = nil
-        attachments = []
-        #if canImport(PhotosUI)
-        photoSelection = []
-        #endif
-    }
-
-    private func toggleDictation() {
-        guard !speechRecognizer.isRecording else {
-            speechRecognizer.stop()
-            return
-        }
-        Task {
-            // A failed or interrupted recognition simply ends dictation; the typed message is left untouched.
-            do {
-                for try await result in speechRecognizer.start() {
-                    message = result.bestTranscription.formattedString
-                }
-            } catch {
-                speechRecognizer.stop()
-            }
-        }
     }
 
     #if canImport(PhotosUI) && !os(watchOS)

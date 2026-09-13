@@ -33,9 +33,11 @@ path = [
 SPDX-FileCopyrightText = "2025 Stanford University and the project authors (see CONTRIBUTORS.md)"
 SPDX-License-Identifier = "MIT"
 
-# Upstream annotations dated 2026 (GroveQuestionnaire).
+# Upstream annotations dated 2026 (GroveQuestionnaire, GroveSpeechRecognizer).
 [[annotations]]
 path = [
+    "Sources/GroveSpeechRecognizer/Resources/**",
+    "Tests/GroveChatTests/UITests/TestApp/Resources/**",
     "Tests/GroveQuestionnaireTests/Resources/**",
     "Tests/GroveQuestionnaireTests/UITests/TestApp/Resources/**"
 ]

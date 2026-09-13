@@ -1542,6 +1542,9 @@ var targets: [Target] = [
             .target(name: "Grove")
         ],
         exclude: targetExcludes("GroveSpeechRecognizer"),
+        resources: [
+            .process("Resources")
+        ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),

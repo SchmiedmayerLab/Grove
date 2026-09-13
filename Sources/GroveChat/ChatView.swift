@@ -100,12 +100,32 @@ public struct ChatView: View {
     @FocusState private var inputTextFieldIsFocused: Bool
     /// Carries a quoted message from the conversation to the composer, which are siblings here.
     @State private var followUp = ChatFollowUp()
+    /// The messages waiting for the answer in flight, held by the composer and fanned out over the conversation.
+    @State private var queue = ChatMessageQueue()
+    /// How much of the bottom the composer takes, which the fanned-out queue stays clear of.
+    @State private var composerHeight: CGFloat = 0
 
     public var body: some View {
         messagesView
+            .onChange(of: queue.isExpanded) { _, isExpanded in
+                if isExpanded {
+                    inputTextFieldIsFocused = false
+                }
+            }
             .safeAreaInset(edge: .bottom) {
                 inputView
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { composerHeight = $0 }
             }
+            // Laid over the conversation below the composer's inset, the fan-out's scroll view grew into that inset
+            // and took the taps meant for the composer, its close button among them.
+            .overlay(alignment: .bottom) {
+                if queue.isExpanded {
+                    QueuedMessagesFanOut(queue: queue, cornerRadius: 22)
+                        .padding(.bottom, composerHeight)
+                        .transition(.opacity)
+                }
+            }
+            .animation(.spring(duration: 0.35, bounce: 0.15), value: queue.isExpanded)
             .toolbar {
                 toolbar
             }
@@ -113,6 +133,7 @@ public struct ChatView: View {
                 shareSheet
             }
             .environment(followUp)
+            .environment(queue)
             .modifier(SingleTextSelection())
             #if os(macOS)
             .onChange(of: showShareSheet) { _, isPresented in

@@ -111,8 +111,9 @@ struct ChatImageViewer: View {
         #if os(iOS) || os(visionOS)
         let index = images.firstIndex(of: image) ?? 0
         if let loaded = platformImage(for: image, at: index) {
+            // Under the bar as well: the toolbar is glass over the picture, not a band above it.
             ZoomableImageView(image: loaded)
-                .ignoresSafeArea(edges: .bottom)
+                .ignoresSafeArea()
         } else {
             ProgressView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
