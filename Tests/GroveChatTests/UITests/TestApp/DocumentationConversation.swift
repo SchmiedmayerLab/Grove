@@ -6,15 +6,15 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Charts
 import GroveChat
 import SwiftUI
 
 
-/// The conversation the documentation screenshots show: a resting heart rate that crept up, read from a chart the
-/// user attached, answered with a chart the assistant drew.
+/// The conversation the documentation screenshots show: a lab letter the participant photographed, its two flagged
+/// values explained, and a picture the assistant draws of what brings one of them down.
 ///
-/// Launched with `--documentation`; the pictures are rendered here rather than shipped as assets.
+/// Launched with `--documentation`. The photo and the drawing are pictures in the app's resources, generated once;
+/// the conversation itself is written here.
 @MainActor
 enum DocumentationConversation {
     static var isRequested: Bool {
@@ -27,137 +27,57 @@ enum DocumentationConversation {
         [
             ChatEntity(
                 role: .user,
-                content: .images([.image(heartRateChart())], text: "My resting heart rate has been creeping up this month. Here's what my watch shows.")
+                content: .images([.image(picture("LabReport"))], text: "My doctor's office mailed me these results and flagged two of them. What do they mean?")
             ),
             ChatEntity(role: .assistant(.response), text: """
-                Your resting heart rate averaged **64 bpm** this month, up from 58 in the first week.
+                Three values are flagged, with two stories behind them:
 
-                A few things stand out:
-                - The highest readings follow the days with almost no walking.
-                - It settles again on days with a walk after dinner.
+                - **LDL cholesterol, 162 mg/dL**, which is also why your total cholesterol of 242 is high. On the usual scale LDL counts as high from 160; under 100 is optimal. It is the part of cholesterol that settles in artery walls over the years, and how much it matters depends on your overall risk, which takes in age, blood pressure, smoking, diabetes and family history, not the number alone.
+                - **HbA1c, 5.9 %.** This is inside the 5.7 to 6.4 band that counts as prediabetes: an average blood sugar over the past three months that is above normal but below the diabetes threshold of 6.5.
 
-                Twenty minutes of walking a day would likely bring it back down within a few weeks.
+                Your HDL of 52 and triglycerides of 140 are within their usual ranges.
+
+                Both flags are common, and both respond to the same changes: more fibre and unsaturated fats, less saturated fat and sugar, regular activity, and weight where that applies. Whether medication is worth it is a risk decision for you and your doctor; a lab value alone does not settle it. Bring the letter to your next visit.
+
+                I am the study's assistant, not a clinician: this explains the report, it does not replace the conversation about it.
                 """),
-            ChatEntity(role: .user, text: "Can you sketch a walking plan for the next two weeks?")
+            ChatEntity(role: .user, text: "Can you draw me a simple picture of what brings LDL down? Something for the fridge.")
         ]
     }
 
-    /// A worded answer with the places it came from, for a question about the numbers.
+    /// A worded answer with the places it came from, for a question about the first item on the list.
     static var citedAnswer: ChatEntity {
         ChatEntity(
             role: .assistant(.response),
-            content: .text("A resting heart rate in the 60s is within the normal range for adults. What matters more than the number is the trend: a steady rise over weeks is worth mentioning at your next visit."),
+            content: .text("Oats carry beta-glucan, a soluble fibre that forms a gel in the gut and binds bile acids, so the liver draws on its cholesterol to make more. About 3 g a day, a large bowl of porridge, lowers LDL by roughly 5 to 7 percent on its own, which is why it comes first on the list. Beans, barley and psyllium work the same way."),
             citations: [
-                .init(title: "Target Heart Rates Chart — American Heart Association", source: .web(URL(string: "https://www.heart.org/en/healthy-living/fitness/fitness-basics/target-heart-rates")!)),
-                .init(title: "Resting heart rate — Mayo Clinic", source: .web(URL(string: "https://www.mayoclinic.org/healthy-lifestyle/fitness/expert-answers/heart-rate/faq-20057979")!)),
-                .init(title: "Study Handbook.pdf", source: .file(name: "Study Handbook.pdf"))
+                .init(title: "Cholesterol: Top foods to improve your numbers — Mayo Clinic", source: .web(URL(string: "https://www.mayoclinic.org/diseases-conditions/high-blood-cholesterol/in-depth/cholesterol/art-20045192")!)),
+                .init(title: "Cholesterol-lowering effects of oat β-glucan: a meta-analysis of randomized controlled trials — Whitehead et al., 2014", source: .web(URL(string: "https://doi.org/10.3945/ajcn.114.086108")!)),
+                .init(title: "Participant Information Sheet.pdf", source: .file(name: "Participant Information Sheet.pdf"))
             ]
         )
     }
 
-    /// The assistant reading the watch's data through a tool before answering.
-    static let toolCall = ChatEntity(role: .assistant(.toolCall), text: "read_health_samples({ type: \"restingHeartRate\", days: 30 })")
-    static let toolResponse = ChatEntity(role: .assistant(.toolResponse), text: "{ samples: 30, average: 64, minimum: 58, maximum: 68 }")
-    static let toolAnswer = ChatEntity(role: .assistant(.response), text: "Over the last 30 days your resting heart rate averaged **64 bpm**, ranging from 58 to 68.")
+    /// The assistant reading the participant's earlier results through a tool before answering.
+    static let toolCall = ChatEntity(role: .assistant(.toolCall), text: "read_health_records({ \"type\": \"labResult\", \"code\": \"LOINC 13457-7\", \"limit\": 2 })")
+    static let toolResponse = ChatEntity(role: .assistant(.toolResponse), text: "{ \"results\": [ { \"date\": \"2026-09-08\", \"value\": 162, \"unit\": \"mg/dL\" }, { \"date\": \"2025-03-14\", \"value\": 148, \"unit\": \"mg/dL\" } ] }")
+    static let toolAnswer = ChatEntity(role: .assistant(.response), text: "Your previous LDL, from March 2025, was **148 mg/dL**. This one is 14 higher, so the direction is up as well as the level.")
 
     /// What the assistant draws in answer to the last message.
     static var drawing: ChatEntity.Content {
-        .images([.image(walkingPlanChart())], text: "Here's a plan that builds up gently: ten minutes a day in the first week, twenty in the second, with two rest days each week.")
-    }
-
-    /// Resting heart rate over the last month, the way a watch app would chart it.
-    private static func heartRateChart() -> PlatformImage {
-        let readings: [(day: Int, bpm: Double)] = [
-            (1, 58), (3, 59), (5, 58), (7, 60), (9, 61), (11, 60), (13, 63), (15, 62), (17, 64), (19, 66), (21, 65), (23, 67), (25, 66), (27, 68), (29, 67)
-        ]
-        return render {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Resting Heart Rate")
-                    .font(.title2.bold())
-                Text("Last 30 days · avg 64 bpm")
-                    .foregroundStyle(.secondary)
-                Chart(readings, id: \.day) { reading in
-                    LineMark(x: .value("Day", reading.day), y: .value("bpm", reading.bpm))
-                        .interpolationMethod(.catmullRom)
-                        .foregroundStyle(Color.red.gradient)
-                        .lineStyle(StrokeStyle(lineWidth: 4))
-                    PointMark(x: .value("Day", reading.day), y: .value("bpm", reading.bpm))
-                        .foregroundStyle(.red)
-                }
-                .chartYScale(domain: 50...75)
-                .chartXAxis {
-                    AxisMarks(values: [1, 8, 15, 22, 29]) { value in
-                        AxisGridLine()
-                        AxisValueLabel {
-                            if let day = value.as(Int.self) {
-                                Text("Day \(day)")
-                            }
-                        }
-                    }
-                }
-                .chartYAxis {
-                    AxisMarks(values: [50, 60, 70]) { value in
-                        AxisGridLine()
-                        AxisValueLabel {
-                            if let bpm = value.as(Int.self) {
-                                Text("\(bpm) bpm")
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /// The two weeks the assistant proposes, as minutes of walking per day.
-    private static func walkingPlanChart() -> PlatformImage {
-        struct Walk {
-            let day: String
-            let week: String
-            let minutes: Double
-        }
-        let weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        let firstWeek: [Double] = [10, 10, 0, 10, 10, 15, 0]
-        let secondWeek: [Double] = [20, 20, 0, 20, 20, 25, 0]
-        let days = zip(weekdays, firstWeek).map { Walk(day: $0, week: "Week 1", minutes: $1) }
-            + zip(weekdays, secondWeek).map { Walk(day: $0, week: "Week 2", minutes: $1) }
-        return render {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Walking Plan")
-                    .font(.title2.bold())
-                Text("Minutes per day, next two weeks")
-                    .foregroundStyle(.secondary)
-                Chart(Array(days.enumerated()), id: \.offset) { _, entry in
-                    BarMark(x: .value("Day", entry.day), y: .value("Minutes", entry.minutes))
-                        .foregroundStyle(entry.week == "Week 1" ? Color.teal.gradient : Color.indigo.gradient)
-                        .position(by: .value("Week", entry.week))
-                        .cornerRadius(5)
-                }
-                .chartYScale(domain: 0...30)
-                .chartLegend(position: .top, alignment: .leading)
-                .chartYAxis {
-                    AxisMarks(values: [0, 10, 20, 30]) { value in
-                        AxisGridLine()
-                        AxisValueLabel {
-                            if let minutes = value.as(Int.self) {
-                                Text("\(minutes) min")
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /// Draws a chart into a picture the size a photo would have.
-    private static func render(@ViewBuilder _ content: () -> some View) -> PlatformImage {
-        let renderer = ImageRenderer(
-            content: content()
-                .padding(28)
-                .frame(width: 1024, height: 640)
-                .background(Color(uiColor: .systemBackground))
+        .images(
+            [.image(picture("Illustration"))],
+            text: "Oats and beans, nuts, olive oil, fish, vegetables and fruit, and a daily walk. Less butter, fatty meat and pastry does the rest."
         )
-        renderer.scale = 2
+    }
+
+    /// A picture from the app's resources; a missing one shows as a flat tile, so the walk still runs.
+    private static func picture(_ name: String) -> PlatformImage {
+        if let image = PlatformImage(named: name) {
+            return image
+        }
+        let renderer = ImageRenderer(content: Color.gray.opacity(0.3).frame(width: 1024, height: 1024))
+        renderer.scale = 1
         return renderer.uiImage ?? PlatformImage()
     }
 }

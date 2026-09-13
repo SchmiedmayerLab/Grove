@@ -37,6 +37,7 @@ SPDX-License-Identifier = "MIT"
 [[annotations]]
 path = [
     "Sources/GroveSpeechRecognizer/Resources/**",
+    "Tests/GroveChatTests/UITests/TestApp/Resources/**",
     "Tests/GroveQuestionnaireTests/Resources/**",
     "Tests/GroveQuestionnaireTests/UITests/TestApp/Resources/**"
 ]

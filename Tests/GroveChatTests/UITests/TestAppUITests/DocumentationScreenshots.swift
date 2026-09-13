@@ -44,35 +44,52 @@ final class DocumentationScreenshots: XCTestCase {
         app.buttons.matching(NSPredicate(format: "label IN {'Done', 'Close'}")).firstMatch.tap()
         sleep(1)
 
-        // The follow-up sits on the text selection's own menu, which a double tap on a word brings up.
-        let assistantMessage = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Your resting heart rate'")).firstMatch
-        XCTAssert(assistantMessage.waitForExistence(timeout: 3))
-        assistantMessage.doubleTap()
+        // The follow-up sits on the text selection's own menu, which a double tap on a word brings up. The caption
+        // opens with the word to quote, so the tap lands on it at the start of the first line.
+        let caption = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Oats'")).firstMatch
+        XCTAssert(caption.waitForExistence(timeout: 3))
+        caption.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.15)).doubleTap()
         let followUp = app.menuItems["Follow Up"].firstMatch
         XCTAssert(followUp.waitForExistence(timeout: 3))
         followUp.tap()
+        XCTAssert(app.staticTexts["Oats"].waitForExistence(timeout: 3), "The quote should carry the word that was tapped.")
         sleep(1)
         capture("FollowUp")
 
         // The next question is typed and shown in the composer before it goes out.
         app.textFields["Message Input Textfield"].tap()
-        app.typeText("Is 64 still normal?")
+        app.typeText("Why oats?")
         sleep(1)
         capture("Composer")
 
-        // A question about the numbers is answered with its sources.
+        // A question about the oats is answered with its sources.
         app.buttons["Send Message"].tap()
-        XCTAssert(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'A resting heart rate in the 60s'")).firstMatch.waitForExistence(timeout: 15))
+        XCTAssert(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Oats carry'")).firstMatch.waitForExistence(timeout: 15))
         dismissChatKeyboard(app)
         sleep(2)
         capture("Citations")
 
-        // A question about the data is answered through a tool.
-        send("What was my average over the whole month?")
-        XCTAssert(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Over the last 30 days'")).firstMatch.waitForExistence(timeout: 15))
+        // A question about earlier results is answered through a tool.
+        send("What was my LDL last time?")
+        XCTAssert(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Your previous LDL'")).firstMatch.waitForExistence(timeout: 15))
         dismissChatKeyboard(app)
         sleep(2)
         capture("ToolCall")
+
+        // Messages written while the next answer is drawn wait in a stack, and fan out over the conversation.
+        send("Could you also draw one for the HbA1c?")
+        XCTAssert(app.buttons["Stop Generating"].waitForExistence(timeout: 3))
+        for text in ["And one for exercise?", "Thanks!"] {
+            app.textFields["Message Input Textfield"].tap()
+            app.typeText(text)
+            app.buttons["Queue Message"].tap()
+        }
+        sleep(1)
+        capture("Queue")
+        app.buttons["Show Queued Messages"].tap()
+        XCTAssert(app.descendants(matching: .any)["Queued Messages"].waitForExistence(timeout: 3))
+        sleep(1)
+        capture("QueuedMessages")
     }
 
     /// The chat drops its keyboard when the conversation is dragged down onto it; the return key would only add a line.
