@@ -38,7 +38,8 @@ private let fhirPathParsingLock = NSLock()
 /// Retains the lexer and token stream alongside the parse tree: ANTLR tokens hold
 /// only weak references to their source stream and read their text lazily, so a
 /// bare tree would lose its token text once the parsing locals deallocate.
-public final class ParsedFHIRPathExpression {
+public final class ParsedFHIRPathExpression: @unchecked Sendable {
+    // Only read once parsed: ANTLR looks token text up on each ask and caches nothing on the tree.
     let tree: FHIRPathParser.ExpressionContext
     // periphery:ignore - strong lifetime anchor for ANTLR's weakly referenced token sources
     private let retainedSources: [AnyObject]
