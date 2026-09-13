@@ -24,7 +24,7 @@ final class DocumentationScreenshots: TestAppUITests, @unchecked Sendable {
     }
 
     @MainActor
-    func testCaptureDocumentationScreenshots() {
+    func testCaptureDocumentationScreenshots() throws {
         if app.state != .runningForeground {
             app.activate()
         }
@@ -52,7 +52,7 @@ final class DocumentationScreenshots: TestAppUITests, @unchecked Sendable {
         questionnaire.tapPrimaryAction()
         sleep(1)
         capture("Validation")
-        questionnaire.question("daytime-tiredness").select("Every night")
+        questionnaire.question("daytime-tiredness").select("Every day")
         sleep(1)
         capture("Score")
         questionnaire.closeDiscardingAnswers()
@@ -71,11 +71,27 @@ final class DocumentationScreenshots: TestAppUITests, @unchecked Sendable {
         capture("TextAndChoice")
         questionnaire.tapPrimaryAction()
         XCTAssert(questionnaire.question("day").waitUntilAsked())
+        // Opening a pill answers it with today or now; the times are then turned to a morning.
+        _ = questionnaire.question("day").datePicker
+        closePopover()
+        turn(questionnaire.question("moment").datePicker, to: ["7", "30", "AM"])
+        closePopover()
+        let calendar = questionnaire.question("day-and-moment").datePicker
+        // The calendar keeps its time behind a button; tapping it brings the wheels out.
+        let time = calendar.buttons.matching(NSPredicate(format: "label CONTAINS ':'")).firstMatch
+        if time.waitForExistence(timeout: 2) {
+            time.tap()
+            turn(calendar, to: ["7", "45", "AM"])
+        }
+        closePopover()
         sleep(1)
         capture("DatesAndTimes")
         questionnaire.tapPrimaryAction()
         XCTAssert(questionnaire.question("rating").waitUntilAsked())
         questionnaire.question("rating").moveSlider(to: 0.7)
+        try questionnaire.question("decimal").enterNumber(3.5)
+        try questionnaire.question("count").enterNumber(8)
+        try questionnaire.question("acceleration").enterNumber(9.8)
         sleep(1)
         capture("Numbers")
         questionnaire.closeDiscardingAnswers()
@@ -85,13 +101,41 @@ final class DocumentationScreenshots: TestAppUITests, @unchecked Sendable {
         open(.modelValues)
         startExample("Annotate Image")
         XCTAssert(questionnaire.question("t0").waitUntilAsked())
-        sleep(2)
+        app.descendants(matching: .any)["OpenImageAnnotationEditor"].firstMatch.tap()
+        let canvas = app.descendants(matching: .any)["ImageAnnotationCanvas"].firstMatch
+        XCTAssert(canvas.waitForExistence(timeout: 5))
+        app.descendants(matching: .any)["AnnotationRegion:Pain"].firstMatch.tap()
+        // A cross over the left knee.
+        canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.35, dy: 0.45))
+            .press(forDuration: 0.1, thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.43, dy: 0.55)))
+        canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.43, dy: 0.45))
+            .press(forDuration: 0.1, thenDragTo: canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.35, dy: 0.55)))
+        sleep(1)
         capture("AnnotateImage")
+        app.buttons["Done"].firstMatch.tap()
         questionnaire.closeDiscardingAnswers()
         startExample("Stopwatch")
         XCTAssert(questionnaire.question("t0").waitUntilAsked())
-        sleep(1)
+        app.buttons["StopwatchToggle"].firstMatch.tap()
+        sleep(3)
         capture("CustomKind")
+    }
+
+    /// A popover closes on a tap outside it; the navigation bar is always outside.
+    @MainActor
+    private func closePopover() {
+        app.navigationBars.firstMatch.tap()
+        sleep(1)
+    }
+
+    /// Turns a wheel picker's wheels to `values`, one per wheel, as far as it has wheels.
+    @MainActor
+    private func turn(_ picker: XCUIElement, to values: [String]) {
+        let wheels = picker.pickerWheels
+        _ = wheels.firstMatch.waitForExistence(timeout: 2)
+        for (index, value) in values.enumerated() where index < wheels.count {
+            wheels.element(boundBy: index).adjust(toPickerWheelValue: value)
+        }
     }
 
     /// Announces a state worth a picture; `Scripts/documentation-screenshots.sh` shoots the simulator on this line.

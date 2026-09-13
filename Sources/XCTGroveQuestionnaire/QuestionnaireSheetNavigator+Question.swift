@@ -351,7 +351,11 @@ extension QuestionnaireSheetNavigator.Question {
         scrollIntoView()
         let picker = app.datePickers.firstMatch
         if !picker.exists {
-            tap(element.buttons.firstMatch)
+            // The row reads as one control, and its pill sits at the trailing end; a tap in the middle lands on
+            // the label.
+            let row = element.buttons.firstMatch
+            navigator.scan { navigator.isReachable(row) }
+            row.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.5)).tap()
             _ = picker.waitForExistence(timeout: QuestionnaireSheetNavigator.defaultTimeout)
         }
         return picker
