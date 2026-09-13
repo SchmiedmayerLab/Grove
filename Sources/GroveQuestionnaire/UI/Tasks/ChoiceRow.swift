@@ -11,7 +11,26 @@
 import SwiftUI
 
 
+/// The mark at the end of a row, which says how many rows may be picked: a dot fills the circle the way a radio
+/// button does, a checkmark adds up the way Mail and Photos mark a selection.
+enum SelectionMark {
+    /// A circle that fills. Picking one empties the others.
+    case single
+    /// A circle that takes a checkmark. Picks add up.
+    case multiple
+
+    fileprivate func symbol(selected: Bool) -> String {
+        switch (self, selected) {
+        case (.single, false), (.multiple, false): "circle"
+        case (.single, true): "circle.inset.filled"
+        case (.multiple, true): "checkmark.circle.fill"
+        }
+    }
+}
+
+
 /// A row in a single/multiple choice picker
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct ChoiceRow<AccessoryIfSelected: View>: View {
     /// The row's identifier; used for the view's UI testing accessibility identifier
     private var id: String
@@ -19,11 +38,19 @@ struct ChoiceRow<AccessoryIfSelected: View>: View {
     private let subtitle: String
     private let isSelected: Bool
     private let isSeparated: Bool
+    private let mark: SelectionMark
     private let action: @MainActor () -> Void
     private let accessoryIfSelected: @MainActor () -> AccessoryIfSelected
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Counts the selections, so the mark bounces and the haptic plays on picking, not on clearing.
+    @State private var selections = 0
+
     var body: some View {
         Button {
+            if !isSelected {
+                selections += 1
+            }
             action()
         } label: {
             HStack {
@@ -61,6 +88,7 @@ struct ChoiceRow<AccessoryIfSelected: View>: View {
         // row is a single button: the options come out tinted like links, and a tap on one of
         // them fires all of them, so choosing Yes immediately toggles No back off again.
         .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: selections)
         // Each row draws the rule above itself. Placed between the rows instead, as its own view,
         // it is dropped when the card's contents are flattened into the list — which is how
         // whole option lists came to be ruled inconsistently, and yes/no questions not at all.
@@ -72,17 +100,21 @@ struct ChoiceRow<AccessoryIfSelected: View>: View {
         }
     }
 
-    /// Shape as well as colour, so the selection survives a colour-blind reading.
-    @ViewBuilder private var selectionMark: some View {
-        let mark = Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+    /// Shape as well as colour, so the selection survives a colour-blind reading, and a dot or a
+    /// checkmark, so the row says whether it stands alone or adds up.
+    private var selectionMark: some View {
+        Image(systemName: mark.symbol(selected: isSelected))
             .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+            // The mark is the whole confirmation an answer gets, so it is worth seeing arrive, and worth seeing
+            // go quickly: the symbol crosses over, and the one just picked swells a touch and settles.
+            .contentTransition(.symbolEffect(.replace))
+            .animation(.easeOut(duration: isSelected ? 0.16 : 0.08), value: isSelected)
+            .phaseAnimator([1.0, 1.12, 1.0], trigger: reduceMotion ? 0 : selections) { view, scale in
+                view.scaleEffect(scale)
+            } animation: { scale in
+                scale > 1 ? .easeOut(duration: 0.1) : .spring(duration: 0.22, bounce: 0.35)
+            }
             .accessibilityHidden(true)
-        if #available(iOS 17, macOS 14, watchOS 10, *) {
-            // The mark is the whole confirmation an answer gets, so it is worth seeing arrive.
-            mark.contentTransition(.symbolEffect(.replace))
-        } else {
-            mark
-        }
     }
 
     /// Creates a `ChoiceRow`, which is a reusable view that represents a row in a single/multiple selection list.
@@ -92,6 +124,7 @@ struct ChoiceRow<AccessoryIfSelected: View>: View {
         subtitle: String,
         isSelected: Bool,
         isSeparated: Bool = false,
+        mark: SelectionMark = .single,
         action: @escaping @MainActor () -> Void,
         @ViewBuilder accessoryIfSelected: @escaping @MainActor () -> AccessoryIfSelected = { EmptyView() }
     ) {
@@ -100,6 +133,7 @@ struct ChoiceRow<AccessoryIfSelected: View>: View {
         self.subtitle = subtitle
         self.isSelected = isSelected
         self.isSeparated = isSeparated
+        self.mark = mark
         self.action = action
         self.accessoryIfSelected = accessoryIfSelected
     }

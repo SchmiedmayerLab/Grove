@@ -13,6 +13,29 @@ extension QuestionnaireSheetNavigator {
     /// How far the navigator scrolls one way before giving up on finding something.
     private static let maximumScanSwipes = 12
 
+    /// Where the page stands once it has come to rest: what it has built, and where its first line sits.
+    ///
+    /// The text alone cannot tell a short scroll from none, a page builds its rows well ahead of the fold;
+    /// the first line's frame can. Read at rest, so a bounce on the way back is not mistaken for a move.
+    private var pageAtRest: (texts: [String], firstLine: CGRect) {
+        var snapshot = pageSnapshot
+        for _ in 0..<30 {
+            Thread.sleep(forTimeInterval: 0.1)
+            let settled = pageSnapshot
+            guard settled != snapshot else {
+                return settled
+            }
+            snapshot = settled
+        }
+        return snapshot
+    }
+
+    /// A page that is gone has no first line; asking a missing element for its frame would fail the test.
+    private var pageSnapshot: (texts: [String], firstLine: CGRect) {
+        let firstLine = section.staticTexts.firstMatch
+        return (visibleText, firstLine.exists ? firstLine.frame : .zero)
+    }
+
     /// Scrolls the page looking for something, and stops the moment it is there.
     ///
     /// A `Form` builds only the rows around the fold, so anything further down the page than it
@@ -43,7 +66,7 @@ extension QuestionnaireSheetNavigator {
     /// The page is looked up again for every swipe: a run that hands itself off mid-scan takes its
     /// page with it, and scanning for something a page no longer has is not a failure.
     private func scroll(_ swipe: (XCUIElement) -> Void, lookingFor isFound: () -> Bool) -> Bool {
-        var lastSeen = visibleText
+        var lastSeen = pageAtRest
         for _ in 0..<Self.maximumScanSwipes {
             let page = section
             guard page.exists else {
@@ -53,7 +76,7 @@ extension QuestionnaireSheetNavigator {
             if isFound() {
                 return true
             }
-            let seen = visibleText
+            let seen = pageAtRest
             guard seen != lastSeen else {
                 return false
             }

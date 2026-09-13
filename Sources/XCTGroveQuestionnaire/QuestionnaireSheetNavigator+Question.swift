@@ -343,13 +343,22 @@ extension QuestionnaireSheetNavigator.Question {
         return field.exists ? field.value as? String : nil
     }
 
-    /// The date picker of a date, time, or date-and-time question.
+    /// The date picker of a date, time, or date-and-time question, opened from its pill.
     ///
-    /// A compact date picker is a control the participant expands and scrolls, and there is no
-    /// short, reliable way to set one from a test — so this hands it over rather than pretending.
+    /// A calendar or wheel is a control the participant scrolls, and there is no short, reliable way
+    /// to set one from a test — so this opens it and hands it over rather than pretending.
     public var datePicker: XCUIElement {
         scrollIntoView()
-        return element.datePickers.firstMatch
+        let picker = app.datePickers.firstMatch
+        if !picker.exists {
+            // The row reads as one control, and its pill sits at the trailing end; a tap in the middle lands on
+            // the label.
+            let row = element.buttons.firstMatch
+            navigator.scan { navigator.isReachable(row) }
+            row.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.5)).tap()
+            _ = picker.waitForExistence(timeout: QuestionnaireSheetNavigator.defaultTimeout)
+        }
+        return picker
     }
 
     /// The files attached to the question so far, by filename.
@@ -358,8 +367,6 @@ extension QuestionnaireSheetNavigator.Question {
         return element.staticTexts.matching(identifier: "FileAttachmentFilename").allElementsBoundByIndex.map(\.label)
     }
 
-    /// Writes `text` into a free-text question.
-    ///
     /// Where a free-text answer is typed.
     ///
     /// A short answer is a text field and a long one a text view, so the question could be
@@ -377,8 +384,7 @@ extension QuestionnaireSheetNavigator.Question {
         return nil
     }
 
-    /// A free-text answer may hold newlines, so the renderer puts a checkmark above the keyboard
-    /// in place of a return key; this taps it when the text is in.
+    /// Writes `text` into a free-text question and lets the keyboard go afterwards.
     public func enterText(_ text: String, file: StaticString = #filePath, line: UInt = #line) {
         guard let editor = freeTextField(file: file, line: line) else {
             return
@@ -446,15 +452,14 @@ extension QuestionnaireSheetNavigator.Question {
 
 
 extension QuestionnaireSheetNavigator {
-    /// Dismisses the keyboard through the checkmark the renderer puts above it.
-    ///
-    /// The number pad has no return key and a free-text field would take one as a newline, so
-    /// the accessory is the only thing that reliably ends editing in a questionnaire.
+    /// Taps the navigation bar, the one spot never under a field or the keyboard, and falls back to the
+    /// keyboard's own dismissal.
     public func dismissKeyboard() {
-        let accessory = app.buttons.matching(label: "Dismiss Keyboard").firstMatch
-        if accessory.exists, accessory.isHittable {
-            accessory.tap()
-        } else {
+        guard app.keyboards.firstMatch.exists else {
+            return
+        }
+        navigationBar.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        if !app.keyboards.firstMatch.waitForNonExistence(timeout: 2) {
             app.dismissKeyboard()
         }
     }

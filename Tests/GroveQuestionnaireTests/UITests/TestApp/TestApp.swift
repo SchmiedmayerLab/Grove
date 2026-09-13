@@ -12,13 +12,15 @@ import SwiftUI
 @main
 struct UITestsApp: App {
     @State private var responsesStore = ResponsesStore()
-    
+    @State private var sheetSettings = SheetSettings()
+
     var body: some Scene {
         WindowGroup {
             NavigationStack {
                 ContentView()
             }
             .environment(responsesStore)
+            .environment(sheetSettings)
         }
     }
 }

@@ -20,8 +20,11 @@ import SwiftUI
 enum SelectionFeedback {
     /// Eased out rather than sprung, so the mark arrives at speed and settles: the fast start is what
     /// makes answering feel immediate, and it is also what lets the page follow this soon after.
-    static let confirmation: Animation = .easeOut(duration: 0.14)
-    static let scroll: Animation = .revisit
+    static let confirmation: Animation = .easeOut(duration: 0.1)
+    /// Snappy and short: the page should be seen to move, not waited for.
+    static let scroll: Animation = .snappy(duration: 0.2)
+    /// The mark of a card growing around a message: a touch quicker than the room, so it is there before the line.
+    static let growth: Animation = .easeInOut(duration: 0.2)
 
     /// Records an answer, and moves on once its confirmation has played.
     ///

@@ -40,6 +40,8 @@ public import XCTest
 ///
 /// ### Reading the Page
 /// - ``pageTitle``
+/// - ``progressBar``
+/// - ``progress``
 /// - ``isTitled(_:)``
 /// - ``waitUntilTitled(_:timeout:)``
 /// - ``navigationBar``
@@ -168,15 +170,15 @@ extension QuestionnaireSheetNavigator {
     /// The navigation bar of the page on screen.
     ///
     /// A questionnaire runs in a navigation stack of its own, and a follow-up question stacks a
-    /// second one on top, so the last bar is the one the participant can see.
+    /// second one on top, so the last of those stacks carries the bar the participant can see. The
+    /// app's own bars, behind the sheet, are not in the running.
     public var navigationBar: XCUIElement {
-        app.navigationBars.allElementsBoundByIndex.last ?? app.navigationBars.firstMatch
+        let stacks = app.descendants(matching: .any).matching(identifier: "GroveQuestionnaireNavStack")
+        return (stacks.allElementsBoundByIndex.last ?? app).navigationBars.firstMatch
     }
 
-    /// The page's own title, at the head of its content.
-    ///
-    /// It scrolls with the questions, and the navigation bar carries the title while it is out of
-    /// view; ``isTitled(_:)`` reads whichever of the two is showing.
+    /// The page's own title, at the head of its content on a run without a progress bar; with one, the
+    /// navigation bar names the page, and ``isTitled(_:)`` reads whichever of the two is showing.
     public var pageTitle: XCUIElement {
         app.staticTexts.lastMatch(identifier: "PageTitle")
     }

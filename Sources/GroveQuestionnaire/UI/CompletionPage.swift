@@ -17,6 +17,7 @@ struct CompletionPage: View {
     private let action: @MainActor () async throws -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(QuestionnaireProgressState.self) private var progressState: QuestionnaireProgressState?
     // periphery:ignore - read through its projected value by viewStateAlert(state:)
     @State private var viewState: ViewState = .idle
     @State private var handOffFailed = false
@@ -59,6 +60,10 @@ struct CompletionPage: View {
         .navigationBarBackButtonHidden(!handOffFailed)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("GroveQuestionnaireCompletionPage")
+        // The run is over: the page says so, and a bar would have nothing left to tell.
+        .onAppear {
+            progressState?.fraction = nil
+        }
     }
 
     private var doneButton: some View {
@@ -72,9 +77,10 @@ struct CompletionPage: View {
         } label: {
             Text("Done", bundle: .module)
                 .bold()
-                .frame(maxWidth: .infinity, minHeight: 44)
+                .frame(maxWidth: .infinity)
         }
-        .buttonStyleGlassProminent()
+        .actionButtonStyle(.primary)
+        .controlSize(.large)
         .accessibilityIdentifier("PrimaryAction")
         .accessibilityValue(Text("Ready", bundle: .module))
     }

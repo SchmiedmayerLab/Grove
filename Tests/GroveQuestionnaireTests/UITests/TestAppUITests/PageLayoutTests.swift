@@ -13,9 +13,9 @@ import XCTGroveQuestionnaire
 /// What a page says about itself: what names it, what heads its content, and how far along it is.
 ///
 /// A short name (SDC `shortText`) names the page and nothing else does; everything the author
-/// wrote reaches the page, so no page can lose a name it was given. The name heads the content
-/// and rises into the navigation bar as the page scrolls, so ``QuestionnaireSheetNavigator/isTitled(_:)``
-/// reads it from either.
+/// wrote reaches the page, so no page can lose a name it was given. With the progress bar the navigation
+/// bar names the page; without it the name heads the content and rises into the bar as the page scrolls, so
+/// ``QuestionnaireSheetNavigator/isTitled(_:)`` reads it from either.
 final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
     /// A group's short name names the page, and the text it stands for still heads the questions.
     @MainActor
@@ -72,13 +72,14 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
     }
 
 
-    /// The one redundancy worth suppressing: a short name that is the title, word for word.
+    /// A short name that is the group's title, word for word: the bar names the page, and the page does not
+    /// say it again.
     @MainActor
     func testAShortNameIdenticalToTheTitleIsNotRepeatedOnThePage() {
         startPageShapes(upTo: "check-in-note")
 
         XCTAssert(questionnaire.isTitled("Check-In"))
-        XCTAssertEqual(questionnaire.visibleText.count { $0 == "Check-In" }, 1)
+        XCTAssertEqual(questionnaire.visibleText.count { $0 == "Check-In" }, 0)
     }
 
 
@@ -188,5 +189,44 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
             questionnaire.advance()
         }
         XCTAssert(questionnaire.question(linkId).waitUntilAsked())
+    }
+
+    /// The bar under the navigation bar counts questions and page turns alike: it grows with each answer,
+    /// questions an answer rules out leave the count, turning the page is a step, and the completion page has none.
+    @MainActor
+    func testTheProgressBarFillsAsTheQuestionsAreAnswered() throws {
+        launchAppAndStartExample("Sleep Check-In", in: .swiftDSL)
+        XCTAssert(questionnaire.question("sleep-trouble").waitUntilAsked())
+        XCTAssert(questionnaire.waitUntilProgress(0))
+
+        // One of nine possible questions and a page turn; the answer rules out the four about recent nights.
+        questionnaire.question("sleep-trouble").answer(false)
+        XCTAssert(questionnaire.waitUntilProgress(1 / 6))
+        questionnaire.question("slept-well").enterText("A dark room")
+        XCTAssert(questionnaire.waitUntilProgress(2 / 6))
+        questionnaire.advance()
+        XCTAssert(questionnaire.question("evening-drink").waitUntilAsked())
+        XCTAssert(questionnaire.waitUntilProgress(0.5))
+
+        questionnaire.question("evening-drink").select("Nothing")
+        XCTAssert(questionnaire.waitUntilProgress(0.8))
+        try questionnaire.question("screen-minutes").enterNumber(20)
+        XCTAssert(questionnaire.waitUntilProgress(1))
+        questionnaire.submit()
+        XCTAssert(questionnaire.waitUntilAtCompletionPage())
+        XCTAssert(questionnaire.progressBar.waitForNonExistence(timeout: 3))
+    }
+
+
+    /// A question that takes several answers says so under its title; one that takes a single answer says nothing.
+    @MainActor
+    func testAQuestionWithSeveralAnswersSaysSo() {
+        launchAppAndStartExample("Heart Check-In", in: .swiftDSL)
+        XCTAssert(questionnaire.question("symptoms").waitUntilAsked())
+
+        let hint = questionnaire.question("symptoms").element.staticTexts["SelectionHint"]
+        XCTAssert(hint.exists)
+        XCTAssertEqual(hint.label, "Select all that apply")
+        XCTAssertFalse(questionnaire.question("energy").element.staticTexts["SelectionHint"].exists)
     }
 }

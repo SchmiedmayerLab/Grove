@@ -10,6 +10,7 @@ import GroveViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct BlockingCardHighlight: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
 
@@ -21,16 +22,23 @@ private struct BlockingCardHighlight: ViewModifier {
 
     func body(content: Content) -> some View {
         #if os(iOS)
-        content.listRowBackground(Color(uiColor: .secondarySystemGroupedBackground).overlay(tint))
+        content.listRowBackground(background(over: Color(uiColor: .secondarySystemGroupedBackground)))
         #elseif os(macOS)
-        content.listRowBackground(Color(nsColor: .controlBackgroundColor).overlay(tint))
+        content.listRowBackground(background(over: Color(nsColor: .controlBackgroundColor)))
         #else
         content
         #endif
     }
+
+    /// The mark comes with the message and goes at the pace an answer is confirmed, on an animation of its own:
+    /// an answer reaches the row without a transaction to ride on.
+    private func background(over base: Color) -> some View {
+        base.overlay(tint).animation(isBlocking ? SelectionFeedback.growth : SelectionFeedback.confirmation, value: isBlocking)
+    }
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     /// Marks a question while it is what keeps the page from continuing.
     ///

@@ -154,6 +154,9 @@ test_products = ["XCTGroveQuestionnaire", "XCTestExtensions"]
 # Linked but not imported; kept so the linkage stays as it was.
 test_fixture_products = ["GroveFoundation"]
 traits = ["ResearchKit"]
+[GroveQuestionnaire.app_settings]
+"INFOPLIST_KEY_NSCameraUsageDescription" = "A question can ask for a photo taken on the spot."
+
 [GroveScheduler]
 app_products = ["Grove", "GroveFoundation", "GroveNotifications", "GroveScheduler", "GroveSchedulerUI", "GroveViews", "XCTGroveNotificationsUI", "XCTestApp"]
 test_products = ["XCTestExtensions", "XCTGroveNotifications"]

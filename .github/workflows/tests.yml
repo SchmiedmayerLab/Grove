@@ -214,12 +214,12 @@ jobs:
 
   # Single gate to use as the required status check in branch protection.
   # Does no work itself; it aggregates the unit and UI test jobs.
-  # `if: always()` is required so it still runs (and reports pass/fail) when `test`
-  # failed or was skipped — otherwise the gate would be skipped and a skipped required
-  # check never satisfies branch protection.
+  # `!cancelled()` keeps it running (and reporting pass/fail) when `test` failed or was skipped —
+  # a skipped required check never satisfies branch protection — while a run superseded by a newer
+  # push shows as cancelled rather than failed.
   all-tests-pass:
     name: All tests pass
-    if: always()
+    if: ${{ !cancelled() }}
     needs: [detect, test, test-ui]
     runs-on: ubuntu-latest
     steps:

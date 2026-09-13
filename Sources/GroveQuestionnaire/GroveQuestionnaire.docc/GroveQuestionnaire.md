@@ -210,4 +210,11 @@ try questionnaire.checkDeclaration(of: PHQ2.self)
 - ``QuestionnaireResponses``
 
 ### UI
+
+The sheet shows a progress bar unless asked otherwise; a questionnaire that is one step of a longer flow passes
+`progressRange:` to fill only its part of it. Hints such as "Select all that apply" are off unless asked for.
+``QuestionnaireProgress`` takes over from `QuestionProgressConfig`, which is deprecated.
+
 - ``QuestionnaireSheet``
+- ``QuestionnaireProgress``
+- ``QuestionnaireHints``
