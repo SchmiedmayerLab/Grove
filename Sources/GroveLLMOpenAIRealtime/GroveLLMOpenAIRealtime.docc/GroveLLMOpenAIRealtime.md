@@ -31,7 +31,7 @@ You need to add the GroveLLM Swift package to
 
 The core components of the ``GroveLLMOpenAIRealtime`` target are the ``LLMOpenAIRealtimeSchema``, ``LLMOpenAIRealtimeSession`` as well as ``LLMOpenAIRealtimePlatform``. They use the OpenAI Realtime API to enable bidirectional voice conversations with GPT Realtime and similar models.
 
-> Important: To utilize the OpenAI Realtime API, an OpenAI API Key is required, or an ephemeral client secret that a backend mints and hands to ``LLMOpenAIRealtimeParameters/overwritingAuthToken``. Ensure that the OpenAI account behind it has access to the Realtime API models and enough credits to perform the inference.
+> Important: To utilize the OpenAI Realtime API, an OpenAI API Key is required, or an ephemeral client secret that a backend mints, passed as `overwritingAuthToken` when creating ``LLMOpenAIRealtimeParameters``. Ensure that the OpenAI account behind it has access to the Realtime API models and enough credits to perform the inference.
 
 > Tip: To collect the OpenAI API Key from the user, ``GroveLLMOpenAIRealtime`` leverages the `LLMOpenAIAPITokenOnboardingStep` view from `GroveLLMOpenAI` which can be used in the onboarding flow of the application.
 
