@@ -15,7 +15,7 @@ import GroveLLMOpenAI
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMOpenAIRealtimeSession: ToolCallLLMSession {
     @MainActor
-    func listenToLLMEvents() { // swiftlint:disable:this cyclomatic_complexity
+    func listenToLLMEvents() {
         Task { [weak self] in
             guard let eventStream = await self?.apiConnection.events() else {
                 Self.logger.error("GroveLLMOpenAIRealtime: No self in listenToLLMEvents...")
@@ -23,32 +23,52 @@ extension LLMOpenAIRealtimeSession: ToolCallLLMSession {
             }
             do {
                 for try await event in eventStream {
-                    let shouldInject = self?.schema.injectIntoContext ?? true
-                    switch event {
-                    case .assistantTranscriptDelta(let content) where shouldInject:
-                        self?.context.append(assistantOutputDelta: content, isComplete: false, interactionId: nil)
-                    case .assistantTranscriptDone where shouldInject:
-                        self?.context.markAssistantOutputCompleted()
-                    case .userTranscriptDelta(let content) where shouldInject:
-                        self?.handleTranscript(itemId: content.itemId, content: content.delta, isComplete: false)
-                    case .userTranscriptDone(let content) where shouldInject:
-                        self?.handleTranscript(itemId: content.itemId, content: "", isComplete: true)
-                    case .speechStopped(let content) where shouldInject:
-                        self?.handleSpeechStopped(itemId: content.itemId)
-                    case .functionCallRequested(let functionCall):
-                        Task {
-                            await self?.handleFunctionCall(functionCall: functionCall)
-                        }
-                    default:
-                        break
-                    }
+                    await self?.handle(event)
                 }
             } catch let error as any LLMError {
                 Self.logger.error("GroveLLMOpenAIRealtime: Encountered LLM Error: \(error)")
                 self?.state = .error(error: error)
+                // The next setup opens a fresh socket; the broken one must not keep running underneath it.
+                await self?.apiConnection.cancel()
             } catch {
                 Self.logger.error("GroveLLMOpenAIRealtime: Encountered unknown error: \(error)")
+                self?.state = .error(error: LLMOpenAIError.connectivityIssues(error))
+                await self?.apiConnection.cancel()
             }
+        }
+    }
+
+    @MainActor
+    private func handle(_ event: LLMRealtimeAudioEvent) async { // swiftlint:disable:this cyclomatic_complexity
+        let shouldInject = schema.injectIntoContext
+        switch event {
+        case .assistantTranscriptDelta(let content) where shouldInject:
+            context.append(assistantOutputDelta: content, isComplete: false, interactionId: nil)
+        case .assistantTranscriptDone where shouldInject:
+            context.markAssistantOutputCompleted()
+        case .userTranscriptDelta(let content) where shouldInject:
+            handleTranscript(itemId: content.itemId, content: content.delta, isComplete: false)
+        case .userTranscriptDone(let content):
+            await transcripts.complete(content.itemId)
+            if shouldInject {
+                // A transcriber that sends no deltas delivers the words here, all at once.
+                handleTranscript(itemId: content.itemId, content: "", isComplete: true, transcript: content.transcript)
+            }
+        case .userTranscriptFailed(let content):
+            await transcripts.complete(content.itemId)
+        case .speechStopped(let content):
+            if schema.parameters.transcriptionSettings != nil {
+                await transcripts.expect(content.itemId)
+            }
+            if shouldInject {
+                handleSpeechStopped(itemId: content.itemId)
+            }
+        case .functionCallRequested(let functionCall):
+            Task {
+                await self.handleFunctionCall(functionCall: functionCall)
+            }
+        default:
+            break
         }
     }
     
@@ -57,7 +77,7 @@ extension LLMOpenAIRealtimeSession: ToolCallLLMSession {
     /// If no message in the context has a UUID matching the deterministic UUID derived from `itemId`,
     /// this function does nothing and the content is ignored.
     @MainActor
-    private func handleTranscript(itemId: String, content: String, isComplete: Bool) {
+    private func handleTranscript(itemId: String, content: String, isComplete: Bool, transcript: String? = nil) {
         let contentUUID = UUID.deterministic(from: itemId)
         let existingTranscriptIdx = self.context.firstIndex {
             $0.id == contentUUID
@@ -68,12 +88,14 @@ extension LLMOpenAIRealtimeSession: ToolCallLLMSession {
         }
 
         let existingMessage = self.context[existingTranscriptIdx]
+        let accumulated = existingMessage.content + content
+        let final = transcript.map { $0.isEmpty ? accumulated : $0 } ?? accumulated
 
         self.context[existingTranscriptIdx] = .init(
             id: contentUUID,
             date: existingMessage.date,
             role: .user,
-            content: existingMessage.content + content,
+            content: final,
             complete: isComplete
         )
     }
@@ -103,8 +125,12 @@ extension LLMOpenAIRealtimeSession: ToolCallLLMSession {
     @MainActor
     private func handleFunctionCall(functionCall: LLMOpenAIStreamResult.FunctionCall) async {
         typealias ConversationItemCreateEvent = Components.Schemas.RealtimeClientEventConversationItemCreate
-        typealias RealtimeClientEventResponseCreate = Components.Schemas.RealtimeClientEventResponseCreate
 
+        // The call and the transcript of the turn it answers arrive independently; a tool that reads the
+        // participant's own words from the context needs the transcript to be there first.
+        if let gracePeriod = schema.parameters.transcriptGracePeriod {
+            await transcripts.waitUntilSettled(timeout: gracePeriod)
+        }
         let functionCallResponse = try? await self.callFunction(
             availableFunctions: schema.functions,
             functionCallArgs: functionCall,
@@ -131,9 +157,7 @@ extension LLMOpenAIRealtimeSession: ToolCallLLMSession {
                 )
             )
             
-            try await self.apiConnection.sendMessage(
-                RealtimeClientEventResponseCreate(_type: .response_period_create)
-            )
+            try await self.apiConnection.requestResponse(toolChoice: schema.parameters.followUpToolChoice)
         } catch {
             Self.logger.error("LLMOpenAIRealtimeSession: Function call failed due to API connection")
         }

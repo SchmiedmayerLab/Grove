@@ -99,6 +99,7 @@ public final class LLMOpenAIRealtimeSession: LLMSession, SchemaProvidingLLMSessi
     
     /// Handles websockets connection with OpenAI Realtime API
     let apiConnection = LLMOpenAIRealtimeConnection()
+    let transcripts = UserTranscriptTracker()
 
     @MainActor public var state: LLMState = .uninitialized
     @MainActor public var context: LLMContext = []
@@ -159,7 +160,7 @@ public final class LLMOpenAIRealtimeSession: LLMSession, SchemaProvidingLLMSessi
                     )
 
                     // Trigger a response
-                    try await apiConnection.sendMessage(ResponseCreate(_type: .response_period_create))
+                    try await apiConnection.requestResponse()
 
                     for try await event in await apiConnection.events() {
                         if case .assistantTranscriptDone = event {

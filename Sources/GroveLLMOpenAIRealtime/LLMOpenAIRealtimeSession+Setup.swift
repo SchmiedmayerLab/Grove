@@ -17,6 +17,17 @@ import os
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMOpenAIRealtimeSession {
+    /// A session that is ready, generating, or running a tool is set up; opening a second socket for it would double
+    /// every event. A fresh or failed session connects, and a caller that finds one loading waits for that setup.
+    @MainActor private var needsSetup: Bool {
+        switch state {
+        case .uninitialized, .loading, .error:
+            true
+        default:
+            false
+        }
+    }
+
     /// Ensures the Realtime API session is set up and ready to use.
     ///
     /// If the session is already ready, it returns immediately.
@@ -25,15 +36,14 @@ extension LLMOpenAIRealtimeSession {
     /// - Throws: An error if setup fails or if the operation is cancelled.
     @MainActor
     func ensureSetup() async throws {
-        guard self.state != .ready && self.state != .generating else {
+        guard needsSetup else {
             return
         }
 
         try await setupSemaphore.waitCheckingCancellation()
         defer { setupSemaphore.signal() }
 
-        if self.state == .ready || self.state == .generating {
-            setupSemaphore.signal()
+        guard needsSetup else {
             return
         }
 
@@ -58,7 +68,8 @@ extension LLMOpenAIRealtimeSession {
     ///
     /// - Throws: An error if the auth token is missing or the connection fails.
     private func initializeClient() async throws {
-        let authToken = try await self.platform.configuration.authToken.getToken(keychainStorage: keychainStorage)
+        let authToken = try await (schema.parameters.overwritingAuthToken ?? platform.configuration.authToken)
+            .getToken(keychainStorage: keychainStorage)
 
         guard let authToken = authToken else {
             Self.logger.error("LLMOpenAIRealtimeSession: Auth Token is nil")
@@ -66,7 +77,11 @@ extension LLMOpenAIRealtimeSession {
         }
 
         do {
-            try await apiConnection.open(token: authToken, schema: schema)
+            try await apiConnection.open(
+                token: authToken,
+                schema: schema,
+                serverUrl: schema.parameters.overwritingServerUrl ?? platform.configuration.serverUrl
+            )
         } catch let error as any LLMError {
             Self.logger.error("GroveLLMOpenAIRealtime: Encountered LLMError during initialization: \(error)")
             await apiConnection.cancel()
@@ -75,6 +90,8 @@ extension LLMOpenAIRealtimeSession {
         } catch {
             Self.logger.error("GroveLLMOpenAIRealtime: Encountered unknown error during initialization: \(error)")
             await apiConnection.cancel()
+            // Left loading, the session would count as set up and never connect again.
+            await MainActor.run { self.state = .error(error: LLMOpenAIError.connectivityIssues(error)) }
             throw error
         }
     }
