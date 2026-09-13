@@ -102,3 +102,4 @@ struct SpeechTestView: View {
 ## Topics
 
 - ``SpeechRecognizer``
+- ``SpeechRecognizerError``
