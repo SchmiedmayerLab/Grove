@@ -20,8 +20,8 @@ extension MessageInputView {
             PhotosPicker(selection: $photoSelection, matching: .images, photoLibrary: .shared()) {
                 attachButtonLabel
             }
-            .buttonStyle(.plain)
-            .glassEffect(.regular.interactive(), in: .circle)
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
         } else if !offeredAttachmentKinds.isEmpty {
             Menu {
                 attachmentMenuItems
@@ -29,8 +29,8 @@ extension MessageInputView {
                 attachButtonLabel
             }
             .menuStyle(.button)
-            .buttonStyle(.plain)
-            .glassEffect(.regular.interactive(), in: .circle)
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
         }
         #endif
     }
