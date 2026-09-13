@@ -32,11 +32,13 @@ extension TaskView {
         }
 
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        @Environment(\.scrollToNextTask) private var scrollToNextTask
 
         let task: Questionnaire.Task
         let config: Questionnaire.Task.Kind.ChoiceConfig
         @Binding var response: QuestionnaireResponses.Response
         @State private var autocompleteFilter = ""
+        @FocusState private var isOtherFieldFocused: Bool
 
         var body: some View {
             switch config.presentation {
@@ -62,24 +64,45 @@ extension TaskView {
         }
 
         /// The `drop-down` itemControl: a compact menu for long single-select option lists.
+        ///
+        /// A picker inside a menu, so the list marks the choice, under a pill of our own: the menu style's
+        /// button is a line of tinted text, where every other answer that opens on tap is a pill.
         private var dropDownPicker: some View {
-            Picker(selection: Binding<String?> {
-                response.value.choiceValue.selectedOptions.first
+            let selected = response.value.choiceValue.selectedOptions.first
+            let selection = Binding<String?> {
+                selected
             } set: { newValue in
-                response = .init(value: .choice(.init(selectedOptions: newValue.map { [$0] } ?? [])))
-            }) {
-                Text("Select…", bundle: .module)
-                    .tag(String?.none)
-                ForEach(config.options) { option in
-                    Text(option.title)
-                        .tag(String?.some(option.id))
-                }
-            } label: {
-                EmptyView()
+                SelectionFeedback.record(
+                    reduceMotion: reduceMotion,
+                    { response = .init(value: .choice(.init(selectedOptions: newValue.map { [$0] } ?? []))) },
+                    thenAdvance: newValue == nil ? nil : scrollToNextTask
+                )
             }
-            .pickerStyle(.menu)
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .trailing)
+            let selectedTitle = config.options.first { $0.id == selected }.map { Text($0.title) }
+            return Menu {
+                Picker(selection: selection) {
+                    Text("Select…", bundle: .module)
+                        .tag(String?.none)
+                    ForEach(config.options) { option in
+                        Text(option.title)
+                            .tag(String?.some(option.id))
+                    }
+                } label: {
+                    EmptyView()
+                }
+                .pickerStyle(.inline)
+            } label: {
+                AnswerPill(
+                    text: selectedTitle ?? Text("Select…", bundle: .module),
+                    isPlaceholder: selected == nil,
+                    symbol: "chevron.up.chevron.down"
+                )
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .trailing)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
             .accessibilityLabel(task.title)
+            .accessibilityValue(selectedTitle ?? Text("Select…", bundle: .module))
         }
 
         private var autocompleteFilterField: some View {
@@ -99,18 +122,33 @@ extension TaskView {
                     title: config.freeTextOtherOptionLabel ?? String(localized: "Other", bundle: .module),
                     subtitle: "",
                     isSelected: response.value.choiceValue.didSelectFreeTextOtherOption,
-                    isSeparated: hasRowsAboveOtherOption
+                    isSeparated: hasRowsAboveOtherOption,
+                    mark: config.allowsMultipleSelection ? .multiple : .single
                 ) {
                     // Never advances the page: answering this option means typing into the field it reveals.
                     SelectionFeedback.record(reduceMotion: reduceMotion, selectOtherOption, thenAdvance: nil)
                 } accessoryIfSelected: {
-                    TextField(text: $response.value.choiceValue.freeTextOtherResponse.withDefault(""), prompt: Text(verbatim: "…")) {
+                    TextField(text: otherText, prompt: Text("Your answer", bundle: .module)) {
                         Text(verbatim: "")
                     }
-                    .textFieldStyle(.roundedBorder)
+                    .textFieldStyle(.plain)
                     .multilineTextAlignment(.trailing)
+                    .focused($isOtherFieldFocused)
                     .accessibilityLabel(Text("Other", bundle: .module))
                 }
+        }
+
+        /// The field's text, written only while "Other" is the answer: the field gives up its text as it
+        /// leaves, and a write then would choose "Other" again over the option that replaced it.
+        private var otherText: Binding<String> {
+            Binding {
+                response.value.choiceValue.freeTextOtherResponse ?? ""
+            } set: { text in
+                guard response.value.choiceValue.freeTextOtherResponse != nil else {
+                    return
+                }
+                response.value.choiceValue.freeTextOtherResponse = text
+            }
         }
 
         @ViewBuilder
@@ -142,23 +180,22 @@ extension TaskView {
                     isSeparated: ruled.rulesRow(at: index),
                     response: $response
                 )
-                .sensoryFeedback(trigger: response.value.choiceValue.selectedOptions) { _, _ in
-                    // we only want this applied to the first row; otherwise we get multiple feedbacks on each selection (one per option)
-                    index == 0 ? .selection : nil
-                }
             }
         }
 
         /// Toggles the free-text `Other` option, which in a single-choice question replaces the answer.
         private func selectOtherOption() {
-            guard !config.allowsMultipleSelection else {
+            let wasSelected = response.value.choiceValue.didSelectFreeTextOtherOption
+            if config.allowsMultipleSelection {
                 response.value.choiceValue.didSelectFreeTextOtherOption.toggle()
-                return
-            }
-            response.value.choiceValue = if response.value.choiceValue.didSelectFreeTextOtherOption {
-                .init(selectedOptions: [])
             } else {
-                .init(selectedOptions: [], freeTextOtherResponse: "")
+                response.value.choiceValue = wasSelected ? .init(selectedOptions: []) : .init(selectedOptions: [], freeTextOtherResponse: "")
+            }
+            // Choosing "Other" means typing, so the field takes the cursor as soon as it exists.
+            if !wasSelected {
+                Task { @MainActor in
+                    isOtherFieldFocused = true
+                }
             }
         }
     }
@@ -186,7 +223,8 @@ extension TaskView.ChoiceAnswering {
                 title: option.title,
                 subtitle: option.subtitle,
                 isSelected: response.value.choiceValue.didSelect(option.id),
-                isSeparated: isSeparated
+                isSeparated: isSeparated,
+                mark: config.allowsMultipleSelection ? .multiple : .single
             ) {
                 let wasSelected = response.value.choiceValue.didSelect(option.id)
                 SelectionFeedback.record(

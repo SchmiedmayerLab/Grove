@@ -46,6 +46,16 @@ struct FileAttachmentQuestionView: View {
                         .accessibilityIdentifier("FileAttachmentFilesize")
                 }
             }
+            Spacer()
+            Button {
+                attachments.removeAll { $0.id == attachment.id }
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("Remove", bundle: .module))
+            .accessibilityIdentifier("RemoveAttachment")
         }
         .frame(minHeight: 44)
         .overlay(alignment: .top) {
@@ -65,6 +75,9 @@ struct FileAttachmentQuestionView: View {
                     do {
                         switch item {
                         case .file(let url):
+                            return try QuestionnaireResponses.CollectedAttachment(url: url)
+                        case .capture(let url):
+                            defer { try? FileManager.default.removeItem(at: url) }
                             return try QuestionnaireResponses.CollectedAttachment(url: url)
                         case .photo(let item):
                             return try await item.loadTransferable(type: QuestionnaireResponses.CollectedAttachment.self)

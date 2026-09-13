@@ -384,7 +384,7 @@ extension Questionnaire.Task {
         .init(id: "taskTime", title: "Test Task: Time", kind: .dateTime(.init(style: .timeOnly))),
         .init(id: "taskText", title: "Test Task: Text", kind: .freeText(.init())),
         .init(id: "taskNumber1", title: "Test Task: Number (Pad)", kind: .numeric(.init(inputMode: .numberPad(.decimal)))),
-        .init(id: "taskNumber2", title: "Test Task: Number (Slider)", kind: .numeric(.init(inputMode: .slider(stepValue: 1)))),
+        .init(id: "taskNumber2", title: "Test Task: Number (Slider)", kind: .numeric(.init(inputMode: .slider(stepValue: 1), minimum: 0, maximum: 10))),
         .init(
             id: "taskChoice1",
             title: "Test Task: Choice (1)",

@@ -15,6 +15,7 @@ struct ContentView: View {
     @Environment(ResponsesStore.self) private var responsesStore
 
     @State private var shownResponse: ResponsesStore.Entry?
+    @State private var showsSettings = false
 
     var body: some View {
         List {
@@ -44,6 +45,15 @@ struct ContentView: View {
         }
         .sheet(item: $shownResponse) { entry in
             ResponseDetailsSheet(entry: entry)
+        }
+        .toolbar {
+            Button("Settings", systemImage: "gearshape") {
+                showsSettings = true
+            }
+            .accessibilityIdentifier("Settings")
+        }
+        .sheet(isPresented: $showsSettings) {
+            SheetSettingsView()
         }
     }
 

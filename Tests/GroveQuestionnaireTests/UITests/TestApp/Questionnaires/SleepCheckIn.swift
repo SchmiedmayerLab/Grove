@@ -40,6 +40,35 @@ enum SleepFrequency: String, ScoredOption {
 }
 
 
+/// How often something happened over the past seven days.
+enum DaytimeFrequency: String, ScoredOption {
+    case never
+    case someDays = "some-days"
+    case mostDays = "most-days"
+    case everyDay = "every-day"
+
+    static let system = URL(string: "https://grovealliance.org/samples/CodeSystem/DaytimeFrequency")
+
+    var title: String {
+        switch self {
+        case .never: "Never"
+        case .someDays: "Some days"
+        case .mostDays: "Most days"
+        case .everyDay: "Every day"
+        }
+    }
+
+    var score: Decimal {
+        switch self {
+        case .never: 0
+        case .someDays: 1
+        case .mostDays: 2
+        case .everyDay: 3
+        }
+    }
+}
+
+
 /// What the participant drank in the three hours before going to bed.
 enum EveningDrink: String, QuestionnaireOption {
     case nothing
@@ -68,7 +97,7 @@ enum SleepCheckIn {
 
     static let fallingAsleep = ChoiceQuestion<SleepFrequency>("falling-asleep", "Lay awake for more than half an hour")
     static let wakingUp = ChoiceQuestion<SleepFrequency>("waking-up", "Woke up in the middle of the night")
-    static let daytimeTiredness = ChoiceQuestion<SleepFrequency>("daytime-tiredness", "Felt tired during the day")
+    static let daytimeTiredness = ChoiceQuestion<DaytimeFrequency>("daytime-tiredness", "Felt tired during the day")
 
     /// Optional because the participant cannot answer it: a required question nobody can
     /// fill in would keep the section from ever completing.

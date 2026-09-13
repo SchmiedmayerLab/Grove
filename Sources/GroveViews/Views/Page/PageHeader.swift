@@ -35,7 +35,12 @@ public struct PageHeader: View {
     private let title: Text
     private let barTitle: String
     private let subtitle: Text?
+    /// The subtitle as the navigation bar shows it under the risen title, where it is to rise along.
+    private let barSubtitle: String?
     private let spacing: Spacing
+
+    @Environment(\.risingTitleIsInBar) private var isInBar
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @_documentation(visibility: internal)
     public var body: some View {
@@ -52,11 +57,14 @@ public struct PageHeader: View {
                 .font(.title2.bold())
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("PageTitle")
-                .risesIntoNavigationBar(barTitle)
+                .risesIntoNavigationBar(barTitle, subtitle: barSubtitle)
             if let subtitle {
                 subtitle
                     .font(.title3)
                     .foregroundStyle(.secondary)
+                    // Along with the title, when the bar takes it too.
+                    .opacity(isInBar && barSubtitle != nil ? 0 : 1)
+                    .offset(y: isInBar && barSubtitle != nil && !reduceMotion ? -6 : 0)
             }
         }
         .padding(.top, image == nil && spacing == .regular ? 32 : 0)
@@ -68,11 +76,12 @@ public struct PageHeader: View {
         .fixedSize(horizontal: false, vertical: true)
     }
 
-    private init(image: AnyView?, title: Text, barTitle: String, subtitle: Text?, spacing: Spacing) {
+    private init(image: AnyView?, title: Text, barTitle: String, subtitle: Text?, barSubtitle: String?, spacing: Spacing) {
         self.image = image
         self.title = title
         self.barTitle = barTitle
         self.subtitle = subtitle
+        self.barSubtitle = barSubtitle
         self.spacing = spacing
     }
 
@@ -80,14 +89,23 @@ public struct PageHeader: View {
     /// - Parameters:
     ///   - title: The localized title.
     ///   - subtitle: The optional localized subtitle.
+    ///   - subtitleRises: Whether the subtitle rises into the navigation bar along with the title. For a name
+    ///     rather than a sentence: the bar sets it small, on one line.
     ///   - spacing: The room left above the header.
     ///   - image: A symbol or picture shown large and tinted above the title.
-    public init(title: LocalizedStringResource, subtitle: LocalizedStringResource? = nil, spacing: Spacing = .regular, image: Image? = nil) {
+    public init(
+        title: LocalizedStringResource,
+        subtitle: LocalizedStringResource? = nil,
+        subtitleRises: Bool = false,
+        spacing: Spacing = .regular,
+        image: Image? = nil
+    ) {
         self.init(
             image: image.map(Self.tinted),
             title: Text(title),
             barTitle: String(localized: title),
             subtitle: subtitle.map { Text($0) },
+            barSubtitle: subtitleRises ? subtitle.map { String(localized: $0) } : nil,
             spacing: spacing
         )
     }
@@ -96,15 +114,24 @@ public struct PageHeader: View {
     /// - Parameters:
     ///   - title: The title.
     ///   - subtitle: The optional subtitle.
+    ///   - subtitleRises: Whether the subtitle rises into the navigation bar along with the title. For a name
+    ///     rather than a sentence: the bar sets it small, on one line.
     ///   - spacing: The room left above the header.
     ///   - image: A symbol or picture shown large and tinted above the title.
     @_disfavoredOverload
-    public init(title: some StringProtocol, subtitle: (some StringProtocol)? = String?.none, spacing: Spacing = .regular, image: Image? = nil) {
+    public init(
+        title: some StringProtocol,
+        subtitle: (some StringProtocol)? = String?.none,
+        subtitleRises: Bool = false,
+        spacing: Spacing = .regular,
+        image: Image? = nil
+    ) {
         self.init(
             image: image.map(Self.tinted),
             title: Text(title),
             barTitle: String(title),
             subtitle: subtitle.map { Text($0) },
+            barSubtitle: subtitleRises ? subtitle.map { String($0) } : nil,
             spacing: spacing
         )
     }

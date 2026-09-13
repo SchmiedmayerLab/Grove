@@ -14,11 +14,11 @@
 # only this script sets `GROVE_DOCUMENTATION_SCREENSHOTS` for the test runner. The capture lands in the target's DocC
 # resources as `<Name>.png` and `<Name>~dark.png`, framed by a device bezel on a transparent background.
 #
-# Requirements: Xcode with an iOS simulator runtime, and RocketSim (https://www.rocketsim.app) running with its
-# command line tool installed. The status bar is set to 9:41 with a full battery for every capture. With pngquant
-# installed (`brew install pngquant`), every capture is reduced to a 256-color palette, which keeps the full
-# resolution and takes a picture from roughly 800 KB to under 200 KB without a visible difference at the size the
-# documentation shows it.
+# Requirements: Xcode with an iOS simulator runtime, and RocketSim (https://www.rocketsim.app) with its command
+# line tool installed; the script starts RocketSim itself. The status bar is set to 9:41 with a full battery for
+# every capture. With pngquant installed (`brew install pngquant`), every capture is reduced to a 256-color
+# palette, which keeps the full resolution and takes a picture from roughly 800 KB to under 200 KB without a
+# visible difference at the size the documentation shows it.
 #
 # Usage:
 #   Scripts/documentation-screenshots.sh [--parallel N] [--device "iPhone 17 Pro"] [--keep-simulators] [Target ...]
@@ -67,7 +67,21 @@ fail() { log "error: $*"; exit 1; }
 
 command -v xcrun >/dev/null || fail "Xcode command line tools are required."
 [[ -x $ROCKETSIM ]] || fail "RocketSim is not installed; its CLI is expected at $ROCKETSIM."
-$ROCKETSIM status >/dev/null 2>&1 || fail "RocketSim.app is not running; open it before regenerating screenshots."
+
+# The CLI exits 0 whether or not the app is running; only the report says.
+rocketsim_running() { $ROCKETSIM status 2>/dev/null | grep -q '"rocket_sim_running":true'; }
+
+# RocketSim quits when a device it is showing shuts down; whoever needs it next starts it again.
+rocketsim_up() {
+  rocketsim_running && return 0
+  open -g -a RocketSim
+  local attempt
+  for attempt in {1..30}; do
+    sleep 1
+    rocketsim_running && return 0
+  done
+  fail "RocketSim did not start."
+}
 
 test_file_for() { print -- "$ROOT/Tests/${1}Tests/UITests/TestAppUITests/DocumentationScreenshots.swift"; }
 resources_for() {
@@ -120,13 +134,14 @@ done
 build() {
   local target=$1 udid=$2
   log "$target: building"
+  local build_log=$(mktemp)
   (cd "$ROOT/Tests/${target}Tests/UITests" && xcodebuild build-for-testing \
     -project UITests.xcodeproj -scheme TestApp \
     -destination "platform=iOS Simulator,id=$udid" \
     -derivedDataPath "$DERIVED_DATA/$target" \
     -skipPackagePluginValidation -skipMacroValidation \
-    -quiet 2>&1 | grep -E "error:" || true)
-  [[ -d "$DERIVED_DATA/$target/Build/Products/Debug-iphonesimulator/TestApp.app" ]] || fail "$target: build failed"
+    -quiet > "$build_log" 2>&1) || { grep -E "error:" "$build_log" | grep -v "^error: the following command failed" >&2; rm -f "$build_log"; fail "$target: build failed"; }
+  rm -f "$build_log"
 }
 
 # Shoots the simulator through RocketSim into a file, trying again when it answers with an empty file, which it
@@ -134,6 +149,7 @@ build() {
 shoot() {
   local udid=$1 file=$2 attempt capture=$(mktemp)
   for attempt in 1 2 3; do
+    rocketsim_up
     $ROCKETSIM screenshot --udid "$udid" --bezel device --background transparent > "$capture" 2>/dev/null
     if [[ -s $capture ]]; then
       # Only a picture replaces the previous one; a miss must not leave the target without an image.
@@ -193,13 +209,16 @@ capture() {
   xcrun simctl boot "$udid" >/dev/null 2>&1 || true
   xcrun simctl bootstatus "$udid" -b >/dev/null
   xcrun simctl ui "$udid" appearance "$appearance"
-  # The keyboard's swipe-to-type introduction would otherwise cover the first keyboard of a fresh simulator.
+  # The keyboard's swipe-to-type introduction would otherwise cover the first keyboard of a fresh simulator, and
+  # its spell check would underline a typed address in red.
   xcrun simctl spawn "$udid" defaults write com.apple.keyboard.preferences DidShowContinuousPathIntroduction -bool true >/dev/null 2>&1 || true
+  xcrun simctl spawn "$udid" defaults write com.apple.keyboard.preferences KeyboardCheckSpelling -bool false >/dev/null 2>&1 || true
   xcrun simctl status_bar "$udid" override --time 9:41 --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4 --operatorName ''
   xcrun simctl install "$udid" "$app"
   # No "--" before the arguments: it would reach the app, where an argument parser treats it as the end of its flags.
   xcrun simctl launch "$udid" "$bundle_id" ${=launch_arguments} >/dev/null
   sleep 4
+  rocketsim_up
 
   log "$target: capturing $appearance"
   # A walk that fails still yields the captures before the failure; the log says what went wrong. A walk that

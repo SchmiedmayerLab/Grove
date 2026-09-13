@@ -16,7 +16,8 @@ struct Example: Identifiable {
     let title: String
     let questionnaire: Questionnaire
     let completionStepConfig: CompletionStepConfig
-    let questionProgressConfig: QuestionProgressConfig
+    let progress: QuestionnaireProgress
+    let hints: QuestionnaireHints
     let completionAction: CompletionAction
 
     var id: String {
@@ -29,13 +30,16 @@ struct Example: Identifiable {
         // The renderer's own default: an extra screen to dismiss is a cost, and the Completion
         // Flow examples are where it is meant to be looked at.
         completionStepConfig: CompletionStepConfig = .disable,
-        questionProgressConfig: QuestionProgressConfig = .disable,
+        progress: QuestionnaireProgress = .bar,
+        // Every hint on, so the catalog shows what the sheet can say.
+        hints: QuestionnaireHints = .all,
         completionAction: CompletionAction = .submit
     ) {
         self.title = title ?? questionnaire.metadata.title
         self.questionnaire = questionnaire
         self.completionStepConfig = completionStepConfig
-        self.questionProgressConfig = questionProgressConfig
+        self.progress = progress
+        self.hints = hints
         self.completionAction = completionAction
     }
 }
@@ -109,6 +113,7 @@ private struct QuestionnaireRunner: ViewModifier {
     }
 
     @Environment(ResponsesStore.self) private var responsesStore
+    @Environment(SheetSettings.self) private var settings
 
     @Binding var example: Example?
 
@@ -122,9 +127,10 @@ private struct QuestionnaireRunner: ViewModifier {
             .sheet(item: $example) { running in
                 QuestionnaireSheet(
                     running.questionnaire,
-                    completionStepConfig: running.completionStepConfig,
-                    questionProgressConfig: running.questionProgressConfig,
-                    completionAction: running.completionAction
+                    completionStepConfig: settings.completionStepConfig(for: running),
+                    progress: settings.progress(for: running),
+                    hints: settings.hints(for: running),
+                    completionAction: settings.completionAction(for: running)
                 ) { result in
                     if case .completed(let responses) = result {
                         // Throwing here is what a failed submit looks like: the renderer reports it

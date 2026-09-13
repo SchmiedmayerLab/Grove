@@ -131,7 +131,6 @@ extension TaskView {
                 }()
             )
             .accessibilityLabel(spokenLabel)
-            .enableDismissalViaKeyboardAccessory()
         }
 
         @ViewBuilder
@@ -182,7 +181,7 @@ extension TaskView {
 private struct NumberTextField<Value: BinaryFloatingPoint>: View {
     // Note: using a NumberFormatter() instead of the new `FloatingPointFormatStyle<Double>.number` API,
     // because of https://github.com/swiftlang/swift-foundation/issues/135
-    @State private var formatter = NumberFormatter()
+    private let formatter: NumberFormatter
 
     private let prompt: Text
     private let allowsDecimalEntry: Bool
@@ -199,5 +198,11 @@ private struct NumberTextField<Value: BinaryFloatingPoint>: View {
         self._value = value
         self.prompt = prompt
         self.allowsDecimalEntry = allowsDecimalEntry
+        // A formatter's default style keeps no fraction digits, which turned a typed 3.5 into 4 as the field settled.
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.usesGroupingSeparator = false
+        formatter.maximumFractionDigits = allowsDecimalEntry ? 10 : 0
+        self.formatter = formatter
     }
 }
