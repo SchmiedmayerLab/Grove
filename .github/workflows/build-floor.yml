@@ -48,10 +48,11 @@ jobs:
         run: Scripts/build-floor.sh "${{matrix.platform}}" "${{matrix.kind}}"
 
   # Single gate to use as the required status check in branch protection. Does no work itself; it just
-  # aggregates the build-floor matrix. `if: always()` so it still reports when a matrix leg failed.
+  # aggregates the build-floor matrix. `!cancelled()` so it still reports when a matrix leg failed, while
+  # a run superseded by a newer push shows as cancelled rather than failed.
   all-floor-builds-pass:
     name: All floor builds pass
-    if: always()
+    if: ${{ !cancelled() }}
     needs: [build-floor]
     runs-on: ubuntu-latest
     steps:
