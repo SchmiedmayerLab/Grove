@@ -181,4 +181,11 @@ struct PageProgressTests {
         #expect(afterTheSecond > second)
         #expect(afterTheSecond < 1, "one page is still ahead")
     }
+
+    @Test
+    func theBarStaysInsideItsPartAndTheWholeBar() {
+        #expect(QuestionnaireSheet.barFraction(0.5, within: 0.25...0.5) == 0.375)
+        #expect(QuestionnaireSheet.barFraction(0.5, within: -0.25...0.5) == 0.25, "a bound below the bar is clamped")
+        #expect(QuestionnaireSheet.barFraction(1, within: 0.5...1.5) == 1, "a bound beyond the bar is clamped")
+    }
 }

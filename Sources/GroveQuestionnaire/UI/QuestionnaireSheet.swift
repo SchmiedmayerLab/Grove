@@ -93,7 +93,7 @@ public struct QuestionnaireSheet: View {
             ZStack {
                 // Not before the page has said where its content starts: the line would sit on the top edge for a frame.
                 if let fraction = progressState.fraction, progressState.contentTop > 0 {
-                    QuestionnaireProgressBar(fraction: progressRange.lowerBound + fraction * (progressRange.upperBound - progressRange.lowerBound))
+                    QuestionnaireProgressBar(fraction: Self.barFraction(fraction, within: progressRange))
                         .padding(.top, progressState.contentTop)
                         .transition(.opacity)
                 }
@@ -174,6 +174,17 @@ public struct QuestionnaireSheet: View {
         )
     }
     // swiftlint:enable function_default_parameter_at_end
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension QuestionnaireSheet {
+    /// Where the bar stands a `fraction` of the way through the run, within the part of the bar the questionnaire fills,
+    /// whose bounds are kept inside the whole bar.
+    nonisolated static func barFraction(_ fraction: Double, within range: ClosedRange<Double>) -> Double {
+        let range = range.clamped(to: 0...1)
+        return range.lowerBound + fraction * (range.upperBound - range.lowerBound)
+    }
 }
 
 
