@@ -82,6 +82,7 @@ struct ContentView: View {
             }
             .adjustingSizeOnVisionOS()
         }
+        #if os(macOS)
         .sheet(isPresented: $isPresentingScreenshotView) {
             ManagedNavigationStack {
                 ScreenshotView1()
@@ -90,6 +91,17 @@ struct ContentView: View {
             }
             .adjustingSizeOnVisionOS()
         }
+        #else
+        // Full screen, so the documentation screenshots show the flow the way an app presents it.
+        .fullScreenCover(isPresented: $isPresentingScreenshotView) {
+            ManagedNavigationStack {
+                ScreenshotView1()
+                ScreenshotView2()
+                ScreenshotView3()
+            }
+            .adjustingSizeOnVisionOS()
+        }
+        #endif
     }
 }
 
