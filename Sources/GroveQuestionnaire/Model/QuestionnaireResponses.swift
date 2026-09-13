@@ -9,6 +9,7 @@
 public import Foundation
 public import Observation
 private import OSLog
+private import Synchronization
 
 
 /// Stores and manages responses to a questionnaire.
@@ -59,7 +60,11 @@ public final class QuestionnaireResponses: Identifiable {
         /// A view into another ``QuestionnaireResponses`` instances, scoped to see only the responses at a specific path.
         case view(parent: QuestionnaireResponses, pathFromParent: ResponsesPath)
     }
-    
+
+    /// Numbers every change to any root's answers, so a revision names one state of one root, a draft resumed
+    /// under the same ``id`` included.
+    private static let revisions = Mutex(0)
+
     /// An id identifying this responses instance
     public let id: UUID
     
@@ -81,12 +86,14 @@ public final class QuestionnaireResponses: Identifiable {
                 if sanitized != responses {
                     _variant = .root(sanitized)
                 }
+                _revision = Self.nextRevision()
                 recalculateExpressions()
             case .view:
                 break
             }
         }
     }
+
 
     /// Guards ``recalculateExpressions()`` against re-entrancy: storing a calculated
     /// value mutates the responses, which triggers the observer again.
@@ -129,6 +136,23 @@ public final class QuestionnaireResponses: Identifiable {
         }
     }
     
+    /// The root's current revision; not observed, it is read while views render.
+    @ObservationIgnored private var _revision = nextRevision()
+
+    /// Which state the answers are in: the same as long as nothing changed, whichever view they are read through.
+    ///
+    /// Anything derived from the answers, like an expression engine's encoding of them, can be kept for as long
+    /// as the revision stays.
+    package var revision: Int {
+        switch _variant {
+        case .root:
+            _revision
+        case let .view(parent, _):
+            parent.revision
+        }
+    }
+
+
     init(id: UUID = UUID(), questionnaire: Questionnaire) {
         self.id = id
         self.questionnaire = questionnaire
@@ -146,6 +170,13 @@ public final class QuestionnaireResponses: Identifiable {
         id = parent.id
         questionnaire = parent.questionnaire
         _variant = .view(parent: parent, pathFromParent: pathFromParent)
+    }
+
+    private static func nextRevision() -> Int {
+        revisions.withLock { revision in
+            revision += 1
+            return revision
+        }
     }
     
     
@@ -176,20 +207,31 @@ public final class QuestionnaireResponses: Identifiable {
         defer {
             isRecalculating = false
         }
-        for task in calculatedTasks {
-            guard let expression = task.calculatedExpression else {
-                continue
-            }
-            do {
-                guard let value = try engine.evaluateValue(expression, for: task, in: self) else {
+        // Every value of a pass is read against the same answers and written in one go: a write invalidates what
+        // the engine derived from the answers, and one per calculated item made an answer cost as many encodings.
+        // A calculated item that reads another settles in the next pass, a chain of them in as many passes as it
+        // is long; what has not settled by then is a cycle and stays as it is.
+        for _ in calculatedTasks.indices {
+            var updated = responses
+            for task in calculatedTasks {
+                guard let expression = task.calculatedExpression else {
                     continue
                 }
-                if responses[task.id].value != value {
-                    responses[task.id] = .init(value: value)
+                do {
+                    guard let value = try engine.evaluateValue(expression, for: task, in: self) else {
+                        continue
+                    }
+                    if updated[task.id].value != value {
+                        updated[task.id] = .init(value: value)
+                    }
+                } catch {
+                    recordExpressionFailure(expression, for: task.id, error: error)
                 }
-            } catch {
-                recordExpressionFailure(expression, for: task.id, error: error)
             }
+            guard updated != responses else {
+                return
+            }
+            responses = updated
         }
     }
 }
