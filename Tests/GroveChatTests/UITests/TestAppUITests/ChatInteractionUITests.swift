@@ -87,10 +87,17 @@ final class ChatInteractionUITests: XCTestCase {
         stack.tap()
         let fanOut = app.descendants(matching: .any)["Queued Messages"]
         XCTAssert(fanOut.waitForExistence(timeout: 3), "The stack fans out over the conversation.")
+        // Whether a covered button still takes a tap differs between iOS versions, so the layout is checked instead.
+        let close = app.buttons["Hide Queued Messages"]
+        XCTAssertLessThanOrEqual(
+            app.scrollViews["Queued Messages"].frame.maxY,
+            close.frame.minY,
+            "The fanned-out queue leaves the composer uncovered."
+        )
         XCTAssert(app.staticTexts["Second follow-up"].waitForExistence(timeout: 2))
         app.staticTexts["Second follow-up"].swipeLeft()
         XCTAssert(app.staticTexts["Second follow-up"].waitForNonExistence(timeout: 3), "A swipe drops the message.")
-        app.buttons["Hide Queued Messages"].tap()
+        close.tap()
         XCTAssert(fanOut.waitForNonExistence(timeout: 3))
         XCTAssert(app.buttons["Edit Queued Message"].waitForExistence(timeout: 2), "One message left is a single card again.")
     }
