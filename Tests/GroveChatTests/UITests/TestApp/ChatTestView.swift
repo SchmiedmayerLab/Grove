@@ -102,7 +102,8 @@ struct ChatTestView: View {
 
     private func generateAssistantMessage(for userMessage: ChatEntity) async throws { // swiftlint:disable:this function_body_length
         let prompt = userMessage.content.text ?? ""
-        try await Task.sleep(for: .seconds(3))
+        // "slowly" leaves time to write the next message while this one is still being answered.
+        try await Task.sleep(for: .seconds(prompt.localizedCaseInsensitiveContains("slowly") ? 25 : 3))
         if DocumentationConversation.isRequested {
             try await respondForDocumentation(to: prompt)
         } else if prompt.localizedCaseInsensitiveContains("call") {

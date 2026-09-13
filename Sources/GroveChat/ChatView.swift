@@ -100,9 +100,23 @@ public struct ChatView: View {
     @FocusState private var inputTextFieldIsFocused: Bool
     /// Carries a quoted message from the conversation to the composer, which are siblings here.
     @State private var followUp = ChatFollowUp()
+    /// The messages waiting for the answer in flight, held by the composer and fanned out over the conversation.
+    @State private var queue = ChatMessageQueue()
 
     public var body: some View {
         messagesView
+            .overlay(alignment: .bottom) {
+                if queue.isExpanded {
+                    QueuedMessagesFanOut(queue: queue, cornerRadius: 22)
+                        .transition(.opacity)
+                }
+            }
+            .animation(.spring(duration: 0.35, bounce: 0.15), value: queue.isExpanded)
+            .onChange(of: queue.isExpanded) { _, isExpanded in
+                if isExpanded {
+                    inputTextFieldIsFocused = false
+                }
+            }
             .safeAreaInset(edge: .bottom) {
                 inputView
             }
@@ -113,6 +127,7 @@ public struct ChatView: View {
                 shareSheet
             }
             .environment(followUp)
+            .environment(queue)
             .modifier(SingleTextSelection())
             #if os(macOS)
             .onChange(of: showShareSheet) { _, isPresented in
