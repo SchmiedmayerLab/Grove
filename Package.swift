@@ -1197,7 +1197,8 @@ var targets: [Target] = [
             .target(name: "GroveChat"),
             .target(name: "GroveLLM"),
             .target(name: "GroveLLMFoundationModels"),
-            .target(name: "GroveLLMOpenAI")
+            .target(name: "GroveLLMOpenAI"),
+            .target(name: "GroveLLMOpenAIRealtime")
         ],
         exclude: testTargetExcludes("GroveLLMTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,

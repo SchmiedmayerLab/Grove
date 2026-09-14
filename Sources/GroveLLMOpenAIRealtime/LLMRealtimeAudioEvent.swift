@@ -7,6 +7,7 @@
 //
 
 package import Foundation
+package import GeneratedOpenAIClient
 package import GroveLLMOpenAI
 
 
@@ -16,11 +17,14 @@ package enum LLMRealtimeAudioEvent: Sendable {
     case audioDone
     case userTranscriptDelta(TranscriptDelta)
     case userTranscriptDone(TranscriptDone)
+    case userTranscriptFailed(TranscriptFailed)
     case assistantTranscriptDelta(String)
     case assistantTranscriptDone(String)
     case speechStarted(SpeechStarted)
     case speechStopped(SpeechStopped)
     case functionCallRequested(LLMOpenAIStreamResult.FunctionCall)
+    /// The server refused one event; the session goes on.
+    case serverError(Components.Schemas.RealtimeServerEventError.errorPayload)
     
     
     public struct TranscriptDone: Sendable, Codable {
@@ -33,6 +37,14 @@ package enum LLMRealtimeAudioEvent: Sendable {
         public let itemId: String
     }
     
+    public struct TranscriptFailed: Sendable, Decodable {
+        enum CodingKeys: String, CodingKey {
+            case itemId = "item_id"
+        }
+
+        public let itemId: String
+    }
+
     public struct TranscriptDelta: Sendable, Codable {
         enum CodingKeys: String, CodingKey {
             case delta

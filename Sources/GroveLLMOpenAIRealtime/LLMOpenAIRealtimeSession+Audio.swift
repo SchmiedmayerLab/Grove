@@ -88,6 +88,6 @@ extension LLMOpenAIRealtimeSession: AudioCapableLLMSession {
         try await apiConnection.sendMessage(InputAudioBufferCommit(_type: .input_audio_buffer_period_commit))
         
         // Send a "response.create" event to reply something after the audio buffer has been commited
-        try await apiConnection.sendMessage(RealtimeClientEventResponseCreate(_type: .response_period_create))
+        try await apiConnection.requestResponse()
     }
 }

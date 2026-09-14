@@ -31,7 +31,7 @@ You need to add the GroveLLM Swift package to
 
 The core components of the ``GroveLLMOpenAIRealtime`` target are the ``LLMOpenAIRealtimeSchema``, ``LLMOpenAIRealtimeSession`` as well as ``LLMOpenAIRealtimePlatform``. They use the OpenAI Realtime API to enable bidirectional voice conversations with GPT Realtime and similar models.
 
-> Important: To utilize the OpenAI Realtime API, an OpenAI API Key is required. Ensure that the OpenAI account associated with the key has access to the Realtime API models and enough credits to perform the inference.
+> Important: To utilize the OpenAI Realtime API, an OpenAI API Key is required, or an ephemeral client secret that a backend mints, passed as `overwritingAuthToken` when creating ``LLMOpenAIRealtimeParameters``. Ensure that the OpenAI account behind it has access to the Realtime API models and enough credits to perform the inference.
 
 > Tip: To collect the OpenAI API Key from the user, ``GroveLLMOpenAIRealtime`` leverages the `LLMOpenAIAPITokenOnboardingStep` view from `GroveLLMOpenAI` which can be used in the onboarding flow of the application.
 
@@ -104,6 +104,31 @@ struct LLMOpenAIRealtimeDemoView: View {
     }
 }
 ```
+
+#### Server-Configured Sessions
+
+An app that must not hold a long-lived API key can have its backend mint an ephemeral client secret for each session, pinning the model, instructions, and tools at that point. The session then connects with that secret, to the endpoint the secret was minted for, and leaves the configuration alone:
+
+```swift
+let grant = try await backend.mintRealtimeSession()   // your own callable
+let schema = LLMOpenAIRealtimeSchema(
+    parameters: .init(
+        modelType: .gptRealtimeMini,
+        sessionConfiguration: .server,
+        followUpToolChoice: .none,
+        overwritingAuthToken: .constant(grant.clientSecret),
+        overwritingServerUrl: grant.baseUrl
+    )
+) {
+    ForwardingTool()
+}
+```
+
+``LLMOpenAIRealtimeParameters/SessionConfiguration/server`` skips the `session.update` the session would otherwise send, so the server's choice stands. ``LLMOpenAIRealtimeParameters/FollowUpToolChoice/none`` asks for the response after a tool result without tools, which a session whose server forces a tool on every turn needs in order to speak the result.
+
+With a `transcriptGracePeriod` set, a tool call waits that long for the transcript of the turn it answers, so a tool can read the participant's own words from ``LLMOpenAIRealtimeSession/context`` instead of the model's paraphrase in its arguments. Without it, tools run as soon as the model calls them.
+
+``LLMOpenAIRealtimeSession/activity()`` reports when the participant starts and stops speaking and when the assistant finishes, so a client can drop audio it still holds when it is interrupted. ``LLMOpenAIRealtimeSession/interject(_:)`` has the assistant say something short outside the conversation, which bridges the wait for a slow tool: the model does not see it as part of the exchange, though what it said still shows up in ``LLMOpenAIRealtimeSession/context`` as an assistant line.
 
 #### Context Management
 

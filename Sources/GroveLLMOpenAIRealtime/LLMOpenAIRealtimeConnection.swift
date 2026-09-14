@@ -40,12 +40,22 @@ actor LLMOpenAIRealtimeConnection {
 
     // Handling of the setup: only finish whenever the connection to API has been successful
     private var readyContinuation: CheckedContinuation<Void, any Error>?
+    // A request while a response is active is refused, and an out-of-band one can overlap the conversation's, so
+    // every response in flight is tracked and requests wait until none is.
+    var activeResponses: Set<String> = []
+    // Requests already sent whose `response.created` has not arrived yet, by their event id and in the order they
+    // were sent; they count as active too, and a refusal that names the event id releases them.
+    var pendingResponseRequests: [String] = []
+    // In arrival order: turns are handed out one at a time, since two requests released together would both be
+    // sent and, if one is out-of-band, both be spoken.
+    var idleWaiters: [IdleWaiter] = []
 
     func cancel() {
         eventLoopTask?.cancel()
         eventLoopTask = nil
         socket?.cancel()
         socket = nil
+        resetResponseTracking()
     }
     
     /// Returns a stream of Realtime events.
@@ -63,20 +73,21 @@ actor LLMOpenAIRealtimeConnection {
     }
     
     func sendMessage(_ object: some Encodable) async throws {
+        guard let socket else {
+            throw RealtimeError.socketNotFoundError
+        }
         let objectJson = try Self.encoder.encode(object)
-        try await socket?.send(.string(String(decoding: objectJson, as: UTF8.self)))
+        try await socket.send(.string(String(decoding: objectJson, as: UTF8.self)))
     }
     
-    /// Opens socket connection to OpenAI's Realtime API and starts the event loop, which runs until calling `cancel()`
-    /// Waits until the event loop has succesfully been initialized: only continues once session.created event is successfully received from socket
-    func open(token: String, schema: LLMOpenAIRealtimeSchema) async throws {
-        guard let realtimeApiUrl = URL(string: "wss://api.openai.com/v1/realtime?model=\(schema.parameters.modelType)") else {
-            throw RealtimeError.malformedUrlError
-        }
+    /// Opens the socket to the `/realtime` endpoint next to `serverUrl` and starts the event loop, which runs until `cancel()`.
+    /// Returns once the session is ready: after `session.updated` when the session configures itself, after `session.created` otherwise.
+    func open(token: String, schema: LLMOpenAIRealtimeSchema, serverUrl: URL) async throws {
+        let realtimeApiUrl = try Self.realtimeSocketUrl(from: serverUrl, model: schema.parameters.modelType)
         
+        resetResponseTracking()
         var req = URLRequest(url: realtimeApiUrl)
         req.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        req.addValue("realtime=v1", forHTTPHeaderField: "OpenAI-Beta")
         let webSocketTask = urlSession.webSocketTask(with: req)
         webSocketTask.resume()
         socket = webSocketTask
@@ -102,6 +113,11 @@ actor LLMOpenAIRealtimeConnection {
                 readyContinuation = nil
             } catch {
                 Self.logger.error("GroveLLMOpenAiRealtime: LLMOpenAIRealtimeConnection eventLoop() failed with error: \(error)")
+                // A socket that drops after setup ends the session for everyone listening; a silent stream would
+                // leave them waiting forever.
+                readyContinuation?.resume(throwing: error)
+                readyContinuation = nil
+                await eventStream.finish(throwing: error)
             }
         }
         // Await until we obtain session.created from OpenAI
@@ -140,23 +156,35 @@ actor LLMOpenAIRealtimeConnection {
 
                 switch type {
                 case "session.created":
-                    try await sendSessionUpdate(schema: schema)
+                    switch schema.parameters.sessionConfiguration {
+                    case .client:
+                        try await sendSessionUpdate(schema: schema)
+                    case .server:
+                        readyContinuation?.resume()
+                        readyContinuation = nil
+                    }
                 case "session.updated":
                     readyContinuation?.resume()
                     readyContinuation = nil
-                case "response.audio.delta":
+                case "response.created":
+                    responseCreated(id: (messageDict["response"] as? [String: Any])?["id"] as? String)
+                case "response.done":
+                    responseFinished(id: (messageDict["response"] as? [String: Any])?["id"] as? String)
+                // The names without `output_` are the beta interface's; both are accepted so a gateway still
+                // on that interface keeps working.
+                case "response.output_audio.delta", "response.audio.delta":
                     guard let deltaBase64Str = messageDict["delta"] as? String,
                           let deltaPcmData = Data(base64Encoded: deltaBase64Str) else {
                         continue
                     }
                     let llmEvent = LLMRealtimeAudioEvent.audioDelta(deltaPcmData)
                     await eventStream.broadcast(llmEvent)
-                case "response.audio.done":
+                case "response.output_audio.done", "response.audio.done":
                     await eventStream.broadcast(LLMRealtimeAudioEvent.audioDone)
-                case "response.audio_transcript.delta":
+                case "response.output_audio_transcript.delta", "response.audio_transcript.delta":
                     let transcript = messageDict["delta"] as? String ?? ""
                     await eventStream.broadcast(LLMRealtimeAudioEvent.assistantTranscriptDelta(transcript))
-                case "response.audio_transcript.done":
+                case "response.output_audio_transcript.done", "response.audio_transcript.done":
                     let transcript = messageDict["transcript"] as? String ?? ""
                     await eventStream.broadcast(LLMRealtimeAudioEvent.assistantTranscriptDone(transcript))
                 case "conversation.item.input_audio_transcription.delta":
@@ -165,6 +193,9 @@ actor LLMOpenAIRealtimeConnection {
                 case "conversation.item.input_audio_transcription.completed":
                     let event = try Self.decoder.decode(LLMRealtimeAudioEvent.TranscriptDone.self, from: messageJsonData)
                     await eventStream.broadcast(LLMRealtimeAudioEvent.userTranscriptDone(event))
+                case "conversation.item.input_audio_transcription.failed":
+                    let event = try Self.decoder.decode(LLMRealtimeAudioEvent.TranscriptFailed.self, from: messageJsonData)
+                    await eventStream.broadcast(LLMRealtimeAudioEvent.userTranscriptFailed(event))
                 case "input_audio_buffer.speech_started":
                     let event = try Self.decoder.decode(LLMRealtimeAudioEvent.SpeechStarted.self, from: messageJsonData)
                     await eventStream.broadcast(LLMRealtimeAudioEvent.speechStarted(event))
@@ -183,9 +214,20 @@ actor LLMOpenAIRealtimeConnection {
                 case "error":
                     let event = try Self.decoder.decode(RealtimeErrorEvent.self, from: messageJsonData)
                     let error = RealtimeError.openAIError(error: event.error)
-                    readyContinuation?.resume(with: .failure(error))
-                    readyContinuation = nil
-                    await eventStream.finish(throwing: error)
+                    if let readyContinuation {
+                        // Before the session is up there is nothing to keep going.
+                        readyContinuation.resume(with: .failure(error))
+                        self.readyContinuation = nil
+                        await eventStream.finish(throwing: error)
+                    } else {
+                        // A refused request is the server's answer to one event, not the end of the session; the
+                        // request it names will never be created, so it must not keep later ones waiting.
+                        Self.logger.error("GroveLLMOpenAIRealtime: The server refused an event: \(event.error.message)")
+                        if let eventId = event.error.event_id {
+                            withdraw(eventId)
+                        }
+                        await eventStream.broadcast(LLMRealtimeAudioEvent.serverError(event.error))
+                    }
                 default:
                     break
                 }
@@ -256,18 +298,20 @@ actor LLMOpenAIRealtimeConnection {
             throw RealtimeError.eventSessionUpdateSerialisationError
         }
 
-        // Handle turn_detection directly on the JSON object, as the GeneratedOpenAIClient isn't up-to-date
-        // and JSONEncoder() is ommiting `nil` values instead of returning as "null"
+        // Turn detection is set on the JSON directly: JSONEncoder omits `nil`, and an explicit `null` is what turns it
+        // off. The GA interface keeps it under the input audio settings.
+        var audio = session["audio"] as? [String: Any] ?? [:]
+        var input = audio["input"] as? [String: Any] ?? [:]
         if let turnDetectionSettings = schema.parameters.turnDetectionSettings {
             let turnDetectionData = try Self.encoder.encode(turnDetectionSettings)
-            let turnDetectionObj = try JSONSerialization.jsonObject(with: turnDetectionData, options: [])
-            session["turn_detection"] = turnDetectionObj
-            eventSessionUpdateJson["session"] = session
+            input["turn_detection"] = try JSONSerialization.jsonObject(with: turnDetectionData, options: [])
         } else {
             // turnDetectionSettings set to nil: Explicitely set turn_detection to "null" to disable turn detection entirely
-            session["turn_detection"] = NSNull()
-            eventSessionUpdateJson["session"] = session
+            input["turn_detection"] = NSNull()
         }
+        audio["input"] = input
+        session["audio"] = audio
+        eventSessionUpdateJson["session"] = session
 
         let finalData = try JSONSerialization.data(withJSONObject: eventSessionUpdateJson)
 
