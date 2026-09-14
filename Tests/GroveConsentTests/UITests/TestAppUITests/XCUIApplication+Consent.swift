@@ -161,12 +161,25 @@ extension XCUIApplication {
         
         shareButton.tap()
         assertShareSheetTextElementExists(consentTitle)
-        navigationBars["UIActivityContentView"].buttons["header.closeButton"].tap()
-        // The share sheet is a remote view; the app reports idle while it is still sliding away, and a tap
-        // that lands during the dismissal is swallowed.
-        XCTAssert(navigationBars["UIActivityContentView"].waitForNonExistence(timeout: 5))
+        dismissShareSheet()
         XCTAssert(continueButton.wait(for: \.isHittable, toEqual: true, timeout: 5))
         continueButton.tap()
+    }
+
+    /// The share sheet is a remote view: a tap on its close button while it is still sliding in or out is
+    /// swallowed and leaves the sheet up, so the close is tapped again until the sheet is gone.
+    fileprivate func dismissShareSheet(line: UInt = #line) {
+        let sheet = navigationBars["UIActivityContentView"]
+        let closeButton = sheet.buttons["header.closeButton"]
+        for _ in 0..<3 where sheet.exists {
+            if closeButton.wait(for: \.isHittable, toEqual: true, timeout: 5) {
+                closeButton.tap()
+            }
+            if sheet.waitForNonExistence(timeout: 5) {
+                return
+            }
+        }
+        XCTAssertFalse(sheet.exists, "The share sheet did not close.", line: line)
     }
 }
 
