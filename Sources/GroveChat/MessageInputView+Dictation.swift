@@ -90,7 +90,6 @@ extension MessageInputView {
                 .frame(width: Self.controlSize, height: Self.controlSize)
                 .contentTransition(.symbolEffect(.replace))
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.circle)
+        .buttonStyle(.composerControl)
     }
 }

@@ -233,8 +233,7 @@ struct MessageInputView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: Self.controlSize, height: Self.controlSize)
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.circle)
+        .buttonStyle(.composerControl)
     }
 
     /// - Parameters:
