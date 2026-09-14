@@ -50,6 +50,58 @@ final class ChatInteractionUITests: XCTestCase {
         XCTAssert(app.otherElements["Typing Indicator"].waitForNonExistence(timeout: 3))
     }
 
+    func testAMessageWrittenMidAnswerWaitsForTheAnswer() throws {
+        let app = XCUIApplication()
+
+        try app.textFields["Message Input Textfield"].enter(value: "Answer slowly", options: [.disableKeyboardDismiss])
+        app.buttons["Send Message"].tap()
+        XCTAssert(app.buttons["Stop Generating"].waitForExistence(timeout: 3))
+
+        // The field stays open while the answer arrives; what is written goes once the answer is in.
+        try app.textFields["Message Input Textfield"].enter(value: "And another thing", options: [.disableKeyboardDismiss])
+        let queueButton = app.buttons["Queue Message"]
+        XCTAssert(queueButton.waitForExistence(timeout: 2), "Mid-answer the send button queues the message.")
+        queueButton.tap()
+        let queuedMessage = app.descendants(matching: .any)["Queued Message"]
+        XCTAssert(queuedMessage.waitForExistence(timeout: 2), "The queued message waits above the field.")
+        XCTAssert(app.buttons["Stop Generating"].exists, "The answer in flight goes on while a message waits.")
+
+        XCTAssert(queuedMessage.waitForNonExistence(timeout: 40), "The queued message goes once the answer is in.")
+        XCTAssert(app.staticTexts["And another thing"].waitForExistence(timeout: 3), "The queued message is in the conversation.")
+        XCTAssert(app.buttons["Stop Generating"].waitForExistence(timeout: 3), "The queued message gets an answer of its own.")
+    }
+
+    func testSeveralQueuedMessagesStackAndFanOut() throws {
+        let app = XCUIApplication()
+
+        try app.textFields["Message Input Textfield"].enter(value: "Answer slowly", options: [.disableKeyboardDismiss])
+        app.buttons["Send Message"].tap()
+        XCTAssert(app.buttons["Stop Generating"].waitForExistence(timeout: 3))
+        for text in ["First follow-up", "Second follow-up"] {
+            try app.textFields["Message Input Textfield"].enter(value: text, options: [.disableKeyboardDismiss])
+            app.buttons["Queue Message"].tap()
+        }
+
+        let stack = app.buttons["Show Queued Messages"]
+        XCTAssert(stack.waitForExistence(timeout: 5), "Two queued messages show as a stack with a way to fan it out.")
+        stack.tap()
+        let fanOut = app.descendants(matching: .any)["Queued Messages"]
+        XCTAssert(fanOut.waitForExistence(timeout: 3), "The stack fans out over the conversation.")
+        // Whether a covered button still takes a tap differs between iOS versions, so the layout is checked instead.
+        let close = app.buttons["Hide Queued Messages"]
+        XCTAssertLessThanOrEqual(
+            app.scrollViews["Queued Messages"].frame.maxY,
+            close.frame.minY,
+            "The fanned-out queue leaves the composer uncovered."
+        )
+        XCTAssert(app.staticTexts["Second follow-up"].waitForExistence(timeout: 2))
+        app.staticTexts["Second follow-up"].swipeLeft()
+        XCTAssert(app.staticTexts["Second follow-up"].waitForNonExistence(timeout: 3), "A swipe drops the message.")
+        close.tap()
+        XCTAssert(fanOut.waitForNonExistence(timeout: 3))
+        XCTAssert(app.buttons["Edit Queued Message"].waitForExistence(timeout: 2), "One message left is a single card again.")
+    }
+
     func testAFailedAnswerIsReportedInlineAndCanBeRetried() throws {
         let app = XCUIApplication()
 

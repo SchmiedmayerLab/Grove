@@ -84,6 +84,10 @@ public final class SpeechRecognizer: NSObject, Module, DefaultInitializable, Env
     public private(set) var isRecording = false
     /// Indicates the availability of the speech recognition service.
     public private(set) var isAvailable: Bool
+    /// How loud the microphone hears the speaker right now, from 0 (silence) to 1, while recording; 0 otherwise.
+    ///
+    /// Updated with every audio buffer, some forty times a second, for a level meter to follow.
+    public private(set) var level: Float = 0
 
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
@@ -114,77 +118,127 @@ public final class SpeechRecognizer: NSObject, Module, DefaultInitializable, Env
     }
 
 
+    /// The buffer's loudness on a scale a meter can show: its power in decibels, with -50 dB as silence and 0 dB as full.
+    private static func level(of buffer: AVAudioPCMBuffer) -> Float {
+        guard let channel = buffer.floatChannelData?[0], buffer.frameLength > 0 else {
+            return 0
+        }
+        let frames = Int(buffer.frameLength)
+        var sum: Float = 0
+        for frame in 0..<frames {
+            sum += channel[frame] * channel[frame]
+        }
+        let decibels = 20 * log10(max(sqrt(sum / Float(frames)), .leastNonzeroMagnitude))
+        return min(max((decibels + 50) / 50, 0), 1)
+    }
+
+    /// Asks for the permissions recognition needs, the first time; whether both were granted.
+    ///
+    /// ``start()`` asks on its own. Ask ahead of it to keep the prompts away from the moment of speaking.
+    public func requestAuthorization() async -> Bool {
+        let speech = await withCheckedContinuation { continuation in
+            SFSpeechRecognizer.requestAuthorization { status in
+                continuation.resume(returning: status)
+            }
+        }
+        guard speech == .authorized else {
+            return false
+        }
+        #if os(macOS)
+        return true
+        #else
+        return await AVAudioApplication.requestRecordPermission()
+        #endif
+    }
+
     /// Starts the speech recognition process.
     ///
     /// - Returns: An asynchronous stream that yields the speech recognition results.
-    public func start() -> AsyncThrowingStream<SFSpeechRecognitionResult, any Error> { // swiftlint:disable:this function_body_length
-        AsyncThrowingStream { continuation in // swiftlint:disable:this closure_body_length
-            guard !isRecording else {
-                SpeechRecognizer.logger.warning(
-                    "You already having a recording session in progress, please cancel the first one using `stop` before starting a new session."
-                )
-                stop()
-                continuation.finish()
-                return
-            }
-
-            guard isAvailable, let audioEngine, let speechRecognizer else {
-                SpeechRecognizer.logger.error("The SpeechRecognizer is not available.")
-                stop()
-                continuation.finish()
-                return
-            }
-
-            // No alternative on macOS, only minor impact on functionality
-            #if !os(macOS)
-            do {
-                let audioSession = AVAudioSession.sharedInstance()
-                try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
-                try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-            } catch {
-                SpeechRecognizer.logger.error("Error setting up the audio session: \(error.localizedDescription)")
-                stop()
-                continuation.finish(throwing: error)
-            }
-            #endif
-
-            let inputNode = audioEngine.inputNode
-
-            let recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-            recognitionRequest.shouldReportPartialResults = true
-            self.recognitionRequest = recognitionRequest
-
-            recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { result, error in
-                if let error {
-                    continuation.finish(throwing: error)
-                }
-
-                guard self.isRecording, let result else {
-                    self.stop()
+    public func start() -> AsyncThrowingStream<SFSpeechRecognitionResult, any Error> {
+        AsyncThrowingStream { continuation in
+            Task {
+                guard await requestAuthorization() else {
+                    SpeechRecognizer.logger.warning("Speech recognition or the microphone was not authorized.")
+                    continuation.finish(throwing: SpeechRecognizerError.notAuthorized)
                     return
                 }
-
-                continuation.yield(result)
+                record(into: continuation)
             }
+        }
+    }
 
-            let recordingFormat = inputNode.outputFormat(forBus: 0)
-            inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
-                self.recognitionRequest?.append(buffer)
-            }
+    private func record( // swiftlint:disable:this function_body_length
+        into continuation: AsyncThrowingStream<SFSpeechRecognitionResult, any Error>.Continuation
+    ) {
+        guard !isRecording else {
+            SpeechRecognizer.logger.warning(
+                "You already having a recording session in progress, please cancel the first one using `stop` before starting a new session."
+            )
+            stop()
+            continuation.finish()
+            return
+        }
 
-            audioEngine.prepare()
-            do {
-                isRecording = true
-                try audioEngine.start()
-            } catch {
-                SpeechRecognizer.logger.error("Error setting up the audio session: \(error.localizedDescription)")
-                stop()
+        guard isAvailable, let audioEngine, let speechRecognizer else {
+            SpeechRecognizer.logger.error("The SpeechRecognizer is not available.")
+            stop()
+            continuation.finish()
+            return
+        }
+
+        // No alternative on macOS, only minor impact on functionality
+        #if !os(macOS)
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        } catch {
+            SpeechRecognizer.logger.error("Error setting up the audio session: \(error.localizedDescription)")
+            stop()
+            continuation.finish(throwing: error)
+        }
+        #endif
+
+        let inputNode = audioEngine.inputNode
+
+        let recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
+        recognitionRequest.shouldReportPartialResults = true
+        self.recognitionRequest = recognitionRequest
+
+        recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { result, error in
+            if let error {
                 continuation.finish(throwing: error)
             }
 
-            continuation.onTermination = { @Sendable _ in
+            guard self.isRecording, let result else {
                 self.stop()
+                return
             }
+
+            continuation.yield(result)
+        }
+
+        let recordingFormat = inputNode.outputFormat(forBus: 0)
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
+            self.recognitionRequest?.append(buffer)
+            let level = Self.level(of: buffer)
+            Task { @MainActor in
+                self.level = level
+            }
+        }
+
+        audioEngine.prepare()
+        do {
+            isRecording = true
+            try audioEngine.start()
+        } catch {
+            SpeechRecognizer.logger.error("Error setting up the audio session: \(error.localizedDescription)")
+            stop()
+            continuation.finish(throwing: error)
+        }
+
+        continuation.onTermination = { @Sendable _ in
+            self.stop()
         }
     }
 
@@ -204,6 +258,7 @@ public final class SpeechRecognizer: NSObject, Module, DefaultInitializable, Env
         recognitionTask = nil
 
         isRecording = false
+        level = 0
     }
 
     @_documentation(visibility: internal)

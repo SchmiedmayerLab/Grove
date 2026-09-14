@@ -18,7 +18,7 @@ The ``GroveChat`` module provides the views of a conversation: the messages, the
 
 @Row {
     @Column {
-        @Image(source: "Conversation", alt: "Screenshot displaying a conversation with a photo the user attached and a picture the assistant generated.") {
+        @Image(source: "Conversation", alt: "Screenshot displaying a conversation about a photographed lab report, with a picture the assistant drew of what lowers LDL cholesterol.") {
             A ``ChatView`` lays the conversation out the way a messaging app does: Markdown, attached photos and files, and pictures the assistant draws, which grow out of a placeholder as they arrive.
         }
     }
@@ -28,13 +28,26 @@ The ``GroveChat`` module provides the views of a conversation: the messages, the
         }
     }
     @Column {
-        @Image(source: "ImageViewer", alt: "Screenshot displaying a generated picture full screen with a share button.") {
+        @Image(source: "ImageViewer", alt: "Screenshot displaying the assistant's drawing full screen under a glass bar with a share button.") {
             Any picture opens full screen, zooms, pages through the message's other pictures and shares as an image.
         }
     }
     @Column {
         @Image(source: "Composer", alt: "Screenshot displaying the chat view with the keyboard up and a message being typed.") {
-            Messages are typed into the composer, dictated through the microphone next to it, or sent with photos and files attached.
+            Messages are typed into the composer, dictated into a recording pill that shows the voice as it is heard, or sent with photos and files attached.
+        }
+    }
+}
+
+@Row {
+    @Column {
+        @Image(source: "Queue", alt: "Screenshot displaying two messages queued above the composer while the assistant is still answering.") {
+            The composer stays open while an answer arrives: a message sent meanwhile waits in a stack above the field and goes once the answer is in.
+        }
+    }
+    @Column {
+        @Image(source: "QueuedMessages", alt: "Screenshot displaying the queued messages fanned out over the conversation, each with a grip to move it and a pencil to edit it.") {
+            The stack fans out over the conversation to reorder the waiting messages, take one back into the field, or swipe one away.
         }
     }
 }
@@ -208,8 +221,10 @@ MessagesView($chat, messagesVisibility: .init(hiddenMessages: .all, toolCalls: .
 ### Reporting What the Assistant Is Doing
 
 A ``ChatView`` shows a conversation; it does not run one. Tell it what is happening and it adapts: while an answer
-is in flight the composer will not send a second message, and the send button becomes a stop button when there is
-something to stop.
+is in flight a message sent from the composer is queued rather than sent, shown in a stack above the field and let
+go one per answer once the chat is free, and the send button gets a stop button beside it when there is something
+to stop. Tapping the stack fans the queue out over the conversation, where a message can be moved by its grip,
+taken back into the field with its pencil, or swiped away.
 
 ```swift
 struct ConversationView: View {
