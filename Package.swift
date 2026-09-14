@@ -680,7 +680,8 @@ var targets: [Target] = [
     .testTarget(
         name: "GroveChatTests",
         dependencies: [
-            .target(name: "GroveChat")
+            .target(name: "GroveChat"),
+            .product(name: "SnapshotTesting", package: "swift-snapshot-testing", condition: .when(platforms: [.iOS]))
         ],
         exclude: testTargetExcludes("GroveChatTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
