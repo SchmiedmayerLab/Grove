@@ -213,8 +213,9 @@ run() { # <package> <platform> [mode: "ui"]
     local tts
     tts="$(test_targets_for "$1" "$2")"
     for tt in $tts; do
-      echo "==> $1 on Linux: swift build --target $tt (compile-check)"
-      swift build --target "$tt"
+      # Swift 6.4 builds excluded Apple dependencies; removal: https://github.com/SchmiedmayerLab/Grove/issues/105
+      echo "==> $1 on Linux: swift build --build-system native --target $tt (compile-check)"
+      swift build --build-system native --target "$tt"
     done
     return
   fi
