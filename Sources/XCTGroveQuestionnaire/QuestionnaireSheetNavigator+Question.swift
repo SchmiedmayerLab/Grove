@@ -99,7 +99,16 @@ extension QuestionnaireSheetNavigator {
         /// to do when a test reaches past where the participant is — in either direction: a page
         /// builds a row shortly before it shows it, so reaching a control is not touching it.
         fileprivate func tap(_ element: XCUIElement) {
-            navigator.scan { element.isHittable }
+            navigator.scan {
+                guard element.exists && element.isHittable else {
+                    return false
+                }
+                let frame = element.frame
+                let center = CGPoint(x: frame.midX, y: frame.midY)
+                // XCTest can report a scrolled-away row as hittable above the sheet's navigation bar.
+                return navigator.section.frame.intersection(app.frame).contains(center)
+                    && center.y > navigator.navigationBar.frame.maxY
+            }
             element.tap()
         }
     }
@@ -274,6 +283,12 @@ extension QuestionnaireSheetNavigator.Question {
             return
         }
         tap(option)
+        XCTAssert(
+            self.option(title).wait(for: \.label, toEqual: "Option: \(title), Not Selected", timeout: timeout),
+            "Question '\(linkId)' did not clear option '\(title)'.",
+            file: file,
+            line: line
+        )
     }
 
     /// Answers a yes/no question.
