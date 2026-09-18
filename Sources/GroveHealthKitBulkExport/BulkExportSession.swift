@@ -17,6 +17,7 @@ public import Observation
 public enum BulkExportSessionState: Hashable, Sendable {
     /// The session is currently paused.
     ///
+    /// Newly created and restored sessions begin paused with reason `.notStarted`.
     /// Inspect the reason before resuming with `start(retryFailedBatches:concurrencyLevel:)`.
     case paused(reason: BulkExportPauseReason)
     /// The session is currently running.
@@ -143,12 +144,20 @@ public protocol BulkExportSession<Processor>: AnyObject, Hashable, Sendable, Obs
     ) throws(StartSessionError) -> AsyncStream<Processor.Output>
     
     /// Requests a pause and waits for active workers and the final checkpoint attempt.
+    ///
+    /// The pause is not necessarily immediate: a running ``BatchProcessor`` may take time to respond to cancellation.
     /// Inspect `state` afterward: a checkpoint failure takes precedence over the requested pause.
+    ///
+    /// - Note: The call returns once active work and checkpoint persistence have settled.
+    ///     Place it inside a `Task` if the caller should continue without waiting.
     @MainActor func pause() async
     
     /// Irrevocably terminates the session and detaches it from the ``BulkHealthExporter``.
     ///
     /// Waits for active work and pending checkpoint writes before returning.
+    /// A long-running ``BatchProcessor`` can delay termination while it responds to cancellation.
+    ///
+    /// - Note: Place the call inside a `Task` if the caller should continue without waiting.
     @MainActor func _terminate() async // swiftlint:disable:this identifier_name
 }
 

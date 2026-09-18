@@ -91,6 +91,7 @@ struct ExportSessionDescriptor: Codable {
             completedBatches.append(batch)
         case .failure(let error):
             if error is CancellationError {
+                // Cancellation leaves the batch pending so it can be retried, rather than marking it failed.
                 batch.result = nil
                 pendingBatches.insert(batch, at: 0)
             } else {
