@@ -17,14 +17,11 @@ public import Observation
 public enum BulkExportSessionState: Hashable, Sendable {
     /// The session is currently paused.
     ///
-    /// This is also the initial state for newly created but not yet started sessions.
-    /// Failed batches or checkpoint writes leave the session paused for retry.
-    case paused
+    /// Inspect the reason before resuming with `start(retryFailedBatches:concurrencyLevel:)`.
+    case paused(reason: BulkExportPauseReason)
     /// The session is currently running.
     case running
     /// All batches succeeded, including empty queries, and the final checkpoint was stored.
-    ///
-    /// - Note: A ``completed`` session can be restarted and transition back into the ``running`` state, if additional sample types are added to it.
     case completed
     /// The session is irrevocably terminated, has been detached from the ``BulkHealthExporter``, and can not be restarted.
     ///
@@ -115,9 +112,6 @@ public protocol BulkExportSession<Processor>: AnyObject, Hashable, Sendable, Obs
     /// The current state of the export session.
     @MainActor var state: BulkExportSessionState { get }
     
-    /// The last checkpoint-write error. Cleared when a new attempt starts or a flush succeeds.
-    @MainActor var persistenceError: (any Error)? { get }
-
     /// The session's pending batches.
     ///
     /// If the session is running, this will include the batch currently being processed.
@@ -129,14 +123,16 @@ public protocol BulkExportSession<Processor>: AnyObject, Hashable, Sendable, Obs
     /// The total number of batches in the session.
     @MainActor var numTotalBatches: Int { get }
     
-    /// The session's current progress.
-    ///
-    /// `nil` if the session is terminated or hasn't yet been started.
+    /// Progress while the session is running; `nil` otherwise.
     @MainActor var progress: BulkExportSessionProgress? { get }
     
     /// Starts the session.
     ///
     /// Samples may repeat across batches; deduplicate within each participant’s data.
+    /// Progress is checkpointed for restoration across launches. After a write failure, retrying the live
+    /// session preserves its completed batches; terminating the app loses any unsaved progress.
+    /// Pass `retryFailedBatches: true` to retry failed batches as well as checkpoint persistence.
+    /// Restoration may repeat batches whose completion was not saved.
     ///
     /// Attempting to start a session that is already running will result in a ``StartSessionError/alreadyRunning`` error.
     ///
@@ -146,21 +142,13 @@ public protocol BulkExportSession<Processor>: AnyObject, Hashable, Sendable, Obs
         concurrencyLevel: BulkExportConcurrencyLevel
     ) throws(StartSessionError) -> AsyncStream<Processor.Output>
     
-    /// Pauses the session at the next possible point in time.
-    ///
-    /// This operation won't necessarily cause the session to get paused immediately.
-    /// The session will complete its current block of work, and will only see the `pause()` call before starting the next work block.
-    ///
-    /// - Note: This is an asyncronous operation. The call will return once the pause request has been processed,
-    ///     which may take a little bit, e.g. if a ``BatchProcessor`` is performing a long-running operation.
-    ///     Place the call inside a `Task` if you don't want to wait for this.
+    /// Requests a pause and waits for active workers and the final checkpoint attempt.
+    /// Inspect `state` afterward: a checkpoint failure takes precedence over the requested pause.
     @MainActor func pause() async
     
     /// Irrevocably terminates the session and detaches it from the ``BulkHealthExporter``.
     ///
-    /// - Note: This is an asyncronous operation. The call will return once the termination request has been processed,
-    ///     which may take a little bit, e.g. if a ``BatchProcessor`` is performing a long-running operation.
-    ///     Place the call inside a `Task` if you don't want to wait for this.
+    /// Waits for active work and pending checkpoint writes before returning.
     @MainActor func _terminate() async // swiftlint:disable:this identifier_name
 }
 

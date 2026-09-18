@@ -139,12 +139,20 @@ struct BulkExporterAPITests {
     }
     
     
-    @Test @MainActor
-    func checkpointFailurePausesSessionAndRetryPersistsAgain() async throws {
+    @Test(arguments: [false, true]) @MainActor
+    func checkpointFailurePausesSessionAndRetryPersistsAgain(requestPause: Bool) async throws {
         let module = BulkHealthExporter(checkpointStorageSetting: .unencrypted())
         let healthKit = HealthKit()
         let storage = LocalStorage()
         await withDependencyResolution(standard: TestStandard()) { healthKit; storage; module }
+        let sessionID = BulkExportSessionIdentifier(UUID().uuidString)
+        let checkpointKey = LocalStorageKey<ExportSessionDescriptor>(BulkHealthExporter.localStorageKey(forSessionId: sessionID), setting: .unencrypted())
+        defer { try? storage.delete(checkpointKey) }
+        var descriptor = ExportSessionDescriptor(sessionId: sessionID, startDate: .absolute(.distantPast), endDate: .now)
+        let batch = ExportBatch(sampleType: SampleType.stepCount, timeRange: Date(timeIntervalSince1970: 0)..<Date(timeIntervalSince1970: 1))
+        descriptor.pendingBatches = [batch]
+        descriptor.finishBatch(batch, result: .success(()))
+        try storage.store(descriptor, for: checkpointKey)
         let fail = Mutex(true)
         let writes = Mutex(0)
         let persistence = SessionDescriptorPersisting { _ in
@@ -152,7 +160,7 @@ struct BulkExporterAPITests {
             if fail.withLock({ $0 }) { throw CocoaError(.fileWriteOutOfSpace) }
         }
         let session = try await BulkExportSessionImpl(
-            sessionId: .init(UUID().uuidString),
+            sessionId: sessionID,
             bulkExporter: module,
             healthKit: healthKit,
             sampleTypes: [],
@@ -164,16 +172,22 @@ struct BulkExporterAPITests {
             persistence: persistence
         )
         try module.add(session)
-        for await _ in try session.start(retryFailedBatches: true, concurrencyLevel: .disabled) { }
-        #expect(session.state == .paused)
-        #expect((session.persistenceError as? CocoaError)?.code == .fileWriteOutOfSpace)
+        #expect(session.state == .paused(reason: .notStarted))
+        let results = try session.start(retryFailedBatches: true, concurrencyLevel: .disabled)
+        if requestPause { await session.pause() }
+        for await _ in results {
+            Issue.record("Completed batches must not be reprocessed")
+        }
+        #expect(session.state == .paused(reason: .failure(.checkpointWriteFailed(CheckpointWriteFailure(CocoaError(.fileWriteOutOfSpace))))))
         #expect(session.failedBatches.isEmpty)
         #expect(session.pendingBatches.isEmpty)
+        #expect(session.completedBatches.count == 1)
         let failedWrites = writes.withLock { $0 }
         fail.withLock { $0 = false }
-        for await _ in try session.start(retryFailedBatches: true, concurrencyLevel: .disabled) { }
+        for await _ in try session.start(retryFailedBatches: true, concurrencyLevel: .disabled) {
+            Issue.record("Checkpoint retry must not replay completed batches")
+        }
         #expect(session.state == .completed)
-        #expect(session.persistenceError == nil)
         #expect(writes.withLock { $0 } > failedWrites)
         try await module.deleteSessionRestorationInfo(for: session.sessionId)
     }
@@ -187,7 +201,7 @@ struct BulkExporterAPITests {
         let firstRun = try session.start()
         await session.pause()
         for await _ in firstRun { }
-        #expect(session.state == .paused || session.state == .completed)
+        #expect(session.state == .paused(reason: .requested) || session.state == .completed)
         let secondRun = try session.start()
         for await _ in secondRun { }
         #expect(session.state == .completed)

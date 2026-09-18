@@ -46,7 +46,7 @@ final class BulkExportSessionImpl<Processor: BatchProcessor>: Sendable, BulkExpo
     /// The `Task` on which the session's exporting is executed.
     @ObservationIgnored @MainActor private var task: Task<Void, Never>?
     
-    @MainActor private(set) var state: BulkExportSessionState = .paused {
+    @MainActor private(set) var state: BulkExportSessionState = .paused(reason: .notStarted) {
         willSet {
             if state == .terminated && newValue != .terminated {
                 preconditionFailure("Attempted to move already-terminated session back into non-terminated state")
@@ -54,8 +54,6 @@ final class BulkExportSessionImpl<Processor: BatchProcessor>: Sendable, BulkExpo
         }
     }
     
-    @MainActor private(set) var persistenceError: (any Error)?
-
     @MainActor var pendingBatches: [ExportBatch] {
         descriptor.pendingBatches.filter { $0.result?.isFailure != true }
     }
@@ -150,7 +148,6 @@ extension BulkExportSessionImpl {
             // is already running
             throw .alreadyRunning
         }
-        persistenceError = nil
         state = .running
         let (batchResults, batchResultsContinuation) = AsyncStream.makeStream(of: Processor.Output.self)
         if retryFailedBatches {
@@ -195,23 +192,23 @@ extension BulkExportSessionImpl {
         }
         state = .terminated
         // A scheduled descriptor write must not recreate restoration info after deletion.
-        await flushDescriptor()
+        _ = await flushDescriptor()
     }
     
     
     @MainActor
-    private func flushDescriptor() async {
+    private func flushDescriptor() async -> CheckpointWriteFailure? {
         do {
             try await persistDescriptor.flush()
-            persistenceError = nil
+            return nil
         } catch {
-            persistenceError = error
             bulkExporter.logger.error("Failed to persist export checkpoint: \(String(describing: error))")
+            return CheckpointWriteFailure(error)
         }
     }
 
     @concurrent
-    private func _run( // swiftlint:disable:this function_body_length
+    private func _run(
         concurrencyLevel: BulkExportConcurrencyLevel,
         batchResultsContinuation: AsyncStream<Processor.Output>.Continuation
     ) async {
@@ -266,21 +263,30 @@ extension BulkExportSessionImpl {
             }
         }
         // Drain child tasks before finishing the stream.
-        await flushDescriptor()
-        await MainActor.run {
-            self.task = nil
-            self.currentBatches.removeAll()
-            switch self.pendingStateChangeRequest {
-            case .terminated:
-                self.state = .terminated
-            case .paused:
-                self.state = .paused
-            case nil:
-                self.state = self.descriptor.pendingBatches.isEmpty && self.persistenceError == nil ? .completed : .paused
+        let checkpointFailure = await flushDescriptor()
+        await finishRun(checkpointFailure: checkpointFailure, continuation: batchResultsContinuation)
+    }
+
+    @MainActor
+    private func finishRun(checkpointFailure: CheckpointWriteFailure?, continuation: AsyncStream<Processor.Output>.Continuation) {
+        task = nil
+        currentBatches.removeAll()
+        switch pendingStateChangeRequest {
+        case .terminated:
+            state = .terminated
+        case .paused, nil:
+            if let checkpointFailure {
+                state = .paused(reason: .failure(.checkpointWriteFailed(checkpointFailure)))
+            } else if pendingStateChangeRequest == .paused {
+                state = .paused(reason: .requested)
+            } else if !descriptor.pendingBatches.isEmpty {
+                state = .paused(reason: .failedBatches)
+            } else {
+                state = .completed
             }
-            self.pendingStateChangeRequest = nil
-            batchResultsContinuation.finish()
         }
+        pendingStateChangeRequest = nil
+        continuation.finish()
     }
 }
 
