@@ -20,6 +20,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Match the Tests workflow and run-package-tests.sh for both manifest evaluations.
+export GROVE_LOWERED_DEPLOYMENT_TARGETS=0
+export GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS=1
+export GROVE_EXCLUDE_DOCC_CATALOGS=1
+
 changed_files() {
   case "${1:-}" in
     --all)   echo "__ALL__" ;;
@@ -50,22 +55,27 @@ echo "=== changed files (detect job input) ==="
 sed 's/^/  /' "$TMP/changed.txt"
 echo
 
+swift package --manifest-cache none dump-package > "$TMP/head-package.json"
 # TEMPORARY: mirror the Tests workflow's opt-out for manifest/shared CI selection.
-ARGS=("$TMP/changed.txt" --ignore-manifest-and-ci-changes)
+ARGS=("$TMP/changed.txt" --head-package-dump "$TMP/head-package.json" --ignore-manifest-and-ci-changes)
 BASE_REF="$(base_ref "$@")"
-if [ -n "$BASE_REF" ] && { grep -Fxq "Package.swift" "$TMP/changed.txt" || grep -Fxq "packages.toml" "$TMP/changed.txt"; }; then
+if [ -n "$BASE_REF" ] && grep -Eq '^(Package(@[^/]*)?\.swift|packages\.toml|Tests/UITestProjects\.toml)$' "$TMP/changed.txt"; then
   git worktree add --detach "$TMP/base" "$BASE_REF" >/dev/null
   cp "$TMP/base/packages.toml" "$TMP/base-packages.toml"
   ARGS+=(--base-packages "$TMP/base-packages.toml")
-  if grep -Fxq "Package.swift" "$TMP/changed.txt"; then
-    swift package --package-path "$TMP/base" dump-package > "$TMP/base-package.json"
-    swift package dump-package > "$TMP/head-package.json"
-    ARGS+=(--base-package-dump "$TMP/base-package.json" --head-package-dump "$TMP/head-package.json")
+  if grep -Eq '^Package(@[^/]*)?\.swift$' "$TMP/changed.txt"; then
+    swift package --package-path "$TMP/base" --manifest-cache none dump-package > "$TMP/base-package.json"
+    ARGS+=(--base-package-dump "$TMP/base-package.json")
+  fi
+  if grep -Fxq "Tests/UITestProjects.toml" "$TMP/changed.txt" && [ -f "$TMP/base/Tests/UITestProjects.toml" ]; then
+    ARGS+=(--base-ui-test-projects "$TMP/base/Tests/UITestProjects.toml")
   fi
 fi
 
-OUT="$(python3 Scripts/affected-test-matrix.py "${ARGS[@]}" 2>/dev/null)"
+OUT="$(python3 Scripts/affected-test-matrix.py "${ARGS[@]}")"
 MATRIX="$(printf '%s\n' "$OUT" | sed -n 's/^matrix=//p')"
+UI_MATRIX="$(printf '%s\n' "$OUT" | sed -n 's/^ui_matrix=//p')"
+HAS_UI_JOBS="$(printf '%s\n' "$OUT" | sed -n 's/^has_ui_jobs=//p')"
 HAS_JOBS="$(printf '%s\n' "$OUT" | sed -n 's/^has_jobs=//p')"
 HAS_FHIR_CONFORMANCE="$(printf '%s\n' "$OUT" | sed -n 's/^has_fhir_conformance=//p')"
 AFFECTED="$(printf '%s\n' "$OUT" | sed -n 's/^affected=//p')"
@@ -73,10 +83,11 @@ AFFECTED="$(printf '%s\n' "$OUT" | sed -n 's/^affected=//p')"
 echo "=== detect job outputs ==="
 echo "  affected = $AFFECTED"
 echo "  has_jobs = $HAS_JOBS"
+echo "  has_ui_jobs = $HAS_UI_JOBS"
 echo "  has_fhir_conformance = $HAS_FHIR_CONFORMANCE"
 echo
 
-if [ "$HAS_JOBS" != "true" ]; then
+if [ "$HAS_JOBS" != "true" ] && [ "$HAS_UI_JOBS" != "true" ]; then
   echo "=== scheduling ==="
   echo "  test job is SKIPPED (if: has_jobs == 'true' is false) — no tests would run."
   exit 0
@@ -89,4 +100,12 @@ inc=json.load(sys.stdin)["include"]
 for e in inc:
     print("  - test (%s / %s)  ->  Scripts/run-package-tests.sh %s %s" % (e["package"], e["platform"], e["package"], e["platform"]))
 print("\n  total jobs scheduled: %d" % len(inc))
+'
+
+printf '%s' "$UI_MATRIX" | python3 -c '
+import json,sys
+inc=json.load(sys.stdin)["include"]
+for e in inc:
+    print("  - UI test (%s / %s)" % (e["package"], e["platform"]))
+print("\n  total UI jobs scheduled: %d" % len(inc))
 '
