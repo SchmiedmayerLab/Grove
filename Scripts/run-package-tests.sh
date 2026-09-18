@@ -47,6 +47,7 @@ TESTING_FLOOR_DEPLOYMENT_TARGETS="IPHONEOS_DEPLOYMENT_TARGET=26.0 MACOSX_DEPLOYM
 # an iOS-15 consumer's default graph stays lean. Tests exercise the FULL feature set, so enable all
 # traits for the test build (the manifest reads this env var; per-platform `.when(platforms:)`
 # conditions still keep watchOS-/macOS-incompatible deps out of those platforms' graphs).
+export GROVE_LOWERED_DEPLOYMENT_TARGETS=0
 export GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS=1
 
 # DocC catalogs are never needed to compile or run the tests. Excluding them from the test build
