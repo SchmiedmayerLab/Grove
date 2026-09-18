@@ -17,11 +17,8 @@ import PackageDescription
 /// Toggle SwiftLint by setting this to `true`.
 let enableSwiftLint = false
 
-// Lowered (iOS 15 / macOS 12 / watchOS 8) deployment targets are OFF by default, so the default
-// package graph may depend on iOS-18+-only dependencies. The deployment-floor CI legs
-// (Scripts/build-floor.sh) opt in via this environment variable; the planned iOS-15 mirror repo
-// instead flips the default (and disables all traits).
-let isLoweredDeploymentTargetEnabled = Context.environment["GROVE_LOWERED_DEPLOYMENT_TARGETS"] == "1"
+// Temporary local override for the study app's iOS 15 deployment target.
+let isLoweredDeploymentTargetEnabled = Context.environment["GROVE_LOWERED_DEPLOYMENT_TARGETS"] != "0"
 
 // FHIRModels >= 0.9 cannot link for armv7k: its struct-based models exceed the 32-bit Mach-O
 // scattered-relocation limit, and the App Store rejects watchOS-8-target binaries that lack the
