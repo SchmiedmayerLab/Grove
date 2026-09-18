@@ -18,10 +18,11 @@ public enum BulkExportSessionState: Hashable, Sendable {
     /// The session is currently paused.
     ///
     /// This is also the initial state for newly created but not yet started sessions.
+    /// Failed batches or checkpoint writes leave the session paused for retry.
     case paused
     /// The session is currently running.
     case running
-    /// The session has completed its work, and has nothing else left to do.
+    /// All batches succeeded, including empty queries, and the final checkpoint was stored.
     ///
     /// - Note: A ``completed`` session can be restarted and transition back into the ``running`` state, if additional sample types are added to it.
     case completed
@@ -114,6 +115,9 @@ public protocol BulkExportSession<Processor>: AnyObject, Hashable, Sendable, Obs
     /// The current state of the export session.
     @MainActor var state: BulkExportSessionState { get }
     
+    /// The last checkpoint-write error. Cleared when a new attempt starts or a flush succeeds.
+    @MainActor var persistenceError: (any Error)? { get }
+
     /// The session's pending batches.
     ///
     /// If the session is running, this will include the batch currently being processed.
@@ -131,6 +135,8 @@ public protocol BulkExportSession<Processor>: AnyObject, Hashable, Sendable, Obs
     @MainActor var progress: BulkExportSessionProgress? { get }
     
     /// Starts the session.
+    ///
+    /// Samples may repeat across batches; deduplicate within each participant’s data.
     ///
     /// Attempting to start a session that is already running will result in a ``StartSessionError/alreadyRunning`` error.
     ///
