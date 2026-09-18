@@ -13,15 +13,29 @@ Export large amounts of historical Health data
 ## Overview
 
 The ``BulkHealthExporter`` queries historical HealthKit samples in batches and passes them to a ``BatchProcessor``.
-Each ``BulkExportSession`` has a stable identifier, configured sample types and a processor.
-Session progress is checkpointed for restoration across app launches.
 
-Call ``BulkHealthExporter/session(withId:for:startDate:endDate:batchSize:using:)`` to create a session, restore its saved progress, or retrieve the existing session with that identifier.
-Then call ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` to begin processing and receive an `AsyncStream` of batch results.
-The session uses its original export end date; use `CollectSamples` for ongoing collection.
+The Bulk Export API is built around Export Sessions (``BulkExportSession``), which keep track of pending and completed work across app launches.
+Saved progress allows an export to continue after app termination, even for sample types with a large number of samples.
 
-Request HealthKit authorization before starting; the exporter does not prompt for access.
-Use ``BulkExportSession/pause()`` to pause and `start()` to resume.
+Export Sessions are created using ``BulkHealthExporter/session(withId:for:startDate:endDate:batchSize:using:)`` and consist of the following components:
+
+- A stable identifier, used to persist the session's progress and restore it across app launches.
+- A set of sample types to export over a configured time range.
+- A ``BatchProcessor``, which allows the app to process each batch of fetched samples.
+
+This structure supports different export operations, such as uploading samples to a server or writing FHIR-encoded files to disk (see the examples below).
+
+Calling ``BulkHealthExporter/session(withId:for:startDate:endDate:batchSize:using:)`` either creates a new session, restores its saved progress, or returns the existing session with that identifier.
+It is safe to retrieve the same session multiple times, including after completion; this does not restart processing.
+Call ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` to begin processing and receive an `AsyncStream` of batch results.
+
+The session retains its original export end date across launches.
+An app can use `CollectSamples` for ongoing collection and the ``BulkHealthExporter`` for a one-time export of historical Health data.
+
+- Important: Request HealthKit authorization before starting bulk export sessions; the exporter does not prompt for access.
+
+It is possible to ``BulkExportSession/pause()`` an export session and resume it using ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)``.
+See Pausing and Recovery below for checkpoint failures and restoration behavior.
 
 
 ### Example 1: Bulk-Upload of Historical Health Data to Firebase
@@ -55,7 +69,8 @@ extension BulkExportSessionIdentifier {
 // create the session (or obtain a previously-created session)
 let session = try await bulkExporter.session(
     withId: .backgroundExport,
-    for: [SampleType.activeEnergy, SampleType.heartRate, SampleType.stepCount],
+    for: [SampleType.activeEnergyBurned, SampleType.heartRate, SampleType.stepCount],
+    startDate: .oldestSample,
     using: FirebaseUploader(participantID: participantID)
 )
 
@@ -90,7 +105,8 @@ struct FHIREncodedJSONExporter: BatchProcessor {
 // create the session
 let session = try await bulkExporter.session(
     withId: .backgroundFHIRExport,
-    for: [SampleType.activeEnergy, SampleType.heartRate, SampleType.stepCount],
+    for: [SampleType.activeEnergyBurned, SampleType.heartRate, SampleType.stepCount],
+    startDate: .oldestSample,
     using: FHIREncodedJSONExporter()
 )
 
@@ -105,7 +121,7 @@ Task {
 }
 ```
 
-Since the `FHIREncodedExporter` returns a `URL` (rather than `Void`, as with the `FirebaseUploader`), the ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` function's return type will be an `AsyncStream<URL>` which gives us access to the individual batch processing results (in this case the urls of the exported JSON files).
+Since the `FHIREncodedJSONExporter` returns a `URL` (rather than `Void`, as with the `FirebaseUploader`), the ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` function's return type will be an `AsyncStream<URL>` which gives us access to the individual batch processing results (in this case the urls of the exported JSON files).
 
 
 ### Pausing and Recovery
@@ -148,9 +164,13 @@ Delete restoration information only for an intentional restart.
 
 ### Performance Considerations
 
-Queries are batched by time range to limit the number of samples loaded at once.
+To reduce memory use when exporting large amounts of HealthKit data, the exporter fetches each sample type in time-based batches rather than loading its entire history at once.
+With ``ExportSessionBatchSize/automatic``, high-volume types such as heart rate and step count use monthly batches; other types use six-month batches.
+Callers can choose a different calendar-based batch size through ``ExportSessionBatchSize``.
+
 Use `concurrencyLevel: .limit(n)` to cap concurrent batches or `.disabled` for serial processing; `.automatic` currently uses unlimited concurrency.
-Multiple sessions can also run concurrently, so choose limits based on the processor's memory and I/O needs.
+Multiple sessions can also run concurrently.
+Keep the number of simultaneous sessions low and choose batch limits based on the processor's memory and I/O needs.
 
 
 ## Topics
