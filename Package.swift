@@ -694,7 +694,6 @@ var targets: [Target] = [
             .target(name: "Grove"),
             .target(name: "GroveFoundation"),
             .target(name: "GroveViews"),
-            .target(name: "GroveOnboarding"),
             .target(name: "GrovePersonalInfo"),
             .product(name: "TPPDF", package: "TPPDF"),
             .product(name: "MarkdownUI", package: "swift-markdown-ui")
@@ -1083,7 +1082,6 @@ var targets: [Target] = [
     .target(
         name: "GroveLLMLocalDownload",
         dependencies: [
-            .target(name: "GroveOnboarding"),
             .target(name: "GroveViews"),
             .target(name: "GroveLLMLocal"),
             .product(name: "MLXLLM", package: "mlx-swift-examples", condition: .when(traits: [mlxTrait]))

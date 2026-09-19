@@ -57,7 +57,8 @@ public struct LLMChatView<Session: LLMSession>: View {
     @State private var messageTaskIdentifier: Int?
     /// Indicates if the input field is disabled.
     @MainActor private var inputDisabled: Bool {
-        llm.state.representation == .processing
+        // Sessions initialize lazily on the first message. During generation, the composer owns Stop and the queue.
+        llm.state == .loading
     }
     /// Defines the export format of the to-be-exported `GroveChat/Chat`
     private let exportFormat: ChatView.ChatExportFormat?
@@ -90,7 +91,7 @@ public struct LLMChatView<Session: LLMSession>: View {
             messagePendingAnimation: .automatic,
             messagesVisibility: self.messagesVisibility
         )
-            .chatGenerating(self.isGenerating) {
+            .chatGenerating(self.isGenerating, queuePaused: self.currentError != nil) {
                 self.llm.cancel()
             }
             // Only claimed while the session is actually failing, so an app that reports its own failures through

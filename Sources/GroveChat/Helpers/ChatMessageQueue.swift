@@ -22,6 +22,26 @@ final class ChatMessageQueue {
     var isExpanded = false
     /// A message the fan-out handed back for editing, for the composer to take into its field.
     var messageToEdit: QueuedMessage?
+    private(set) var isPaused = false
+
+    func pause() {
+        isPaused = true
+    }
+
+    func resume() {
+        isPaused = false
+    }
+
+    func takeNext() -> QueuedMessage? {
+        guard !isPaused, !messages.isEmpty else {
+            return nil
+        }
+        let next = messages.removeFirst()
+        if messages.isEmpty {
+            isExpanded = false
+        }
+        return next
+    }
 
     func remove(_ message: QueuedMessage) {
         messages.removeAll { $0.id == message.id }

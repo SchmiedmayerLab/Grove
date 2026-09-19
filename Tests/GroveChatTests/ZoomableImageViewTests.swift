@@ -16,6 +16,33 @@ import UIKit
 @Suite("ZoomableImageView")
 @MainActor
 struct ZoomableImageViewTests {
+    @Test("Zoom and pan survive layout without refitting the viewport")
+    func preservesZoomAndPan() {
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 1000, height: 1000)).image { _ in }
+        let coordinator = ZoomableImageView.Coordinator()
+        let scrollView = ZoomableImageView.ScrollView(frame: CGRect(x: 0, y: 0, width: 400, height: 800))
+        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.delegate = coordinator
+        let imageView = UIImageView(image: image)
+        scrollView.addSubview(imageView)
+        coordinator.imageView = imageView
+        scrollView.onLayout = { coordinator.fit(scrollView) }
+        coordinator.fit(scrollView)
+        scrollView.layoutIfNeeded()
+
+        scrollView.setZoomScale(0.8, animated: false)
+        scrollView.setNeedsLayout()
+        scrollView.layoutIfNeeded()
+        #expect(abs(scrollView.zoomScale - 0.8) < 0.001)
+
+        let offset = CGPoint(x: 80, y: 90)
+        scrollView.setContentOffset(offset, animated: false)
+        scrollView.setNeedsLayout()
+        scrollView.layoutIfNeeded()
+        #expect(abs(scrollView.zoomScale - 0.8) < 0.001)
+        #expect(scrollView.contentOffset == offset)
+    }
+
     @Test("Opens fitted to its bounds and can zoom in from there")
     func opensFitted() throws {
         let image = UIGraphicsImageRenderer(size: CGSize(width: 1000, height: 500)).image { _ in }

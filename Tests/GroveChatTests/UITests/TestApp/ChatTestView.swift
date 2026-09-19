@@ -48,7 +48,7 @@ struct ChatTestView: View {
                 "Ask Me Anything",
                 description: "Try “think”, “weather”, “draw”, “fib”, or “fail”."
             )
-            .chatGenerating(isGenerating) {
+            .chatGenerating(isGenerating, queuePaused: lastError != nil) {
                 generationTask?.cancel()
             }
             .chatError(lastError) {

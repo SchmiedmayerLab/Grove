@@ -233,6 +233,8 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
     /// half-entered number, say — drops out of the tree instead of failing every
     /// expression in the form at once.
     private func state(for responses: QuestionnaireResponses) throws -> ResponseState {
+        // Views share their root's revision; the cached resource must share its complete response tree too.
+        let responses = responses.root
         let revision = responses.revision
         return try states.state(for: revision) {
             let node = try FHIRPathNode.encoding(ModelsR4.QuestionnaireResponse(evaluating: responses))

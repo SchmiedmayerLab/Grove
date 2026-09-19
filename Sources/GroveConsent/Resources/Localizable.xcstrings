@@ -213,6 +213,34 @@
         }
       }
     },
+    "CONSENT_TOGGLE_OFF_REQUIRED" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schalte dies aus, um fortzufahren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn this off to continue"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desactiva esto para continuar"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slå av detta för att fortsätta"
+          }
+        }
+      }
+    },
     "CONSENT_TOGGLE_REQUIRED" : {
       "localizations" : {
         "de" : {

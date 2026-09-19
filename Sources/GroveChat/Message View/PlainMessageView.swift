@@ -122,6 +122,7 @@ extension PlainMessageView {
         let images: [ChatEntity.Content.Image]
 
         @State private var viewedImage: ViewedImage?
+        @Environment(\.dismissChatKeyboard) private var dismissKeyboard
 
         var body: some View {
             Group {

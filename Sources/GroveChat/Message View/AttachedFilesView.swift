@@ -23,6 +23,7 @@ struct AttachedFilesView: View {
     let files: [ChatEntity.Content.File]
 
     @State private var previewedFile: URL?
+    @Environment(\.dismissChatKeyboard) private var dismissKeyboard
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {

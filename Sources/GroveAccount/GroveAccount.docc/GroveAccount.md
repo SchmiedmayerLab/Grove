@@ -17,6 +17,8 @@ SPDX-License-Identifier: MIT
 The `GroveAccount` framework fully abstracts setup and management of user account functionality for the
 [Grove](../../Grove/Grove.docc/Grove.md) framework ecosystem.
 
+> Important: The page scaffold replaces the former public `ListHeader` type. Custom account pages using it must migrate to `PageHeader` from [GroveViews](../../GroveViews/GroveViews.docc/GroveViews.md); there is no compatibility alias.
+
 @Row {
     @Column {
         @Image(source: "AccountSetup", alt: "The account setup page with e-mail and password fields, a Sign In button, a Create Account button, and Sign in with Apple.") {

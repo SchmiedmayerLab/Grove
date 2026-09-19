@@ -11,14 +11,30 @@ import SwiftUI
 
 
 #if os(iOS)
-/// The instrument's name under the page's, where the bar can show one: iOS 26; a macOS window names the page alone.
+/// The instrument's name under the page's, using the system subtitle where available.
 @available(iOS 18, *)
 struct BarSubtitle: ViewModifier {
+    let title: String
     let subtitle: String?
 
     func body(content: Content) -> some View {
-        if #available(iOS 26, *), let subtitle {
-            content.navigationSubtitle(subtitle)
+        if let subtitle {
+            if #available(iOS 26, *) {
+                content.navigationSubtitle(subtitle)
+            } else {
+                content.toolbar {
+                    ToolbarItem(placement: .principal) {
+                        VStack(spacing: 0) {
+                            Text(title)
+                                .font(.headline)
+                            Text(subtitle)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .lineLimit(1)
+                    }
+                }
+            }
         } else {
             content
         }
@@ -41,7 +57,7 @@ struct PageNaming: ViewModifier {
                 .navigationTitle(title)
                 #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
-                .modifier(BarSubtitle(subtitle: subtitle))
+                .modifier(BarSubtitle(title: title, subtitle: subtitle))
                 #endif
         } else {
             content.acceptsRisingTitle()

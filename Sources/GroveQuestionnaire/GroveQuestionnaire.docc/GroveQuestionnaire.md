@@ -51,6 +51,11 @@ Add the Grove Questionnaire Swift package to
 
 > Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial-Setup.md) and set up the core Grove infrastructure.
 
+To offer **Take Photo** for image attachment questions on iOS, add a nonempty
+`NSCameraUsageDescription` to your app's `Info.plist` explaining why the questionnaire needs camera access.
+The camera option appears only when that description is present and a camera is available. Apps without it
+can still import photos and files.
+
 
 ## Authoring in Swift
 

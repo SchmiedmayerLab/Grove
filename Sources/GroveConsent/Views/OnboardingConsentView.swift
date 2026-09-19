@@ -34,6 +34,7 @@ public struct OnboardingConsentView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Counts the taps that found the form incomplete, so each of them can be felt.
     @State private var incompleteAttempts = 0
+    @State private var highlightsIncompleteSections = false
     
     public var body: some View {
         // The reader wraps the page, so the button floating over it can still scroll the document.
@@ -48,6 +49,7 @@ public struct OnboardingConsentView: View {
                         consentDocument: consentDocument,
                         consentSignatureDate: currentDateInSignature ? .now : nil
                     )
+                    .environment(\.highlightsIncompleteConsentSections, highlightsIncompleteSections)
                     #if !(os(macOS) || os(visionOS))
                     .scrollDismissesKeyboard(.interactively)
                     #endif
@@ -61,6 +63,12 @@ public struct OnboardingConsentView: View {
         }
         .scrollDisabled(consentDocument?.isSigning == true)
         .navigationBarBackButtonHidden(backButtonHidden)
+        .onChange(of: consentDocument?.id) { _, _ in
+            highlightsIncompleteSections = false
+        }
+        .onDisappear {
+            highlightsIncompleteSections = false
+        }
     }
 
     private var isComplete: Bool {
@@ -126,7 +134,7 @@ public struct OnboardingConsentView: View {
         incompleteAttempts += 1
         AccessibilityNotification.Announcement(String(localized: "CONSENT_INCOMPLETE_ANNOUNCEMENT", bundle: .module)).post()
         withAnimation(reduceMotion ? nil : .revisit) {
-            consentDocument.highlightsIncompleteSections = true
+            highlightsIncompleteSections = true
             proxy.scrollTo(firstIncompleteId, anchor: .center)
         }
     }

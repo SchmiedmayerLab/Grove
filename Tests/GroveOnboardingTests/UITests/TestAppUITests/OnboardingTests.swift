@@ -188,6 +188,7 @@ final class OnboardingTests: XCTestCase {
         XCTAssert(app.buttons["Continue"].waitForExistence(timeout: 1))
         app.buttons["Continue"].tap()
         
-        XCTAssert(app.staticTexts["Health Access"].waitForExistence(timeout: 1))
+        XCTAssert(app.staticTexts["What to Expect"].waitForNonExistence(timeout: 1))
+        XCTAssert(app.buttons["Grant Access"].waitForExistence(timeout: 1))
     }
 }

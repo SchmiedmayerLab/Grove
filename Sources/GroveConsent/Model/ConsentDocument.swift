@@ -245,8 +245,8 @@ public final class ConsentDocument: Sendable {
     public private(set) var isExporting = false
     /// Whether the views showing the document mark the elements that still keep it from being complete.
     ///
-    /// Set once the user tries to continue with an incomplete document; the marks then stay on the elements that need
-    /// an answer until they have one.
+    /// Set this to explicitly highlight incomplete elements in every view of the document. The onboarding view's
+    /// own submit-attempt highlights belong to its presentation and do not change this property.
     public var highlightsIncompleteSections = false
     
     /// Creates a Consent Document by parsing a Markdown String

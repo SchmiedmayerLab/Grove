@@ -36,7 +36,8 @@ actor LLMOpenAIRealtimeConnection {
     private lazy var urlSession = URLSession(configuration: .default)
 
     // The event stream which gets sent in session.events()
-    private let eventStream = EventBroadcaster<LLMRealtimeAudioEvent>()
+    let eventStream = EventBroadcaster<LLMRealtimeAudioEvent>()
+    var inputTranscriptionEnabled = false
 
     // Handling of the setup: only finish whenever the connection to API has been successful
     private var readyContinuation: CheckedContinuation<Void, any Error>?
@@ -156,6 +157,8 @@ actor LLMOpenAIRealtimeConnection {
 
                 switch type {
                 case "session.created":
+                    inputTranscriptionEnabled = Self.transcriptionEnabled(in: messageDict)
+                    await eventStream.broadcast(.inputTranscriptionConfigured(inputTranscriptionEnabled))
                     switch schema.parameters.sessionConfiguration {
                     case .client:
                         try await sendSessionUpdate(schema: schema)
@@ -164,6 +167,8 @@ actor LLMOpenAIRealtimeConnection {
                         readyContinuation = nil
                     }
                 case "session.updated":
+                    inputTranscriptionEnabled = Self.transcriptionEnabled(in: messageDict)
+                    await eventStream.broadcast(.inputTranscriptionConfigured(inputTranscriptionEnabled))
                     readyContinuation?.resume()
                     readyContinuation = nil
                 case "response.created":
@@ -202,6 +207,10 @@ actor LLMOpenAIRealtimeConnection {
                 case "input_audio_buffer.speech_stopped":
                     let event = try Self.decoder.decode(LLMRealtimeAudioEvent.SpeechStopped.self, from: messageJsonData)
                     await eventStream.broadcast(LLMRealtimeAudioEvent.speechStopped(event))
+                case "input_audio_buffer.committed":
+                    if let itemId = messageDict["item_id"] as? String {
+                        await eventStream.broadcast(.userAudioCommitted(itemId))
+                    }
                 case "response.function_call_arguments.done":
                     let event = try Self.decoder.decode(FunctionCallArgs.self, from: messageJsonData)
                     await eventStream.broadcast(LLMRealtimeAudioEvent.functionCallRequested(

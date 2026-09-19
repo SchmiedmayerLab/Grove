@@ -22,7 +22,10 @@ extension LLMOpenAIRealtimeConnection {
     }
 
     /// Requests the model's next response, optionally without letting it call tools.
-    func requestResponse(toolChoice: LLMOpenAIRealtimeParameters.FollowUpToolChoice = .auto) async throws {
+    func requestResponse(
+        toolChoice: LLMOpenAIRealtimeParameters.FollowUpToolChoice = .auto,
+        eventId: String = UUID().uuidString
+    ) async throws {
         struct ResponseCreate: Encodable {
             struct Response: Encodable {
                 // swiftlint:disable:next identifier_name
@@ -34,7 +37,6 @@ extension LLMOpenAIRealtimeConnection {
             let event_id: String
             let response: Response?
         }
-        let eventId = UUID().uuidString
         await waitUntilResponseIdle(reserving: eventId)
         if Task.isCancelled {
             withdraw(eventId)
@@ -138,6 +140,7 @@ extension LLMOpenAIRealtimeConnection {
     /// Sends a request that holds the turn; if it never leaves the client, the turn goes to the next waiter.
     private func send(_ message: some Encodable, as eventId: String) async throws {
         do {
+            await eventStream.broadcast(.responseRequested(eventId))
             try await sendMessage(message)
         } catch {
             withdraw(eventId)

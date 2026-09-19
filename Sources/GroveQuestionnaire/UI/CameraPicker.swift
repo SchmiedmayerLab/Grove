@@ -38,9 +38,13 @@ struct CameraPicker: UIViewControllerRepresentable {
         }
     }
 
-    /// Whether this device has a camera the picker can open; a simulator does not.
+    /// Whether the host has opted into camera capture and this device can provide it.
     static var isAvailable: Bool {
-        UIImagePickerController.isSourceTypeAvailable(.camera)
+        guard let usageDescription = Bundle.main.object(forInfoDictionaryKey: "NSCameraUsageDescription") as? String,
+              !usageDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return false
+        }
+        return UIImagePickerController.isSourceTypeAvailable(.camera)
     }
 
     let onCapture: @MainActor (Result<URL, any Error>) -> Void

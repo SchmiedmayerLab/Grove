@@ -33,7 +33,8 @@ struct ZoomableImageView: UIViewRepresentable {
     final class Coordinator: NSObject, UIScrollViewDelegate {
         var imageView: UIImageView?
         var fitted = false
-        private var fittedBounds = CGRect.zero
+        private var fittedSize = CGSize.zero
+        private var fittedInsets = UIEdgeInsets.zero
         private var isFitting = false
 
         /// The part of the view not under the bars: the picture opens fitted into this, and is centred in it, while
@@ -51,7 +52,7 @@ struct ZoomableImageView: UIViewRepresentable {
         func fit(_ scrollView: UIScrollView) {
             let bounds = safeBounds(of: scrollView)
             guard !isFitting, let imageView, let image = imageView.image, bounds.size != .zero, !bounds.isEmpty,
-                  !fitted || bounds != fittedBounds else {
+                  !fitted || bounds.size != fittedSize || scrollView.safeAreaInsets != fittedInsets else {
                 return
             }
             isFitting = true
@@ -67,7 +68,9 @@ struct ZoomableImageView: UIViewRepresentable {
             scrollView.zoomScale = fittingScale
             center(scrollView)
             fitted = true
-            fittedBounds = bounds
+            // Scrolling and centering change bounds.origin without changing the available viewport.
+            fittedSize = bounds.size
+            fittedInsets = scrollView.safeAreaInsets
         }
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {

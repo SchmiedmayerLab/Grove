@@ -17,6 +17,8 @@ Provides SwiftUI views for onboarding users onto a digital health application.
 The `GroveOnboarding` module provides views that can be used for performing onboarding tasks, such as providing an overview of your app and, in combination with [GroveConsent](../../GroveConsent/GroveConsent.docc/GroveConsent.md) asking a user to read and sign consent documents.
 Every step is a page of the scaffold in [GroveViews](../../GroveViews/GroveViews.docc/GroveViews.md): a `PageHeader` and content that scroll, and `PageActions` floating over them.
 
+> Important: The page scaffold replaces the former public `OnboardingTitleView` and `OnboardingActionsView` types. Custom steps must migrate their header to `PageHeader` and their actions to `PageActions` in the `PageView` footer. These removed types do not have compatibility aliases.
+
 @Row {
     @Column {
         @Image(source: "Welcome", alt: "Screenshot displaying the onboarding view.") {

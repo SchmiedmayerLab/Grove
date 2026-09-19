@@ -326,16 +326,16 @@ public struct MessagesView: View {
     /// words in sight. One that lands whole — a provider without streaming, or the fallback after a stream
     /// fails — would otherwise drop the reader at the end of a page they have not read, and every answer would
     /// start with a scroll back up to its first line.
-    private static func answerIsStreaming(from previous: Chat, to current: Chat) -> Bool {
+    static func answerIsStreaming(from previous: Chat, to current: Chat) -> Bool {
         guard let last = current.last, last.role != .user else {
             return false
         }
         guard let previousLast = previous.last, previousLast.id == last.id else {
             // A message the view has not shown before: it is only being streamed if it arrived unfinished.
-            return !last.complete
+            return !last.complete || last.content.images.contains(.generating)
         }
         // A finished message that changes again — a citation attached, say — is not being streamed either.
-        return !previousLast.complete
+        return !previousLast.complete || previousLast.content.images.contains(.generating)
     }
 
     /// Room between a message and the one before it.

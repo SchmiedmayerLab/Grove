@@ -152,6 +152,16 @@ public final class QuestionnaireResponses: Identifiable {
         }
     }
 
+    /// The complete response tree, including when accessed from a choice's follow-up questions.
+    package var root: QuestionnaireResponses {
+        switch _variant {
+        case .root:
+            self
+        case .view(let parent, _):
+            parent.root
+        }
+    }
+
 
     init(id: UUID = UUID(), questionnaire: Questionnaire) {
         self.id = id

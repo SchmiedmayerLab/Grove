@@ -110,14 +110,16 @@ struct LLMOpenAIRealtimeDemoView: View {
 An app that must not hold a long-lived API key can have its backend mint an ephemeral client secret for each session, pinning the model, instructions, and tools at that point. The session then connects with that secret, to the endpoint the secret was minted for, and leaves the configuration alone:
 
 ```swift
-let grant = try await backend.mintRealtimeSession()   // your own callable
 let schema = LLMOpenAIRealtimeSchema(
     parameters: .init(
         modelType: .gptRealtimeMini,
         sessionConfiguration: .server,
         followUpToolChoice: .none,
-        overwritingAuthToken: .constant(grant.clientSecret),
-        overwritingServerUrl: grant.baseUrl
+        overwritingAuthToken: .closure {
+            // Your own callable; obtain a fresh secret whenever the connection is opened.
+            try? await backend.mintRealtimeSession().clientSecret
+        },
+        overwritingServerUrl: backend.realtimeBaseUrl
     )
 ) {
     ForwardingTool()
@@ -126,7 +128,9 @@ let schema = LLMOpenAIRealtimeSchema(
 
 ``LLMOpenAIRealtimeParameters/SessionConfiguration/server`` skips the `session.update` the session would otherwise send, so the server's choice stands. ``LLMOpenAIRealtimeParameters/FollowUpToolChoice/none`` asks for the response after a tool result without tools, which a session whose server forces a tool on every turn needs in order to speak the result.
 
-With a `transcriptGracePeriod` set, a tool call waits that long for the transcript of the turn it answers, so a tool can read the participant's own words from ``LLMOpenAIRealtimeSession/context`` instead of the model's paraphrase in its arguments. Without it, tools run as soon as the model calls them.
+The backend's `realtimeBaseUrl` must be the endpoint for which it mints each secret. The closure is reevaluated on connection setup, including a reconnect after an error; a constant ephemeral secret can expire before a later setup. Returning `nil` reports a missing-token setup error.
+
+With a `transcriptGracePeriod` set, a tool call waits up to that long for pending user transcripts, so a tool can read the participant's own words from ``LLMOpenAIRealtimeSession/context`` instead of the model's paraphrase in its arguments. This uses the transcription configuration confirmed by the server, including for server-configured sessions and manually committed audio turns. Transcription must be enabled on that server session; a timeout or transcription failure lets the tool proceed without a completed transcript. Without a grace period, tools run as soon as the model calls them.
 
 ``LLMOpenAIRealtimeSession/activity()`` reports when the participant starts and stops speaking and when the assistant finishes, so a client can drop audio it still holds when it is interrupted. ``LLMOpenAIRealtimeSession/interject(_:)`` has the assistant say something short outside the conversation, which bridges the wait for a slow tool: the model does not see it as part of the exchange, though what it said still shows up in ``LLMOpenAIRealtimeSession/context`` as an assistant line.
 
@@ -148,6 +152,8 @@ One of the key features of ``GroveLLMOpenAIRealtime`` is bidirectional audio str
 **Sending User Audio**
 
 User audio can be streamed to the Realtime API using the ``LLMOpenAIRealtimeSession/appendUserAudio(_:)`` method. Audio must be provided as 16-bit PCM mono audio at 24 kHz sample rate.
+
+Start consuming ``LLMOpenAIRealtimeSession/listen()`` and enable microphone forwarding only after the session's ``LLMOpenAIRealtimeSession/state`` becomes ready. Calling `listen()` returns a stream before its asynchronous setup finishes. `appendUserAudio(_:)` sends on the existing connection and does not initialize or reconnect it; sending before setup or after cancellation fails.
 
 ```swift
 // Assuming you have audio data from a microphone

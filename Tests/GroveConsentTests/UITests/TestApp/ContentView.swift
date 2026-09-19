@@ -51,6 +51,12 @@ struct ContentView: View {
                 Button("Screenshots") {
                     isPresentingScreenshotView = true
                 }
+                NavigationLink("Consent Validation") {
+                    ConsentValidationTestView()
+                }
+                NavigationLink("Consent Footers") {
+                    ConsentFooterTestView()
+                }
             }
         }
         .navigationTitle("GroveConsent")

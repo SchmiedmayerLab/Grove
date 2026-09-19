@@ -50,6 +50,7 @@ struct LoginSetupView<PasswordReset: View>: View {
     var body: some View {
         VStack(spacing: 16) {
             fields
+            passwordResetButton
 
             AsyncButton(state: $state, action: loginButtonAction) {
                 Text("UP_LOGIN", bundle: .module)
@@ -85,7 +86,7 @@ struct LoginSetupView<PasswordReset: View>: View {
 
     /// The two fields share a card, the way everything that asks for input does across Grove.
     @ViewBuilder @MainActor private var fields: some View {
-        VStack(spacing: 0) { // swiftlint:disable:this closure_body_length
+        VStack(spacing: 0) {
             Group {
                 VerifiableTextField(userIdConfiguration.idType.localizedStringResource, text: $userId)
                     .validate(input: userId, rules: .nonEmpty)
@@ -98,24 +99,7 @@ struct LoginSetupView<PasswordReset: View>: View {
 
                 Divider()
 
-                VerifiableTextField(.init("UP_PASSWORD", bundle: .atURL(from: .module)), text: $password, type: .secure) {
-                    if !(passwordReset is EmptyView) {
-                        Button(action: {
-                            presentingPasswordForgetSheet = true
-                        }) {
-                            Text("UP_FORGOT_PASSWORD", bundle: .module)
-                                .font(.caption)
-                                .bold()
-#if os(macOS)
-                                .foregroundColor(Color(nsColor: .systemGray))
-#elseif os(watchOS)
-                                .foregroundColor(Color(uiColor: .gray))
-#else
-                                .foregroundColor(Color(uiColor: .systemGray))
-#endif
-                        }
-                    }
-                }
+                VerifiableTextField(.init("UP_PASSWORD", bundle: .atURL(from: .module)), text: $password, type: .secure)
                     .validate(input: password, rules: .nonEmpty)
                     .focused($focusedField, equals: .password)
                     .textContentType(.password)
@@ -126,6 +110,26 @@ struct LoginSetupView<PasswordReset: View>: View {
                 .textFieldStyle(.plain)
         }
             .accountCard()
+    }
+
+    @ViewBuilder private var passwordResetButton: some View {
+        if !(passwordReset is EmptyView) {
+            Button(action: {
+                presentingPasswordForgetSheet = true
+            }) {
+                Text("UP_FORGOT_PASSWORD", bundle: .module)
+                    .font(.caption)
+                    .bold()
+#if os(macOS)
+                    .foregroundColor(Color(nsColor: .systemGray))
+#elseif os(watchOS)
+                    .foregroundColor(Color(uiColor: .gray))
+#else
+                    .foregroundColor(Color(uiColor: .systemGray))
+#endif
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
     }
 
 

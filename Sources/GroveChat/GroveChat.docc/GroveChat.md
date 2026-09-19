@@ -224,7 +224,9 @@ A ``ChatView`` shows a conversation; it does not run one. Tell it what is happen
 is in flight a message sent from the composer is queued rather than sent, shown in a stack above the field and let
 go one per answer once the chat is free, and the send button gets a stop button beside it when there is something
 to stop. Tapping the stack fans the queue out over the conversation, where a message can be moved by its grip,
-taken back into the field with its pencil, or swiped away.
+taken back into the field with its pencil, or swiped away. Stop pauses the waiting messages until the participant
+chooses Resume Queued Messages. Pass `queuePaused: true` after a failure or an external cancellation to hold the
+queue too, keeping the error visible until the participant chooses what to do next.
 
 ```swift
 struct ConversationView: View {
@@ -234,7 +236,7 @@ struct ConversationView: View {
     var body: some View {
         ChatView($chat)
             .chatEmptyState("Ask About Your Medication", description: "Answers come from your care team's guidance.")
-            .chatGenerating(session.state == .generating) {
+            .chatGenerating(session.state == .generating, queuePaused: lastError != nil) {
                 session.cancel()
             }
             .chatError(lastError) {
@@ -269,7 +271,7 @@ the conversation away — with a retry next to it.
 
 ### Reporting state
 
-- ``SwiftUICore/View/chatGenerating(_:onCancel:)``
+- ``SwiftUICore/View/chatGenerating(_:queuePaused:onCancel:)``
 - ``SwiftUICore/View/chatError(_:retry:)``
 - ``SwiftUICore/View/chatEmptyState(_:description:systemImage:)``
 - ``SwiftUICore/View/chatEmptyState(_:)``

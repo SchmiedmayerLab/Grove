@@ -12,60 +12,74 @@ import Foundation
 /// Tracks the user turns whose transcription is still on its way, so work that needs the words can wait for them.
 @available(iOS 18, macOS 15, watchOS 11, *)
 actor UserTranscriptTracker {
-    private var pending: Set<String> = []
-    private var waiters: [UUID: CheckedContinuation<Void, Never>] = [:]
+    private struct Waiter {
+        let continuation: CheckedContinuation<Void, Never>
+        let timeoutTask: Task<Void, Never>
+    }
 
+    private var pending: Set<String> = []
+    private var completed: Set<String> = []
+    private var waiters: [UUID: Waiter] = [:]
+
+    var waiterCount: Int { waiters.count }
 
     func expect(_ itemId: String) {
-        pending.insert(itemId)
+        // A committed event can follow a transcript that already completed for the same turn.
+        if !completed.contains(itemId) {
+            pending.insert(itemId)
+        }
     }
 
     func complete(_ itemId: String) {
+        completed.insert(itemId)
         pending.remove(itemId)
         if pending.isEmpty {
             settle()
         }
     }
 
-    /// Returns once every expected transcript arrived, or after `timeout`, whichever comes first.
-    func waitUntilSettled(timeout: Duration) async {
-        guard !pending.isEmpty else {
-            return
-        }
-        let waiterId = UUID()
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { await self.waitForSettled(as: waiterId) }
-            group.addTask {
-                try? await Task.sleep(for: timeout)
-                // Only a timeout that actually ran out gives up; a cancelled sleep is the other side winning.
-                guard !Task.isCancelled else {
-                    return
-                }
-                await self.release(waiterId)
-            }
-            await group.next()
-            group.cancelAll()
-        }
+    func reset() {
+        pending.removeAll()
+        completed.removeAll()
+        settle()
     }
 
-    private func waitForSettled(as waiterId: UUID) async {
-        await withCheckedContinuation { continuation in
-            if pending.isEmpty {
-                continuation.resume()
-            } else {
-                waiters[waiterId] = continuation
+    /// Returns once every expected transcript arrived, the timeout expires, or the caller is cancelled.
+    func waitUntilSettled(timeout: Duration) async {
+        let waiterId = UUID()
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                guard !pending.isEmpty, !Task.isCancelled else {
+                    continuation.resume()
+                    return
+                }
+                // Register before this actor can run the timeout, including a zero-duration timeout.
+                let timeoutTask = Task {
+                    do {
+                        try await Task.sleep(for: timeout)
+                        release(waiterId)
+                    } catch {
+                        // Completion or cancellation already released this waiter.
+                    }
+                }
+                waiters[waiterId] = Waiter(continuation: continuation, timeoutTask: timeoutTask)
             }
+        } onCancel: {
+            Task { await self.release(waiterId) }
         }
     }
 
     private func release(_ waiterId: UUID) {
-        waiters.removeValue(forKey: waiterId)?.resume()
+        guard let waiter = waiters.removeValue(forKey: waiterId) else {
+            return
+        }
+        waiter.timeoutTask.cancel()
+        waiter.continuation.resume()
     }
 
     private func settle() {
-        for waiter in waiters.values {
-            waiter.resume()
+        for id in Array(waiters.keys) {
+            release(id)
         }
-        waiters.removeAll()
     }
 }

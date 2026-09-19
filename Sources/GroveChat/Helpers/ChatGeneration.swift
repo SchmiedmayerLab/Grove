@@ -17,6 +17,8 @@ public import SwiftUI
 struct ChatGeneration {
     /// Whether a response is being produced right now.
     var isGenerating = false
+    /// A stopped or failed answer requires the participant to resume the waiting messages.
+    var queuePaused = false
     /// Stops the response in flight, when the chat offers that.
     var cancel: (@MainActor () -> Void)?
 }
@@ -33,9 +35,9 @@ extension EnvironmentValues {
 extension View {
     /// Tells the chat that the assistant is answering.
     ///
-    /// While generating, the composer will not send a second message — a chat that accepts one mid-answer either
-    /// interleaves two responses or silently drops the first. Supply `onCancel` and the send button becomes a stop
-    /// button for as long as the answer is in flight; without it the button is simply unavailable.
+    /// While generating, new messages wait in the composer's queue. Supply `onCancel` to offer a stop button;
+    /// stopping also pauses the queue until the participant resumes it. Set `queuePaused` when an answer fails
+    /// or is cancelled outside the composer, so the remaining messages wait for the same explicit choice.
     ///
     /// The typing indicator follows this too, so a chat that reports its generation state does not also need
     /// `messagePendingAnimation`.
@@ -51,8 +53,14 @@ extension View {
     ///
     /// - Parameters:
     ///   - isGenerating: Whether a response is being produced right now.
+    ///   - queuePaused: Whether the latest answer failed or was cancelled. A transition to `true` pauses automatic
+    ///                  sending; the participant can still resume the queue while the error is displayed.
     ///   - onCancel: Stops the response in flight. Omit if the chat cannot be interrupted.
-    public func chatGenerating(_ isGenerating: Bool, onCancel: (@MainActor () -> Void)? = nil) -> some View {
-        environment(\.chatGeneration, ChatGeneration(isGenerating: isGenerating, cancel: onCancel))
+    public func chatGenerating(
+        _ isGenerating: Bool,
+        queuePaused: Bool = false,
+        onCancel: (@MainActor () -> Void)? = nil
+    ) -> some View {
+        environment(\.chatGeneration, ChatGeneration(isGenerating: isGenerating, queuePaused: queuePaused, cancel: onCancel))
     }
 }

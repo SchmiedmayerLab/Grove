@@ -126,6 +126,7 @@ public struct SignupForm<Header: View>: View {
             }
             .actionButtonStyle(.primary)
             .controlSize(.large)
+            .accessibilityIdentifier("Sign-Up Submit")
         }
         .environment(\.defaultErrorDescription, .init("UP_SIGNUP_FAILED_DEFAULT_ERROR", bundle: .atURL(from: .module)))
         .receiveValidation(in: $validation)

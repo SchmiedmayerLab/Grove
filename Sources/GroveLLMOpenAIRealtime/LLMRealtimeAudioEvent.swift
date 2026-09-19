@@ -22,6 +22,10 @@ package enum LLMRealtimeAudioEvent: Sendable {
     case assistantTranscriptDone(String)
     case speechStarted(SpeechStarted)
     case speechStopped(SpeechStopped)
+    case userAudioCommitted(String)
+    case inputTranscriptionConfigured(Bool)
+    /// A locally initiated response request now holds the turn and is about to be sent.
+    case responseRequested(String)
     case functionCallRequested(LLMOpenAIStreamResult.FunctionCall)
     /// The server refused one event; the session goes on.
     case serverError(Components.Schemas.RealtimeServerEventError.errorPayload)
