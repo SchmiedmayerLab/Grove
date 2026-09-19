@@ -8,6 +8,7 @@
 
 
 /// A `name(arguments)` invocation, together with the collection it is applied to.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct FHIRPathFunctionCall {
     let evaluator: FHIRPathEvaluator
     let name: String

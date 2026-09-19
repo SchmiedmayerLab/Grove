@@ -9,6 +9,7 @@
 import Antlr4
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct FHIRPathEvaluator {
     let context: FHIRPathEvaluationContext
     /// The `$index` within the innermost iteration function, if any.
@@ -139,6 +140,7 @@ struct FHIRPathEvaluator {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRPathEvaluator {
     /// The `%name` a term reads, when it is one.
     fileprivate static func constantName(of ctx: FHIRPathParser.ExpressionContext) -> String? {

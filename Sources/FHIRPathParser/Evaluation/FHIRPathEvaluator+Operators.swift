@@ -10,6 +10,7 @@ import Antlr4
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRPathEvaluator {
     func evaluateOperator(_ ctx: FHIRPathParser.ExpressionContext, focus: [FHIRPathValue]) throws -> [FHIRPathValue] {
         switch ctx {
@@ -244,6 +245,7 @@ extension FHIRPathEvaluator {
 
 // MARK: Operand Arithmetic
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRPathEvaluator {
     private static func applyAdditive(_ lhs: FHIRPathValue, _ rhs: FHIRPathValue, operatorText: String) throws -> [FHIRPathValue] {
         switch (lhs, rhs) {

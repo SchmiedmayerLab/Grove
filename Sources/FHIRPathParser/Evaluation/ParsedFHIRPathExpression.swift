@@ -50,6 +50,7 @@ public final class ParsedFHIRPathExpression: @unchecked Sendable {
     }
 
     /// Evaluates the expression against the given context.
+    @available(iOS 18, macOS 15, watchOS 11, *)
     public func evaluate(context: FHIRPathEvaluationContext) throws -> [FHIRPathValue] {
         try FHIRPathEvaluator(context: context).evaluate(tree, focus: context.focus)
     }
@@ -57,6 +58,7 @@ public final class ParsedFHIRPathExpression: @unchecked Sendable {
     /// Evaluates the expression and applies FHIRPath singleton boolean conversion:
     /// ``FHIRPathBoolean/empty`` for empty, the value for a boolean singleton,
     /// ``FHIRPathBoolean/true`` for any other singleton.
+    @available(iOS 18, macOS 15, watchOS 11, *)
     public func evaluateBoolean(context: FHIRPathEvaluationContext) throws -> FHIRPathBoolean {
         try FHIRPathEvaluator.singletonBoolean(of: evaluate(context: context))
     }
@@ -92,6 +94,7 @@ extension FHIRPathExpression {
     /// (paths, comparisons, arithmetic, boolean logic, and the common collection,
     /// string, math, and aggregate functions, plus SDC's `weight()`); anything
     /// outside it throws rather than mis-evaluating.
+    @available(iOS 18, macOS 15, watchOS 11, *)
     public static func evaluate(expression: String, context: FHIRPathEvaluationContext) throws -> [FHIRPathValue] {
         try parse(expression).evaluate(context: context)
     }
@@ -99,6 +102,7 @@ extension FHIRPathExpression {
     /// Evaluates an expression and applies FHIRPath singleton boolean conversion:
     /// ``FHIRPathBoolean/empty`` for empty, the value for a boolean singleton,
     /// ``FHIRPathBoolean/true`` for any other singleton.
+    @available(iOS 18, macOS 15, watchOS 11, *)
     public static func evaluateBoolean(expression: String, context: FHIRPathEvaluationContext) throws -> FHIRPathBoolean {
         try parse(expression).evaluateBoolean(context: context)
     }

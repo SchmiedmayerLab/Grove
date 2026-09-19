@@ -45,6 +45,25 @@ struct ScopedExpressionCacheTests {
         }
     }
 
+    private static func flagQuestionnaire() throws -> Questionnaire {
+        try Questionnaire(
+            metadata: .init(id: "cache-identity", url: nil, title: "Cache identity", explainer: ""),
+            sections: [.init(id: "section", tasks: [.init(id: "flag", title: "Flag", kind: .boolean)])]
+        ).withExpressionEngine()
+    }
+
+    private static func expectIndependentResults(first: QuestionnaireResponses, second: QuestionnaireResponses) throws {
+        let engine = try #require(first.questionnaire.expressionEngine as? FHIRQuestionnaireExpressionEngine)
+        #expect(engine === second.questionnaire.expressionEngine)
+        let expression = "%resource.item.where(linkId='flag').answer.value = true"
+        #expect(try engine.evaluateBoolean(expression, scope: .item("flag"), in: first) == .true)
+        let firstBuilds = engine.work.encodedStates
+        #expect(try engine.evaluateBoolean(expression, scope: .item("flag"), in: first) == .true)
+        #expect(engine.work.encodedStates == firstBuilds)
+        #expect(try engine.evaluateBoolean(expression, scope: .item("flag"), in: second) == .false)
+        #expect(try engine.evaluateBoolean(expression, scope: .item("flag"), in: first) == .true)
+    }
+
     @Test
     func evaluatingNestedViewDoesNotDisableRootTask() throws {
         let fixture = try Fixture()
@@ -72,5 +91,30 @@ struct ScopedExpressionCacheTests {
         #expect(try engine.evaluateBoolean(expression, scope: .item("child"), in: fixture.inner) == .false)
         #expect(try engine.evaluateBoolean(expression, scope: .item("child"), in: fixture.root) == .false)
         #expect(engine.work.encodedStates == encodedStates + 1)
+    }
+
+    @Test
+    func independentRootsDoNotShareResultsAfterTheSameNumberOfEdits() throws {
+        let questionnaire = try Self.flagQuestionnaire()
+        let first = QuestionnaireResponses(questionnaire: questionnaire)
+        let second = QuestionnaireResponses(questionnaire: questionnaire)
+        first.responses["flag"] = .init(value: .bool(true))
+        second.responses["flag"] = .init(value: .bool(false))
+        try Self.expectIndependentResults(first: first, second: second)
+    }
+
+    @Test
+    func restoredDraftsWithTheSameResponseIdDoNotShareResults() throws {
+        let questionnaire = try Self.flagQuestionnaire()
+        let original = QuestionnaireResponses(questionnaire: questionnaire)
+        original.responses["flag"] = .init(value: .bool(false))
+        let draft = try original.draft()
+        let first = try QuestionnaireResponses(questionnaire: questionnaire, resuming: draft)
+        let second = try QuestionnaireResponses(questionnaire: questionnaire, resuming: draft)
+        #expect(first.id == second.id)
+        #expect(first.id == original.id)
+        first.responses["flag"] = .init(value: .bool(true))
+        second.responses["flag"] = .init(value: .bool(false))
+        try Self.expectIndependentResults(first: first, second: second)
     }
 }

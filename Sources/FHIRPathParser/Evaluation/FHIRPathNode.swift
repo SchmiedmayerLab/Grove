@@ -41,8 +41,11 @@ public indirect enum FHIRPathNode: Hashable, Sendable {
         var pending = allChildren.reversed() as [FHIRPathNode]
         while let node = pending.popLast() {
             descendants.append(node)
-            if case .object = node {
+            switch node {
+            case .object:
                 pending.append(contentsOf: node.allChildren.reversed())
+            case .array, .string, .number, .bool, .null:
+                break
             }
         }
         return descendants

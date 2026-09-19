@@ -9,7 +9,6 @@
 public import Foundation
 public import Observation
 private import OSLog
-private import Synchronization
 
 
 /// Stores and manages responses to a questionnaire.
@@ -61,9 +60,12 @@ public final class QuestionnaireResponses: Identifiable {
         case view(parent: QuestionnaireResponses, pathFromParent: ResponsesPath)
     }
 
-    /// Numbers every change to any root's answers, so a revision names one state of one root, a draft resumed
-    /// under the same ``id`` included.
-    private static let revisions = Mutex(0)
+    /// Identifies one state of one root's answers, independently of its persisted response ID.
+    /// A restored draft gets a fresh identity even when it keeps the same ``id``.
+    package struct Revision: Equatable, Sendable {
+        private let rootInstanceId = UUID()
+        fileprivate var number = 0
+    }
 
     /// An id identifying this responses instance
     public let id: UUID
@@ -86,7 +88,7 @@ public final class QuestionnaireResponses: Identifiable {
                 if sanitized != responses {
                     _variant = .root(sanitized)
                 }
-                _revision = Self.nextRevision()
+                _revision.number += 1
                 recalculateExpressions()
             case .view:
                 break
@@ -137,13 +139,13 @@ public final class QuestionnaireResponses: Identifiable {
     }
     
     /// The root's current revision; not observed, it is read while views render.
-    @ObservationIgnored private var _revision = nextRevision()
+    @ObservationIgnored private var _revision = Revision()
 
     /// Which state the answers are in: the same as long as nothing changed, whichever view they are read through.
     ///
     /// Anything derived from the answers, like an expression engine's encoding of them, can be kept for as long
     /// as the revision stays.
-    package var revision: Int {
+    package var revision: Revision {
         switch _variant {
         case .root:
             _revision
@@ -182,14 +184,6 @@ public final class QuestionnaireResponses: Identifiable {
         _variant = .view(parent: parent, pathFromParent: pathFromParent)
     }
 
-    private static func nextRevision() -> Int {
-        revisions.withLock { revision in
-            revision += 1
-            return revision
-        }
-    }
-    
-    
     func view(appending path: ResponsesPath) -> Self {
         Self(parent: self, pathFromParent: path)
     }

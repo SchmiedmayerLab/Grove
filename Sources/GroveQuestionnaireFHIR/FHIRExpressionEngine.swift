@@ -51,7 +51,7 @@ private final class ResponseState: Sendable {
         var values: [GroveQuestionnaire.Questionnaire.ExpressionScope: [String: QuestionnaireResponses.Response.Value?]] = [:]
     }
 
-    let revision: Int
+    let revision: QuestionnaireResponses.Revision
     let node: FHIRPathNode
     let items: [String: [FHIRPathNode]]
     /// The instant every expression of this state reads as `now()`: time moves on with the answers, so a page
@@ -62,7 +62,7 @@ private final class ResponseState: Sendable {
     private let results = Mutex(Results())
 
     init(
-        revision: Int,
+        revision: QuestionnaireResponses.Revision,
         node: FHIRPathNode,
         items: [String: [FHIRPathNode]],
         questionnaireDescendants: FHIRPathDescendantsCache
@@ -128,7 +128,7 @@ private final class ResponseStates: Sendable {
         current.withLock(\.built)
     }
 
-    func state(for revision: Int, build: () throws -> ResponseState) rethrows -> ResponseState {
+    func state(for revision: QuestionnaireResponses.Revision, build: () throws -> ResponseState) rethrows -> ResponseState {
         if let state = current.withLock(\.state), state.revision == revision {
             return state
         }
