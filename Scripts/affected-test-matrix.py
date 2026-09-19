@@ -99,7 +99,9 @@ INFRASTRUCTURE_PATHS = {
 # These scripts have their own static-analysis or deployment-floor checks. Editing them cannot alter
 # a package's unit/UI behavior, so they should not fan out into the package test matrix.
 NON_TEST_SCRIPT_PATHS = {
+    "Scripts/APPLE15_RELEASES.md",
     "Scripts/affected-test-matrix.py",
+    "Scripts/apple15-release.py",
     "Scripts/build-documentation.sh",
     "Scripts/build-floor.sh",
     "Scripts/check-documentation-targets.py",

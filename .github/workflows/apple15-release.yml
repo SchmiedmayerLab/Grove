@@ -1,0 +1,93 @@
+# SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+# SPDX-License-Identifier: MIT
+
+name: Apple 15 Release
+
+on:
+  release:
+    types: [published]
+
+concurrency:
+  group: apple15-release-${{github.event.release.tag_name}}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  SOURCE_TAG: ${{github.event.release.tag_name}}
+  SOURCE_SHA: ${{github.sha}}
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{steps.prepare.outputs.tag}}
+      tree: ${{steps.prepare.outputs.tree}}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{github.sha}}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prepare the compatibility manifest
+        id: prepare
+        run: |
+          tag=$(python3 Scripts/apple15-release.py tag --source-tag "$SOURCE_TAG")
+          if [ -n "$tag" ]; then
+            python3 Scripts/apple15-release.py prepare --source-tag "$SOURCE_TAG" --source-sha "$SOURCE_SHA"
+          fi
+
+  build-floor:
+    needs: prepare
+    if: needs.prepare.outputs.tag != ''
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {platform: iOS, kind: device}
+          - {platform: iOS, kind: simulator}
+          - {platform: macOS, kind: native}
+          - {platform: watchOS, kind: device}
+          - {platform: watchOS, kind: simulator}
+    env:
+      EXPECTED_TREE: ${{needs.prepare.outputs.tree}}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{github.sha}}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prepare the same release tree
+        id: prepare
+        run: python3 Scripts/apple15-release.py prepare --source-tag "$SOURCE_TAG" --source-sha "$SOURCE_SHA"
+      - name: Check the release defaults
+        env:
+          ACTUAL_TREE: ${{steps.prepare.outputs.tree}}
+        run: |
+          test "$ACTUAL_TREE" = "$EXPECTED_TREE"
+          env -u GROVE_LOWERED_DEPLOYMENT_TARGETS -u GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS \
+            swift package dump-package > "$RUNNER_TEMP/apple15-package.json"
+          python3 Scripts/apple15-release.py validate-defaults --dump "$RUNNER_TEMP/apple15-package.json"
+      - name: Build at the deployment floor
+        run: Scripts/build-floor.sh "${{matrix.platform}}" "${{matrix.kind}}"
+
+  publish:
+    needs: [prepare, build-floor]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{github.sha}}
+          fetch-depth: 0
+      - name: Publish the compatibility tag
+        env:
+          EXPECTED_TREE: ${{needs.prepare.outputs.tree}}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          python3 Scripts/apple15-release.py publish --source-tag "$SOURCE_TAG" \
+            --source-sha "$SOURCE_SHA" --expected-tree "$EXPECTED_TREE"

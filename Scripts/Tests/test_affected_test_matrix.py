@@ -188,7 +188,8 @@ class InfrastructureSelectionTests(unittest.TestCase):
         self.assertEqual(result["affected"], "(none)")
 
     def test_classified_non_test_script_does_not_run_package_tests(self):
-        result = run_selector("Scripts/build-documentation.sh")
+        result = run_selector("Scripts/build-documentation.sh", "Scripts/apple15-release.py",
+                              "Scripts/APPLE15_RELEASES.md", ".github/workflows/apple15-release.yml")
 
         self.assertEqual(result["has_jobs"], "false")
         self.assertEqual(result["affected"], "(none)")
