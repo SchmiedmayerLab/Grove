@@ -159,8 +159,7 @@ public struct ConsentDocumentView<Footer: View>: View {
 
     /// Whether the element is marked as one that still keeps the document from being complete.
     private func isBlocking(_ section: some ConsentDocument.InteractiveSectionProtocol) -> Bool {
-        (highlightsIncompleteSections || consentDocument.highlightsIncompleteSections)
-            && !section.valueMatchesExpected(consentDocument.value(for: section))
+        highlightsIncompleteSections && !section.valueMatchesExpected(consentDocument.value(for: section))
     }
 }
 

@@ -243,11 +243,6 @@ public final class ConsentDocument: Sendable {
     public package(set) var isSigning = false
     /// Indicates whether the document is currently being exported.
     public private(set) var isExporting = false
-    /// Whether the views showing the document mark the elements that still keep it from being complete.
-    ///
-    /// Set this to explicitly highlight incomplete elements in every view of the document. The onboarding view's
-    /// own submit-attempt highlights belong to its presentation and do not change this property.
-    public var highlightsIncompleteSections = false
     
     /// Creates a Consent Document by parsing a Markdown String
     ///
