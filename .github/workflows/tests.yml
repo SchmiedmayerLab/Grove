@@ -34,6 +34,11 @@ jobs:
     # Package.swift changes are compared through SwiftPM's evaluated manifest graph. A macOS runner
     # makes that graph include the dependencies guarded by `#if canImport(Darwin)` as well.
     runs-on: [self-hosted, macOS]
+    # Match run-package-tests.sh. Compatibility-only changes belong to Deployment Floor.
+    env:
+      GROVE_LOWERED_DEPLOYMENT_TARGETS: '0'
+      GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS: '1'
+      GROVE_EXCLUDE_DOCC_CATALOGS: '1'
     outputs:
       matrix: ${{ steps.compute.outputs.matrix }}
       ui_matrix: ${{ steps.compute.outputs.ui_matrix }}
@@ -72,7 +77,7 @@ jobs:
             echo "__ALL__" > changed.txt   # the default branch without a usable previous tip -> test everything
           fi
           echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
-          if grep -Fxq "Package.swift" changed.txt; then
+          if grep -Eq '^Package(@[^/]*)?\.swift$' changed.txt; then
             echo "manifest_changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "manifest_changed=false" >> "$GITHUB_OUTPUT"

@@ -79,6 +79,28 @@ struct ExportSessionDescriptor: Codable {
         })
     }
     
+    /// Updates both batch lists together so persistence sees a complete transition.
+    mutating func finishBatch(_ originalBatch: ExportBatch, result: Result<Void, any Error>) {
+        guard let index = pendingBatches.firstIndex(of: originalBatch) else {
+            preconditionFailure("Unable to find to-be-removed batch")
+        }
+        var batch = pendingBatches.remove(at: index)
+        switch result {
+        case .success:
+            batch.result = .success
+            completedBatches.append(batch)
+        case .failure(let error):
+            if error is CancellationError {
+                // Cancellation leaves the batch pending so it can be retried, rather than marking it failed.
+                batch.result = nil
+                pendingBatches.insert(batch, at: 0)
+            } else {
+                batch.result = .failure(errorDescription: error.localizedDescription)
+                pendingBatches.append(batch)
+            }
+        }
+    }
+
     /// Resets the `result` of all failed batches to `nil`, so that they will be retried by the ``BulkExportSession``.
     mutating func unmarkAllFailedBatches() {
         assert(completedBatches.allSatisfy { $0.result == .success })

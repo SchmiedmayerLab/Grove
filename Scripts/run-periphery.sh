@@ -20,6 +20,7 @@ command -v periphery > /dev/null || {
   echo "::error::periphery is not installed (brew install periphery)"; exit 1
 }
 
+export GROVE_LOWERED_DEPLOYMENT_TARGETS=0
 export GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS=1
 export GROVE_EXCLUDE_DOCC_CATALOGS=1
 

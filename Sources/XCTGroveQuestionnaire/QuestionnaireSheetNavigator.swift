@@ -210,7 +210,15 @@ extension QuestionnaireSheetNavigator {
     /// Waits for the navigation bar to carry `text`.
     @discardableResult
     public func waitUntilNavigationBarShows(_ text: String, timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        navigationBar.staticTexts.matching(label: text).firstMatch.waitForExistence(timeout: timeout)
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            // A follow-up sheet can add a new topmost bar while we wait.
+            if navigationBarShows(text) {
+                return true
+            }
+            usleep(100_000)
+        } while Date() < deadline
+        return false
     }
 
     /// Scrolls the page down by roughly one screen.

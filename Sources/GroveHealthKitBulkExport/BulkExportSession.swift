@@ -17,13 +17,12 @@ public import Observation
 public enum BulkExportSessionState: Hashable, Sendable {
     /// The session is currently paused.
     ///
-    /// This is also the initial state for newly created but not yet started sessions.
-    case paused
+    /// Newly created and restored sessions begin paused with reason `.notStarted`.
+    /// Inspect the reason before resuming with `start(retryFailedBatches:concurrencyLevel:)`.
+    case paused(reason: BulkExportPauseReason)
     /// The session is currently running.
     case running
-    /// The session has completed its work, and has nothing else left to do.
-    ///
-    /// - Note: A ``completed`` session can be restarted and transition back into the ``running`` state, if additional sample types are added to it.
+    /// All batches succeeded, including empty queries, and the final checkpoint was stored.
     case completed
     /// The session is irrevocably terminated, has been detached from the ``BulkHealthExporter``, and can not be restarted.
     ///
@@ -125,12 +124,16 @@ public protocol BulkExportSession<Processor>: AnyObject, Hashable, Sendable, Obs
     /// The total number of batches in the session.
     @MainActor var numTotalBatches: Int { get }
     
-    /// The session's current progress.
-    ///
-    /// `nil` if the session is terminated or hasn't yet been started.
+    /// Progress while the session is running; `nil` otherwise.
     @MainActor var progress: BulkExportSessionProgress? { get }
     
     /// Starts the session.
+    ///
+    /// Samples may repeat across batches; deduplicate within each participant’s data.
+    /// Progress is checkpointed for restoration across launches. After a write failure, retrying the live
+    /// session preserves its completed batches; terminating the app loses any unsaved progress.
+    /// Pass `retryFailedBatches: true` to retry failed batches as well as checkpoint persistence.
+    /// Restoration may repeat batches whose completion was not saved.
     ///
     /// Attempting to start a session that is already running will result in a ``StartSessionError/alreadyRunning`` error.
     ///
@@ -140,21 +143,21 @@ public protocol BulkExportSession<Processor>: AnyObject, Hashable, Sendable, Obs
         concurrencyLevel: BulkExportConcurrencyLevel
     ) throws(StartSessionError) -> AsyncStream<Processor.Output>
     
-    /// Pauses the session at the next possible point in time.
+    /// Requests a pause and waits for active workers and the final checkpoint attempt.
     ///
-    /// This operation won't necessarily cause the session to get paused immediately.
-    /// The session will complete its current block of work, and will only see the `pause()` call before starting the next work block.
+    /// The pause is not necessarily immediate: a running ``BatchProcessor`` may take time to respond to cancellation.
+    /// Inspect `state` afterward: a checkpoint failure takes precedence over the requested pause.
     ///
-    /// - Note: This is an asyncronous operation. The call will return once the pause request has been processed,
-    ///     which may take a little bit, e.g. if a ``BatchProcessor`` is performing a long-running operation.
-    ///     Place the call inside a `Task` if you don't want to wait for this.
+    /// - Note: The call returns once active work and checkpoint persistence have settled.
+    ///     Place it inside a `Task` if the caller should continue without waiting.
     @MainActor func pause() async
     
     /// Irrevocably terminates the session and detaches it from the ``BulkHealthExporter``.
     ///
-    /// - Note: This is an asyncronous operation. The call will return once the termination request has been processed,
-    ///     which may take a little bit, e.g. if a ``BatchProcessor`` is performing a long-running operation.
-    ///     Place the call inside a `Task` if you don't want to wait for this.
+    /// Waits for active work and pending checkpoint writes before returning.
+    /// A long-running ``BatchProcessor`` can delay termination while it responds to cancellation.
+    ///
+    /// - Note: Place the call inside a `Task` if the caller should continue without waiting.
     @MainActor func _terminate() async // swiftlint:disable:this identifier_name
 }
 
