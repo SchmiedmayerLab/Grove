@@ -262,6 +262,9 @@ extension LLMOpenAILikeSession {
             } else {
                 await MainActor.run {
                     context.completeAssistantThinkingStreaming(for: interactionId)
+                    // A failed image item can be part of an otherwise successful (or truncated) response.
+                    // Once this response has ended, none of its remaining placeholders can receive bytes.
+                    context.removeGeneratingImages(for: interactionId)
                 }
             }
             return functionCalls

@@ -53,15 +53,16 @@ extension LLMOpenAIRealtimeSession {
     /// Performs the initial setup by initializing the client and starting event listeners.
     ///
     /// - Throws: An error if client initialization fails.
+    @MainActor
     private func setup() async throws {
-        await MainActor.run {
-            self.state = .loading
-        }
+        state = .loading
+        await transcripts.reset()
         try await self.initializeClient()
-        await self.listenToLLMEvents()
-        await MainActor.run {
-            self.state = .ready
-        }
+        // Register before exposing readiness, so the first turn cannot precede the context listener.
+        let events = await apiConnection.events()
+        transcribesUserAudio = await apiConnection.inputTranscriptionEnabled
+        listenToLLMEvents(events)
+        state = .ready
     }
 
     /// Retrieves the auth token and opens the WebSocket connection to the Realtime API.

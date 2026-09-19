@@ -46,6 +46,7 @@ struct LegacyMessageInputView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            ResumeQueuedMessages(queue: queue, isGenerating: isGenerating, resume: resumeQueue)
             if !queue.isExpanded {
                 QueuedMessageStack(
                     messages: queue.messages,
@@ -90,6 +91,19 @@ struct LegacyMessageInputView: View {
         }
         .onChange(of: generation?.isGenerating) { _, generating in
             if generating == false {
+                if generation?.queuePaused == true {
+                    queue.pause()
+                }
+                sendNextQueued()
+            }
+        }
+        .onChange(of: generation?.queuePaused, initial: true) { _, paused in
+            if paused == true {
+                queue.pause()
+            }
+        }
+        .onChange(of: isEnabled) { _, enabled in
+            if enabled, !isGenerating {
                 sendNextQueued()
             }
         }
@@ -116,6 +130,17 @@ struct LegacyMessageInputView: View {
             if speechToText {
                 microphoneButton
             }
+            if isGenerating, let cancel = generation?.cancel {
+                Button {
+                    queue.pause()
+                    cancel()
+                } label: {
+                    Image(systemName: "stop.circle.fill")
+                        .font(.title)
+                        .accessibilityLabel(Text("STOP_GENERATING", bundle: .module))
+                }
+                .buttonStyle(.plain)
+            }
             sendButton
         }
     }
@@ -124,7 +149,9 @@ struct LegacyMessageInputView: View {
         Button(action: send) {
             Image(systemName: "arrow.up.circle.fill")
                 .font(.title)
-                .accessibilityLabel(Text(LocalizedStringKey(isGenerating ? "QUEUE_MESSAGE" : "SEND_MESSAGE"), bundle: .module))
+                .accessibilityLabel(
+                    Text(LocalizedStringKey(isGenerating || !queue.messages.isEmpty ? "QUEUE_MESSAGE" : "SEND_MESSAGE"), bundle: .module)
+                )
                 .foregroundStyle(
                     canSend
                         ? AnyShapeStyle(ChatPalette(accent: chatAccentColor, colorScheme: colorScheme).accent)
@@ -210,19 +237,25 @@ struct LegacyMessageInputView: View {
         let draft = QueuedMessage(text: message.trimmingCharacters(in: .whitespacesAndNewlines), quotation: quotation, attachments: [])
         message = ""
         quotation = nil
-        if isGenerating {
+        if isGenerating || !queue.messages.isEmpty {
             queue.messages.append(draft)
         } else {
+            queue.resume()
             chat.append(draft.entity)
         }
     }
 
     /// Lets the first queued message go, once the chat can take it; a closed composer keeps them.
     private func sendNextQueued() {
-        guard isEnabled, !queue.messages.isEmpty else {
+        guard isEnabled, !isGenerating, let next = queue.takeNext() else {
             return
         }
-        chat.append(queue.messages.removeFirst().entity)
+        chat.append(next.entity)
+    }
+
+    private func resumeQueue() {
+        queue.resume()
+        sendNextQueued()
     }
 
     /// Takes a queued message back into the field, ahead of whatever is being written there.

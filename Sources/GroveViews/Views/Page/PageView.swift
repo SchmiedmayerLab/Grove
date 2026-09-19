@@ -16,8 +16,8 @@ public import SwiftUI
 /// Onboarding, account, consent and questionnaire pages are all built on it, so they read the same way. The header
 /// and content scroll; the footer floats over them at the bottom, and the content fades into a blur as it runs
 /// underneath. A ``PageHeader`` can carry an image above the title, and once the title scrolls out of view it appears
-/// in the navigation bar instead. A page that has to be read to the end, such as a consent form, leaves the footer
-/// out and puts its action in the content; the content then fades out into the bottom safe area only.
+/// in the navigation bar instead. Consent pages use this floating footer too. To place an action at the end of
+/// the scrolling content instead, leave the footer out; the content then fades into the bottom safe area only.
 ///
 /// ```swift
 /// PageView {
@@ -89,8 +89,8 @@ public struct PageView<Header: View, Content: View, Footer: View>: View {
     ///       Defaults to `true`; pass `false` when the content already scrolls, such as a `Form`, to avoid nested `ScrollView`s.
     ///   - header: The header view displayed at the top.
     ///   - content: The content view.
-    ///   - footer: Actions that float over the scrolling content at the bottom. Leave it out for a page whose
-    ///       content has to be read to the end, such as a consent form, and put the action in the content instead.
+    ///   - footer: Actions that float over the scrolling content at the bottom. Leave it out to put an action
+    ///       at the end of the scrolling content instead.
     public init(
         wrapInScrollView: Bool = true,
         @ViewBuilder header: () -> Header = { EmptyView() },
@@ -103,9 +103,9 @@ public struct PageView<Header: View, Content: View, Footer: View>: View {
         self.footer = footer()
     }
 
-    /// Creates a page whose content is read to the end, with nothing floating over it.
+    /// Creates a page with no floating actions.
     ///
-    /// Use it for a page such as a consent form, where the action belongs below the content rather than over it.
+    /// Use it when the action belongs below the content rather than over it.
     /// The content still fades out into the bottom safe area as it scrolls.
     ///
     /// - Parameters:

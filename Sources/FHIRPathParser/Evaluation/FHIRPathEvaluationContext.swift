@@ -7,21 +7,25 @@
 //
 
 import Foundation
+import Synchronization
 
 
 /// The descendants of named constants, walked once for as long as the constants stay what they are.
 ///
 /// `%resource.descendants()` opens nearly every SDC expression, and a form evaluates dozens of them against one
 /// response; the caller that knows when the response changes hands a fresh cache to each context it builds.
-package final class FHIRPathDescendantsCache: @unchecked Sendable {
+@available(iOS 18, macOS 15, watchOS 11, *)
+package final class FHIRPathDescendantsCache: Sendable {
+    private struct State {
+        var descendants: [String: [FHIRPathValue]] = [:]
+        /// Per constant and member, where in the descendants each string value of that member is found.
+        var positions: [String: [String: [String: [Int]]]] = [:]
+    }
+
     private let constants: Set<String>
     /// Keeps the constants this cache does not, for longer: a questionnaire outlives every state of its answers.
     private let parent: FHIRPathDescendantsCache?
-    // The parser still builds at the iOS 15 floor, where `Mutex` is not available.
-    private let lock = NSLock()
-    private var descendants: [String: [FHIRPathValue]] = [:]
-    /// Per constant and member, where in the descendants each string value of that member is found.
-    private var positions: [String: [String: [String: [Int]]]] = [:]
+    private let state = Mutex(State())
 
     /// - parameters:
     ///   - constants: The names whose values stay the same for the cache's lifetime.
@@ -40,12 +44,12 @@ package final class FHIRPathDescendantsCache: @unchecked Sendable {
         if !constants.contains(name), let parent {
             return try parent.descendants(of: name, walk)
         }
-        if let known = lock.withLock({ descendants[name] }) {
+        if let known = state.withLock({ $0.descendants[name] }) {
             return known
         }
         let walked = try walk()
-        lock.withLock {
-            descendants[name] = walked
+        state.withLock {
+            $0.descendants[name] = walked
         }
         return walked
     }
@@ -63,15 +67,15 @@ package final class FHIRPathDescendantsCache: @unchecked Sendable {
             return try parent.descendants(of: name, whose: member, isAmong: literals, walk)
         }
         let all = try descendants(of: name, walk)
-        let index = lock.withLock { positions[name]?[member] } ?? {
+        let index = state.withLock { $0.positions[name]?[member] } ?? {
             var built: [String: [Int]] = [:]
             for (position, value) in all.enumerated() {
                 if let string = MemberFilter.string(member, of: value) {
                     built[string, default: []].append(position)
                 }
             }
-            lock.withLock {
-                positions[name, default: [:]][member] = built
+            state.withLock {
+                $0.positions[name, default: [:]][member] = built
             }
             return built
         }()
@@ -83,6 +87,7 @@ package final class FHIRPathDescendantsCache: @unchecked Sendable {
 
 /// The environment a FHIRPath expression is evaluated in: the input collection
 /// (`$this` at the root) plus named `%constants` such as `%resource`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct FHIRPathEvaluationContext: Sendable {
     /// The input collection the expression starts from.
     public var focus: [FHIRPathValue]

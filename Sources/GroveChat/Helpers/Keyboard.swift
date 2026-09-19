@@ -7,18 +7,18 @@
 //
 
 import SwiftUI
-#if canImport(UIKit)
-import UIKit
-#endif
 
 
-/// Resigns whichever text field holds the keyboard.
-///
-/// A sheet presented over the composer leaves the keyboard standing on iOS; a picture or file viewer should not open
-/// behind it.
-@MainActor
-func dismissKeyboard() {
-    #if os(iOS) || os(visionOS)
-    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-    #endif
+private struct DismissChatKeyboardKey: EnvironmentKey {
+    static let defaultValue: @MainActor () -> Void = {}
+}
+
+
+extension EnvironmentValues {
+    /// Dismisses this chat's composer before an attachment viewer opens.
+    /// A standalone message view has no composer and leaves other text fields alone.
+    var dismissChatKeyboard: @MainActor () -> Void {
+        get { self[DismissChatKeyboardKey.self] }
+        set { self[DismissChatKeyboardKey.self] = newValue }
+    }
 }

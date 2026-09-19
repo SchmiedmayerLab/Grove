@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import Foundation
 @testable import GroveLLM
 import Testing
 
@@ -55,5 +56,17 @@ struct LLMContextImageTests {
         var context = LLMContext()
         context.append(assistantImage: .generating)
         #expect(context.chat[0].content.parts.map(\.content) == [.image(.generating)])
+    }
+
+    @Test("Restoring a conversation discards pending images but preserves delivered images and text")
+    func restoringDoesNotResumeImageGeneration() throws {
+        var context = LLMContext()
+        context.append(userMessage: "Draw a tree")
+        context.append(assistantImage: picture)
+        context.append(assistantImage: .generating, interactionId: .init())
+
+        let restored = try JSONDecoder().decode(LLMContext.self, from: JSONEncoder().encode(context))
+
+        #expect(Array(restored) == Array(context.prefix(2)))
     }
 }

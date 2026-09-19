@@ -26,7 +26,7 @@ struct QueuedMessagesFanOut: View {
     let cornerRadius: CGFloat
 
     /// The card being moved, with how far it has been dragged from where it sat.
-    @State private var lift: (id: UUID, offset: CGFloat)?
+    @State private var lift: QueuedMessageReorder?
     /// The card being pushed aside, with how far.
     @State private var swipe: (id: UUID, offset: CGFloat)?
     @State private var reorderCount = 0
@@ -45,8 +45,8 @@ struct QueuedMessagesFanOut: View {
                 }
             ScrollView {
                 VStack(spacing: 8) {
-                    ForEach(Array(queue.messages.enumerated()), id: \.element.id) { index, message in
-                        card(message, at: index)
+                    ForEach(queue.messages) { message in
+                        card(message)
                     }
                 }
                 .padding(.horizontal, 12)
@@ -78,7 +78,7 @@ struct QueuedMessagesFanOut: View {
         }
     }
 
-    private func card(_ message: QueuedMessage, at index: Int) -> some View {
+    private func card(_ message: QueuedMessage) -> some View {
         HStack(spacing: 12) {
             message.preview
                 .font(.subheadline)
@@ -98,7 +98,7 @@ struct QueuedMessagesFanOut: View {
                 .font(.title3)
                 .foregroundStyle(.tertiary)
                 .accessibilityLabel(Text("REORDER_QUEUED_MESSAGE", bundle: .module))
-                .gesture(reorderGesture(for: message, at: index))
+                .gesture(reorderGesture(for: message))
         }
         .padding(.horizontal, 16)
         .frame(height: Self.rowHeight - 8)
@@ -124,20 +124,20 @@ struct QueuedMessagesFanOut: View {
     }
 
     /// Lifts the card by its grip and moves it a row at a time as it crosses its neighbours.
-    private func reorderGesture(for message: QueuedMessage, at index: Int) -> some Gesture {
+    private func reorderGesture(for message: QueuedMessage) -> some Gesture {
         DragGesture(minimumDistance: 4)
             .onChanged { value in
-                let rows = Int((value.translation.height / Self.rowHeight).rounded())
-                let target = min(max(index + rows, 0), queue.messages.count - 1)
-                if target != index, let current = queue.messages.firstIndex(where: { $0.id == message.id }) {
-                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
-                        queue.messages.move(fromOffsets: IndexSet(integer: current), toOffset: target > current ? target + 1 : target)
-                    }
-                    reorderCount += 1
-                    lift = (message.id, value.translation.height - CGFloat(target - index) * Self.rowHeight)
-                } else {
-                    lift = (message.id, value.translation.height - CGFloat(target - index) * Self.rowHeight)
+                guard let current = queue.messages.firstIndex(where: { $0.id == message.id }) else {
+                    lift = nil
+                    return
                 }
+                var drag = lift ?? QueuedMessageReorder(id: message.id, origin: current)
+                withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
+                    if drag.update(translation: value.translation.height, rowHeight: Self.rowHeight, messages: &queue.messages) {
+                        reorderCount += 1
+                    }
+                }
+                lift = drag
             }
             .onEnded { _ in
                 withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {

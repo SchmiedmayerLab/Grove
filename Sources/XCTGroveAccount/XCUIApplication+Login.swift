@@ -55,7 +55,7 @@ extension XCUIApplication {
 
     /// The button that submits the sign-up form.
     public var signUpButton: XCUIElement {
-        buttons["Sign Up"]
+        buttons["Sign-Up Submit"]
     }
 
     /// The button on the account setup page that opens the sign-up form.

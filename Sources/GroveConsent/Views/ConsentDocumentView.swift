@@ -31,25 +31,26 @@ public import SwiftUI
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct ConsentDocumentView<Footer: View>: View {
     @Bindable private var consentDocument: ConsentDocument
+    @Environment(\.highlightsIncompleteConsentSections) private var highlightsIncompleteSections
     private let signatureFieldLabels: ConsentSignatureForm.Labels
     private let signatureDate: Date?
     private let signatureDateFormat: Date.FormatStyle
     private let footer: Footer
     
     public var body: some View {
-        MarkdownView(
-            document: consentDocument.markdownDocument,
-            dividerRule: .never
-        ) { blockIdx, _ in
-            let section = consentDocument.sections[blockIdx]
-            if section.isSignature && blockIdx == consentDocument.sections.endIndex - 1 {
-                // A short document keeps its name and signature at the bottom rather than mid-page.
-                Spacer(minLength: 24)
+        VStack(spacing: 12) {
+            MarkdownView(
+                document: consentDocument.markdownDocument,
+                dividerRule: .never
+            ) { blockIdx, _ in
+                let section = consentDocument.sections[blockIdx]
+                if section.isSignature && blockIdx == consentDocument.sections.endIndex - 1 {
+                    // A short document keeps its name and signature at the bottom rather than mid-page.
+                    Spacer(minLength: 24)
+                }
+                view(for: section)
             }
-            view(for: section)
-            if blockIdx == consentDocument.sections.endIndex - 1 {
-                footer
-            }
+            footer
         }
     }
     
@@ -109,7 +110,12 @@ public struct ConsentDocumentView<Footer: View>: View {
                 InteractiveElementLabel(text: config.text)
             }
             .accessibilityIdentifier(for: config)
-            .interactiveCard(isBlocking: isBlocking(config), message: Text("CONSENT_TOGGLE_REQUIRED", bundle: .module))
+            .interactiveCard(
+                isBlocking: isBlocking(config),
+                message: config.expectedValue == false
+                    ? Text("CONSENT_TOGGLE_OFF_REQUIRED", bundle: .module)
+                    : Text("CONSENT_TOGGLE_REQUIRED", bundle: .module)
+            )
             .id(config.id)
             // Goal: we want a Toggle that can be toggled by tapping anywhere in its frame.
             // Issue: using only `.onTapGesture` doesn't quite work, since that'll only trigger for touches that are in the
@@ -153,8 +159,12 @@ public struct ConsentDocumentView<Footer: View>: View {
 
     /// Whether the element is marked as one that still keeps the document from being complete.
     private func isBlocking(_ section: some ConsentDocument.InteractiveSectionProtocol) -> Bool {
-        consentDocument.highlightsIncompleteSections && !section.valueMatchesExpected(consentDocument.value(for: section))
+        highlightsIncompleteSections && !section.valueMatchesExpected(consentDocument.value(for: section))
     }
+}
+
+extension EnvironmentValues {
+    @Entry var highlightsIncompleteConsentSections = false
 }
 
 

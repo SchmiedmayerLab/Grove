@@ -54,6 +54,8 @@ extension LLMContext: Codable {
     /// Decodes from the plain entity array the previous `LLMContext` typealias encoded to.
     public init(from decoder: any Decoder) throws {
         self.init(try [LLMContextEntity](from: decoder))
+        // Restoring a conversation cannot restore the network request that would finish these images.
+        storage.removeAll { $0._imageContent?.isGenerating == true }
     }
 
     /// Encodes as a plain entity array, matching the previous `LLMContext` typealias.

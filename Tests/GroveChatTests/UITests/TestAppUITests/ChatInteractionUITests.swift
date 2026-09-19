@@ -102,6 +102,44 @@ final class ChatInteractionUITests: XCTestCase {
         XCTAssert(app.buttons["Edit Queued Message"].waitForExistence(timeout: 2), "One message left is a single card again.")
     }
 
+    func testStoppingHoldsQueuedMessagesUntilResumed() throws {
+        let app = XCUIApplication()
+        try app.textFields["Message Input Textfield"].enter(value: "Answer slowly", options: [.disableKeyboardDismiss])
+        app.buttons["Send Message"].tap()
+        XCTAssert(app.buttons["Stop Generating"].waitForExistence(timeout: 3))
+        try app.textFields["Message Input Textfield"].enter(value: "A queued question", options: [.disableKeyboardDismiss])
+        app.buttons["Queue Message"].tap()
+        app.buttons["Stop Generating"].tap()
+
+        let resume = app.buttons["Resume Queued Messages"]
+        XCTAssert(resume.waitForExistence(timeout: 3))
+        XCTAssert(app.buttons["Stop Generating"].waitForNonExistence(timeout: 3))
+        XCTAssert(app.descendants(matching: .any)["Queued Message"].exists, "Stopping leaves the next question queued.")
+
+        resume.tap()
+        XCTAssert(app.descendants(matching: .any)["Queued Message"].waitForNonExistence(timeout: 3))
+        XCTAssert(app.buttons["Stop Generating"].waitForExistence(timeout: 3), "Resuming starts the queued question's answer.")
+    }
+
+    func testFailureHoldsQueuedMessagesAndItsErrorUntilResumed() throws {
+        let app = XCUIApplication()
+        try app.textFields["Message Input Textfield"].enter(value: "Please fail slowly", options: [.disableKeyboardDismiss])
+        app.buttons["Send Message"].tap()
+        XCTAssert(app.buttons["Stop Generating"].waitForExistence(timeout: 3))
+        try app.textFields["Message Input Textfield"].enter(value: "A queued question", options: [.disableKeyboardDismiss])
+        app.buttons["Queue Message"].tap()
+
+        let resume = app.buttons["Resume Queued Messages"]
+        XCTAssert(resume.waitForExistence(timeout: 40))
+        let failure = app.staticTexts["The assistant could not be reached. Check your connection and try again."]
+        XCTAssert(failure.exists, "The next queued question must not erase the failure.")
+        XCTAssert(app.descendants(matching: .any)["Queued Message"].exists)
+
+        resume.tap()
+        XCTAssert(app.descendants(matching: .any)["Queued Message"].waitForNonExistence(timeout: 3))
+        XCTAssert(failure.waitForNonExistence(timeout: 3), "Explicit resume starts a fresh attempt.")
+    }
+
     func testAFailedAnswerIsReportedInlineAndCanBeRetried() throws {
         let app = XCUIApplication()
 

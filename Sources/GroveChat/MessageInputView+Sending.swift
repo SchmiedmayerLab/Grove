@@ -27,9 +27,10 @@ extension MessageInputView {
         #if canImport(PhotosUI)
         photoSelection = []
         #endif
-        if isGenerating {
+        if isGenerating || !queue.messages.isEmpty {
             queue.messages.append(draft)
         } else {
+            queue.resume()
             chat.append(draft.entity)
         }
     }
@@ -39,10 +40,15 @@ extension MessageInputView {
     /// One at a time: the next waits for the answer this one gets. A composer that has been closed in the meantime
     /// keeps them, as it keeps anything else the participant has staged.
     func sendNextQueued() {
-        guard isEnabled, !queue.messages.isEmpty else {
+        guard isEnabled, !isGenerating, let next = queue.takeNext() else {
             return
         }
-        chat.append(queue.messages.removeFirst().entity)
+        chat.append(next.entity)
+    }
+
+    func resumeQueue() {
+        queue.resume()
+        sendNextQueued()
     }
 
     /// Takes a queued message back into the field, ahead of whatever is being written there.

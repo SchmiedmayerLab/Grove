@@ -31,8 +31,6 @@ A module that allows you to interact with GPT-based Large Language Models (LLMs)
 }
 
 An ``LLMOpenAISession`` drives the conversation shown by the [GroveChat](../../GroveChat/GroveChat.docc/GroveChat.md) module's `ChatView`.
-    }
-}
 
 ## Setup
 

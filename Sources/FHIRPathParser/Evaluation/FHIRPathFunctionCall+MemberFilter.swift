@@ -15,6 +15,7 @@ import Antlr4
 ///
 /// Answered from the member itself rather than by evaluating the criteria on every element: over a whole
 /// response that is thousands of evaluations per expression, and what they would find is the same.
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct MemberFilter {
     let member: String
     let literals: Set<String>

@@ -10,6 +10,7 @@ import Antlr4
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRPathEvaluator {
     static func unquote(_ text: String) -> String {
         var result = text

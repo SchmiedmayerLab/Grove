@@ -50,6 +50,9 @@ extension LLMOpenAIRealtimeSession: AudioCapableLLMSession {
     ///
     /// This method is used to stream audio samples from the microphone to the OpenAI Realtime session as the user speaks.
     ///
+    /// Start consuming ``listen()`` and wait for ``state`` to become ready before sending microphone audio.
+    /// This method sends on an existing connection; it does not initialize or reconnect the session.
+    ///
     /// - Important: No resampling or format conversion is performed by this method: audio should be provided in 16-bit PCM (little-endian), mono, 24 kHz.
     ///              Supplying a different format may result in degraded quality or server-side errors.
     /// - Parameter buffer: A block of raw PCM16 samples to send to the Realtime API input audio buffer.

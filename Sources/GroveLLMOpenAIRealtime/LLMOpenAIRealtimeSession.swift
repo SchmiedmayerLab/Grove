@@ -100,6 +100,7 @@ public final class LLMOpenAIRealtimeSession: LLMSession, SchemaProvidingLLMSessi
     /// Handles websockets connection with OpenAI Realtime API
     let apiConnection = LLMOpenAIRealtimeConnection()
     let transcripts = UserTranscriptTracker()
+    @MainActor var transcribesUserAudio = false
 
     @MainActor public var state: LLMState = .uninitialized
     @MainActor public var context: LLMContext = []
@@ -130,7 +131,6 @@ public final class LLMOpenAIRealtimeSession: LLMSession, SchemaProvidingLLMSessi
     ///   completes or if the session is cancelled. Errors during setup or generation are propagated through the stream.
     @discardableResult
     public func generate() async -> AsyncThrowingStream<String, any Error> {
-        typealias ResponseCreate = Components.Schemas.RealtimeClientEventResponseCreate
         typealias ConversationItemCreate = Components.Schemas.RealtimeClientEventConversationItemCreate
 
         // Stream the text response back to the `generate()` caller.
@@ -142,12 +142,18 @@ public final class LLMOpenAIRealtimeSession: LLMSession, SchemaProvidingLLMSessi
                 do {
                     try await self.ensureSetup()
 
+                    // Subscribe before sending: even a fast refusal must reach this generation.
+                    let events = await apiConnection.events()
+                    let requestId = UUID().uuidString
+                    let conversationEventId = UUID().uuidString
+
                     // Get the relevant part of the context
                     let lastContext = await self.context.last { $0.role == .user && $0.complete }
 
                     // Send the conversation.item.create event with the message
                     try await apiConnection.sendMessage(
                         ConversationItemCreate(
+                            event_id: conversationEventId,
                             _type: .conversation_period_item_period_create,
                             item: .init(
                                 value2: .init(
@@ -160,17 +166,11 @@ public final class LLMOpenAIRealtimeSession: LLMSession, SchemaProvidingLLMSessi
                     )
 
                     // Trigger a response
-                    try await apiConnection.requestResponse()
+                    try await apiConnection.requestResponse(eventId: requestId)
 
-                    for try await event in await apiConnection.events() {
-                        if case .assistantTranscriptDone = event {
-                            // Finish as soon as the next transcript done event occurs
-                            continuation.finish()
-                        }
-
-                        if case .assistantTranscriptDelta(let delta) = event {
-                            continuation.yield(delta)
-                        }
+                    let response = Self.textResponse(from: events, requestId: requestId, conversationEventId: conversationEventId)
+                    for try await delta in response {
+                        continuation.yield(delta)
                     }
                     continuation.finish() // in case `events()` stream finished
                 } catch {

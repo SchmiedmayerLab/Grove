@@ -851,6 +851,28 @@
         }
       }
     },
+    "RESUME_QUEUED_MESSAGES": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wartende Nachrichten fortsetzen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume Queued Messages"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reanudar Mensajes en Cola"
+          }
+        }
+      }
+    },
     "SEND_MESSAGE": {
       "localizations": {
         "de": {

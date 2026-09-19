@@ -169,6 +169,7 @@ struct TaskView: View {
             .frame(height: room(progress: progress), alignment: .top)
             .clipped()
         } keyframes: { _ in
+            MoveKeyframe(0.0)
             LinearKeyframe(1.0, duration: reduceMotion ? 0.01 : growing ? messageOpening : messageClosing)
         }
         .background(alignment: .top) {

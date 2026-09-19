@@ -23,6 +23,9 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
         startPageShapes(upTo: "morning-note")
 
         XCTAssert(questionnaire.isTitled("Mornings"))
+        #if os(iOS)
+        XCTAssert(questionnaire.navigationBarShows("Page Titles"))
+        #endif
         XCTAssert(questionnaire.showsText("Everything you do before you leave the house"))
         XCTAssertFalse(questionnaire.isTitled("Everything you do before you leave the house"))
         XCTAssertFalse(questionnaire.sectionIntro.exists)

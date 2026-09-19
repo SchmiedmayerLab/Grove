@@ -134,6 +134,7 @@ public struct ChatView: View {
             }
             .environment(followUp)
             .environment(queue)
+            .environment(\.dismissChatKeyboard, { inputTextFieldIsFocused = false })
             .modifier(SingleTextSelection())
             #if os(macOS)
             .onChange(of: showShareSheet) { _, isPresented in

@@ -79,6 +79,7 @@ struct MessageInputView: View {
     var body: some View {
         GlassEffectContainer(spacing: 8) {
             VStack(spacing: 8) {
+                ResumeQueuedMessages(queue: queue, isGenerating: isGenerating, resume: resumeQueue)
                 queuedMessages
                 if speechToText && speechRecognizer.isRecording {
                     dictationRow
@@ -112,6 +113,19 @@ struct MessageInputView: View {
         .animation(.smooth(duration: 0.2), value: generation?.isGenerating)
         .onChange(of: generation?.isGenerating) { _, generating in
             if generating == false {
+                if generation?.queuePaused == true {
+                    queue.pause()
+                }
+                sendNextQueued()
+            }
+        }
+        .onChange(of: generation?.queuePaused, initial: true) { _, paused in
+            if paused == true {
+                queue.pause()
+            }
+        }
+        .onChange(of: isEnabled) { _, enabled in
+            if enabled, !isGenerating {
                 sendNextQueued()
             }
         }
@@ -199,6 +213,7 @@ struct MessageInputView: View {
     /// Interrupts the answer in flight.
     private var stopButton: some View {
         Button {
+            queue.pause()
             generation?.cancel?()
         } label: {
             Image(systemName: "stop.fill")
@@ -215,7 +230,9 @@ struct MessageInputView: View {
         Button(action: send) {
             Image(systemName: "arrow.up")
                 .font(.system(size: 16, weight: .bold))
-                .accessibilityLabel(Text(LocalizedStringKey(isGenerating ? "QUEUE_MESSAGE" : "SEND_MESSAGE"), bundle: .module))
+                .accessibilityLabel(
+                    Text(LocalizedStringKey(isGenerating || !queue.messages.isEmpty ? "QUEUE_MESSAGE" : "SEND_MESSAGE"), bundle: .module)
+                )
                 .foregroundStyle(canSend ? AnyShapeStyle(palette.onAccent) : AnyShapeStyle(.secondary))
                 .frame(width: Self.controlSize, height: Self.controlSize)
                 .background(canSend ? AnyShapeStyle(palette.accent) : AnyShapeStyle(.quaternary), in: .circle)

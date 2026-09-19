@@ -15,12 +15,8 @@ import GroveLLMOpenAI
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMOpenAIRealtimeSession: ToolCallLLMSession {
     @MainActor
-    func listenToLLMEvents() {
+    func listenToLLMEvents(_ eventStream: AsyncThrowingStream<LLMRealtimeAudioEvent, any Error>) {
         Task { [weak self] in
-            guard let eventStream = await self?.apiConnection.events() else {
-                Self.logger.error("GroveLLMOpenAIRealtime: No self in listenToLLMEvents...")
-                return
-            }
             do {
                 for try await event in eventStream {
                     await self?.handle(event)
@@ -42,6 +38,11 @@ extension LLMOpenAIRealtimeSession: ToolCallLLMSession {
     private func handle(_ event: LLMRealtimeAudioEvent) async { // swiftlint:disable:this cyclomatic_complexity
         let shouldInject = schema.injectIntoContext
         switch event {
+        case .inputTranscriptionConfigured(let enabled):
+            transcribesUserAudio = enabled
+            if !enabled {
+                await transcripts.reset()
+            }
         case .assistantTranscriptDelta(let content) where shouldInject:
             context.append(assistantOutputDelta: content, isComplete: false, interactionId: nil)
         case .assistantTranscriptDone where shouldInject:
@@ -49,20 +50,19 @@ extension LLMOpenAIRealtimeSession: ToolCallLLMSession {
         case .userTranscriptDelta(let content) where shouldInject:
             handleTranscript(itemId: content.itemId, content: content.delta, isComplete: false)
         case .userTranscriptDone(let content):
-            await transcripts.complete(content.itemId)
             if shouldInject {
                 // A transcriber that sends no deltas delivers the words here, all at once.
                 handleTranscript(itemId: content.itemId, content: "", isComplete: true, transcript: content.transcript)
             }
+            // Release tools only after the final words are available in the context.
+            await transcripts.complete(content.itemId)
         case .userTranscriptFailed(let content):
             await transcripts.complete(content.itemId)
         case .speechStopped(let content):
-            if schema.parameters.transcriptionSettings != nil {
-                await transcripts.expect(content.itemId)
-            }
-            if shouldInject {
-                handleSpeechStopped(itemId: content.itemId)
-            }
+            await expectTranscript(itemId: content.itemId)
+        case .userAudioCommitted(let itemId):
+            // Manual turn detection sends committed without a preceding speech_stopped event.
+            await expectTranscript(itemId: itemId)
         case .functionCallRequested(let functionCall):
             Task {
                 await self.handleFunctionCall(functionCall: functionCall)
@@ -100,17 +100,19 @@ extension LLMOpenAIRealtimeSession: ToolCallLLMSession {
         )
     }
     
-    /// When speech stops, directly append an empty user message to ensure it appears before any assistant
-    /// messages in the context. This message then gets completed using the `.userTranscriptDelta` event
+    /// When a turn ends, append a user message before the assistant responds, and wait for its transcript.
     ///
-    /// - Note: If no transcription settings are configured inside the LLMSession's schema parameter, no message is appended to the context.
+    /// Use the configuration confirmed by the server, since locally supplied settings are ignored in server mode.
     @MainActor
-    private func handleSpeechStopped(itemId: String) {
-        guard self.schema.parameters.transcriptionSettings != nil else {
+    private func expectTranscript(itemId: String) async {
+        guard transcribesUserAudio else {
             return
         }
-
+        await transcripts.expect(itemId)
         let contentUUID = UUID.deterministic(from: itemId)
+        guard schema.injectIntoContext, !context.contains(where: { $0.id == contentUUID }) else {
+            return
+        }
         self.context.append(
             .init(
                 id: contentUUID,

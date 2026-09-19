@@ -76,66 +76,70 @@ public import Speech
 @available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class SpeechRecognizer: NSObject, Module, DefaultInitializable, EnvironmentAccessible, SFSpeechRecognizerDelegate, @unchecked Sendable {
+    typealias ResultStream = AsyncThrowingStream<SFSpeechRecognitionResult, any Error>
+
+    private struct Session {
+        let id: UUID
+        let continuation: ResultStream.Continuation
+        var authorizationTask: Task<Void, Never>?
+    }
+
     private static let logger = Logger(subsystem: "org.grovealliance", category: "GroveSpeech")
-    private let speechRecognizer: SFSpeechRecognizer?
-    private let audioEngine: AVAudioEngine?
 
-    /// Indicates whether the speech recognition is currently in progress.
-    public private(set) var isRecording = false
+    @ObservationIgnored private let lock = NSRecursiveLock()
+    @ObservationIgnored private let recording: any SpeechRecognitionRecording
+    @ObservationIgnored private let authorization: @Sendable () async -> Bool
+    @ObservationIgnored private var session: Session?
+    @ObservationIgnored private var recordingValue = false
+    @ObservationIgnored private var availableValue: Bool
+    @ObservationIgnored private var levelValue: Float = 0
+
+    /// Indicates whether speech recognition is currently recording audio.
+    public private(set) var isRecording: Bool {
+        get {
+            access(keyPath: \.isRecording)
+            return lock.withLock { recordingValue }
+        }
+        set { withMutation(keyPath: \.isRecording) { lock.withLock { recordingValue = newValue } } }
+    }
+
     /// Indicates the availability of the speech recognition service.
-    public private(set) var isAvailable: Bool
-    /// How loud the microphone hears the speaker right now, from 0 (silence) to 1, while recording; 0 otherwise.
-    ///
-    /// Updated with every audio buffer, some forty times a second, for a level meter to follow.
-    public private(set) var level: Float = 0
+    public private(set) var isAvailable: Bool {
+        get {
+            access(keyPath: \.isAvailable)
+            return lock.withLock { availableValue }
+        }
+        set { withMutation(keyPath: \.isAvailable) { lock.withLock { availableValue = newValue } } }
+    }
 
-    private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
-    private var recognitionTask: SFSpeechRecognitionTask?
-
+    /// How loud the microphone hears the speaker, from 0 (silence) to 1; 0 while stopped.
+    public private(set) var level: Float {
+        get {
+            access(keyPath: \.level)
+            return lock.withLock { levelValue }
+        }
+        set { withMutation(keyPath: \.level) { lock.withLock { levelValue = newValue } } }
+    }
 
     /// Initializes a new instance of `SpeechRecognizer`.
     override public required convenience init() {
         self.init(locale: .current)
     }
 
-    /// Initializes a new instance of `SpeechRecognizer`.
-    ///
-    /// - Parameter locale: The locale for the speech recognition. Defaults to the current locale.
-    public init(locale: Locale = .current) {
-        if let speechRecognizer = SFSpeechRecognizer(locale: locale) {
-            self.speechRecognizer = speechRecognizer
-            self.isAvailable = speechRecognizer.isAvailable
-        } else {
-            self.speechRecognizer = nil
-            self.isAvailable = false
-        }
+    /// Initializes speech recognition for the specified locale.
+    public convenience init(locale: Locale = .current) {
+        self.init(recording: SystemSpeechRecognitionRecording(locale: locale), authorization: Self.systemAuthorization)
+    }
 
-        self.audioEngine = AVAudioEngine()
-
+    init(recording: any SpeechRecognitionRecording, authorization: @escaping @Sendable () async -> Bool) {
+        self.recording = recording
+        self.authorization = authorization
+        self.availableValue = recording.isAvailable
         super.init()
-
-        speechRecognizer?.delegate = self
+        (recording as? SystemSpeechRecognitionRecording)?.recognizer?.delegate = self
     }
 
-
-    /// The buffer's loudness on a scale a meter can show: its power in decibels, with -50 dB as silence and 0 dB as full.
-    private static func level(of buffer: AVAudioPCMBuffer) -> Float {
-        guard let channel = buffer.floatChannelData?[0], buffer.frameLength > 0 else {
-            return 0
-        }
-        let frames = Int(buffer.frameLength)
-        var sum: Float = 0
-        for frame in 0..<frames {
-            sum += channel[frame] * channel[frame]
-        }
-        let decibels = 20 * log10(max(sqrt(sum / Float(frames)), .leastNonzeroMagnitude))
-        return min(max((decibels + 50) / 50, 0), 1)
-    }
-
-    /// Asks for the permissions recognition needs, the first time; whether both were granted.
-    ///
-    /// ``start()`` asks on its own. Ask ahead of it to keep the prompts away from the moment of speaking.
-    public func requestAuthorization() async -> Bool {
+    private static func systemAuthorization() async -> Bool {
         let speech = await withCheckedContinuation { continuation in
             SFSpeechRecognizer.requestAuthorization { status in
                 continuation.resume(returning: status)
@@ -151,123 +155,130 @@ public final class SpeechRecognizer: NSObject, Module, DefaultInitializable, Env
         #endif
     }
 
-    /// Starts the speech recognition process.
+
+    /// Asks for the permissions recognition needs, the first time; whether both were granted.
     ///
-    /// - Returns: An asynchronous stream that yields the speech recognition results.
+    /// ``start()`` asks on its own. Ask ahead of it to keep the prompts away from the moment of speaking.
+    public func requestAuthorization() async -> Bool {
+        await authorization()
+    }
+
+    /// Starts recognition after authorization, yielding its partial and final results.
+    ///
+    /// Calling ``stop()`` or cancelling the stream also cancels a start waiting for permission.
     public func start() -> AsyncThrowingStream<SFSpeechRecognitionResult, any Error> {
         AsyncThrowingStream { continuation in
-            Task {
-                guard await requestAuthorization() else {
-                    SpeechRecognizer.logger.warning("Speech recognition or the microphone was not authorized.")
-                    continuation.finish(throwing: SpeechRecognizerError.notAuthorized)
+            lock.withLock {
+                guard session == nil else {
+                    Self.logger.warning("Speech recognition is already starting or recording; stopping the existing session.")
+                    stop()
+                    continuation.finish()
                     return
                 }
-                record(into: continuation)
+                let id = UUID()
+                session = Session(id: id, continuation: continuation)
+                continuation.onTermination = { [weak self] _ in
+                    self?.finish(id: id)
+                }
+                session?.authorizationTask = Task { @MainActor [weak self] in
+                    guard let self else {
+                        continuation.finish()
+                        return
+                    }
+                    let authorized = await requestAuthorization()
+                    beginRecording(id: id, authorized: authorized)
+                }
             }
         }
     }
 
-    private func record( // swiftlint:disable:this function_body_length
-        into continuation: AsyncThrowingStream<SFSpeechRecognitionResult, any Error>.Continuation
-    ) {
-        guard !isRecording else {
-            SpeechRecognizer.logger.warning(
-                "You already having a recording session in progress, please cancel the first one using `stop` before starting a new session."
-            )
-            stop()
-            continuation.finish()
-            return
-        }
+    /// Stops the current recording or pending authorization and finishes its result stream.
+    public func stop() {
+        finish()
+    }
 
-        guard isAvailable, let audioEngine, let speechRecognizer else {
-            SpeechRecognizer.logger.error("The SpeechRecognizer is not available.")
-            stop()
-            continuation.finish()
-            return
-        }
-
-        // No alternative on macOS, only minor impact on functionality
-        #if !os(macOS)
-        do {
-            let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
-            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-        } catch {
-            SpeechRecognizer.logger.error("Error setting up the audio session: \(error.localizedDescription)")
-            stop()
-            continuation.finish(throwing: error)
-        }
-        #endif
-
-        let inputNode = audioEngine.inputNode
-
-        let recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-        recognitionRequest.shouldReportPartialResults = true
-        self.recognitionRequest = recognitionRequest
-
-        recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { result, error in
-            if let error {
-                continuation.finish(throwing: error)
-            }
-
-            guard self.isRecording, let result else {
-                self.stop()
+    private func beginRecording(id: UUID, authorized: Bool) {
+        lock.withLock {
+            guard session?.id == id, !Task.isCancelled else {
                 return
             }
-
-            continuation.yield(result)
-        }
-
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
-            self.recognitionRequest?.append(buffer)
-            let level = Self.level(of: buffer)
-            Task { @MainActor in
-                self.level = level
+            guard authorized else {
+                finish(id: id, error: SpeechRecognizerError.notAuthorized)
+                return
+            }
+            guard isAvailable else {
+                finish(id: id)
+                return
+            }
+            do {
+                try recording.start { [weak self] result, error in
+                    Task { @MainActor in
+                        self?.receive(result, error: error, id: id)
+                    }
+                } level: { [weak self] level in
+                    Task { @MainActor in
+                        self?.updateLevel(level, id: id)
+                    }
+                }
+                if session?.id == id {
+                    isRecording = true
+                }
+            } catch {
+                finish(id: id, error: error)
             }
         }
+    }
 
-        audioEngine.prepare()
-        do {
-            isRecording = true
-            try audioEngine.start()
-        } catch {
-            SpeechRecognizer.logger.error("Error setting up the audio session: \(error.localizedDescription)")
-            stop()
-            continuation.finish(throwing: error)
-        }
-
-        continuation.onTermination = { @Sendable _ in
-            self.stop()
+    private func receive(_ result: SFSpeechRecognitionResult?, error: (any Error)?, id: UUID) {
+        lock.withLock {
+            guard let session, session.id == id else {
+                return
+            }
+            if let result {
+                session.continuation.yield(result)
+            }
+            if error != nil || result?.isFinal == true {
+                finish(id: id, error: error)
+            }
         }
     }
 
-    /// Stops the current speech recognition session.
-    public func stop() {
-        guard isAvailable && isRecording else {
-            return
+    private func updateLevel(_ level: Float, id: UUID) {
+        lock.withLock {
+            guard session?.id == id, isRecording else {
+                return
+            }
+            self.level = level
         }
-
-        audioEngine?.stop()
-        audioEngine?.inputNode.removeTap(onBus: 0)
-
-        recognitionRequest?.endAudio()
-        recognitionRequest = nil
-
-        recognitionTask?.cancel()
-        recognitionTask = nil
-
-        isRecording = false
-        level = 0
     }
+
+    private func finish(id: UUID? = nil, error: (any Error)? = nil) {
+        lock.withLock {
+            guard let current = session, id == nil || current.id == id else {
+                return
+            }
+            // Invalidate before cancelling either task: late callbacks belong to this session, never its successor.
+            session = nil
+            current.authorizationTask?.cancel()
+            recording.stop()
+            isRecording = false
+            level = 0
+            current.continuation.finish(throwing: error)
+        }
+    }
+
 
     @_documentation(visibility: internal)
     public func speechRecognizer(_ speechRecognizer: SFSpeechRecognizer, availabilityDidChange available: Bool) {
-        guard self.speechRecognizer == speechRecognizer else {
-            return
+        lock.withLock {
+            guard (recording as? SystemSpeechRecognitionRecording)?.recognizer == speechRecognizer else {
+                return
+            }
+            isAvailable = available
+            if !available {
+                stop()
+            }
         }
-
-        self.isAvailable = available
     }
 }
 
