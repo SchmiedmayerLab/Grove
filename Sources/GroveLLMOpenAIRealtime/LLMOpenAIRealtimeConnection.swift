@@ -15,16 +15,8 @@ import os
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 actor LLMOpenAIRealtimeConnection {
-    private typealias FunctionCallArgs = Components.Schemas.RealtimeServerEventResponseFunctionCallArgumentsDone
     private typealias RealtimeErrorEvent = Components.Schemas.RealtimeServerEventError
 
-    enum RealtimeError: LLMError {
-        case malformedUrlError
-        case socketNotFoundError
-        case openAIError(error: Components.Schemas.RealtimeServerEventError.errorPayload)
-        case eventSessionUpdateSerialisationError
-    }
-    
     private static let logger = Logger(subsystem: "org.grovealliance", category: "GroveLLMOpenAIRealtime")
     private static let encoder = JSONEncoder()
     private static let decoder = JSONDecoder()
@@ -36,27 +28,34 @@ actor LLMOpenAIRealtimeConnection {
     private lazy var urlSession = URLSession(configuration: .default)
 
     // The event stream which gets sent in session.events()
-    let eventStream = EventBroadcaster<LLMRealtimeAudioEvent>()
+    var eventStream = EventBroadcaster<LLMRealtimeAudioEvent>()
     var inputTranscriptionEnabled = false
+    var connectionId = UUID()
 
     // Handling of the setup: only finish whenever the connection to API has been successful
     private var readyContinuation: CheckedContinuation<Void, any Error>?
     // A request while a response is active is refused, and an out-of-band one can overlap the conversation's, so
     // every response in flight is tracked and requests wait until none is.
     var activeResponses: Set<String> = []
-    // Requests already sent whose `response.created` has not arrived yet, by their event id and in the order they
-    // were sent; they count as active too, and a refusal that names the event id releases them.
+    var responseRequests: [String: LLMRealtimeAudioEvent.ResponseRequest] = [:]
+    // Requests whose response has not been created yet, identified by echoed request metadata. A server-created
+    // VAD response must not consume a local reservation; a refusal releases only the event it names.
     var pendingResponseRequests: [String] = []
     // In arrival order: turns are handed out one at a time, since two requests released together would both be
     // sent and, if one is out-of-band, both be spoken.
     var idleWaiters: [IdleWaiter] = []
 
-    func cancel() {
+    func cancel() async {
+        let previousEvents = eventStream
+        eventStream = EventBroadcaster<LLMRealtimeAudioEvent>()
+        readyContinuation?.resume(throwing: CancellationError())
+        readyContinuation = nil
         eventLoopTask?.cancel()
         eventLoopTask = nil
         socket?.cancel()
         socket = nil
         resetResponseTracking()
+        await previousEvents.finish()
     }
     
     /// Returns a stream of Realtime events.
@@ -86,7 +85,7 @@ actor LLMOpenAIRealtimeConnection {
     func open(token: String, schema: LLMOpenAIRealtimeSchema, serverUrl: URL) async throws {
         let realtimeApiUrl = try Self.realtimeSocketUrl(from: serverUrl, model: schema.parameters.modelType)
         
-        resetResponseTracking()
+        await cancel()
         var req = URLRequest(url: realtimeApiUrl)
         req.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         let webSocketTask = urlSession.webSocketTask(with: req)
@@ -99,10 +98,15 @@ actor LLMOpenAIRealtimeConnection {
     /// Starts the event loop, which runs until calling `cancel()`
     /// Waits until the event loop has succesfully been initialized: only continues once session.created event is successfully received from socket
     private func startEventLoop(schema: LLMOpenAIRealtimeSchema) async throws {
+        let expectedConnectionId = connectionId
+        let events = eventStream
         eventLoopTask = Task {
             do {
-                try await self.eventLoop(schema: schema)
+                try await self.eventLoop(schema: schema, connectionId: expectedConnectionId, events: events)
             } catch is CancellationError {
+                guard connectionId == expectedConnectionId else {
+                    return
+                }
                 readyContinuation?.resume(throwing: CancellationError())
                 readyContinuation = nil
             } catch let error as NSError where
@@ -110,15 +114,21 @@ actor LLMOpenAIRealtimeConnection {
                         error.code == Int(POSIXErrorCode.ENOTCONN.rawValue) &&
                         Task.isCancelled {
                 // When Task got cancelled, resulting in Socket not connected error
+                guard connectionId == expectedConnectionId else {
+                    return
+                }
                 readyContinuation?.resume(throwing: CancellationError())
                 readyContinuation = nil
             } catch {
+                guard connectionId == expectedConnectionId else {
+                    return
+                }
                 Self.logger.error("GroveLLMOpenAiRealtime: LLMOpenAIRealtimeConnection eventLoop() failed with error: \(error)")
                 // A socket that drops after setup ends the session for everyone listening; a silent stream would
                 // leave them waiting forever.
                 readyContinuation?.resume(throwing: error)
                 readyContinuation = nil
-                await eventStream.finish(throwing: error)
+                await events.finish(throwing: error)
             }
         }
         // Await until we obtain session.created from OpenAI
@@ -129,7 +139,12 @@ actor LLMOpenAIRealtimeConnection {
     
     // swiftlint:disable function_body_length cyclomatic_complexity closure_body_length
     /// Event loop function
-    private func eventLoop(schema: LLMOpenAIRealtimeSchema) async throws {
+    private func eventLoop(
+        schema: LLMOpenAIRealtimeSchema,
+        connectionId expectedConnectionId: UUID,
+        events: EventBroadcaster<LLMRealtimeAudioEvent>
+    ) async throws {
+        try checkConnection(expectedConnectionId)
         guard let socket = socket else {
             throw RealtimeError.socketNotFoundError
         }
@@ -137,6 +152,7 @@ actor LLMOpenAIRealtimeConnection {
         try await withTaskCancellationHandler {
             while true {
                 let message = try await socket.receive()
+                try checkConnection(expectedConnectionId)
                 
                 guard case let .string(text) = message else {
                     Self.logger.warning("RealtimeAPI Message is not of type .string")
@@ -155,10 +171,16 @@ actor LLMOpenAIRealtimeConnection {
                     continue
                 }
 
+                if try await processResponseEvent(data: messageJsonData, connectionId: expectedConnectionId) {
+                    continue
+                }
+                try checkConnection(expectedConnectionId)
+
                 switch type {
                 case "session.created":
                     inputTranscriptionEnabled = Self.transcriptionEnabled(in: messageDict)
-                    await eventStream.broadcast(.inputTranscriptionConfigured(inputTranscriptionEnabled))
+                    await events.broadcast(.inputTranscriptionConfigured(inputTranscriptionEnabled))
+                    try checkConnection(expectedConnectionId)
                     switch schema.parameters.sessionConfiguration {
                     case .client:
                         try await sendSessionUpdate(schema: schema)
@@ -168,13 +190,10 @@ actor LLMOpenAIRealtimeConnection {
                     }
                 case "session.updated":
                     inputTranscriptionEnabled = Self.transcriptionEnabled(in: messageDict)
-                    await eventStream.broadcast(.inputTranscriptionConfigured(inputTranscriptionEnabled))
+                    await events.broadcast(.inputTranscriptionConfigured(inputTranscriptionEnabled))
+                    try checkConnection(expectedConnectionId)
                     readyContinuation?.resume()
                     readyContinuation = nil
-                case "response.created":
-                    responseCreated(id: (messageDict["response"] as? [String: Any])?["id"] as? String)
-                case "response.done":
-                    responseFinished(id: (messageDict["response"] as? [String: Any])?["id"] as? String)
                 // The names without `output_` are the beta interface's; both are accepted so a gateway still
                 // on that interface keeps working.
                 case "response.output_audio.delta", "response.audio.delta":
@@ -183,43 +202,28 @@ actor LLMOpenAIRealtimeConnection {
                         continue
                     }
                     let llmEvent = LLMRealtimeAudioEvent.audioDelta(deltaPcmData)
-                    await eventStream.broadcast(llmEvent)
+                    await events.broadcast(llmEvent)
                 case "response.output_audio.done", "response.audio.done":
-                    await eventStream.broadcast(LLMRealtimeAudioEvent.audioDone)
-                case "response.output_audio_transcript.delta", "response.audio_transcript.delta":
-                    let transcript = messageDict["delta"] as? String ?? ""
-                    await eventStream.broadcast(LLMRealtimeAudioEvent.assistantTranscriptDelta(transcript))
-                case "response.output_audio_transcript.done", "response.audio_transcript.done":
-                    let transcript = messageDict["transcript"] as? String ?? ""
-                    await eventStream.broadcast(LLMRealtimeAudioEvent.assistantTranscriptDone(transcript))
+                    await events.broadcast(LLMRealtimeAudioEvent.audioDone)
                 case "conversation.item.input_audio_transcription.delta":
                     let event = try Self.decoder.decode(LLMRealtimeAudioEvent.TranscriptDelta.self, from: messageJsonData)
-                    await eventStream.broadcast(LLMRealtimeAudioEvent.userTranscriptDelta(event))
+                    await events.broadcast(LLMRealtimeAudioEvent.userTranscriptDelta(event))
                 case "conversation.item.input_audio_transcription.completed":
                     let event = try Self.decoder.decode(LLMRealtimeAudioEvent.TranscriptDone.self, from: messageJsonData)
-                    await eventStream.broadcast(LLMRealtimeAudioEvent.userTranscriptDone(event))
+                    await events.broadcast(LLMRealtimeAudioEvent.userTranscriptDone(event))
                 case "conversation.item.input_audio_transcription.failed":
                     let event = try Self.decoder.decode(LLMRealtimeAudioEvent.TranscriptFailed.self, from: messageJsonData)
-                    await eventStream.broadcast(LLMRealtimeAudioEvent.userTranscriptFailed(event))
+                    await events.broadcast(LLMRealtimeAudioEvent.userTranscriptFailed(event))
                 case "input_audio_buffer.speech_started":
                     let event = try Self.decoder.decode(LLMRealtimeAudioEvent.SpeechStarted.self, from: messageJsonData)
-                    await eventStream.broadcast(LLMRealtimeAudioEvent.speechStarted(event))
+                    await events.broadcast(LLMRealtimeAudioEvent.speechStarted(event))
                 case "input_audio_buffer.speech_stopped":
                     let event = try Self.decoder.decode(LLMRealtimeAudioEvent.SpeechStopped.self, from: messageJsonData)
-                    await eventStream.broadcast(LLMRealtimeAudioEvent.speechStopped(event))
+                    await events.broadcast(LLMRealtimeAudioEvent.speechStopped(event))
                 case "input_audio_buffer.committed":
                     if let itemId = messageDict["item_id"] as? String {
-                        await eventStream.broadcast(.userAudioCommitted(itemId))
+                        await events.broadcast(.userAudioCommitted(itemId))
                     }
-                case "response.function_call_arguments.done":
-                    let event = try Self.decoder.decode(FunctionCallArgs.self, from: messageJsonData)
-                    await eventStream.broadcast(LLMRealtimeAudioEvent.functionCallRequested(
-                        LLMOpenAIStreamResult.FunctionCall(
-                            name: event.name,
-                            id: event.call_id,
-                            arguments: event.arguments
-                        )
-                    ))
                 case "error":
                     let event = try Self.decoder.decode(RealtimeErrorEvent.self, from: messageJsonData)
                     let error = RealtimeError.openAIError(error: event.error)
@@ -227,7 +231,7 @@ actor LLMOpenAIRealtimeConnection {
                         // Before the session is up there is nothing to keep going.
                         readyContinuation.resume(with: .failure(error))
                         self.readyContinuation = nil
-                        await eventStream.finish(throwing: error)
+                        await events.finish(throwing: error)
                     } else {
                         // A refused request is the server's answer to one event, not the end of the session; the
                         // request it names will never be created, so it must not keep later ones waiting.
@@ -235,7 +239,7 @@ actor LLMOpenAIRealtimeConnection {
                         if let eventId = event.error.event_id {
                             withdraw(eventId)
                         }
-                        await eventStream.broadcast(LLMRealtimeAudioEvent.serverError(event.error))
+                        await events.broadcast(LLMRealtimeAudioEvent.serverError(event.error))
                     }
                 default:
                     break
@@ -243,7 +247,7 @@ actor LLMOpenAIRealtimeConnection {
             }
         } onCancel: {
             Task {
-                await eventStream.finish()
+                await events.finish()
             }
         }
     }

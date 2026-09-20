@@ -256,6 +256,14 @@ extension LLMContext {
         }
     }
 
+    /// Finalizes a particular assistant message when multiple responses arrive interleaved.
+    package mutating func markAssistantOutputCompleted(id: UUID) {
+        guard let index = firstIndex(where: { $0.id == id && $0.role == .assistant && !$0.complete }) else {
+            return
+        }
+        markCompleted(at: index)
+    }
+
     /// Finalizes the entity at `index`, stamping when its streaming ended.
     private mutating func markCompleted(at index: Int) {
         self[index].complete = true

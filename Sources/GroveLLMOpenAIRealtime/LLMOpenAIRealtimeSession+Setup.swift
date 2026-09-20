@@ -56,12 +56,14 @@ extension LLMOpenAIRealtimeSession {
     @MainActor
     private func setup() async throws {
         state = .loading
+        stopEventHandling()
         await transcripts.reset()
         try await self.initializeClient()
         // Register before exposing readiness, so the first turn cannot precede the context listener.
-        let events = await apiConnection.events()
+        let broadcaster = await apiConnection.eventStream
+        let events = await broadcaster.observe()
         transcribesUserAudio = await apiConnection.inputTranscriptionEnabled
-        listenToLLMEvents(events)
+        listenToLLMEvents(events, connectionId: await apiConnection.connectionId, broadcaster: broadcaster)
         state = .ready
     }
 

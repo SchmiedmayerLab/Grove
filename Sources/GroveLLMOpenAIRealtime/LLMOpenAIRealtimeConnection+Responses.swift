@@ -21,31 +21,67 @@ extension LLMOpenAIRealtimeConnection {
         activeResponses.isEmpty && pendingResponseRequests.isEmpty
     }
 
+    /// Registers request ownership before sending so an immediate refusal reaches the correct generation.
+    func sendMessage(
+        _ object: some Encodable,
+        eventId: String,
+        generationId: String?,
+        connectionId expectedConnectionId: UUID? = nil
+    ) async throws {
+        let expectedConnectionId = expectedConnectionId ?? connectionId
+        try checkConnection(expectedConnectionId)
+        if let generationId {
+            await eventStream.broadcast(.generationEventSent(generationId: generationId, eventId: eventId))
+        }
+        try checkConnection(expectedConnectionId)
+        try await sendMessage(object)
+    }
+
+    /// Work from a previous connection must not submit tool results after a reconnect.
+    func checkConnection(_ expectedConnectionId: UUID?) throws {
+        try Task.checkCancellation()
+        if let expectedConnectionId, connectionId != expectedConnectionId {
+            throw CancellationError()
+        }
+    }
+
     /// Requests the model's next response, optionally without letting it call tools.
     func requestResponse(
         toolChoice: LLMOpenAIRealtimeParameters.FollowUpToolChoice = .auto,
-        eventId: String = UUID().uuidString
+        eventId: String = UUID().uuidString,
+        generationId: String? = nil,
+        connectionId expectedConnectionId: UUID? = nil
     ) async throws {
         struct ResponseCreate: Encodable {
             struct Response: Encodable {
                 // swiftlint:disable:next identifier_name
-                let tool_choice: String
+                let tool_choice: String?
+                let metadata: [String: String]
             }
 
             let type = "response.create"
             // swiftlint:disable:next identifier_name
             let event_id: String
-            let response: Response?
+            let response: Response
         }
+        let expectedConnectionId = expectedConnectionId ?? connectionId
+        try checkConnection(expectedConnectionId)
+        let request = LLMRealtimeAudioEvent.ResponseRequest(eventId: eventId, generationId: generationId)
         await waitUntilResponseIdle(reserving: eventId)
-        if Task.isCancelled {
+        do {
+            try checkConnection(expectedConnectionId)
+        } catch {
             withdraw(eventId)
-            throw CancellationError()
+            throw error
         }
-        try await send(ResponseCreate(
-            event_id: eventId,
-            response: toolChoice == .auto ? nil : ResponseCreate.Response(tool_choice: toolChoice.rawValue)
-        ), as: eventId)
+        try await send(
+            ResponseCreate(
+                event_id: eventId,
+                response: .init(tool_choice: toolChoice == .auto ? nil : toolChoice.rawValue, metadata: request.metadata)
+            ),
+            as: request,
+            connectionId: expectedConnectionId
+        )
     }
 
     /// Has the model say something outside the conversation, so a wait can be bridged without touching the transcript.
@@ -58,6 +94,7 @@ extension LLMOpenAIRealtimeConnection {
                 let output_modalities = ["audio"]
                 // swiftlint:enable identifier_name
                 let instructions: String
+                let metadata: [String: String]
             }
 
             let type = "response.create"
@@ -65,14 +102,22 @@ extension LLMOpenAIRealtimeConnection {
             let event_id: String
             let response: Response
         }
+        let expectedConnectionId = connectionId
+        try checkConnection(expectedConnectionId)
         let eventId = UUID().uuidString
+        let request = LLMRealtimeAudioEvent.ResponseRequest(eventId: eventId, generationId: nil)
         await waitUntilResponseIdle(reserving: eventId)
-        // An interjection that was given up on while it waited its turn must not speak after all.
-        if Task.isCancelled {
+        do {
+            try checkConnection(expectedConnectionId)
+        } catch {
             withdraw(eventId)
-            throw CancellationError()
+            throw error
         }
-        try await send(ResponseCreate(event_id: eventId, response: .init(instructions: instructions)), as: eventId)
+        try await send(
+            ResponseCreate(event_id: eventId, response: .init(instructions: instructions, metadata: request.metadata)),
+            as: request,
+            connectionId: expectedConnectionId
+        )
     }
 
     /// Returns once no response is in progress, or after `timeout`, with the turn held for the request `eventId`.
@@ -97,19 +142,23 @@ extension LLMOpenAIRealtimeConnection {
         }
     }
 
-    /// Settles the oldest request: the server echoes a client's event id only when it refuses one.
-    func responseCreated(id: String?) {
-        if !pendingResponseRequests.isEmpty {
-            pendingResponseRequests.removeFirst()
+    /// Settles only the request named in response metadata; VAD responses have no local reservation.
+    func responseCreated(id: String?, requestId: String? = nil, generationId: String? = nil) {
+        if let requestId {
+            pendingResponseRequests.removeAll { $0 == requestId }
         }
         if let id {
             activeResponses.insert(id)
+            if let requestId, responseRequests[id] == nil {
+                responseRequests[id] = .init(eventId: requestId, generationId: generationId)
+            }
         }
     }
 
     func responseFinished(id: String?) {
         if let id {
             activeResponses.remove(id)
+            responseRequests.removeValue(forKey: id)
         }
         releaseIdleWaitersIfIdle()
     }
@@ -129,7 +178,9 @@ extension LLMOpenAIRealtimeConnection {
     }
 
     func resetResponseTracking() {
+        connectionId = UUID()
         activeResponses.removeAll()
+        responseRequests.removeAll()
         pendingResponseRequests.removeAll()
         for waiter in idleWaiters {
             waiter.continuation.resume()
@@ -138,18 +189,28 @@ extension LLMOpenAIRealtimeConnection {
     }
 
     /// Sends a request that holds the turn; if it never leaves the client, the turn goes to the next waiter.
-    private func send(_ message: some Encodable, as eventId: String) async throws {
+    private func send(
+        _ message: some Encodable,
+        as request: LLMRealtimeAudioEvent.ResponseRequest,
+        connectionId expectedConnectionId: UUID? = nil
+    ) async throws {
         do {
-            await eventStream.broadcast(.responseRequested(eventId))
-            try await sendMessage(message)
+            try checkConnection(expectedConnectionId)
+            await eventStream.broadcast(.responseRequested(request))
+            try checkConnection(expectedConnectionId)
+            try await sendMessage(message, eventId: request.eventId, generationId: request.generationId, connectionId: expectedConnectionId)
         } catch {
-            withdraw(eventId)
+            withdraw(request.eventId)
             throw error
         }
     }
 
     private func waitForIdle(as waiterId: UUID, reserving eventId: String) async {
         await withCheckedContinuation { continuation in
+            guard !Task.isCancelled else {
+                continuation.resume()
+                return
+            }
             if isResponseIdle {
                 pendingResponseRequests.append(eventId)
                 continuation.resume()

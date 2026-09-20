@@ -130,9 +130,20 @@ let schema = LLMOpenAIRealtimeSchema(
 
 The backend's `realtimeBaseUrl` must be the endpoint for which it mints each secret. The closure is reevaluated on connection setup, including a reconnect after an error; a constant ephemeral secret can expire before a later setup. Returning `nil` reports a missing-token setup error.
 
-With a `transcriptGracePeriod` set, a tool call waits up to that long for pending user transcripts, so a tool can read the participant's own words from ``LLMOpenAIRealtimeSession/context`` instead of the model's paraphrase in its arguments. This uses the transcription configuration confirmed by the server, including for server-configured sessions and manually committed audio turns. Transcription must be enabled on that server session; a timeout or transcription failure lets the tool proceed without a completed transcript. Without a grace period, tools run as soon as the model calls them.
+With a `transcriptGracePeriod` set, a tool call waits up to that long for pending user transcripts, so a tool can read the participant's own words from ``LLMOpenAIRealtimeSession/context`` instead of the model's paraphrase in its arguments. This uses the transcription configuration confirmed by the server, including for server-configured sessions and manually committed audio turns. Transcription must be enabled on that server session; a timeout or transcription failure lets the tool proceed without a completed transcript. Without a grace period, tools run when the model completes the response containing their calls. All tool results from that response are submitted before requesting one follow-up response.
 
 ``LLMOpenAIRealtimeSession/activity()`` reports when the participant starts and stops speaking and when the assistant finishes, so a client can drop audio it still holds when it is interrupted. ``LLMOpenAIRealtimeSession/interject(_:)`` has the assistant say something short outside the conversation, which bridges the wait for a slow tool: the model does not see it as part of the exchange, though what it said still shows up in ``LLMOpenAIRealtimeSession/context`` as an assistant line.
+
+``LLMOpenAIRealtimeSession/generate()`` returns only the text belonging to its requested response and any tool follow-ups. Automatic voice responses and interjections cannot finish that stream or contribute text to it; their output remains available through the session's audio stream and, when `injectIntoContext` is enabled, separate context messages. A generation finishes when its final response completes, and throws when that response is cancelled, fails, or is incomplete, including when no transcript was produced. The audio and activity streams continue to cover the whole session.
+
+For example, an app might provide a spoken update while a weather lookup is running:
+
+1. The app appends a weather question to the context and calls `generate()`.
+2. The model completes a response requesting a weather tool. The tool starts, while `generate()` remains open waiting for the answer.
+3. The app calls `interject("Tell the user you are still checking the weather.")`. This creates a separate response whose words reach the audio stream and local context. Its completion does not finish the pending `generate()` stream.
+4. The tool returns its result, and the session requests a follow-up response belonging to the original generation. `generate()` yields the weather answer and finishes when that response completes.
+
+This sequence needs response ownership even when the responses arrive one after another: one logical generation spans the tool request and its follow-up, with an unrelated interjection in between. Responses can also overlap when the server automatically responds to microphone input while an out-of-band interjection is running. Request metadata and server response IDs keep each generation's text separate; item IDs keep their context messages separate.
 
 #### Context Management
 

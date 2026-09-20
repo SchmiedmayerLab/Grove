@@ -18,15 +18,20 @@ package enum LLMRealtimeAudioEvent: Sendable {
     case userTranscriptDelta(TranscriptDelta)
     case userTranscriptDone(TranscriptDone)
     case userTranscriptFailed(TranscriptFailed)
-    case assistantTranscriptDelta(String)
-    case assistantTranscriptDone(String)
+    case assistantTranscriptDelta(AssistantTranscriptDelta)
+    case assistantTranscriptDone(AssistantTranscriptDone)
     case speechStarted(SpeechStarted)
     case speechStopped(SpeechStopped)
     case userAudioCommitted(String)
     case inputTranscriptionConfigured(Bool)
     /// A locally initiated response request now holds the turn and is about to be sent.
-    case responseRequested(String)
-    case functionCallRequested(LLMOpenAIStreamResult.FunctionCall)
+    case responseRequested(ResponseRequest)
+    case responseCreated(Response)
+    case responseDone(Response)
+    /// Registers an event belonging to a generation before the event is sent to the server.
+    case generationEventSent(generationId: String, eventId: String)
+    /// A locally initiated tool or follow-up failed before producing a server response.
+    case generationFailed(generationId: String, error: any Error)
     /// The server refused one event; the session goes on.
     case serverError(Components.Schemas.RealtimeServerEventError.errorPayload)
     
