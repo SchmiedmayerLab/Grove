@@ -170,6 +170,7 @@ extension XCUIApplication {
     /// swallowed and leaves the sheet up, so the close is tapped again until the sheet is gone.
     fileprivate func dismissShareSheet(line: UInt = #line) {
         let sheet = navigationBars["UIActivityContentView"]
+        XCTAssert(sheet.waitForExistence(timeout: 5), "The share sheet did not appear.", line: line)
         let closeButton = sheet.buttons["header.closeButton"]
         for _ in 0..<3 where sheet.exists {
             if closeButton.wait(for: \.isHittable, toEqual: true, timeout: 5) {
