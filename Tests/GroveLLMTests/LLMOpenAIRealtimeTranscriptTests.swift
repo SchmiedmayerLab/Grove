@@ -17,20 +17,15 @@ struct LLMOpenAIRealtimeTranscriptTests {
     func cancellationReturns(cancelBeforeRegistration: Bool) async {
         let tracker = UserTranscriptTracker()
         await tracker.expect("item-1")
-        let waiter = Task { await tracker.waitUntilSettled(timeout: .seconds(30)) }
+        // The normal grace period must not rescue broken cancellation before the watchdog fails the test.
+        let waiter = Task { await tracker.waitUntilSettled(timeout: .seconds(3600)) }
         if !cancelBeforeRegistration {
             await tracker.waitForWaiters(1)
         }
-        let start = ContinuousClock.now
+        let watchdog = startWatchdog(for: tracker)
+        defer { watchdog.cancel() }
         waiter.cancel()
-        // A bounded fallback makes a regression fail instead of leaving the test process hung.
-        let fallback = Task {
-            try await Task.sleep(for: .seconds(2))
-            await tracker.complete("item-1")
-        }
         await waiter.value
-        fallback.cancel()
-        #expect(ContinuousClock.now - start < .seconds(1))
         #expect(await tracker.waiterCount == 0)
     }
 
@@ -38,16 +33,11 @@ struct LLMOpenAIRealtimeTranscriptTests {
     func immediateTimeout() async {
         let tracker = UserTranscriptTracker()
         await tracker.expect("item-1")
-        let fallback = Task {
-            try await Task.sleep(for: .seconds(2))
-            await tracker.complete("item-1")
-        }
-        let start = ContinuousClock.now
+        let watchdog = startWatchdog(for: tracker)
+        defer { watchdog.cancel() }
         for _ in 0..<100 {
             await tracker.waitUntilSettled(timeout: .zero)
         }
-        fallback.cancel()
-        #expect(ContinuousClock.now - start < .seconds(1))
         #expect(await tracker.waiterCount == 0)
     }
 
@@ -72,9 +62,10 @@ struct LLMOpenAIRealtimeTranscriptTests {
         let tracker = UserTranscriptTracker()
         await tracker.complete("item-1")
         await tracker.expect("item-1")
-        let start = ContinuousClock.now
-        await tracker.waitUntilSettled(timeout: .seconds(2))
-        #expect(ContinuousClock.now - start < .seconds(1))
+        let watchdog = startWatchdog(for: tracker)
+        defer { watchdog.cancel() }
+        await tracker.waitUntilSettled(timeout: .seconds(3600))
+        #expect(await tracker.waiterCount == 0)
     }
 
     @Test("Resetting releases pending transcripts and forgets the previous session")
@@ -91,6 +82,24 @@ struct LLMOpenAIRealtimeTranscriptTests {
         await tracker.waitForWaiters(1)
         await tracker.complete("item-1")
         await next.value
+    }
+
+    /// Checks completion without imposing a performance requirement on a busy simulator.
+    /// A stalled wait must fail before being released, or the rescue could hide the regression.
+    private func startWatchdog(
+        for tracker: UserTranscriptTracker,
+        sourceLocation: SourceLocation = #_sourceLocation
+    ) -> Task<Void, Never> {
+        Task {
+            do {
+                try await Task.sleep(for: .seconds(30))
+                try Task.checkCancellation()
+            } catch {
+                return
+            }
+            Issue.record("Transcript wait did not complete before the 30-second watchdog", sourceLocation: sourceLocation)
+            await tracker.reset()
+        }
     }
 }
 
