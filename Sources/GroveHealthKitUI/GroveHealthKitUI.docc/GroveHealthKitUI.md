@@ -19,7 +19,7 @@ Use GroveHealthKitUI's ``HealthChart`` to visualize health data queried via [`Gr
 
 @Row(numberOfColumns: 4) {
     @Column {
-        @Image(source: "HealthChart", alt: "A line chart of a week of heart rate and blood oxygen samples, one colored line per type with a legend below.") {
+        @Image(source: "HealthChart", alt: "A line chart of a day of heart rate and blood oxygen samples on the samples query page, one colored line per type with a legend below.") {
             ``HealthChart`` draws every query it is given as its own line and redraws as the store changes.
         }
     }

@@ -33,6 +33,7 @@ public struct ContributionsList: View {
         let name: AppName
         let url: URL?
         let license: License?
+        let licenseText: String?
     }
     
     private let packages: [Package]
@@ -75,7 +76,7 @@ public struct ContributionsList: View {
             }(),
             url: projectInfo.url,
             license: projectInfo.license,
-            licenseText: nil
+            licenseText: projectInfo.licenseText
         )
     }
     
@@ -90,17 +91,20 @@ public struct ContributionsList: View {
     ///     Defaults to ``AppName/automatic``, which reads the name from the main Bundle.
     /// - parameter projectLicense: Optional SPDX-License-Identifier to inform user about the project's license.
     /// - parameter projectUrl: Optional URL to the project whose contributions are displayed.
+    /// - parameter projectLicenseText: The project's own license, shown the way a dependency's is. Without it the
+    ///     row opens ``projectUrl`` instead, which leaves the app for a browser.
     /// - parameter additionalPackages: Additional entries that should be displayed in the list but are not present in the app's SPM dependencies.
     ///     Intended for non-SPM dependencies.
     public init(
         appName: AppName = .automatic,
         projectLicense: License? = nil,
         projectUrl: URL? = nil,
+        projectLicenseText: String? = nil,
         additionalPackages: [Package] = []
     ) {
         self.init(
             packages: PackageList.spmPackages + additionalPackages,
-            projectInfo: .init(name: appName, url: projectUrl, license: projectLicense)
+            projectInfo: .init(name: appName, url: projectUrl, license: projectLicense, licenseText: projectLicenseText)
         )
     }
 }

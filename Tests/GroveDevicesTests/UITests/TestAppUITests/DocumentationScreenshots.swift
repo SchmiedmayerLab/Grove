@@ -8,6 +8,7 @@
 
 import XCTest
 
+// documentation-screenshots: launch-arguments --documentation
 // documentation-screenshots: resources Sources/GroveDevicesUI/GroveDevicesUI.docc/Resources
 // documentation-screenshots: copy PairedDevices Sources/Grove/Grove.docc/Resources/PairedDevices.png
 
@@ -30,7 +31,7 @@ final class DocumentationScreenshots: XCTestCase {
             app.activate()
         }
         sleep(1)
-        app.buttons["Devices"].tap()
+        // The documentation launch opens on the devices themselves, with no tab bar to reach them through.
         XCTAssert(app.staticTexts["No Devices"].waitForExistence(timeout: 5))
 
         pair(app, menu: ["Omron Devices", "Discover Weight Scale"])
@@ -47,7 +48,10 @@ final class DocumentationScreenshots: XCTestCase {
         capture("DeviceDetails")
         app.navigationBars.buttons["Devices"].tap()
 
-        app.buttons["Measurements"].tap()
+        // The measurements are their own screen, and the documentation launch opens one screen at a time.
+        app.terminate()
+        app.launchArguments = ["--documentation", "--screen", "measurements"]
+        app.launch()
         XCTAssert(app.navigationBars.buttons["More"].waitForExistence(timeout: 3))
         app.navigationBars.buttons["More"].tap()
         XCTAssert(app.buttons["Hide Unavailable View"].waitForExistence(timeout: 3))
@@ -87,6 +91,6 @@ final class DocumentationScreenshots: XCTestCase {
     /// Announces a state worth a picture; `Scripts/documentation-screenshots.sh` shoots the simulator on this line.
     private func capture(_ name: String) {
         print("CAPTURE \(name)")
-        sleep(5)
+        sleep(12) // long enough for the script's two shots and their checks
     }
 }

@@ -28,20 +28,20 @@ final class DocumentationScreenshots: XCTestCase {
         XCTAssert(app.buttons["TestApp, MIT, Version: 1.0"].waitForExistence(timeout: 15))
         sleep(2)
         capture("ContributionsList")
-        // The package sits further down the list; scroll until its row is on screen.
-        let package = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'swift-collections'")).firstMatch
-        for _ in 0..<8 where !package.exists {
-            app.swipeUp()
-        }
-        XCTAssert(package.waitForExistence(timeout: 5))
+        // Grove's own row, whose MIT license reads as a license rather than as a wall of clauses.
+        XCTAssert(app.staticTexts["License Information"].waitForExistence(timeout: 5))
+        let package = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'TestApp'")).firstMatch
+        XCTAssert(package.waitForExistence(timeout: 10))
         package.tap()
-        sleep(2)
+        // The license page is one long text, and every query against it has to read the whole thing and times
+        // out; the walk waits for the page rather than asking about it.
+        sleep(4)
         capture("PackageLicense")
     }
 
     /// Announces a state worth a picture; `Scripts/documentation-screenshots.sh` shoots the simulator on this line.
     private func capture(_ name: String) {
         print("CAPTURE \(name)")
-        sleep(5)
+        sleep(12) // long enough for the script's two shots and their checks
     }
 }

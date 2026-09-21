@@ -10,7 +10,7 @@ import XCTest
 import XCTestExtensions
 import XCTGroveAccount
 
-// documentation-screenshots: launch-arguments --service-type withIdentityProvider --credentials create
+// documentation-screenshots: launch-arguments --documentation --service-type withIdentityProvider --credentials create
 // documentation-screenshots: copy AccountSetup Sources/Grove/Grove.docc/Resources/AccountSetup.png
 
 /// Walks the account setup, sign-up, an incomplete sign-up, the password reset, the overview with its detail pages, the edit form, and then
@@ -51,7 +51,13 @@ final class DocumentationScreenshots: XCTestCase {
 
         XCTAssertTrue(app.buttons["Forgot Password?"].waitForExistence(timeout: 3))
         app.buttons["Forgot Password?"].tap()
-        XCTAssertTrue(app.buttons["Reset Password"].waitForExistence(timeout: 3))
+        // The sheet is in the tree while it is still sliding in, and a picture taken then shows the page behind it.
+        let resetPassword = app.buttons["Reset Password"]
+        let presented = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == true AND isHittable == true"),
+            object: resetPassword
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [presented], timeout: 10), .completed, "the reset sheet never settled")
         sleep(2)
         capture("ResetPassword")
         app.navigationBars.buttons["Cancel"].tap()
@@ -94,14 +100,14 @@ final class DocumentationScreenshots: XCTestCase {
         capture("AccountEdit")
 
         // The last two states need the app launched into them.
-        app.launch(serviceType: .withIdentityProvider, credentials: .createAndSignIn)
+        app.launch(serviceType: .withIdentityProvider, credentials: .createAndSignIn, flags: "--documentation")
         XCTAssertTrue(app.staticTexts["Grove Account"].waitForExistence(timeout: 10))
         app.openAccountSetup(timeout: 5)
         XCTAssertTrue(app.buttons["Logout"].waitForExistence(timeout: 3))
         sleep(2)
         capture("SignedIn")
 
-        app.launch(config: .allRequiredWithBio, credentials: .createAndSignIn)
+        app.launch(config: .allRequiredWithBio, credentials: .createAndSignIn, flags: "--documentation")
         XCTAssertTrue(app.staticTexts["Finish Account Setup"].waitForExistence(timeout: 10))
         sleep(2)
         capture("FinishSetup")
@@ -110,6 +116,6 @@ final class DocumentationScreenshots: XCTestCase {
     /// Announces a state worth a picture; `Scripts/documentation-screenshots.sh` shoots the simulator on this line.
     private func capture(_ name: String) {
         print("CAPTURE \(name)")
-        sleep(5)
+        sleep(12) // long enough for the script's two shots and their checks
     }
 }

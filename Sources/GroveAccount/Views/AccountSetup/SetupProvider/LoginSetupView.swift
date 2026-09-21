@@ -49,8 +49,11 @@ struct LoginSetupView<PasswordReset: View>: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            fields
-            passwordResetButton
+            // The reset belongs to the password above it, not to the button below.
+            VStack(spacing: 6) {
+                fields
+                passwordResetButton
+            }
 
             AsyncButton(state: $state, action: loginButtonAction) {
                 Text("UP_LOGIN", bundle: .module)

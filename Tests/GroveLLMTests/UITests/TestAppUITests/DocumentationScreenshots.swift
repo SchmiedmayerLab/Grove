@@ -49,6 +49,6 @@ final class DocumentationScreenshots: XCTestCase {
     /// Announces a state worth a picture; `Scripts/documentation-screenshots.sh` shoots the simulator on this line.
     private func capture(_ name: String) {
         print("CAPTURE \(name)")
-        sleep(5)
+        sleep(12) // long enough for the script's two shots and their checks
     }
 }

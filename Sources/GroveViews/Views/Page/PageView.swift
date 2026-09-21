@@ -64,6 +64,9 @@ public struct PageView<Header: View, Content: View, Footer: View>: View {
                 makeContents(geometry: geometry)
             }
         }
+        // A page is a whole screen; presented as a sheet or a cover it must not let the screen behind it show
+        // through, which a presentation's own background no longer guarantees.
+        .background(.background)
     }
 
     /// The set of edges for which we want to apply implicit padding.

@@ -58,14 +58,18 @@ struct ChatTestView: View {
                 }
             }
             .speak(chat, muted: muted)
-            .speechToolbarButton(muted: $muted)
+            // The documentation shows the chat as a study uses it, and none of them speak their answers.
+            .speechToolbarButton(muted: $muted, hidden: DocumentationConversation.isRequested)
             .navigationTitle(DocumentationConversation.isRequested ? DocumentationConversation.title : "GroveChat")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("New Chat", systemImage: "square.and.pencil") {
-                        generationTask?.cancel()
-                        lastError = nil
-                        chat = []
+                // A study's chat has no second conversation to start, so the documentation leaves the bar to the title.
+                if !DocumentationConversation.isRequested {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("New Chat", systemImage: "square.and.pencil") {
+                            generationTask?.cancel()
+                            lastError = nil
+                            chat = []
+                        }
                     }
                 }
             }
@@ -206,8 +210,8 @@ struct ChatTestView: View {
         } else {
             let placeholder = ChatEntity(role: .assistant(.response), content: .images([.generating], text: ""))
             chat.append(placeholder)
-            // The documentation's picture of the queue needs the drawing to take long enough to queue two messages meanwhile.
-            try await Task.sleep(for: .seconds(prompt.localizedCaseInsensitiveContains("also") ? 24 : 4))
+            // The documentation's pictures of the queue need the drawing to outlast two queued messages and two captures.
+            try await Task.sleep(for: .seconds(prompt.localizedCaseInsensitiveContains("also") ? 60 : 4))
             chat[chat.count - 1] = ChatEntity(role: .assistant(.response), content: DocumentationConversation.drawing, id: placeholder.id)
         }
     }

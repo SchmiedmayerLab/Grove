@@ -38,8 +38,13 @@ final class DocumentationScreenshots: XCTestCase {
         let images = app.images.matching(identifier: "Attached Image")
         XCTAssert(images.count > 1)
         images.element(boundBy: 1).tap()
-        XCTAssert(app.buttons["Share Image"].waitForExistence(timeout: 5))
-        sleep(1)
+        let shareImage = app.buttons["Share Image"]
+        let opened = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == true AND isHittable == true"),
+            object: shareImage
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [opened], timeout: 10), .completed, "the image viewer never settled")
+        sleep(2)
         capture("ImageViewer")
         app.buttons.matching(NSPredicate(format: "label IN {'Done', 'Close'}")).firstMatch.tap()
         sleep(1)
@@ -53,6 +58,14 @@ final class DocumentationScreenshots: XCTestCase {
         XCTAssert(followUp.waitForExistence(timeout: 3))
         followUp.tap()
         XCTAssert(app.staticTexts["Oats"].waitForExistence(timeout: 3), "The quote should carry the word that was tapped.")
+        // The quote does not always take the field's focus with it, and the composer then floats over the
+        // conversation with no keyboard under it. A tap on a field that already has the focus opens its
+        // AutoFill menu instead, so the focus is what decides.
+        let field = app.textFields["Message Input Textfield"]
+        if !NSPredicate(format: "hasKeyboardFocus == true").evaluate(with: field) {
+            field.tap()
+        }
+        XCTAssert(app.keyboards.firstMatch.waitForExistence(timeout: 5), "the composer never took focus")
         sleep(1)
         capture("FollowUp")
 
@@ -79,6 +92,9 @@ final class DocumentationScreenshots: XCTestCase {
         // Messages written while the next answer is drawn wait in a stack, and fan out over the conversation.
         send("Could you also draw one for the HbA1c?")
         XCTAssert(app.buttons["Stop Generating"].waitForExistence(timeout: 3))
+        // With the conversation at its end, the stack of queued messages covers the bottom of the chat rather
+        // than the middle of an answer. Dragging it once the messages are queued would take the stack down again.
+        scrollToEnd(app)
         for text in ["And one for exercise?", "Thanks!"] {
             app.textFields["Message Input Textfield"].tap()
             app.typeText(text)
@@ -92,12 +108,24 @@ final class DocumentationScreenshots: XCTestCase {
         capture("QueuedMessages")
     }
 
+    /// Drags the conversation to its end.
+    private func scrollToEnd(_ app: XCUIApplication) {
+        for _ in 0..<2 {
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+            start.press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)))
+        }
+    }
+
     /// The chat drops its keyboard when the conversation is dragged down onto it; the return key would only add a line.
     private func dismissChatKeyboard(_ app: XCUIApplication) {
-        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.98))
-        start.press(forDuration: 0.1, thenDragTo: end)
-        _ = app.keyboards.firstMatch.waitForNonExistence(timeout: 3)
+        // One drag does not always take the keyboard down, and a picture with it up shows half the answer.
+        for _ in 0..<3 where app.keyboards.firstMatch.exists {
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.98))
+            start.press(forDuration: 0.1, thenDragTo: end)
+            _ = app.keyboards.firstMatch.waitForNonExistence(timeout: 3)
+        }
+        XCTAssert(app.keyboards.firstMatch.waitForNonExistence(timeout: 3), "the keyboard stayed up")
         // The drag also scrolled the conversation up; two swipes bring the newest messages back into view.
         app.swipeUp()
         app.swipeUp()
@@ -114,6 +142,6 @@ final class DocumentationScreenshots: XCTestCase {
     /// Announces a state worth a picture; `Scripts/documentation-screenshots.sh` shoots the simulator on this line.
     private func capture(_ name: String) {
         print("CAPTURE \(name)")
-        sleep(5)
+        sleep(12) // long enough for the script's two shots and their checks
     }
 }

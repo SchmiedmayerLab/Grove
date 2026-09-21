@@ -15,6 +15,9 @@ import SwiftUI
 
 
 private struct ScreenshotView: View {
+    /// A fixed date, so a regenerated screenshot differs only where the views do.
+    private static let signatureDate = Calendar(identifier: .gregorian).date(from: DateComponents(year: 2026, month: 6, day: 1)) ?? .now
+
     @Environment(ManagedNavigationStack.Path.self) private var path
     @State private var document: ConsentDocument?
     @State private var viewState: ViewState = .idle
@@ -25,7 +28,7 @@ private struct ScreenshotView: View {
         OnboardingConsentView(
             consentDocument: document,
             title: "Study Consent",
-            currentDateInSignature: true,
+            signatureDate: Self.signatureDate,
             viewState: $viewState
         ) {
             path.nextStep()

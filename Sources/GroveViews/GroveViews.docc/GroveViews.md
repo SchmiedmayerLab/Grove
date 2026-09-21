@@ -161,6 +161,7 @@ A control reports that it blocks; the row or card around it paints the tint in i
 
 - ``BlockingMessage``
 - ``SwiftUICore/View/reportsBlocking(_:)``
+- ``SwiftUICore/View/highlightsBlockingRow()``
 - ``SwiftUICore/View/highlightsBlockingContent(in:)``
 - ``SwiftUICore/View/blockingHighlight(_:in:)``
 - ``SwiftUICore/Color/blockingTint(for:)``

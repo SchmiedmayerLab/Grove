@@ -49,10 +49,8 @@ final class DocumentationScreenshots: XCTestCase {
         goBack(app)
 
         // Name fields with both names entered and the keyboard up.
-        XCTAssert(app.buttons["NameFields"].waitForExistence(timeout: 5))
-        app.buttons["NameFields"].tap()
+        open("NameFields", in: app, expecting: app.textFields["enter your first name"])
         let first = app.textFields["enter your first name"]
-        XCTAssert(first.waitForExistence(timeout: 5))
         first.tap()
         first.typeText("Leland")
         let last = app.textFields["enter your last name"]
@@ -64,29 +62,24 @@ final class DocumentationScreenshots: XCTestCase {
         goBack(app)
 
         // The same tile with its header aligned leading, center and trailing.
-        XCTAssert(app.buttons["Tiles"].waitForExistence(timeout: 5))
-        app.buttons["Tiles"].tap()
-        XCTAssert(app.staticTexts["Evening Medication"].waitForExistence(timeout: 5))
+        open("Tiles", in: app, expecting: app.staticTexts["Evening Medication"])
         sleep(2)
         capture("Tiles")
         goBack(app)
 
         // Placeholder rows shimmering while content loads.
-        XCTAssert(app.buttons["SkeletonLoading"].waitForExistence(timeout: 5))
-        app.buttons["SkeletonLoading"].tap()
+        open("SkeletonLoading", in: app, expecting: app.navigationBars.buttons.firstMatch)
         sleep(2)
         capture("SkeletonLoading")
         goBack(app)
 
         // Every field failing its rule, with the keyboard up.
-        XCTAssert(app.buttons["Validation TextField"].waitForExistence(timeout: 5))
-        app.buttons["Validation TextField"].tap()
+        open("Validation TextField", in: app, expecting: app.textFields["Email"])
         let mail = app.textFields["Email"]
-        XCTAssert(mail.waitForExistence(timeout: 5))
         mail.tap()
         mail.typeText("leland.stanford")
         let password = app.secureTextFields["Password"]
-        password.tap()
+        focus(password)
         password.typeText("secret")
         let username = app.textFields["Username"]
         username.tap()
@@ -100,11 +93,40 @@ final class DocumentationScreenshots: XCTestCase {
         let back = app.navigationBars.buttons.firstMatch
         XCTAssert(back.waitForExistence(timeout: 15))
         back.tap()
+        // The list is tapped next; a tap while it is still sliding back in lands on nothing.
+        XCTAssert(app.staticTexts["Targets"].waitForExistence(timeout: 10), "the list never came back")
+    }
+
+    /// Opens one of the list's examples: a tap that lands while the list is still settling opens nothing, so the
+    /// row is tapped again until the example's own content is there.
+    private func open(_ example: String, in app: XCUIApplication, expecting content: XCUIElement) {
+        let row = app.buttons[example]
+        for _ in 0..<3 {
+            let tappable = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == true AND isHittable == true"), object: row)
+            XCTAssertEqual(XCTWaiter.wait(for: [tappable], timeout: 10), .completed, "\(example) never became tappable")
+            row.tap()
+            if content.waitForExistence(timeout: 5) {
+                return
+            }
+        }
+        XCTFail("\(example) never opened")
+    }
+
+    /// Gives a field the keyboard focus: on iOS 27 a secure field can take a tap without taking the focus.
+    private func focus(_ field: XCUIElement) {
+        for _ in 0..<3 {
+            field.tap()
+            let focused = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hasKeyboardFocus == true"), object: field)
+            if XCTWaiter.wait(for: [focused], timeout: 3) == .completed {
+                return
+            }
+        }
+        XCTFail("the field never took focus")
     }
 
     /// Announces a state worth a picture; `Scripts/documentation-screenshots.sh` shoots the simulator on this line.
     private func capture(_ name: String) {
         print("CAPTURE \(name)")
-        sleep(5)
+        sleep(12) // long enough for the script's two shots and their checks
     }
 }

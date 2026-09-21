@@ -36,20 +36,27 @@ final class DocumentationScreenshots: XCTestCase {
         capture("SignedConsent")
         app.buttons["I Consent"].tap()
         XCTAssert(app.switches.firstMatch.waitForExistence(timeout: 3))
+        XCTAssert(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Before we begin'")).firstMatch.waitForExistence(timeout: 3))
         app.switches.firstMatch.tap()
         app.buttons.matching(NSPredicate(format: "label CONTAINS 'No selection'")).firstMatch.tap()
         XCTAssert(app.buttons["Sometimes"].waitForExistence(timeout: 2))
         app.buttons["Sometimes"].tap()
         sign(app)
+        // The picture shows the toggle and the picker; a walk that has moved on to the next document must not
+        // take it instead.
+        XCTAssert(app.switches.firstMatch.exists, "the interactive document is no longer on screen")
         sleep(2)
         capture("InteractiveElements")
         app.buttons["I Consent"].tap()
         XCTAssert(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'To take part'")).firstMatch.waitForExistence(timeout: 3))
         sign(app)
+        // Nothing has been marked yet on this document: the picture shows the choice, not the reminder.
+        XCTAssert(!app.staticTexts["Choose an option to continue"].exists, "the document is already marked incomplete")
         sleep(2)
         capture("RequiredSelection")
         // The required choice is still "No", so continuing marks it instead of moving on.
         app.buttons["I Consent"].tap()
+        XCTAssert(app.staticTexts["Choose an option to continue"].waitForExistence(timeout: 3))
         sleep(2)
         capture("IncompleteForm")
     }
@@ -70,6 +77,6 @@ final class DocumentationScreenshots: XCTestCase {
     /// Announces a state worth a picture; `Scripts/documentation-screenshots.sh` shoots the simulator on this line.
     private func capture(_ name: String) {
         print("CAPTURE \(name)")
-        sleep(5)
+        sleep(12) // long enough for the script's two shots and their checks
     }
 }

@@ -192,7 +192,9 @@ struct AccountTestsView: View {
             }
                 .viewStateAlert(state: $setupState)
                 .toolbar {
-                    if closeable {
+                    // The documentation shows the account views as an app embeds them; the test app's own way
+                    // out of the sheet is not part of them.
+                    if closeable, !features.documentation {
                         toolbar(closing: $showSetup)
                     }
                 }

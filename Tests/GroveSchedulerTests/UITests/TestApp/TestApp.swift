@@ -20,12 +20,20 @@ struct UITestsApp: App {
     
     var body: some Scene {
         WindowGroup {
-            TabView {
-                Tab("Schedule", systemImage: "list.clipboard.fill") {
+            SwiftUI.Group {
+                // The documentation shows the schedule itself; a tab bar for the test app's other screen is
+                // chrome that a study embedding the schedule would not have.
+                if ProcessInfo.processInfo.arguments.contains("--documentation") {
                     ScheduleView()
-                }
-                Tab("Notifications", systemImage: "mail.fill") {
-                    NotificationsView()
+                } else {
+                    TabView {
+                        Tab("Schedule", systemImage: "list.clipboard.fill") {
+                            ScheduleView()
+                        }
+                        Tab("Notifications", systemImage: "mail.fill") {
+                            NotificationsView()
+                        }
+                    }
                 }
             }
             .grove(appDelegate)

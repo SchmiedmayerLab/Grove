@@ -36,12 +36,30 @@ enum AdditionalTestsTestCase: String, CaseIterable, Hashable, Identifiable {
 
 
 struct ScheduleView: View {
+    /// The documentation shows the schedule alone: the test app's own controls are left out of the bar, and the
+    /// state they would set is taken from the launch instead.
+    private static var isDocumentation: Bool {
+        ProcessInfo.processInfo.arguments.contains("--documentation")
+    }
+
+    private static var launchAlignment: HorizontalAlignment {
+        switch argument(after: "--alignment") {
+        case "center": .center
+        case "trailing": .trailing
+        default: .leading
+        }
+    }
+
+    private static var launchDate: DateSelection {
+        argument(after: "--date") == "tomorrow" ? .tomorrow : .today
+    }
+
     @Environment(SchedulerModel.self)
     private var model
 
-    @State private var alignment: HorizontalAlignment = .leading
-    @State private var hidden = false // hide for screenshots
-    @State private var dateSelection: DateSelection = .today
+    @State private var alignment: HorizontalAlignment = ScheduleView.launchAlignment
+    @State private var hidden = ScheduleView.isDocumentation // hide for screenshots
+    @State private var dateSelection: DateSelection = ScheduleView.launchDate
     @State private var date = Date()
     @State private var additionalTestsTestCase: AdditionalTestsTestCase?
 
@@ -110,6 +128,14 @@ struct ScheduleView: View {
             }
             Button("Hide Content", action: hide)
         }
+    }
+
+    private static func argument(after flag: String) -> String? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: flag), arguments.indices.contains(index + 1) else {
+            return nil
+        }
+        return arguments[index + 1]
     }
 
     private func hide() {

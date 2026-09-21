@@ -86,6 +86,8 @@ struct PasswordChangeSheet: View {
                     .validate(input: repeatPassword, rules: passwordEqualityValidation(new: $newPassword))
                     .environment(\.validationConfiguration, .hideFailedValidationOnEmptySubmit)
             }
+                // Both fields share one row, so the row takes the tint for either of them, across the whole card.
+                .highlightsBlockingRow()
         } footer: {
             PasswordValidationRuleFooter(configuration: accountDetails.accountServiceConfiguration)
         }

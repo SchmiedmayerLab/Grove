@@ -28,7 +28,7 @@ public struct OnboardingConsentView: View {
     
     private let title: LocalizedStringResource?
     private let action: @MainActor () async throws -> Void
-    private let currentDateInSignature: Bool
+    private let signatureDate: Date?
     private var consentDocument: ConsentDocument?
     @Binding private var viewState: ViewState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -47,7 +47,7 @@ public struct OnboardingConsentView: View {
                 if let consentDocument {
                     ConsentDocumentView(
                         consentDocument: consentDocument,
-                        consentSignatureDate: currentDateInSignature ? .now : nil
+                        consentSignatureDate: signatureDate
                     )
                     .environment(\.highlightsIncompleteConsentSections, highlightsIncompleteSections)
                     #if !(os(macOS) || os(visionOS))
@@ -88,19 +88,19 @@ public struct OnboardingConsentView: View {
     /// - parameter consentDocument: The Consent Document.
     ///     Pass `nil` if your app is currently still loading the document, but already wishes to display a "loading in progress" version of the ``OnboardingConsentView``.
     /// - parameter title: The title of the view displayed at the top. Can be `nil`, meaning no title is displayed.
-    /// - parameter currentDateInSignature: Whether the current date should be included in the consent form's signature fields.
+    /// - parameter signatureDate: The date the signature carries; `nil` leaves it undated.
     /// - parameter viewState: A binding that provides the `ViewState` the view should use.
     /// - parameter action: The action to perform when the user has completed the consent form and taps the button below it.
     public init(
         consentDocument: ConsentDocument?,
         title: LocalizedStringResource? = LocalizationDefaults.consentFormTitle,
-        currentDateInSignature: Bool = true,
+        signatureDate: Date? = .now,
         viewState: Binding<ViewState>,
         action: @escaping @MainActor () async throws -> Void
     ) {
         self.consentDocument = consentDocument
         self.title = title
-        self.currentDateInSignature = currentDateInSignature
+        self.signatureDate = signatureDate
         self._viewState = viewState
         self.action = action
     }

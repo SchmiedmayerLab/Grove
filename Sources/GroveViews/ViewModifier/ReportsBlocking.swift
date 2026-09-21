@@ -32,6 +32,19 @@ private struct HighlightsBlockingContent<HighlightShape: Shape>: ViewModifier {
 }
 
 
+private struct HighlightsBlockingRow: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
+    @State private var isBlocking = false
+
+    func body(content: Content) -> some View {
+        content
+            .onPreferenceChange(BlockingPreferenceKey.self) { isBlocking = $0 }
+            .listRowBackground(isBlocking ? Color.blockingTint(for: colorScheme) : nil)
+    }
+}
+
+
 private struct ReportsBlocking: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
 
@@ -53,6 +66,12 @@ extension View {
     /// paints it over the whole row. The content itself stays untouched, so the mark always matches what holds it.
     public func reportsBlocking(_ isBlocking: Bool) -> some View {
         modifier(ReportsBlocking(isBlocking: isBlocking))
+    }
+
+    /// Paints the blocking tint over the whole form row whenever content inside ``SwiftUICore/View/reportsBlocking(_:)``
+    /// a problem; for a row that holds several fields, which a field marking only itself could not tint.
+    public func highlightsBlockingRow() -> some View {
+        modifier(HighlightsBlockingRow())
     }
 
     /// Paints the blocking tint in `shape` whenever content inside ``SwiftUICore/View/reportsBlocking(_:)`` a problem.

@@ -13,23 +13,26 @@ public import SwiftUI
 @available(iOS 18, macOS 15, watchOS 11, *)
 private struct ChatViewSpeechButtonModifier: ViewModifier {
     @Binding var muted: Bool
+    let hidden: Bool
     
     
     func body(content: Content) -> some View {
         content
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: {
-                        muted.toggle()
-                    }) {
-                        if !muted {
-                            Image(systemName: "speaker")
-                                .accessibilityIdentifier("Speaker")
-                                .accessibilityLabel(Text("Text to speech is enabled, press to disable text to speech.", bundle: .module))
-                        } else {
-                            Image(systemName: "speaker.slash")
-                                .accessibilityIdentifier("Speaker strikethrough")
-                                .accessibilityLabel(Text("Text to speech is disabled, press to enable text to speech.", bundle: .module))
+                if !hidden {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button(action: {
+                            muted.toggle()
+                        }) {
+                            if !muted {
+                                Image(systemName: "speaker")
+                                    .accessibilityIdentifier("Speaker")
+                                    .accessibilityLabel(Text("Text to speech is enabled, press to disable text to speech.", bundle: .module))
+                            } else {
+                                Image(systemName: "speaker.slash")
+                                    .accessibilityIdentifier("Speaker strikethrough")
+                                    .accessibilityLabel(Text("Text to speech is disabled, press to enable text to speech.", bundle: .module))
+                            }
                         }
                     }
                 }
@@ -74,12 +77,15 @@ extension View {
     ///
     /// - Parameters:
     ///    - muted: A SwiftUI `Binding` that indicates if the speech output is currently muted. The `Binding` enables the adjustment of the muted status by both the caller and the toolbar `Button`.
+    ///    - hidden: Whether the button is left out of the toolbar, for a chat that does not offer speech at all.
     public func speechToolbarButton(
-        muted: Binding<Bool>
+        muted: Binding<Bool>,
+        hidden: Bool = false
     ) -> some View {
         modifier(
             ChatViewSpeechButtonModifier(
-                muted: muted
+                muted: muted,
+                hidden: hidden
             )
         )
     }
