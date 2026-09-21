@@ -19,8 +19,11 @@ private struct RealtimeGeneration {
     }
 
     struct Part: Hashable {
+        // periphery:ignore - read by synthesized Hashable to distinguish transcript parts
         let responseId: String
+        // periphery:ignore - read by synthesized Hashable to distinguish transcript parts
         let itemId: String
+        // periphery:ignore - read by synthesized Hashable to distinguish transcript parts
         let contentIndex: Int
     }
 

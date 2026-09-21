@@ -63,6 +63,7 @@ public final class QuestionnaireResponses: Identifiable {
     /// Identifies one state of one root's answers, independently of its persisted response ID.
     /// A restored draft gets a fresh identity even when it keeps the same ``id``.
     package struct Revision: Equatable, Sendable {
+        // periphery:ignore - read by synthesized Equatable to distinguish response roots
         private let rootInstanceId = UUID()
         fileprivate var number = 0
     }

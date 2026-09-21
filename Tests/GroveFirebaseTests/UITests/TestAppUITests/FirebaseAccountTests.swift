@@ -360,12 +360,17 @@ final class FirebaseAccountTests: XCTestCase { // swiftlint:disable:this type_bo
         XCTAssertTrue(app.buttons["Reset Password"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
 
         let fields = app.textFields.matching(identifier: "E-Mail Address").allElementsBoundByIndex
-        try fields.last?.enter(value: "non-existent@username.edu")
+        let emailField = try XCTUnwrap(fields.first(where: \.isHittable))
+        // Submit with the keyboard open so the app dismisses it; a separate Return-key tap can leave
+        // the floating button moving out of the way of the test's next tap.
+        try emailField.enter(value: "non-existent@username.edu", options: .disableKeyboardDismiss)
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 2.0))
 
         XCTAssertTrue(app.buttons["Reset Password"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Reset Password"].tap()
 
         XCTAssertTrue(app.staticTexts["Sent out a link to reset the password."].waitForExistence(timeout: 2.0))
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 2.0))
         XCTAssertTrue(app.buttons["Done"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Done"].tap()
     }
@@ -414,8 +419,15 @@ final class FirebaseAccountTests: XCTestCase { // swiftlint:disable:this type_bo
         XCTAssertTrue(app.buttons["Account Setup"].wait(for: \.isHittable, toEqual: true, timeout: 5.0))
         app.buttons["Account Setup"].tap()
 
-        XCTAssertTrue(app.buttons["Sign in with Apple"].wait(for: \.isHittable, toEqual: true, timeout: 10.0))
-        app.buttons["Sign in with Apple"].tap()
+        let signInWithApple = app.buttons["Sign in with Apple"]
+        XCTAssertTrue(signInWithApple.waitForExistence(timeout: 5.0))
+        // The other account providers can place Apple sign-in below the initial viewport.
+        let setupPage = app.scrollViews.containing(.button, identifier: "Sign in with Apple").firstMatch
+        for _ in 0..<3 where !signInWithApple.isHittable {
+            setupPage.swipeUp()
+        }
+        XCTAssertTrue(signInWithApple.wait(for: \.isHittable, toEqual: true, timeout: 5.0))
+        signInWithApple.tap()
 
         // The Apple ID sheet is hosted out of process; XCTest surfaces it to an interruption monitor only once an
         // interaction is found blocked, so we wait on the sheet directly instead of poking the app to provoke it.
