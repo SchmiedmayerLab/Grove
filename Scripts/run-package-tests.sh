@@ -211,9 +211,12 @@ run() { # <package> <platform> [mode: "ui"]
     # `linuxTargets` instead.
     local tts
     tts="$(test_targets_for "$1" "$2")"
+    # TEMPORARY: Swift 6.4's default Swift Build compiles transitive dependencies behind inactive
+    # platform conditions. Use the native backend until a released toolchain includes the fix.
+    # Removal tracked in https://github.com/SchmiedmayerLab/Grove/issues/105.
     for tt in $tts; do
-      echo "==> $1 on Linux: swift build --target $tt (compile-check)"
-      swift build --target "$tt"
+      echo "==> $1 on Linux: swift build --build-system native --target $tt (compile-check)"
+      swift build --build-system native --target "$tt"
     done
     return
   fi
