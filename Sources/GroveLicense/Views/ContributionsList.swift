@@ -92,7 +92,7 @@ public struct ContributionsList: View {
     /// - parameter projectLicense: Optional SPDX-License-Identifier to inform user about the project's license.
     /// - parameter projectUrl: Optional URL to the project whose contributions are displayed.
     /// - parameter projectLicenseText: The project's own license, shown the way a dependency's is. Without it the
-    ///     row opens ``projectUrl`` instead, which leaves the app for a browser.
+    ///     row opens `projectUrl` instead, which leaves the app for a browser.
     /// - parameter additionalPackages: Additional entries that should be displayed in the list but are not present in the app's SPM dependencies.
     ///     Intended for non-SPM dependencies.
     public init(
