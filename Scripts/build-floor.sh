@@ -7,7 +7,7 @@
 # SPDX-License-Identifier: MIT
 #
 # Compile-checks that every library product builds at the package's DEPLOYMENT FLOOR
-# (iOS 15 / macOS 12 / watchOS 8), for a real device and a simulator. This is the guard for the
+# from Package.swift, for a real device and a simulator. This is the guard for the
 # availability-annotation strategy: every API newer than the floor is gated behind an
 # `@available(iOS 18, macOS 15, watchOS 11, *)` clause, so the package must still *compile* when a
 # consumer's app targets the floor. The regular test matrix cannot catch a missing annotation because
@@ -42,6 +42,7 @@ esac
 # Make sure a lowered floor, not the current OS wave, is what we compile against.
 export GROVE_LOWERED_DEPLOYMENT_TARGETS=1
 unset GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS || true
+export GROVE_EXCLUDE_DOCC_CATALOGS=1
 # Everything lives under the gitignored `.derivedData/` so a build leaves the checkout clean.
 mkdir -p .derivedData
 DD=".derivedData/floor-$PLATFORM-$KIND"
@@ -50,6 +51,14 @@ DD=".derivedData/floor-$PLATFORM-$KIND"
 # modules to assert coverage over. Platform support comes from packages.toml (the curated union CI
 # matrix); the dependency graph comes from the manifest dump.
 swift package dump-package > "$DD.dump.json" 2>/dev/null || swift package dump-package > "$DD.dump.json"
+FLOOR_VERSION="$(python3 -c '
+import json, sys
+platforms = json.load(open(sys.argv[1]))["platforms"]
+versions = [p["version"] for p in platforms if p["platformName"] == sys.argv[2].lower()]
+if len(versions) != 1:
+    sys.exit(f"error: expected one explicit deployment floor for {sys.argv[2]}")
+print(versions[0])
+' "$DD.dump.json" "$PLATFORM")"
 # The analysis is written to a file (rather than a heredoc inside $()) because bash 3.2 — the /bin/bash
 # on macOS runners — mis-parses a heredoc nested in command substitution.
 ANALYZER=".derivedData/floor-analyze.py"
@@ -160,7 +169,7 @@ IFS=' ' read -r -a MODS <<< "$SUPPORTED"
 FLOOR_SKIP="XCTGroveNotifications:macOS XCTGroveNotifications:watchOS"
 skipped() { case " $FLOOR_SKIP " in *" $1:$PLATFORM "*) return 0 ;; *) return 1 ;; esac; }
 
-echo "==> $PLATFORM ($KIND) at deployment floor — ${#TOP[@]} top-level products cover ${#MODS[@]} modules"
+echo "==> $PLATFORM $FLOOR_VERSION ($KIND) — ${#TOP[@]} top-level products cover ${#MODS[@]} modules"
 echo "    destination: $DEST"
 
 beautify() {

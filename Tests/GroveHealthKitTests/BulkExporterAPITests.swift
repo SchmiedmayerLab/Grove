@@ -14,12 +14,66 @@ import Algorithms
 import Grove
 @testable import GroveHealthKit
 @testable import GroveHealthKitBulkExport
+import GroveLocalStorage
 import GroveTesting
+import HealthKit
+import Synchronization
 import Testing
 
 
 @Suite
 struct BulkExporterAPITests {
+    @Test(arguments: [
+        (99.0, 101.0, true, true), // Crosses the internal boundary.
+        (-50.0, 50.0, true, false), // Crosses the export start.
+        (150.0, 250.0, false, true), // Crosses the export end.
+        (-50.0, 250.0, true, true), // Spans the complete export window.
+        (25.0, 75.0, true, false),
+        (125.0, 175.0, false, true),
+        (-20.0, -1.0, false, false),
+        (201.0, 250.0, false, false)
+    ])
+    func batchQueriesPreserveOverlappingSamples(start: Double, end: Double, first: Bool, second: Bool) {
+        let sample = HKQuantitySample(
+            type: HKQuantityType(.stepCount),
+            quantity: HKQuantity(unit: .count(), doubleValue: 1),
+            start: Date(timeIntervalSince1970: start),
+            end: Date(timeIntervalSince1970: end)
+        )
+        let firstRange = Date(timeIntervalSince1970: 0)..<Date(timeIntervalSince1970: 100)
+        let secondRange = firstRange.upperBound..<Date(timeIntervalSince1970: 200)
+        #expect(ExportBatch.samplePredicate(for: firstRange).evaluate(with: sample) == first)
+        #expect(ExportBatch.samplePredicate(for: secondRange).evaluate(with: sample) == second)
+    }
+
+    @Test func batchingPreservesUnsplitQueryAfterDeduplication() {
+        // Exact endpoints and instantaneous samples must follow HealthKit's own overlap semantics.
+        let samples = [
+            (-50.0, 50.0), (99.0, 101.0), (150.0, 250.0), (-50.0, 250.0),
+            (0.0, 0.0), (100.0, 100.0), (200.0, 200.0),
+            (-10.0, 0.0), (200.0, 210.0), (-20.0, -1.0), (201.0, 250.0)
+        ].map { start, end in
+            HKQuantitySample(
+                type: HKQuantityType(.stepCount),
+                quantity: HKQuantity(unit: .count(), doubleValue: 1),
+                start: Date(timeIntervalSince1970: start),
+                end: Date(timeIntervalSince1970: end)
+            )
+        }
+        let first = Date(timeIntervalSince1970: 0)..<Date(timeIntervalSince1970: 100)
+        let second = first.upperBound..<Date(timeIntervalSince1970: 200)
+        let whole = HKQuery.predicateForSamples(withStart: first.lowerBound, end: second.upperBound, options: [])
+        let expected = Set(samples.filter { whole.evaluate(with: $0) }.map(\.uuid))
+        let occurrences = [first, second].flatMap { range in
+            samples.filter { ExportBatch.samplePredicate(for: range).evaluate(with: $0) }
+        }
+        // A single synthetic participant/store: UUID is sufficient within this scope only.
+        #expect(Set(occurrences.map(\.uuid)) == expected)
+        #expect(occurrences.count > expected.count)
+        #expect(expected.contains(samples[4].uuid)) // Instant at export start.
+        #expect(expected.contains(samples[5].uuid)) // Instant at the internal boundary.
+    }
+
     @Test
     func sessionStartDate() async throws {
         // we need to pass in the module, but for the input we're specifying it won't be accessed.
@@ -62,13 +116,13 @@ struct BulkExporterAPITests {
     
     @Test
     func sessionMgmt() async throws {
-        let module = BulkHealthExporter()
+        let module = BulkHealthExporter(checkpointStorageSetting: .unencrypted())
         await withDependencyResolution(standard: TestStandard()) {
             module
         }
         #expect(await module.sessions.isEmpty)
         
-        let sessionId = BulkExportSessionIdentifier("testId")
+        let sessionId = BulkExportSessionIdentifier(UUID().uuidString)
         let session = try await module.session(withId: sessionId, for: [], startDate: .oldestSample, using: .identity)
         
         let sessionsInModule: [any BulkExportSession] = await module.sessions
@@ -76,7 +130,6 @@ struct BulkExporterAPITests {
         #expect(sessionsInModule.elementsEqual(ourSession, by: { $0 == $1 }))
         let results = try await session.start()
         for await _ in results { }
-        try await Task.sleep(for: .seconds(0.5))
         #expect(await session.state == .completed)
         #expect(await module.sessions.count == 1)
         #expect(await module.sessions.contains(where: { $0 == session }))
@@ -86,11 +139,86 @@ struct BulkExporterAPITests {
     }
     
     
+    @Test(arguments: [false, true]) @MainActor
+    func checkpointFailurePausesSessionAndRetryPersistsAgain(requestPause: Bool) async throws {
+        let module = BulkHealthExporter(checkpointStorageSetting: .unencrypted())
+        let healthKit = HealthKit()
+        let storage = LocalStorage()
+        await withDependencyResolution(standard: TestStandard()) { healthKit; storage; module }
+        let sessionID = BulkExportSessionIdentifier(UUID().uuidString)
+        let checkpointKey = LocalStorageKey<ExportSessionDescriptor>(BulkHealthExporter.localStorageKey(forSessionId: sessionID), setting: .unencrypted())
+        defer { try? storage.delete(checkpointKey) }
+        var descriptor = ExportSessionDescriptor(sessionId: sessionID, startDate: .absolute(.distantPast), endDate: .now)
+        let batch = ExportBatch(sampleType: SampleType.stepCount, timeRange: Date(timeIntervalSince1970: 0)..<Date(timeIntervalSince1970: 1))
+        descriptor.pendingBatches = [batch]
+        descriptor.finishBatch(batch, result: .success(()))
+        try storage.store(descriptor, for: checkpointKey)
+        let fail = Mutex(true)
+        let writes = Mutex(0)
+        let persistence = SessionDescriptorPersisting { _ in
+            writes.withLock { $0 += 1 }
+            if fail.withLock({ $0 }) { throw CocoaError(.fileWriteOutOfSpace) }
+        }
+        let session = try await BulkExportSessionImpl(
+            sessionId: sessionID,
+            bulkExporter: module,
+            healthKit: healthKit,
+            sampleTypes: [],
+            startDate: .absolute(.distantPast),
+            endDate: .now,
+            batchSize: .automatic,
+            localStorage: storage,
+            batchProcessor: IdentityBatchProcessor(),
+            persistence: persistence
+        )
+        try module.add(session)
+        #expect(session.state == .paused(reason: .notStarted))
+        let results = try session.start(retryFailedBatches: true, concurrencyLevel: .disabled)
+        if requestPause { await session.pause() }
+        for await _ in results {
+            Issue.record("Completed batches must not be reprocessed")
+        }
+        #expect(session.state == .paused(reason: .failure(.checkpointWriteFailed(CheckpointWriteFailure(CocoaError(.fileWriteOutOfSpace))))))
+        #expect(session.failedBatches.isEmpty)
+        #expect(session.pendingBatches.isEmpty)
+        #expect(session.completedBatches.count == 1)
+        let failedWrites = writes.withLock { $0 }
+        fail.withLock { $0 = false }
+        for await _ in try session.start(retryFailedBatches: true, concurrencyLevel: .disabled) {
+            Issue.record("Checkpoint retry must not replay completed batches")
+        }
+        #expect(session.state == .completed)
+        #expect(writes.withLock { $0 } > failedWrites)
+        try await module.deleteSessionRestorationInfo(for: session.sessionId)
+    }
+
+    @Test @MainActor
+    func pauseDrainsBeforeRestart() async throws {
+        let module = BulkHealthExporter(checkpointStorageSetting: .unencrypted())
+        await withDependencyResolution(standard: TestStandard()) { module }
+        let sessionId = BulkExportSessionIdentifier(UUID().uuidString)
+        let session = try await module.session(withId: sessionId, for: [], startDate: .oldestSample, using: .identity)
+        let firstRun = try session.start()
+        await session.pause()
+        for await _ in firstRun { }
+        #expect(session.state == .paused(reason: .requested) || session.state == .completed)
+        let secondRun = try session.start()
+        for await _ in secondRun { }
+        #expect(session.state == .completed)
+        try await module.deleteSessionRestorationInfo(for: sessionId)
+        #expect(session.state == .terminated)
+        #expect(module.sessions.isEmpty)
+        let replacement = try await module.session(withId: sessionId, for: [], startDate: .oldestSample, using: .identity)
+        #expect(replacement !== session)
+        try await module.deleteSessionRestorationInfo(for: sessionId)
+    }
+
+
     @Test
     func exportBatchTimeRanges() async throws { // swiftlint:disable:this function_body_length
         let cal = Calendar.current
         let healthKit = HealthKit()
-        let bulkExporter = BulkHealthExporter()
+        let bulkExporter = BulkHealthExporter(checkpointStorageSetting: .unencrypted())
         await withDependencyResolution(standard: TestStandard()) {
             healthKit
             bulkExporter
