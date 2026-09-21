@@ -271,10 +271,6 @@ class UITestProjectsSelectionTests(unittest.TestCase):
         self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class SourceChangeSelectionTests(unittest.TestCase):
     """A source change schedules its package and everything that builds on it."""
 
@@ -309,3 +305,110 @@ class SourceChangeSelectionTests(unittest.TestCase):
         result = run_selector("Sources/GroveChat/ChatView.swift")
 
         self.assertEqual(result["affected"], "GroveChat")
+
+
+class IgnoredSharedChangeTests(unittest.TestCase):
+    ARGUMENTS = ("--ignore-manifest-and-ci-changes",)
+
+    def test_shared_changes_alone_do_not_schedule_tests_when_ignored(self):
+        paths = (
+            "Package.swift",
+            "Package@swift-6.1.swift",
+            ".github/workflows/tests.yml",
+            ".github/actions/setup/action.yml",
+            ".swiftpm/xcode/xcshareddata/xcschemes/Grove.xcscheme",
+            "Scripts/run-package-tests.sh",
+        )
+        for path in paths:
+            with self.subTest(path=path):
+                result = run_selector(path, extra_arguments=self.ARGUMENTS)
+
+                self.assertEqual(result["affected"], "(none)")
+                self.assertEqual(json.loads(result["matrix"])["include"], [])
+                self.assertEqual(json.loads(result["ui_matrix"])["include"], [])
+                self.assertEqual(result["has_fhir_conformance"], "false")
+
+    def test_source_and_test_changes_keep_their_consumers_when_shared_changes_are_ignored(self):
+        head = package_dump([
+            target("GroveChat", path="Sources/GroveChat"),
+            target("GroveLLM", ["GroveChat"], path="Sources/GroveLLM"),
+            target("GroveAccount", path="Sources/GroveAccount"),
+            target("GroveAccountTests", ["GroveAccount"], path="Tests/GroveAccountTests"),
+        ])
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as head_file:
+            head_file.write(json.dumps(head))
+            head_file.flush()
+            for path, expected in (
+                ("Sources/GroveChat/ChatView.swift", {"GroveChat", "GroveLLM"}),
+                ("Tests/GroveAccountTests/AccountTests.swift", {"GroveAccount"}),
+            ):
+                with self.subTest(path=path):
+                    result = run_selector(
+                        "Package.swift", ".github/workflows/tests.yml", path,
+                        extra_arguments=(*self.ARGUMENTS, "--head-package-dump", head_file.name),
+                    )
+
+                    self.assertEqual(set(result["affected"].split(",")), expected)
+                    for matrix in ("matrix", "ui_matrix"):
+                        self.assertEqual(
+                            {job["package"] for job in json.loads(result[matrix])["include"]}, expected,
+                        )
+
+    def test_explicit_full_run_overrides_ignored_shared_changes(self):
+        expected = run_selector("__ALL__")
+        result = run_selector("__ALL__", "Package.swift", extra_arguments=self.ARGUMENTS)
+
+        self.assertEqual(result, expected)
+        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+        self.assertEqual(result["has_fhir_conformance"], "true")
+
+    def test_package_configuration_changes_remain_package_specific(self):
+        head = pathlib.Path(MODULE.ROOT, "packages.toml").read_text()
+        base = head.replace("[GroveLLM]", "[GroveLLM]\nremoved_marker = true", 1)
+        self.assertNotEqual(base, head)
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as base_file:
+            base_file.write(base)
+            base_file.flush()
+            result = run_selector(
+                "packages.toml",
+                extra_arguments=(*self.ARGUMENTS, "--base-packages", base_file.name),
+            )
+
+        self.assertEqual(result["affected"], "GroveLLM")
+
+
+class RunnerRoutingTests(unittest.TestCase):
+    def test_every_self_hosted_unit_and_ui_job_requires_stanford(self):
+        result = run_selector("__ALL__")
+        for matrix in ("matrix", "ui_matrix"):
+            with self.subTest(matrix=matrix):
+                jobs = [job for job in json.loads(result[matrix])["include"] if job["selfHosted"]]
+                self.assertTrue(jobs, "The routing assertion must cover emitted self-hosted jobs")
+                for job in jobs:
+                    with self.subTest(package=job["package"], platform=job["platform"]):
+                        labels = json.loads(job["selfHostedLabels"])
+                        self.assertTrue({"self-hosted", "macOS", "stanford"}.issubset(labels))
+
+    def test_runtime_assertions_keeps_its_python_runner_requirement(self):
+        result = run_selector("Sources/RuntimeAssertions/Assertions.swift")
+        jobs = json.loads(result["matrix"])["include"]
+
+        self.assertTrue(jobs)
+        for job in jobs:
+            self.assertEqual(job["package"], "RuntimeAssertions")
+            self.assertTrue(job["selfHosted"])
+            self.assertIn("python3.11+", json.loads(job["selfHostedLabels"]))
+
+    def test_linux_and_ordinary_unit_jobs_remain_github_hosted(self):
+        result = run_selector("__ALL__")
+        jobs = json.loads(result["matrix"])["include"]
+        linux_jobs = [job for job in jobs if job["platform"] == "Linux"]
+        account_jobs = [job for job in jobs if job["package"] == "GroveAccount"]
+
+        self.assertTrue(linux_jobs)
+        self.assertTrue(account_jobs)
+        self.assertTrue(all(not job["selfHosted"] for job in linux_jobs + account_jobs))
+
+
+if __name__ == "__main__":
+    unittest.main()

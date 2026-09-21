@@ -114,7 +114,9 @@ jobs:
       - name: Compute test matrix
         id: compute
         run: |
-          ARGS=(changed.txt --head-package-dump "$RUNNER_TEMP/head-package.json")
+          # TEMPORARY: avoid extra test jobs for manifest/shared CI edits while stabilizing runners.
+          # Remove this flag to restore that selection; source/test changes and explicit run_all still apply.
+          ARGS=(changed.txt --head-package-dump "$RUNNER_TEMP/head-package.json" --ignore-manifest-and-ci-changes)
           if [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
             ARGS+=(--base-package-dump "$RUNNER_TEMP/base-package.json")
           fi
@@ -158,7 +160,7 @@ jobs:
     if: needs.detect.outputs.has_jobs == 'true'
     # Runner per job: Linux -> GitHub-hosted ubuntu; otherwise self-hosted iff packages.toml's
     # self-hosted-ci routed unit tests there (matrix.selfHosted), else GitHub-hosted macos-latest. The
-    # self-hosted label set (matrix.selfHostedLabels) is the base ["self-hosted","macOS"] plus any
+    # self-hosted label set (matrix.selfHostedLabels) is temporarily ["self-hosted","macOS","stanford"] plus any
     # per-package `extra_runner_labels` from packages.toml (e.g. "python3.11+"), computed by
     # Scripts/affected-test-matrix.py.
     runs-on: ${{ matrix.platform == 'Linux' && 'ubuntu-latest' || (matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macos-latest"]')) }}

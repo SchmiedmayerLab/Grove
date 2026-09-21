@@ -50,7 +50,8 @@ echo "=== changed files (detect job input) ==="
 sed 's/^/  /' "$TMP/changed.txt"
 echo
 
-ARGS=("$TMP/changed.txt")
+# TEMPORARY: mirror the Tests workflow's opt-out for manifest/shared CI selection.
+ARGS=("$TMP/changed.txt" --ignore-manifest-and-ci-changes)
 BASE_REF="$(base_ref "$@")"
 if [ -n "$BASE_REF" ] && { grep -Fxq "Package.swift" "$TMP/changed.txt" || grep -Fxq "packages.toml" "$TMP/changed.txt"; }; then
   git worktree add --detach "$TMP/base" "$BASE_REF" >/dev/null

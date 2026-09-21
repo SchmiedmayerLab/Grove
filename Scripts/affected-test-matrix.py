@@ -20,7 +20,7 @@
 #                    ["unit", "ui"]. Optional; default ["ui"] (= today's behavior). Linux unit jobs
 #                    always run on GitHub-hosted ubuntu regardless (the self-hosted runner is macOS).
 #   extra_runner_labels = additional runner labels to require for this package's self-hosted jobs, on
-#                    top of the base ["self-hosted", "macOS"]. Optional; default []. Emitted per job as
+#                    top of the temporary base ["self-hosted", "macOS", "stanford"]. Optional; default []. Emitted per job as
 #                    `selfHostedLabels` for the workflow's `runs-on` (e.g. ["python3.11+"] pins the
 #                    jobs to a self-hosted runner with a new-enough Python).
 # The dir -> package map used for change detection is derived from each package's targets+tests.
@@ -39,6 +39,8 @@
 # configuration shape in packages.toml (platforms, UI tests, Linux targets, runner routing), which
 # exercises every job variant without repeating it for every package. An unknown script under
 # Scripts/ is an error until it is classified below, as a new target must be assigned to a package.
+# The workflow temporarily passes --ignore-manifest-and-ci-changes to suspend selection from manifest
+# and shared CI edits. Source/test dependency selection and explicit __ALL__ runs remain enabled.
 #
 # Emits (to stdout, GITHUB_OUTPUT format):
 #   matrix={"include":[{"package":"GroveAccount","platform":"macOS","selfHosted":false,"selfHostedLabels":"[...]"}, ...]}  # unit
@@ -81,9 +83,6 @@ def directory_to_package(packages):
 
 DIR2PKG = directory_to_package(PKGS)
 
-# Any change to these means "run everything" (shared test infrastructure, CI, or lint configuration).
-# The legacy-identifier vault is in here because it belongs to no single package: every string in it
-# names data already on a user's device, and fourteen targets read it.
 # Infrastructure every job shares; a change here is checked on the smoke set (see smoke_packages).
 INFRASTRUCTURE_PREFIXES = (".github/actions/", ".swiftpm/")
 
@@ -177,6 +176,11 @@ def parse_args():
     parser.add_argument("--base-ui-test-projects")
     parser.add_argument("--head-package-dump")
     parser.add_argument("--base-packages")
+    parser.add_argument(
+        "--ignore-manifest-and-ci-changes",
+        action="store_true",
+        help="Temporarily skip test selection caused by manifest and shared CI edits.",
+    )
     return parser.parse_args()
 
 
@@ -407,11 +411,15 @@ def main():
     affected = set()
     head_dump = load_json(args.head_package_dump) if args.head_package_dump else None
     for path in changed:
+        is_manifest = path == "Package.swift" or path.startswith("Package@")
+        is_infrastructure = path in INFRASTRUCTURE_PATHS or path.startswith(INFRASTRUCTURE_PREFIXES)
+        if args.ignore_manifest_and_ci_changes and (is_manifest or is_infrastructure):
+            continue
         if path == FHIR_VALIDATION_PATH:
             affected.update(FHIR_PACKAGES & set(PKGS))
             run_fhir_conformance = True
             continue
-        if path in INFRASTRUCTURE_PATHS or path.startswith(INFRASTRUCTURE_PREFIXES):
+        if is_infrastructure:
             affected.update(smoke_packages())
             run_fhir_conformance |= INFRASTRUCTURE_PATHS.get(path, False)
             continue
@@ -429,7 +437,7 @@ def main():
             run_all = True
             run_fhir_conformance = True
             continue
-        if path == "Package.swift" or path.startswith("Package@"):
+        if is_manifest:
             # A version-specific manifest is evaluated like the main one: dump-package already picks
             # the manifest that applies to the toolchain running the tests.
             if not args.base_package_dump or not args.head_package_dump:
@@ -515,7 +523,11 @@ def main():
         self_hosted = info.get("self-hosted-ci", ["ui"])
         # Self-hosted runner label set for this package: base labels + any package-specific extras,
         # emitted as a JSON string the workflow's `runs-on` reads via fromJson(matrix.selfHostedLabels).
-        self_hosted_labels = json.dumps(["self-hosted", "macOS"] + list(info.get("extra_runner_labels", [])))
+        # TEMPORARY: every Xcode test job resolves the shared package graph, including Google's Firebase
+        # binaries, even when its tested product does not use Firebase. Keep those downloads on Stanford
+        # runners until they work reliably on the other self-hosted machines. Manifest-only detection
+        # does not resolve dependencies and keeps its existing runner requirements.
+        self_hosted_labels = json.dumps(["self-hosted", "macOS", "stanford"] + list(info.get("extra_runner_labels", [])))
         for platform in info["platforms"]:
             if platform in CI_PLATFORMS:  # TEMPORARY unit-test platform limit (see CI_PLATFORMS above)
                 # Linux unit jobs always use GitHub-hosted ubuntu (the self-hosted runner is macOS).
