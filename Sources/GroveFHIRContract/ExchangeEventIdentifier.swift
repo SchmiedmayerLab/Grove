@@ -11,64 +11,39 @@ public import Foundation
 
 /// The durable business identifier of one active or retraction exchange event.
 public struct ExchangeEventIdentifier: Hashable, Sendable {
-    public let businessIdentifier: BusinessIdentifier
+    public let identifier: RoledIdentifier
     public let producerInstance: UUID
-    public let sequence: CanonicalPositiveDecimal
+    public let sequence: EventSequence
 
     public init(
         system: IdentifierSystem,
         producerInstance: UUID,
-        sequence: CanonicalPositiveDecimal
-    ) throws {
+        sequence: EventSequence
+    ) throws(ExchangeIdentityError) {
         let canonicalUUID = producerInstance.uuidString.lowercased()
         guard Self.statesRFC4122Version(canonicalUUID) else {
-            throw ExchangeIdentityError.invalidProducerInstance(producerInstance)
+            throw .invalidProducerInstance(producerInstance)
         }
         self.producerInstance = producerInstance
         self.sequence = sequence
-        self.businessIdentifier = try BusinessIdentifier(
-            system: system,
-            value: "e0:\(canonicalUUID):\(sequence.rawValue)",
+        self.identifier = RoledIdentifier(
+            identifier: BusinessIdentifier(system: system, nonemptyValue: "e0:\(canonicalUUID):\(sequence.rawValue)"),
             role: .event
         )
     }
 
-    /// Convenience for callers whose local event counter is currently machine-sized.
-    public init(
-        system: IdentifierSystem,
-        producerInstance: UUID,
-        sequence: UInt64
-    ) throws {
-        do {
-            try self.init(
-                system: system,
-                producerInstance: producerInstance,
-                sequence: CanonicalPositiveDecimal(sequence)
-            )
-        } catch let error as CanonicalDecimalError {
-            throw ExchangeIdentityError.invalidEventSequence(String(sequence), underlying: error)
-        }
-    }
-
     /// Validates a persisted identifier before exact replay.
-    public init(_ identifier: BusinessIdentifier) throws {
-        guard identifier.role == .event else {
-            throw ExchangeIdentityError.invalidIdentifierRole(
-                identifier.role?.rawValue ?? "missing"
-            )
-        }
+    public init(_ identifier: BusinessIdentifier) throws(ExchangeIdentityError) {
         let components = identifier.value.split(separator: ":", omittingEmptySubsequences: false)
         guard components.count == 3,
               components[0] == "e0",
               let uuid = UUID(uuidString: String(components[1])),
               uuid.uuidString.lowercased() == components[1],
-              let sequence = try? CanonicalPositiveDecimal(String(components[2])) else {
-            throw ExchangeIdentityError.invalidEventIdentifier(identifier.value)
+              Self.statesRFC4122Version(String(components[1])),
+              let sequence = try? EventSequence(String(components[2])) else {
+            throw .invalidEventIdentifier(identifier.value)
         }
-        guard Self.statesRFC4122Version(String(components[1])) else {
-            throw ExchangeIdentityError.invalidEventIdentifier(identifier.value)
-        }
-        self.businessIdentifier = identifier
+        self.identifier = RoledIdentifier(identifier: identifier, role: .event)
         self.producerInstance = uuid
         self.sequence = sequence
     }

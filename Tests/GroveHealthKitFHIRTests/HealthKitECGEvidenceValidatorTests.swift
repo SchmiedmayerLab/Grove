@@ -36,48 +36,38 @@ struct HealthKitECGEvidenceValidatorTests {
     @Test("ECG symptom companions must share the exact patient and repository scope")
     func symptomCompanionScopeValidation() throws {
         let context = HealthKitConversionContext(subject: .testPatient)
-        let otherSubject = Reference.testLogicalReference(resourceType: .patient, value: "other")
-        let otherSubjectIdentity = try BusinessIdentifier(
-            system: context.subjectIdentity.system,
-            value: "other"
-        )
-        let otherRepository = try BusinessIdentifier(
-            system: context.repositoryScope.system,
-            value: "secondary"
-        )
-        let expected = HealthKitConversionError.invalidECGEvidence(.mismatchedSymptomContext)
+        let base = context.event
+        let otherRepository = try BusinessIdentifier(system: base.repositoryScope.system, value: "secondary")
+        func variant(
+            subject: Subject = base.subject,
+            repositoryScope: BusinessIdentifier = base.repositoryScope
+        ) -> HealthKitConversionContext {
+            HealthKitConversionContext(event: ExchangeEventContext(
+                subject: subject,
+                event: base.event,
+                identityScope: base.identityScope,
+                repositoryScope: repositoryScope,
+                application: base.application,
+                host: base.host,
+                conversionInstant: base.conversionInstant
+            ))
+        }
+        let expected = HealthKitConversionError.ecgEvidence(.mismatchedSymptomContext)
 
         #expect(throws: expected) {
             try HealthKitConverter.validateSymptomConversionContext(
-                subject: otherSubject,
-                subjectIdentity: context.subjectIdentity,
-                repositoryScope: context.repositoryScope,
+                variant(subject: .logical(.test(.patient, "other"))),
                 expectedContext: context
             )
         }
         #expect(throws: expected) {
             try HealthKitConverter.validateSymptomConversionContext(
-                subject: context.subject,
-                subjectIdentity: otherSubjectIdentity,
-                repositoryScope: context.repositoryScope,
-                expectedContext: context
-            )
-        }
-        #expect(throws: expected) {
-            try HealthKitConverter.validateSymptomConversionContext(
-                subject: context.subject,
-                subjectIdentity: context.subjectIdentity,
-                repositoryScope: otherRepository,
+                variant(repositoryScope: otherRepository),
                 expectedContext: context
             )
         }
 
-        try HealthKitConverter.validateSymptomConversionContext(
-            subject: context.subject,
-            subjectIdentity: context.subjectIdentity,
-            repositoryScope: context.repositoryScope,
-            expectedContext: context
-        )
+        try HealthKitConverter.validateSymptomConversionContext(variant(), expectedContext: context)
     }
 
     @Test
@@ -117,7 +107,7 @@ struct HealthKitECGEvidenceValidatorTests {
     func reportedCountHasNoArtificialInt32Limit() throws {
         let count = Int(Int32.max) + 1
         try HealthKitECGEvidenceValidator.validateCount(reported: count, supplied: count)
-        #expect(throws: HealthKitConversionError.invalidECGEvidence(.voltageCountMismatch(
+        #expect(throws: HealthKitConversionError.ecgEvidence(.voltageCountMismatch(
             reported: count,
             supplied: count - 1
         ))) {
@@ -201,7 +191,7 @@ struct HealthKitECGEvidenceValidatorTests {
         ]
     )
     func rejectsInvalidEvidence(testCase: InvalidCase) {
-        #expect(throws: HealthKitConversionError.invalidECGEvidence(testCase.expected)) {
+        #expect(throws: HealthKitConversionError.ecgEvidence(testCase.expected)) {
             try HealthKitECGEvidenceValidator.validateWaveform(
                 reportedCount: testCase.reportedCount,
                 samplingFrequencyHertz: testCase.samplingFrequencyHertz,
@@ -230,16 +220,16 @@ struct HealthKitECGEvidenceValidatorTests {
         let first = symptom(.dizziness)
         let unsupported = symptom(.sleepAnalysis)
 
-        #expect(throws: HealthKitConversionError.invalidECGEvidence(.symptomsRequired)) {
+        #expect(throws: HealthKitConversionError.ecgEvidence(.symptomsRequired)) {
             try HealthKitConverter.validatedSymptomSamples([], status: .present)
         }
-        #expect(throws: HealthKitConversionError.invalidECGEvidence(.unexpectedSymptoms)) {
+        #expect(throws: HealthKitConversionError.ecgEvidence(.unexpectedSymptoms)) {
             try HealthKitConverter.validatedSymptomSamples([first], status: .none)
         }
-        #expect(throws: HealthKitConversionError.invalidECGEvidence(.duplicateSymptomSource(first.uuid))) {
+        #expect(throws: HealthKitConversionError.ecgEvidence(.duplicateSymptomSource(first.uuid))) {
             try HealthKitConverter.validatedSymptomSamples([first, first], status: .present)
         }
-        #expect(throws: HealthKitConversionError.invalidECGEvidence(
+        #expect(throws: HealthKitConversionError.ecgEvidence(
             .unsupportedSymptomType(HKCategoryTypeIdentifier.sleepAnalysis.rawValue)
         )) {
             try HealthKitConverter.validatedSymptomSamples([unsupported], status: .present)

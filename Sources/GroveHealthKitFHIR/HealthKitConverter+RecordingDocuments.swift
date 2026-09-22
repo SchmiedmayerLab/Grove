@@ -8,7 +8,7 @@
 
 // Literal formatting follows FHIR resource shape, and members are ordered to read as a narrative
 // rather than by kind: each entry point precedes the builders it uses.
-// swiftlint:disable multiline_literal_brackets type_contents_order file_types_order function_body_length
+// swiftlint:disable multiline_literal_brackets type_contents_order file_types_order
 
 #if canImport(HealthKit)
 
@@ -89,7 +89,7 @@ extension HealthKitConverter {
     public func convert(
         _ record: HealthKitHeartbeatSeriesRecord,
         context: HealthKitConversionContext
-    ) throws(HealthKitConversionError) -> HealthKitDocumentConversion {
+    ) throws(HealthKitConversionError) -> HealthKitConversionSet {
         do {
             return try Self.assembleDocumentGraph(
                 for: record.series,
@@ -106,19 +106,19 @@ extension HealthKitConverter {
                 context: context
             )
         } catch {
-            throw HealthKitConversionError(conversionFailure: error)
+            throw HealthKitConversionError(conversionFailure: error, source: .heartbeatSeries)
         }
     }
 
     /// Converts a workout route into the recording document that carries its track.
     ///
-    /// - Returns: The route's graph, or `nil` under ``HealthKitRouteDisclosurePolicy/omit``, the
-    ///   default. Omitting the route drops an addition rather than rejecting anything: the workout
-    ///   the route belongs to converts on its own.
+    /// - Returns: The route's graph, or `nil` under `RouteDisclosurePolicy.omit`, the default.
+    ///   Omitting the route drops an addition rather than rejecting anything: the workout the
+    ///   route belongs to converts on its own.
     public func convert(
         _ record: HealthKitWorkoutRouteRecord,
         context: HealthKitConversionContext
-    ) throws(HealthKitConversionError) -> HealthKitDocumentConversion? {
+    ) throws(HealthKitConversionError) -> HealthKitConversionSet? {
         do {
             guard let payload = try Self.locationTrackPayload(
                 record.locations,
@@ -138,7 +138,7 @@ extension HealthKitConverter {
                 context: context
             )
         } catch {
-            throw HealthKitConversionError(conversionFailure: error)
+            throw HealthKitConversionError(conversionFailure: error, source: .workoutRoute)
         }
     }
 
@@ -148,7 +148,7 @@ extension HealthKitConverter {
         sampleType: String
     ) throws -> Data {
         guard !heartbeats.isEmpty else {
-            throw HealthKitConversionError.emptyRecordingSeries(sampleType: sampleType)
+            throw HealthKitValueFailure.emptyRecordingSeries
         }
         var writer = try RecordingCSVWriter(format: .beatIntervalSeries)
         for heartbeat in heartbeats {
@@ -169,11 +169,11 @@ extension HealthKitConverter {
         context: HealthKitConversionContext,
         sampleType: String
     ) throws -> Data? {
-        guard context.routeDisclosurePolicy == .authorized else {
+        guard context.options.routeDisclosure == .authorized else {
             return nil
         }
         guard !locations.isEmpty else {
-            throw HealthKitConversionError.emptyRecordingSeries(sampleType: sampleType)
+            throw HealthKitValueFailure.emptyRecordingSeries
         }
         var writer = try RecordingCSVWriter(format: .locationTrackSamples)
         for location in locations {
@@ -197,7 +197,7 @@ extension HealthKitConverter {
         for sample: HKSample,
         evidence: HealthKitRecordingEvidence,
         context: HealthKitConversionContext
-    ) throws -> HealthKitDocumentConversion {
+    ) throws -> HealthKitConversionSet {
         try validate(context: context)
         let envelope = try graphEnvelope(
             for: sample,
@@ -227,7 +227,7 @@ extension HealthKitConverter {
             sourceAuthorURL: envelope.sourceAuthorURL,
             recordedAt: context.conversionInstant
         )
-        provenance.id = context.repositoryIDs.provenance?.primitive
+        provenance.id = context.repositoryID(.provenance)?.primitive
 
         let graph = try exchangeBundle(
             envelope: envelope,
@@ -235,28 +235,13 @@ extension HealthKitConverter {
             provenance: provenance,
             context: context
         )
-        return HealthKitDocumentConversion(
-            sourceIdentifier: envelope.sourceRecord.fhirIdentifier,
-            graphIdentifiers: HealthKitDocumentGraphIdentifiers(
-                event: context.eventIdentifier.businessIdentifier,
-                sourceRecord: envelope.sourceRecord,
-                sourceOutput: envelope.primary,
-                sourceArtifact: artifactIdentity,
-                recordingDeviceSnapshot: envelope.recordingDevice?.identity,
-                converterApplicationSnapshot: envelope.converterApplication.identity,
-                converterHostSnapshot: envelope.converterHost.identity,
-                sourceAuthorSnapshot: envelope.sourceAuthor?.author.identity,
-                sourceAuthorHostSnapshot: envelope.sourceAuthor?.host?.identity,
-                provenance: envelope.provenanceNode.identifier
+        return HealthKitConversionSet(
+            primary: HealthKitConversion(
+                source: envelope.source,
+                identifiers: identifiers(envelope: envelope, context: context, sourceArtifact: artifactIdentity),
+                graph: graph
             ),
-            document: document,
-            recordingDevice: envelope.recordingDevice?.resource,
-            converterApplication: envelope.converterApplication.resource,
-            converterHost: envelope.converterHost.resource,
-            sourceAuthor: envelope.sourceAuthor?.author.resource,
-            sourceAuthorHost: envelope.sourceAuthor?.host?.resource,
-            provenance: provenance,
-            graph: graph
+            warnings: envelope.warnings
         )
     }
 
@@ -265,7 +250,7 @@ extension HealthKitConverter {
         evidence: HealthKitRecordingEvidence,
         envelope: GraphEnvelope,
         context: HealthKitConversionContext,
-        artifactIdentity: BusinessIdentifier
+        artifactIdentity: RoledIdentifier
     ) throws -> DocumentReference {
         let sourceTypeIdentifier = sample.sampleType.identifier
         var authors = envelope.recordingDeviceURL.map { [Reference(reference: $0.asFHIRStringPrimitive())] } ?? []
@@ -290,28 +275,28 @@ extension HealthKitConverter {
                     system: HealthKitRecordingDocumentContract.formatCodeSystem
                 )
             )],
-            context: context.researchStudies.isEmpty
+            context: envelope.studyContext.studyReferences.isEmpty
                 ? nil
-                : DocumentReferenceContext(related: context.researchStudies),
+                : DocumentReferenceContext(related: envelope.studyContext.studyReferences),
             date: FHIRPrimitive(try Instant(date: context.conversionInstant)),
             identifier: [
                 envelope.sourceRecord.fhirIdentifier,
                 envelope.primary.fhirIdentifier,
                 artifactIdentity.fhirIdentifier
-            ] + nativeIdentifiers(for: sample, policy: context.nativeIdentifierDisclosurePolicy),
+            ] + nativeIdentifiers(for: sample, policy: context.options.nativeIdentifierDisclosure),
             meta: Meta(profile: evidence.profiles),
             status: FHIRPrimitive(.current),
-            subject: context.subject,
+            subject: envelope.graphContext.subject,
             type: CodeableConcept(coding: [typeCoding])
         )
         applySourceTypeLineage(sourceTypeIdentifier, to: &document)
-        document.id = context.repositoryIDs.document?.primitive
+        document.id = context.repositoryID(.primaryOutput)?.primitive
         return document
     }
 
     private static func attachment(_ evidence: HealthKitRecordingEvidence) throws -> Attachment {
         guard let size = Int32(exactly: evidence.payload.count) else {
-            throw HealthKitConversionError.recordingPayloadTooLarge(byteCount: evidence.payload.count)
+            throw HealthKitValueFailure.recordingPayloadTooLarge(byteCount: evidence.payload.count)
         }
         return Attachment(
             contentType: evidence.contentType?.asFHIRStringPrimitive(),

@@ -117,8 +117,7 @@ struct QuestionnaireWriterContextTests {
         #expect(reference.identifier == identifier.fhirIdentifier)
         #expect(reference.type?.value?.url.absoluteString == "Patient")
         #expect(reference.reference == nil)
-        #expect(try TypedReference.validate(reference, expectedResourceType: .patient)
-            == .identifier(type: .patient, identifier: identifier))
+        #expect(try reference.validated(as: .patient) == .identifier(type: .patient, identifier: identifier))
     }
 
     private func context(

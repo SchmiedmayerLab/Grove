@@ -21,7 +21,12 @@ import ModelsR4
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitConverter {
-    static func applicationDevice(_ application: HealthKitApplication) -> Device {
+    struct ResolvedRecordingDevice {
+        let device: IdentifiedDevice?
+        let warning: HealthKitConversionWarning?
+    }
+
+    static func applicationDevice(_ application: ApplicationDevice) -> Device {
         var device = Device()
         device.meta = Meta(profile: [HealthKitContract.applicationDeviceProfile])
         device.status = FHIRPrimitive(.active)
@@ -52,18 +57,18 @@ extension HealthKitConverter {
         return device
     }
 
-    static func hostDevice(_ host: HealthKitHostDevice) -> Device {
+    static func hostDevice(_ host: HostDevice) -> Device {
         var device = Device()
         device.meta = Meta(profile: [Profile.groveHostDevice])
         device.status = FHIRPrimitive(.active)
-        if let name = host.name?.nonEmpty {
+        if let name = host.name {
             device.deviceName = [DeviceDeviceName(
                 name: name.asFHIRStringPrimitive(),
                 type: FHIRPrimitive(.userFriendlyName)
             )]
         }
-        device.manufacturer = host.manufacturer?.nonEmpty?.asFHIRStringPrimitive()
-        device.modelNumber = host.modelNumber?.nonEmpty?.asFHIRStringPrimitive()
+        device.manufacturer = host.manufacturer?.asFHIRStringPrimitive()
+        device.modelNumber = host.modelNumber?.asFHIRStringPrimitive()
         device.version = [groveVersion(
             "os-version",
             "Operating system version",
@@ -83,57 +88,99 @@ extension HealthKitConverter {
         )
     }
 
+    /// The application snapshot the converter states about itself, or about a distinct gateway application.
+    static func applicationSnapshot(
+        _ application: ApplicationDevice,
+        parentURL: String?,
+        repositoryID: RepositoryID?,
+        context: HealthKitConversionContext
+    ) throws -> IdentifiedDevice {
+        let identity = try context.identityScope.deviceSnapshot(
+            event: context.eventIdentifier,
+            role: .application,
+            sourceDeviceToken: application.bundleIdentifier
+        )
+        var resource = applicationDevice(application)
+        resource.id = repositoryID?.primitive
+        resource.identifier = [identity.fhirIdentifier] + (resource.identifier ?? [])
+        resource.parent = parentURL.map { Reference(reference: $0.asFHIRStringPrimitive()) }
+        return IdentifiedDevice(resource: resource, identity: identity)
+    }
+
+    static func hostSnapshot(
+        _ host: HostDevice,
+        sourceDeviceToken: String,
+        repositoryID: RepositoryID?,
+        context: HealthKitConversionContext
+    ) throws -> IdentifiedDevice {
+        let identity = try context.identityScope.deviceSnapshot(
+            event: context.eventIdentifier,
+            role: .host,
+            sourceDeviceToken: sourceDeviceToken
+        )
+        var resource = hostDevice(host)
+        resource.id = repositoryID?.primitive
+        resource.identifier = [identity.fhirIdentifier]
+        return IdentifiedDevice(resource: resource, identity: identity)
+    }
+
     static func recordingDevice(
         for healthKitDevice: HKDevice?,
         context: HealthKitConversionContext
-    ) throws -> IdentifiedDevice? {
+    ) throws -> ResolvedRecordingDevice {
         guard let healthKitDevice else {
-            return nil
+            return ResolvedRecordingDevice(device: nil, warning: nil)
+        }
+        guard let recorder = context.options.recordingDevice.recordingDevice(for: healthKitDevice) else {
+            // Model and version facts cannot identify a physical unit, so the shared recording
+            // Device is omitted rather than merged, and the omission is reported.
+            return ResolvedRecordingDevice(
+                device: nil,
+                warning: .recordingDeviceOmitted(deviceName: healthKitDevice.name?.nonBlank)
+            )
         }
         var device = Device()
         device.meta = Meta(profile: [Profile.groveRecordingDevice])
         device.status = FHIRPrimitive(.active)
-        if let name = healthKitDevice.name?.nonEmpty {
+        device.id = context.repositoryID(.recordingDevice)?.primitive
+        if let name = recorder.name ?? healthKitDevice.name?.nonBlank {
             device.deviceName = [DeviceDeviceName(
                 name: name.asFHIRStringPrimitive(),
                 type: FHIRPrimitive(.userFriendlyName)
             )]
         }
-        device.manufacturer = healthKitDevice.manufacturer?.nonEmpty?.asFHIRStringPrimitive()
-        device.modelNumber = healthKitDevice.model?.nonEmpty?.asFHIRStringPrimitive()
+        device.manufacturer = (recorder.manufacturer ?? healthKitDevice.manufacturer?.nonBlank)?.asFHIRStringPrimitive()
+        device.modelNumber = (recorder.modelNumber ?? healthKitDevice.model?.nonBlank)?.asFHIRStringPrimitive()
         var versions: [DeviceVersion] = []
         versions.appendVersion(healthKitDevice.hardwareVersion, code: "531974", display: "MDC_ID_PROD_SPEC_HW")
         versions.appendVersion(healthKitDevice.firmwareVersion, code: "531976", display: "MDC_ID_PROD_SPEC_FW")
         versions.appendVersion(healthKitDevice.softwareVersion, code: "531975", display: "MDC_ID_PROD_SPEC_SW")
         device.version = versions.isEmpty ? nil : versions
 
-        if context.udiDisclosurePolicy == .authorizedUDI,
-           let udi = healthKitDevice.udiDeviceIdentifier?.nonEmpty {
+        if context.options.udiDisclosure == .authorizedUDI,
+           let udi = healthKitDevice.udiDeviceIdentifier?.nonBlank {
             device.udiCarrier = [DeviceUdiCarrier(deviceIdentifier: udi.asFHIRStringPrimitive())]
-        }
-        guard let sourceDeviceToken = context.recordingDeviceStableUnitToken?.nonEmpty
-            ?? healthKitDevice.localIdentifier?.nonEmpty else {
-            // Model/version facts cannot identify a physical unit. Without governed stable
-            // instance evidence the shared recording Device is omitted rather than merged.
-            return nil
         }
         let stableIdentity = try context.identityScope.recordingDevice(
             adapterID: HealthKitConverter.adapterID,
             subject: context.subjectIdentity,
-            stableUnitToken: sourceDeviceToken
+            stableUnitToken: recorder.stableUnitToken
         )
         let snapshotIdentity = try context.identityScope.deviceSnapshot(
-            eventIdentifier: context.eventIdentifier,
-            deviceRole: .recordingDevice,
-            sourceDeviceToken: sourceDeviceToken
+            event: context.eventIdentifier,
+            role: .recordingDevice,
+            sourceDeviceToken: recorder.stableUnitToken
         )
         device.identifier = [snapshotIdentity.fhirIdentifier, stableIdentity.fhirIdentifier]
-        return IdentifiedDevice(resource: device, identity: snapshotIdentity)
+        return ResolvedRecordingDevice(
+            device: IdentifiedDevice(resource: device, identity: snapshotIdentity),
+            warning: nil
+        )
     }
 
     static func sourceAuthor(
         for revision: HKSourceRevision,
-        classification: HealthKitSourceActor,
+        classification: HealthKitWriter,
         context: HealthKitConversionContext
     ) throws -> SourceAuthorDevices? {
         switch classification {
@@ -150,45 +197,47 @@ extension HealthKitConverter {
         for revision: HKSourceRevision,
         context: HealthKitConversionContext
     ) throws -> SourceAuthorDevices? {
-        guard let name = revision.source.name.nonEmpty,
-              let bundleIdentifier = revision.source.bundleIdentifier.nonEmpty else {
+        guard let name = revision.source.name.nonBlank,
+              let bundleIdentifier = revision.source.bundleIdentifier.nonBlank else {
             return nil
         }
-        guard isValidAppleBundleIdentifier(bundleIdentifier) else {
-            throw HealthKitConversionError.invalidSourceApplication("bundleIdentifier")
+        let application: ApplicationDevice
+        let host: HostDevice
+        do {
+            application = try ApplicationDevice(
+                name: name,
+                bundleIdentifier: bundleIdentifier,
+                version: revision.version?.nonBlank ?? "unknown"
+            )
+            host = try HostDevice(
+                operatingSystemVersion: operatingSystemVersion(revision.operatingSystemVersion),
+                modelNumber: revision.productType?.nonBlank
+            )
+        } catch {
+            throw HealthKitConversionError.sourceApplicationInvalid
         }
-        var device = applicationDevice(HealthKitApplication(
-            name: name,
-            bundleIdentifier: bundleIdentifier,
-            version: revision.version?.nonEmpty ?? "unknown"
-        ))
-        if revision.version?.nonEmpty == nil {
-            device.version = nil
-        }
-        let host = HealthKitHostDevice(
-            sourceDeviceToken: revision.productType?.nonEmpty ?? bundleIdentifier,
-            operatingSystemVersion: operatingSystemVersion(revision.operatingSystemVersion),
-            modelNumber: revision.productType?.nonEmpty
+        let hostSnapshot = try hostSnapshot(
+            host,
+            sourceDeviceToken: revision.productType?.nonBlank ?? bundleIdentifier,
+            repositoryID: context.repositoryID(.sourceAuthorHost),
+            context: context
         )
-        let hostIdentity = try context.identityScope.deviceSnapshot(
-            eventIdentifier: context.eventIdentifier,
-            deviceRole: .host,
-            sourceDeviceToken: host.sourceDeviceToken
-        )
-        var hostResource = hostDevice(host)
-        hostResource.identifier = [hostIdentity.fhirIdentifier]
-        let hostURL = try ExchangeIdentity.fullURL(for: hostIdentity)
-
+        let hostURL = try hostSnapshot.identity.fullURLString
         let identity = try context.identityScope.deviceSnapshot(
-            eventIdentifier: context.eventIdentifier,
-            deviceRole: .application,
+            event: context.eventIdentifier,
+            role: .application,
             sourceDeviceToken: bundleIdentifier
         )
+        var device = applicationDevice(application)
+        if revision.version?.nonBlank == nil {
+            device.version = nil
+        }
+        device.id = context.repositoryID(.sourceAuthor)?.primitive
         device.identifier = [identity.fhirIdentifier] + (device.identifier ?? [])
         device.parent = Reference(reference: hostURL.asFHIRStringPrimitive())
         return SourceAuthorDevices(
             author: IdentifiedDevice(resource: device, identity: identity),
-            host: IdentifiedDevice(resource: hostResource, identity: hostIdentity)
+            host: hostSnapshot
         )
     }
 
@@ -244,7 +293,7 @@ extension HealthKitConverter {
 
 extension Array where Element == DeviceVersion {
     fileprivate mutating func appendVersion(_ value: String?, code: String, display: String) {
-        guard let value = value?.nonEmpty else {
+        guard let value = value?.nonBlank else {
             return
         }
         append(DeviceVersion(
@@ -255,13 +304,6 @@ extension Array where Element == DeviceVersion {
             )]),
             value: value.asFHIRStringPrimitive()
         ))
-    }
-}
-
-
-extension String {
-    fileprivate var nonEmpty: String? {
-        trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : self
     }
 }
 

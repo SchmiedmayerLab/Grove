@@ -72,18 +72,15 @@ struct ExportDataView: View {
                         (sample.uuid, sequenceBase + UInt64(offset))
                     }
                 )
-                let result = HealthKitConverter().convert(
-                    samples.map { $0 as HKSample },
-                    contextForSample: { sample in
-                        guard let sequence = sequenceBySource.removeValue(forKey: sample.uuid) else {
-                            throw HealthKitConversionError.invalidValue
-                        }
-                        return try makeFHIRTestContext(
-                            sequence: sequence,
-                            conversionInstant: now
-                        )
+                let result = HealthKitConverter().convert(samples.map { $0 as HKSample }) { sample in
+                    guard let sequence = sequenceBySource.removeValue(forKey: sample.uuid) else {
+                        throw SequenceMissing()
                     }
-                )
+                    return try makeFHIRTestContext(
+                        sequence: sequence,
+                        conversionInstant: now
+                    )
+                }
                 if let failure = result.failures.first {
                     throw failure
                 }
@@ -124,3 +121,6 @@ extension HKHealthStore {
         return try await descriptor.result(for: self)
     }
 }
+
+
+private struct SequenceMissing: Error {}

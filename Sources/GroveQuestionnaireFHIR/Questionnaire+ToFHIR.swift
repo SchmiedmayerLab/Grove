@@ -100,25 +100,19 @@ extension ModelsR4.Questionnaire {
         _ questionnaire: GroveQuestionnaire.Questionnaire,
         repositoryID: RepositoryID? = nil
     ) throws {
-        guard let url = questionnaire.metadata.url else {
-            throw ContractError.missingQuestionnaireURL
+        if let url = questionnaire.metadata.url {
+            guard ContractRules.isValidQuestionnaireURL(url.absoluteString) else {
+                throw ContractError.invalidQuestionnaireCanonical(url.absoluteString)
+            }
         }
-        guard ContractRules.isValidQuestionnaireURL(url.absoluteString) else {
-            throw ContractError.invalidQuestionnaireCanonical(url.absoluteString)
-        }
-        guard let version = questionnaire.metadata.version else {
-            throw ContractError.missingQuestionnaireVersion
-        }
-        guard ContractRules.isSemanticVersion(version) else {
-            throw ContractError.invalidQuestionnaireVersion(version)
-        }
-        let canonical = "\(url.absoluteString)|\(version)"
-        guard !version.contains("|"),
-              !version.contains("#") else {
-            throw ContractError.invalidQuestionnaireCanonical(canonical)
+        if let version = questionnaire.metadata.version {
+            guard ContractRules.isSemanticVersion(version) else {
+                throw ContractError.invalidQuestionnaireVersion(version)
+            }
         }
         self.init(status: FHIRPrimitive(Self.publicationStatus(of: questionnaire.metadata.lifecycle)))
         self.id = repositoryID?.primitive
+            ?? (questionnaire.metadata.url == nil ? questionnaire.metadata.id.asFHIRStringPrimitive() : nil)
         self.meta = Meta(profile: [Profile.groveQuestionnaire])
         // Grove questionnaires are administered to the app participant. Declaring Patient keeps
         // every native export inside the Grove Questionnaire profile and lets pair validation reject

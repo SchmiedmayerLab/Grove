@@ -45,6 +45,30 @@ public enum SensorKitRecordError: Error, Equatable, Sendable {
     case invalidSidecarPath(String)
     case missingProviderValue(String)
     case unsupportedProviderValue(field: String, rawValue: Int)
+
+    /// The registered input rule this refusal reports.
+    public var diagnostic: ExchangeGraphDiagnostic {
+        let rule: ExchangeGraphRule = switch self {
+        case .sourceTypeNotAdmitted, .sourceTypeHasNoRawContract:
+            .mobileInputUnsupportedSourceType
+        case .emptySamples, .emptyPayload:
+            .mobileInputEmptyRecordingSeries
+        case .nonFiniteValue, .invalidDeviceUsageCount, .invalidReportCount, .invalidTypingSpeed,
+             .invalidSamplingFrequency, .samplingFrequencyNotExactlyRepresentable:
+            .mobileInputValueOutsideDomain
+        case .invalidCurrentStatePeriod, .invalidDeviceUsagePeriod, .invalidReportDuration, .invalidVisitPeriod,
+             .invalidRecordingPeriod, .inconsistentECGDuration, .nonUniformTiming:
+            .mobileInputEffectivePeriodInvalid
+        case .invalidECGBatch, .invalidAttachmentTitle, .invalidContentType, .invalidRecordingFormat,
+             .recordingFormatNotAdmitted, .invalidRegisteredPayload, .invalidSidecarPath:
+            .mobileInputValueShapeInvalid
+        case .missingProviderValue:
+            .mobileInputRequiredMetadataMissing
+        case .unsupportedProviderValue:
+            .mobileInputUnsupportedSourceValue
+        }
+        return ExchangeGraphDiagnostic(code: rule.rawValue, reason: rule.reason, location: "SensorKitRecord", severity: rule.severity)
+    }
 }
 
 

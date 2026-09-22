@@ -70,6 +70,10 @@ extension HealthKitCatalog {
         units[binding.displayUnit] = binding.unit
     }
 
+    private static let unitsByUCUMCode: [String: HKUnit] = unitBindings.reduce(into: [:]) { units, binding in
+        units[binding.ucumCode] = units[binding.ucumCode] ?? binding.unit
+    }
+
     /// The HealthKit unit a UCUM code names, or `nil` when this adapter binds no measurement to it.
     ///
     /// There is deliberately no inverse. A HealthKit unit does not determine a UCUM code: every
@@ -77,7 +81,7 @@ extension HealthKitCatalog {
     /// HealthKit, so answering the other direction would have to pick one arbitrarily. A caller
     /// holding a measurement already has its code on the contract.
     public static func unit(forUCUMCode code: String) -> HKUnit? {
-        unitBindings.first { $0.ucumCode == code }?.unit
+        unitsByUCUMCode[code]
     }
 
     /// The HealthKit unit a UCUM code or a contract's display unit names.

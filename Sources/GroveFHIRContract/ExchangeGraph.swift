@@ -30,39 +30,46 @@ public enum ExchangeGraphKind: Hashable, Sendable {
 ///
 /// Entries are owned only by the Bundle. Producers may expose stable entry keys, but do not retain
 /// independent mutable resource copies that can drift from what is serialized and uploaded.
+/// The graph keeps the JSON it was validated from, so ``isSemanticallyEqual(to:)`` decides over
+/// lossless tokens rather than over a model that has already normalized decimal lexemes.
 public struct ExchangeGraph: Sendable {
     public let kind: ExchangeGraphKind
     public let eventIdentifier: ExchangeEventIdentifier
     public let bundle: ModelsR4.Bundle
+    let jsonData: Data
 
     public init(
         kind: ExchangeGraphKind,
         eventIdentifier: ExchangeEventIdentifier,
         bundle: ModelsR4.Bundle
     ) throws(ExchangeGraphError) {
-        try Self.validateHeader(
-            bundle,
-            eventIdentifier: eventIdentifier
-        )
-        let entries = try Self.validatedEntries(bundle, kind: kind)
-        try Self.validateEntryResourcePolicy(kind: kind, entries: entries)
-        try Self.validateEntryNodeDigests(entries: entries, eventIdentifier: eventIdentifier)
-        try Self.validateEntryIdentities(in: bundle, entries: entries)
-        try Self.validateGovernedReferenceTargets(entries: entries)
-        try Self.validateLifecycle(kind: kind, entries: entries)
+        let jsonData: Data
+        do {
+            jsonData = try JSONEncoder().encode(bundle)
+        } catch {
+            throw .invalidEntries(String(reflecting: type(of: error)))
+        }
+        try Self.validate(kind: kind, eventIdentifier: eventIdentifier, bundle: bundle)
         self.kind = kind
         self.eventIdentifier = eventIdentifier
         self.bundle = bundle
+        self.jsonData = jsonData
     }
 
-    /// Decodes and validates a serialized event while preserving rule diagnostics for mutations
-    /// that make a resource impossible for ModelsR4 to decode (for example, changing only its
-    /// resourceType to a closed-out type).
+    /// Re-validates stored or received JSON before it is trusted again.
+    ///
+    /// Serialized checks run first, because decoding through `Foundation.URL` could otherwise
+    /// normalize an identity system or collapse a prohibited resource type before the model sees it.
     public init(
         kind: ExchangeGraphKind,
         jsonData: Data
     ) throws(ExchangeGraphError) {
         try Self.validateSerializedEntryPolicy(kind: kind, data: jsonData)
+        do {
+            try ExchangeIdentity.validateSerializedIdentifierSystems(in: jsonData)
+        } catch {
+            throw .ruleViolation(.mobileExchangeOpaqueResourceIdentity)
+        }
         let decodedBundle: ModelsR4.Bundle
         do {
             decodedBundle = try JSONDecoder().decode(ModelsR4.Bundle.self, from: jsonData)
@@ -76,13 +83,27 @@ public struct ExchangeGraph: Sendable {
         do {
             eventIdentifier = try ExchangeEventIdentifier(BusinessIdentifier(identifier))
         } catch {
-            throw .ruleViolation(.eventIdentity)
+            throw .ruleViolation(.mobileExchangeEventIdentity)
         }
-        try self.init(
-            kind: kind,
-            eventIdentifier: eventIdentifier,
-            bundle: decodedBundle
-        )
+        try Self.validate(kind: kind, eventIdentifier: eventIdentifier, bundle: decodedBundle)
+        self.kind = kind
+        self.eventIdentifier = eventIdentifier
+        self.bundle = decodedBundle
+        self.jsonData = jsonData
+    }
+
+    private static func validate(
+        kind: ExchangeGraphKind,
+        eventIdentifier: ExchangeEventIdentifier,
+        bundle: ModelsR4.Bundle
+    ) throws(ExchangeGraphError) {
+        try validateHeader(bundle, eventIdentifier: eventIdentifier)
+        let entries = try validatedEntries(bundle, kind: kind)
+        try validateEntryResourcePolicy(kind: kind, entries: entries)
+        try validateEntryNodeDigests(entries: entries, eventIdentifier: eventIdentifier)
+        try validateEntryIdentities(in: bundle, entries: entries)
+        try validateGovernedReferenceTargets(entries: entries)
+        try validateLifecycle(kind: kind, entries: entries)
     }
 
     private static func validateHeader(
@@ -98,18 +119,20 @@ public struct ExchangeGraph: Sendable {
         guard let identifier = bundle.identifier else {
             throw .missingEventIdentifier
         }
-        let actual: BusinessIdentifier
+        let actual: RoledIdentifier
         do {
-            actual = try BusinessIdentifier(identifier)
+            actual = try RoledIdentifier(identifier)
+        } catch .duplicateIdentifierRole {
+            throw diagnostic(.mobileExchangeIdentifierRole, location: "Bundle.identifier")
         } catch {
             throw .invalidEventIdentifier
         }
         do {
-            _ = try ExchangeEventIdentifier(actual)
+            _ = try ExchangeEventIdentifier(actual.identifier)
         } catch {
-            throw .ruleViolation(.eventIdentity)
+            throw .ruleViolation(.mobileExchangeEventIdentity)
         }
-        guard actual == eventIdentifier.businessIdentifier, actual.role == .event else {
+        guard actual == eventIdentifier.identifier else {
             throw .eventIdentifierMismatch
         }
     }
@@ -118,16 +141,18 @@ public struct ExchangeGraph: Sendable {
         _ bundle: ModelsR4.Bundle,
         kind: ExchangeGraphKind
     ) throws(ExchangeGraphError) -> [BundleEntry] {
-        guard bundle.meta?.profile?.contains(kind.profile) == true else {
-            throw .missingProfile(kind.profile.value?.url.absoluteString ?? "")
+        let profiles = bundle.meta?.profile ?? []
+        let exchangeProfiles = [Profile.groveMobileExchangeBundle, GroveLifecycleContract.retractionBundleProfile]
+        guard profiles.filter(exchangeProfiles.contains) == [kind.profile] else {
+            throw diagnostic(.mobileExchangeBundleProfile, location: "Bundle.meta.profile")
         }
         guard let entries = bundle.entry, !entries.isEmpty else {
-            throw .ruleViolation(.entryNodeKey)
+            throw .ruleViolation(.mobileExchangeEntryRequired)
         }
         guard entries.allSatisfy({
             $0.search == nil && $0.request == nil && $0.response == nil
         }) == true else {
-            throw .ruleViolation(.collectionHasRequestOrResponse)
+            throw .ruleViolation(.mobileExchangeCollectionEntryOperation)
         }
         return entries
     }
@@ -136,14 +161,15 @@ public struct ExchangeGraph: Sendable {
         in bundle: ModelsR4.Bundle,
         entries: [BundleEntry]
     ) throws(ExchangeGraphError) {
+        try validateResourceIdentifiers(entries: entries)
         do {
             try ExchangeIdentity.validateIdentifierSystemRoles(in: bundle)
-            try ExchangeIdentity.validate(entries: entries)
         } catch let error as ExchangeIdentityError {
             throw .ruleViolation(Self.rule(for: error))
         } catch {
             throw .invalidEntries(String(reflecting: type(of: error)))
         }
+        try validateEntryKeys(entries: entries)
     }
 
     private static func validateLifecycle(
@@ -159,7 +185,7 @@ public struct ExchangeGraph: Sendable {
     }
 
     /// Returns the one entry with this fullUrl, if present.
-    public func entry(fullURL: String) -> BundleEntry? {
-        bundle.entry?.first { $0.fullUrl?.value?.url.absoluteString == fullURL }
+    public func entry(fullURL: FHIRPrimitive<FHIRURI>) -> BundleEntry? {
+        bundle.entry?.first { $0.fullUrl == fullURL }
     }
 }

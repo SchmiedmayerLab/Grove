@@ -34,8 +34,8 @@ extension SensorKitConverter {
         code: Coding,
         profiles: [String],
         sourceTypeCode: String,
-        sourceIdentifier: BusinessIdentifier,
-        outputIdentifier: BusinessIdentifier,
+        sourceIdentifier: RoledIdentifier,
+        outputIdentifier: RoledIdentifier,
         context: SensorKitConversionContext,
         recordingDeviceURL: String?,
         converterURL: String
@@ -46,12 +46,12 @@ extension SensorKitConverter {
         )
         observation.meta = Meta(profile: profiles.map(profile))
         observation.identifier = [sourceIdentifier.fhirIdentifier, outputIdentifier.fhirIdentifier]
-        observation.subject = context.subject
+        observation.subject = try context.subject
         observation.device = recordingDeviceURL.map(reference)
-        observation.extension = [sourceTypeExtension(sourceTypeCode)] + contextExtensions(
+        observation.extension = [sourceTypeExtension(sourceTypeCode)] + (try contextExtensions(
             context,
             converterURL: converterURL
-        )
+        ))
         return observation
     }
 
@@ -67,14 +67,14 @@ extension SensorKitConverter {
     static func contextExtensions(
         _ context: SensorKitConversionContext,
         converterURL: String
-    ) -> [Extension] {
-        var extensions = context.researchStudies.map { study in
+    ) throws -> [Extension] {
+        var extensions = try context.researchStudies.map { study in
             Extension(url: Canonicals.researchStudy, value: .reference(study))
         }
-        if context.converterWasGateway {
+        if let gatewayURL = try context.event.gatewayURL(converterURL: converterURL) {
             extensions.append(Extension(
                 url: Canonicals.gatewayDevice,
-                value: .reference(reference(converterURL))
+                value: .reference(reference(gatewayURL))
             ))
         }
         return extensions

@@ -81,11 +81,11 @@ struct HealthKitRecordingDocumentTests {
     private let converter = HealthKitConverter()
 
     private func context(
-        routeDisclosurePolicy: HealthKitRouteDisclosurePolicy = .omit
+        routeDisclosurePolicy: RouteDisclosurePolicy = .omit
     ) -> HealthKitConversionContext {
         HealthKitConversionContext(
             subject: .testPatient,
-            converter: HealthKitApplication(
+            converter: ApplicationDevice.test(
                 name: "Example Study",
                 bundleIdentifier: "org.grovealliance.example-study",
                 version: "2.0.0 (42)"
@@ -129,9 +129,7 @@ struct HealthKitRecordingDocumentTests {
 
     @Test("A series with no beats fails closed rather than carrying a header alone")
     func emptyBeatSeriesFailsClosed() {
-        #expect(throws: HealthKitConversionError.emptyRecordingSeries(
-            sampleType: HKDataTypeIdentifierHeartbeatSeries
-        )) {
+        #expect(throws: HealthKitValueFailure.emptyRecordingSeries) {
             try HealthKitConverter.beatIntervalPayload(
                 seriesStart: Self.seriesStart,
                 heartbeats: [],
@@ -165,7 +163,7 @@ struct HealthKitRecordingDocumentTests {
         ])
         #expect(document.status.value == .current)
         #expect(document.subject == .testPatient)
-        let identifiers = try #require(document.identifier).map(BusinessIdentifier.init)
+        let identifiers = try #require(document.identifier).map(RoledIdentifier.init)
         #expect(identifiers.map(\.role) == [.sourceRecord, .sourceOutput, .sourceArtifact])
         #expect(document.identifier?[1].value?.value?.string == conversion.graphIdentifiers.sourceOutput.value)
         #expect(document.content.count == 1)
@@ -217,11 +215,11 @@ struct HealthKitRecordingDocumentTests {
         #expect(conversion.provenance.meta?.profile == [
             HealthKitContract.conversionProvenanceProfile
         ])
-        let documentURL = try ExchangeIdentity.fullURL(for: conversion.graphIdentifiers.sourceOutput)
+        let documentURL = try conversion.graphIdentifiers.sourceOutput.fullURLString
         #expect(conversion.provenance.target.first?.reference?.value?.string == documentURL)
         #expect(conversion.bundle.entry?.first?.fullUrl?.value?.url.absoluteString == documentURL)
         #expect(conversion.document.author?.last?.reference?.value?.string
-            == (try ExchangeIdentity.fullURL(for: conversion.graphIdentifiers.converterApplicationSnapshot)))
+            == (try conversion.graphIdentifiers.converterApplicationSnapshot.fullURLString))
     }
 
     @Test("A route is omitted under the default disclosure policy")
@@ -253,9 +251,7 @@ struct HealthKitRecordingDocumentTests {
 
     @Test("An authorized route with no fixes fails closed")
     func emptyAuthorizedRouteFailsClosed() {
-        #expect(throws: HealthKitConversionError.emptyRecordingSeries(
-            sampleType: HKWorkoutRouteTypeIdentifier
-        )) {
+        #expect(throws: HealthKitValueFailure.emptyRecordingSeries) {
             try HealthKitConverter.locationTrackPayload(
                 [],
                 context: context(routeDisclosurePolicy: .authorized),

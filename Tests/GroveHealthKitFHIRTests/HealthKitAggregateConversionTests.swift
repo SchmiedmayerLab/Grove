@@ -60,7 +60,7 @@ struct HealthKitFHIRAggregateConversionTests {
     private var context: HealthKitConversionContext {
         HealthKitConversionContext(
             subject: .testPatient,
-            converter: HealthKitApplication(
+            converter: ApplicationDevice.test(
                 name: "Example Study",
                 bundleIdentifier: "org.grovealliance.example-study",
                 version: "2.0.0 (42)"
@@ -174,37 +174,32 @@ struct HealthKitFHIRAggregateConversionTests {
 
     @Test("Rows outside this converter's Observation surface fail closed with their catalog reason")
     func unconvertibleRowsFailClosedWithTheirCatalogReason() throws {
-        let clinical = "HKClinicalTypeIdentifierLabResultRecord"
         #expect(
-            HealthKitConverter.unconvertibleSampleError(forSourceTypeIdentifier: clinical)
-                == .platformExclusiveDocument(sampleType: clinical)
+            HealthKitConverter.unconvertibleSampleError(for: .labResultRecord)
+                == .platformExclusiveSourceType(.labResultRecord)
         )
-
-        let workout = HKWorkoutType.workoutType().identifier
+        #expect(HealthKitConverter.unconvertibleSampleError(for: .workout) == .notYetConvertible(.workout))
         #expect(
-            HealthKitConverter.unconvertibleSampleError(forSourceTypeIdentifier: workout)
-                == .notYetConvertible(sampleType: workout)
+            HealthKitConverter.unconvertibleSampleError(for: .bloodPressureSystolic)
+                == .componentRequiresCorrelation(.bloodPressureSystolic)
         )
-
-        let systolic = HKQuantityTypeIdentifier.bloodPressureSystolic.rawValue
+        let reason = try #require(HealthKitCatalog[.nikeFuel].requirement)
         #expect(
-            HealthKitConverter.unconvertibleSampleError(forSourceTypeIdentifier: systolic)
-                == .componentSampleRequiresCorrelation(sampleType: systolic)
+            HealthKitConverter.unconvertibleSampleError(for: .nikeFuel)
+                == .intentionallyUnsupported(.nikeFuel, reason: reason)
         )
-
-        let alert = "HKQuantityTypeIdentifierNikeFuel"
-        let entry = try #require(HealthKitCatalog.entry(forSourceTypeIdentifier: alert))
-        let reason = try #require(entry.requirement)
         #expect(
-            HealthKitConverter.unconvertibleSampleError(forSourceTypeIdentifier: alert)
-                == .intentionallyUnsupported(sampleType: alert, reason: reason)
+            HealthKitConverter.unconvertibleSampleError(for: .heartbeatSeries)
+                == .platformExclusiveSourceType(.heartbeatSeries)
         )
-
-        let deferredType = "HKDataTypeIdentifierHeartbeatSeries"
-        #expect(
-            HealthKitConverter.unconvertibleSampleError(forSourceTypeIdentifier: deferredType)
-                == .platformExclusiveDocument(sampleType: deferredType)
-        )
+        for error in [
+            HealthKitConverter.unconvertibleSampleError(for: .labResultRecord),
+            HealthKitConverter.unconvertibleSampleError(for: .workout),
+            HealthKitConverter.unconvertibleSampleError(for: .nikeFuel)
+        ] {
+            #expect(ExchangeGraphRule(rawValue: error.diagnostic.code) != nil)
+            #expect(error.diagnostic.code.hasPrefix("mobile-input."))
+        }
     }
 }
 

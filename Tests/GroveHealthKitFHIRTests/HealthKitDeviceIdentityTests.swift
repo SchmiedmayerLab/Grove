@@ -25,18 +25,18 @@ struct HealthKitFHIRDeviceIdentityTests {
         subjectID: String = "1a2b3c",
         eventOffset: TimeInterval = 0,
         stableUnitToken: String? = nil,
-        sourceActor: HealthKitSourceActor = .application
+        writer: HealthKitWriter = .application
     ) -> HealthKitConversionContext {
         HealthKitConversionContext(
-            subject: .testLogicalReference(resourceType: .patient, value: subjectID),
-            converter: HealthKitApplication(
+            subject: .logical(.test(.patient, subjectID)),
+            converter: ApplicationDevice.test(
                 name: "Example Study",
                 bundleIdentifier: "org.grovealliance.example-study",
                 version: "2.0.0",
                 build: "42"
             ),
             graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-            sourceActor: sourceActor,
+            writer: writer,
             conversionInstant: timestamp.addingTimeInterval(eventOffset),
             recordingDeviceStableUnitToken: stableUnitToken
         )
@@ -92,7 +92,7 @@ struct HealthKitFHIRDeviceIdentityTests {
 
         #expect(application.meta?.profile == [HealthKitContract.applicationDeviceProfile])
         #expect(identifiers.count == 2)
-        #expect(try BusinessIdentifier(identifiers[0]).role == .deviceSnapshot)
+        #expect(try RoledIdentifier(identifiers[0]).role == .deviceSnapshot)
         #expect(bundleIdentifier.value?.value?.string == "org.grovealliance.example-study")
         #expect(typeCodings?.count == 1)
         #expect(typeCodings?.first?.code?.value?.string == HealthKitContract.appleBundleIdentifierTypeCode)
@@ -105,7 +105,7 @@ struct HealthKitFHIRDeviceIdentityTests {
             context: context(stableUnitToken: "watch-unit-7")
         )
         let device = try #require(conversion.recordingDevice)
-        let identifiers = try #require(device.identifier).map { try BusinessIdentifier($0) }
+        let identifiers = try #require(device.identifier).map { try RoledIdentifier($0) }
 
         #expect(identifiers.map(\.role) == [.deviceSnapshot, .recordingDevice])
         #expect(identifiers[0] == conversion.graphIdentifiers.recordingDeviceSnapshot)
@@ -122,8 +122,8 @@ struct HealthKitFHIRDeviceIdentityTests {
             sample(watch(firmware: "11.3"), offset: 600),
             context: context(eventOffset: 1, stableUnitToken: "watch-unit-7")
         )
-        let beforeIdentifiers = try #require(before.recordingDevice?.identifier).map { try BusinessIdentifier($0) }
-        let afterIdentifiers = try #require(after.recordingDevice?.identifier).map { try BusinessIdentifier($0) }
+        let beforeIdentifiers = try #require(before.recordingDevice?.identifier).map { try RoledIdentifier($0) }
+        let afterIdentifiers = try #require(after.recordingDevice?.identifier).map { try RoledIdentifier($0) }
 
         #expect(beforeIdentifiers[1] == afterIdentifiers[1])
         #expect(beforeIdentifiers[0] != afterIdentifiers[0])
@@ -140,8 +140,8 @@ struct HealthKitFHIRDeviceIdentityTests {
             sample(watch()),
             context: context(subjectID: "9z8y7x", eventOffset: 1, stableUnitToken: "watch-unit-7")
         )
-        let mineIdentifiers = try #require(mine.recordingDevice?.identifier).map { try BusinessIdentifier($0) }
-        let yoursIdentifiers = try #require(yours.recordingDevice?.identifier).map { try BusinessIdentifier($0) }
+        let mineIdentifiers = try #require(mine.recordingDevice?.identifier).map { try RoledIdentifier($0) }
+        let yoursIdentifiers = try #require(yours.recordingDevice?.identifier).map { try RoledIdentifier($0) }
 
         #expect(mineIdentifiers[1] != yoursIdentifiers[1])
     }
@@ -161,7 +161,7 @@ struct HealthKitFHIRDeviceIdentityTests {
     func deviceSourceReusesRecordingDevice() throws {
         let conversion = try converter.convert(
             sample(watch()),
-            context: context(stableUnitToken: "watch-unit-7", sourceActor: .device)
+            context: context(stableUnitToken: "watch-unit-7", writer: .device)
         )
         let author = try #require(conversion.provenance.entity?.first?.agent?.first)
 

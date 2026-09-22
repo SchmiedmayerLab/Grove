@@ -9,6 +9,7 @@
 // Fixed protocol-vector fixtures deliberately trap if a hard-coded identity becomes invalid.
 // swiftlint:disable force_try type_contents_order
 
+import CryptoKit
 import Foundation
 import GroveFHIRContract
 @testable import GroveSensorKitFHIR
@@ -24,78 +25,71 @@ enum SensorFHIRIdentityTestSupport {
         "https://grovealliance.org/fhir/testing/identifiers/exchange-entry-node"
     static let visitLocationIdentifierSystem: IdentifierSystem =
         "https://grovealliance.org/fhir/testing/identifiers/sensorkit-location"
-    static let converterHost = SensorHostDevice(
-        sourceDeviceToken: "test-converter-host",
+    static let converterHost = try! HostDevice(
         operatingSystemVersion: "20.1",
         name: "Test Host",
         manufacturer: "Example Device Company",
         modelNumber: "Phone One"
     )
-
-    static var subjectIdentity: BusinessIdentifier {
-        get throws {
-            try BusinessIdentifier(
-                system: "https://grovealliance.org/fhir/testing/identifiers/participant",
-                value: "example"
-            )
-        }
-    }
-
-    static let subject = Reference(
-        identifier: try! subjectIdentity.fhirIdentifier,
-        type: FHIRPrimitive(FHIRURI(stringLiteral: ResourceType.patient.rawValue))
+    static let subjectIdentity = try! BusinessIdentifier(
+        system: "https://grovealliance.org/fhir/testing/identifiers/participant",
+        value: "example"
     )
-
-    static func logicalReference(
-        resourceType: ResourceType,
-        value: String
-    ) throws -> Reference {
-        let identifier = try BusinessIdentifier(
-            system: "https://grovealliance.org/fhir/testing/identifiers/\(resourceType.rawValue.lowercased())",
-            value: value
-        )
-        return Reference(
-            identifier: identifier.fhirIdentifier,
-            type: FHIRPrimitive(FHIRURI(stringLiteral: resourceType.rawValue))
-        )
-    }
-
-    static var repositoryScope: BusinessIdentifier {
-        get throws {
-            try BusinessIdentifier(
-                system: "https://grovealliance.org/fhir/testing/identifiers/repository",
-                value: "primary"
-            )
-        }
-    }
-
-    static var identityScope: PseudonymousIdentityScope {
-        get throws {
-            try PseudonymousIdentityScope(
-                systems: PseudonymousIdentitySystems(
-                    sourceRecord: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-record/test/1",
-                    sourceOutput: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-output/test/1",
-                    writerRecord: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/writer-record/test/1",
-                    providerRecord: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/provider-record/test/1",
-                    providerOutput: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/provider-output/test/1",
-                    sourceArtifact: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-artifact/test/1",
-                    providerArtifact: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/provider-artifact/test/1",
-                    sourceContext: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-context/test/1",
-                    recordingDevice: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/recording-device/test/1",
-                    deviceSnapshot: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/device-snapshot/test/1"
-                ),
-                keyID: "test",
-                epoch: 1,
-                key: Data(repeating: 0x42, count: 32)
-            )
-        }
-    }
+    static let subject: Subject = .logical(subjectIdentity)
+    static let repositoryScope = try! BusinessIdentifier(
+        system: "https://grovealliance.org/fhir/testing/identifiers/repository",
+        value: "primary"
+    )
+    static let identityScope = try! OpaqueIdentityScope(
+        systems: DeploymentIdentifierSystems(
+            opaque: OpaqueIdentitySystems(
+                sourceRecord: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-record/test/1",
+                sourceOutput: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-output/test/1",
+                writerRecord: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/writer-record/test/1",
+                providerRecord: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/provider-record/test/1",
+                providerOutput: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/provider-output/test/1",
+                sourceArtifact: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-artifact/test/1",
+                providerArtifact: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/provider-artifact/test/1",
+                sourceContext: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-context/test/1",
+                recordingDevice: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/recording-device/test/1",
+                deviceSnapshot: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/device-snapshot/test/1"
+            ),
+            event: "https://grovealliance.org/fhir/testing/identifiers/exchange-event",
+            entryNode: entryNodeIdentifierSystem
+        ),
+        keyID: "test",
+        epoch: EventSequence(1),
+        key: SymmetricKey(data: Data(repeating: 0x42, count: 32))
+    )
 
     static func event(sequence: UInt64 = 1) throws -> ExchangeEventIdentifier {
         try ExchangeEventIdentifier(
             system: "https://grovealliance.org/fhir/testing/identifiers/exchange-event",
             producerInstance: producerInstance,
-            sequence: sequence
+            sequence: EventSequence(sequence)
+        )
+    }
+
+    static func eventContext(
+        subject: Subject = subject,
+        converter: ApplicationDevice,
+        event: ExchangeEventIdentifier,
+        converterWasGateway: Bool,
+        conversionInstant: Date,
+        studies: [StudyEnrollment] = [],
+        repositoryIDs: [ExchangeGraphNode: RepositoryID] = [:]
+    ) -> ExchangeEventContext {
+        ExchangeEventContext(
+            subject: subject,
+            event: event,
+            identityScope: identityScope,
+            repositoryScope: repositoryScope,
+            application: converter,
+            host: converterHost,
+            conversionInstant: conversionInstant,
+            converterRole: converterWasGateway ? .gateway : .assembler,
+            studies: studies,
+            repositoryIDs: repositoryIDs
         )
     }
 
@@ -104,8 +98,8 @@ enum SensorFHIRIdentityTestSupport {
         sourceToken: String,
         structuredDiscriminator: String?,
         includesNativeRecording: Bool
-    ) throws -> [BusinessIdentifier] {
-        var outputs: [BusinessIdentifier] = []
+    ) throws -> [RoledIdentifier] {
+        var outputs: [RoledIdentifier] = []
         if let structuredDiscriminator {
             outputs.append(try identityScope.sourceOutput(
                 adapterID: "sensorkit",
@@ -131,41 +125,98 @@ enum SensorFHIRIdentityTestSupport {
 }
 
 
+extension ApplicationDevice {
+    static func test(name: String, bundleIdentifier: String, version: String) -> ApplicationDevice {
+        try! ApplicationDevice(name: name, bundleIdentifier: bundleIdentifier, version: version)
+    }
+}
+
+
+extension RecordingDevice {
+    static func test(
+        stableUnitToken: String,
+        name: String? = nil,
+        manufacturer: String? = nil,
+        modelNumber: String? = nil
+    ) -> RecordingDevice {
+        try! RecordingDevice(stableUnitToken: stableUnitToken, name: name, manufacturer: manufacturer, modelNumber: modelNumber)
+    }
+}
+
+
+extension RoledIdentifier {
+    var value: String { identifier.value }
+    var system: IdentifierSystem { identifier.system }
+    var systemValue: String { identifier.system.rawValue }
+}
+
+
+/// Keeps the fixtures concise while production callers build the shared event context themselves.
 extension SensorConversionContext {
     init(
-        subject: Reference,
-        converter: SensorApplication,
+        subject: Subject = SensorFHIRIdentityTestSupport.subject,
+        converter: ApplicationDevice,
         graphIdentifierSystem: IdentifierSystem,
-        recordingDevice: SensorRecordingDevice? = nil,
+        recordingDevice: RecordingDevice? = nil,
         converterWasGateway: Bool = false,
         conversionInstant: Date,
-        researchStudies: [Reference] = [],
-        repositoryIDs: SensorRepositoryIDs = .init()
+        studies: [StudyEnrollment] = [],
+        repositoryIDs: [ExchangeGraphNode: RepositoryID] = [:]
     ) {
         self.init(
-            subject: subject,
-            subjectIdentity: try! SensorFHIRIdentityTestSupport.subjectIdentity,
-            converter: converter,
-            converterHost: SensorFHIRIdentityTestSupport.converterHost,
-            adapterID: "sensor",
-            eventIdentifier: try! ExchangeEventIdentifier(
-                system: graphIdentifierSystem,
-                producerInstance: SensorFHIRIdentityTestSupport.producerInstance,
-                sequence: 1
+            event: SensorFHIRIdentityTestSupport.eventContext(
+                subject: subject,
+                converter: converter,
+                event: try! ExchangeEventIdentifier(
+                    system: graphIdentifierSystem,
+                    producerInstance: SensorFHIRIdentityTestSupport.producerInstance,
+                    sequence: EventSequence(1)
+                ),
+                converterWasGateway: converterWasGateway,
+                conversionInstant: conversionInstant,
+                studies: studies,
+                repositoryIDs: repositoryIDs
             ),
-            entryNodeIdentifierSystem: SensorFHIRIdentityTestSupport.entryNodeIdentifierSystem,
-            identityScope: try! SensorFHIRIdentityTestSupport.identityScope,
-            repositoryScope: try! SensorFHIRIdentityTestSupport.repositoryScope,
-            recordingDevice: recordingDevice,
-            converterWasGateway: converterWasGateway,
-            conversionInstant: conversionInstant,
-            researchStudies: researchStudies,
-            repositoryIDs: repositoryIDs
+            adapterID: "sensor",
+            recordingDevice: recordingDevice
         )
     }
 
     var graphIdentifierSystem: IdentifierSystem {
-        eventIdentifier.businessIdentifier.system
+        eventIdentifier.identifier.system
+    }
+}
+
+
+extension SensorKitConversionContext {
+    init(
+        subject: Subject = SensorFHIRIdentityTestSupport.subject,
+        converter: ApplicationDevice,
+        eventIdentifier: ExchangeEventIdentifier,
+        visitLocationIdentifierSystem: IdentifierSystem = SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem,
+        sourceIdentifierDisclosurePolicy: GovernedSourceIdentifierDisclosurePolicy = .omit,
+        recordingDevice: RecordingDevice? = nil,
+        converterWasGateway: Bool = false,
+        sourceTimeZone: TimeZone,
+        conversionInstant: Date,
+        studies: [StudyEnrollment] = [],
+        repositoryIDs: [ExchangeGraphNode: RepositoryID] = [:]
+    ) {
+        self.init(
+            event: SensorFHIRIdentityTestSupport.eventContext(
+                subject: subject,
+                converter: converter,
+                event: eventIdentifier,
+                converterWasGateway: converterWasGateway,
+                conversionInstant: conversionInstant,
+                studies: studies,
+                repositoryIDs: repositoryIDs
+            ),
+            visitLocationIdentifierSystem: visitLocationIdentifierSystem,
+            sourceIdentifierDisclosurePolicy: sourceIdentifierDisclosurePolicy,
+            recordingDevice: recordingDevice,
+            sourceTimeZone: sourceTimeZone
+        )
     }
 }
 

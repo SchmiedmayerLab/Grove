@@ -45,34 +45,34 @@ enum HealthKitECGEvidenceValidator {
 
     static func validateCount(reported: Int, supplied: Int) throws {
         guard reported > 0 else {
-            throw HealthKitConversionError.invalidECGEvidence(.invalidReportedVoltageCount(reported))
+            throw HealthKitConversionError.ecgEvidence(.invalidReportedVoltageCount(reported))
         }
         guard supplied == reported else {
-            throw HealthKitConversionError.invalidECGEvidence(.voltageCountMismatch(
+            throw HealthKitConversionError.ecgEvidence(.voltageCountMismatch(
                 reported: reported,
                 supplied: supplied
             ))
         }
         guard supplied >= 2 else {
-            throw HealthKitConversionError.invalidECGEvidence(.insufficientVoltageMeasurements)
+            throw HealthKitConversionError.ecgEvidence(.insufficientVoltageMeasurements)
         }
     }
 
     private static func validatedOffsets(_ points: [HealthKitECGVoltagePoint]) throws -> [Decimal] {
         let offsets = try points.enumerated().map { index, point in
             guard point.timeSinceSampleStart.isFinite, point.timeSinceSampleStart >= 0 else {
-                throw HealthKitConversionError.invalidECGEvidence(.invalidOffset(index: index))
+                throw HealthKitConversionError.ecgEvidence(.invalidOffset(index: index))
             }
             guard let exactOffset = Decimal(
                 string: String(point.timeSinceSampleStart),
                 locale: Locale(identifier: "en_US_POSIX")
             ) else {
-                throw HealthKitConversionError.invalidECGEvidence(.invalidOffset(index: index))
+                throw HealthKitConversionError.ecgEvidence(.invalidOffset(index: index))
             }
             return exactOffset
         }
         for index in offsets.indices.dropFirst() where offsets[index] <= offsets[index - 1] {
-            throw HealthKitConversionError.invalidECGEvidence(.invalidOffset(index: index))
+            throw HealthKitConversionError.ecgEvidence(.invalidOffset(index: index))
         }
         return offsets
     }
@@ -82,12 +82,12 @@ enum HealthKitECGEvidenceValidator {
         for index in offsets.indices.dropFirst(2) {
             let expected = offsets[0] + Decimal(index) * periodSeconds
             guard offsets[index] == expected else {
-                throw HealthKitConversionError.invalidECGEvidence(.nonUniformOffset(index: index))
+                throw HealthKitConversionError.ecgEvidence(.nonUniformOffset(index: index))
             }
         }
         let periodMilliseconds = periodSeconds * 1_000
         guard periodMilliseconds > 0, !periodMilliseconds.isNaN else {
-            throw HealthKitConversionError.invalidECGEvidence(.invalidOffset(index: 1))
+            throw HealthKitConversionError.ecgEvidence(.invalidOffset(index: 1))
         }
         return periodMilliseconds
     }
@@ -100,17 +100,17 @@ enum HealthKitECGEvidenceValidator {
             return
         }
         guard frequencyHertz.isFinite, frequencyHertz > 0 else {
-            throw HealthKitConversionError.invalidECGEvidence(.invalidSamplingFrequency)
+            throw HealthKitConversionError.ecgEvidence(.invalidSamplingFrequency)
         }
         guard Decimal(frequencyHertz) * periodMilliseconds == 1_000 else {
-            throw HealthKitConversionError.invalidECGEvidence(.samplingFrequencyMismatch)
+            throw HealthKitConversionError.ecgEvidence(.samplingFrequencyMismatch)
         }
     }
 
     private static func dataString(_ points: [HealthKitECGVoltagePoint]) throws -> String {
         let values = try points.enumerated().map { index, point in
             guard point.millivolts.isFinite else {
-                throw HealthKitConversionError.invalidECGEvidence(.invalidLeadVoltage(index: index))
+                throw HealthKitConversionError.ecgEvidence(.invalidLeadVoltage(index: index))
             }
             return sampledDataDecimal(point.millivolts)
         }

@@ -260,7 +260,7 @@ extension HealthKitConverter {
     static func component(_ id: String, value: Double) throws -> ObservationComponent {
         guard let component = MeasurementCatalog.workout.components.first(where: { $0.id == id }),
               let quantity = component.quantity else {
-            throw HealthKitConversionError.missingRequiredComponent(sampleType: "workout", component: id)
+            throw HealthKitValueFailure.requiredComponentMissing(component: id)
         }
         return ObservationComponent(
             code: CodeableConcept(coding: [Coding(

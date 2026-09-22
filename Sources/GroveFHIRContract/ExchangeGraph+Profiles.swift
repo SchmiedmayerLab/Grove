@@ -6,6 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(CryptoKit)
+import CryptoKit
+#else
+import Crypto
+#endif
 import Foundation
 import ModelsR4
 
@@ -24,6 +29,7 @@ extension ExchangeGraph {
             }
         }
         if let activeProvenance {
+            try validateDataOriginAgent(activeProvenance)
             try validateAdapterProvenanceTargets(activeProvenance, entries: entries)
         }
     }
@@ -40,30 +46,32 @@ extension ExchangeGraph {
             let claim = try validateDirectProfileClaim(
                 profiles: document.meta?.profile ?? [],
                 modes: ProfileClaims.documentProfileModes,
-                rule: .documentProfile
+                rule: .mobileOutputDocumentProfile
             )
             try validateIdentifierRoles(
                 in: resource,
                 claim: claim,
                 additionallyAllowed: [.writerRecord],
-                rule: .recordingDocumentIdentity
+                rule: .sensorRecordingDocumentIdentityAndContent
             )
             guard document.content.count == 1 else {
-                throw .ruleViolation(.recordingDocumentIdentity)
+                throw .ruleViolation(.sensorRecordingDocumentIdentityAndContent)
             }
             try validateClinicalFHIRRepresentation(document, claim: claim)
+            try validateRecordingFormat(document)
+            try validateEmbeddedIntegrity(document)
         case .device(let device):
             let claim = try validateDirectProfileClaim(
                 profiles: device.meta?.profile ?? [],
                 modes: ProfileClaims.deviceProfileModes,
-                rule: .deviceProfile
+                rule: .mobileSupportDeviceProfile
             )
-            try validateIdentifierRoles(in: resource, claim: claim, rule: .recordingDeviceDualIdentity)
+            try validateIdentifierRoles(in: resource, claim: claim, rule: .mobileDeviceRecordingDeviceDualIdentity)
         case .questionnaireResponse(let response):
             _ = try validateDirectProfileClaim(
                 profiles: response.meta?.profile ?? [],
                 modes: ProfileClaims.questionnaireResponseProfileModes,
-                rule: .questionnaireResponseProfile
+                rule: .mobileSupportQuestionnaireResponseProfile
             )
         case .provenance(let provenance):
             try validateActiveProvenanceProfile(provenance)
@@ -80,7 +88,7 @@ extension ExchangeGraph {
         let profiles = canonicalStrings(observation.meta?.profile ?? [])
         let direct = Set(profiles)
         guard !profiles.isEmpty, direct.count == profiles.count else {
-            throw .ruleViolation(.semanticProfile)
+            throw .ruleViolation(.mobileOutputSemanticProfile)
         }
         let exactModes = ProfileClaims.exactObservationProfileModes.map {
             Set(canonicalStrings($0))
@@ -98,17 +106,17 @@ extension ExchangeGraph {
         let adapters = direct.intersection(adapterProfiles)
         guard shared.count == 1,
               direct == shared.union(adapters) else {
-            throw .ruleViolation(.semanticProfile)
+            throw .ruleViolation(.mobileOutputSemanticProfile)
         }
         guard let semanticProfile = shared.first else {
-            throw .ruleViolation(.semanticProfile)
+            throw .ruleViolation(.mobileOutputSemanticProfile)
         }
         if let requiredAdapter = ProfileClaims.providerOwnedSemanticAdapters[semanticProfile]?.value?.url.absoluteString {
             guard adapters == [requiredAdapter] else {
-                throw .ruleViolation(.semanticProfile)
+                throw .ruleViolation(.mobileOutputSemanticProfile)
             }
         } else if adapters.count > 1 {
-            throw .ruleViolation(.semanticProfile)
+            throw .ruleViolation(.mobileOutputSemanticProfile)
         }
     }
 
@@ -140,9 +148,8 @@ extension ExchangeGraph {
     ) throws(ExchangeGraphError) {
         do {
             let identifiers = try ExchangeIdentity.typedResourceIdentifiers(in: resource)
-            let roles = identifiers.compactMap(\.role)
-            guard roles.count == identifiers.count,
-                  Set(identifiers).count == identifiers.count else {
+            let roles = identifiers.map(\.role)
+            guard Set(identifiers).count == identifiers.count else {
                 throw ExchangeGraphError.ruleViolation(rule)
             }
             let required = Set(claim.requiredIdentifierRoles.compactMap(GroveIdentifierRole.init))
@@ -180,7 +187,7 @@ extension ExchangeGraph {
                   == HealthKitContract.clinicalFHIRPayloadFormatCode,
               let contentType = content.attachment.contentType?.value?.string,
               HealthKitContract.clinicalFHIRContentTypeByRelease.values.contains(contentType) else {
-            throw .ruleViolation(.clinicalFHIRRepresentation)
+            throw .ruleViolation(.healthkitClinicalFhirRepresentation)
         }
     }
 
@@ -190,7 +197,7 @@ extension ExchangeGraph {
         let profiles = canonicalStrings(provenance.meta?.profile ?? [])
         let admitted = Set(canonicalStrings(ProfileClaims.activeProvenanceProfiles))
         guard profiles.count == 1, admitted.contains(profiles[0]) else {
-            throw .ruleViolation(.provenanceProfile)
+            throw .ruleViolation(.mobileExchangeProvenanceProfile)
         }
     }
 
@@ -199,7 +206,7 @@ extension ExchangeGraph {
     ) throws(ExchangeGraphError) {
         guard canonicalStrings(provenance.meta?.profile ?? [])
             == canonicalStrings(ProfileClaims.retractionProvenanceProfiles) else {
-            throw .ruleViolation(.provenanceProfile)
+            throw .ruleViolation(.mobileExchangeProvenanceProfile)
         }
     }
 
@@ -227,8 +234,58 @@ extension ExchangeGraph {
             guard let reference = target.reference?.value?.string,
                   let resource = resourcesByFullURL[reference],
                   !admitted.isDisjoint(with: Set(resourceProfiles(resource))) else {
-                throw .ruleViolation(.provenanceProfile)
+                throw diagnostic(.mobileExchangeAdapterProvenanceGraph, location: "Provenance.entity")
             }
+        }
+    }
+
+    /// A Health Connect conversion names its data origin as one identifier-only enterer Device agent.
+    static func validateDataOriginAgent(_ provenance: Provenance) throws(ExchangeGraphError) {
+        guard provenance.meta?.profile?.contains(Profile.healthConnectConversionProvenance) == true else {
+            return
+        }
+        let enterers = (provenance.entity?.first?.agent ?? []).filter { agent in
+            agent.type?.coding?.contains {
+                $0.system?.value?.url.absoluteString == participantSystem && $0.code?.value?.string == "enterer"
+            } == true
+        }
+        guard enterers.count == 1,
+              let who = enterers.first?.who,
+              who.reference == nil,
+              who.identifier != nil,
+              who.type?.value?.url.absoluteString == ResourceType.device.rawValue else {
+            throw diagnostic(.healthConnectProvenanceDataOriginAgent, location: "Provenance.entity[0].agent")
+        }
+    }
+
+    /// The attachment's format is a registered recording format and its content type one the registry names.
+    static func validateRecordingFormat(_ document: DocumentReference) throws(ExchangeGraphError) {
+        guard let content = document.content.first, let format = content.format else {
+            return
+        }
+        let contentType = content.attachment.contentType?.value?.string
+        guard format.version == nil,
+              format.system?.value?.url.absoluteString == RecordingFormatContract.recordingFormatCodeSystem,
+              let code = format.code?.value?.string,
+              let registered = RegisteredRecordingFormat(rawValue: code),
+              contentType.map({ registered.registeredContentTypes.contains($0) }) ?? true else {
+            throw diagnostic(.sensorRecordingDocumentFormat, location: "DocumentReference.content[0].format.code")
+        }
+    }
+
+    /// An embedded attachment's stated size and SHA-1 hash are those of its bytes.
+    static func validateEmbeddedIntegrity(_ document: DocumentReference) throws(ExchangeGraphError) {
+        guard let attachment = document.content.first?.attachment,
+              let base64 = attachment.data?.value?.dataString,
+              let data = Data(base64Encoded: base64) else {
+            return
+        }
+        if let size = attachment.size?.value?.integer, Int(size) != data.count {
+            throw diagnostic(.sensorRecordingDocumentEmbeddedIntegrity, location: "DocumentReference.content[0].attachment.size")
+        }
+        if let hash = attachment.hash?.value?.dataString,
+           Data(base64Encoded: hash) != Data(Insecure.SHA1.hash(data: data)) {
+            throw diagnostic(.sensorRecordingDocumentEmbeddedIntegrity, location: "DocumentReference.content[0].attachment.hash")
         }
     }
 
@@ -248,8 +305,8 @@ extension ExchangeGraph {
         guard quantity.system?.value?.url.absoluteString == contract.system,
               quantity.code?.value?.string == contract.code else {
             throw .contractViolation(ExchangeGraphDiagnostic(
-                code: ExchangeGraphRule.fixedQuantityUnit.rawValue,
-                reason: ExchangeGraphRule.fixedQuantityUnit.diagnostic.reason,
+                code: ExchangeGraphRule.mobileOutputFixedQuantityUnit.rawValue,
+                reason: ExchangeGraphRule.mobileOutputFixedQuantityUnit.reason,
                 location: "Bundle.entry[\(entryIndex)].resource.valueQuantity.code"
             ))
         }
@@ -257,8 +314,8 @@ extension ExchangeGraph {
            let decimal = quantity.value?.value?.decimal {
             if !domain.contains(decimal) {
                 throw .contractViolation(ExchangeGraphDiagnostic(
-                    code: ExchangeGraphRule.quantityValueDomain.rawValue,
-                    reason: ExchangeGraphRule.quantityValueDomain.diagnostic.reason,
+                    code: ExchangeGraphRule.mobileOutputQuantityValueDomain.rawValue,
+                    reason: ExchangeGraphRule.mobileOutputQuantityValueDomain.reason,
                     location: "Bundle.entry[\(entryIndex)].resource.valueQuantity.value"
                 ))
             }

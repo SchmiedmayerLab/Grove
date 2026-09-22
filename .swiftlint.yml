@@ -414,6 +414,8 @@ excluded: # paths to ignore during linting. Takes precedence over `included`.
   - .claude
   - .swiftpm
   - .derivedData*
+  # local clone of the grove-fhir guides used by Scripts/validate-fhir-conformance.sh
+  - .fhir
   # Generated parser sources (ANTLR) — excluded upstream by the FHIRModelsExtensions / ResearchKitOnFHIR configs.
   - Sources/FHIRPathParser/Generated
   # The monorepo's Package.swift is a ~2,200-line generated manifest (vs the small per-package manifests

@@ -9,10 +9,9 @@
 public import Foundation
 
 
-/// Failures raised before a pseudonymous identifier can be minted.
-public enum PseudonymousIdentityError: Error, Equatable, Sendable {
+/// Failures raised before an opaque identifier can be minted.
+public enum OpaqueIdentityError: Error, Equatable, Sendable {
     case invalidKeyID(String)
-    case invalidEpoch(String)
     case keyTooShort(actualBytes: Int)
     case publishedConformanceKeyProhibited
     case emptyComponent(String)
@@ -20,14 +19,14 @@ public enum PseudonymousIdentityError: Error, Equatable, Sendable {
     case providerKindRequired(String)
     case reusedIdentifierSystem
     case componentTooLarge(byteCount: Int)
-    case invalidComponentCount(kind: PseudonymousIdentityKind, expected: Int, actual: Int)
+    case invalidComponentCount(kind: OpaqueIdentityKind, expected: Int, actual: Int)
 }
 
 
 /// The frozen byte framing shared by HMAC preimages and UUIDv5 entry names.
 public enum LengthFramedUTF8 {
     /// Encodes every UTF-8 field with its unsigned 32-bit big-endian byte count.
-    public static func encode(_ fields: [String]) throws(PseudonymousIdentityError) -> Data {
+    public static func encode(_ fields: [String]) throws(OpaqueIdentityError) -> Data {
         var data = Data()
         for field in fields {
             let bytes = Data(field.utf8)

@@ -16,47 +16,10 @@ public import GroveFHIRContract
 public import ModelsR4
 
 
-/// Optional repository-assigned logical ids for one SensorKit conversion graph.
-public struct SensorKitRepositoryIDs: Hashable, Sendable {
-    public let bundle: RepositoryID?
-    public let structuredOutput: RepositoryID?
-    public let rawOutput: RepositoryID?
-    public let recordingDevice: RepositoryID?
-    public let converterApplication: RepositoryID?
-    public let converterHost: RepositoryID?
-    public let provenance: RepositoryID?
-
-    public init(
-        bundle: RepositoryID? = nil,
-        structuredOutput: RepositoryID? = nil,
-        rawOutput: RepositoryID? = nil,
-        recordingDevice: RepositoryID? = nil,
-        converterApplication: RepositoryID? = nil,
-        converterHost: RepositoryID? = nil,
-        provenance: RepositoryID? = nil
-    ) {
-        self.bundle = bundle
-        self.structuredOutput = structuredOutput
-        self.rawOutput = rawOutput
-        self.recordingDevice = recordingDevice
-        self.converterApplication = converterApplication
-        self.converterHost = converterHost
-        self.provenance = provenance
-    }
-}
-
-
-/// Explicit deployment, formatting, and audit inputs for one deterministic graph.
+/// The shared event context plus SensorKit's own: the visit-location namespace, the governed
+/// disclosure of the native record identifier, the physical recorder and the source time zone.
 public struct SensorKitConversionContext: Sendable {
-    public let subject: Reference
-    /// Stable deployment identity of `subject`, used only as an HMAC component.
-    public let subjectIdentity: BusinessIdentifier
-    public let converter: SensorApplication
-    public let converterHost: SensorHostDevice
-    public let eventIdentifier: ExchangeEventIdentifier
-    public let entryNodeIdentifierSystem: IdentifierSystem
-    public let identityScope: PseudonymousIdentityScope
-    public let repositoryScope: BusinessIdentifier
+    public let event: ExchangeEventContext
     /// Deployment/source-store namespace for the exact native `SRVisit.locationId` value.
     ///
     /// This is intentionally distinct from every Grove opaque identity system: the location id is
@@ -65,47 +28,34 @@ public struct SensorKitConversionContext: Sendable {
     /// Optional governed disclosure of the exact `SensorKitSourceRecordID.value` on the designated
     /// primary output. Grove opaque identifiers remain the only graph/business keys.
     public let sourceIdentifierDisclosurePolicy: GovernedSourceIdentifierDisclosurePolicy
-    public let recordingDevice: SensorRecordingDevice?
-    public let converterWasGateway: Bool
+    public let recordingDevice: RecordingDevice?
     public let sourceTimeZone: TimeZone
-    public let conversionInstant: Date
-    public let researchStudies: [Reference]
-    public let repositoryIDs: SensorKitRepositoryIDs
+
+    var identityScope: OpaqueIdentityScope { event.identityScope }
+    var eventIdentifier: ExchangeEventIdentifier { event.event }
+    var repositoryScope: BusinessIdentifier { event.repositoryScope }
+    var entryNodeIdentifierSystem: IdentifierSystem { event.entryNodeIdentifierSystem }
+    var conversionInstant: Date { event.conversionInstant }
+    var subjectIdentity: BusinessIdentifier { event.subject.identifier }
+    var subject: Reference { get throws { try event.subjectReference() } }
+    var researchStudies: [Reference] { get throws { try event.studyReferences() } }
 
     public init(
-        subject: Reference,
-        subjectIdentity: BusinessIdentifier,
-        converter: SensorApplication,
-        converterHost: SensorHostDevice,
-        eventIdentifier: ExchangeEventIdentifier,
-        entryNodeIdentifierSystem: IdentifierSystem,
-        identityScope: PseudonymousIdentityScope,
-        repositoryScope: BusinessIdentifier,
+        event: ExchangeEventContext,
         visitLocationIdentifierSystem: IdentifierSystem,
         sourceIdentifierDisclosurePolicy: GovernedSourceIdentifierDisclosurePolicy = .omit,
-        recordingDevice: SensorRecordingDevice? = nil,
-        converterWasGateway: Bool = false,
-        sourceTimeZone: TimeZone,
-        conversionInstant: Date,
-        researchStudies: [Reference] = [],
-        repositoryIDs: SensorKitRepositoryIDs = .init()
+        recordingDevice: RecordingDevice? = nil,
+        sourceTimeZone: TimeZone
     ) {
-        self.subject = subject
-        self.subjectIdentity = subjectIdentity
-        self.converter = converter
-        self.converterHost = converterHost
-        self.eventIdentifier = eventIdentifier
-        self.entryNodeIdentifierSystem = entryNodeIdentifierSystem
-        self.identityScope = identityScope
-        self.repositoryScope = repositoryScope
+        self.event = event
         self.visitLocationIdentifierSystem = visitLocationIdentifierSystem
         self.sourceIdentifierDisclosurePolicy = sourceIdentifierDisclosurePolicy
         self.recordingDevice = recordingDevice
-        self.converterWasGateway = converterWasGateway
         self.sourceTimeZone = sourceTimeZone
-        self.conversionInstant = conversionInstant
-        self.researchStudies = researchStudies
-        self.repositoryIDs = repositoryIDs
+    }
+
+    func repositoryID(_ node: ExchangeGraphNode) -> RepositoryID? {
+        event.repositoryIDs[node]
     }
 }
 
@@ -115,12 +65,12 @@ public struct SensorKitConversion: Sendable {
     public let sourceIdentifier: Identifier
     public let sourceTypeToken: String
     /// The designated 1:1 primary representation of this source record.
-    public let primaryOutputIdentifier: BusinessIdentifier
-    public let outputIdentifiers: [BusinessIdentifier]
+    public let primaryOutputIdentifier: RoledIdentifier
+    public let outputIdentifiers: [RoledIdentifier]
     /// Exact wire-visible identities of any recording payloads carried by the graph.
-    public let artifactIdentifiers: [BusinessIdentifier]
-    public let converterApplicationSnapshot: BusinessIdentifier
-    public let converterHostSnapshot: BusinessIdentifier
+    public let artifactIdentifiers: [RoledIdentifier]
+    public let converterApplicationSnapshot: RoledIdentifier
+    public let converterHostSnapshot: RoledIdentifier
     public let observations: [Observation]
     public let recordingDocument: DocumentReference?
     public let recordingDevice: Device?
@@ -274,8 +224,8 @@ extension SensorKitRecord {
 
 extension SensorKitConverter {
     struct OutputNode {
-        let identifier: BusinessIdentifier
-        let artifactIdentifier: BusinessIdentifier?
+        let identifier: RoledIdentifier
+        let artifactIdentifier: RoledIdentifier?
         let fullURL: String
     }
 
@@ -310,17 +260,19 @@ extension SensorKitConverter {
             )
         }
         let converterApplicationIdentity = try context.identityScope.deviceSnapshot(
-            eventIdentifier: context.eventIdentifier,
-            deviceRole: .application,
-            sourceDeviceToken: context.converter.sourceDeviceToken
+            event: context.eventIdentifier,
+            role: .application,
+            sourceDeviceToken: context.event.application.bundleIdentifier
         )
         let converterHostIdentity = try context.identityScope.deviceSnapshot(
-            eventIdentifier: context.eventIdentifier,
-            deviceRole: .host,
-            sourceDeviceToken: context.converterHost.sourceDeviceToken
+            event: context.eventIdentifier,
+            role: .host,
+            sourceDeviceToken: "converter-host"
         )
-        let converterURL = try ExchangeIdentity.fullURL(for: converterApplicationIdentity)
-        let converterHostURL = try ExchangeIdentity.fullURL(for: converterHostIdentity)
+        let converterURL = try converterApplicationIdentity.fullURLString
+        let converterHostURL = try converterHostIdentity.fullURLString
+        let studyContext = try context.event.studyContext()
+        let gateway = try gatewayApplication(context: context)
         let recordingDeviceIdentity = try context.recordingDevice.map {
             try context.identityScope.recordingDevice(
                 adapterID: Self.adapterID,
@@ -330,13 +282,13 @@ extension SensorKitConverter {
         }
         let recordingDeviceSnapshot = try context.recordingDevice.map {
             try context.identityScope.deviceSnapshot(
-                eventIdentifier: context.eventIdentifier,
-                deviceRole: .recordingDevice,
+                event: context.eventIdentifier,
+                role: .recordingDevice,
                 sourceDeviceToken: $0.stableUnitToken
             )
         }
         let recordingDeviceURL = try recordingDeviceSnapshot.map {
-            try ExchangeIdentity.fullURL(for: $0)
+            try $0.fullURLString
         }
 
         var observations = try buildObservations(
@@ -365,27 +317,27 @@ extension SensorKitConverter {
             document: &document
         )
 
-        var converterApplication = SensorConverter.applicationDevice(context.converter)
-        converterApplication.id = context.repositoryIDs.converterApplication?.primitive
+        var converterApplication = SensorConverter.applicationDevice(context.event.application)
+        converterApplication.id = context.repositoryID(.applicationDevice)?.primitive
         converterApplication.identifier = [converterApplicationIdentity.fhirIdentifier]
         converterApplication.parent = Reference(reference: converterHostURL.asFHIRStringPrimitive())
-        var converterHost = SensorConverter.hostDevice(context.converterHost)
-        converterHost.id = context.repositoryIDs.converterHost?.primitive
+        var converterHost = SensorConverter.hostDevice(context.event.host)
+        converterHost.id = context.repositoryID(.hostDevice)?.primitive
         converterHost.identifier = [converterHostIdentity.fhirIdentifier]
         var recordingDeviceResource = try recordingDeviceResource(
             context: context,
             identity: recordingDeviceIdentity,
             snapshot: recordingDeviceSnapshot
         )
-        recordingDeviceResource?.id = context.repositoryIDs.recordingDevice?.primitive
+        recordingDeviceResource?.id = context.repositoryID(.recordingDevice)?.primitive
 
         let outputNodes = [structuredNode, rawNode].compactMap { $0 }
         guard let primaryOutputIdentifier = structuredNode?.identifier ?? rawNode?.identifier else {
             throw SensorKitConversionError.invalidIdentity("record has no catalog-admitted output")
         }
-        let provenanceNodeKey = try ExchangeNodeKey(
+        let provenanceNodeKey = try EntryNodeKey(
             system: context.entryNodeIdentifierSystem,
-            eventIdentifier: context.eventIdentifier,
+            event: context.eventIdentifier,
             nodeRole: "conversion-provenance",
             ordinal: 0
         )
@@ -396,48 +348,52 @@ extension SensorKitConverter {
             recordedAt: context.conversionInstant,
             timeZone: context.sourceTimeZone
         )
-        provenance.id = context.repositoryIDs.provenance?.primitive
+        provenance.id = context.repositoryID(.provenance)?.primitive
 
         var entries: [BundleEntry] = []
         if let structuredNode, let observation = observations.first {
-            entries.append(try ExchangeIdentity.entry(
+            entries.append(try BundleEntry(
                 identifier: structuredNode.identifier,
                 resource: ResourceProxy(with: observation)
             ))
         }
         if let rawNode, let document {
-            entries.append(try ExchangeIdentity.entry(
+            entries.append(try BundleEntry(
                 identifier: rawNode.identifier,
                 resource: ResourceProxy(with: document)
             ))
         }
+        entries.append(contentsOf: studyContext.allEntries)
         if let recordingDevice = recordingDeviceResource, let recordingDeviceSnapshot {
-            entries.append(try ExchangeIdentity.entry(
+            entries.append(try BundleEntry(
                 identifier: recordingDeviceSnapshot,
                 resource: ResourceProxy(with: recordingDevice)
             ))
         }
-        entries.append(try ExchangeIdentity.entry(
+        entries.append(try BundleEntry(
             identifier: converterHostIdentity,
             resource: ResourceProxy(with: converterHost)
         ))
-        entries.append(try ExchangeIdentity.entry(
+        entries.append(try BundleEntry(
             identifier: converterApplicationIdentity,
             resource: ResourceProxy(with: converterApplication)
         ))
-        entries.append(try ExchangeIdentity.entry(
-            nodeKey: provenanceNodeKey,
+        if let gateway {
+            entries.append(try BundleEntry(identifier: gateway.identity, resource: ResourceProxy(with: gateway.resource)))
+        }
+        entries.append(try BundleEntry(
+            identifier: provenanceNodeKey.identifier,
             resource: ResourceProxy(with: provenance)
         ))
 
         var bundle = Bundle(
             entry: entries,
-            identifier: context.eventIdentifier.businessIdentifier.fhirIdentifier,
+            identifier: context.eventIdentifier.identifier.fhirIdentifier,
             meta: Meta(profile: [Profile.groveMobileExchangeBundle]),
             timestamp: FHIRPrimitive(try exactInstant(context.conversionInstant, timeZone: context.sourceTimeZone)),
             type: FHIRPrimitive(.collection)
         )
-        bundle.id = context.repositoryIDs.bundle?.primitive
+        bundle.id = context.repositoryID(.bundle)?.primitive
         let graph = try ExchangeGraph(
             kind: .active,
             eventIdentifier: context.eventIdentifier,
@@ -468,7 +424,7 @@ extension SensorKitConverter {
         observations: inout [Observation],
         document: inout DocumentReference?
     ) throws {
-        if let id = context.repositoryIDs.structuredOutput {
+        if let id = context.repositoryID(.primaryOutput) {
             guard !observations.isEmpty else {
                 throw SensorKitConversionError.repositoryIDWithoutStructuredOutput
             }
@@ -493,7 +449,7 @@ extension SensorKitConverter {
                 document?.identifier?.append(governedIdentifier)
             }
         }
-        if let id = context.repositoryIDs.rawOutput {
+        if let id = context.repositoryID(.sourceArtifact) {
             guard document != nil else {
                 throw SensorKitConversionError.repositoryIDWithoutRawOutput
             }
@@ -503,8 +459,8 @@ extension SensorKitConverter {
 
     private static func recordingDeviceResource(
         context: SensorKitConversionContext,
-        identity: BusinessIdentifier?,
-        snapshot: BusinessIdentifier?
+        identity: RoledIdentifier?,
+        snapshot: RoledIdentifier?
     ) throws -> Device? {
         guard let source = context.recordingDevice else {
             return nil
@@ -545,56 +501,37 @@ extension SensorKitConverter {
         return OutputNode(
             identifier: identifier,
             artifactIdentifier: includesArtifact ? artifactIdentifier : nil,
-            fullURL: try ExchangeIdentity.fullURL(for: identifier)
+            fullURL: try identifier.fullURLString
         )
-    }
-
-    /// One typed mapping, so a new reference failure cannot be flattened into a description string.
-    private static func validatedReference(
-        _ reference: Reference,
-        field: String,
-        expectedResourceType: ResourceType
-    ) throws(SensorKitConversionError) -> TypedReferenceIdentity {
-        do {
-            return try TypedReference.validate(
-                reference,
-                expectedResourceType: expectedResourceType
-            )
-        } catch {
-            switch error {
-            case .literalRequiresBundleEntry:
-                throw .invalidIdentity(
-                    TypedReference.literalRefusal(field: field)
-                )
-            case .invalidReference:
-                throw .invalidReference("\(field) must reference a \(expectedResourceType)")
-            }
-        }
     }
 
     private static func validate(
         record: SensorKitRecord,
         context: SensorKitConversionContext
     ) throws {
-        try validateConverter(context)
         try validateIdentifierSystems(context)
-        _ = try validatedReference(context.subject, field: "subject", expectedResourceType: .patient)
-        try validateResearchStudies(context.researchStudies)
         try validateRecordingDevice(context)
         try validateCatalogContract(record)
     }
 
-    private static func validateConverter(_ context: SensorKitConversionContext) throws {
-        if let blank = SensorConverter.blankConverterField(context.converter, host: context.converterHost) {
-            throw SensorKitConversionError.invalidConverterApplication(blank)
+    /// A distinct gateway application travels as a second application snapshot.
+    static func gatewayApplication(context: SensorKitConversionContext) throws -> IdentifiedDevice? {
+        guard case .gatewayApplication(let application) = context.event.converterRole else {
+            return nil
         }
+        let identity = try context.identityScope.deviceSnapshot(
+            event: context.eventIdentifier,
+            role: .application,
+            sourceDeviceToken: application.bundleIdentifier
+        )
+        var resource = SensorConverter.applicationDevice(application)
+        resource.identifier = [identity.fhirIdentifier]
+        return IdentifiedDevice(resource: resource, identity: identity)
     }
 
     private static func validateIdentifierSystems(_ context: SensorKitConversionContext) throws {
-        let opaqueSystems = context.identityScope.systems.all + [
-            context.eventIdentifier.businessIdentifier.system,
-            context.entryNodeIdentifierSystem
-        ]
+        let systems = context.identityScope.systems
+        let opaqueSystems = systems.opaque.all + [systems.event, systems.entryNode]
         guard !opaqueSystems.contains(context.visitLocationIdentifierSystem) else {
             throw SensorKitConversionError.invalidIdentity(
                 "visitLocationIdentifierSystem must not reuse a Grove opaque-identity namespace"
@@ -608,22 +545,8 @@ extension SensorKitConverter {
         }
     }
 
-    private static func validateResearchStudies(_ researchStudies: [Reference]) throws {
-        var identities: Set<TypedReferenceIdentity> = []
-        for study in researchStudies {
-            let identity = try validatedReference(
-                study,
-                field: "researchStudies",
-                expectedResourceType: .researchStudy
-            )
-            guard identities.insert(identity).inserted else {
-                throw SensorKitConversionError.duplicateResearchStudyReference
-            }
-        }
-    }
-
     private static func validateRecordingDevice(_ context: SensorKitConversionContext) throws {
-        if context.repositoryIDs.recordingDevice != nil, context.recordingDevice == nil {
+        if context.repositoryID(.recordingDevice) != nil, context.recordingDevice == nil {
             throw SensorKitConversionError.repositoryIDWithoutRecordingDevice
         }
     }

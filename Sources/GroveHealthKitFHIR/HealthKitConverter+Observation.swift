@@ -35,8 +35,7 @@ extension HealthKitConverter {
         for sample: HKSample,
         binding: HealthKitFHIRBinding,
         context: HealthKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
+        graphContext: HealthKitGraphContext
     ) throws -> Observation {
         let contract = binding.contract
         let primaryCoding = Coding(
@@ -57,7 +56,7 @@ extension HealthKitConverter {
         )
         applySourceTypeLineage(sample.sampleType.identifier, to: &observation)
         observation.meta = Meta(profile: contract.profiles)
-        observation.subject = context.subject
+        observation.subject = graphContext.subject
         // HealthKit has no per-object availability time. Conversion time belongs on Provenance.
         observation.category = category(for: contract.id).map { [CodeableConcept(coding: [$0])] }
         observation.method = contract.method.map { method in
@@ -74,12 +73,10 @@ extension HealthKitConverter {
         try applyHeartRateMotionContext(to: &observation, sample: sample)
         try applyInsulinDeliveryReason(to: &observation, sample: sample)
         try applyMenstrualCycleStart(to: &observation, sample: sample, contract: contract)
-        applyObservationGraphContext(
+        applyGraphContext(
             to: &observation,
-            sample: sample,
-            context: context,
-            recordingDeviceURL: recordingDeviceURL,
-            converterURL: converterURL
+            graphContext: graphContext,
+            wasUserEntered: (sample.metadata?[HKMetadataKeyWasUserEntered] as? Bool) == true
         )
         return observation
     }
@@ -93,7 +90,7 @@ extension HealthKitConverter {
         switch binding {
         case .bloodPressure:
             guard let correlation = sample as? HKCorrelation else {
-                throw HealthKitConversionError.invalidValue
+                throw HealthKitValueFailure.shapeInvalid
             }
             observation.component = try bloodPressureComponents(correlation, contract: contract)
             return
@@ -147,30 +144,12 @@ extension HealthKitConverter {
         case .sexualActivity:
             .codeableConcept(try sexualActivityValue(sample, contract: contract))
         case .bloodPressure:
-            throw HealthKitConversionError.invalidValue
+            throw HealthKitValueFailure.shapeInvalid
         case .workout:
             .codeableConcept(try workoutValue(try workoutSample(sample)))
         case .stateOfMind:
             .quantity(try stateOfMindValue(try stateOfMindSample(sample)))
         }
-    }
-
-    private static func applyObservationGraphContext(
-        to observation: inout Observation,
-        sample: HKSample,
-        context: HealthKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
-    ) {
-        applyGraphContext(
-            to: &observation,
-            context: context,
-            graphContext: HealthKitECGGraphContext(
-                recordingDeviceURL: recordingDeviceURL,
-                converterURL: converterURL
-            ),
-            wasUserEntered: (sample.metadata?[HKMetadataKeyWasUserEntered] as? Bool) == true
-        )
     }
 
     private static func applyEffective(
@@ -189,7 +168,7 @@ extension HealthKitConverter {
             )))
         case .period:
             guard sample.endDate > sample.startDate else {
-                throw HealthKitConversionError.invalidEffectivePeriod(sampleType: sample.sampleType.identifier)
+                throw HealthKitValueFailure.effectivePeriodInvalid
             }
             observation.effective = .period(Period(
                 end: FHIRPrimitive(try HealthKitMobileCanonicalization.effectiveDateTime(
@@ -270,10 +249,7 @@ extension HealthKitConverter {
         case 2:
             Coding(code: "active", display: "Active", system: Canonicals.healthKitHeartRateMotionContext)
         default:
-            throw HealthKitConversionError.unsupportedMetadataValue(
-                key: HKMetadataKeyHeartRateMotionContext,
-                value: raw.stringValue
-            )
+            throw HealthKitValueFailure.unsupportedMetadataValue(.heartRateMotionContext)
         }
         let component = ObservationComponent(
             code: CodeableConcept(coding: [
@@ -296,10 +272,7 @@ extension HealthKitConverter {
             return
         }
         guard let raw = sample.metadata?[HKMetadataKeyInsulinDeliveryReason] as? NSNumber else {
-            throw HealthKitConversionError.missingRequiredMetadata(
-                sampleType: sample.sampleType.identifier,
-                key: HKMetadataKeyInsulinDeliveryReason
-            )
+            throw HealthKitValueFailure.requiredMetadataMissing(.insulinDeliveryReason)
         }
         let coding: Coding = switch raw.intValue {
         case HKInsulinDeliveryReason.basal.rawValue:
@@ -307,10 +280,7 @@ extension HealthKitConverter {
         case HKInsulinDeliveryReason.bolus.rawValue:
             Coding(code: "bolus", display: "Bolus", system: Canonicals.healthKitInsulinDeliveryReason)
         default:
-            throw HealthKitConversionError.unsupportedMetadataValue(
-                key: HKMetadataKeyInsulinDeliveryReason,
-                value: raw.stringValue
-            )
+            throw HealthKitValueFailure.unsupportedMetadataValue(.insulinDeliveryReason)
         }
         let component = ObservationComponent(
             code: CodeableConcept(coding: [
@@ -348,29 +318,20 @@ extension HealthKitConverter {
     ) throws -> ObservationComponent {
         guard let contractComponent = contract.components.first(where: { $0.id == "cycleStart" }),
               let resultCodeSystem = contractComponent.resultCodeSystem else {
-            throw HealthKitConversionError.missingRequiredComponent(
-                sampleType: sampleType,
-                component: "cycleStart"
-            )
+            throw HealthKitValueFailure.requiredComponentMissing(component: "cycleStart")
         }
         let cycleStart: Bool
         switch metadata[HKMetadataKeyMenstrualCycleStart] {
         case nil:
-            throw HealthKitConversionError.missingRequiredMetadata(
-                sampleType: sampleType,
-                key: HKMetadataKeyMenstrualCycleStart
-            )
+            throw HealthKitValueFailure.requiredMetadataMissing(.menstrualCycleStart)
         case let value as Bool:
             cycleStart = value
-        case let other?:
-            throw HealthKitConversionError.unsupportedMetadataValue(
-                key: HKMetadataKeyMenstrualCycleStart,
-                value: String(describing: other)
-            )
+        case .some:
+            throw HealthKitValueFailure.unsupportedMetadataValue(.menstrualCycleStart)
         }
         let code = cycleStart ? "cycle-start" : "not-cycle-start"
         guard let resultCode = contractComponent.resultCodes.first(where: { $0.code == code }) else {
-            throw HealthKitConversionError.missingNormativeCode(contract.id)
+            throw HealthKitValueFailure.missingNormativeCode
         }
         return ObservationComponent(
             code: CodeableConcept(coding: [

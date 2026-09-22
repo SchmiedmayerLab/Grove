@@ -29,17 +29,8 @@ struct GroveSensorKitRecordingSummaryTests {
         get throws {
             SensorKitConversionContext(
                 subject: SensorFHIRIdentityTestSupport.subject,
-                subjectIdentity: try SensorFHIRIdentityTestSupport.subjectIdentity,
-                converter: SensorApplication(
-                    sourceDeviceToken: "org.grovealliance.sensor-conformance",
-                    name: "Sensor Conformance",
-                    version: "0.5.0"
-                ),
-                converterHost: SensorFHIRIdentityTestSupport.converterHost,
+                converter: ApplicationDevice.test(name: "Sensor Conformance", bundleIdentifier: "org.grovealliance.sensor-conformance", version: "0.5.0"),
                 eventIdentifier: try SensorFHIRIdentityTestSupport.event(),
-                entryNodeIdentifierSystem: SensorFHIRIdentityTestSupport.entryNodeIdentifierSystem,
-                identityScope: try SensorFHIRIdentityTestSupport.identityScope,
-                repositoryScope: try SensorFHIRIdentityTestSupport.repositoryScope,
                 visitLocationIdentifierSystem: SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem,
                 sourceTimeZone: try #require(TimeZone(identifier: "America/Los_Angeles")),
                 conversionInstant: start.addingTimeInterval(60)
@@ -168,7 +159,7 @@ struct GroveSensorKitRecordingSummaryTests {
         #expect(observation.derivedFrom?.first?.reference?.value?.string == entries[1].fullUrl?.value?.url.absoluteString)
         #expect(document.content.first?.format?.code?.value?.string == "photoplethysmogram-samples")
         #expect(document.identifier?.first == observation.identifier?.first)
-        let identifiers = try #require(document.identifier).map(BusinessIdentifier.init)
+        let identifiers = try #require(document.identifier).map(RoledIdentifier.init)
         #expect(identifiers.map(\.role) == [.sourceRecord, .sourceOutput, .sourceArtifact])
         #expect(document.content.count == 1)
         #expect(conversion.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(

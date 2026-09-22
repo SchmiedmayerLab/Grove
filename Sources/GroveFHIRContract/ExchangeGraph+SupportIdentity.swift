@@ -57,7 +57,7 @@ extension ExchangeGraph {
                 && !reachable.contains(fullURL)
         }
         guard !disconnected else {
-            throw .ruleViolation(.supportConnected)
+            throw .ruleViolation(.mobileSupportConnected)
         }
     }
 
@@ -87,19 +87,19 @@ extension ExchangeGraph {
             let meta = object?["meta"] as? [String: Any]
             let profiles = meta?["profile"] as? [String]
             guard profiles == [expectedProfile] else {
-                throw ExchangeGraphError.ruleViolation(.adapterOnlyProfile)
+                throw ExchangeGraphError.ruleViolation(.mobileOutputAdapterOnlyProfile)
             }
         } catch let error as ExchangeGraphError {
             throw error
         } catch {
-            throw .ruleViolation(.adapterOnlyProfile)
+            throw .ruleViolation(.mobileOutputAdapterOnlyProfile)
         }
     }
 
     static func validateDeviceIdentity(
         _ device: Device,
-        entryKey: BusinessIdentifier,
-        identifiers: [BusinessIdentifier]
+        entryKey: RoledIdentifier,
+        identifiers: [RoledIdentifier]
     ) throws(ExchangeGraphError) {
         let profiles = [
             Profile.groveApplicationDevice,
@@ -112,8 +112,8 @@ extension ExchangeGraph {
               snapshots.count == 1,
               snapshots[0] == entryKey,
               entryKey.role == .deviceSnapshot,
-              ExchangeIdentity.isCanonicalOpaqueIdentifierValue(entryKey.value) else {
-            throw .ruleViolation(.recordingDeviceDualIdentity)
+              ExchangeIdentity.isCanonicalOpaqueIdentifierValue(entryKey.identifier.value) else {
+            throw .ruleViolation(.mobileDeviceRecordingDeviceDualIdentity)
         }
         if profiles[0] == HealthKitContract.applicationDeviceProfile {
             let bundleIdentifiers = device.identifier?.filter { identifier in
@@ -129,17 +129,17 @@ extension ExchangeGraph {
                   bundleIdentifiers.count == 1,
                   bundleIdentifiers[0].system == HealthKitContract.appleBundleIdentifierSystem,
                   bundleIdentifiers[0].value?.value?.string.isEmpty == false else {
-                throw .ruleViolation(.recordingDeviceDualIdentity)
+                throw .ruleViolation(.mobileDeviceRecordingDeviceDualIdentity)
             }
         } else if profiles[0] == Profile.groveRecordingDevice {
             guard device.identifier?.count == 2,
                   identifiers.count == 2,
                   identifiers.filter({ $0.role == .recordingDevice }).count == 1 else {
-                throw .ruleViolation(.recordingDeviceDualIdentity)
+                throw .ruleViolation(.mobileDeviceRecordingDeviceDualIdentity)
             }
         } else if profiles[0] == Profile.groveHostDevice {
             guard device.identifier?.count == 1, identifiers.count == 1 else {
-                throw .ruleViolation(.recordingDeviceDualIdentity)
+                throw .ruleViolation(.mobileDeviceRecordingDeviceDualIdentity)
             }
         }
     }
@@ -154,11 +154,11 @@ extension ExchangeGraph {
         }
     }
 
-    static func entryKey(_ entry: BundleEntry) throws -> BusinessIdentifier? {
+    static func entryKey(_ entry: BundleEntry) throws -> RoledIdentifier? {
         guard let extensionValue = entry.extension?.first(where: { $0.url == Canonicals.entryNodeKey }),
               case .identifier(let identifier)? = extensionValue.value else {
             return nil
         }
-        return try BusinessIdentifier(identifier)
+        return try RoledIdentifier(identifier)
     }
 }

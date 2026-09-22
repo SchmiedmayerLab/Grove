@@ -46,19 +46,10 @@ struct SensorConformanceFixtureTests {
         func context(_ sequence: UInt64) throws -> SensorKitConversionContext {
             try SensorKitConversionContext(
                 subject: SensorFHIRIdentityTestSupport.subject,
-                subjectIdentity: SensorFHIRIdentityTestSupport.subjectIdentity,
-                converter: SensorApplication(
-                    sourceDeviceToken: "org.grovealliance.sensor-conformance",
-                    name: "Sensor Conformance Fixture",
-                    version: "0.5.0"
-                ),
-                converterHost: SensorFHIRIdentityTestSupport.converterHost,
+                converter: ApplicationDevice.test(name: "Sensor Conformance Fixture", bundleIdentifier: "org.grovealliance.sensor-conformance", version: "0.5.0"),
                 eventIdentifier: SensorFHIRIdentityTestSupport.event(sequence: sequence),
-                entryNodeIdentifierSystem: SensorFHIRIdentityTestSupport.entryNodeIdentifierSystem,
-                identityScope: SensorFHIRIdentityTestSupport.identityScope,
-                repositoryScope: SensorFHIRIdentityTestSupport.repositoryScope,
                 visitLocationIdentifierSystem: SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem,
-                recordingDevice: SensorRecordingDevice(
+                recordingDevice: RecordingDevice.test(
                     stableUnitToken: "sensor-fixture-device",
                     name: "Sensor Fixture Device"
                 ),

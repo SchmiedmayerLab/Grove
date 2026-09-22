@@ -14,10 +14,10 @@ public import ModelsR4
 /// Every adapter mints device snapshots the same way, so the pairing lives here rather than being
 /// redeclared per producer.
 public struct IdentifiedDevice: Sendable {
-    public var resource: Device
-    public let identity: BusinessIdentifier
+    public let resource: Device
+    public let identity: RoledIdentifier
 
-    public init(resource: Device, identity: BusinessIdentifier) {
+    public init(resource: Device, identity: RoledIdentifier) {
         self.resource = resource
         self.identity = identity
     }

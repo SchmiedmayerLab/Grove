@@ -19,7 +19,7 @@ import ModelsR4
 extension SensorKitConverter {
     static func buildObservations(
         _ record: SensorKitRecord,
-        sourceIdentifier: BusinessIdentifier,
+        sourceIdentifier: RoledIdentifier,
         outputNode: OutputNode?,
         rawURL: String?,
         context: SensorKitConversionContext,
@@ -102,7 +102,7 @@ extension SensorKitConverter {
 
     static func buildDocument(
         _ record: SensorKitRecord,
-        sourceIdentifier: BusinessIdentifier,
+        sourceIdentifier: RoledIdentifier,
         outputNode: OutputNode?,
         relatedURLs: [String],
         context: SensorKitConversionContext,
@@ -115,7 +115,7 @@ extension SensorKitConverter {
         let entry = try catalogEntry(sourceToken: record.sourceToken)
         var authors = recordingDeviceURL.map { [reference($0)] } ?? []
         authors.append(reference(converterURL))
-        let related = relatedURLs.map(reference) + context.researchStudies
+        let related = relatedURLs.map(reference) + (try context.researchStudies)
         let sourcePeriod = try record.rawEffectivePeriod.map {
             try period(start: $0.start, end: $0.end, timeZone: context.sourceTimeZone)
         }
@@ -137,7 +137,7 @@ extension SensorKitConverter {
             ] + (outputNode.artifactIdentifier.map { [$0.fhirIdentifier] } ?? []),
             meta: Meta(profile: entry.rawProfiles.map(profile)),
             status: FHIRPrimitive(.current),
-            subject: context.subject,
+            subject: try context.subject,
             type: CodeableConcept(coding: [Coding(
                 code: entry.sourceTypeCode.asFHIRStringPrimitive(),
                 system: SensorKitContract.sourceTypeCodeSystem.asFHIRURIPrimitive()
@@ -149,8 +149,8 @@ extension SensorKitConverter {
 
     private static func rotationRateObservation(
         _ record: SensorKitRotationRateRecord,
-        sourceIdentifier: BusinessIdentifier,
-        outputIdentifier: BusinessIdentifier,
+        sourceIdentifier: RoledIdentifier,
+        outputIdentifier: RoledIdentifier,
         context: SensorKitConversionContext,
         recordingDeviceURL: String?,
         converterURL: String
@@ -205,8 +205,8 @@ extension SensorKitConverter {
 
     private static func ecgObservation(
         _ record: SensorKitECGRecord,
-        sourceIdentifier: BusinessIdentifier,
-        outputIdentifier: BusinessIdentifier,
+        sourceIdentifier: RoledIdentifier,
+        outputIdentifier: RoledIdentifier,
         rawURL: String,
         context: SensorKitConversionContext,
         recordingDeviceURL: String?,
@@ -274,8 +274,8 @@ extension SensorKitConverter {
 
     private static func onWristObservation(
         _ record: SensorKitOnWristRecord,
-        sourceIdentifier: BusinessIdentifier,
-        outputIdentifier: BusinessIdentifier,
+        sourceIdentifier: RoledIdentifier,
+        outputIdentifier: RoledIdentifier,
         context: SensorKitConversionContext,
         recordingDeviceURL: String?,
         converterURL: String
@@ -329,8 +329,8 @@ extension SensorKitConverter {
 
     private static func deviceUsageObservation(
         _ record: SensorKitDeviceUsageRecord,
-        sourceIdentifier: BusinessIdentifier,
-        outputIdentifier: BusinessIdentifier,
+        sourceIdentifier: RoledIdentifier,
+        outputIdentifier: RoledIdentifier,
         rawURL: String,
         context: SensorKitConversionContext,
         recordingDeviceURL: String?,
@@ -393,8 +393,8 @@ extension SensorKitConverter {
 
     private static func visitObservation(
         _ record: SensorKitVisitRecord,
-        sourceIdentifier: BusinessIdentifier,
-        outputIdentifier: BusinessIdentifier,
+        sourceIdentifier: RoledIdentifier,
+        outputIdentifier: RoledIdentifier,
         context: SensorKitConversionContext,
         recordingDeviceURL: String?,
         converterURL: String

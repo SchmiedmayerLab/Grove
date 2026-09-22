@@ -20,7 +20,7 @@ extension QuestionnaireResponses {
         /// invalid one, the page says so only once the participant tries to move on, as for a missing answer.
         case incomplete(message: LocalizedStringResource)
         
-        var isOk: Bool {
+        package var isOk: Bool {
             switch self {
             case .ok:
                 true
@@ -62,7 +62,7 @@ extension QuestionnaireResponses {
             .formatted(date: .omitted, time: .shortened)
     }
 
-    func validateResponse( // swiftlint:disable:this function_body_length cyclomatic_complexity
+    package func validateResponse( // swiftlint:disable:this function_body_length cyclomatic_complexity
         for task: Questionnaire.Task
     ) -> ResponseValidationResult {
         guard hasResponse(for: task) else {

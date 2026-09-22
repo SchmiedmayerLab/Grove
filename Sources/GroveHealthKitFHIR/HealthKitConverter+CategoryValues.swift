@@ -67,10 +67,7 @@ extension HealthKitConverter {
                 sourceDisplay: "Severe"
             )
         default:
-            throw HealthKitConversionError.unsupportedSampleValue(
-                sampleType: sample.sampleType.identifier,
-                value: value
-            )
+            throw HealthKitValueFailure.unsupportedValue(value)
         }
         return CodeableConcept(coding: [
             Coding(
@@ -107,10 +104,7 @@ extension HealthKitConverter {
                 sourceDisplay: "Not present"
             )
         default:
-            throw HealthKitConversionError.unsupportedSampleValue(
-                sampleType: sample.sampleType.identifier,
-                value: value
-            )
+            throw HealthKitValueFailure.unsupportedValue(value)
         }
         return CodeableConcept(coding: [
             Coding(
@@ -133,10 +127,7 @@ extension HealthKitConverter {
     ) throws -> CodeableConcept {
         let value = try categorySample(sample).value
         guard let absorbed = absorbedCase(absorption, value: value) else {
-            throw HealthKitConversionError.unsupportedSampleValue(
-                sampleType: sample.sampleType.identifier,
-                value: value
-            )
+            throw HealthKitValueFailure.unsupportedValue(value)
         }
         return CodeableConcept(coding: [
             try sharedResultCoding(absorbed.sharedCode, contract: contract),
@@ -154,7 +145,7 @@ extension HealthKitConverter {
     ) throws -> CodeableConcept {
         try requireNotApplicableValue(sample)
         guard let fixed = contract.measurementResultCodes.first else {
-            throw HealthKitConversionError.missingNormativeCode(contract.id)
+            throw HealthKitValueFailure.missingNormativeCode
         }
         return CodeableConcept(coding: [try sharedResultCoding(fixed.code, contract: contract)])
     }
@@ -171,10 +162,7 @@ extension HealthKitConverter {
         }
         let value = try categorySample(sample).value
         guard let code = values[value] else {
-            throw HealthKitConversionError.unsupportedSampleValue(
-                sampleType: contract.id,
-                value: value
-            )
+            throw HealthKitValueFailure.unsupportedValue(value)
         }
         return CodeableConcept(coding: [try sharedResultCoding(code, contract: contract)])
     }
@@ -190,11 +178,8 @@ extension HealthKitConverter {
             code = "unknown"
         case let protectionUsed as Bool:
             code = protectionUsed ? "protected" : "unprotected"
-        case let other?:
-            throw HealthKitConversionError.unsupportedMetadataValue(
-                key: HKMetadataKeySexualActivityProtectionUsed,
-                value: String(describing: other)
-            )
+        case .some:
+            throw HealthKitValueFailure.unsupportedMetadataValue(.sexualActivityProtectionUsed)
         }
         return CodeableConcept(coding: [try sharedResultCoding(code, contract: contract)])
     }
@@ -212,7 +197,7 @@ extension HealthKitConverter {
         case "min":
             seconds / 60
         default:
-            throw HealthKitConversionError.invalidValue
+            throw HealthKitValueFailure.shapeInvalid
         }
         return try fhirQuantity(value: value, contract: quantityContract)
     }
@@ -220,10 +205,7 @@ extension HealthKitConverter {
     private static func requireNotApplicableValue(_ sample: HKSample) throws {
         let value = try categorySample(sample).value
         guard value == HKCategoryValue.notApplicable.rawValue else {
-            throw HealthKitConversionError.unsupportedSampleValue(
-                sampleType: sample.sampleType.identifier,
-                value: value
-            )
+            throw HealthKitValueFailure.unsupportedValue(value)
         }
     }
 
@@ -233,7 +215,7 @@ extension HealthKitConverter {
         contract: HealthKitFHIRObservationContract
     ) throws -> Coding {
         guard let resultCode = contract.measurementResultCodes.first(where: { $0.code == code }) else {
-            throw HealthKitConversionError.missingNormativeCode(contract.id)
+            throw HealthKitValueFailure.missingNormativeCode
         }
         return Coding(
             code: resultCode.code.asFHIRStringPrimitive(),

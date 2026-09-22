@@ -68,13 +68,13 @@ struct HealthKitFHIRMobileCanonicalizationTests {
     @Test("Non-finite effective instants and quantities fail closed")
     func nonFiniteValues() throws {
         let utc = try #require(TimeZone(secondsFromGMT: 0))
-        #expect(throws: HealthKitConversionError.invalidValue) {
+        #expect(throws: HealthKitValueFailure.shapeInvalid) {
             try HealthKitMobileCanonicalization.scalarDecimal(.infinity)
         }
-        #expect(throws: HealthKitConversionError.invalidValue) {
+        #expect(throws: HealthKitValueFailure.shapeInvalid) {
             try HealthKitMobileCanonicalization.scalarDecimal(.nan)
         }
-        #expect(throws: HealthKitConversionError.invalidValue) {
+        #expect(throws: HealthKitValueFailure.shapeInvalid) {
             try HealthKitMobileCanonicalization.effectiveDateTime(
                 Date(timeIntervalSince1970: .infinity),
                 timeZone: utc

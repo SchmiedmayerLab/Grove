@@ -13,9 +13,7 @@
 
 public import CoreLocation
 public import Foundation
-public import GroveFHIRContract
 public import HealthKit
-public import ModelsR4
 
 
 /// One beat instant in a heartbeat series, as `HKHeartbeatSeriesQuery` enumerates it.
@@ -50,7 +48,7 @@ public struct HealthKitHeartbeatSeriesRecord: Sendable {
 /// A workout route and its already-enumerated location fixes.
 ///
 /// The fixes come from `HKWorkoutRouteQuery`; whether they may be disclosed at all is
-/// ``HealthKitRouteDisclosurePolicy`` on the conversion context.
+/// `RouteDisclosurePolicy` on the conversion context.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct HealthKitWorkoutRouteRecord: Sendable {
     public let route: HKWorkoutRoute
@@ -62,39 +60,5 @@ public struct HealthKitWorkoutRouteRecord: Sendable {
     }
 }
 
-
-/// Complete business identities of one emitted recording-document graph.
-public struct HealthKitDocumentGraphIdentifiers: Hashable, Sendable {
-    public let event: BusinessIdentifier
-    public let sourceRecord: BusinessIdentifier
-    public let sourceOutput: BusinessIdentifier
-    public let sourceArtifact: BusinessIdentifier
-    public let recordingDeviceSnapshot: BusinessIdentifier?
-    public let converterApplicationSnapshot: BusinessIdentifier
-    public let converterHostSnapshot: BusinessIdentifier
-    public let sourceAuthorSnapshot: BusinessIdentifier?
-    public let sourceAuthorHostSnapshot: BusinessIdentifier?
-    public let provenance: BusinessIdentifier
-}
-
-
-/// One complete conversion graph whose record is a recording rather than a result.
-///
-/// The same shape as ``HealthKitConversion`` with a `DocumentReference` in place of the
-/// Observation: the sources carried this way have no scalar a single Observation value could hold.
-public struct HealthKitDocumentConversion: Sendable {
-    public let sourceIdentifier: Identifier
-    public let graphIdentifiers: HealthKitDocumentGraphIdentifiers
-    public let document: DocumentReference
-    public let recordingDevice: Device?
-    public let converterApplication: Device
-    public let converterHost: Device
-    public let sourceAuthor: Device?
-    public let sourceAuthorHost: Device?
-    public let provenance: Provenance
-    public let graph: ExchangeGraph
-
-    public var bundle: ModelsR4.Bundle { graph.bundle }
-}
 
 #endif

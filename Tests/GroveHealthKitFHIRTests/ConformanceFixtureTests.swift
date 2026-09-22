@@ -65,7 +65,7 @@ struct ConformanceFixtureTests {
             .appendingPathComponent("grove-fhir-inventories/healthkit-source-inventory.json")
     }
 
-    private static let subject = Reference.testPatient
+    private static let subject = Subject.testPatient
     private static let sourceTimeZoneIdentifier = "America/Los_Angeles"
 
     private static var device: HKDevice {
@@ -132,7 +132,7 @@ struct ConformanceFixtureTests {
 
         let context = HealthKitConversionContext(
             subject: Self.subject,
-            converter: HealthKitApplication(
+            converter: ApplicationDevice.test(
                 name: "Grove Conformance Fixture",
                 bundleIdentifier: "org.grovealliance.conformance-fixture",
                 version: "0.5.0"
@@ -437,14 +437,8 @@ struct ConformanceFixtureTests {
                 }
                 return [companion]
             }
-        ) { recordingDeviceURL, converterURL in
-            try HealthKitConverter.ecgObservation(
-                input: ecgInput,
-                graphContext: HealthKitECGGraphContext(
-                    recordingDeviceURL: recordingDeviceURL,
-                    converterURL: converterURL
-                )
-            )
+        ) { graphContext in
+            try HealthKitConverter.ecgObservation(input: ecgInput, graphContext: graphContext)
         }
         let ecgObservation = ecgConversion.observation
         guard case .period(let ecgEffectivePeriod) = ecgObservation.effective else {
@@ -484,9 +478,7 @@ struct ConformanceFixtureTests {
         #expect(averageHeartRateCategoryCodings.first?.system?.value?.url.absoluteString ==
             "http://terminology.hl7.org/CodeSystem/observation-category")
         #expect(averageHeartRateCategoryCodings.first?.code?.value?.string == "vital-signs")
-        let expectedECGURL = try ExchangeIdentity.fullURL(
-            for: ecgConversion.graphIdentifiers.primaryOutput
-        )
+        let expectedECGURL = try ecgConversion.graphIdentifiers.primaryOutput.fullURLString
         #expect(averageHeartRate.derivedFrom?.count == 1)
         #expect(averageHeartRate.derivedFrom?.first?.reference?.value?.string == expectedECGURL)
         #expect(averageHeartRate.identifier?.count == 2)

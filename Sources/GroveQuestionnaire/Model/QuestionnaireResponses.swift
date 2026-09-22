@@ -120,7 +120,7 @@ public final class QuestionnaireResponses: Identifiable {
     }
     
     /// The responses collected from the questionnaire.
-    public internal(set) var responses: Responses {
+    public package(set) var responses: Responses {
         get {
             switch _variant {
             case .root(let responses):
@@ -166,7 +166,7 @@ public final class QuestionnaireResponses: Identifiable {
     }
 
 
-    init(id: UUID = UUID(), questionnaire: Questionnaire) {
+    package init(id: UUID = UUID(), questionnaire: Questionnaire) {
         self.id = id
         self.questionnaire = questionnaire
         _variant = .root(Responses())
@@ -185,7 +185,7 @@ public final class QuestionnaireResponses: Identifiable {
         _variant = .view(parent: parent, pathFromParent: pathFromParent)
     }
 
-    func view(appending path: ResponsesPath) -> Self {
+    package func view(appending path: ResponsesPath) -> Self {
         Self(parent: self, pathFromParent: path)
     }
 
@@ -283,7 +283,7 @@ extension QuestionnaireResponses {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses {
-    func hasResponse(for task: Questionnaire.Task) -> Bool {
+    package func hasResponse(for task: Questionnaire.Task) -> Bool {
         switch task.kind.variant {
         case .instructional:
             // instructional tasks never collect a response; they are always considered as being complete.
@@ -294,7 +294,7 @@ extension QuestionnaireResponses {
     }
     
     
-    func isMissingResponse(for task: Questionnaire.Task) -> Bool {
+    package func isMissingResponse(for task: Questionnaire.Task) -> Bool {
         // NOTE: on platforms without UIKit (eg macOS, which isn't officially supported yet), a required annotate-image
         // task can never satisfy this check; see the non-UIKit branch of `AnnotateImageQuestionKind.makeView(for:using:response:)` for more info.
         // A hidden task is never shown, so it can never block completion.
@@ -310,7 +310,7 @@ extension QuestionnaireResponses {
     /// Determines whether the questionnaire is currently complete in the specified section.
     ///
     /// This function returns `true` iff all currently enabled required tasks have responses, and none of these responses are invalid.
-    func isComplete(in section: Questionnaire.Section) -> Bool {
+    package func isComplete(in section: Questionnaire.Section) -> Bool {
         !isMissingResponses(in: section) && section.tasks.allSatisfy { task in
             // either the task is hidden or disabled, or its response is valid.
             task.isHidden || !shouldEnable(task: task) || validateResponse(for: task).isOk
@@ -329,7 +329,7 @@ extension QuestionnaireResponses {
     /// Determines the next section, taking into account the current responses and task conditions.
     ///
     /// This function automatically skips empty sections, if e.g. a section doesn't contain any tasks, or all of the section's tasks should be skipped, because of their conditions.
-    func nextSection(
+    package func nextSection(
         after section: Questionnaire.Section,
         in sections: some Collection<Questionnaire.Section>
     ) -> Questionnaire.Section? {
@@ -356,7 +356,7 @@ extension QuestionnaireResponses {
     ///
     /// This function goes through the entire questionnaire, in order, re-evaluates each task's ``Questionnaire/Task/enabledCondition``, and removes all responses whose task's
     /// are no longer enabled.
-    func purgeResponsesToDisabledTasks() {
+    package func purgeResponsesToDisabledTasks() {
         _purgeResponsesToDisabledTasks(questionnaire.sections.lazy.flatMap(\.tasks))
     }
     

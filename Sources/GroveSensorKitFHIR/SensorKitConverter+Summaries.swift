@@ -18,8 +18,8 @@ import ModelsR4
 extension SensorKitConverter {
     static func summaryObservation(
         _ record: SensorKitRecord,
-        sourceIdentifier: BusinessIdentifier,
-        outputIdentifier: BusinessIdentifier,
+        sourceIdentifier: RoledIdentifier,
+        outputIdentifier: RoledIdentifier,
         rawURL: String?,
         context: SensorKitConversionContext,
         recordingDeviceURL: String?,
@@ -102,8 +102,8 @@ extension SensorKitConverter {
 
     private static func messagesUsageObservation(
         _ record: SensorKitMessagesUsageRecord,
-        sourceIdentifier: BusinessIdentifier,
-        outputIdentifier: BusinessIdentifier,
+        sourceIdentifier: RoledIdentifier,
+        outputIdentifier: RoledIdentifier,
         rawURL: String?,
         context: SensorKitConversionContext,
         recordingDeviceURL: String?,
@@ -137,8 +137,8 @@ extension SensorKitConverter {
 
     private static func phoneUsageObservation(
         _ record: SensorKitPhoneUsageRecord,
-        sourceIdentifier: BusinessIdentifier,
-        outputIdentifier: BusinessIdentifier,
+        sourceIdentifier: RoledIdentifier,
+        outputIdentifier: RoledIdentifier,
         rawURL: String?,
         context: SensorKitConversionContext,
         recordingDeviceURL: String?,
@@ -177,8 +177,8 @@ extension SensorKitConverter {
 
     private static func keyboardMetricsObservation(
         _ record: SensorKitKeyboardMetricsRecord,
-        sourceIdentifier: BusinessIdentifier,
-        outputIdentifier: BusinessIdentifier,
+        sourceIdentifier: RoledIdentifier,
+        outputIdentifier: RoledIdentifier,
         rawURL: String,
         context: SensorKitConversionContext,
         recordingDeviceURL: String?,
@@ -231,8 +231,8 @@ extension SensorKitConverter {
 
     private static func sleepSessionObservation(
         _ record: SensorKitSleepSessionRecord,
-        sourceIdentifier: BusinessIdentifier,
-        outputIdentifier: BusinessIdentifier,
+        sourceIdentifier: RoledIdentifier,
+        outputIdentifier: RoledIdentifier,
         context: SensorKitConversionContext,
         recordingDeviceURL: String?,
         converterURL: String
@@ -263,8 +263,8 @@ extension SensorKitConverter {
 
     private static func accelerometerObservation(
         _ record: SensorKitAccelerometerRecord,
-        sourceIdentifier: BusinessIdentifier,
-        outputIdentifier: BusinessIdentifier,
+        sourceIdentifier: RoledIdentifier,
+        outputIdentifier: RoledIdentifier,
         rawURL: String,
         context: SensorKitConversionContext,
         recordingDeviceURL: String?,
@@ -296,8 +296,8 @@ extension SensorKitConverter {
 
     private static func wristTemperatureObservation(
         _ record: SensorKitWristTemperatureRecord,
-        sourceIdentifier: BusinessIdentifier,
-        outputIdentifier: BusinessIdentifier,
+        sourceIdentifier: RoledIdentifier,
+        outputIdentifier: RoledIdentifier,
         rawURL: String,
         context: SensorKitConversionContext,
         recordingDeviceURL: String?,
@@ -342,8 +342,8 @@ extension SensorKitConverter {
 
     private static func ppgObservation(
         _ record: SensorKitPPGRecord,
-        sourceIdentifier: BusinessIdentifier,
-        outputIdentifier: BusinessIdentifier,
+        sourceIdentifier: RoledIdentifier,
+        outputIdentifier: RoledIdentifier,
         rawURL: String,
         context: SensorKitConversionContext,
         recordingDeviceURL: String?,

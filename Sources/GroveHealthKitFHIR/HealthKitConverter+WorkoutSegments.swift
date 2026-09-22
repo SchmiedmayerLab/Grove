@@ -27,10 +27,11 @@ extension HealthKitConverter {
     static func workoutSegments(
         _ workout: HKWorkout,
         context: HealthKitConversionContext,
-        sourceRecord: BusinessIdentifier,
-        sourceUUID: String
-    ) throws -> [(identity: BusinessIdentifier, observation: Observation)] {
-        var segments: [(identity: BusinessIdentifier, observation: Observation)] = []
+        envelope: GraphEnvelope
+    ) throws -> [(identity: RoledIdentifier, observation: Observation)] {
+        let sourceRecord = envelope.sourceRecord
+        let sourceUUID = envelope.sourceUUID
+        var segments: [(identity: RoledIdentifier, observation: Observation)] = []
         var eventOccurrences: [String: Int] = [:]
         for event in workout.workoutEvents ?? [] {
             let coordinate = try segmentCoordinate(
@@ -54,7 +55,7 @@ extension HealthKitConverter {
                     interval: event.dateInterval,
                     components: [],
                     sourceTypeIdentifier: workout.sampleType.identifier,
-                    context: context,
+                    subject: envelope.graphContext.subject,
                     sourceRecord: sourceRecord,
                     output: identity
                 )
@@ -88,7 +89,7 @@ extension HealthKitConverter {
                     interval: interval,
                     components: try activityComponents(activity),
                     sourceTypeIdentifier: workout.sampleType.identifier,
-                    context: context,
+                    subject: envelope.graphContext.subject,
                     sourceRecord: sourceRecord,
                     output: identity
                 )
@@ -104,9 +105,7 @@ extension HealthKitConverter {
         let start = interval.start.timeIntervalSince1970
         let end = interval.end.timeIntervalSince1970
         guard start.isFinite, end.isFinite, end >= start else {
-            throw HealthKitConversionError.invalidEffectivePeriod(
-                sampleType: HKWorkoutType.workoutType().identifier
-            )
+            throw HealthKitValueFailure.effectivePeriodInvalid
         }
         return "\(kind):\(String(groveFHIRPlainDecimal: start)):\(String(groveFHIRPlainDecimal: end))"
     }
@@ -116,9 +115,9 @@ extension HealthKitConverter {
         interval: DateInterval,
         components: [ObservationComponent],
         sourceTypeIdentifier: String,
-        context: HealthKitConversionContext,
-        sourceRecord: BusinessIdentifier,
-        output: BusinessIdentifier
+        subject: Reference,
+        sourceRecord: RoledIdentifier,
+        output: RoledIdentifier
     ) throws -> Observation {
         var observation = Observation(
             code: CodeableConcept(coding: [
@@ -132,7 +131,7 @@ extension HealthKitConverter {
         applySourceTypeLineage(sourceTypeIdentifier, to: &observation)
         observation.meta = Meta(profile: [Profile.groveMobileWorkoutSegment])
         observation.identifier = [sourceRecord.fhirIdentifier, output.fhirIdentifier]
-        observation.subject = context.subject
+        observation.subject = subject
         observation.effective = .period(Period(
             end: FHIRPrimitive(try DateTime(date: interval.end)),
             start: FHIRPrimitive(try DateTime(date: interval.start))

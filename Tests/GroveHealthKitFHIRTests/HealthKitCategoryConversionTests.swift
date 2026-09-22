@@ -141,7 +141,7 @@ struct HealthKitFHIRCategoryConversionTests {
     private var context: HealthKitConversionContext {
         HealthKitConversionContext(
             subject: .testPatient,
-            converter: HealthKitApplication(
+            converter: ApplicationDevice.test(
                 name: "Example Study",
                 bundleIdentifier: "org.grovealliance.example-study",
                 version: "2.0.0 (42)"
@@ -274,20 +274,14 @@ struct HealthKitFHIRCategoryConversionTests {
         let contract = HealthKitFHIRObservationContract(shared: MeasurementCatalog.menstruationFlow)
         let sampleType = HKCategoryTypeIdentifier.menstrualFlow.rawValue
 
-        #expect(throws: HealthKitConversionError.missingRequiredMetadata(
-            sampleType: sampleType,
-            key: HKMetadataKeyMenstrualCycleStart
-        )) {
+        #expect(throws: HealthKitValueFailure.requiredMetadataMissing(.menstrualCycleStart)) {
             try HealthKitConverter.menstrualCycleStartComponent(
                 metadata: [:],
                 sampleType: sampleType,
                 contract: contract
             )
         }
-        #expect(throws: HealthKitConversionError.unsupportedMetadataValue(
-            key: HKMetadataKeyMenstrualCycleStart,
-            value: "yes"
-        )) {
+        #expect(throws: HealthKitValueFailure.unsupportedMetadataValue(.menstrualCycleStart)) {
             try HealthKitConverter.menstrualCycleStartComponent(
                 metadata: [HKMetadataKeyMenstrualCycleStart: "yes"],
                 sampleType: sampleType,

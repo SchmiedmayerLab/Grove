@@ -471,13 +471,11 @@ struct QuestionnaireDSLTests {
 
     /// Scoring must work for a questionnaire declared in Swift, not only for one imported
     /// from FHIR. The engine is attached by the FHIR import, so a natively declared
-    /// instrument computed nothing at all until `withExpressionEngine(evaluationInstant:)` existed — and
+    /// instrument computed nothing at all until `withExpressionEngine()` existed — and
     /// every scoring test here went through a round trip, which hid it.
     @Test
     func aNativelyDeclaredQuestionnaireEvaluatesItsScore() throws {
-        let questionnaire = try CheckIn.questionnaire.withExpressionEngine(
-            evaluationInstant: questionnaireResponseTestAuthoredAt
-        )
+        let questionnaire = try CheckIn.questionnaire.withExpressionEngine()
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
 
         responses[CheckIn.interest] = .severalDays

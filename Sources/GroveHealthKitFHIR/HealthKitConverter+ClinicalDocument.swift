@@ -27,26 +27,29 @@ extension HealthKitConverter {
     public func convert(
         _ record: HKClinicalRecord,
         context: HealthKitConversionContext
-    ) throws(HealthKitConversionError) -> HealthKitDocumentConversion {
+    ) throws(HealthKitConversionError) -> HealthKitConversionSet {
         do {
-            guard let fhirResource = record.fhirResource else {
-                throw HealthKitConversionError.clinicalRecordWithoutResource(record.uuid)
-            }
-            let evidence = try Self.clinicalRecordingEvidence(
-                data: fhirResource.data,
-                release: fhirResource.fhirVersion.fhirRelease,
-                versionDescription: fhirResource.fhirVersion.stringRepresentation,
-                sourceUUID: record.uuid,
-                sourceTypeIdentifier: record.sampleType.identifier
-            )
-            return try Self.assembleDocumentGraph(
-                for: record,
-                evidence: evidence,
-                context: context
-            )
+            return try Self.convertClinicalRecord(record, context: context)
         } catch {
-            throw HealthKitConversionError(conversionFailure: error)
+            throw HealthKitConversionError(conversionFailure: error, source: HealthKitSourceType(record))
         }
+    }
+
+    static func convertClinicalRecord(
+        _ record: HKClinicalRecord,
+        context: HealthKitConversionContext
+    ) throws -> HealthKitConversionSet {
+        guard let fhirResource = record.fhirResource else {
+            throw HealthKitConversionError.clinicalRecord(.empty)
+        }
+        let evidence = try clinicalRecordingEvidence(
+            data: fhirResource.data,
+            release: fhirResource.fhirVersion.fhirRelease,
+            versionDescription: fhirResource.fhirVersion.stringRepresentation,
+            sourceUUID: record.uuid,
+            sourceTypeIdentifier: record.sampleType.identifier
+        )
+        return try assembleDocumentGraph(for: record, evidence: evidence, context: context)
     }
 
     static func clinicalRecordingEvidence(
@@ -63,22 +66,22 @@ extension HealthKitConverter {
         case .r4:
             releaseCode = "r4"
         case .unknown:
-            throw .unsupportedClinicalRelease(versionDescription)
+            throw .clinicalRecord(.unsupportedRelease)
         default:
-            throw .unsupportedClinicalRelease(versionDescription)
+            throw .clinicalRecord(.unsupportedRelease)
         }
         guard HealthKitContract.admittedClinicalFHIRReleaseCodes.contains(releaseCode) else {
-            throw .unsupportedClinicalRelease(versionDescription)
+            throw .clinicalRecord(.unsupportedRelease)
         }
         do {
             try FHIRJSONResourcePayload.validate(data)
         } catch {
-            throw .undecodableClinicalRecord(sourceUUID)
+            throw .clinicalRecord(.undecodable)
         }
         return HealthKitRecordingEvidence(
             outputRole: "clinical-record",
             format: .fhirResource,
-            title: HealthKitCatalog.entry(forSourceTypeIdentifier: sourceTypeIdentifier)?.title
+            title: HealthKitSourceType(rawValue: sourceTypeIdentifier).map { HealthKitCatalog[$0].title }
                 ?? "Clinical FHIR resource",
             payload: data,
             profiles: [HealthKitContract.clinicalRecordProfile],
@@ -101,27 +104,34 @@ extension HealthKitConverter {
     public func convert(
         _ sample: HKCDADocumentSample,
         context: HealthKitConversionContext
-    ) throws(HealthKitConversionError) -> HealthKitDocumentConversion {
+    ) throws(HealthKitConversionError) -> HealthKitConversionSet {
         do {
-            guard let document = sample.document,
-                  let data = document.documentData,
-                  !data.isEmpty else {
-                throw HealthKitConversionError.missingClinicalDocumentData(sample.uuid)
-            }
-            let title = document.title.trimmingCharacters(in: .whitespacesAndNewlines)
-            return try Self.assembleDocumentGraph(
-                for: sample,
-                evidence: HealthKitRecordingEvidence(
-                    outputRole: "clinical-record",
-                    format: .clinicalDocument,
-                    title: title.isEmpty ? "Clinical document" : title,
-                    payload: data
-                ),
-                context: context
-            )
+            return try Self.convertClinicalDocument(sample, context: context)
         } catch {
-            throw HealthKitConversionError(conversionFailure: error)
+            throw HealthKitConversionError(conversionFailure: error, source: .cda)
         }
+    }
+
+    static func convertClinicalDocument(
+        _ sample: HKCDADocumentSample,
+        context: HealthKitConversionContext
+    ) throws -> HealthKitConversionSet {
+        guard let document = sample.document,
+              let data = document.documentData,
+              !data.isEmpty else {
+            throw HealthKitConversionError.clinicalRecord(.empty)
+        }
+        let title = document.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return try assembleDocumentGraph(
+            for: sample,
+            evidence: HealthKitRecordingEvidence(
+                outputRole: "clinical-record",
+                format: .clinicalDocument,
+                title: title.isEmpty ? "Clinical document" : title,
+                payload: data
+            ),
+            context: context
+        )
     }
 
     private static func clinicalRecordTypeCode(
@@ -140,7 +150,8 @@ extension HealthKitConverter {
         default: nil
         }
         guard let code else {
-            throw HealthKitConversionError.unsupportedSampleType(sourceTypeIdentifier)
+            throw HealthKitSourceType(rawValue: sourceTypeIdentifier).map(HealthKitConversionError.unsupportedSourceType)
+                ?? .unregisteredSourceType(sourceTypeIdentifier)
         }
         return code
     }

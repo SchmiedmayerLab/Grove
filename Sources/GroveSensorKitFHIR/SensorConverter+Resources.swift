@@ -18,9 +18,9 @@ import ModelsR4
 extension SensorConverter {
     static func primaryResource(
         _ record: SensorRecord,
-        sourceRecord: BusinessIdentifier,
-        sourceOutput: BusinessIdentifier,
-        sourceArtifact: BusinessIdentifier?,
+        sourceRecord: RoledIdentifier,
+        sourceOutput: RoledIdentifier,
+        sourceArtifact: RoledIdentifier?,
         context: SensorConversionContext,
         recordingDeviceURL: String?,
         converterURL: String
@@ -59,8 +59,8 @@ extension SensorConverter {
 
     static func observation(
         _ record: SensorSampledDataRecord,
-        sourceRecord: BusinessIdentifier,
-        sourceOutput: BusinessIdentifier,
+        sourceRecord: RoledIdentifier,
+        sourceOutput: RoledIdentifier,
         context: SensorConversionContext,
         recordingDeviceURL: String?,
         converterURL: String
@@ -72,10 +72,10 @@ extension SensorConverter {
         var observation = Observation(code: record.code.concept, status: FHIRPrimitive(.final))
         observation.meta = Meta(profile: profiles)
         observation.identifier = [sourceRecord.fhirIdentifier, sourceOutput.fhirIdentifier]
-        observation.subject = context.subject
+        observation.subject = try context.subject
         observation.effective = .period(try period(start: record.start, end: record.end))
         observation.device = recordingDeviceURL.map(reference)
-        observation.extension = contextExtensions(context, converterURL: converterURL)
+        observation.extension = try contextExtensions(context, converterURL: converterURL)
         observation.value = .sampledData(try sampledData(
             samples: record.samples,
             dimensions: record.dimensions,
@@ -89,8 +89,8 @@ extension SensorConverter {
 
     static func observation(
         _ record: SensorECGRecord,
-        sourceRecord: BusinessIdentifier,
-        sourceOutput: BusinessIdentifier,
+        sourceRecord: RoledIdentifier,
+        sourceOutput: RoledIdentifier,
         context: SensorConversionContext,
         recordingDeviceURL: String?,
         converterURL: String
@@ -109,10 +109,10 @@ extension SensorConverter {
         )
         observation.meta = Meta(profile: profiles)
         observation.identifier = [sourceRecord.fhirIdentifier, sourceOutput.fhirIdentifier]
-        observation.subject = context.subject
+        observation.subject = try context.subject
         observation.effective = .period(try period(start: record.start, end: record.end))
         observation.device = recordingDeviceURL.map(reference)
-        observation.extension = contextExtensions(context, converterURL: converterURL)
+        observation.extension = try contextExtensions(context, converterURL: converterURL)
         observation.component = try record.channels.map { channel in
             ObservationComponent(
                 code: channel.lead.concept,
@@ -131,9 +131,9 @@ extension SensorConverter {
 
     static func document(
         _ record: SensorRecordingDocument,
-        sourceRecord: BusinessIdentifier,
-        sourceOutput: BusinessIdentifier,
-        sourceArtifact: BusinessIdentifier?,
+        sourceRecord: RoledIdentifier,
+        sourceOutput: RoledIdentifier,
+        sourceArtifact: RoledIdentifier?,
         context: SensorConversionContext,
         recordingDeviceURL: String?,
         converterURL: String
@@ -144,7 +144,7 @@ extension SensorConverter {
         }
         var authors = recordingDeviceURL.map { [reference($0)] } ?? []
         authors.append(reference(converterURL))
-        let related = context.researchStudies + record.related.map {
+        let related = try context.researchStudies + record.related.map {
             Reference(identifier: $0.fhirIdentifier)
         }
         guard let sourceArtifact else {
@@ -168,10 +168,10 @@ extension SensorConverter {
             ],
             meta: Meta(profile: profiles),
             status: FHIRPrimitive(.current),
-            subject: context.subject,
+            subject: try context.subject,
             type: record.type.concept
         )
-        document.id = context.repositoryIDs.record?.primitive
+        document.id = context.repositoryID(.primaryOutput)?.primitive
         return document
     }
 
@@ -234,20 +234,20 @@ extension SensorConverter {
     static func contextExtensions(
         _ context: SensorConversionContext,
         converterURL: String
-    ) -> [Extension]? {
-        var extensions = context.researchStudies.map { study in
+    ) throws -> [Extension]? {
+        var extensions = try context.researchStudies.map { study in
             Extension(url: Canonicals.researchStudy, value: .reference(study))
         }
-        if context.converterWasGateway {
+        if let gatewayURL = try context.event.gatewayURL(converterURL: converterURL) {
             extensions.append(Extension(
                 url: Canonicals.gatewayDevice,
-                value: .reference(reference(converterURL))
+                value: .reference(reference(gatewayURL))
             ))
         }
         return extensions.isEmpty ? nil : extensions
     }
 
-    static func applicationDevice(_ application: SensorApplication) -> Device {
+    static func applicationDevice(_ application: ApplicationDevice) -> Device {
         var device = Device()
         device.meta = Meta(profile: [Profile.groveApplicationDevice])
         device.status = FHIRPrimitive(.active)
@@ -255,16 +255,14 @@ extension SensorConverter {
             name: application.name.asFHIRStringPrimitive(),
             type: FHIRPrimitive(.userFriendlyName)
         )]
-        if let version = application.version {
-            device.version = [DeviceVersion(
-                type: CodeableConcept(coding: [Coding(
-                    code: "531975".asFHIRStringPrimitive(),
-                    display: "MDC_ID_PROD_SPEC_SW".asFHIRStringPrimitive(),
-                    system: Canonicals.mdc
-                )]),
-                value: version.asFHIRStringPrimitive()
-            )]
-        }
+        device.version = [DeviceVersion(
+            type: CodeableConcept(coding: [Coding(
+                code: "531975".asFHIRStringPrimitive(),
+                display: "MDC_ID_PROD_SPEC_SW".asFHIRStringPrimitive(),
+                system: Canonicals.mdc
+            )]),
+            value: application.version.asFHIRStringPrimitive()
+        )]
         if let build = application.build {
             device.version = (device.version ?? []) + [DeviceVersion(
                 type: CodeableConcept(coding: [Coding(
@@ -278,7 +276,7 @@ extension SensorConverter {
         return device
     }
 
-    static func hostDevice(_ host: SensorHostDevice) -> Device {
+    static func hostDevice(_ host: HostDevice) -> Device {
         var device = Device()
         device.meta = Meta(profile: [Profile.groveHostDevice])
         device.status = FHIRPrimitive(.active)
@@ -302,9 +300,9 @@ extension SensorConverter {
     }
 
     static func recordingDevice(
-        _ source: SensorRecordingDevice,
-        identity: BusinessIdentifier,
-        snapshot: BusinessIdentifier
+        _ source: RecordingDevice,
+        identity: RoledIdentifier,
+        snapshot: RoledIdentifier
     ) -> Device {
         var device = Device()
         device.meta = Meta(profile: [Profile.groveRecordingDevice])

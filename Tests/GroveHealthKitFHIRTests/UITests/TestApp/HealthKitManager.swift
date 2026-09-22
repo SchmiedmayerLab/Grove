@@ -7,6 +7,7 @@
 //
 
 
+import CryptoKit
 import Foundation
 import GroveFHIRContract
 import GroveHealthKitFHIR
@@ -78,59 +79,54 @@ func makeFHIRTestContext(
     sequence: UInt64,
     conversionInstant: Date
 ) throws -> HealthKitConversionContext {
-    let patientIdentifier = try BusinessIdentifier(
-        system: "https://grovealliance.org/fhir/testing/identifiers/patient",
-        value: "example"
-    )
-    let subject = Reference(
-        identifier: patientIdentifier.fhirIdentifier,
-        type: FHIRPrimitive(FHIRURI(stringLiteral: "Patient"))
-    )
     let systemRoot = "https://grovealliance.org/fhir/testing/identifiers/ui-test"
-    return HealthKitConversionContext(
-        subject: subject,
-        subjectIdentity: patientIdentifier,
-        converter: HealthKitApplication(
+    let systems = try DeploymentIdentifierSystems(
+        opaque: fhirTestIdentitySystems(systemRoot: systemRoot),
+        event: IdentifierSystem("\(systemRoot)/event"),
+        entryNode: IdentifierSystem("\(systemRoot)/entry-node")
+    )
+    let event = ExchangeEventContext(
+        subject: .logical(try BusinessIdentifier(
+            system: "https://grovealliance.org/fhir/testing/identifiers/patient",
+            value: "example"
+        )),
+        event: try ExchangeEventIdentifier(
+            system: systems.event,
+            producerInstance: UUID(uuid: (
+                0x1f, 0x5c, 0x58, 0xaa, 0x6e, 0xc6, 0x4e, 0x79,
+                0xa6, 0x82, 0x82, 0x9a, 0x9d, 0xeb, 0xd3, 0xf5
+            )),
+            sequence: EventSequence(sequence)
+        ),
+        identityScope: try OpaqueIdentityScope(
+            systems: systems,
+            keyID: "ui-test",
+            epoch: EventSequence(1),
+            key: SymmetricKey(data: Data(repeating: 0x42, count: 32))
+        ),
+        repositoryScope: try BusinessIdentifier(system: IdentifierSystem("\(systemRoot)/repository"), value: "healthkit"),
+        application: try ApplicationDevice(
             name: "Grove HealthKit FHIR Test App",
             bundleIdentifier: "org.grovealliance.healthkit-fhir-test-app",
-            version: "1.0.0 (1)"
+            version: "1.0.0",
+            build: "1"
         ),
-        converterHost: HealthKitHostDevice(
-            sourceDeviceToken: "grove-healthkit-fhir-ui-test-host",
+        host: try HostDevice(
             operatingSystemVersion: ProcessInfo.processInfo.operatingSystemVersionString,
             name: "Grove HealthKit FHIR UI Test Host",
             manufacturer: "Apple",
             modelNumber: "UI Test Device"
         ),
-        eventIdentifier: try ExchangeEventIdentifier(
-            system: IdentifierSystem("\(systemRoot)/event"),
-            producerInstance: UUID(uuid: (
-                0x1f, 0x5c, 0x58, 0xaa, 0x6e, 0xc6, 0x4e, 0x79,
-                0xa6, 0x82, 0x82, 0x9a, 0x9d, 0xeb, 0xd3, 0xf5
-            )),
-            sequence: sequence
-        ),
-        entryNodeIdentifierSystem: try IdentifierSystem("\(systemRoot)/entry-node"),
-        identityScope: try PseudonymousIdentityScope(
-            systems: fhirTestIdentitySystems(systemRoot: systemRoot),
-            keyID: "ui-test",
-            epoch: 1,
-            key: Data(repeating: 0x42, count: 32)
-        ),
-        repositoryScope: try BusinessIdentifier(
-            system: "\(systemRoot)/repository",
-            value: "healthkit"
-        ),
-        sourceActor: .application,
         conversionInstant: conversionInstant
     )
+    return HealthKitConversionContext(event: event)
 }
 
 
 private func fhirTestIdentitySystems(
     systemRoot: String
-) throws -> PseudonymousIdentitySystems {
-    try PseudonymousIdentitySystems(
+) throws -> OpaqueIdentitySystems {
+    try OpaqueIdentitySystems(
         sourceRecord: IdentifierSystem("\(systemRoot)/source-record/test/1"),
         sourceOutput: IdentifierSystem("\(systemRoot)/source-output/test/1"),
         writerRecord: IdentifierSystem("\(systemRoot)/writer-record/test/1"),

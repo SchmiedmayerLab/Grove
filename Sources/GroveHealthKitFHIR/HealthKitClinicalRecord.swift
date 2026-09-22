@@ -76,7 +76,7 @@ extension HealthKitConverter {
         using healthKit: HealthKit? = nil
     ) async throws(HealthKitConversionError) -> HealthKitClinicalRecord {
         guard let fhirResource = record.fhirResource else {
-            throw .clinicalRecordWithoutResource(record.uuid)
+            throw .clinicalRecord(.empty)
         }
         let resource = try Self.decodeR4ClinicalResource(
             data: fhirResource.data,
@@ -108,7 +108,7 @@ extension HealthKitConverter {
         do {
             return try await Self.attachments(of: record, using: healthKit)
         } catch {
-            throw .unreadableClinicalAttachment(record.uuid)
+            throw .clinicalRecord(.unreadableAttachment)
         }
     }
 
@@ -121,12 +121,12 @@ extension HealthKitConverter {
         sourceUUID: UUID
     ) throws(HealthKitConversionError) -> any ModelsR4.Resource {
         guard release == .r4 else {
-            throw .unsupportedClinicalRelease(versionDescription)
+            throw .clinicalRecord(.unsupportedRelease)
         }
         do {
             return try JSONDecoder().decode(ModelsR4.ResourceProxy.self, from: data).get()
         } catch {
-            throw .undecodableClinicalRecord(sourceUUID)
+            throw .clinicalRecord(.undecodable)
         }
     }
 

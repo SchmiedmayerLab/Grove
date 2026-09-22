@@ -25,7 +25,7 @@ public enum RetractionTargetRole: String, CaseIterable, Hashable, Sendable {
 
 /// One complete logical target of a retraction assertion.
 public struct RetractionTarget: Hashable, Sendable {
-    public let identifier: BusinessIdentifier
+    public let identifier: RoledIdentifier
     public let resourceType: ResourceType
     public let role: RetractionTargetRole
     /// The adapter's own record identifier for the retracted record, carried beside the opaque
@@ -36,7 +36,7 @@ public struct RetractionTarget: Hashable, Sendable {
     public let nativeRecordIdentifier: Identifier?
 
     public init(
-        identifier: BusinessIdentifier,
+        identifier: RoledIdentifier,
         resourceType: ResourceType,
         role: RetractionTargetRole,
         nativeRecordIdentifier: Identifier? = nil
@@ -90,7 +90,7 @@ public struct RetractionTarget: Hashable, Sendable {
         }
         // Any coding in the Grove role system restates a graph identity, whether or not its code parses.
         return !(identifier.type?.coding ?? []).contains {
-            $0.system?.value?.url.absoluteString == Canonicals.identifierRoleCodeSystem.value?.url.absoluteString
+            $0.system?.value?.url.absoluteString == Canonicals.identifierRoleCodeSystemValue
         }
     }
 
@@ -117,7 +117,7 @@ public struct RetractionTarget: Hashable, Sendable {
 public enum RetractionTargetError: Error, Equatable, Sendable {
     case identifierRoleMismatch(
         targetRole: RetractionTargetRole,
-        identifierRole: GroveIdentifierRole?
+        identifierRole: GroveIdentifierRole
     )
     case resourceTypeMismatch(role: RetractionTargetRole, resourceType: ResourceType)
     /// The disclosed native identifier is incomplete or restates a Grove graph identity.
@@ -125,65 +125,48 @@ public enum RetractionTargetError: Error, Equatable, Sendable {
 }
 
 
-/// Explicit inputs for one retraction assertion.
-public struct RetractionEventContext: Sendable {
-    public let eventIdentifier: ExchangeEventIdentifier
-    public let entryNodeIdentifierSystem: IdentifierSystem
-    public let producer: Reference
-    public let sourceRecord: BusinessIdentifier
-    public let sourceRetractionTime: Date
-    public let recordedAt: Date
-    public let repositoryBundleID: RepositoryID?
-    public let repositoryProvenanceID: RepositoryID?
+/// A validated lifecycle assertion that names prior graph nodes without copying them.
+///
+/// The converting application is the assembler, referenced logically through its event-scoped
+/// snapshot identity; the retraction occurred when the source deleted the record and was recorded
+/// at the context's conversion instant.
+public struct RetractionEvent: Sendable {
+    public let graph: ExchangeGraph
 
     public init(
-        eventIdentifier: ExchangeEventIdentifier,
-        entryNodeIdentifierSystem: IdentifierSystem,
-        producer: Reference,
-        sourceRecord: BusinessIdentifier,
-        sourceRetractionTime: Date,
-        recordedAt: Date,
-        repositoryBundleID: RepositoryID? = nil,
-        repositoryProvenanceID: RepositoryID? = nil
-    ) {
-        self.eventIdentifier = eventIdentifier
-        self.entryNodeIdentifierSystem = entryNodeIdentifierSystem
-        self.producer = producer
-        self.sourceRecord = sourceRecord
-        self.sourceRetractionTime = sourceRetractionTime
-        self.recordedAt = recordedAt
-        self.repositoryBundleID = repositoryBundleID
-        self.repositoryProvenanceID = repositoryProvenanceID
-    }
-}
-
-
-/// Builds a lifecycle assertion without copying or mutilating prior clinical resources.
-public enum RetractionEventBuilder {
-    private static let participantType: FHIRPrimitive<FHIRURI> =
-        "http://terminology.hl7.org/CodeSystem/provenance-participant-type"
-
-    /// Builds and validates one retraction assertion graph for the supplied logical targets.
-    public static func build(
         targets: [RetractionTarget],
-        context: RetractionEventContext
-    ) throws -> ExchangeGraph {
+        context: ExchangeEventContext,
+        sourceRecord: RoledIdentifier,
+        retractedAt: Date
+    ) throws(RetractionEventError) {
         guard !targets.isEmpty else {
-            throw RetractionEventError.emptyTargets
+            throw .emptyTargets
         }
-        guard Set(targets.map(\.identifier)).count == targets.count else {
-            throw RetractionEventError.duplicateTarget
+        guard Set(targets.map(\.identifier.identifier)).count == targets.count else {
+            throw .duplicateTarget
         }
+        guard sourceRecord.role == .sourceRecord,
+              ExchangeIdentity.isCanonicalOpaqueIdentifierValue(sourceRecord.identifier.value) else {
+            throw .invalidSourceRecord
+        }
+        let assembler: RoledIdentifier
         do {
-            _ = try TypedReference.validate(context.producer, expectedResourceType: .device)
+            assembler = try context.identityScope.deviceSnapshot(
+                event: context.event,
+                role: .application,
+                sourceDeviceToken: context.application.bundleIdentifier
+            )
         } catch {
-            throw RetractionEventError.invalidProducer
+            throw .opaqueIdentity(error)
         }
-        guard context.sourceRecord.role == .sourceRecord,
-              ExchangeIdentity.isCanonicalOpaqueIdentifierValue(context.sourceRecord.value) else {
-            throw RetractionEventError.invalidSourceRecord
+        let occurred: DateTime
+        let recorded: Instant
+        do {
+            occurred = try DateTime(date: retractedAt)
+            recorded = try Instant(date: context.conversionInstant)
+        } catch {
+            throw .invalidInstant
         }
-
         var provenance = Provenance(
             activity: CodeableConcept(coding: [Coding(
                 code: GroveLifecycleContract.sourceRecordRetracted.asFHIRStringPrimitive(),
@@ -194,43 +177,48 @@ public enum RetractionEventBuilder {
                 type: CodeableConcept(coding: [Coding(
                     code: "assembler".asFHIRStringPrimitive(),
                     display: "Assembler".asFHIRStringPrimitive(),
-                    system: participantType
+                    system: Canonicals.provenanceParticipantType
                 )]),
-                who: context.producer
+                who: Reference(
+                    identifier: assembler.fhirIdentifier,
+                    type: FHIRPrimitive(FHIRURI(stringLiteral: ResourceType.device.rawValue))
+                )
             )],
             entity: [ProvenanceEntity(
                 role: FHIRPrimitive(.source),
-                what: Reference(identifier: context.sourceRecord.fhirIdentifier)
+                what: Reference(identifier: sourceRecord.fhirIdentifier)
             )],
             meta: Meta(profile: [GroveLifecycleContract.retractionProvenanceProfile]),
-            occurred: .dateTime(FHIRPrimitive(try DateTime(date: context.sourceRetractionTime))),
-            recorded: FHIRPrimitive(try Instant(date: context.recordedAt)),
+            occurred: .dateTime(FHIRPrimitive(occurred)),
+            recorded: FHIRPrimitive(recorded),
             target: targets.map(\.reference)
         )
-        provenance.id = context.repositoryProvenanceID?.primitive
-        let nodeKey = try ExchangeNodeKey(
-            system: context.entryNodeIdentifierSystem,
-            eventIdentifier: context.eventIdentifier,
-            nodeRole: "retraction-provenance",
-            ordinal: 0
-        )
-        let entry = try ExchangeIdentity.entry(
-            nodeKey: nodeKey,
-            resource: ResourceProxy(with: provenance)
-        )
-        var bundle = Bundle(
+        provenance.id = context.repositoryIDs[.provenance]?.primitive
+        let entry: BundleEntry
+        do {
+            let nodeKey = try EntryNodeKey(
+                system: context.entryNodeIdentifierSystem,
+                event: context.event,
+                nodeRole: "retraction-provenance",
+                ordinal: 0
+            )
+            entry = try BundleEntry(identifier: nodeKey.identifier, resource: ResourceProxy(with: provenance))
+        } catch {
+            throw .exchangeIdentity(error)
+        }
+        var bundle = ModelsR4.Bundle(
             entry: [entry],
-            identifier: context.eventIdentifier.businessIdentifier.fhirIdentifier,
+            identifier: context.event.identifier.fhirIdentifier,
             meta: Meta(profile: [GroveLifecycleContract.retractionBundleProfile]),
-            timestamp: FHIRPrimitive(try Instant(date: context.recordedAt)),
+            timestamp: FHIRPrimitive(recorded),
             type: FHIRPrimitive(.collection)
         )
-        bundle.id = context.repositoryBundleID?.primitive
-        return try ExchangeGraph(
-            kind: .retraction,
-            eventIdentifier: context.eventIdentifier,
-            bundle: bundle
-        )
+        bundle.id = context.repositoryIDs[.bundle]?.primitive
+        do {
+            self.graph = try ExchangeGraph(kind: .retraction, eventIdentifier: context.event, bundle: bundle)
+        } catch {
+            throw .exchangeGraph(error)
+        }
     }
 }
 
@@ -238,6 +226,9 @@ public enum RetractionEventBuilder {
 public enum RetractionEventError: Error, Equatable, Sendable {
     case emptyTargets
     case duplicateTarget
-    case invalidProducer
     case invalidSourceRecord
+    case invalidInstant
+    case opaqueIdentity(OpaqueIdentityError)
+    case exchangeIdentity(ExchangeIdentityError)
+    case exchangeGraph(ExchangeGraphError)
 }

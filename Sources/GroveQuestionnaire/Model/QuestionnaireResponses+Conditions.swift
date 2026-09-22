@@ -86,7 +86,7 @@ extension QuestionnaireResponses {
     ///
     /// A condition over an unanswered question, or an expression with nothing to evaluate over, is
     /// unsettled: the task may yet be asked. Everything else is settled, one way or the other.
-    func isEnablementSettled(for task: Questionnaire.Task) -> Bool {
+    package func isEnablementSettled(for task: Questionnaire.Task) -> Bool {
         isEnablementSettled(for: task, visited: [])
     }
 

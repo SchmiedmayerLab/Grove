@@ -115,8 +115,7 @@ public struct ResourceBuilder: Sendable {
         let evaluator = try PairExpressionEvaluator.fhirPath(
             questionnaire: questionnaire,
             response: response,
-            evaluationInstant: authored,
-            evaluationTimeZone: authoredTimeZone
+            evaluationInstant: authored
         )
         return try ResourcePair(
             questionnaire: questionnaire,

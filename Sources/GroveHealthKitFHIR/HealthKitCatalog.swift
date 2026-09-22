@@ -98,10 +98,12 @@ struct HealthKitFHIRObservationContract: Sendable {
 }
 
 
-/// The primary source output ``HealthKitConverter`` mints for one source type's Observation.
-public struct HealthKitObservationOutput: Hashable, Sendable {
+/// One output a source type's conversion mints, and how a retraction names it.
+public struct HealthKitOutput: Hashable, Sendable {
     public let role: String
     public let discriminator: String
+    public let resourceType: ResourceType
+    public let retractionRole: RetractionTargetRole
 }
 
 
@@ -141,31 +143,52 @@ public enum HealthKitCatalog {
         uniqueKeysWithValues: entries.map { ($0.sourceTypeIdentifier, $0) }
     )
 
-    static func entry(forSourceTypeIdentifier identifier: String) -> HealthKitCatalogEntry? {
-        entriesBySourceTypeIdentifier[identifier]
+    /// Every output the converter mints for one source type, in the order the graph emits them.
+    ///
+    /// A caller holding only a source type — a deletion, whose sample is already gone — names
+    /// the exact outputs an addition minted. Workout segments are absent: their discriminators come
+    /// from the deleted sample's own events.
+    public static func outputs(for type: HealthKitSourceType) -> [HealthKitOutput] {
+        switch type {
+        case .electrocardiogram:
+            return [
+                HealthKitOutput(
+                    role: "electrocardiogram", discriminator: "single", resourceType: .observation, retractionRole: .primaryOutput
+                ),
+                HealthKitOutput(
+                    role: "average-heart-rate", discriminator: "single", resourceType: .observation, retractionRole: .childOutput
+                )
+            ]
+        case .heartbeatSeries, .workoutRoute:
+            return [
+                HealthKitOutput(
+                    role: "native-recording", discriminator: "single", resourceType: .documentReference, retractionRole: .sourceArtifact
+                )
+            ]
+        case .cda, .allergyRecord, .clinicalNoteRecord, .conditionRecord, .coverageRecord, .immunizationRecord,
+             .labResultRecord, .medicationRecord, .procedureRecord, .vitalSignRecord:
+            return [
+                HealthKitOutput(
+                    role: "clinical-record", discriminator: "single", resourceType: .documentReference, retractionRole: .sourceArtifact
+                )
+            ]
+        default:
+            guard let binding = binding(forSourceTypeIdentifier: type.rawValue) else {
+                return []
+            }
+            // A workout's session totals share their source record with the segments hanging off it.
+            let output = HealthKitOutput(
+                role: binding.contract.id,
+                discriminator: type == .workout ? "session" : "single",
+                resourceType: .observation,
+                retractionRole: .primaryOutput
+            )
+            return [output]
+        }
     }
 
-    /// The primary Observation output the converter mints for one source type, or `nil` where no
-    /// Observation conversion admits it.
-    ///
-    /// The converter itself reads this, so a caller holding only a source type — a deletion, whose
-    /// sample is already gone — names the exact output an addition minted. The catalog rows cannot
-    /// answer it: a multi-measurement row does not say which measurement the primary output carries,
-    /// and a row can be `supported` in the published matrix while no binding emits it yet.
-    public static func primaryObservationOutput(
-        forSourceTypeIdentifier identifier: String
-    ) -> HealthKitObservationOutput? {
-        if identifier == HKObjectType.electrocardiogramType().identifier {
-            return HealthKitObservationOutput(role: "electrocardiogram", discriminator: "single")
-        }
-        guard let binding = binding(forSourceTypeIdentifier: identifier) else {
-            return nil
-        }
-        return HealthKitObservationOutput(
-            role: binding.contract.id,
-            // A workout's session totals share their source record with the segments hanging off it.
-            discriminator: identifier == HKWorkoutType.workoutType().identifier ? "session" : "single"
-        )
+    static func primaryOutput(for type: HealthKitSourceType) -> HealthKitOutput? {
+        outputs(for: type).first { $0.retractionRole == .primaryOutput }
     }
 
     static func binding(for sample: HKSample) -> HealthKitFHIRBinding? {
@@ -215,6 +238,14 @@ public enum HealthKitCatalog {
         default:
             nil
         }
+    }
+
+    /// The inventory row of a source type; every generated type has one.
+    public static subscript(type: HealthKitSourceType) -> HealthKitCatalogEntry {
+        guard let entry = entriesBySourceTypeIdentifier[type.rawValue] else {
+            preconditionFailure("The HealthKit inventory row for \(type.rawValue) is generated from the same catalog.")
+        }
+        return entry
     }
 }
 

@@ -6,24 +6,39 @@
 // SPDX-License-Identifier: MIT
 //
 
-import GroveFHIRContract
+public import GroveFHIRContract
 
 
+/// Why one SensorKit record could not be converted; every case reports one registry code.
 public enum SensorKitConversionError: Error, Equatable, Sendable {
     case invalidRecord(SensorKitRecordError)
-    case invalidConverterApplication(String)
-    case invalidReference(String)
-    case duplicateResearchStudyReference
     case invalidIdentity(String)
     case repositoryIDWithoutStructuredOutput
     case repositoryIDWithoutRawOutput
     case repositoryIDWithoutRecordingDevice
     case payloadTooLarge(byteCount: Int)
+    case exchangeIdentity(ExchangeIdentityError)
+    case opaqueIdentity(OpaqueIdentityError)
+    case exchangeGraph(ExchangeGraphError)
     /// A dependency raised a failure this domain does not model, named by type.
     ///
     /// Only the type is carried: a failing FHIR date describes itself with the exact instant it
     /// could not convert, and that instant identifies a participant.
     case unexpectedConversionFailure(String)
+
+    public var diagnostic: ExchangeGraphDiagnostic {
+        switch self {
+        case .exchangeGraph(let error):
+            return error.diagnostic
+        case .invalidRecord(let error):
+            return error.diagnostic
+        case .payloadTooLarge:
+            return ExchangeGraphRule.mobileInputRecordingPayloadTooLarge.diagnostic
+        case .invalidIdentity, .repositoryIDWithoutStructuredOutput, .repositoryIDWithoutRawOutput,
+             .repositoryIDWithoutRecordingDevice, .exchangeIdentity, .opaqueIdentity, .unexpectedConversionFailure:
+            return ExchangeGraphRule.mobileInputUnclassified.diagnostic
+        }
+    }
 }
 
 
@@ -37,9 +52,11 @@ extension SensorKitConversionError {
         case let error as SensorKitRecordError:
             self = .invalidRecord(error)
         case let error as ExchangeIdentityError:
-            self = .invalidIdentity(String(describing: error))
+            self = .exchangeIdentity(error)
+        case let error as OpaqueIdentityError:
+            self = .opaqueIdentity(error)
         case let error as ExchangeGraphError:
-            self = .invalidIdentity(String(describing: error))
+            self = .exchangeGraph(error)
         default:
             self = .unexpectedConversionFailure(String(reflecting: type(of: error)))
         }

@@ -58,7 +58,7 @@ struct HealthKitSampleProjectionTests {
     @Test("A weight observation lands as a body-mass sample with its stated envelope")
     func weightProjectsWithEnvelope() throws {
         let observation = try Self.observation(contract: MeasurementCatalog.bodyWeight, value: 72.5)
-        let sample = try #require(HealthKitSampleProjection.sample(for: observation) as? HKQuantitySample)
+        let sample = try #require(observation.healthKitSample() as? HKQuantitySample)
         #expect(sample.quantityType == HKQuantityType(.bodyMass))
         #expect(sample.quantity.doubleValue(for: .gramUnit(with: .kilo)) == 72.5)
         #expect(sample.startDate == sample.endDate)
@@ -71,12 +71,12 @@ struct HealthKitSampleProjectionTests {
     @Test("A sync identifier makes re-projection replace, and an amendment outrank the original")
     func syncIdentityFollowsTheObservation() throws {
         var observation = try Self.observation(contract: MeasurementCatalog.bodyWeight, value: 72.5)
-        let first = try HealthKitSampleProjection.sample(for: observation, syncIdentifier: "response-1|weight")
+        let first = try observation.healthKitSample(syncIdentifier: "response-1|weight")
         #expect(first.metadata?[HKMetadataKeySyncIdentifier] as? String == "response-1|weight")
         #expect(first.metadata?[HKMetadataKeySyncVersion] as? Int == 1)
 
         observation.status = FHIRPrimitive(.amended)
-        let amended = try HealthKitSampleProjection.sample(for: observation, syncIdentifier: "response-1|weight")
+        let amended = try observation.healthKitSample(syncIdentifier: "response-1|weight")
         #expect(amended.metadata?[HKMetadataKeySyncVersion] as? Int == 2)
     }
 
@@ -95,10 +95,10 @@ struct HealthKitSampleProjectionTests {
             )
         ]
 
-        let sample = try HealthKitSampleProjection.sample(for: observation)
+        let sample = try observation.healthKitSample()
         #expect(sample.metadata?[HKMetadataKeySyncIdentifier] as? String == "v0:installation:1:digest")
 
-        let overridden = try HealthKitSampleProjection.sample(for: observation, syncIdentifier: "explicit")
+        let overridden = try observation.healthKitSample(syncIdentifier: "explicit")
         #expect(overridden.metadata?[HKMetadataKeySyncIdentifier] as? String == "explicit")
     }
 
@@ -121,7 +121,7 @@ struct HealthKitSampleProjectionTests {
                 ))
             )
         }
-        let correlation = try #require(HealthKitSampleProjection.sample(for: observation) as? HKCorrelation)
+        let correlation = try #require(observation.healthKitSample() as? HKCorrelation)
         #expect(correlation.correlationType == HKCorrelationType(.bloodPressure))
         let readings = correlation.objects.compactMap { $0 as? HKQuantitySample }
         #expect(Set(readings.map { $0.quantity.doubleValue(for: .millimeterOfMercury()) }) == [118, 76])
@@ -132,7 +132,7 @@ struct HealthKitSampleProjectionTests {
     func incompleteBloodPressureRefuses() throws {
         let observation = try Self.observation(contract: MeasurementCatalog.bloodPressure)
         #expect(throws: HealthKitSampleProjectionError.componentMissing(id: "blood-pressure", code: "8480-6")) {
-            try HealthKitSampleProjection.sample(for: observation)
+            try observation.healthKitSample()
         }
     }
 
@@ -146,7 +146,7 @@ struct HealthKitSampleProjectionTests {
             )
         ])
         #expect(throws: HealthKitSampleProjectionError.measurementUnknown(system: "http://loinc.org", code: "0000-0")) {
-            try HealthKitSampleProjection.sample(for: observation)
+            try observation.healthKitSample()
         }
     }
 
@@ -154,7 +154,7 @@ struct HealthKitSampleProjectionTests {
     func ambiguousMeasurementRefuses() throws {
         let observation = try Self.observation(contract: MeasurementCatalog.speed, value: 3)
         #expect(throws: HealthKitSampleProjectionError.measurementNotMappable(id: "speed")) {
-            try HealthKitSampleProjection.sample(for: observation)
+            try observation.healthKitSample()
         }
     }
 
@@ -168,7 +168,7 @@ struct HealthKitSampleProjectionTests {
             value: FHIRPrimitive(FHIRDecimal(72.5))
         ))
         #expect(throws: HealthKitSampleProjectionError.unitNotMappable(code: "mm[Hg]")) {
-            try HealthKitSampleProjection.sample(for: observation)
+            try observation.healthKitSample()
         }
     }
 
@@ -192,7 +192,7 @@ struct HealthKitSampleProjectionTests {
             )
         }
         #expect(throws: HealthKitSampleProjectionError.unitNotMappable(code: "kg")) {
-            try HealthKitSampleProjection.sample(for: observation)
+            try observation.healthKitSample()
         }
     }
 
@@ -200,7 +200,7 @@ struct HealthKitSampleProjectionTests {
     func valueMissingRefuses() throws {
         let observation = try Self.observation(contract: MeasurementCatalog.bodyWeight)
         #expect(throws: HealthKitSampleProjectionError.valueMissing(id: "body-weight")) {
-            try HealthKitSampleProjection.sample(for: observation)
+            try observation.healthKitSample()
         }
     }
 
@@ -210,7 +210,7 @@ struct HealthKitSampleProjectionTests {
         observation.extension = (observation.extension ?? []) + [
             Extension(url: Canonicals.writerRecordVersion, value: .string("7".asFHIRStringPrimitive()))
         ]
-        let sample = try HealthKitSampleProjection.sample(for: observation, syncIdentifier: "response-1|weight")
+        let sample = try observation.healthKitSample(syncIdentifier: "response-1|weight")
         #expect(sample.metadata?[HKMetadataKeySyncVersion] as? Int == 7)
     }
 
@@ -219,7 +219,7 @@ struct HealthKitSampleProjectionTests {
         var observation = try Self.observation(contract: MeasurementCatalog.bodyWeight, value: 72.5)
         observation.effective = nil
         #expect(throws: HealthKitSampleProjectionError.effectiveMissing(id: "body-weight")) {
-            try HealthKitSampleProjection.sample(for: observation)
+            try observation.healthKitSample()
         }
     }
 }

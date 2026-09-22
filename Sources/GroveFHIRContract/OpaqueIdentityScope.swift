@@ -10,36 +10,41 @@
 // swiftlint:disable function_parameter_count type_body_length
 
 #if canImport(CryptoKit)
-import CryptoKit
+public import CryptoKit
 #else
-import Crypto
+public import Crypto
 #endif
-public import Foundation
+import Foundation
 
 
-/// Configuration for one deployment-owned, key-epoch-specific pseudonymous identity scope.
+/// The deployment-owned, key-epoch-specific scope that mints every opaque identity.
 ///
-/// The system is deliberately supplied by the deployment. Grove does not publish a global
-/// pseudonymous namespace because the same clear source identity must not be linkable across
-/// unrelated studies or installations.
-public struct PseudonymousIdentityScope: Sendable {
-    private static let publishedConformanceKey = Data((0...31).map(UInt8.init))
+/// The systems are deliberately supplied by the deployment. Grove publishes no global namespace,
+/// because the same clear source identity must not be linkable across unrelated studies.
+/// Debug output prints the key id and epoch only; the key never leaves the scope.
+@DebugDescription
+public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
+    private static let publishedConformanceKey = SymmetricKey(data: Data((0...31).map(UInt8.init)))
 
-    public let systems: PseudonymousIdentitySystems
+    public let systems: DeploymentIdentifierSystems
     public let keyID: String
-    public let epoch: CanonicalPositiveDecimal
-    private let keyData: Data
+    public let epoch: EventSequence
+    private let key: SymmetricKey
+
+    public var debugDescription: String {
+        "OpaqueIdentityScope(keyID: \(keyID), epoch: \(epoch.rawValue))"
+    }
 
     /// Creates one identity scope.
     ///
     /// Keys shorter than 256 bits are rejected. `keyID` is wire-visible and therefore restricted
     /// to an unambiguous ASCII token; it is a selector, never secret key material.
     public init(
-        systems: PseudonymousIdentitySystems,
+        systems: DeploymentIdentifierSystems,
         keyID: String,
-        epoch: CanonicalPositiveDecimal,
-        key: Data
-    ) throws(PseudonymousIdentityError) {
+        epoch: EventSequence,
+        key: SymmetricKey
+    ) throws(OpaqueIdentityError) {
         try self.init(
             systems: systems,
             keyID: keyID,
@@ -50,20 +55,17 @@ public struct PseudonymousIdentityScope: Sendable {
     }
 
     private init(
-        systems: PseudonymousIdentitySystems,
+        systems: DeploymentIdentifierSystems,
         keyID: String,
-        epoch: CanonicalPositiveDecimal,
-        key: Data,
+        epoch: EventSequence,
+        key: SymmetricKey,
         permitsPublishedConformanceKey: Bool
-    ) throws(PseudonymousIdentityError) {
-        guard !keyID.isEmpty,
-              keyID.utf8.allSatisfy({
-                  $0.isASCIIAlphaNumeric || $0 == 0x2D || $0 == 0x2E || $0 == 0x5F
-              }) else {
+    ) throws(OpaqueIdentityError) {
+        guard Self.isValidKeyID(keyID) else {
             throw .invalidKeyID(keyID)
         }
-        guard key.count >= 32 else {
-            throw .keyTooShort(actualBytes: key.count)
+        guard key.bitCount >= 256 else {
+            throw .keyTooShort(actualBytes: key.bitCount / 8)
         }
         guard permitsPublishedConformanceKey || key != Self.publishedConformanceKey else {
             throw .publishedConformanceKeyProhibited
@@ -71,32 +73,16 @@ public struct PseudonymousIdentityScope: Sendable {
         self.systems = systems
         self.keyID = keyID
         self.epoch = epoch
-        self.keyData = key
-    }
-
-    /// Convenience for deployments whose current key epoch is still machine-sized.
-    public init(
-        systems: PseudonymousIdentitySystems,
-        keyID: String,
-        epoch: UInt64,
-        key: Data
-    ) throws(PseudonymousIdentityError) {
-        let canonicalEpoch: CanonicalPositiveDecimal
-        do {
-            canonicalEpoch = try CanonicalPositiveDecimal(epoch)
-        } catch {
-            throw .invalidEpoch(String(epoch))
-        }
-        try self.init(systems: systems, keyID: keyID, epoch: canonicalEpoch, key: key)
+        self.key = key
     }
 
     /// Constructs the normative vector scope for tests in this package without exposing a
     /// production bypass for the published conformance key.
     package static func conformanceTesting(
-        systems: PseudonymousIdentitySystems,
+        systems: DeploymentIdentifierSystems,
         keyID: String,
-        epoch: CanonicalPositiveDecimal
-    ) throws(PseudonymousIdentityError) -> Self {
+        epoch: EventSequence
+    ) throws(OpaqueIdentityError) -> Self {
         try Self(
             systems: systems,
             keyID: keyID,
@@ -106,49 +92,29 @@ public struct PseudonymousIdentityScope: Sendable {
         )
     }
 
-    /// Convenience for normative tests whose epoch is machine-sized.
-    package static func conformanceTesting(
-        systems: PseudonymousIdentitySystems,
-        keyID: String,
-        epoch: UInt64
-    ) throws(PseudonymousIdentityError) -> Self {
-        let canonicalEpoch: CanonicalPositiveDecimal
-        do {
-            canonicalEpoch = try CanonicalPositiveDecimal(epoch)
-        } catch {
-            throw .invalidEpoch(String(epoch))
+    static func isValidKeyID(_ keyID: String) -> Bool {
+        !keyID.isEmpty && keyID.utf8.allSatisfy {
+            $0.isASCIIAlphaNumeric || $0 == 0x2D || $0 == 0x2E || $0 == 0x5F
         }
-        return try conformanceTesting(systems: systems, keyID: keyID, epoch: canonicalEpoch)
     }
 
-    /// Derives a typed pseudonymous identifier.
+    /// Derives a typed opaque identifier.
     ///
     /// The HMAC preimage is the ordered sequence of unsigned 32-bit big-endian UTF-8 lengths and
     /// bytes for the protocol label, identity kind, and every typed component. Delimiters are not
     /// special and supplementary Unicode scalars are encoded as their ordinary UTF-8 bytes.
     private func identifier(
         role: GroveIdentifierRole,
-        identityKind: PseudonymousIdentityKind,
+        kind: OpaqueIdentityKind,
         components: [String]
-    ) throws -> BusinessIdentifier {
-        guard components.count == identityKind.componentCount else {
-            throw PseudonymousIdentityError.invalidComponentCount(
-                kind: identityKind,
-                expected: identityKind.componentCount,
-                actual: components.count
-            )
+    ) throws(OpaqueIdentityError) -> RoledIdentifier {
+        guard components.count == kind.componentCount else {
+            throw .invalidComponentCount(kind: kind, expected: kind.componentCount, actual: components.count)
         }
-        let input = try LengthFramedUTF8.encode(
-            ["org.grovealliance.fhir.identity.v0", identityKind.rawValue] + components
-        )
-        let authentication = HMAC<SHA256>.authenticationCode(
-            for: input,
-            using: SymmetricKey(data: keyData)
-        )
-        let digest = Data(authentication).base64URLEncodedStringWithoutPadding
-        return try BusinessIdentifier(
-            system: systems[identityKind],
-            value: "v0:\(keyID):\(epoch.rawValue):\(digest)",
+        let input = try LengthFramedUTF8.encode(["org.grovealliance.fhir.identity.v0", kind.rawValue] + components)
+        let digest = Data(HMAC<SHA256>.authenticationCode(for: input, using: key)).base64URLEncodedStringWithoutPadding
+        return RoledIdentifier(
+            identifier: BusinessIdentifier(system: systems.opaque[kind], nonemptyValue: "v0:\(keyID):\(epoch.rawValue):\(digest)"),
             role: role
         )
     }
@@ -158,7 +124,7 @@ public struct PseudonymousIdentityScope: Sendable {
         sourceType: String,
         repositoryScope: BusinessIdentifier,
         nativeRecordID: String
-    ) throws -> BusinessIdentifier {
+    ) throws(OpaqueIdentityError) -> RoledIdentifier {
         try validateNonempty([
             ("adapterID", adapterID),
             ("sourceType", sourceType),
@@ -167,11 +133,11 @@ public struct PseudonymousIdentityScope: Sendable {
         try validateGenericAdapterID(adapterID)
         return try identifier(
             role: .sourceRecord,
-            identityKind: .sourceRecord,
+            kind: .sourceRecord,
             components: [
                 adapterID,
                 sourceType,
-                repositoryScope.systemValue,
+                repositoryScope.system.rawValue,
                 repositoryScope.value,
                 nativeRecordID
             ]
@@ -183,19 +149,18 @@ public struct PseudonymousIdentityScope: Sendable {
         sourceType: String,
         providerScope: BusinessIdentifier,
         nativeRecordID: String
-    ) throws -> BusinessIdentifier {
-        let providerCode = providerCode.rawValue
+    ) throws(OpaqueIdentityError) -> RoledIdentifier {
         try validateNonempty([
             ("sourceType", sourceType),
             ("nativeRecordID", nativeRecordID)
         ])
         return try identifier(
             role: .sourceRecord,
-            identityKind: .providerRecord,
+            kind: .providerRecord,
             components: [
-                providerCode,
+                providerCode.rawValue,
                 sourceType,
-                providerScope.systemValue,
+                providerScope.system.rawValue,
                 providerScope.value,
                 nativeRecordID
             ]
@@ -209,7 +174,7 @@ public struct PseudonymousIdentityScope: Sendable {
         nativeRecordID: String,
         outputRole: String,
         outputDiscriminator: String
-    ) throws -> BusinessIdentifier {
+    ) throws(OpaqueIdentityError) -> RoledIdentifier {
         try validateNonempty([
             ("adapterID", adapterID),
             ("sourceType", sourceType),
@@ -221,11 +186,11 @@ public struct PseudonymousIdentityScope: Sendable {
         try validateCodeToken(outputRole, field: "outputRole")
         return try identifier(
             role: .sourceOutput,
-            identityKind: .sourceOutput,
+            kind: .sourceOutput,
             components: [
                 adapterID,
                 sourceType,
-                repositoryScope.systemValue,
+                repositoryScope.system.rawValue,
                 repositoryScope.value,
                 nativeRecordID,
                 outputRole,
@@ -241,8 +206,7 @@ public struct PseudonymousIdentityScope: Sendable {
         nativeRecordID: String,
         outputRole: String,
         outputDiscriminator: String
-    ) throws -> BusinessIdentifier {
-        let providerCode = providerCode.rawValue
+    ) throws(OpaqueIdentityError) -> RoledIdentifier {
         try validateNonempty([
             ("sourceType", sourceType),
             ("nativeRecordID", nativeRecordID),
@@ -252,11 +216,11 @@ public struct PseudonymousIdentityScope: Sendable {
         try validateCodeToken(outputRole, field: "outputRole")
         return try identifier(
             role: .sourceOutput,
-            identityKind: .providerOutput,
+            kind: .providerOutput,
             components: [
-                providerCode,
+                providerCode.rawValue,
                 sourceType,
-                providerScope.systemValue,
+                providerScope.system.rawValue,
                 providerScope.value,
                 nativeRecordID,
                 outputRole,
@@ -268,13 +232,13 @@ public struct PseudonymousIdentityScope: Sendable {
     public func writerRecord(
         writerApplication: BusinessIdentifier,
         writerRecordID: String
-    ) throws -> BusinessIdentifier {
+    ) throws(OpaqueIdentityError) -> RoledIdentifier {
         try validateNonempty([("writerRecordID", writerRecordID)])
         return try identifier(
             role: .writerRecord,
-            identityKind: .writerRecord,
+            kind: .writerRecord,
             components: [
-                writerApplication.systemValue,
+                writerApplication.system.rawValue,
                 writerApplication.value,
                 writerRecordID
             ]
@@ -288,7 +252,7 @@ public struct PseudonymousIdentityScope: Sendable {
         nativeRecordID: String,
         formatCode: String,
         partIndex: CanonicalNonnegativeDecimal
-    ) throws -> BusinessIdentifier {
+    ) throws(OpaqueIdentityError) -> RoledIdentifier {
         try validateNonempty([
             ("adapterID", adapterID),
             ("sourceType", sourceType),
@@ -298,11 +262,11 @@ public struct PseudonymousIdentityScope: Sendable {
         try validateGenericAdapterID(adapterID)
         return try identifier(
             role: .sourceArtifact,
-            identityKind: .sourceArtifact,
+            kind: .sourceArtifact,
             components: [
                 adapterID,
                 sourceType,
-                repositoryScope.systemValue,
+                repositoryScope.system.rawValue,
                 repositoryScope.value,
                 nativeRecordID,
                 formatCode,
@@ -319,7 +283,7 @@ public struct PseudonymousIdentityScope: Sendable {
         nativeRecordID: String,
         formatCode: String,
         partIndex: UInt64
-    ) throws -> BusinessIdentifier {
+    ) throws(OpaqueIdentityError) -> RoledIdentifier {
         try sourceArtifact(
             adapterID: adapterID,
             sourceType: sourceType,
@@ -337,8 +301,7 @@ public struct PseudonymousIdentityScope: Sendable {
         nativeRecordID: String,
         formatCode: String,
         partIndex: CanonicalNonnegativeDecimal
-    ) throws -> BusinessIdentifier {
-        let providerCode = providerCode.rawValue
+    ) throws(OpaqueIdentityError) -> RoledIdentifier {
         try validateNonempty([
             ("sourceType", sourceType),
             ("nativeRecordID", nativeRecordID),
@@ -346,11 +309,11 @@ public struct PseudonymousIdentityScope: Sendable {
         ])
         return try identifier(
             role: .sourceArtifact,
-            identityKind: .providerArtifact,
+            kind: .providerArtifact,
             components: [
-                providerCode,
+                providerCode.rawValue,
                 sourceType,
-                providerScope.systemValue,
+                providerScope.system.rawValue,
                 providerScope.value,
                 nativeRecordID,
                 formatCode,
@@ -367,7 +330,7 @@ public struct PseudonymousIdentityScope: Sendable {
         nativeRecordID: String,
         formatCode: String,
         partIndex: UInt64
-    ) throws -> BusinessIdentifier {
+    ) throws(OpaqueIdentityError) -> RoledIdentifier {
         try providerArtifact(
             providerCode: providerCode,
             sourceType: sourceType,
@@ -387,7 +350,7 @@ public struct PseudonymousIdentityScope: Sendable {
         contextType: String,
         repositoryScope: BusinessIdentifier,
         nativeContextID: String
-    ) throws -> BusinessIdentifier {
+    ) throws(OpaqueIdentityError) -> RoledIdentifier {
         try validateNonempty([
             ("adapterID", adapterID),
             ("contextType", contextType),
@@ -396,11 +359,11 @@ public struct PseudonymousIdentityScope: Sendable {
         try validateCodeToken(contextType, field: "contextType")
         return try identifier(
             role: .sourceContext,
-            identityKind: .sourceContext,
+            kind: .sourceContext,
             components: [
                 adapterID,
                 contextType,
-                repositoryScope.systemValue,
+                repositoryScope.system.rawValue,
                 repositoryScope.value,
                 nativeContextID
             ]
@@ -411,17 +374,17 @@ public struct PseudonymousIdentityScope: Sendable {
         adapterID: String,
         subject: BusinessIdentifier,
         stableUnitToken: String
-    ) throws -> BusinessIdentifier {
+    ) throws(OpaqueIdentityError) -> RoledIdentifier {
         try validateNonempty([
             ("adapterID", adapterID),
             ("stableUnitToken", stableUnitToken)
         ])
         return try identifier(
             role: .recordingDevice,
-            identityKind: .recordingDevice,
+            kind: .recordingDevice,
             components: [
                 adapterID,
-                subject.systemValue,
+                subject.system.rawValue,
                 subject.value,
                 stableUnitToken
             ]
@@ -429,41 +392,36 @@ public struct PseudonymousIdentityScope: Sendable {
     }
 
     public func deviceSnapshot(
-        eventIdentifier: ExchangeEventIdentifier,
-        deviceRole: GroveDeviceSnapshotRole,
+        event: ExchangeEventIdentifier,
+        role: DeviceSnapshotRole,
         sourceDeviceToken: String
-    ) throws -> BusinessIdentifier {
-        try validateNonempty([
-            ("sourceDeviceToken", sourceDeviceToken)
-        ])
+    ) throws(OpaqueIdentityError) -> RoledIdentifier {
+        try validateNonempty([("sourceDeviceToken", sourceDeviceToken)])
         return try identifier(
             role: .deviceSnapshot,
-            identityKind: .deviceSnapshot,
+            kind: .deviceSnapshot,
             components: [
-                eventIdentifier.businessIdentifier.systemValue,
-                eventIdentifier.businessIdentifier.value,
-                deviceRole.rawValue,
+                event.identifier.identifier.system.rawValue,
+                event.identifier.identifier.value,
+                role.rawValue,
                 sourceDeviceToken
             ]
         )
     }
 
-    private func validateNonempty(_ components: [(String, String)]) throws(PseudonymousIdentityError) {
+    private func validateNonempty(_ components: [(String, String)]) throws(OpaqueIdentityError) {
         if let component = components.first(where: { $0.1.isEmpty }) {
             throw .emptyComponent(component.0)
         }
     }
 
-    private func validateGenericAdapterID(_ value: String) throws(PseudonymousIdentityError) {
+    private func validateGenericAdapterID(_ value: String) throws(OpaqueIdentityError) {
         guard GroveProviderCode(rawValue: value) == nil else {
             throw .providerKindRequired(value)
         }
     }
 
-    private func validateCodeToken(
-        _ value: String,
-        field: String
-    ) throws(PseudonymousIdentityError) {
+    private func validateCodeToken(_ value: String, field: String) throws(OpaqueIdentityError) {
         guard let first = value.utf8.first,
               (0x61...0x7A).contains(first),
               value.utf8.allSatisfy({

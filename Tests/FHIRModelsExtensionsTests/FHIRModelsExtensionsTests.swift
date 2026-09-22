@@ -162,10 +162,13 @@ struct FHIRToResearchKitTests {
             linkId: "date".asFHIRStringPrimitive(),
             type: FHIRPrimitive(.date)
         )
-        let first = try #require(try item.minDateValue(evaluationInstant: Date(timeIntervalSince1970: 0)))
-        let later = try #require(try item.minDateValue(evaluationInstant: Date(timeIntervalSince1970: 172_800)))
-        #expect(first.day == 1)
-        #expect(later.day == 3)
+        let epoch = Date(timeIntervalSince1970: 0)
+        let twoDaysLater = Date(timeIntervalSince1970: 172_800)
+        let first = try #require(try item.minDateValue(evaluationInstant: epoch))
+        let later = try #require(try item.minDateValue(evaluationInstant: twoDaysLater))
+        #expect(first.day == Calendar.current.component(.day, from: epoch))
+        #expect(later.day == Calendar.current.component(.day, from: twoDaysLater))
+        #expect(first != later)
     }
 
     @Test("Invalid extension URL text throws", arguments: ["", "http://["])

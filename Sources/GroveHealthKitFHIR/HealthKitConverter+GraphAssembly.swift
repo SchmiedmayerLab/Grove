@@ -18,15 +18,8 @@ import ModelsR4
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitConverter {
     struct SourceAuthorDevices {
-        var author: IdentifiedDevice
-        var host: IdentifiedDevice?
-    }
-
-    private struct GraphIdentities {
-        let sourceUUID: String
-        let sourceRecord: BusinessIdentifier
-        let primary: BusinessIdentifier
-        let provenanceNode: ExchangeNodeKey
+        let author: IdentifiedDevice
+        let host: IdentifiedDevice?
     }
 
     private struct AssembledGraphResources {
@@ -35,24 +28,39 @@ extension HealthKitConverter {
         let children: [GraphChildOutput]
     }
 
-    /// The identity, device, and provenance surroundings every emitted graph shares.
+    /// The identity, device, study and provenance surroundings every emitted graph shares.
     ///
     /// Resolved from the source sample before the record's own resource exists, so an Observation
     /// graph and a recording-document graph agree on identity by construction rather than through
     /// two implementations that have to be kept in step.
     struct GraphEnvelope {
+        let source: HealthKitSourceRecord
         let sourceUUID: String
-        let sourceRecord: BusinessIdentifier
-        let primary: BusinessIdentifier
-        let provenanceNode: ExchangeNodeKey
+        let sourceRecord: RoledIdentifier
+        let primary: RoledIdentifier
+        let provenanceNode: EntryNodeKey
         let converterApplication: IdentifiedDevice
         let converterHost: IdentifiedDevice
+        let gatewayApplication: IdentifiedDevice?
         let recordingDevice: IdentifiedDevice?
         let sourceAuthor: SourceAuthorDevices?
+        let studyContext: StudyContext
         let primaryURL: String
         let converterURL: String
+        let gatewayURL: String?
         let recordingDeviceURL: String?
         let sourceAuthorURL: String?
+        let warnings: [HealthKitConversionWarning]
+
+        var graphContext: HealthKitGraphContext {
+            HealthKitGraphContext(
+                subject: studyContext.subjectReference,
+                recordingDeviceURL: recordingDeviceURL,
+                converterURL: converterURL,
+                gatewayURL: gatewayURL,
+                studyReferences: studyContext.studyReferences
+            )
+        }
     }
 
     /// One secondary source output and the relationship, if any, the primary output publishes.
@@ -62,9 +70,24 @@ extension HealthKitConverter {
             case none
         }
 
-        let identity: BusinessIdentifier
+        let identity: RoledIdentifier
         let observation: Observation
         let primaryRelationship: PrimaryRelationship
+    }
+
+    private struct SourceIdentities {
+        let sourceRecord: RoledIdentifier
+        let primary: RoledIdentifier
+        let provenanceNode: EntryNodeKey
+    }
+
+    private struct ConverterSnapshots {
+        let host: IdentifiedDevice
+        let application: IdentifiedDevice
+        let applicationURL: String
+        /// A distinct application that mediated the measurement; the converter itself when it did.
+        let gateway: IdentifiedDevice?
+        let gatewayURL: String?
     }
 
     /// Resolves all graph identities and device snapshots as one transaction.
@@ -74,214 +97,235 @@ extension HealthKitConverter {
         outputRole: String,
         outputDiscriminator: String = "single"
     ) throws -> GraphEnvelope {
-        let identities = try graphIdentities(
-            for: sample,
-            context: context,
+        guard let type = HealthKitSourceType(sample) else {
+            throw HealthKitConversionError.unregisteredSourceType(sample.sampleType.identifier)
+        }
+        let sourceUUID = sample.uuid.uuidString.lowercased()
+        let identities = try sourceIdentities(
+            type: type,
+            sourceUUID: sourceUUID,
             outputRole: outputRole,
-            outputDiscriminator: outputDiscriminator
+            outputDiscriminator: outputDiscriminator,
+            context: context
         )
-        let converterHost = try converterHost(context: context)
-        let converterHostURL = try ExchangeIdentity.fullURL(for: converterHost.identity)
-        let converterApplication = try converterApplication(context: context, hostURL: converterHostURL)
-        var recordingDevice = try Self.recordingDevice(for: sample.device, context: context)
-        var sourceAuthor = try Self.sourceAuthor(
+        let converter = try converterSnapshots(context: context)
+        let recordingDevice = try Self.recordingDevice(for: sample.device, context: context)
+        let sourceAuthor = try Self.sourceAuthor(
             for: sample.sourceRevision,
-            classification: context.sourceActor,
+            classification: context.options.writer,
             context: context
         )
-        try applySupportRepositoryIDs(
-            recordingDevice: &recordingDevice,
-            sourceAuthor: &sourceAuthor,
-            context: context
-        )
-        let recordingDeviceURL = try recordingDevice.map { try ExchangeIdentity.fullURL(for: $0.identity) }
+        try validateRepositoryIDs(recordingDevice: recordingDevice.device, sourceAuthor: sourceAuthor, context: context)
+        let recordingDeviceURL = try recordingDevice.device.map { try $0.identity.fullURLString }
         let sourceAuthorURL = try resolvedSourceAuthorURL(
             sourceAuthor,
-            sourceActor: context.sourceActor,
+            writer: context.options.writer,
             recordingDeviceURL: recordingDeviceURL
         )
         return GraphEnvelope(
-            sourceUUID: identities.sourceUUID,
+            source: HealthKitSourceRecord(uuid: sample.uuid, type: type),
+            sourceUUID: sourceUUID,
             sourceRecord: identities.sourceRecord,
             primary: identities.primary,
             provenanceNode: identities.provenanceNode,
-            converterApplication: converterApplication,
-            converterHost: converterHost,
-            recordingDevice: recordingDevice,
+            converterApplication: converter.application,
+            converterHost: converter.host,
+            gatewayApplication: converter.gateway,
+            recordingDevice: recordingDevice.device,
             sourceAuthor: sourceAuthor,
-            primaryURL: try ExchangeIdentity.fullURL(for: identities.primary),
-            converterURL: try ExchangeIdentity.fullURL(for: converterApplication.identity),
+            studyContext: try context.event.studyContext(),
+            primaryURL: try identities.primary.fullURLString,
+            converterURL: converter.applicationURL,
+            gatewayURL: converter.gatewayURL,
             recordingDeviceURL: recordingDeviceURL,
-            sourceAuthorURL: sourceAuthorURL
+            sourceAuthorURL: sourceAuthorURL,
+            warnings: warnings(for: sample, recordingDevice: recordingDevice)
         )
     }
 
-    private static func graphIdentities(
-        for sample: HKSample,
-        context: HealthKitConversionContext,
+    private static func sourceIdentities(
+        type: HealthKitSourceType,
+        sourceUUID: String,
         outputRole: String,
-        outputDiscriminator: String
-    ) throws -> GraphIdentities {
-        let sourceUUID = sample.uuid.uuidString.lowercased()
-        let sourceType = sample.sampleType.identifier
-        let sourceRecord = try context.identityScope.sourceRecord(
-            adapterID: HealthKitConverter.adapterID,
-            sourceType: sourceType,
-            repositoryScope: context.repositoryScope,
-            nativeRecordID: sourceUUID
-        )
-        let primaryIdentity = try context.identityScope.sourceOutput(
-            adapterID: HealthKitConverter.adapterID,
-            sourceType: sourceType,
-            repositoryScope: context.repositoryScope,
-            nativeRecordID: sourceUUID,
-            outputRole: outputRole,
-            outputDiscriminator: outputDiscriminator
-        )
-        let provenanceNode = try ExchangeNodeKey(
-            system: context.entryNodeIdentifierSystem,
-            eventIdentifier: context.eventIdentifier,
-            nodeRole: "conversion-provenance",
-            ordinal: 0
-        )
-        return GraphIdentities(
-            sourceUUID: sourceUUID,
-            sourceRecord: sourceRecord,
-            primary: primaryIdentity,
-            provenanceNode: provenanceNode
-        )
-    }
-
-    private static func converterHost(
+        outputDiscriminator: String,
         context: HealthKitConversionContext
-    ) throws -> IdentifiedDevice {
-        let converterHostIdentity = try context.identityScope.deviceSnapshot(
-            eventIdentifier: context.eventIdentifier,
-            deviceRole: .host,
-            sourceDeviceToken: context.converterHost.sourceDeviceToken
-        )
-        var converterHostResource = hostDevice(context.converterHost)
-        converterHostResource.id = context.repositoryIDs.converterHost?.primitive
-        converterHostResource.identifier = [converterHostIdentity.fhirIdentifier]
-        let converterHost = IdentifiedDevice(
-            resource: converterHostResource,
-            identity: converterHostIdentity
-        )
-        return converterHost
-    }
-
-    private static func converterApplication(
-        context: HealthKitConversionContext,
-        hostURL: String
-    ) throws -> IdentifiedDevice {
-        let converterIdentity = try context.identityScope.deviceSnapshot(
-            eventIdentifier: context.eventIdentifier,
-            deviceRole: .application,
-            sourceDeviceToken: context.converter.bundleIdentifier
-        )
-        var converterApplicationResource = applicationDevice(context.converter)
-        converterApplicationResource.id = context.repositoryIDs.converterApplication?.primitive
-        converterApplicationResource.identifier = [converterIdentity.fhirIdentifier]
-            + (converterApplicationResource.identifier ?? [])
-        converterApplicationResource.parent = Reference(reference: hostURL.asFHIRStringPrimitive())
-        return IdentifiedDevice(
-            resource: converterApplicationResource,
-            identity: converterIdentity
+    ) throws -> SourceIdentities {
+        SourceIdentities(
+            sourceRecord: try context.identityScope.sourceRecord(
+                adapterID: HealthKitConverter.adapterID,
+                sourceType: type.rawValue,
+                repositoryScope: context.repositoryScope,
+                nativeRecordID: sourceUUID
+            ),
+            primary: try context.identityScope.sourceOutput(
+                adapterID: HealthKitConverter.adapterID,
+                sourceType: type.rawValue,
+                repositoryScope: context.repositoryScope,
+                nativeRecordID: sourceUUID,
+                outputRole: outputRole,
+                outputDiscriminator: outputDiscriminator
+            ),
+            provenanceNode: try EntryNodeKey(
+                system: context.entryNodeIdentifierSystem,
+                event: context.eventIdentifier,
+                nodeRole: "conversion-provenance",
+                ordinal: 0
+            )
         )
     }
 
-    private static func applySupportRepositoryIDs(
-        recordingDevice: inout IdentifiedDevice?,
-        sourceAuthor: inout SourceAuthorDevices?,
+    private static func converterSnapshots(context: HealthKitConversionContext) throws -> ConverterSnapshots {
+        let host = try hostSnapshot(
+            context.event.host,
+            sourceDeviceToken: "converter-host",
+            repositoryID: context.repositoryID(.hostDevice),
+            context: context
+        )
+        let application = try applicationSnapshot(
+            context.event.application,
+            parentURL: try host.identity.fullURLString,
+            repositoryID: context.repositoryID(.applicationDevice),
+            context: context
+        )
+        let applicationURL = try application.identity.fullURLString
+        switch context.event.converterRole {
+        case .assembler:
+            return ConverterSnapshots(host: host, application: application, applicationURL: applicationURL, gateway: nil, gatewayURL: nil)
+        case .gateway:
+            return ConverterSnapshots(
+                host: host, application: application, applicationURL: applicationURL, gateway: nil, gatewayURL: applicationURL
+            )
+        case .gatewayApplication(let gatewayApplication):
+            let gateway = try applicationSnapshot(gatewayApplication, parentURL: nil, repositoryID: nil, context: context)
+            return ConverterSnapshots(
+                host: host,
+                application: application,
+                applicationURL: applicationURL,
+                gateway: gateway,
+                gatewayURL: try gateway.identity.fullURLString
+            )
+        }
+    }
+
+    /// What the graph does not carry although the sample did.
+    private static func warnings(
+        for sample: HKSample,
+        recordingDevice: ResolvedRecordingDevice
+    ) -> [HealthKitConversionWarning] {
+        var warnings: [HealthKitConversionWarning] = []
+        if let warning = recordingDevice.warning {
+            warnings.append(warning)
+        }
+        let metadata = sample.metadata ?? [:]
+        if metadata[HKMetadataKeyTimeZone] == nil {
+            warnings.append(.sourceOffsetUnavailable)
+        }
+        let unmodeled = metadata.keys.filter { !HealthKitMetadataField.keys.contains($0) }.sorted()
+        if !unmodeled.isEmpty {
+            warnings.append(.unmodeledMetadataWithheld(keys: unmodeled))
+        }
+        return warnings
+    }
+
+    private static func validateRepositoryIDs(
+        recordingDevice: IdentifiedDevice?,
+        sourceAuthor: SourceAuthorDevices?,
         context: HealthKitConversionContext
-    ) throws {
-        recordingDevice?.resource.id = context.repositoryIDs.recordingDevice?.primitive
-        if context.repositoryIDs.recordingDevice != nil, recordingDevice == nil {
-            throw HealthKitConversionError.invalidExchangeIdentity(
-                "a recording-device repository id was supplied, but this record has no recording device"
-            )
+    ) throws(HealthKitConversionError) {
+        if context.repositoryID(.recordingDevice) != nil, recordingDevice == nil {
+            throw .repositoryIDWithoutNode(.recordingDevice)
         }
-        if context.repositoryIDs.sourceAuthor != nil, sourceAuthor == nil {
-            throw HealthKitConversionError.invalidExchangeIdentity(
-                "a source-author repository id was supplied, but this record's source carries no describable identity"
-            )
+        if context.repositoryID(.sourceAuthor) != nil, sourceAuthor == nil {
+            throw .repositoryIDWithoutNode(.sourceAuthor)
         }
-        if context.repositoryIDs.sourceAuthorHost != nil, sourceAuthor?.host == nil {
-            throw HealthKitConversionError.invalidExchangeIdentity(
-                "a source-author-host repository id was supplied, but this source actor has no host snapshot"
-            )
+        if context.repositoryID(.sourceAuthorHost) != nil, sourceAuthor?.host == nil {
+            throw .repositoryIDWithoutNode(.sourceAuthorHost)
         }
-
-        sourceAuthor?.author.resource.id = context.repositoryIDs.sourceAuthor?.primitive
-        sourceAuthor?.host?.resource.id = context.repositoryIDs.sourceAuthorHost?.primitive
     }
 
     private static func resolvedSourceAuthorURL(
         _ sourceAuthor: SourceAuthorDevices?,
-        sourceActor: HealthKitSourceActor,
+        writer: HealthKitWriter,
         recordingDeviceURL: String?
     ) throws -> String? {
         if let sourceAuthor {
-            return try ExchangeIdentity.fullURL(for: sourceAuthor.author.identity)
+            return try sourceAuthor.author.identity.fullURLString
         }
-        return sourceActor == .device ? recordingDeviceURL : nil
+        return writer == .device ? recordingDeviceURL : nil
     }
 
     /// Builds the self-contained exchange Bundle for one source record.
     static func exchangeBundle(
         envelope: GraphEnvelope,
         primary: ResourceProxy,
-        members: [(identity: BusinessIdentifier, resource: ResourceProxy)] = [],
+        members: [(identity: RoledIdentifier, resource: ResourceProxy)] = [],
         provenance: Provenance,
         context: HealthKitConversionContext
     ) throws -> ExchangeGraph {
-        var entries = [try ExchangeIdentity.entry(identifier: envelope.primary, resource: primary)]
+        var entries = [try BundleEntry(identifier: envelope.primary, resource: primary)]
         for member in members {
-            entries.append(try ExchangeIdentity.entry(identifier: member.identity, resource: member.resource))
+            entries.append(try BundleEntry(identifier: member.identity, resource: member.resource))
         }
-        if let recordingDevice = envelope.recordingDevice {
-            entries.append(try ExchangeIdentity.entry(
-                identifier: recordingDevice.identity,
-                resource: ResourceProxy(with: recordingDevice.resource)
-            ))
-        }
-        entries.append(try ExchangeIdentity.entry(
-            identifier: envelope.converterHost.identity,
-            resource: ResourceProxy(with: envelope.converterHost.resource)
-        ))
-        entries.append(try ExchangeIdentity.entry(
-            identifier: envelope.converterApplication.identity,
-            resource: ResourceProxy(with: envelope.converterApplication.resource)
-        ))
-        if let sourceAuthor = envelope.sourceAuthor {
-            if let host = sourceAuthor.host {
-                entries.append(try ExchangeIdentity.entry(
-                    identifier: host.identity,
-                    resource: ResourceProxy(with: host.resource)
-                ))
-            }
-            entries.append(try ExchangeIdentity.entry(
-                identifier: sourceAuthor.author.identity,
-                resource: ResourceProxy(with: sourceAuthor.author.resource)
-            ))
-        }
-        entries.append(try ExchangeIdentity.entry(
-            nodeKey: envelope.provenanceNode,
+        entries.append(contentsOf: envelope.studyContext.allEntries)
+        entries.append(contentsOf: try deviceEntries(envelope: envelope))
+        entries.append(try BundleEntry(
+            identifier: envelope.provenanceNode.identifier,
             resource: ResourceProxy(with: provenance)
         ))
 
         var bundle = Bundle(
             entry: entries,
-            identifier: context.eventIdentifier.businessIdentifier.fhirIdentifier,
+            identifier: context.eventIdentifier.identifier.fhirIdentifier,
             meta: Meta(profile: [Profile.groveMobileExchangeBundle]),
             timestamp: FHIRPrimitive(try Instant(date: context.conversionInstant)),
             type: FHIRPrimitive(.collection)
         )
-        bundle.id = context.repositoryIDs.bundle?.primitive
+        bundle.id = context.repositoryID(.bundle)?.primitive
         return try ExchangeGraph(
             kind: .active,
             eventIdentifier: context.eventIdentifier,
             bundle: bundle
+        )
+    }
+
+    /// Every Device snapshot of the graph, in its fixed entry order.
+    private static func deviceEntries(envelope: GraphEnvelope) throws -> [BundleEntry] {
+        var devices: [IdentifiedDevice] = []
+        if let recordingDevice = envelope.recordingDevice {
+            devices.append(recordingDevice)
+        }
+        devices.append(envelope.converterHost)
+        devices.append(envelope.converterApplication)
+        if let gateway = envelope.gatewayApplication {
+            devices.append(gateway)
+        }
+        if let sourceAuthor = envelope.sourceAuthor {
+            if let host = sourceAuthor.host {
+                devices.append(host)
+            }
+            devices.append(sourceAuthor.author)
+        }
+        return try devices.map { try BundleEntry(identifier: $0.identity, resource: ResourceProxy(with: $0.resource)) }
+    }
+
+    static func identifiers(
+        envelope: GraphEnvelope,
+        context: HealthKitConversionContext,
+        childOutputs: [RoledIdentifier] = [],
+        sourceArtifact: RoledIdentifier? = nil
+    ) -> ExchangeGraphIdentifiers {
+        ExchangeGraphIdentifiers(
+            event: context.eventIdentifier.identifier,
+            sourceRecord: envelope.sourceRecord,
+            primaryOutput: envelope.primary,
+            applicationSnapshot: envelope.converterApplication.identity,
+            hostSnapshot: envelope.converterHost.identity,
+            provenance: envelope.provenanceNode.identifier,
+            childOutputs: childOutputs,
+            sourceArtifact: sourceArtifact,
+            recordingDeviceSnapshot: envelope.recordingDevice?.identity,
+            sourceAuthorSnapshot: envelope.sourceAuthor?.author.identity,
+            sourceAuthorHostSnapshot: envelope.sourceAuthor?.host?.identity
         )
     }
 
@@ -291,8 +335,8 @@ extension HealthKitConverter {
         outputRole: String,
         outputDiscriminator: String = "single",
         childBuilder: ((_ envelope: GraphEnvelope) throws -> [GraphChildOutput])? = nil,
-        observationBuilder: (_ recordingDeviceURL: String?, _ converterURL: String) throws -> Observation
-    ) throws -> HealthKitConversion {
+        observationBuilder: (_ graphContext: HealthKitGraphContext) throws -> Observation
+    ) throws -> HealthKitConversionSet {
         let envelope = try graphEnvelope(
             for: sample,
             context: context,
@@ -313,32 +357,13 @@ extension HealthKitConverter {
             provenance: resources.provenance,
             context: context
         )
-        return HealthKitConversion(
-            localSourceUUID: sample.uuid,
-            localSourceTypeIdentifier: sample.sampleType.identifier,
-            subjectIdentity: context.subjectIdentity,
-            repositoryScope: context.repositoryScope,
-            sourceIdentifier: envelope.sourceRecord.fhirIdentifier,
-            graphIdentifiers: HealthKitGraphIdentifiers(
-                event: context.eventIdentifier.businessIdentifier,
-                sourceRecord: envelope.sourceRecord,
-                primaryOutput: envelope.primary,
-                childOutputs: resources.children.map(\.identity),
-                recordingDeviceSnapshot: envelope.recordingDevice?.identity,
-                converterApplicationSnapshot: envelope.converterApplication.identity,
-                converterHostSnapshot: envelope.converterHost.identity,
-                sourceAuthorSnapshot: envelope.sourceAuthor?.author.identity,
-                sourceAuthorHostSnapshot: envelope.sourceAuthor?.host?.identity,
-                provenance: envelope.provenanceNode.identifier
+        return HealthKitConversionSet(
+            primary: HealthKitConversion(
+                source: envelope.source,
+                identifiers: identifiers(envelope: envelope, context: context, childOutputs: resources.children.map(\.identity)),
+                graph: graph
             ),
-            observation: resources.observation,
-            recordingDevice: envelope.recordingDevice?.resource,
-            converterApplication: envelope.converterApplication.resource,
-            converterHost: envelope.converterHost.resource,
-            sourceAuthor: envelope.sourceAuthor?.author.resource,
-            sourceAuthorHost: envelope.sourceAuthor?.host?.resource,
-            provenance: resources.provenance,
-            graph: graph
+            warnings: envelope.warnings
         )
     }
 
@@ -347,14 +372,14 @@ extension HealthKitConverter {
         envelope: GraphEnvelope,
         context: HealthKitConversionContext,
         childBuilder: ((_ envelope: GraphEnvelope) throws -> [GraphChildOutput])?,
-        observationBuilder: (_ recordingDeviceURL: String?, _ converterURL: String) throws -> Observation
+        observationBuilder: (_ graphContext: HealthKitGraphContext) throws -> Observation
     ) throws -> AssembledGraphResources {
-        var observation = try observationBuilder(envelope.recordingDeviceURL, envelope.converterURL)
-        observation.id = context.repositoryIDs.observation?.primitive
+        var observation = try observationBuilder(envelope.graphContext)
+        observation.id = context.repositoryID(.primaryOutput)?.primitive
         observation.identifier = [
             envelope.sourceRecord.fhirIdentifier,
             envelope.primary.fhirIdentifier
-        ] + nativeIdentifiers(for: sample, policy: context.nativeIdentifierDisclosurePolicy)
+        ] + nativeIdentifiers(for: sample, policy: context.options.nativeIdentifierDisclosure)
         try applySyncIdentity(of: sample, to: &observation, context: context)
 
         var provenance = try Self.provenance(
@@ -364,7 +389,7 @@ extension HealthKitConverter {
             sourceAuthorURL: envelope.sourceAuthorURL,
             recordedAt: context.conversionInstant
         )
-        provenance.id = context.repositoryIDs.provenance?.primitive
+        provenance.id = context.repositoryID(.provenance)?.primitive
         let children = try childBuilder?(envelope) ?? []
         try applyChildRelationships(
             children,
@@ -388,16 +413,12 @@ extension HealthKitConverter {
         let members = children.filter { $0.primaryRelationship == .hasMember }
         if !members.isEmpty {
             observation.hasMember = try members.map { member in
-                Reference(reference: FHIRPrimitive(FHIRString(
-                    stringLiteral: try ExchangeIdentity.fullURL(for: member.identity)
-                )))
+                Reference(reference: try member.identity.fullURLString.asFHIRStringPrimitive())
             }
         }
         provenance.target = [Reference(reference: primaryURL.asFHIRStringPrimitive())]
             + (try children.map { child in
-                Reference(reference: FHIRPrimitive(FHIRString(
-                    stringLiteral: try ExchangeIdentity.fullURL(for: child.identity)
-                )))
+                Reference(reference: try child.identity.fullURLString.asFHIRStringPrimitive())
             })
     }
 }

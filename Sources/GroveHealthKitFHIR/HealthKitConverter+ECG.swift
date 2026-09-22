@@ -11,7 +11,7 @@
 import FHIRModelsExtensions
 import Foundation
 import GroveFHIRContract
-public import HealthKit
+import HealthKit
 import ModelsR4
 
 
@@ -20,50 +20,20 @@ extension HealthKitConverter {
     /// Converts an already-fetched ECG and every correlated symptom as independently exchangeable
     /// source events.
     ///
-    /// The context provider is intentionally required for every source sample. Reusing the ECG's
-    /// event context for a symptom would collapse two source-record revisions into one event, while
-    /// omitting symptom conversions would leave identifier-only `hasMember` references dangling.
+    /// One context per symptom, in the record's order, is intentionally required. Reusing the
+    /// ECG's event context for a symptom would collapse two source-record revisions into one
+    /// event, while omitting symptom conversions would leave identifier-only `hasMember`
+    /// references dangling.
     public func convert(
         _ record: HealthKitECGRecord,
-        contextForSample: (HKSample) throws -> HealthKitConversionContext
+        context: HealthKitConversionContext,
+        symptomContexts: [HealthKitConversionContext]
     ) throws(HealthKitConversionError) -> HealthKitConversionSet {
         do {
-            let symptoms = try Self.validatedSymptomSamples(
-                record.correlatedSymptoms,
-                status: record.electrocardiogram.symptomsStatus
-            )
-            let symptomConversions = try symptoms.map { symptom in
-                try Self.convertSample(symptom, context: contextForSample(symptom))
-            }
-            return try Self.convertECG(
-                HealthKitECGRecord(
-                    electrocardiogram: record.electrocardiogram,
-                    voltageMeasurements: record.voltageMeasurements,
-                    correlatedSymptoms: symptoms
-                ),
-                context: try contextForSample(record.electrocardiogram),
-                symptomConversions: symptomConversions
-            )
+            return try Self.convertECG(record, context: context, symptomContexts: symptomContexts)
         } catch {
-            throw HealthKitConversionError(conversionFailure: error)
+            throw HealthKitConversionError(conversionFailure: error, source: .electrocardiogram)
         }
-    }
-
-    /// Convenience form that keeps each already-fetched evidence family explicit.
-    public func convert(
-        _ electrocardiogram: HKElectrocardiogram,
-        voltageMeasurements: [HKElectrocardiogram.VoltageMeasurement],
-        correlatedSymptoms: [HKCategorySample] = [],
-        contextForSample: (HKSample) throws -> HealthKitConversionContext
-    ) throws(HealthKitConversionError) -> HealthKitConversionSet {
-        try convert(
-            HealthKitECGRecord(
-                electrocardiogram: electrocardiogram,
-                voltageMeasurements: voltageMeasurements,
-                correlatedSymptoms: correlatedSymptoms
-            ),
-            contextForSample: contextForSample
-        )
     }
 }
 
@@ -72,7 +42,7 @@ extension HealthKitConverter {
 extension HealthKitConverter {
     static func averageHeartRateObservation(
         value: Double,
-        identity: BusinessIdentifier,
+        identity: RoledIdentifier,
         effective: Period,
         input: HealthKitECGObservationInput,
         envelope: GraphEnvelope
@@ -105,7 +75,7 @@ extension HealthKitConverter {
             envelope.sourceRecord.fhirIdentifier,
             identity.fhirIdentifier
         ]
-        observation.subject = input.context.subject
+        observation.subject = envelope.graphContext.subject
         observation.effective = .period(effective)
         observation.value = .quantity(try decimalQuantity(
             value,
@@ -117,11 +87,7 @@ extension HealthKitConverter {
         ]
         applyGraphContext(
             to: &observation,
-            context: input.context,
-            graphContext: .init(
-                recordingDeviceURL: envelope.recordingDeviceURL,
-                converterURL: envelope.converterURL
-            ),
+            graphContext: envelope.graphContext,
             wasUserEntered: input.source.wasUserEntered
         )
         return observation
@@ -143,14 +109,14 @@ extension HealthKitConverter {
                   string: String(epochSeconds),
                   locale: Locale(identifier: "en_US_POSIX")
               ) else {
-            throw HealthKitConversionError.invalidECGEvidence(.invalidSourcePeriod)
+            throw HealthKitConversionError.ecgEvidence(.invalidSourcePeriod)
         }
         let target = epochDecimal + offsetSeconds
         let approximateTarget = NSDecimalNumber(decimal: target).doubleValue
         guard approximateTarget.isFinite,
               approximateTarget >= Double(Int64.min),
               approximateTarget <= Double(Int64.max) else {
-            throw HealthKitConversionError.invalidECGEvidence(.invalidSourcePeriod)
+            throw HealthKitConversionError.ecgEvidence(.invalidSourcePeriod)
         }
 
         var wholeSeconds = Int64(floor(approximateTarget))
@@ -176,7 +142,7 @@ extension HealthKitConverter {
               let hour = components.hour.flatMap(UInt8.init(exactly:)),
               let minute = components.minute.flatMap(UInt8.init(exactly:)),
               let second = components.second else {
-            throw HealthKitConversionError.invalidECGEvidence(.invalidSourcePeriod)
+            throw HealthKitConversionError.ecgEvidence(.invalidSourcePeriod)
         }
         return DateTime(
             date: FHIRDate(year: year, month: month, day: day),

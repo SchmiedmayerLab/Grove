@@ -25,14 +25,14 @@ extension HealthKitConverter {
 
     static func workoutSample(_ sample: HKSample) throws -> HKWorkout {
         guard let workout = sample as? HKWorkout else {
-            throw HealthKitConversionError.invalidValue
+            throw HealthKitValueFailure.shapeInvalid
         }
         return workout
     }
 
     static func stateOfMindSample(_ sample: HKSample) throws -> HKStateOfMind {
         guard let stateOfMind = sample as? HKStateOfMind else {
-            throw HealthKitConversionError.invalidValue
+            throw HealthKitValueFailure.shapeInvalid
         }
         return stateOfMind
     }
@@ -54,7 +54,7 @@ extension HealthKitConverter {
         contract: HealthKitFHIRObservationContract
     ) throws -> Quantity {
         guard let assessment = sample as? HKScoredAssessment else {
-            throw HealthKitConversionError.invalidValue
+            throw HealthKitValueFailure.shapeInvalid
         }
         return try fhirQuantity(value: Double(assessment.score), contract: quantityContract(contract))
     }
@@ -80,14 +80,14 @@ extension HealthKitConverter {
 
     static func quantitySample(_ sample: HKSample) throws -> HKQuantitySample {
         guard let quantitySample = sample as? HKQuantitySample else {
-            throw HealthKitConversionError.invalidValue
+            throw HealthKitValueFailure.shapeInvalid
         }
         return quantitySample
     }
 
     static func categorySample(_ sample: HKSample) throws -> HKCategorySample {
         guard let categorySample = sample as? HKCategorySample else {
-            throw HealthKitConversionError.invalidValue
+            throw HealthKitValueFailure.shapeInvalid
         }
         return categorySample
     }
@@ -96,14 +96,14 @@ extension HealthKitConverter {
         _ contract: HealthKitFHIRObservationContract
     ) throws -> QuantityContract {
         guard let quantity = contract.quantity else {
-            throw HealthKitConversionError.invalidValue
+            throw HealthKitValueFailure.shapeInvalid
         }
         return quantity
     }
 
     static func resultCodeSystem(_ contract: HealthKitFHIRObservationContract) throws -> String {
         guard let resultCodeSystem = contract.resultCodeSystem else {
-            throw HealthKitConversionError.missingNormativeCode(contract.id)
+            throw HealthKitValueFailure.missingNormativeCode
         }
         return resultCodeSystem
     }
@@ -114,7 +114,7 @@ extension HealthKitConverter {
     ) throws -> Quantity {
         let canonicalValue = try HealthKitMobileCanonicalization.scalarDecimalValue(value)
         guard contract.valueDomain?.contains(canonicalValue) != false else {
-            throw HealthKitConversionError.invalidValue
+            throw HealthKitValueFailure.shapeInvalid
         }
         return Quantity(
             code: contract.code.asFHIRStringPrimitive(),
@@ -135,13 +135,10 @@ extension HealthKitConverter {
             guard let sample = correlation.objects
                 .compactMap({ $0 as? HKQuantitySample })
                 .first(where: { $0.quantityType.identifier == healthKitIdentifier.rawValue }) else {
-                throw HealthKitConversionError.missingRequiredComponent(
-                    sampleType: correlation.correlationType.identifier,
-                    component: component.id
-                )
+                throw HealthKitValueFailure.requiredComponentMissing(component: component.id)
             }
             guard let componentQuantity = component.quantity else {
-                throw HealthKitConversionError.invalidValue
+                throw HealthKitValueFailure.shapeInvalid
             }
             return ObservationComponent(
                 code: CodeableConcept(coding: [
@@ -206,10 +203,7 @@ extension HealthKitConverter {
                 sourceDisplay: "Asleep, REM"
             )
         default:
-            throw HealthKitConversionError.unsupportedSampleValue(
-                sampleType: sampleType,
-                value: value
-            )
+            throw HealthKitValueFailure.unsupportedValue(value)
         }
     }
 }

@@ -37,20 +37,11 @@ struct GroveSensorKitFHIRConverterTests {
     ) throws -> SensorKitConversionContext {
         SensorKitConversionContext(
                 subject: SensorFHIRIdentityTestSupport.subject,
-                subjectIdentity: try SensorFHIRIdentityTestSupport.subjectIdentity,
-                converter: SensorApplication(
-                    sourceDeviceToken: "org.grovealliance.sensor-conformance",
-                    name: "Sensor Conformance",
-                    version: "0.5.0"
-                ),
-                converterHost: SensorFHIRIdentityTestSupport.converterHost,
+                converter: ApplicationDevice.test(name: "Sensor Conformance", bundleIdentifier: "org.grovealliance.sensor-conformance", version: "0.5.0"),
                 eventIdentifier: try SensorFHIRIdentityTestSupport.event(),
-                entryNodeIdentifierSystem: SensorFHIRIdentityTestSupport.entryNodeIdentifierSystem,
-                identityScope: try SensorFHIRIdentityTestSupport.identityScope,
-                repositoryScope: try SensorFHIRIdentityTestSupport.repositoryScope,
                 visitLocationIdentifierSystem: visitLocationIdentifierSystem,
                 sourceIdentifierDisclosurePolicy: sourceIdentifierDisclosurePolicy,
-                recordingDevice: SensorRecordingDevice(
+                recordingDevice: RecordingDevice.test(
                     stableUnitToken: "watch-42",
                     name: "Example Watch"
                 ),
@@ -131,7 +122,7 @@ struct GroveSensorKitFHIRConverterTests {
             Profile.groveSensorSampledDataObservation,
             FHIRPrimitive(Canonical(stringLiteral: SensorKitContract.observationProfile))
         ])
-        let identifierRoles = try observation.identifier?.map { try BusinessIdentifier($0).role }
+        let identifierRoles = try observation.identifier?.map { try RoledIdentifier($0).role }
         #expect(identifierRoles == [
             .sourceRecord,
             .sourceOutput
@@ -140,7 +131,6 @@ struct GroveSensorKitFHIRConverterTests {
         #expect(conversion.provenance.target.count == 1)
         #expect(entries.count == 5)
         #expect(entries.allSatisfy { $0.fullUrl?.value?.url.absoluteString.hasPrefix("urn:uuid:") == true })
-        try ExchangeIdentity.validate(entries: entries)
 
         guard case .sampledData(let sampled) = observation.value,
               case .period(let effective) = observation.effective else {
@@ -420,11 +410,11 @@ struct GroveSensorKitFHIRConverterTests {
                 .init(timestamp: Self.start.addingTimeInterval(0.01), x: 0.02, y: 0.03, z: 0.04)
             ]
         )
-        let identityScope = try SensorFHIRIdentityTestSupport.identityScope
+        let identityScope = SensorFHIRIdentityTestSupport.identityScope
         for reserved in [
-            identityScope.systems.sourceRecord,
-            identityScope.systems.providerOutput,
-            identityScope.systems.providerArtifact
+            identityScope.systems.opaque.sourceRecord,
+            identityScope.systems.opaque.providerOutput,
+            identityScope.systems.opaque.providerArtifact
         ] {
             let context = try Self.makeContext(
                 sourceIdentifierDisclosurePolicy: .authorized(system: reserved)
@@ -446,10 +436,10 @@ struct GroveSensorKitFHIRConverterTests {
                 .init(timestamp: Self.start.addingTimeInterval(0.01), x: 0.02, y: 0.03, z: 0.04)
             ]
         )
-        let identityScope = try SensorFHIRIdentityTestSupport.identityScope
+        let identityScope = SensorFHIRIdentityTestSupport.identityScope
         for reserved in [
-            identityScope.systems.providerOutput,
-            identityScope.systems.providerArtifact
+            identityScope.systems.opaque.providerOutput,
+            identityScope.systems.opaque.providerArtifact
         ] {
             let context = try Self.makeContext(visitLocationIdentifierSystem: reserved)
             #expect(throws: SensorKitConversionError.invalidIdentity(

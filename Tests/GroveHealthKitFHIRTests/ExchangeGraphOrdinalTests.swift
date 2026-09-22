@@ -9,7 +9,7 @@
 #if canImport(HealthKit) && !os(watchOS)
 
 import Foundation
-import GroveFHIRContract
+@testable import GroveFHIRContract
 @testable import GroveHealthKitFHIR
 import HealthKit
 import ModelsR4
@@ -37,16 +37,16 @@ struct ExchangeGraphOrdinalTests {
             ),
             context: context
         )
-        let misnumbered = try ExchangeNodeKey(
+        let misnumbered = try EntryNodeKey(
             system: context.entryNodeIdentifierSystem,
-            eventIdentifier: context.eventIdentifier,
+            event: context.eventIdentifier,
             nodeRole: "conversion-provenance",
             ordinal: 1
         )
         // The mint is genuine, so nothing but the ordinal itself is out of place.
-        #expect(try ExchangeNodeKey(
+        #expect(try EntryNodeKey(
             misnumbered.identifier,
-            eventIdentifier: context.eventIdentifier
+            event: context.eventIdentifier
         ).ordinal == misnumbered.ordinal)
 
         var bundle = conversion.bundle
@@ -57,13 +57,16 @@ struct ExchangeGraphOrdinalTests {
             }
             return false
         })
-        entries[index] = try ExchangeIdentity.entry(
-            nodeKey: misnumbered,
+        entries[index] = try BundleEntry(
+            identifier: misnumbered.identifier,
             resource: #require(entries[index].resource)
         )
         bundle.entry = entries
 
-        #expect(throws: ExchangeGraphError.ruleViolation(.entryNodeOrdinal)) {
+        #expect(throws: ExchangeGraph.diagnostic(
+            .mobileExchangeEntryNodeOrdinal,
+            location: "Bundle.entry[3].extension.valueIdentifier.value"
+        )) {
             try ExchangeGraph(
                 kind: .active,
                 eventIdentifier: conversion.graph.eventIdentifier,

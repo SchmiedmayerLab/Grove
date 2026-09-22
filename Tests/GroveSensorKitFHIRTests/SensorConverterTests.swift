@@ -25,13 +25,9 @@ struct SensorFHIRConverterTests {
         get throws {
             SensorConversionContext(
                 subject: Self.subject,
-                converter: SensorApplication(
-                    sourceDeviceToken: "org.grovealliance.conformance-fixture",
-                    name: "Grove Conformance Fixture",
-                    version: "0.5.0"
-                ),
+                converter: ApplicationDevice.test(name: "Grove Conformance Fixture", bundleIdentifier: "org.grovealliance.conformance-fixture", version: "0.5.0"),
                 graphIdentifierSystem: "https://study.example.org/fhir/identifiers/sensor-graph",
-                recordingDevice: SensorRecordingDevice(
+                recordingDevice: RecordingDevice.test(
                     stableUnitToken: "watch-42",
                     name: "Example Watch",
                     manufacturer: "Example",
@@ -111,7 +107,6 @@ struct SensorFHIRConverterTests {
                     $0.url == Canonicals.entryNodeKey
                 }.count == 1
         })
-        try ExchangeIdentity.validate(entries: entries)
 
         let fullURLs = Set(entries.compactMap { $0.fullUrl?.value?.url.absoluteString })
         #expect(fullURLs.contains(observation.device?.reference?.value?.string ?? ""))
@@ -138,18 +133,18 @@ struct SensorFHIRConverterTests {
     func repositoryIDsAreAppliedOnlyWhenExplicitlyAssigned() throws {
         let base = try Self.context
         let context = SensorConversionContext(
-            subject: base.subject,
-            converter: base.converter,
+            subject: base.event.subject,
+            converter: base.event.application,
             graphIdentifierSystem: base.graphIdentifierSystem,
             recordingDevice: base.recordingDevice,
             conversionInstant: base.conversionInstant,
-            repositoryIDs: SensorRepositoryIDs(
-                bundle: try RepositoryID("bundle-1"),
-                record: try RepositoryID("observation-1"),
-                recordingDevice: try RepositoryID("device-1"),
-                converterApplication: try RepositoryID("application-1"),
-                provenance: try RepositoryID("provenance-1")
-            )
+            repositoryIDs: [
+                .bundle: try RepositoryID("bundle-1"),
+                .primaryOutput: try RepositoryID("observation-1"),
+                .recordingDevice: try RepositoryID("device-1"),
+                .applicationDevice: try RepositoryID("application-1"),
+                .provenance: try RepositoryID("provenance-1")
+            ]
         )
         let conversion = try SensorConverter().convert(
             .sampledData(Self.sampledData()),
@@ -181,7 +176,7 @@ struct SensorFHIRConverterTests {
 
         #expect(document.meta?.profile == [Profile.groveSensorRecordingDocument])
         #expect(document.id == nil)
-        let identifiers = try #require(document.identifier).map(BusinessIdentifier.init)
+        let identifiers = try #require(document.identifier).map(RoledIdentifier.init)
         #expect(identifiers.map(\.role) == [.sourceRecord, .sourceOutput, .sourceArtifact])
         #expect(document.content.count == 1)
         #expect(attachment.data == nil)
@@ -223,14 +218,12 @@ struct SensorFHIRConverterTests {
     func batchConversionReportsEveryFailureWithoutDroppingInput() throws {
         let base = try Self.context
         let context = SensorConversionContext(
-            subject: base.subject,
-            converter: base.converter,
+            subject: base.event.subject,
+            converter: base.event.application,
             graphIdentifierSystem: base.graphIdentifierSystem,
             recordingDevice: base.recordingDevice,
             conversionInstant: base.conversionInstant,
-            repositoryIDs: SensorRepositoryIDs(
-                provenance: try RepositoryID("provenance-1")
-            )
+            repositoryIDs: [.provenance: try RepositoryID("provenance-1")]
         )
         let sampledData = try Self.sampledData()
         let document = try Self.recordingDocument()

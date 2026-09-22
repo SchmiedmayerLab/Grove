@@ -7,7 +7,6 @@
 //
 
 import FHIRPathParser
-public import Foundation
 public import GroveQuestionnaire
 public import ModelsR4
 
@@ -21,28 +20,20 @@ extension GroveQuestionnaire.Questionnaire {
     /// scores stay empty without it.
     ///
     /// ```swift
-    /// let questionnaire = try SleepCheckIn.questionnaire.withExpressionEngine(
-    ///     evaluationInstant: submittedAt
-    /// )
+    /// let questionnaire = try SleepCheckIn.questionnaire.withExpressionEngine()
     /// ```
     ///
     /// The engine reads the FHIR projection of this questionnaire, but the questionnaire
     /// itself is unchanged — anything the FHIR export does not carry survives, because the
     /// model is never round-tripped.
     ///
-    /// - parameter evaluationInstant: The explicit instant used by `now()`, `today()`, and
-    ///   `timeOfDay()` for every evaluation performed by the returned questionnaire.
     /// - parameter launchContext: Resources the SDC `launchContext` expressions may read.
-    public func withExpressionEngine(
-        evaluationInstant: Date,
-        launchContext: [String: ResourceProxy] = [:]
-    ) throws -> Self {
+    public func withExpressionEngine(launchContext: [String: ResourceProxy] = [:]) throws -> Self {
         var copy = self
-        copy.expressionEngine = try FHIRPathExpressionEngine(
+        copy.expressionEngine = try FHIRQuestionnaireExpressionEngine(
             questionnaire: try ModelsR4.Questionnaire(self),
             variables: [],
-            launchContext: launchContext.mapValues { try FHIRPathNode.encoding($0) },
-            evaluationInstant: evaluationInstant
+            launchContext: launchContext.mapValues { try FHIRPathNode.encoding($0) }
         )
         return copy
     }

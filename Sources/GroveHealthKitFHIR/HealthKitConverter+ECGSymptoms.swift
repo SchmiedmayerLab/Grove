@@ -38,10 +38,10 @@ extension HealthKitConverter {
         for symptom in symptoms {
             let identifier = symptom.categoryType.identifier
             guard correlatedSymptomTypeIdentifiers.contains(identifier) else {
-                throw HealthKitConversionError.invalidECGEvidence(.unsupportedSymptomType(identifier))
+                throw HealthKitConversionError.ecgEvidence(.unsupportedSymptomType(identifier))
             }
             guard sourceIDs.insert(symptom.uuid).inserted else {
-                throw HealthKitConversionError.invalidECGEvidence(.duplicateSymptomSource(symptom.uuid))
+                throw HealthKitConversionError.ecgEvidence(.duplicateSymptomSource(symptom.uuid))
             }
         }
         return symptoms.sorted {
@@ -58,14 +58,14 @@ extension HealthKitConverter {
         switch status {
         case .present:
             guard symptomCount > 0 else {
-                throw HealthKitConversionError.invalidECGEvidence(.symptomsRequired)
+                throw HealthKitConversionError.ecgEvidence(.symptomsRequired)
             }
         case .none, .notSet:
             guard symptomCount == 0 else {
-                throw HealthKitConversionError.invalidECGEvidence(.unexpectedSymptoms)
+                throw HealthKitConversionError.ecgEvidence(.unexpectedSymptoms)
             }
         @unknown default:
-            throw HealthKitConversionError.invalidECGEvidence(.unsupportedSymptomsStatus(status.rawValue))
+            throw HealthKitConversionError.ecgEvidence(.unsupportedSymptomsStatus(status.rawValue))
         }
     }
 }

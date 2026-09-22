@@ -21,9 +21,8 @@ public struct QuestionnaireExtractionContext: Sendable {
     /// The Patient the exchange Bundle carries; every subject and performer resolves to it.
     public let patient: ModelsR4.Patient
     public let eventIdentifier: ExchangeEventIdentifier
-    public let identityScope: PseudonymousIdentityScope
+    public let identityScope: OpaqueIdentityScope
     public let repositoryScope: BusinessIdentifier
-    public let entryNodeIdentifierSystem: IdentifierSystem
     /// The instant of this projection event.
     ///
     /// Written to `Provenance.occurred`/`recorded` and `Bundle.timestamp`. Callers persist it with
@@ -32,12 +31,14 @@ public struct QuestionnaireExtractionContext: Sendable {
     /// Writer facts for a local projection; a received response supplies its own instead.
     public let localWriter: QuestionnaireWriterContext?
 
+    /// The deployment's entry-node system, held by the identity scope.
+    public var entryNodeIdentifierSystem: IdentifierSystem { identityScope.systems.entryNode }
+
     public init(
         patient: ModelsR4.Patient,
         eventIdentifier: ExchangeEventIdentifier,
-        identityScope: PseudonymousIdentityScope,
+        identityScope: OpaqueIdentityScope,
         repositoryScope: BusinessIdentifier,
-        entryNodeIdentifierSystem: IdentifierSystem,
         conversionInstant: Date,
         localWriter: QuestionnaireWriterContext? = nil
     ) {
@@ -45,7 +46,6 @@ public struct QuestionnaireExtractionContext: Sendable {
         self.eventIdentifier = eventIdentifier
         self.identityScope = identityScope
         self.repositoryScope = repositoryScope
-        self.entryNodeIdentifierSystem = entryNodeIdentifierSystem
         self.conversionInstant = conversionInstant
         self.localWriter = localWriter
     }
@@ -100,10 +100,10 @@ private struct GraphFrame {
     let authored: DateTime
     let sourceType: String
     let nativeRecordID: String
-    let sourceRecord: BusinessIdentifier
-    let patientNode: ExchangeNodeKey
+    let sourceRecord: RoledIdentifier
+    let patientNode: EntryNodeKey
     let patientReference: Reference
-    let responseNode: ExchangeNodeKey
+    let responseNode: EntryNodeKey
     let responseURL: String
     let host: IdentifiedDevice?
     let application: IdentifiedDevice
@@ -140,21 +140,21 @@ private struct GraphFrame {
         let patientNode = try Self.nodeKey("patient", ordinal: 0, context: context)
         self.patientNode = patientNode
         self.patientReference = Reference(
-            reference: try ExchangeIdentity.fullURL(for: patientNode.identifier).asFHIRStringPrimitive()
+            reference: try patientNode.identifier.fullURLString.asFHIRStringPrimitive()
         )
         let responseNode = try Self.nodeKey("questionnaire-response", ordinal: 0, context: context)
         self.responseNode = responseNode
-        self.responseURL = try ExchangeIdentity.fullURL(for: responseNode.identifier)
+        self.responseURL = try responseNode.identifier.fullURLString
         let host = try Self.hostDevice(writer: writer, context: context)
         self.host = host
         let application = try Self.applicationDevice(
             writer: writer,
             context: context,
             hostIdentity: host?.identity,
-            hostURL: try host.map { try ExchangeIdentity.fullURL(for: $0.identity) }
+            hostURL: try host.map { try $0.identity.fullURLString }
         )
         self.application = application
-        self.applicationURL = try ExchangeIdentity.fullURL(for: application.identity)
+        self.applicationURL = try application.identity.fullURLString
     }
 
     /// Refuses a response whose author or source is anyone but its subject.
@@ -189,12 +189,12 @@ private struct GraphFrame {
         _ role: String,
         ordinal: UInt64,
         context: QuestionnaireExtractionContext
-    ) throws -> ExchangeNodeKey {
-        try ExchangeNodeKey(
+    ) throws -> EntryNodeKey {
+        try EntryNodeKey(
             system: context.entryNodeIdentifierSystem,
-            eventIdentifier: context.eventIdentifier,
+            event: context.eventIdentifier,
             nodeRole: role,
-            ordinal: CanonicalNonnegativeDecimal(ordinal)
+            ordinal: ordinal
         )
     }
 }
@@ -217,16 +217,16 @@ extension GraphFrame {
         }
 
         var entries = [
-            try ExchangeIdentity.entry(nodeKey: patientNode, resource: ResourceProxy(with: context.patient)),
-            try ExchangeIdentity.entry(nodeKey: responseNode, resource: ResourceProxy(with: carriedResponse))
+            try BundleEntry(identifier: patientNode.identifier, resource: ResourceProxy(with: context.patient)),
+            try BundleEntry(identifier: responseNode.identifier, resource: ResourceProxy(with: carriedResponse))
         ]
         if let host {
-            entries.append(try ExchangeIdentity.entry(
+            entries.append(try BundleEntry(
                 identifier: host.identity,
                 resource: ResourceProxy(with: host.resource)
             ))
         }
-        entries.append(try ExchangeIdentity.entry(
+        entries.append(try BundleEntry(
             identifier: application.identity,
             resource: ResourceProxy(with: application.resource)
         ))
@@ -242,16 +242,16 @@ extension GraphFrame {
             outputRole: measurement.contract.id,
             outputDiscriminator: "single"
         )
-        let entry = try ExchangeIdentity.entry(
+        let entry = try BundleEntry(
             identifier: output,
             resource: ResourceProxy(with: try observation(for: measurement, output: output))
         )
-        return (entry, try ExchangeIdentity.fullURL(for: output))
+        return (entry, try output.fullURLString)
     }
 
     func provenanceEntry(targets: [String]) throws -> BundleEntry {
-        try ExchangeIdentity.entry(
-            nodeKey: try Self.nodeKey("conversion-provenance", ordinal: 0, context: context),
+        try BundleEntry(
+            identifier: try Self.nodeKey("conversion-provenance", ordinal: 0, context: context).identifier,
             resource: ResourceProxy(with: try provenance(targets: targets))
         )
     }
@@ -259,7 +259,7 @@ extension GraphFrame {
     func graph(entries: [BundleEntry]) throws -> ExchangeGraph {
         let bundle = Bundle(
             entry: entries,
-            identifier: context.eventIdentifier.businessIdentifier.fhirIdentifier,
+            identifier: context.eventIdentifier.identifier.fhirIdentifier,
             meta: Meta(profile: [Profile.groveMobileExchangeBundle]),
             timestamp: FHIRPrimitive(try Instant(date: context.conversionInstant, timeZone: Self.utcTimeZone)),
             type: FHIRPrimitive(.collection)
@@ -311,7 +311,7 @@ extension GraphFrame {
         ])
     }
 
-    func observation(for measurement: ExtractedMeasurement, output sourceOutput: BusinessIdentifier) throws -> Observation {
+    func observation(for measurement: ExtractedMeasurement, output sourceOutput: RoledIdentifier) throws -> Observation {
         let status: ObservationStatus = response.status.value == .amended ? .amended : .final
         var observation = Observation(
             code: Self.codeableConcept(measurement.contract.code),
@@ -362,8 +362,8 @@ extension GraphFrame {
             return nil
         }
         let identity = try context.identityScope.deviceSnapshot(
-            eventIdentifier: context.eventIdentifier,
-            deviceRole: .host,
+            event: context.eventIdentifier,
+            role: .host,
             sourceDeviceToken: "questionnaire-host|\(model)|\(osVersion)"
         )
         var device = Device()
@@ -388,17 +388,17 @@ extension GraphFrame {
     static func applicationDevice(
         writer: QuestionnaireWriterContext,
         context: QuestionnaireExtractionContext,
-        hostIdentity: BusinessIdentifier?,
+        hostIdentity: RoledIdentifier?,
         hostURL: String?
     ) throws -> IdentifiedDevice {
-        var token = "questionnaire-application|\(writer.applicationIdentifier.systemValue)"
+        var token = "questionnaire-application|\(writer.applicationIdentifier.system.rawValue)"
             + "|\(writer.applicationIdentifier.value)|\(writer.applicationVersion)"
         if let hostIdentity {
-            token += "|\(hostIdentity.value)"
+            token += "|\(hostIdentity.identifier.value)"
         }
         let identity = try context.identityScope.deviceSnapshot(
-            eventIdentifier: context.eventIdentifier,
-            deviceRole: .application,
+            event: context.eventIdentifier,
+            role: .application,
             sourceDeviceToken: token
         )
         var device = Device()

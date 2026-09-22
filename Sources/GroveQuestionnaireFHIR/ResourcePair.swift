@@ -179,7 +179,6 @@ extension PairExpressionEvaluator {
         questionnaire: ModelsR4.Questionnaire,
         response: ModelsR4.QuestionnaireResponse,
         evaluationInstant: Date,
-        evaluationTimeZone: TimeZone,
         launchContext: [String: ResourceProxy] = [:]
     ) throws -> Self {
         let questionnaireNode = try FHIRPathNode.encoding(questionnaire)
@@ -197,8 +196,7 @@ extension PairExpressionEvaluator {
             let context = FHIRPathEvaluationContext(
                 focus: [.object(responseNode)],
                 constants: constants,
-                evaluationInstant: evaluationInstant,
-                evaluationTimeZone: evaluationTimeZone
+                now: evaluationInstant
             )
             return switch try FHIRPathExpression.evaluateBoolean(
                 expression: expression,

@@ -58,7 +58,6 @@ let graph = try QuestionnaireExchangeProjection.exchangeGraph(
         eventIdentifier: eventIdentifier,
         identityScope: identityScope,
         repositoryScope: repositoryScope,
-        entryNodeIdentifierSystem: nodeSystem,
         conversionInstant: persistedConversionInstant
     )
 )

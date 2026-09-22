@@ -12,13 +12,13 @@ import ModelsR4
 
 extension ExchangeGraph {
     private struct ActiveOutput {
-        let sourceRecord: BusinessIdentifier
+        let sourceRecord: RoledIdentifier
         let fullURL: String
         let resourceType: String
     }
 
     private struct ActiveOutputSummary {
-        var sourceRecords: Set<BusinessIdentifier> = []
+        var sourceRecords: Set<RoledIdentifier> = []
         var resourceTypesByURL: [String: String] = [:]
 
         mutating func append(_ output: ActiveOutput) {
@@ -29,25 +29,14 @@ extension ExchangeGraph {
 
     static func rule(for error: ExchangeIdentityError) -> ExchangeGraphRule {
         switch error {
-        case .duplicateEntryKeyExtension, .missingIdentifierSystem, .missingIdentifierValue,
-             .invalidEntryKeyRole:
-            .entryNodeKey
-        case .incorrectFullURL, .duplicateFullURL:
-            .deterministicFullURL
-        case .unresolvedInternalReference:
-            .resolvedReference
-        case .containedResourcesProhibited:
-            .containedResourceProhibited
-        case .incorrectInternalReferenceType:
-            .referenceDeclaredType
-        case .entryKeyPriorityMismatch:
-            .sourceOutputRequired
         case .identifierSystemRoleMismatch:
-            .identitySystemRole
-        case .invalidEntryNodeValue, .invalidEntryNodeRole:
-            .entryNodeDigest
+            .mobileExchangeIdentitySystemRole
+        case .invalidIdentifierRole, .duplicateIdentifierRole:
+            .mobileExchangeIdentifierRole
+        case .invalidIdentifierSystem, .nonCanonicalIdentifierSystem, .missingIdentifierSystem:
+            .mobileExchangeOpaqueResourceIdentity
         default:
-            .unclassified
+            .mobileExchangeUnclassified
         }
     }
 
@@ -65,12 +54,12 @@ extension ExchangeGraph {
             switch kind {
             case .active:
                 guard activeTypes.contains(resource.resourceType) else {
-                    throw .ruleViolation(.entryResourceType)
+                    throw .ruleViolation(.mobileExchangeEntryResourceType)
                 }
             case .retraction:
                 guard resource.resourceType == ResourceType.provenance.rawValue
                         || resource.resourceType == ResourceType.device.rawValue else {
-                    throw .ruleViolation(.retractionNoClinicalCopy)
+                    throw .ruleViolation(.mobileRetractionNoClinicalCopy)
                 }
             }
             do {
@@ -81,7 +70,7 @@ extension ExchangeGraph {
                 }
                 guard object["contained"] == nil,
                       !containsContainedReference(object) else {
-                    throw ExchangeGraphError.ruleViolation(.containedResourceProhibited)
+                    throw ExchangeGraphError.ruleViolation(.mobileExchangeContainedResourceProhibited)
                 }
             } catch let error as ExchangeGraphError {
                 throw error
@@ -96,30 +85,31 @@ extension ExchangeGraph {
         eventIdentifier: ExchangeEventIdentifier
     ) throws(ExchangeGraphError) {
         var mintedPerNodeRole: [String: UInt64] = [:]
-        for entry in entries {
+        for (index, entry) in entries.enumerated() {
             let keys = entry.extension?.filter { $0.url == Canonicals.entryNodeKey } ?? []
             guard keys.count == 1,
                   case .identifier(let identifier)? = keys.first?.value else {
-                throw .ruleViolation(.entryNodeKey)
+                throw .ruleViolation(.mobileExchangeEntryNodeKey)
             }
-            let businessIdentifier: BusinessIdentifier
+            let key: RoledIdentifier
             do {
-                businessIdentifier = try BusinessIdentifier(identifier)
+                key = try RoledIdentifier(identifier)
             } catch {
-                throw .ruleViolation(.entryNodeKey)
+                throw .ruleViolation(.mobileExchangeEntryNodeKey)
             }
-            if businessIdentifier.role == .entryNode {
-                try validateEntryNodeOrdinal(businessIdentifier, mintedPerNodeRole: &mintedPerNodeRole)
-                do {
-                    _ = try ExchangeNodeKey(
-                        businessIdentifier,
-                        eventIdentifier: eventIdentifier
-                    )
-                } catch {
-                    throw .ruleViolation(.entryNodeDigest)
+            let location = "Bundle.entry[\(index)].extension.valueIdentifier"
+            if key.role == .entryNode {
+                guard EntryNodeKey.claim(in: key) != nil else {
+                    throw diagnostic(.mobileExchangeEntryKeySelection, location: location)
                 }
-            } else if !ExchangeIdentity.isCanonicalOpaqueIdentifierValue(businessIdentifier.value) {
-                throw .ruleViolation(.entryNodeDigest)
+                try validateEntryNodeOrdinal(key, location: location, mintedPerNodeRole: &mintedPerNodeRole)
+                do {
+                    _ = try EntryNodeKey(key, event: eventIdentifier)
+                } catch {
+                    throw diagnostic(.mobileExchangeEntryNodeDigest, location: "\(location).value")
+                }
+            } else if !ExchangeIdentity.isCanonicalOpaqueIdentifierValue(key.identifier.value) {
+                throw diagnostic(.mobileExchangeOpaqueResourceIdentity, location: location)
             }
         }
     }
@@ -128,16 +118,17 @@ extension ExchangeGraph {
     /// back from the key, because the digest covers the ordinal the key itself states: a
     /// self-consistent key over a wrong ordinal would otherwise verify against its own claim.
     private static func validateEntryNodeOrdinal(
-        _ identifier: BusinessIdentifier,
+        _ identifier: RoledIdentifier,
+        location: String,
         mintedPerNodeRole: inout [String: UInt64]
     ) throws(ExchangeGraphError) {
-        guard let claim = ExchangeNodeKey.claim(in: identifier) else {
+        guard let claim = EntryNodeKey.claim(in: identifier) else {
             return
         }
         let expected = mintedPerNodeRole[claim.nodeRole, default: 0]
         mintedPerNodeRole[claim.nodeRole] = expected + 1
         guard claim.ordinal.rawValue == String(expected) else {
-            throw .ruleViolation(.entryNodeOrdinal)
+            throw diagnostic(.mobileExchangeEntryNodeOrdinal, location: "\(location).value")
         }
     }
 
@@ -145,15 +136,17 @@ extension ExchangeGraph {
         try validateActiveProfileClaims(entries: entries)
         let provenance = try validatedActiveProvenance(entries: entries)
         guard hasExactLifecycleCoding(provenance, kind: .active) else {
-            throw .ruleViolation(.lifecycleCoding)
+            throw .ruleViolation(.mobileExchangeLifecycleCoding)
         }
         let outputs = try validateActiveEntries(entries)
         try validateRecordingDocuments(entries, sourceDerivedOutputCount: outputs.resourceTypesByURL.count)
+        try validateSourceMarkers(entries: entries)
         try validateActiveTargets(provenance, resourceTypesByURL: outputs.resourceTypesByURL)
         let sourceEntity = try exactSourceEntity(in: provenance)
         guard outputs.sourceRecords.contains(sourceEntity) else {
-            throw .ruleViolation(.transformProvenance)
+            throw .ruleViolation(.mobileExchangeTransformProvenance)
         }
+        try validateStudyContext(entries: entries)
         try validateSupportingConnectivity(entries: entries)
     }
 
@@ -171,7 +164,7 @@ extension ExchangeGraph {
               hasRequiredTimes(provenance),
               let assembler = exactAssembler(in: provenance),
               activeAssemblerResolves(assembler, entries: entries) else {
-            throw .ruleViolation(.transformProvenance)
+            throw .ruleViolation(.mobileExchangeTransformProvenance)
         }
         return provenance
     }
@@ -189,10 +182,13 @@ extension ExchangeGraph {
         } catch let error as ExchangeGraphError {
             throw error
         } catch {
-            throw .ruleViolation(.sourceOutputRequired)
+            throw .ruleViolation(.mobileOutputSourceOutputRequired)
         }
-        guard summary.sourceRecords.count == 1, !summary.resourceTypesByURL.isEmpty else {
-            throw .ruleViolation(.sourceOutputRequired)
+        guard !summary.resourceTypesByURL.isEmpty else {
+            throw .ruleViolation(.mobileExchangeOutputRequired)
+        }
+        guard summary.sourceRecords.count == 1 else {
+            throw .ruleViolation(.mobileOutputSourceOutputRequired)
         }
         return summary
     }
@@ -205,27 +201,21 @@ extension ExchangeGraph {
         }
         let identifiers = try ExchangeIdentity.typedResourceIdentifiers(in: entry.resource)
         guard Set(identifiers).count == identifiers.count else {
-            throw ExchangeIdentityError.duplicateEntryIdentifier(key)
+            throw ExchangeIdentityError.duplicateEntryIdentifier(key.identifier)
         }
         if case .device(let device)? = entry.resource {
             try validateDeviceIdentity(device, entryKey: key, identifiers: identifiers)
         }
-        guard key.role == .sourceOutput else {
-            if key.role == .sourceArtifact || key.role == .sourceRecord {
-                throw ExchangeIdentityError.entryKeyPriorityMismatch
-            }
+        guard let resource = entry.resource, isActiveOutput(resource) else {
             return nil
         }
         let sourceOutputs = identifiers.filter { $0.role == .sourceOutput }
         let sourceRecords = identifiers.filter { $0.role == .sourceRecord }
-        guard sourceOutputs == [key],
+        guard key.role == .sourceOutput,
+              sourceOutputs == [key],
               sourceRecords.count == 1,
-              ExchangeIdentity.isCanonicalOpaqueIdentifierValue(key.value),
-              ExchangeIdentity.isCanonicalOpaqueIdentifierValue(sourceRecords[0].value),
-              let fullURL = entry.fullUrl?.value?.url.absoluteString,
-              let resource = entry.resource,
-              isActiveOutput(resource) else {
-            throw ExchangeIdentityError.entryKeyPriorityMismatch
+              let fullURL = entry.fullUrl?.value?.url.absoluteString else {
+            throw ExchangeGraphError.ruleViolation(.mobileOutputSourceOutputRequired)
         }
         if case .documentReference(let document) = resource {
             try validateRecordingDocumentTypedIdentity(document, identifiers: identifiers)
@@ -239,7 +229,7 @@ extension ExchangeGraph {
 
     private static func validateRecordingDocumentTypedIdentity(
         _ document: DocumentReference,
-        identifiers: [BusinessIdentifier]
+        identifiers: [RoledIdentifier]
     ) throws(ExchangeGraphError) {
         let writerCount = identifiers.filter { $0.role == .writerRecord }.count
         guard document.content.count == 1,
@@ -248,7 +238,7 @@ extension ExchangeGraph {
               identifiers.filter({ $0.role == .sourceArtifact }).count == 1,
               writerCount <= 1,
               identifiers.count == 3 + writerCount else {
-            throw .ruleViolation(.recordingDocumentIdentity)
+            throw .ruleViolation(.sensorRecordingDocumentIdentityAndContent)
         }
     }
 
@@ -260,18 +250,18 @@ extension ExchangeGraph {
             guard case .documentReference(let document)? = entry.resource else {
                 continue
             }
-            let typed: [BusinessIdentifier]
+            let typed: [RoledIdentifier]
             do {
                 typed = try ExchangeIdentity.typedResourceIdentifiers(in: entry.resource)
             } catch {
-                throw .ruleViolation(.recordingDocumentIdentity)
+                throw .ruleViolation(.sensorRecordingDocumentIdentityAndContent)
             }
             guard recordingDocumentIdentifiersAreValid(
                 document,
                 typed: typed,
                 sourceDerivedOutputCount: sourceDerivedOutputCount
             ) else {
-                throw .ruleViolation(.recordingDocumentIdentity)
+                throw .ruleViolation(.sensorRecordingDocumentIdentityAndContent)
             }
         }
     }
@@ -287,7 +277,30 @@ extension ExchangeGraph {
               provenance.target.allSatisfy({ target in
                   activeTargetIsValid(target, resourceTypesByURL: resourceTypesByURL)
               }) else {
-            throw .ruleViolation(.transformProvenance)
+            throw diagnostic(.mobileExchangeProvenanceTargets, location: "Provenance.target")
+        }
+    }
+
+    /// An adapter's source marker belongs on that adapter's outputs alone, once each.
+    private static func validateSourceMarkers(entries: [BundleEntry]) throws(ExchangeGraphError) {
+        let marker = HealthKitContract.sourceTypeExtension.value?.url.absoluteString
+        let adapterRoot = "\(Canonicals.root)/healthkit/"
+        for entry in entries {
+            guard let resource = entry.resource, isActiveOutput(resource) else {
+                continue
+            }
+            let extensions: [[String: Any]]
+            do {
+                let object = try JSONSerialization.jsonObject(with: try JSONEncoder().encode(resource)) as? [String: Any]
+                extensions = object?["extension"] as? [[String: Any]] ?? []
+            } catch {
+                throw .invalidEntries(String(reflecting: type(of: error)))
+            }
+            let markers = extensions.filter { $0["url"] as? String == marker }.count
+            let claimsAdapter = resourceProfiles(resource).contains { $0.hasPrefix(adapterRoot) }
+            guard markers == (claimsAdapter ? 1 : 0) else {
+                throw diagnostic(.mobileOutputAdapterSourceMarker, location: "\(resource.resourceType).extension")
+            }
         }
     }
 
@@ -308,7 +321,7 @@ extension ExchangeGraph {
 
     private static func recordingDocumentIdentifiersAreValid(
         _ document: DocumentReference,
-        typed: [BusinessIdentifier],
+        typed: [RoledIdentifier],
         sourceDerivedOutputCount: Int
     ) -> Bool {
         let all = document.identifier ?? []
@@ -329,8 +342,10 @@ extension ExchangeGraph {
     }
 
     private static func isGovernedSourceIdentifier(_ identifier: Identifier) -> Bool {
-        guard let businessIdentifier = try? BusinessIdentifier(identifier),
-              businessIdentifier.role == nil else {
+        guard (try? BusinessIdentifier(identifier)) != nil,
+              identifier.type?.coding?.contains(where: {
+                  $0.system?.value?.url.absoluteString == Canonicals.identifierRoleCodeSystemValue
+              }) != true else {
             return false
         }
         guard let type = identifier.type else {
@@ -363,10 +378,16 @@ extension ExchangeGraph {
             try validateRetractionEntry(entry)
         }
         let provenance = try validatedRetractionProvenance(entries: entries)
+        guard !isTransformOnlyLifecycle(provenance) else {
+            throw .ruleViolation(.mobileRetractionProvenance)
+        }
         guard hasExactLifecycleCoding(provenance, kind: .retraction) else {
-            throw .ruleViolation(.lifecycleCoding)
+            throw .ruleViolation(.mobileExchangeLifecycleCoding)
         }
         _ = try exactSourceEntity(in: provenance)
+        guard !provenance.target.isEmpty else {
+            throw diagnostic(.mobileRetractionTargetRequired, location: "Provenance.target")
+        }
         try validateRetractionTargets(provenance.target)
     }
 
@@ -383,16 +404,16 @@ extension ExchangeGraph {
             let claim = try validateDirectProfileClaim(
                 profiles: device.meta?.profile ?? [],
                 modes: ProfileClaims.deviceProfileModes,
-                rule: .deviceProfile
+                rule: .mobileSupportDeviceProfile
             )
-            try validateIdentifierRoles(in: resource, claim: claim, rule: .recordingDeviceDualIdentity)
+            try validateIdentifierRoles(in: resource, claim: claim, rule: .mobileDeviceRecordingDeviceDualIdentity)
             guard let key = try? entryKey(entry) else {
-                throw .ruleViolation(.recordingDeviceDualIdentity)
+                throw .ruleViolation(.mobileDeviceRecordingDeviceDualIdentity)
             }
             let identifiers = (try? ExchangeIdentity.typedResourceIdentifiers(in: resource)) ?? []
             try validateDeviceIdentity(device, entryKey: key, identifiers: identifiers)
         default:
-            throw .ruleViolation(.retractionNoClinicalCopy)
+            throw .ruleViolation(.mobileRetractionNoClinicalCopy)
         }
     }
 
@@ -411,9 +432,8 @@ extension ExchangeGraph {
               provenance.meta?.profile?.contains(GroveLifecycleContract.retractionProvenanceProfile) == true,
               hasRequiredTimes(provenance),
               let assembler = exactAssembler(in: provenance),
-              retractionAssemblerIsDevice(assembler, entries: entries),
-              !provenance.target.isEmpty else {
-            throw .ruleViolation(.retractionNoClinicalCopy)
+              retractionAssemblerIsDevice(assembler, entries: entries) else {
+            throw .ruleViolation(.mobileRetractionNoClinicalCopy)
         }
         return provenance
     }
@@ -422,10 +442,10 @@ extension ExchangeGraph {
         _ targets: [Reference]
     ) throws(ExchangeGraphError) {
         var logicalTargets: Set<BusinessIdentifier> = []
-        for target in targets {
+        for (index, target) in targets.enumerated() {
             let logicalTarget = try validatedRetractionTarget(target)
-            guard logicalTargets.insert(logicalTarget.identifier).inserted else {
-                throw .ruleViolation(.retractionRoleTargetType)
+            guard logicalTargets.insert(logicalTarget.identifier.identifier).inserted else {
+                throw diagnostic(.mobileRetractionDistinctTarget, location: "Provenance.target[\(index)].identifier")
             }
         }
     }
@@ -437,27 +457,27 @@ extension ExchangeGraph {
               let type = target.type?.value?.url.absoluteString,
               let resourceType = ResourceType(rawValue: type),
               let identifier = target.identifier,
-              let businessIdentifier = try? BusinessIdentifier(identifier) else {
-            throw .ruleViolation(.retractionLogicalTarget)
+              let businessIdentifier = try? RoledIdentifier(identifier) else {
+            throw .ruleViolation(.mobileRetractionLogicalTarget)
         }
-        guard ExchangeIdentity.isCanonicalOpaqueIdentifierValue(businessIdentifier.value) else {
-            throw .ruleViolation(.retractionOpaqueTarget)
+        guard ExchangeIdentity.isCanonicalOpaqueIdentifierValue(businessIdentifier.identifier.value) else {
+            throw .ruleViolation(.mobileRetractionOpaqueTarget)
         }
         let roles = target.extension?.filter { $0.url == Canonicals.retractionTargetRole } ?? []
         guard roles.count == 1,
               case .code(let roleCode)? = roles.first?.value,
               let rawRole = roleCode.value?.string,
               let role = RetractionTargetRole(rawValue: rawRole) else {
-            throw .ruleViolation(.retractionTargetRole)
+            throw .ruleViolation(.mobileRetractionTargetRole)
         }
         let natives = target.extension?.filter { $0.url == Canonicals.retractionTargetNativeIdentifier } ?? []
         guard natives.count <= 1 else {
-            throw .ruleViolation(.retractionNativeRecordIdentifier)
+            throw .ruleViolation(.mobileRetractionNativeRecordIdentifier)
         }
         var nativeRecordIdentifier: Identifier?
         if let native = natives.first {
             guard case .identifier(let disclosed)? = native.value else {
-                throw .ruleViolation(.retractionNativeRecordIdentifier)
+                throw .ruleViolation(.mobileRetractionNativeRecordIdentifier)
             }
             nativeRecordIdentifier = disclosed
         }
@@ -471,9 +491,9 @@ extension ExchangeGraph {
         } catch {
             switch error {
             case .identifierRoleMismatch, .resourceTypeMismatch:
-                throw .ruleViolation(.retractionRoleTargetType)
+                throw .ruleViolation(.mobileRetractionRoleTargetType)
             case .invalidNativeRecordIdentifier:
-                throw .ruleViolation(.retractionNativeRecordIdentifier)
+                throw .ruleViolation(.mobileRetractionNativeRecordIdentifier)
             }
         }
     }

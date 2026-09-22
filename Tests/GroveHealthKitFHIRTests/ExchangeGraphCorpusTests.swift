@@ -99,13 +99,13 @@ struct ExchangeGraphCorpusTests {
         }
 
         try ExchangeGraph.validateObservationProfileClaim(observation([semantic, correct]))
-        #expect(throws: ExchangeGraphError.ruleViolation(.semanticProfile)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileOutputSemanticProfile)) {
             try ExchangeGraph.validateObservationProfileClaim(observation([semantic]))
         }
-        #expect(throws: ExchangeGraphError.ruleViolation(.semanticProfile)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileOutputSemanticProfile)) {
             try ExchangeGraph.validateObservationProfileClaim(observation([semantic, wrong]))
         }
-        #expect(throws: ExchangeGraphError.ruleViolation(.semanticProfile)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileOutputSemanticProfile)) {
             try ExchangeGraph.validateObservationProfileClaim(observation([semantic, generic]))
         }
     }
@@ -196,7 +196,7 @@ struct ExchangeGraphCorpusTests {
         var entries = try #require(missingKey.entry)
         entries[0].extension = nil
         missingKey.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.entryNodeKey)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeEntryNodeKey)) {
             try validate(missingKey, kind: .active)
         }
 
@@ -204,7 +204,7 @@ struct ExchangeGraphCorpusTests {
         entries = try #require(wrongFullURL.entry)
         entries[1].fullUrl = "urn:uuid:00000000-0000-5000-8000-000000000000"
         wrongFullURL.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.deterministicFullURL)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeDeterministicFullUrl)) {
             try validate(wrongFullURL, kind: .active)
         }
 
@@ -225,7 +225,7 @@ struct ExchangeGraphCorpusTests {
         )
         entries[2].resource = ResourceProxy(with: wrongSubjectObservation)
         wrongSubjectTarget.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.referenceTargetType)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeReferenceTargetType)) {
             try validate(wrongSubjectTarget, kind: .active)
         }
 
@@ -246,7 +246,7 @@ struct ExchangeGraphCorpusTests {
         )
         entries[2].resource = ResourceProxy(with: falseTypeObservation)
         falseDeclaredType.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.referenceDeclaredType)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeReferenceDeclaredType)) {
             try validate(falseDeclaredType, kind: .active)
         }
 
@@ -267,7 +267,7 @@ struct ExchangeGraphCorpusTests {
         )
         entries[2].resource = ResourceProxy(with: mixedSubjectObservation)
         mixedSubject.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.referenceShape)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeReferenceShape)) {
             try validate(mixedSubject, kind: .active)
         }
 
@@ -283,7 +283,7 @@ struct ExchangeGraphCorpusTests {
         ))
         entries[2].resource = ResourceProxy(with: untypedSubjectObservation)
         untypedLogicalSubject.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.logicalPatientReference)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeLogicalPatientReference)) {
             try validate(untypedLogicalSubject, kind: .active)
         }
 
@@ -296,7 +296,7 @@ struct ExchangeGraphCorpusTests {
         unresolvedObservation.subject = Reference(reference: "Patient/not-in-this-bundle")
         entries[2].resource = ResourceProxy(with: unresolvedObservation)
         unresolvedLiteral.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.resolvedReference)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeResolvedReference)) {
             try validate(unresolvedLiteral, kind: .active)
         }
 
@@ -328,10 +328,13 @@ struct ExchangeGraphCorpusTests {
         nodeExtensions[0].value = .identifier(nodeIdentifier)
         entries[provenanceIndex].extension = nodeExtensions
         entries[provenanceIndex].fullUrl = FHIRPrimitive(FHIRURI(
-            stringLiteral: try ExchangeIdentity.fullURL(for: BusinessIdentifier(nodeIdentifier))
+            stringLiteral: try BusinessIdentifier(nodeIdentifier).fullURLString
         ))
         tamperedNode.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.entryNodeDigest)) {
+        #expect(throws: ExchangeGraph.diagnostic(
+            .mobileExchangeEntryNodeDigest,
+            location: "Bundle.entry[3].extension.valueIdentifier.value"
+        )) {
             try validate(tamperedNode, kind: .active)
         }
 
@@ -342,11 +345,14 @@ struct ExchangeGraphCorpusTests {
             return
         }
         observation.identifier = try observation.identifier?.filter {
-            try BusinessIdentifier($0).role != .sourceOutput
+            try RoledIdentifier($0).role != .sourceOutput
         }
         entries[2].resource = ResourceProxy(with: observation)
         missingOutputIdentity.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.sourceOutputRequired)) {
+        #expect(throws: ExchangeGraph.diagnostic(
+            .mobileOutputSourceOutputRequired,
+            location: "Bundle.entry[2].resource.identifier"
+        )) {
             try validate(missingOutputIdentity, kind: .active)
         }
 
@@ -354,7 +360,7 @@ struct ExchangeGraphCorpusTests {
         entries = try #require(duplicateSourceIdentity.entry)
         guard case .observation(var duplicateObservation)? = entries[2].resource,
               let sourceRecord = try duplicateObservation.identifier?.first(where: {
-                  try BusinessIdentifier($0).role == .sourceRecord
+                  try RoledIdentifier($0).role == .sourceRecord
               }) else {
             Issue.record("Fixture output has no source-record Identifier")
             return
@@ -362,7 +368,10 @@ struct ExchangeGraphCorpusTests {
         duplicateObservation.identifier?.append(sourceRecord)
         entries[2].resource = ResourceProxy(with: duplicateObservation)
         duplicateSourceIdentity.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.sourceOutputRequired)) {
+        #expect(throws: ExchangeGraph.diagnostic(
+            .mobileExchangeDistinctResourceIdentityRole,
+            location: "Observation.identifier[2]"
+        )) {
             try validate(duplicateSourceIdentity, kind: .active)
         }
 
@@ -375,7 +384,7 @@ struct ExchangeGraphCorpusTests {
             return false
         }
         missingProvenance.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.transformProvenance)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeTransformProvenance)) {
             try validate(missingProvenance, kind: .active)
         }
     }
@@ -399,7 +408,7 @@ struct ExchangeGraphCorpusTests {
         )
         entries[0].resource = ResourceProxy(with: provenance)
         literalTarget.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.retractionLogicalTarget)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileRetractionLogicalTarget)) {
             try validate(literalTarget, kind: .retraction)
         }
 
@@ -422,7 +431,7 @@ struct ExchangeGraphCorpusTests {
         )
         entries[0].resource = ResourceProxy(with: unknownRoleProvenance)
         unknownRole.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.retractionTargetRole)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileRetractionTargetRole)) {
             try validate(unknownRole, kind: .retraction)
         }
 
@@ -443,7 +452,7 @@ struct ExchangeGraphCorpusTests {
         )
         entries[0].resource = ResourceProxy(with: mismatchedTypeProvenance)
         mismatchedTargetType.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.retractionRoleTargetType)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileRetractionRoleTargetType)) {
             try validate(mismatchedTargetType, kind: .retraction)
         }
 
@@ -475,7 +484,7 @@ struct ExchangeGraphCorpusTests {
         )
         entries[0].resource = ResourceProxy(with: clearTargetProvenance)
         clearTarget.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.retractionOpaqueTarget)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileRetractionOpaqueTarget)) {
             try validate(clearTarget, kind: .retraction)
         }
 
@@ -486,7 +495,7 @@ struct ExchangeGraphCorpusTests {
             status: FHIRPrimitive(.final)
         ))
         copiedClinical.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.retractionNoClinicalCopy)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileRetractionNoClinicalCopy)) {
             try validate(copiedClinical, kind: .retraction)
         }
     }
@@ -505,7 +514,7 @@ struct ExchangeGraphCorpusTests {
             Coding(code: "transform".asFHIRStringPrimitive(), system: isoSystem.asFHIRURIPrimitive()),
             to: &activeDuplicate
         )
-        #expect(throws: ExchangeGraphError.ruleViolation(.lifecycleCoding)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeLifecycleCoding)) {
             try validate(activeDuplicate, kind: .active)
         }
 
@@ -517,7 +526,7 @@ struct ExchangeGraphCorpusTests {
             ),
             to: &activeOpposite
         )
-        #expect(throws: ExchangeGraphError.ruleViolation(.lifecycleCoding)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeLifecycleCoding)) {
             try validate(activeOpposite, kind: .active)
         }
 
@@ -533,7 +542,7 @@ struct ExchangeGraphCorpusTests {
             ),
             to: &retractionDuplicate
         )
-        #expect(throws: ExchangeGraphError.ruleViolation(.lifecycleCoding)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeLifecycleCoding)) {
             try validate(retractionDuplicate, kind: .retraction)
         }
 
@@ -542,7 +551,7 @@ struct ExchangeGraphCorpusTests {
             Coding(code: "transform".asFHIRStringPrimitive(), system: isoSystem.asFHIRURIPrimitive()),
             to: &retractionOpposite
         )
-        #expect(throws: ExchangeGraphError.ruleViolation(.lifecycleCoding)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeLifecycleCoding)) {
             try validate(retractionOpposite, kind: .retraction)
         }
 
@@ -562,7 +571,7 @@ struct ExchangeGraphCorpusTests {
         observation.subject = Reference(reference: "#missing-patient")
         entries[2].resource = ResourceProxy(with: observation)
         unresolved.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.containedResourceProhibited)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeContainedResourceProhibited)) {
             try validate(unresolved, kind: .active)
         }
 
@@ -581,7 +590,7 @@ struct ExchangeGraphCorpusTests {
             ModelsR4.Bundle.self,
             from: JSONSerialization.data(withJSONObject: duplicate)
         )
-        #expect(throws: ExchangeGraphError.ruleViolation(.containedResourceProhibited)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeContainedResourceProhibited)) {
             try validate(duplicateBundle, kind: .active)
         }
     }
@@ -600,7 +609,7 @@ struct ExchangeGraphCorpusTests {
             subject: observation.subject
         ))
         bundle.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.adapterOnlyProfile)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileOutputAdapterOnlyProfile)) {
             try validate(bundle, kind: .active)
         }
     }
@@ -640,7 +649,7 @@ struct ExchangeGraphCorpusTests {
             )
             Issue.record("Fractional step count was accepted")
         } catch {
-            #expect(error.diagnostic.code == ExchangeGraphRule.quantityValueDomain.rawValue)
+            #expect(error.diagnostic.code == ExchangeGraphRule.mobileOutputQuantityValueDomain.rawValue)
         }
     }
 
@@ -676,7 +685,7 @@ struct ExchangeGraphCorpusTests {
             _ = try validate(bundle, kind: .active)
             Issue.record("Out-of-range high-precision percentage was accepted")
         } catch let error as ExchangeGraphError {
-            #expect(error.diagnostic.code == ExchangeGraphRule.quantityValueDomain.rawValue)
+            #expect(error.diagnostic.code == ExchangeGraphRule.mobileOutputQuantityValueDomain.rawValue)
         } catch {
             Issue.record("Unexpected validation error: \(error)")
         }
@@ -690,9 +699,9 @@ struct ExchangeGraphCorpusTests {
             _ = try validate(undated, kind: .active)
             Issue.record("A bundle without a timestamp was accepted")
         } catch let error as ExchangeGraphError {
-            #expect(error.diagnostic == ExchangeGraphRule.unclassified.diagnostic)
+            #expect(error.diagnostic == ExchangeGraphRule.mobileExchangeUnclassified.diagnostic)
         }
-        #expect(ExchangeGraph.rule(for: .missingResource) == .unclassified)
+        #expect(ExchangeGraph.rule(for: .missingResource) == .mobileExchangeUnclassified)
     }
 
     @Test("The retraction builder carries its source-record entity")
@@ -702,34 +711,31 @@ struct ExchangeGraphCorpusTests {
             Issue.record("Fixture lifecycle resource is not Provenance")
             return
         }
-        let sourceRecord = try BusinessIdentifier(
+        let sourceRecord = try RoledIdentifier(
             #require(fixtureProvenance.entity?.first?.what.identifier)
         )
         let fixtureTarget = try #require(fixtureProvenance.target.first)
         let targetType = try #require(fixtureTarget.type?.value?.url.absoluteString)
         let resourceType = try #require(ResourceType(rawValue: targetType))
         let target = try RetractionTarget(
-            identifier: BusinessIdentifier(#require(fixtureTarget.identifier)),
+            identifier: RoledIdentifier(#require(fixtureTarget.identifier)),
             resourceType: resourceType,
             role: .primaryOutput
         )
         let event = try ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier)))
-        let graph = try RetractionEventBuilder.build(
+        let graph = try RetractionEvent(
             targets: [target],
-            context: RetractionEventContext(
-                eventIdentifier: event,
-                entryNodeIdentifierSystem: "https://study.example.org/fhir/NamingSystem/retraction-node-v0",
-                producer: fixtureProvenance.agent[0].who,
-                sourceRecord: sourceRecord,
-                sourceRetractionTime: Date(timeIntervalSince1970: 1_787_299_200),
-                recordedAt: Date(timeIntervalSince1970: 1_787_299_201)
-            )
-        )
+            context: retractionContext(event: event),
+            sourceRecord: sourceRecord,
+            retractedAt: Date(timeIntervalSince1970: 1_787_299_200)
+        ).graph
         guard case .provenance(let provenance)? = graph.bundle.entry?.first?.resource else {
             Issue.record("Builder did not emit Provenance")
             return
         }
-        #expect(try BusinessIdentifier(#require(provenance.entity?.first?.what.identifier)) == sourceRecord)
+        #expect(try RoledIdentifier(#require(provenance.entity?.first?.what.identifier)) == sourceRecord)
+        #expect(provenance.agent.first?.who.identifier != nil)
+        #expect(provenance.agent.first?.who.type?.value?.url.absoluteString == "Device")
     }
 
     @Test("An authorized native record identifier rides beside the opaque retraction target")
@@ -739,11 +745,11 @@ struct ExchangeGraphCorpusTests {
             Issue.record("Fixture lifecycle resource is not Provenance")
             return
         }
-        let sourceRecord = try BusinessIdentifier(
+        let sourceRecord = try RoledIdentifier(
             #require(fixtureProvenance.entity?.first?.what.identifier)
         )
         let fixtureTarget = try #require(fixtureProvenance.target.first)
-        let targetIdentifier = try BusinessIdentifier(#require(fixtureTarget.identifier))
+        let targetIdentifier = try RoledIdentifier(#require(fixtureTarget.identifier))
         let targetType = try #require(fixtureTarget.type?.value?.url.absoluteString)
         let resourceType = try #require(ResourceType(rawValue: targetType))
         let policy = GovernedSourceIdentifierDisclosurePolicy.authorized(
@@ -756,17 +762,12 @@ struct ExchangeGraphCorpusTests {
             role: .primaryOutput,
             nativeRecordIdentifier: policy.identifier(for: nativeRecordID)
         )
-        let graph = try RetractionEventBuilder.build(
+        let graph = try RetractionEvent(
             targets: [target],
-            context: RetractionEventContext(
-                eventIdentifier: ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier))),
-                entryNodeIdentifierSystem: "https://study.example.org/fhir/NamingSystem/retraction-node-v0",
-                producer: fixtureProvenance.agent[0].who,
-                sourceRecord: sourceRecord,
-                sourceRetractionTime: Date(timeIntervalSince1970: 1_787_299_200),
-                recordedAt: Date(timeIntervalSince1970: 1_787_299_201)
-            )
-        )
+            context: retractionContext(event: ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier)))),
+            sourceRecord: sourceRecord,
+            retractedAt: Date(timeIntervalSince1970: 1_787_299_200)
+        ).graph
         guard case .provenance(let provenance)? = graph.bundle.entry?.first?.resource else {
             Issue.record("Builder did not emit Provenance")
             return
@@ -810,6 +811,20 @@ struct ExchangeGraphCorpusTests {
                 nativeRecordIdentifier: unrecognisedRole
             )
         }
+    }
+
+    /// The fixture's event under the test deployment's scope, recorded one second after the deletion.
+    private func retractionContext(event: ExchangeEventIdentifier) -> ExchangeEventContext {
+        let base = ExchangeEventContext.test()
+        return ExchangeEventContext(
+            subject: base.subject,
+            event: event,
+            identityScope: base.identityScope,
+            repositoryScope: base.repositoryScope,
+            application: base.application,
+            host: base.host,
+            conversionInstant: Date(timeIntervalSince1970: 1_787_299_201)
+        )
     }
 
     private func graph(named name: String, kind: ExchangeGraphKind) throws -> ExchangeGraph {

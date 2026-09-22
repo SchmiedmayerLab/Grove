@@ -19,8 +19,16 @@ extension ExchangeGraph {
         let activeTypes = ExchangeContract.activeOutputResourceTypes
             .union(ExchangeContract.activeSupportingResourceTypes)
             .union([ExchangeContract.activeLifecycleResourceType])
-        for entry in root["entry"] as? [[String: Any]] ?? [] {
+        let entries = root["entry"] as? [[String: Any]] ?? []
+        for entry in entries {
             try validateSerializedEntry(entry, kind: kind, activeTypes: activeTypes)
+        }
+        // Checked before decoding: a re-typed output need not decode as its claimed resource.
+        if kind == .active, !entries.isEmpty, !entries.contains(where: { entry in
+            let resource = entry["resource"] as? [String: Any]
+            return ExchangeContract.activeOutputResourceTypes.contains(resource?["resourceType"] as? String ?? "")
+        }) {
+            throw diagnostic(.mobileExchangeOutputRequired, location: "Bundle.entry")
         }
     }
 
@@ -56,7 +64,7 @@ extension ExchangeGraph {
         }
         guard resource["contained"] == nil,
               !containsContainedReference(resource) else {
-            throw .ruleViolation(.containedResourceProhibited)
+            throw .ruleViolation(.mobileExchangeContainedResourceProhibited)
         }
     }
 
@@ -66,13 +74,13 @@ extension ExchangeGraph {
         activeTypes: Set<String>
     ) throws(ExchangeGraphError) {
         guard activeTypes.contains(resourceType) else {
-            throw .ruleViolation(.entryResourceType)
+            throw .ruleViolation(.mobileExchangeEntryResourceType)
         }
         if let expectedProfile = ProfileClaims.adapterOnlyOutputProfiles[resourceType]
             .flatMap({ $0.value?.url.absoluteString }) {
             let profiles = (resource["meta"] as? [String: Any])?["profile"] as? [String]
             guard profiles == [expectedProfile] else {
-                throw .ruleViolation(.adapterOnlyProfile)
+                throw .ruleViolation(.mobileOutputAdapterOnlyProfile)
             }
         }
     }
@@ -83,12 +91,12 @@ extension ExchangeGraph {
     ) throws(ExchangeGraphError) {
         guard resourceType == ResourceType.provenance.rawValue
                 || resourceType == ResourceType.device.rawValue else {
-            throw .ruleViolation(.retractionNoClinicalCopy)
+            throw .ruleViolation(.mobileRetractionNoClinicalCopy)
         }
         if resourceType == ResourceType.provenance.rawValue,
            let targets = resource["target"] as? [[String: Any]],
            targets.contains(where: { $0["reference"] != nil }) {
-            throw .ruleViolation(.retractionLogicalTarget)
+            throw .ruleViolation(.mobileRetractionLogicalTarget)
         }
     }
 

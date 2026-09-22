@@ -294,21 +294,18 @@ extension FHIRPathFunctionCall {
     private func evaluateEnvironment() throws -> [FHIRPathValue] {
         switch name {
         case "today":
-            let calendar = FHIRPathCalendar.gregorian(timeZone: evaluator.context.evaluationTimeZone)
-            var components = calendar.dateComponents([.year, .month, .day], from: evaluator.context.evaluationInstant)
+            var components = Calendar.current.dateComponents([.year, .month, .day], from: evaluator.context.now)
             components.timeZone = nil
             return [.date(components)]
         case "now":
-            let calendar = FHIRPathCalendar.gregorian(timeZone: evaluator.context.evaluationTimeZone)
-            var components = calendar.dateComponents(
+            var components = Calendar.current.dateComponents(
                 [.year, .month, .day, .hour, .minute, .second],
-                from: evaluator.context.evaluationInstant
+                from: evaluator.context.now
             )
-            components.timeZone = evaluator.context.evaluationTimeZone
+            components.timeZone = TimeZone.current
             return [.dateTime(components)]
         case "timeOfDay":
-            let calendar = FHIRPathCalendar.gregorian(timeZone: evaluator.context.evaluationTimeZone)
-            let components = calendar.dateComponents([.hour, .minute, .second], from: evaluator.context.evaluationInstant)
+            let components = Calendar.current.dateComponents([.hour, .minute, .second], from: evaluator.context.now)
             return [.time(components)]
         case "weight":
             return weights()
@@ -317,8 +314,8 @@ extension FHIRPathFunctionCall {
         }
     }
 
-    /// SDC: the scoring weight of a QR answer — read from the itemWeight extension carried on
-    /// the answer's coding.
+    /// SDC: the scoring weight of a QR answer — read from the itemWeight
+    /// (or retired ordinalValue) extension carried on the answer's coding.
     private func weights() -> [FHIRPathValue] {
         input.compactMap { value -> FHIRPathValue? in
             guard case .object(let node) = value else {
@@ -326,13 +323,14 @@ extension FHIRPathFunctionCall {
             }
             // Accept an answer object (look through to its coding) or a coding directly.
             let coding = node.children(named: "valueCoding").first ?? node
-            let marker = coding.children(named: "extension").first {
-                $0.stringMember("url") == "http://hl7.org/fhir/StructureDefinition/itemWeight"
+            let urls = ["http://hl7.org/fhir/StructureDefinition/itemWeight", "http://hl7.org/fhir/StructureDefinition/ordinalValue"]
+            for url in urls {
+                if let ext = coding.children(named: "extension").first(where: { $0.stringMember("url") == url }),
+                   case .number(let weight) = ext.children(named: "valueDecimal").first {
+                    return .decimal(weight)
+                }
             }
-            guard case .number(let weight) = marker?.children(named: "valueDecimal").first else {
-                return nil
-            }
-            return .decimal(weight)
+            return nil
         }
     }
 }

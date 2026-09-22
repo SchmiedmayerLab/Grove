@@ -88,7 +88,7 @@ extension GroveQuestionnaire.Questionnaire {
     /// - parameter options: Additional options to control the conversion process. Use this to specify e.g. custom question kinds.
     public init(
         _ other: ModelsR4.Questionnaire,
-        evaluationInstant: Date,
+        evaluationInstant: Date = Date(),
         using options: ConversionOptions = .init()
     ) throws(ConversionError) {
         let metadata = try Self.metadata(of: other, evaluationInstant: evaluationInstant, using: options)
@@ -98,14 +98,13 @@ extension GroveQuestionnaire.Questionnaire {
             throw .other("Unsupported modifierExtension '\(modifier.url.value?.url.absoluteString ?? "?")' on the questionnaire.")
         }
         let (usesExpressions, variables) = try Self.expressionUsage(of: other)
-        var engine: FHIRPathExpressionEngine?
+        var engine: FHIRQuestionnaireExpressionEngine?
         if usesExpressions || !variables.isEmpty || !options.launchContext.isEmpty {
             do {
-                engine = try FHIRPathExpressionEngine(
+                engine = try FHIRQuestionnaireExpressionEngine(
                     questionnaire: other,
                     variables: variables,
-                    launchContext: try options.launchContext.mapValues { try FHIRPathNode.encoding($0) },
-                    evaluationInstant: evaluationInstant
+                    launchContext: try options.launchContext.mapValues { try FHIRPathNode.encoding($0) }
                 )
             } catch {
                 throw .other("Failed to set up the expression engine: \(error)")
@@ -129,17 +128,8 @@ extension GroveQuestionnaire.Questionnaire {
         evaluationInstant: Date,
         using options: ConversionOptions
     ) throws(ConversionError) -> Metadata {
-        guard let id = other.url?.value?.url.absoluteString else {
-            throw .other("A Grove Questionnaire requires an exact canonical 'url'.")
-        }
-        guard ContractRules.isValidQuestionnaireURL(id) else {
-            throw .other("Questionnaire canonical URL '\(id)' must be an exact HTTP(S) URL without a fragment or '|'.")
-        }
-        guard let version = other.version?.value?.string else {
-            throw .other("A Grove Questionnaire requires 'version'.")
-        }
-        guard ContractRules.isSemanticVersion(version) else {
-            throw .other("Questionnaire version '\(version)' is not Semantic Versioning 2.0.0.")
+        guard let id = other.url?.value?.url.absoluteString ?? other.id?.value?.string else {
+            throw .other("Missing both 'url' and 'id' fields. At least one must be present.")
         }
         let lifecycle: PublicationLifecycle = switch other.status.value {
         case .draft: .draft
@@ -154,7 +144,7 @@ extension GroveQuestionnaire.Questionnaire {
         return Metadata(
             id: id,
             url: other.url?.value?.url,
-            version: version,
+            version: other.version?.value?.string,
             title: other.title?.localizedString(for: options.locale) ?? "",
             explainer: other.description_fhir?.localizedString(for: options.locale) ?? "",
             lifecycle: lifecycle,
@@ -230,15 +220,15 @@ extension GroveQuestionnaire.Questionnaire {
     /// programmer-error check.
     private static func expressionUsage(
         of other: ModelsR4.Questionnaire
-    ) throws(ConversionError) -> (usesExpressions: Bool, variables: [FHIRPathExpressionEngine.Variable]) {
+    ) throws(ConversionError) -> (usesExpressions: Bool, variables: [FHIRQuestionnaireExpressionEngine.Variable]) {
         var seenIds: Set<String> = []
         var usesExpressions = false
-        var variables: [FHIRPathExpressionEngine.Variable] = []
+        var variables: [FHIRQuestionnaireExpressionEngine.Variable] = []
         // A `variable` is visible to the declaring element and its descendants, so an
         // item-level declaration carries the linkIds it covers.
         func collectVariables(
             of element: some FHIRTypeWithExtensions,
-            scope: FHIRPathExpressionEngine.Variable.Scope
+            scope: FHIRQuestionnaireExpressionEngine.Variable.Scope
         ) throws(ConversionError) {
             for variable in try element.sdcVariables() {
                 variables.append(.init(name: variable.name, expression: variable.expression, scope: scope))
@@ -277,7 +267,7 @@ private struct ConversionContext {
     /// The "is enabled" condition of the parent item.
     let parentItemCondition: GroveQuestionnaire.Questionnaire.Condition
     /// The expression engine, when the questionnaire uses SDC expression features.
-    var engine: FHIRPathExpressionEngine?
+    var engine: FHIRQuestionnaireExpressionEngine?
     /// The (non-top-level) FHIR groups enclosing the current items, outermost first.
     var groupPath: [GroveQuestionnaire.Questionnaire.Task.Group] = []
     /// The linkId of the question item the current items are nested under, if any.
@@ -305,7 +295,7 @@ private enum SDCExpressionURLs {
 extension ModelsR4.Questionnaire {
     fileprivate func toSections(
         using options: GroveQuestionnaire.Questionnaire.ConversionOptions,
-        engine: FHIRPathExpressionEngine? = nil,
+        engine: FHIRQuestionnaireExpressionEngine? = nil,
         evaluationInstant: Date
     ) throws(GroveQuestionnaire.Questionnaire.ConversionError) -> [GroveQuestionnaire.Questionnaire.Section] {
         guard let items = item, !items.isEmpty else {

@@ -352,10 +352,16 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                     "fullUrl": {
                         "algorithm": "UUID version 5 over length-framed system and value",
                         "namespace": "43df4575-bff7-5a57-9a80-2472cd2b0623",
-                    }
+                    },
+                    "entryNode": {
+                        "recommendedSystemForm": "<deployment-root>/NamingSystem/grove-entry-node-v0",
+                    },
                 },
                 "lifecycle": {
                     "active": {
+                        "studyContext": {
+                            "entryNodeRoles": ["patient", "research-study", "research-subject", "plan-definition"],
+                        },
                         "entryResourcePolicy": {
                             "outputResourceTypes": [
                                 "Observation",
@@ -398,6 +404,39 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                         "grove-mobile-retraction-provenance"
                     ),
                 },
+                "producerDiagnostics": [
+                    {
+                        "code": "mobile-exchange.entry-node-key",
+                        "emittedBy": "conformance-kit",
+                        "reason": "Every Bundle entry must carry exactly one complete Grove exchange entry node key.",
+                    },
+                    {
+                        "code": "mobile-input.unclassified",
+                        "emittedBy": "client",
+                        "reason": "A producer refused a source record without a more specific registered input rule.",
+                    },
+                    {
+                        "code": "mobile-omission.recording-device",
+                        "emittedBy": "client",
+                        "severity": "warning",
+                        "reason": "The source names a recording device without a stable per-unit token.",
+                    },
+                ],
+                "opaqueIdentity": {
+                    "recommendedSystemForm": (
+                        "<deployment-root>/NamingSystem/grove-<identity-kind>-v0/<key-id>/<epoch>"
+                    ),
+                },
+                "event": {
+                    "bundleIdentifier": {
+                        "recommendedSystemForm": "<deployment-root>/NamingSystem/grove-event-v0",
+                    },
+                },
+                "payload": {
+                    "equality": {
+                        "vectors": "Conformance/corpora/receiver-lifecycle: reformatted-retry and lexeme-retry",
+                    },
+                },
             },
         }
 
@@ -407,6 +446,72 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
             for name, value in catalogs.items():
                 (root / name).write_text(json.dumps(value), encoding="utf-8")
             return MODULE.generate(root)
+
+    def generate_healthkit(self, catalogs: dict[str, dict]) -> str:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name, value in catalogs.items():
+                (root / name).write_text(json.dumps(value), encoding="utf-8")
+            return MODULE.generate_healthkit_source_types(root)
+
+    def test_generates_every_registered_rule_with_its_reason_and_severity(self):
+        generated = self.generate(self.catalogs())
+
+        self.assertIn("public enum ExchangeGraphRule: String, CaseIterable, Sendable", generated)
+        self.assertIn('case mobileExchangeEntryNodeKey = "mobile-exchange.entry-node-key"', generated)
+        self.assertIn('case mobileInputUnclassified = "mobile-input.unclassified"', generated)
+        self.assertIn('case mobileOmissionRecordingDevice = "mobile-omission.recording-device"', generated)
+        self.assertIn("case .mobileOmissionRecordingDevice:\n            .warning", generated)
+        self.assertIn("case .mobileExchangeEntryNodeKey, .mobileInputUnclassified:\n            .error", generated)
+        self.assertIn(
+            '"Every Bundle entry must carry exactly one complete Grove exchange entry node key."',
+            generated,
+        )
+
+    def test_generates_identifier_system_forms_study_roles_and_equality_vectors(self):
+        generated = self.generate(self.catalogs())
+
+        self.assertIn(
+            'public static let opaqueIdentitySystemForm = '
+            '"<deployment-root>/NamingSystem/grove-<identity-kind>-v0/<key-id>/<epoch>"',
+            generated,
+        )
+        self.assertIn(
+            'public static let eventIdentifierSystemForm = "<deployment-root>/NamingSystem/grove-event-v0"',
+            generated,
+        )
+        self.assertIn(
+            'public static let entryNodeIdentifierSystemForm = "<deployment-root>/NamingSystem/grove-entry-node-v0"',
+            generated,
+        )
+        self.assertIn('case researchStudy = "research-study"', generated)
+        self.assertIn('public static let equalityFormattingVector = "reformatted-retry"', generated)
+        self.assertIn('public static let equalityDecimalLexemeVector = "lexeme-retry"', generated)
+        self.assertIn('public static let equalityVectorCorpus = "Conformance/corpora/receiver-lifecycle"', generated)
+
+    def test_rejects_rules_whose_codes_collapse_to_one_swift_case(self):
+        catalogs = self.catalogs()
+        catalogs["exchange-protocol.json"]["producerDiagnostics"].append(
+            {"code": "mobile-exchange.entry.node-key", "emittedBy": "client", "reason": "Duplicate."}
+        )
+
+        with self.assertRaisesRegex(ValueError, "same Swift case"):
+            self.generate(catalogs)
+
+    def test_generates_the_healthkit_source_type_inventory(self):
+        generated = self.generate_healthkit(self.catalogs())
+
+        self.assertIn("public enum HealthKitSourceType: String, CaseIterable, Sendable", generated)
+        self.assertIn('case electrocardiogram = "HKDataTypeIdentifierElectrocardiogram"', generated)
+        self.assertIn('case bodyMassIndex = "HKQuantityTypeIdentifierBodyMassIndex"', generated)
+        self.assertIn("public init?(_ sample: HKSample)", generated)
+
+    def test_source_type_names_read_as_swift(self):
+        self.assertEqual(MODULE.healthkit_source_type_name("HKQuantityTypeIdentifierVO2Max"), "vo2Max")
+        self.assertEqual(MODULE.healthkit_source_type_name("HKWorkoutTypeIdentifier"), "workout")
+        self.assertEqual(MODULE.healthkit_source_type_name("HKDocumentTypeIdentifierCDA"), "cda")
+        self.assertEqual(MODULE.healthkit_source_type_name("HKDataTypeStateOfMind"), "stateOfMind")
+        self.assertEqual(MODULE.healthkit_source_type_name("HKQuantityTypeIdentifierUVExposure"), "uvExposure")
 
     def test_generates_exact_healthkit_inventory_and_adapter_contract(self):
         generated = self.generate(self.catalogs())

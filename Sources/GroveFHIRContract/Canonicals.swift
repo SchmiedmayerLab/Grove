@@ -32,6 +32,7 @@ public enum Canonicals {
     public static let aggregationMethodCodeSystem = uri("/mobile/CodeSystem/grove-aggregation-method")
     public static let groveApplicationVersionType = uri("/mobile/CodeSystem/grove-application-version-type")
     public static let identifierRoleCodeSystem = uri("/mobile/CodeSystem/grove-identifier-role")
+    static let identifierRoleCodeSystemValue = "\(root)/mobile/CodeSystem/grove-identifier-role"
     public static let entryNodeKey = uri("/mobile/StructureDefinition/grove-exchange-entry-node-key")
     public static let retractionTargetRole = uri("/mobile/StructureDefinition/grove-retraction-target-role")
     public static let retractionTargetNativeIdentifier =

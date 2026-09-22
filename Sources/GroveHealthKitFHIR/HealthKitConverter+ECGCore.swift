@@ -20,27 +20,28 @@ extension HealthKitConverter {
     static func convertECG(
         _ record: HealthKitECGRecord,
         context: HealthKitConversionContext,
-        symptomConversions: [HealthKitConversion]
+        symptomContexts: [HealthKitConversionContext]
     ) throws -> HealthKitConversionSet {
         try validate(context: context)
         let ecg = record.electrocardiogram
         let source = try ecgSourceEvidence(ecg)
-        let symptomOutputs = try validatedSymptomConversions(
+        let symptomConversions = try symptomConversions(
             for: record,
             source: source,
-            conversions: symptomConversions,
-            context: context
+            context: context,
+            symptomContexts: symptomContexts
         )
         let input = HealthKitECGObservationInput(
             source: source,
             waveform: try validatedWaveform(for: record, source: source),
-            symptomOutputIdentifiers: symptomOutputs,
+            symptomOutputIdentifiers: try validatedSymptomOutputIdentifiers(
+                symptomConversions,
+                expectedSystem: context.identityScope.systems.opaque.sourceOutput
+            ),
             context: context
         )
-        guard let output = HealthKitCatalog.primaryObservationOutput(
-            forSourceTypeIdentifier: ecg.sampleType.identifier
-        ) else {
-            throw HealthKitConversionError.unsupportedSampleType(ecg.sampleType.identifier)
+        guard let output = HealthKitCatalog.primaryOutput(for: .electrocardiogram) else {
+            throw HealthKitConversionError.unsupportedSourceType(.electrocardiogram)
         }
         let primary = try assembleGraph(
             for: ecg,
@@ -50,74 +51,78 @@ extension HealthKitConverter {
             childBuilder: { envelope in
                 try ecgAverageHeartRateChild(input: input, envelope: envelope).map { [$0] } ?? []
             }
-        ) { recordingDeviceURL, converterURL in
-            try ecgObservation(
-                input: input,
-                graphContext: .init(
-                    recordingDeviceURL: recordingDeviceURL,
-                    converterURL: converterURL
-                )
-            )
+        ) { graphContext in
+            try ecgObservation(input: input, graphContext: graphContext)
         }
-        let events = [primary.graphIdentifiers.event] + symptomConversions.map(\.graphIdentifiers.event)
+        let events = [primary.primary.identifiers.event] + symptomConversions.map(\.identifiers.event)
         guard Set(events).count == events.count else {
-            throw HealthKitConversionError.invalidECGEvidence(.duplicateSymptomEventIdentity)
+            throw HealthKitConversionError.ecgEvidence(.duplicateSymptomEventIdentity)
         }
-        guard !symptomOutputs.contains(primary.graphIdentifiers.primaryOutput) else {
-            throw HealthKitConversionError.invalidECGEvidence(.invalidSymptomOutputIdentity)
+        guard !input.symptomOutputIdentifiers.contains(primary.primary.identifiers.primaryOutput) else {
+            throw HealthKitConversionError.ecgEvidence(.invalidSymptomOutputIdentity)
         }
-        return HealthKitConversionSet(primary: primary, companions: symptomConversions)
-    }
-
-    private static func validatedSymptomConversions(
-        for record: HealthKitECGRecord,
-        source: HealthKitECGSourceEvidence,
-        conversions: [HealthKitConversion],
-        context: HealthKitConversionContext
-    ) throws -> [BusinessIdentifier] {
-        let symptoms = try validatedSymptomSamples(record.correlatedSymptoms, status: source.symptomsStatus)
-        guard symptoms.map(\.uuid) == conversions.map(\.localSourceUUID) else {
-            throw HealthKitConversionError.invalidECGEvidence(.invalidSymptomOutputIdentity)
-        }
-        for conversion in conversions {
-            try validateSymptomConversionContext(
-                subject: conversion.observation.subject,
-                subjectIdentity: conversion.subjectIdentity,
-                repositoryScope: conversion.repositoryScope,
-                expectedContext: context
-            )
-        }
-        return try validatedSymptomOutputIdentifiers(
-            conversions,
-            expectedSystem: context.identityScope.systems.sourceOutput
+        return HealthKitConversionSet(
+            primary: primary.primary,
+            companions: symptomConversions,
+            warnings: primary.warnings
         )
     }
 
+    /// Converts each correlated symptom under its own event context, in the deterministic order the
+    /// ECG references them.
+    private static func symptomConversions(
+        for record: HealthKitECGRecord,
+        source: HealthKitECGSourceEvidence,
+        context: HealthKitConversionContext,
+        symptomContexts: [HealthKitConversionContext]
+    ) throws -> [HealthKitConversion] {
+        guard symptomContexts.count == record.correlatedSymptoms.count else {
+            throw HealthKitConversionError.ecgEvidence(.symptomContextCountMismatch(
+                symptoms: record.correlatedSymptoms.count,
+                contexts: symptomContexts.count
+            ))
+        }
+        let contextsBySample = Dictionary(
+            record.correlatedSymptoms.map(\.uuid).enumerated().map { ($1, symptomContexts[$0]) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        let symptoms = try validatedSymptomSamples(record.correlatedSymptoms, status: source.symptomsStatus)
+        return try symptoms.map { symptom in
+            guard let symptomContext = contextsBySample[symptom.uuid] else {
+                throw HealthKitConversionError.ecgEvidence(.duplicateSymptomSource(symptom.uuid))
+            }
+            try validateSymptomConversionContext(symptomContext, expectedContext: context)
+            let set = try convertSample(symptom, context: symptomContext)
+            return set.primary
+        }
+    }
+
+    /// A companion belongs to the same subject, repository scope and identity scope as the ECG.
     static func validateSymptomConversionContext(
-        subject: Reference?,
-        subjectIdentity: BusinessIdentifier,
-        repositoryScope: BusinessIdentifier,
+        _ symptomContext: HealthKitConversionContext,
         expectedContext: HealthKitConversionContext
     ) throws {
-        guard subject == expectedContext.subject,
-              subjectIdentity == expectedContext.subjectIdentity,
-              repositoryScope == expectedContext.repositoryScope else {
-            throw HealthKitConversionError.invalidECGEvidence(.mismatchedSymptomContext)
+        guard symptomContext.event.subject == expectedContext.event.subject,
+              symptomContext.repositoryScope == expectedContext.repositoryScope,
+              symptomContext.identityScope.systems == expectedContext.identityScope.systems,
+              symptomContext.identityScope.keyID == expectedContext.identityScope.keyID,
+              symptomContext.identityScope.epoch == expectedContext.identityScope.epoch else {
+            throw HealthKitConversionError.ecgEvidence(.mismatchedSymptomContext)
         }
     }
 
     private static func validatedSymptomOutputIdentifiers(
         _ conversions: [HealthKitConversion],
         expectedSystem: IdentifierSystem
-    ) throws -> [BusinessIdentifier] {
-        let outputs = conversions.map(\.graphIdentifiers.primaryOutput)
+    ) throws -> [RoledIdentifier] {
+        let outputs = conversions.map(\.identifiers.primaryOutput)
         guard outputs.allSatisfy({
-            $0.role == .sourceOutput && $0.system == expectedSystem
+            $0.role == .sourceOutput && $0.identifier.system == expectedSystem
         }) else {
-            throw HealthKitConversionError.invalidECGEvidence(.invalidSymptomOutputIdentity)
+            throw HealthKitConversionError.ecgEvidence(.invalidSymptomOutputIdentity)
         }
         guard Set(outputs).count == outputs.count else {
-            throw HealthKitConversionError.invalidECGEvidence(.duplicateSymptomOutputIdentity)
+            throw HealthKitConversionError.ecgEvidence(.duplicateSymptomOutputIdentity)
         }
         return outputs
     }
@@ -128,7 +133,7 @@ extension HealthKitConverter {
     ) throws -> HealthKitECGValidatedWaveform {
         let points = try record.voltageMeasurements.enumerated().map { index, measurement in
             guard let quantity = measurement.quantity(for: .appleWatchSimilarToLeadI) else {
-                throw HealthKitConversionError.invalidECGEvidence(.missingLeadVoltage(index: index))
+                throw HealthKitConversionError.ecgEvidence(.missingLeadVoltage(index: index))
             }
             return HealthKitECGVoltagePoint(
                 timeSinceSampleStart: measurement.timeSinceSampleStart,
@@ -162,11 +167,11 @@ extension HealthKitConverter {
 
     static func ecgObservation(
         input: HealthKitECGObservationInput,
-        graphContext: HealthKitECGGraphContext
+        graphContext: HealthKitGraphContext
     ) throws -> Observation {
         let source = input.source
         guard source.endDate >= source.startDate else {
-            throw HealthKitConversionError.invalidECGEvidence(.invalidSourcePeriod)
+            throw HealthKitConversionError.ecgEvidence(.invalidSourcePeriod)
         }
         let period = try effectivePeriod(
             source: source,
@@ -177,7 +182,7 @@ extension HealthKitConverter {
             source: source,
             waveform: input.waveform,
             effectivePeriod: period,
-            context: input.context
+            subject: graphContext.subject
         )
         observation.extension = (observation.extension ?? []) + (try requiredECGExtensions(source: source))
         observation.interpretation = [
@@ -206,7 +211,6 @@ extension HealthKitConverter {
         }
         applyGraphContext(
             to: &observation,
-            context: input.context,
             graphContext: graphContext,
             wasUserEntered: source.wasUserEntered
         )
@@ -224,7 +228,7 @@ extension HealthKitConverter {
             return nil
         }
         guard averageHeartRate.isFinite else {
-            throw HealthKitConversionError.invalidECGEvidence(.invalidAverageHeartRate)
+            throw HealthKitConversionError.ecgEvidence(.invalidAverageHeartRate)
         }
         let identity = try input.context.identityScope.sourceOutput(
             adapterID: HealthKitConverter.adapterID,
@@ -257,7 +261,7 @@ extension HealthKitConverter {
         source: HealthKitECGSourceEvidence,
         waveform: HealthKitECGValidatedWaveform,
         effectivePeriod: Period,
-        context: HealthKitConversionContext
+        subject: Reference
     ) throws -> Observation {
         var observation = Observation(
             code: CodeableConcept(
@@ -269,7 +273,7 @@ extension HealthKitConverter {
         )
         applySourceTypeLineage(source.sourceTypeIdentifier, to: &observation)
         observation.meta = Meta(profile: HealthKitContract.electrocardiogramProfiles)
-        observation.subject = context.subject
+        observation.subject = subject
         // `issued` is deliberately absent. It states when this version of the record became
         // available, and HealthKit keeps no per-object modification time to answer that; a wall
         // clock would make an unchanged sample convert differently on every run. The conversion
@@ -332,8 +336,7 @@ extension HealthKitConverter {
 
     static func applyGraphContext(
         to observation: inout Observation,
-        context: HealthKitConversionContext,
-        graphContext: HealthKitECGGraphContext,
+        graphContext: HealthKitGraphContext,
         wasUserEntered: Bool
     ) {
         if wasUserEntered {
@@ -342,31 +345,17 @@ extension HealthKitConverter {
         if let recordingDeviceURL = graphContext.recordingDeviceURL {
             observation.device = Reference(reference: recordingDeviceURL.asFHIRStringPrimitive())
         }
-        if context.converterWasGateway {
+        if let gatewayURL = graphContext.gatewayURL {
             observation.append(
                 extension: Extension(
                     url: Canonicals.gatewayDevice,
-                    value: .reference(Reference(
-                        reference: graphContext.converterURL.asFHIRStringPrimitive()
-                    ))
+                    value: .reference(Reference(reference: gatewayURL.asFHIRStringPrimitive()))
                 ),
                 behaviour: .replace
             )
         }
-        for study in context.researchStudies {
-            observation.append(extension: Extension(
-                url: Canonicals.researchStudy,
-                value: .reference(study)
-            ))
-        }
-        if let protocolCanonical = context.protocolCanonical {
-            observation.append(
-                extension: Extension(
-                    url: Canonicals.instantiatesCanonical,
-                    value: .canonical(FHIRPrimitive(Canonical(stringLiteral: protocolCanonical)))
-                ),
-                behaviour: .replace
-            )
+        for study in graphContext.studyReferences {
+            observation.append(extension: Extension(url: Canonicals.researchStudy, value: .reference(study)))
         }
     }
 
@@ -376,7 +365,7 @@ extension HealthKitConverter {
         timeZone: TimeZone
     ) throws -> Period {
         guard waveform.lastOffsetSeconds > waveform.firstOffsetSeconds else {
-            throw HealthKitConversionError.invalidECGEvidence(.invalidSourcePeriod)
+            throw HealthKitConversionError.ecgEvidence(.invalidSourcePeriod)
         }
         return Period(
             end: FHIRPrimitive(try exactHealthKitDateTime(
@@ -405,7 +394,7 @@ extension HealthKitConverter {
         case .inconclusiveOther: "inconclusiveOther"
         case .unrecognized: "unrecognized"
         @unknown default:
-            throw HealthKitConversionError.invalidECGEvidence(.unsupportedClassification(classification.rawValue))
+            throw HealthKitConversionError.ecgEvidence(.unsupportedClassification(classification.rawValue))
         }
     }
 
@@ -417,7 +406,7 @@ extension HealthKitConverter {
         case .none: "none"
         case .present: "present"
         @unknown default:
-            throw HealthKitConversionError.invalidECGEvidence(.unsupportedSymptomsStatus(status.rawValue))
+            throw HealthKitConversionError.ecgEvidence(.unsupportedSymptomsStatus(status.rawValue))
         }
     }
 
@@ -429,13 +418,13 @@ extension HealthKitConverter {
         case HKAppleECGAlgorithmVersion.version1.rawValue: "version1"
         case HKAppleECGAlgorithmVersion.version2.rawValue: "version2"
         default:
-            throw HealthKitConversionError.invalidECGEvidence(.unsupportedAlgorithmVersion(rawVersion))
+            throw HealthKitConversionError.ecgEvidence(.unsupportedAlgorithmVersion(rawVersion))
         }
     }
 
     static func decimalQuantity(_ value: Double, code: String, display: String) throws -> Quantity {
         guard value.isFinite else {
-            throw HealthKitConversionError.invalidECGEvidence(.invalidSamplingFrequency)
+            throw HealthKitConversionError.ecgEvidence(.invalidSamplingFrequency)
         }
         return Quantity(
             code: code.asFHIRStringPrimitive(),
@@ -458,17 +447,11 @@ extension HealthKitConverter {
             return utc
         case let identifier as String:
             guard let timeZone = TimeZone(identifier: identifier) else {
-                throw HealthKitConversionError.unsupportedMetadataValue(
-                    key: HKMetadataKeyTimeZone,
-                    value: identifier
-                )
+                throw HealthKitValueFailure.unsupportedMetadataValue(.timeZone)
             }
             return timeZone
-        case let value?:
-            throw HealthKitConversionError.unsupportedMetadataValue(
-                key: HKMetadataKeyTimeZone,
-                value: String(describing: value)
-            )
+        case .some:
+            throw HealthKitValueFailure.unsupportedMetadataValue(.timeZone)
         }
     }
 }

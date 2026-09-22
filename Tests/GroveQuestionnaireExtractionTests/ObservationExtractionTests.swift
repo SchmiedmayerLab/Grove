@@ -52,7 +52,7 @@ struct ObservationExtractionTests {
     }
 
     private static func context() throws -> QuestionnaireExtractionContext {
-        let systems = try PseudonymousIdentitySystems(
+        let opaque = try OpaqueIdentitySystems(
             sourceRecord: "https://study.example.org/fhir/NamingSystem/grove-source-record-v0",
             sourceOutput: "https://study.example.org/fhir/NamingSystem/grove-source-output-v0",
             writerRecord: "https://study.example.org/fhir/NamingSystem/grove-writer-record-v0",
@@ -64,15 +64,20 @@ struct ObservationExtractionTests {
             recordingDevice: "https://study.example.org/fhir/NamingSystem/grove-recording-device-v0",
             deviceSnapshot: "https://study.example.org/fhir/NamingSystem/grove-device-snapshot-v0"
         )
-        let scope = try PseudonymousIdentityScope.conformanceTesting(
+        let systems = try DeploymentIdentifierSystems(
+            opaque: opaque,
+            event: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
+            entryNode: "https://study.example.org/fhir/NamingSystem/grove-entry-node-v0"
+        )
+        let scope = try OpaqueIdentityScope.conformanceTesting(
             systems: systems,
             keyID: "test-key",
-            epoch: try CanonicalPositiveDecimal(1)
+            epoch: EventSequence(1)
         )
         let event = try ExchangeEventIdentifier(
             system: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
             producerInstance: try #require(UUID(uuidString: "6f9d1c4a-2b7e-4f18-9c33-5a1d0e7b2c48")),
-            sequence: 1
+            sequence: EventSequence(1)
         )
         var patient = ModelsR4.Patient()
         patient.id = "GroveQuestionnairePatientExample"
@@ -89,9 +94,6 @@ struct ObservationExtractionTests {
             repositoryScope: try BusinessIdentifier(
                 system: IdentifierSystem("https://study.example.org/fhir/NamingSystem/questionnaire-response"),
                 value: "default"
-            ),
-            entryNodeIdentifierSystem: try IdentifierSystem(
-                "https://study.example.org/fhir/NamingSystem/grove-entry-node-v0"
             ),
             conversionInstant: Date(timeIntervalSince1970: 1_787_931_125)
         )
@@ -175,7 +177,8 @@ struct ObservationExtractionTests {
             Issue.record("weight has no effectiveDateTime")
             return
         }
-        #expect(try effective.value == DateTime("2026-08-28T08:32:00-07:00"))
+        let expected: DateTime = "2026-08-28T08:32:00-07:00"
+        #expect(effective.value == expected)
     }
 
     @Test("The panel lands both readings on one Observation")
@@ -204,7 +207,7 @@ struct ObservationExtractionTests {
     @Test("Every Observation takes the response's exact authored instant, and issues it")
     func everyObservationTakesAuthored() throws {
         let (_, observations) = try Self.projected()
-        let authored = try DateTime("2026-08-28T08:32:00-07:00")
+        let authored: DateTime = "2026-08-28T08:32:00-07:00"
         for observation in observations {
             guard case .dateTime(let effective)? = observation.effective else {
                 Issue.record("observation has no effectiveDateTime")

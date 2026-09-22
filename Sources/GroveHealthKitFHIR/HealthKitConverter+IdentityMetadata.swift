@@ -47,10 +47,10 @@ extension HealthKitConverter {
             return
         }
         guard let syncIdentifier = identifierValue as? String, !syncIdentifier.isEmpty else {
-            throw HealthKitConversionError.invalidMetadataValue(key: HKMetadataKeySyncIdentifier)
+            throw HealthKitValueFailure.invalidMetadataValue(.syncIdentifier)
         }
         guard let versionValue else {
-            throw HealthKitConversionError.invalidMetadataValue(key: HKMetadataKeySyncVersion)
+            throw HealthKitValueFailure.invalidMetadataValue(.syncVersion)
         }
         let version = try canonicalSyncVersion(versionValue)
 
@@ -61,7 +61,7 @@ extension HealthKitConverter {
         }
         let identity = try context.identityScope.writerRecord(
             writerApplication: BusinessIdentifier(
-                system: Canonicals.appleBundleIdentifierSystem,
+                system: IdentifierSystem(Canonicals.appleBundleIdentifierSystem),
                 value: writerApplication
             ),
             writerRecordID: syncIdentifier
@@ -84,12 +84,12 @@ extension HealthKitConverter {
               ),
               !decimal.isNaN,
               decimal >= 0 else {
-            throw HealthKitConversionError.invalidMetadataValue(key: HKMetadataKeySyncVersion)
+            throw HealthKitValueFailure.invalidMetadataValue(.syncVersion)
         }
         var integral = Decimal()
         NSDecimalRound(&integral, &decimal, 0, .down)
         guard integral == decimal else {
-            throw HealthKitConversionError.invalidMetadataValue(key: HKMetadataKeySyncVersion)
+            throw HealthKitValueFailure.invalidMetadataValue(.syncVersion)
         }
         return NSDecimalString(&integral, Locale(identifier: "en_US_POSIX"))
     }
@@ -97,7 +97,7 @@ extension HealthKitConverter {
     /// Returns the optional caller-governed source-store identifier for the primary output.
     static func nativeIdentifiers(
         for sample: HKSample,
-        policy: HealthKitNativeIdentifierDisclosurePolicy
+        policy: GovernedSourceIdentifierDisclosurePolicy
     ) -> [Identifier] {
         [policy.identifier(for: sample.uuid.uuidString.lowercased())].compactMap { $0 }
     }

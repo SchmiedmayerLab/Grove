@@ -25,15 +25,18 @@ public enum QuestionnaireItemBoundError: Error, Equatable, Sendable {
 
 
 extension FHIRTypeWithExtensions {
-    /// The element's scoring weight from the current `itemWeight` extension.
+    /// The element's scoring weight from `itemWeight`, or the retired `ordinalValue` it replaced.
     public var itemWeight: Decimal? {
-        if case let .decimal(value) = extensions(
-            for: "http://hl7.org/fhir/StructureDefinition/itemWeight"
-        ).first?.value {
-            value.value?.decimal
-        } else {
-            nil
+        let urls: [FHIRPrimitive<FHIRURI>] = [
+            "http://hl7.org/fhir/StructureDefinition/itemWeight",
+            "http://hl7.org/fhir/StructureDefinition/ordinalValue"
+        ]
+        for url in urls {
+            if case let .decimal(value) = extensions(for: url).first?.value, let decimal = value.value?.decimal {
+                return decimal
+            }
         }
+        return nil
     }
 
     /// The `questionnaire-optionExclusive` flag on an answer option.
@@ -349,11 +352,11 @@ extension QuestionnaireItem {
             guard let expression = value.value?.string else {
                 throw QuestionnaireItemBoundError.missingValue(url: url)
             }
+            let values: [FHIRPathValue]
             do {
-                return try FHIRPathExpression.evaluate(
+                values = try FHIRPathExpression.evaluate(
                     expression: expression,
-                    evaluationInstant: evaluationInstant,
-                    as: DateComponents.self
+                    context: FHIRPathEvaluationContext(now: evaluationInstant)
                 )
             } catch {
                 throw QuestionnaireItemBoundError.invalidFHIRPath(
@@ -361,6 +364,15 @@ extension QuestionnaireItem {
                     expression: expression,
                     reason: String(describing: error)
                 )
+            }
+            guard values.count == 1 else {
+                throw QuestionnaireItemBoundError.unsupportedValue(url: url)
+            }
+            switch values[0] {
+            case .date(let components), .dateTime(let components), .time(let components):
+                return components
+            default:
+                throw QuestionnaireItemBoundError.unsupportedValue(url: url)
             }
         default:
             throw QuestionnaireItemBoundError.unsupportedValue(url: url)

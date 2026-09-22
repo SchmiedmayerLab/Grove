@@ -6,15 +6,17 @@
 // SPDX-License-Identifier: MIT
 //
 
+// The projection reads top-down from the entry point through measurement, envelope and values.
+
 #if canImport(HealthKit)
 
 import Foundation
-import GroveFHIRContract
+public import GroveFHIRContract
 public import HealthKit
 public import ModelsR4
 
 
-/// Why a Grove observation cannot become a HealthKit sample.
+/// Why a Grove observation cannot become a HealthKit sample; every case reports one registry code.
 public enum HealthKitSampleProjectionError: Error, Equatable, Sendable {
     /// The observation's code names no Grove measurement.
     case measurementUnknown(system: String, code: String)
@@ -24,30 +26,31 @@ public enum HealthKitSampleProjectionError: Error, Equatable, Sendable {
     case valueMissing(id: String)
     case componentMissing(id: String, code: String)
     case effectiveMissing(id: String)
+
+    public var diagnostic: ExchangeGraphDiagnostic {
+        let (rule, location): (ExchangeGraphRule, String) = switch self {
+        case .measurementUnknown, .measurementNotMappable: (.mobileInputUnsupportedSourceType, "Observation.code")
+        case .unitNotMappable: (.mobileOutputFixedQuantityUnit, "Observation.valueQuantity.code")
+        case .valueMissing: (.mobileInputValueShapeInvalid, "Observation.value")
+        case .componentMissing: (.mobileInputRequiredComponentMissing, "Observation.component")
+        case .effectiveMissing: (.mobileInputEffectivePeriodInvalid, "Observation.effective")
+        }
+        return ExchangeGraphDiagnostic(code: rule.rawValue, reason: rule.reason, location: location, severity: rule.severity)
+    }
 }
 
 
-/// Projects a Grove observation back into the HealthKit sample it describes.
-///
-/// This is the reverse of the converter's observation assembly, derived from the same catalog
-/// bindings: the observation's code selects the measurement contract, the contract selects the
-/// one HealthKit quantity type bound to it, and the published unit bindings read the value's
-/// UCUM unit.
-/// A measurement bound to several HealthKit types -- or to none -- refuses rather than guessing,
-/// exactly as the forward direction refuses source types it does not model.
-///
-/// The sample carries what the observation states beyond its value: a manual-entry recording
-/// method becomes `HKMetadataKeyWasUserEntered`, the effective instant's zone becomes
-/// `HKMetadataKeyTimeZone`, and the observation's minted source-output identity becomes
-/// `HKMetadataKeySyncIdentifier` with the sync version taken from the writer record version the
-/// forward direction wrote, or from the status when the observation carries none -- an amended
-/// observation replaces the final one it corrects. An observation taken from a
-/// Grove exchange bundle therefore syncs under the same deterministic identity the exchange
-/// dedups on; one from elsewhere can pass an explicit identifier instead.
+/// One entry of a graph that could not be projected back into a sample.
+public struct HealthKitSampleProjectionFailure: Error, Sendable {
+    public let fullURL: FHIRPrimitive<FHIRURI>
+    public let error: HealthKitSampleProjectionError
+}
+
+
 @available(iOS 18, macOS 15, watchOS 11, *)
-public enum HealthKitSampleProjection {
+enum HealthKitSampleProjection {
     /// The instant and metadata every projected sample shares.
-    private struct SampleEnvelope {
+    struct SampleEnvelope {
         let date: Date
         let metadata: [String: Any]
     }
@@ -67,37 +70,7 @@ public enum HealthKitSampleProjection {
         }
     }()
 
-    /// The one sample the observation describes.
-    ///
-    /// - Parameters:
-    ///   - observation: A Grove observation whose code names a catalog measurement.
-    ///   - syncIdentifier: A stable per-reading discriminator. When nil, the observation's
-    ///     own source-output identity is used, so a reading re-projected from any exchange
-    ///     bundle replaces the earlier sample instead of duplicating it.
-    public static func sample(
-        for observation: ModelsR4.Observation,
-        syncIdentifier: String? = nil
-    ) throws(HealthKitSampleProjectionError) -> HKSample {
-        let contract = try contract(for: observation)
-        let envelope = try envelope(of: observation, contract: contract, syncIdentifier: syncIdentifier)
-        if contract.code.code == MeasurementCatalog.bloodPressure.code.code {
-            return try bloodPressureCorrelation(for: observation, contract: contract, envelope: envelope)
-        }
-        guard case .quantity(let quantity)? = observation.value else {
-            throw HealthKitSampleProjectionError.valueMissing(id: contract.id)
-        }
-        return HKQuantitySample(
-            type: HKQuantityType(try quantityTypeIdentifier(for: contract.id)),
-            quantity: try healthKitQuantity(quantity, contract: contract.quantity, measurementID: contract.id),
-            start: envelope.date,
-            end: envelope.date,
-            metadata: envelope.metadata
-        )
-    }
-
-    // MARK: Measurement Resolution
-
-    private static func contract(
+    static func contract(
         for observation: ModelsR4.Observation
     ) throws(HealthKitSampleProjectionError) -> HealthKitFHIRObservationContract {
         let coding = observation.code.coding?.first
@@ -112,7 +85,7 @@ public enum HealthKitSampleProjection {
         return HealthKitFHIRObservationContract(shared: shared)
     }
 
-    private static func quantityTypeIdentifier(
+    static func quantityTypeIdentifier(
         for measurementID: String
     ) throws(HealthKitSampleProjectionError) -> HKQuantityTypeIdentifier {
         guard let identifier = quantityTypesByMeasurementID[measurementID] else {
@@ -121,9 +94,7 @@ public enum HealthKitSampleProjection {
         return identifier
     }
 
-    // MARK: Sample Envelope
-
-    private static func envelope(
+    static func envelope(
         of observation: ModelsR4.Observation,
         contract: HealthKitFHIRObservationContract,
         syncIdentifier: String?
@@ -158,14 +129,12 @@ public enum HealthKitSampleProjection {
     }
 
     private static func sourceOutputIdentity(of observation: ModelsR4.Observation) -> String? {
-        let roleSystem = Canonicals.identifierRoleCodeSystem.value?.url.absoluteString
-        let identifier = observation.identifier?.first { identifier in
-            identifier.type?.coding?.contains { coding in
-                coding.system?.value?.url.absoluteString == roleSystem
-                    && coding.code?.value?.string == "source-output"
-            } ?? false
-        }
-        return identifier?.value?.value?.string
+        observation.identifier?.first { identifier in
+            identifier.type?.coding?.contains {
+                $0.system == Canonicals.identifierRoleCodeSystem
+                    && $0.code?.value?.string == GroveIdentifierRole.sourceOutput.rawValue
+            } == true
+        }?.value?.value?.string
     }
 
     private static func isManualEntry(_ observation: ModelsR4.Observation) -> Bool {
@@ -179,9 +148,7 @@ public enum HealthKitSampleProjection {
         } ?? false
     }
 
-    // MARK: Values
-
-    private static func bloodPressureCorrelation(
+    static func bloodPressureCorrelation(
         for observation: ModelsR4.Observation,
         contract: HealthKitFHIRObservationContract,
         envelope: SampleEnvelope
@@ -225,7 +192,7 @@ public enum HealthKitSampleProjection {
     /// The stated system and code are checked against the contract rather than looked up: a code
     /// from another dimension would otherwise mint an HKQuantity that `HKQuantitySample` rejects
     /// with an uncatchable exception.
-    private static func healthKitQuantity(
+    static func healthKitQuantity(
         _ quantity: Quantity,
         contract: QuantityContract?,
         measurementID: String
@@ -241,6 +208,62 @@ public enum HealthKitSampleProjection {
             throw HealthKitSampleProjectionError.unitNotMappable(code: code)
         }
         return HKQuantity(unit: unit, doubleValue: NSDecimalNumber(decimal: decimal).doubleValue)
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension Observation {
+    /// The one sample this observation describes.
+    ///
+    /// This is the reverse of the converter's observation assembly, derived from the same catalog
+    /// bindings: the code selects the measurement contract, the contract selects the one HealthKit
+    /// quantity type bound to it, and the published unit bindings read the value's UCUM unit.
+    /// A measurement bound to several HealthKit types, or to none, refuses rather than guessing.
+    ///
+    /// A manual-entry recording method becomes `HKMetadataKeyWasUserEntered`, the effective
+    /// instant's zone `HKMetadataKeyTimeZone`, and the minted source-output identity
+    /// `HKMetadataKeySyncIdentifier`, so a reading re-projected from any exchange graph replaces
+    /// the earlier sample instead of duplicating it.
+    ///
+    /// - Parameter syncIdentifier: A stable per-reading discriminator in place of the source-output identity.
+    public func healthKitSample(syncIdentifier: String? = nil) throws(HealthKitSampleProjectionError) -> HKSample {
+        let contract = try HealthKitSampleProjection.contract(for: self)
+        let envelope = try HealthKitSampleProjection.envelope(of: self, contract: contract, syncIdentifier: syncIdentifier)
+        if contract.code.code == MeasurementCatalog.bloodPressure.code.code {
+            return try HealthKitSampleProjection.bloodPressureCorrelation(for: self, contract: contract, envelope: envelope)
+        }
+        guard case .quantity(let quantity)? = value else {
+            throw HealthKitSampleProjectionError.valueMissing(id: contract.id)
+        }
+        return HKQuantitySample(
+            type: HKQuantityType(try HealthKitSampleProjection.quantityTypeIdentifier(for: contract.id)),
+            quantity: try HealthKitSampleProjection.healthKitQuantity(quantity, contract: contract.quantity, measurementID: contract.id),
+            start: envelope.date,
+            end: envelope.date,
+            metadata: envelope.metadata
+        )
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension ExchangeGraph {
+    /// Every Observation of the graph as the sample it describes, with a typed failure for each that refuses.
+    public func healthKitSamples() -> ConversionBatch<HKSample, HealthKitSampleProjectionFailure> {
+        var samples: [HKSample] = []
+        var failures: [HealthKitSampleProjectionFailure] = []
+        for entry in bundle.entry ?? [] {
+            guard case .observation(let observation)? = entry.resource, let fullURL = entry.fullUrl else {
+                continue
+            }
+            do {
+                samples.append(try observation.healthKitSample())
+            } catch {
+                failures.append(HealthKitSampleProjectionFailure(fullURL: fullURL, error: error))
+            }
+        }
+        return ConversionBatch(conversions: samples, failures: failures)
     }
 }
 

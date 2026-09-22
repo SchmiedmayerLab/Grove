@@ -32,7 +32,7 @@ public enum GroveProviderCode: String, CaseIterable, Hashable, Sendable {
 
 
 /// The closed resource-kind role used by an immutable event-time Device snapshot.
-public enum GroveDeviceSnapshotRole: String, CaseIterable, Hashable, Sendable {
+public enum DeviceSnapshotRole: String, CaseIterable, Hashable, Sendable {
     case application
     case host
     case recordingDevice = "recording-device"
@@ -40,7 +40,7 @@ public enum GroveDeviceSnapshotRole: String, CaseIterable, Hashable, Sendable {
 
 
 /// The closed domain-separation token fed to the Grove HMAC preimage.
-public enum PseudonymousIdentityKind: String, CaseIterable, Hashable, Sendable {
+public enum OpaqueIdentityKind: String, CaseIterable, Hashable, Sendable {
     case sourceRecord = "source-record"
     case sourceOutput = "source-output"
     case writerRecord = "writer-record"

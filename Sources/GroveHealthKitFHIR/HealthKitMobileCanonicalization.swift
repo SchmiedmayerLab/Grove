@@ -22,7 +22,7 @@ enum HealthKitMobileCanonicalization {
         do {
             return try GroveFHIRDecimal(value).decimal
         } catch {
-            throw HealthKitConversionError.invalidValue
+            throw HealthKitValueFailure.shapeInvalid
         }
     }
 
@@ -45,7 +45,7 @@ enum HealthKitMobileCanonicalization {
         let sourceOffset = timeZone.secondsFromGMT(for: date)
         guard sourceOffset.isMultiple(of: 60),
               let fixedOffset = TimeZone(secondsFromGMT: sourceOffset) else {
-            throw HealthKitConversionError.invalidValue
+            throw HealthKitValueFailure.shapeInvalid
         }
         let lexical = try lexicalDateTime(
             wholeSeconds: wholeSeconds,
@@ -56,7 +56,7 @@ enum HealthKitMobileCanonicalization {
         do {
             return try DateTime(lexical)
         } catch {
-            throw HealthKitConversionError.invalidValue
+            throw HealthKitValueFailure.shapeInvalid
         }
     }
 
@@ -64,7 +64,7 @@ enum HealthKitMobileCanonicalization {
         let milliseconds = (date.timeIntervalSince1970 * 1_000).rounded(.toNearestOrEven)
         guard milliseconds.isFinite,
               let result = Int64(exactly: milliseconds) else {
-            throw HealthKitConversionError.invalidValue
+            throw HealthKitValueFailure.shapeInvalid
         }
         return result
     }
@@ -89,7 +89,7 @@ enum HealthKitMobileCanonicalization {
               let hour = components.hour,
               let minute = components.minute,
               let second = components.second else {
-            throw HealthKitConversionError.invalidValue
+            throw HealthKitValueFailure.shapeInvalid
         }
 
         let fraction = millisecond == 0

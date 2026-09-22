@@ -36,6 +36,7 @@ extension ExchangeGraph {
         Canonicals.lifecycleEventCodeSystem,
         Canonicals.retractionTargetRoleCodeSystem
     ].compactMap { $0.value?.url.absoluteString })
+    private static let roleSystem = Canonicals.identifierRoleCodeSystemValue
 
     static func validateGovernedReferenceTargets(
         entries: [BundleEntry]
@@ -142,7 +143,7 @@ extension ExchangeGraph {
         let literal = reference.reference?.value?.string
         let identifier = reference.identifier
         guard (literal != nil) != (identifier != nil) else {
-            throw referenceViolation(.referenceShape, baseLocation: diagnosticBaseLocation)
+            throw referenceViolation(.mobileExchangeReferenceShape, baseLocation: diagnosticBaseLocation)
         }
         if let literal {
             try validateLiteralReference(
@@ -155,7 +156,7 @@ extension ExchangeGraph {
             return
         }
         guard reference.reference == nil, let identifier else {
-            throw referenceViolation(.referenceShape, baseLocation: diagnosticBaseLocation)
+            throw referenceViolation(.mobileExchangeReferenceShape, baseLocation: diagnosticBaseLocation)
         }
         try validateLogicalReference(
             reference,
@@ -175,21 +176,21 @@ extension ExchangeGraph {
     ) throws(ExchangeGraphError) {
         guard !literal.hasPrefix("#") else {
             throw referenceViolation(
-                .containedResourceProhibited,
+                .mobileExchangeContainedResourceProhibited,
                 baseLocation: diagnosticBaseLocation,
                 field: "reference"
             )
         }
         guard let actualType = context.resourceType(for: literal) else {
             throw referenceViolation(
-                .resolvedReference,
+                .mobileExchangeResolvedReference,
                 baseLocation: diagnosticBaseLocation,
                 field: "reference"
             )
         }
         guard expectedTokens.contains(actualType) else {
             throw referenceViolation(
-                .referenceTargetType,
+                .mobileExchangeReferenceTargetType,
                 baseLocation: diagnosticBaseLocation,
                 field: "reference"
             )
@@ -197,7 +198,7 @@ extension ExchangeGraph {
         if let declaredType = reference.type?.value?.url.absoluteString,
            declaredType != actualType {
             throw referenceViolation(
-                .referenceDeclaredType,
+                .mobileExchangeReferenceDeclaredType,
                 baseLocation: diagnosticBaseLocation,
                 field: "type"
             )
@@ -216,20 +217,23 @@ extension ExchangeGraph {
               expectedTokens.contains(declaredType),
               let businessIdentifier = try? BusinessIdentifier(identifier) else {
             throw referenceViolation(
-                logicalPatient ? .logicalPatientReference : .referenceShape,
+                logicalPatient ? .mobileExchangeLogicalPatientReference : .mobileExchangeReferenceShape,
                 baseLocation: diagnosticBaseLocation
             )
         }
-        guard !logicalPatient || businessIdentifier.role == nil else {
+        let carriesGroveRole = identifier.type?.coding?.contains {
+            $0.system?.value?.url.absoluteString == roleSystem
+        } == true
+        guard !logicalPatient || !carriesGroveRole else {
             throw referenceViolation(
-                .logicalPatientReference,
+                .mobileExchangeLogicalPatientReference,
                 baseLocation: diagnosticBaseLocation,
                 field: "identifier.type"
             )
         }
-        guard !logicalPatient || !logicalPatientReservedSystems.contains(businessIdentifier.systemValue) else {
+        guard !logicalPatient || !logicalPatientReservedSystems.contains(businessIdentifier.system.rawValue) else {
             throw referenceViolation(
-                .logicalPatientReference,
+                .mobileExchangeLogicalPatientReference,
                 baseLocation: diagnosticBaseLocation,
                 field: "identifier.system"
             )
@@ -246,7 +250,7 @@ extension ExchangeGraph {
         }
         return .contractViolation(ExchangeGraphDiagnostic(
             code: rule.rawValue,
-            reason: rule.diagnostic.reason,
+            reason: rule.reason,
             location: field.map { "\(baseLocation).\($0)" } ?? baseLocation
         ))
     }
@@ -265,7 +269,7 @@ extension ExchangeGraph {
         } catch let error as ExchangeGraphError {
             throw error
         } catch {
-            throw .ruleViolation(.referenceTargetType)
+            throw .ruleViolation(.mobileExchangeReferenceTargetType)
         }
     }
 
@@ -279,14 +283,14 @@ extension ExchangeGraph {
                 return
             }
             guard let rawReference = object["valueReference"] as? [String: Any] else {
-                throw .ruleViolation(.referenceShape)
+                throw .ruleViolation(.mobileExchangeReferenceShape)
             }
             let reference: Reference
             do {
                 let data = try JSONSerialization.data(withJSONObject: rawReference)
                 reference = try JSONDecoder().decode(Reference.self, from: data)
             } catch {
-                throw .ruleViolation(.referenceTargetType)
+                throw .ruleViolation(.mobileExchangeReferenceTargetType)
             }
             try validateReference(reference, expected: expected, context: context)
         }
@@ -312,6 +316,16 @@ extension ExchangeGraph {
                 && grove[0].code?.value?.string == GroveLifecycleContract.sourceRecordRetracted
                 && iso.isEmpty
         }
+    }
+
+    /// A retraction Provenance that states only the ISO transform activity is a transform Provenance.
+    static func isTransformOnlyLifecycle(_ provenance: Provenance) -> Bool {
+        let codings = provenance.activity?.coding ?? []
+        let grove = codings.contains {
+            $0.system?.value?.url.absoluteString == Canonicals.lifecycleEventCodeSystem.value?.url.absoluteString
+        }
+        let iso = codings.contains { $0.system?.value?.url.absoluteString == transformSystem }
+        return iso && !grove
     }
 
     static func hasRequiredTimes(_ provenance: Provenance) -> Bool {
@@ -367,9 +381,9 @@ extension ExchangeGraph {
         }
         guard let identifier = assembler.who.identifier,
               assembler.who.type?.value?.url.absoluteString == ResourceType.device.rawValue,
-              let businessIdentifier = try? BusinessIdentifier(identifier),
-              businessIdentifier.role == .deviceSnapshot,
-              ExchangeIdentity.isCanonicalOpaqueIdentifierValue(businessIdentifier.value) else {
+              let snapshot = try? RoledIdentifier(identifier),
+              snapshot.role == .deviceSnapshot,
+              ExchangeIdentity.isCanonicalOpaqueIdentifierValue(snapshot.identifier.value) else {
             return false
         }
         return true
@@ -377,19 +391,19 @@ extension ExchangeGraph {
 
     static func exactSourceEntity(
         in provenance: Provenance
-    ) throws(ExchangeGraphError) -> BusinessIdentifier {
+    ) throws(ExchangeGraphError) -> RoledIdentifier {
         guard provenance.entity?.count == 1,
               let entity = provenance.entity?.first else {
-            throw .ruleViolation(.singleSourceEntity)
+            throw .ruleViolation(.mobileExchangeSingleSourceEntity)
         }
         guard entity.role.value == .source,
               entity.what.reference == nil,
               let identifier = entity.what.identifier,
-              let businessIdentifier = try? BusinessIdentifier(identifier),
-              businessIdentifier.role == .sourceRecord,
-              ExchangeIdentity.isCanonicalOpaqueIdentifierValue(businessIdentifier.value) else {
-            throw .ruleViolation(.logicalSourceEntity)
+              let sourceRecord = try? RoledIdentifier(identifier),
+              sourceRecord.role == .sourceRecord,
+              ExchangeIdentity.isCanonicalOpaqueIdentifierValue(sourceRecord.identifier.value) else {
+            throw .ruleViolation(.mobileExchangeLogicalSourceEntity)
         }
-        return businessIdentifier
+        return sourceRecord
     }
 }

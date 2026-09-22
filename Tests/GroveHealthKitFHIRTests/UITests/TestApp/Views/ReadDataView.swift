@@ -58,13 +58,13 @@ struct ReadDataView<Sample: _HKSampleWithSampleType>: View {
         let sequenceBase = UInt64(max(1, Int64(now.timeIntervalSince1970 * 1_000_000)))
         let bundles = try samples.enumerated().map { offset, sample in
             guard let healthKitSample = sample as? HKSample else {
-                throw HealthKitConversionError.invalidValue
+                throw NotASample()
             }
             let context = try makeFHIRTestContext(
                 sequence: sequenceBase + UInt64(offset),
                 conversionInstant: now
             )
-            return try HealthKitConverter().convert(healthKitSample, context: context).bundle
+            return try HealthKitConverter().convert(healthKitSample, context: context).primary.bundle
         }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
@@ -72,3 +72,6 @@ struct ReadDataView<Sample: _HKSampleWithSampleType>: View {
         self.json = String(decoding: data, as: UTF8.self)
     }
 }
+
+
+private struct NotASample: Error {}

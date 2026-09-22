@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import CryptoKit
 import Foundation
 import GroveFHIRContract
 import ModelsR4
@@ -13,23 +14,27 @@ import Testing
 
 @Suite
 struct GroveFHIRExchangeIdentityTests {
-    private static var scope: PseudonymousIdentityScope {
+    private static var scope: OpaqueIdentityScope {
         get throws {
-            try PseudonymousIdentityScope.conformanceTesting(
-                systems: PseudonymousIdentitySystems(
-                    sourceRecord: "https://study.example.org/fhir/NamingSystem/source-record-test-key-1",
-                    sourceOutput: "https://study.example.org/fhir/NamingSystem/source-output-test-key-1",
-                    writerRecord: "https://study.example.org/fhir/NamingSystem/writer-record-test-key-1",
-                    providerRecord: "https://study.example.org/fhir/NamingSystem/provider-record-test-key-1",
-                    providerOutput: "https://study.example.org/fhir/NamingSystem/provider-output-test-key-1",
-                    sourceArtifact: "https://study.example.org/fhir/NamingSystem/source-artifact-test-key-1",
-                    providerArtifact: "https://study.example.org/fhir/NamingSystem/provider-artifact-test-key-1",
-                    sourceContext: "https://study.example.org/fhir/NamingSystem/source-context-test-key-1",
-                    recordingDevice: "https://study.example.org/fhir/NamingSystem/recording-device-test-key-1",
-                    deviceSnapshot: "https://study.example.org/fhir/NamingSystem/device-snapshot-test-key-1"
+            try OpaqueIdentityScope.conformanceTesting(
+                systems: DeploymentIdentifierSystems(
+                    opaque: OpaqueIdentitySystems(
+                        sourceRecord: "https://study.example.org/fhir/NamingSystem/source-record-test-key-1",
+                        sourceOutput: "https://study.example.org/fhir/NamingSystem/source-output-test-key-1",
+                        writerRecord: "https://study.example.org/fhir/NamingSystem/writer-record-test-key-1",
+                        providerRecord: "https://study.example.org/fhir/NamingSystem/provider-record-test-key-1",
+                        providerOutput: "https://study.example.org/fhir/NamingSystem/provider-output-test-key-1",
+                        sourceArtifact: "https://study.example.org/fhir/NamingSystem/source-artifact-test-key-1",
+                        providerArtifact: "https://study.example.org/fhir/NamingSystem/provider-artifact-test-key-1",
+                        sourceContext: "https://study.example.org/fhir/NamingSystem/source-context-test-key-1",
+                        recordingDevice: "https://study.example.org/fhir/NamingSystem/recording-device-test-key-1",
+                        deviceSnapshot: "https://study.example.org/fhir/NamingSystem/device-snapshot-test-key-1"
+                    ),
+                    event: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
+                    entryNode: "https://study.example.org/fhir/NamingSystem/grove-entry-node-v0"
                 ),
                 keyID: "test-key",
-                epoch: 1
+                epoch: EventSequence(1)
             )
         }
     }
@@ -130,11 +135,11 @@ struct GroveFHIRExchangeIdentityTests {
         let event = try ExchangeEventIdentifier(
             system: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
             producerInstance: #require(UUID(uuidString: "1f5c58aa-6ec6-4e79-a682-829a9debd3f5")),
-            sequence: 42
+            sequence: EventSequence(42)
         )
-        let node = try ExchangeNodeKey(
+        let node = try EntryNodeKey(
             system: "https://study.example.org/fhir/NamingSystem/grove-entry-node-v0",
-            eventIdentifier: event,
+            event: event,
             nodeRole: "conversion-provenance",
             ordinal: 0
         )
@@ -142,10 +147,10 @@ struct GroveFHIRExchangeIdentityTests {
             system: "https://xn--fsq.example/%E8%AD%98%E5%88%A5%E5%AD%90",
             value: "café|東京"
         )
-        #expect(event.businessIdentifier.value == "e0:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:42")
+        #expect(event.identifier.value == "e0:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:42")
         #expect(node.identifier.value == "n0:conversion-provenance:0:8JmcQF7rmULm9uJBkHWruJwfMu3GJTxGWqXWn2DGqWk")
-        #expect(try ExchangeIdentity.fullURL(for: node.identifier) == "urn:uuid:71abc484-b9ee-511e-b22a-5b35d026d620")
-        #expect(try ExchangeIdentity.fullURL(for: unicode) == "urn:uuid:d35e4203-71f6-595c-bd1b-306b8414974e")
+        #expect(try node.identifier.fullURLString == "urn:uuid:71abc484-b9ee-511e-b22a-5b35d026d620")
+        #expect(try unicode.fullURLString == "urn:uuid:d35e4203-71f6-595c-bd1b-306b8414974e")
     }
 
     @Test("Typed event construction rejects UUIDs outside the canonical RFC 4122 domain")
@@ -155,7 +160,7 @@ struct GroveFHIRExchangeIdentityTests {
             try ExchangeEventIdentifier(
                 system: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
                 producerInstance: invalid,
-                sequence: 1
+                sequence: EventSequence(1)
             )
         }
     }
@@ -168,7 +173,7 @@ struct GroveFHIRExchangeIdentityTests {
             value: "v0:test-key:1:BDCkwCFA2Wg4-fHVRsy4L0JWYuvQknZkCTXL4Ct01IQ"
         )
         #expect(throws: ExchangeIdentityError.invalidIdentifierRole("missing")) {
-            try BusinessIdentifier(identifier)
+            try RoledIdentifier(identifier)
         }
     }
 
@@ -181,12 +186,12 @@ struct GroveFHIRExchangeIdentityTests {
 
     @Test("The published conformance key cannot initialize a production identity scope")
     func rejectsPublishedConformanceKeyInProductionInitializer() throws {
-        #expect(throws: PseudonymousIdentityError.publishedConformanceKeyProhibited) {
-            try PseudonymousIdentityScope(
+        #expect(throws: OpaqueIdentityError.publishedConformanceKeyProhibited) {
+            try OpaqueIdentityScope(
                 systems: Self.scope.systems,
                 keyID: "must-not-ship",
-                epoch: 1,
-                key: Data((0...31).map(UInt8.init))
+                epoch: EventSequence(1),
+                key: SymmetricKey(data: Data((0...31).map(UInt8.init)))
             )
         }
     }
@@ -201,7 +206,7 @@ extension GroveFHIRExchangeIdentityTests {
         let event = try ExchangeEventIdentifier(
             system: "https://example.org/events",
             producerInstance: #require(UUID(uuidString: "2eafba7b-4c21-4bf5-ad46-351b0176b25a")),
-            sequence: 1
+            sequence: EventSequence(1)
         )
         expectEmptySourceComponents(repository: repository)
         #expect(Set(GroveProviderCode.allCases.map(\.rawValue)) == ["google-health-api", "oura", "withings"])
@@ -224,13 +229,13 @@ extension GroveFHIRExchangeIdentityTests {
     }
 
     private func expectEmptySourceComponents(repository: BusinessIdentifier) {
-        #expect(throws: PseudonymousIdentityError.emptyComponent("adapterID")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("adapterID")) {
             try Self.scope.sourceRecord(adapterID: "", sourceType: "type", repositoryScope: repository, nativeRecordID: "id")
         }
-        #expect(throws: PseudonymousIdentityError.emptyComponent("sourceType")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("sourceType")) {
             try Self.scope.sourceRecord(adapterID: "adapter", sourceType: "", repositoryScope: repository, nativeRecordID: "id")
         }
-        #expect(throws: PseudonymousIdentityError.emptyComponent("nativeRecordID")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("nativeRecordID")) {
             try Self.scope.sourceRecord(adapterID: "adapter", sourceType: "type", repositoryScope: repository, nativeRecordID: "")
         }
     }
@@ -241,7 +246,7 @@ extension GroveFHIRExchangeIdentityTests {
         subject: BusinessIdentifier,
         event: ExchangeEventIdentifier
     ) {
-        #expect(throws: PseudonymousIdentityError.emptyComponent("outputRole")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("outputRole")) {
             try Self.scope.sourceOutput(
                 adapterID: "adapter",
                 sourceType: "type",
@@ -251,7 +256,7 @@ extension GroveFHIRExchangeIdentityTests {
                 outputDiscriminator: "single"
             )
         }
-        #expect(throws: PseudonymousIdentityError.emptyComponent("outputDiscriminator")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("outputDiscriminator")) {
             try Self.scope.sourceOutput(
                 adapterID: "adapter",
                 sourceType: "type",
@@ -261,10 +266,10 @@ extension GroveFHIRExchangeIdentityTests {
                 outputDiscriminator: ""
             )
         }
-        #expect(throws: PseudonymousIdentityError.emptyComponent("writerRecordID")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("writerRecordID")) {
             try Self.scope.writerRecord(writerApplication: application, writerRecordID: "")
         }
-        #expect(throws: PseudonymousIdentityError.emptyComponent("formatCode")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("formatCode")) {
             try Self.scope.sourceArtifact(
                 adapterID: "adapter",
                 sourceType: "type",
@@ -274,26 +279,26 @@ extension GroveFHIRExchangeIdentityTests {
                 partIndex: 0
             )
         }
-        #expect(throws: PseudonymousIdentityError.emptyComponent("contextType")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("contextType")) {
             try Self.scope.sourceContext(
                 adapterID: "adapter", contextType: "", repositoryScope: repository, nativeContextID: "id"
             )
         }
-        #expect(throws: PseudonymousIdentityError.emptyComponent("nativeContextID")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("nativeContextID")) {
             try Self.scope.sourceContext(
                 adapterID: "adapter", contextType: "context", repositoryScope: repository, nativeContextID: ""
             )
         }
-        #expect(throws: PseudonymousIdentityError.emptyComponent("stableUnitToken")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("stableUnitToken")) {
             try Self.scope.recordingDevice(adapterID: "adapter", subject: subject, stableUnitToken: "")
         }
-        #expect(throws: PseudonymousIdentityError.emptyComponent("sourceDeviceToken")) {
-            try Self.scope.deviceSnapshot(eventIdentifier: event, deviceRole: .host, sourceDeviceToken: "")
+        #expect(throws: OpaqueIdentityError.emptyComponent("sourceDeviceToken")) {
+            try Self.scope.deviceSnapshot(event: event, role: .host, sourceDeviceToken: "")
         }
     }
 
     private func expectProviderKindRequired(_ providerCode: String, repository: BusinessIdentifier) {
-        #expect(throws: PseudonymousIdentityError.providerKindRequired(providerCode)) {
+        #expect(throws: OpaqueIdentityError.providerKindRequired(providerCode)) {
             try Self.scope.sourceRecord(
                 adapterID: providerCode,
                 sourceType: "type",
@@ -301,7 +306,7 @@ extension GroveFHIRExchangeIdentityTests {
                 nativeRecordID: "id"
             )
         }
-        #expect(throws: PseudonymousIdentityError.providerKindRequired(providerCode)) {
+        #expect(throws: OpaqueIdentityError.providerKindRequired(providerCode)) {
             try Self.scope.sourceOutput(
                 adapterID: providerCode,
                 sourceType: "type",
@@ -311,7 +316,7 @@ extension GroveFHIRExchangeIdentityTests {
                 outputDiscriminator: "single"
             )
         }
-        #expect(throws: PseudonymousIdentityError.providerKindRequired(providerCode)) {
+        #expect(throws: OpaqueIdentityError.providerKindRequired(providerCode)) {
             try Self.scope.sourceArtifact(
                 adapterID: providerCode,
                 sourceType: "type",
@@ -325,7 +330,7 @@ extension GroveFHIRExchangeIdentityTests {
 
     @Test("The closed identity-kind domain publishes the protocol's exact arities")
     func identityKindArities() {
-        #expect(Dictionary(uniqueKeysWithValues: PseudonymousIdentityKind.allCases.map {
+        #expect(Dictionary(uniqueKeysWithValues: OpaqueIdentityKind.allCases.map {
             ($0.rawValue, $0.componentCount)
         }) == [
             "source-record": 5,
@@ -344,11 +349,11 @@ extension GroveFHIRExchangeIdentityTests {
     @Test("Protocol decimal coordinates have canonical spelling and no UInt64 ceiling")
     func unboundedProtocolDecimals() throws {
         let aboveUInt64 = "18446744073709551616"
-        let wideEpochScope = try PseudonymousIdentityScope(
+        let wideEpochScope = try OpaqueIdentityScope(
             systems: Self.scope.systems,
             keyID: "wide-epoch",
-            epoch: CanonicalPositiveDecimal(aboveUInt64),
-            key: Data(repeating: 0x43, count: 32)
+            epoch: EventSequence(aboveUInt64),
+            key: SymmetricKey(data: Data(repeating: 0x43, count: 32))
         )
         let wideEpochIdentity = try wideEpochScope.sourceRecord(
             adapterID: "healthkit",
@@ -359,11 +364,11 @@ extension GroveFHIRExchangeIdentityTests {
         let event = try ExchangeEventIdentifier(
             system: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
             producerInstance: #require(UUID(uuidString: "1f5c58aa-6ec6-4e79-a682-829a9debd3f5")),
-            sequence: CanonicalPositiveDecimal(aboveUInt64)
+            sequence: EventSequence(aboveUInt64)
         )
-        let node = try ExchangeNodeKey(
+        let node = try EntryNodeKey(
             system: "https://study.example.org/fhir/NamingSystem/grove-entry-node-v0",
-            eventIdentifier: event,
+            event: event,
             nodeRole: "conversion-provenance",
             ordinal: CanonicalNonnegativeDecimal(aboveUInt64)
         )
@@ -380,7 +385,7 @@ extension GroveFHIRExchangeIdentityTests {
         #expect(wideEpochIdentity.value.hasPrefix("v0:wide-epoch:\(aboveUInt64):"))
         #expect(ExchangeIdentity.isCanonicalOpaqueIdentifierValue(wideEpochIdentity.value))
         #expect(!ExchangeIdentity.isCanonicalOpaqueIdentifierValue("v0:wide-epoch:01:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
-        #expect(event.businessIdentifier.value.hasSuffix(":\(aboveUInt64)"))
+        #expect(event.identifier.value.hasSuffix(":\(aboveUInt64)"))
         #expect(node.ordinal.rawValue == aboveUInt64)
         #expect(node.identifier.value.contains(":\(aboveUInt64):"))
         #expect(artifact.role == .sourceArtifact)
@@ -388,16 +393,15 @@ extension GroveFHIRExchangeIdentityTests {
     }
 
     private func expectInvalidProtocolDecimalSpellings() {
-        #expect(throws: CanonicalDecimalError.invalidPositiveDecimal("0")) {
-            try CanonicalPositiveDecimal("0")
+        #expect(throws: ExchangeIdentityError.invalidEventSequence("0")) {
+            try EventSequence("0")
         }
         #expect(throws: ExchangeIdentityError.invalidEventIdentifier(
             "e0:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:01"
         )) {
             try ExchangeEventIdentifier(BusinessIdentifier(
                 system: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
-                value: "e0:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:01",
-                role: .event
+                value: "e0:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:01"
             ))
         }
     }
@@ -425,7 +429,7 @@ extension GroveFHIRExchangeIdentityTests {
         arguments: ["1", "18446744073709551616", "9999999999999999999999999999999999999999"]
     )
     func canonicalPositiveProtocolDecimal(_ rawValue: String) throws {
-        #expect(try CanonicalPositiveDecimal(rawValue).rawValue == rawValue)
+        #expect(try EventSequence(rawValue).rawValue == rawValue)
     }
 
     @Test(
@@ -433,8 +437,8 @@ extension GroveFHIRExchangeIdentityTests {
         arguments: ["", "0", "00", "01", "-1", "+1", "1.0", " 1", "1 ", "١"]
     )
     func noncanonicalPositiveProtocolDecimal(_ rawValue: String) {
-        #expect(throws: CanonicalDecimalError.invalidPositiveDecimal(rawValue)) {
-            try CanonicalPositiveDecimal(rawValue)
+        #expect(throws: ExchangeIdentityError.invalidEventSequence(rawValue)) {
+            try EventSequence(rawValue)
         }
     }
 }

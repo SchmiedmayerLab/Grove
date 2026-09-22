@@ -9,6 +9,7 @@
 import Foundation
 @testable import GroveQuestionnaire
 @testable import GroveQuestionnaireFHIR
+@testable import GroveQuestionnaireUI
 import ModelsR4
 import Testing
 

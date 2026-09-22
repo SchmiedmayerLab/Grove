@@ -101,7 +101,7 @@ extension HealthKitConverter {
     /// Valence is the one numeric axis: a dimensionless −1…1 score, so UCUM's unity code applies.
     static func stateOfMindValue(_ sample: HKStateOfMind) throws -> Quantity {
         guard let contract = HealthKitMeasurementCatalog.stateOfMind.quantity else {
-            throw HealthKitConversionError.invalidValue
+            throw HealthKitValueFailure.shapeInvalid
         }
         return try fhirQuantity(value: sample.valence, contract: contract)
     }
@@ -136,7 +136,7 @@ extension HealthKitConverter {
     ) throws -> ObservationComponent {
         guard let component = contract.components.first(where: { $0.id == id }),
               let resultSystem = component.resultCodeSystem else {
-            throw HealthKitConversionError.missingRequiredComponent(sampleType: contract.id, component: id)
+            throw HealthKitValueFailure.requiredComponentMissing(component: id)
         }
         return ObservationComponent(
             code: CodeableConcept(coding: [Coding(

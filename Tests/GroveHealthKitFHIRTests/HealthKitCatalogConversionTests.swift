@@ -42,7 +42,7 @@ struct HealthKitFHIRCatalogConversionTests {
     private var context: HealthKitConversionContext {
         HealthKitConversionContext(
             subject: .testPatient,
-            converter: HealthKitApplication(
+            converter: ApplicationDevice.test(
                 name: "Example Study",
                 bundleIdentifier: "org.grovealliance.example-study",
                 version: "2.0.0 (42)"

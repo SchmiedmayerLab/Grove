@@ -29,17 +29,8 @@ struct GroveSensorKitUsageSummaryTests {
         get throws {
             SensorKitConversionContext(
                 subject: SensorFHIRIdentityTestSupport.subject,
-                subjectIdentity: try SensorFHIRIdentityTestSupport.subjectIdentity,
-                converter: SensorApplication(
-                    sourceDeviceToken: "org.grovealliance.sensor-conformance",
-                    name: "Sensor Conformance",
-                    version: "0.5.0"
-                ),
-                converterHost: SensorFHIRIdentityTestSupport.converterHost,
+                converter: ApplicationDevice.test(name: "Sensor Conformance", bundleIdentifier: "org.grovealliance.sensor-conformance", version: "0.5.0"),
                 eventIdentifier: try SensorFHIRIdentityTestSupport.event(),
-                entryNodeIdentifierSystem: SensorFHIRIdentityTestSupport.entryNodeIdentifierSystem,
-                identityScope: try SensorFHIRIdentityTestSupport.identityScope,
-                repositoryScope: try SensorFHIRIdentityTestSupport.repositoryScope,
                 visitLocationIdentifierSystem: SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem,
                 sourceTimeZone: try #require(TimeZone(identifier: "America/Los_Angeles")),
                 conversionInstant: start.addingTimeInterval(60)

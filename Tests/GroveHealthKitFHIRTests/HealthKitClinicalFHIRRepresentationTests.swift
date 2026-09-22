@@ -58,7 +58,7 @@ struct HealthKitClinicalFHIRRepresentationTests {
         entries[documentIndex].resource = ResourceProxy(with: document)
         bundle.entry = entries
 
-        #expect(throws: ExchangeGraphError.ruleViolation(.clinicalFHIRRepresentation)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.healthkitClinicalFhirRepresentation)) {
             _ = try ExchangeGraph(
                 kind: .active,
                 eventIdentifier: conversion.graph.eventIdentifier,
@@ -69,7 +69,7 @@ struct HealthKitClinicalFHIRRepresentationTests {
 
     @Test("A release outside the admitted DSTU2 and R4 set fails before graph emission")
     func unsupportedClinicalFHIRReleaseIsRejected() {
-        #expect(throws: ExchangeGraphError.ruleViolation(.clinicalFHIRRepresentation)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.healthkitClinicalFhirRepresentation)) {
             _ = try makeConversion(releaseCode: "r5")
         }
     }
@@ -77,7 +77,7 @@ struct HealthKitClinicalFHIRRepresentationTests {
     private func makeConversion(
         releaseCode: String,
         payload: Data = Data(#"{"resourceType":"Observation","id":"clinical"}"#.utf8)
-    ) throws -> HealthKitDocumentConversion {
+    ) throws -> HealthKitConversionSet {
         try HealthKitConverter.assembleDocumentGraph(
             for: HKQuantitySample(
                 type: HKQuantityType(.heartRate),
@@ -99,7 +99,7 @@ struct HealthKitClinicalFHIRRepresentationTests {
             ),
             context: HealthKitConversionContext(
                 subject: .testPatient,
-                converter: HealthKitApplication(
+                converter: ApplicationDevice.test(
                     name: "Example Study",
                     bundleIdentifier: "org.grovealliance.example-study",
                     version: "2.0.0 (42)"

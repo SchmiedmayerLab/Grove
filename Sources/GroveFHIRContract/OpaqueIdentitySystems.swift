@@ -6,11 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
-/// Deployment-owned identifier systems for one key epoch.
+/// Deployment-owned identifier systems for one key epoch, one per opaque identity kind.
 ///
 /// A system names exactly one identity kind. Reusing one system across kinds makes rotation and
 /// index policy ambiguous, so the initializer requires the complete closed set explicitly.
-public struct PseudonymousIdentitySystems: Hashable, Sendable {
+public struct OpaqueIdentitySystems: Hashable, Sendable {
     public let sourceRecord: IdentifierSystem
     public let sourceOutput: IdentifierSystem
     public let writerRecord: IdentifierSystem
@@ -27,7 +27,7 @@ public struct PseudonymousIdentitySystems: Hashable, Sendable {
     /// Derived from the closed kind list, so a new identity kind cannot slip past a privacy
     /// validator that would otherwise have to be extended by hand.
     public var all: [IdentifierSystem] {
-        PseudonymousIdentityKind.allCases.map { self[$0] }
+        OpaqueIdentityKind.allCases.map { self[$0] }
     }
 
     public init(
@@ -41,7 +41,7 @@ public struct PseudonymousIdentitySystems: Hashable, Sendable {
         sourceContext: IdentifierSystem,
         recordingDevice: IdentifierSystem,
         deviceSnapshot: IdentifierSystem
-    ) throws(PseudonymousIdentityError) {
+    ) throws(OpaqueIdentityError) {
         let values = [
             sourceRecord,
             sourceOutput,
@@ -69,7 +69,7 @@ public struct PseudonymousIdentitySystems: Hashable, Sendable {
         self.deviceSnapshot = deviceSnapshot
     }
 
-    public subscript(kind: PseudonymousIdentityKind) -> IdentifierSystem {
+    public subscript(kind: OpaqueIdentityKind) -> IdentifierSystem {
         switch kind {
         case .sourceRecord: sourceRecord
         case .sourceOutput: sourceOutput

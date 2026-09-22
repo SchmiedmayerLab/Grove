@@ -17,13 +17,8 @@ enum DateEvaluationValue {
 
 
 final class DateExpressionEvaluation: FHIRPathBaseVisitor<Result<DateEvaluationValue, Error>> {
-    private let evaluationInstant: Date
-    private let cal = FHIRPathCalendar.gregorian()
-
-    init(evaluationInstant: Date) {
-        self.evaluationInstant = evaluationInstant
-        super.init()
-    }
+    private lazy var now = Date.now // ensure today is consistent across tokens
+    private let cal = Calendar.current
 
     override func visitPolarityExpression(_ ctx: FHIRPathParser.PolarityExpressionContext) -> Result<DateEvaluationValue, Error>? {
         guard let `operator` = ctx.getToken(at: 0),
@@ -143,10 +138,7 @@ final class DateExpressionEvaluation: FHIRPathBaseVisitor<Result<DateEvaluationV
                 return .failure(node.getSymbol(), .invalidLiteral)
             case .dateTime(let dateTime):
                 // should also be unreachable, but at least we can handle it
-                guard let time = dateTime.time else {
-                    return .failure(node.getSymbol(), .invalidLiteral)
-                }
-                return .success(.components(time.components))
+                return .success(.components(dateTime.time.components))
             }
         } catch {
             return .failure(node.getSymbol(), .internalError)
@@ -234,13 +226,13 @@ final class DateExpressionEvaluation: FHIRPathBaseVisitor<Result<DateEvaluationV
             }
             let date: Date
             if identifierToken.getText() == "today" { // yields a Date
-                date = cal.startOfDay(for: evaluationInstant)
+                date = cal.startOfDay(for: now)
             } else { // "now" yields a DateTime
-                date = evaluationInstant
+                date = now
             }
             return .success(.date(date))
         case "timeOfDay":
-            return .success(.components(cal.dateComponents([.hour, .minute, .second], from: evaluationInstant)))
+            return .success(.components(cal.dateComponents([.hour, .minute, .second], from: now)))
         default:
             return .failure(identifierToken.getSymbol(), .unknownIdentifier(identifier: identifierToken.getText()))
         }
