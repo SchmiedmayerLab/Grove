@@ -156,7 +156,7 @@ var dependencies: [Package.Dependency] = [
     // 1.7.0 references swift_initBorrow, absent before iOS 27.
     .package(url: "https://github.com/apple/swift-collections.git", "1.1.4"..<"1.7.0"),
     // CryptoKit's HMAC API for the Linux legs; Apple platforms keep CryptoKit itself.
-    .package(url: "https://github.com/apple/swift-crypto.git", from: "5.0.0"),
+    .package(url: "https://github.com/apple/swift-crypto.git", "4.0.0"..<"6.0.0"),
     .package(url: "https://github.com/apple/swift-log.git", from: "1.6.2"),
     .package(url: "https://github.com/gonzalezreal/swift-markdown-ui.git", from: "2.4.1"),
     .package(url: "https://github.com/apple/swift-nio.git", from: "2.59.0"),
