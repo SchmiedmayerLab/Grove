@@ -148,13 +148,15 @@ extension HKHealthStore {
     /// `@unchecked Sendable` safety: all strong fields are immutable, `query` is assigned once and
     /// only weak-zeroed by the Swift runtime, and `HKHealthStore` supports cross-thread query stop.
     final class BackgroundObserverQueryInvalidator: @unchecked Sendable {
+        let objectTypes: Set<HKObjectType>
         private let healthStore: HKHealthStore
         private weak var query: HKQuery?
         private let taskTracker: BackgroundDeliveryTaskTracker
         
-        init(healthStore: HKHealthStore, query: HKQuery, taskTracker: BackgroundDeliveryTaskTracker) {
+        init(healthStore: HKHealthStore, query: HKQuery, objectTypes: Set<HKObjectType>, taskTracker: BackgroundDeliveryTaskTracker) {
             self.healthStore = healthStore
             self.query = query
+            self.objectTypes = objectTypes
             self.taskTracker = taskTracker
         }
         
@@ -209,6 +211,23 @@ extension HKHealthStore {
             Result<Set<HKSampleType>, any Error>
         ) async -> Void
     ) async throws -> BackgroundObserverQueryInvalidator {
+        let observation = installBackgroundObserver(for: sampleTypes, withPredicate: predicate, updateHandler: updateHandler)
+        do {
+            try await enableBackgroundDelivery(for: observation.objectTypes)
+        } catch {
+            await observation.invalidateAndWait()
+            throw error
+        }
+        return observation
+    }
+
+    /// Installs synchronously so launch callers do not depend on an asynchronous task being scheduled.
+    @MainActor
+    func installBackgroundObserver(
+        for sampleTypes: Set<HKSampleType>,
+        withPredicate predicate: NSPredicate? = nil,
+        updateHandler: @escaping @MainActor @Sendable (Result<Set<HKSampleType>, any Error>) async -> Void
+    ) -> BackgroundObserverQueryInvalidator {
         let taskTracker = BackgroundDeliveryTaskTracker()
         let queryDescriptors: [HKQueryDescriptor] = sampleTypes
             .flatMap { $0.effectiveObjectTypesForAuthorization }
@@ -243,16 +262,7 @@ extension HKHealthStore {
             }
         }
         self.execute(observerQuery)
-        do {
-            try await enableBackgroundDelivery(for: queryDescriptors.mapIntoSet(\.sampleType))
-        } catch {
-            // `execute` starts delivering immediately. If registration fails, there is no
-            // invalidator to hand back to the caller, so tear down both halves here.
-            self.stop(observerQuery)
-            await taskTracker.cancelAndWait()
-            throw error
-        }
-        return .init(healthStore: self, query: observerQuery, taskTracker: taskTracker)
+        return .init(healthStore: self, query: observerQuery, objectTypes: queryDescriptors.mapIntoSet(\.sampleType), taskTracker: taskTracker)
     }
     
     
@@ -277,12 +287,16 @@ extension HKHealthStore {
     func disableBackgroundDelivery(
         for objectTypes: Set<HKObjectType>
     ) async {
-        let objectTypesToDisable = Self.backgroundDeliveryOwnership.withLock {
-            $0.requestDisable(for: objectTypes)
-        }
-        for objectType in objectTypesToDisable {
-            await disablePendingBackgroundDelivery(for: objectType)
-        }
+        // Teardown must finish even when its owner is cancelled, including rollback after
+        // partial registration. Await the independent task so retries cannot outlive cleanup.
+        await Task { @MainActor in
+            let objectTypesToDisable = Self.backgroundDeliveryOwnership.withLock {
+                $0.requestDisable(for: objectTypes)
+            }
+            for objectType in objectTypesToDisable {
+                await disablePendingBackgroundDelivery(for: objectType)
+            }
+        }.value
     }
 
     @MainActor

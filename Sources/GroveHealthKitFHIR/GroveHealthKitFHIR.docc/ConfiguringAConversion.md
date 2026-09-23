@@ -50,7 +50,15 @@ Never send an email address, display label, bare value, or literal URL in place 
 
 A known enrollment travels as a `StudyEnrollment`: the study identifier, the protocol's canonical URL and version, and the enrollment identifier.
 The converter emits the `ResearchStudy`, `PlanDefinition`, and `ResearchSubject` entries itself under the catalog's entry-node roles, and every output carries the `workflow-researchStudy` extension.
+A recording document names its studies in `DocumentReference.context.related` instead.
 `studies` defaults to none.
+
+Each enrollment keeps its own protocol revision: study A can carry protocol A version 2 while study B carries protocol B version 4.
+Study relevance does not assert that a measurement followed a protocol, so no output carries `instantiatesCanonical`.
+It grants no access either; consent and access decisions stay with the receiver, and a study-scoped export omits unrelated study associations.
+
+Persist `studies` with the rest of the event context and reuse them unchanged for a retry.
+A later study association is the receiver's decision, recorded separately, not a reconversion with altered metadata.
 
 ## Identifying the converting application
 
