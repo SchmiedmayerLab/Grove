@@ -7,8 +7,8 @@
 //
 
 public import Foundation
+private import GroveFoundation
 public import Observation
-private import OSLog
 
 
 /// Stores and manages responses to a questionnaire.
@@ -200,12 +200,16 @@ public final class QuestionnaireResponses: Identifiable {
             return
         }
         guard let engine = questionnaire.expressionEngine else {
-            // A questionnaire declared in Swift carries no engine until `withExpressionEngine(evaluationInstant:)`
+            // A questionnaire declared in Swift carries no engine until `withExpressionEngine(clock:)`
             // attaches one. Saying so beats leaving every computed value empty, which reads as
             // a scoring bug rather than a setup step.
-            Self.logger.warning(
-                "\(self.questionnaire.metadata.title, privacy: .public) has calculated expressions but no expression engine; call withExpressionEngine(evaluationInstant:) on it before presenting it."
-            )
+            let title = questionnaire.metadata.title
+            // os.Logger redacts interpolated values unless marked public; swift-log has no such concept.
+            #if canImport(os)
+            Self.logger.warning("\(title, privacy: .public) has calculated expressions but no expression engine; call withExpressionEngine(clock:) on it.")
+            #else
+            Self.logger.warning("\(title) has calculated expressions but no expression engine; call withExpressionEngine(clock:) on it.")
+            #endif
             return
         }
         isRecalculating = true
@@ -266,12 +270,12 @@ extension QuestionnaireResponses {
             }
             let reason = String(describing: error)
             expressionFailures.append(.init(taskId: taskId, expression: expression, reason: reason))
-            Self.logger.error(
-                """
-                Expression on '\(taskId ?? questionnaire.id, privacy: .public)' failed: \
-                \(expression, privacy: .public) — \(reason, privacy: .public)
-                """
-            )
+            let owner = taskId ?? questionnaire.id
+            #if canImport(os)
+            Self.logger.error("Expression on '\(owner, privacy: .public)' failed: \(expression, privacy: .public) — \(reason, privacy: .public)")
+            #else
+            Self.logger.error("Expression on '\(owner)' failed: \(expression) — \(reason)")
+            #endif
         case .view(let parent, pathFromParent: _):
             parent.recordExpressionFailure(expression, for: taskId, error: error)
         }
