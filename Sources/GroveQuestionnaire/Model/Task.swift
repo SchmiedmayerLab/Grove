@@ -27,18 +27,26 @@ extension Questionnaire {
             public var shortTitle: Questionnaire.LocalizedText?
             /// Controls when the group, and with it every task inside it, is enabled.
             public var condition: Condition
+            /// The codes identifying the group (FHIR `item.code`), such as a panel's LOINC code.
+            public var codes: [Code]
+            /// How the group takes part in SDC observation extraction.
+            public var observationExtraction: Questionnaire.ObservationExtraction?
 
             /// Creates a group.
             public init(
                 id: String,
                 title: Questionnaire.LocalizedText = "",
                 shortTitle: Questionnaire.LocalizedText? = nil,
-                condition: Condition = .none
+                condition: Condition = .none,
+                codes: [Code] = [],
+                observationExtraction: Questionnaire.ObservationExtraction? = nil
             ) {
                 self.id = id
                 self.title = title
                 self.shortTitle = shortTitle
                 self.condition = condition
+                self.codes = codes
+                self.observationExtraction = observationExtraction
             }
         }
 
@@ -46,9 +54,9 @@ extension Questionnaire {
         public struct Code: Hashable, Sendable {
             public let system: URL?
             public let code: String
-            public let display: String?
+            public let display: Questionnaire.LocalizedText?
 
-            public init(system: URL? = nil, code: String, display: String? = nil) {
+            public init(system: URL? = nil, code: String, display: Questionnaire.LocalizedText? = nil) {
                 self.system = system
                 self.code = code
                 self.display = display
@@ -134,6 +142,8 @@ extension Questionnaire {
         public var codes: [Code]
         /// The element definition this item is derived from (FHIR `item.definition`).
         public var definition: URL?
+        /// How the task takes part in SDC observation extraction.
+        public var observationExtraction: Questionnaire.ObservationExtraction?
         /// The (non-page-level) groups enclosing this task, outermost first.
         ///
         /// Empty for ungrouped tasks. The task is only enabled while every enclosing group's
@@ -168,6 +178,7 @@ extension Questionnaire {
             constraints: [Constraint] = [],
             codes: [Code] = [],
             definition: URL? = nil,
+            observationExtraction: Questionnaire.ObservationExtraction? = nil,
             groupPath: [Group] = [],
             parentTaskId: Task.ID? = nil
         ) {
@@ -191,6 +202,7 @@ extension Questionnaire {
             self.constraints = constraints
             self.codes = codes
             self.definition = definition
+            self.observationExtraction = observationExtraction
             self.groupPath = groupPath
             self.parentTaskId = parentTaskId
         }

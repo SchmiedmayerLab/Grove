@@ -237,6 +237,8 @@ extension Questionnaire {
         public let entryMode: EntryMode
         /// Questionnaire-wide SDC variables, in declaration order.
         public let variables: [ExpressionVariable]
+        /// The contexts the questionnaire is intended for (FHIR `useContext`).
+        public let useContexts: [UsageContext]
 
         public init(
             id: String,
@@ -251,7 +253,8 @@ extension Questionnaire {
             copyright: String? = nil,
             administrationWarnings: [String] = [],
             entryMode: EntryMode = .random,
-            variables: [ExpressionVariable] = []
+            variables: [ExpressionVariable] = [],
+            useContexts: [UsageContext] = []
         ) {
             self.id = id
             self.url = url
@@ -266,6 +269,7 @@ extension Questionnaire {
             self.administrationWarnings = administrationWarnings
             self.entryMode = entryMode
             self.variables = variables
+            self.useContexts = useContexts
         }
     }
 }
@@ -280,6 +284,10 @@ extension Questionnaire {
         /// An abbreviated title for constrained displays (SDC `shortText`).
         public var shortTitle: LocalizedText?
         public var tasks: [Task]
+        /// The codes identifying the section's FHIR group (`item.code`).
+        public var codes: [Task.Code]
+        /// How the section's FHIR group takes part in SDC observation extraction.
+        public var observationExtraction: ObservationExtraction?
         /// The linkId of the top-level FHIR group this section was created from, if any.
         ///
         /// `nil` for natively authored sections and for sections synthesized around
@@ -298,6 +306,8 @@ extension Questionnaire {
         ///     If the section's `enabledCondition` evaluates to `true`, but all of the section's task ``Questionnaire/Task/enabledCondition``s evaluate to `false`, the section will be skipped entirely.
         /// - parameter tasks: The section's ``Questionnaire/Task``s.
         ///     Note that if a section does not contain any tasks, it may be skipped unconditionally by the `QuestionnaireSheet`.
+        /// - parameter codes: The codes identifying the section's FHIR group.
+        /// - parameter observationExtraction: How the section's FHIR group takes part in SDC observation extraction.
         /// - parameter fhirGroupId: The linkId of the FHIR group this section mirrors, if any.
         public init(
             id: String,
@@ -305,11 +315,15 @@ extension Questionnaire {
             shortTitle: LocalizedText? = nil,
             enabledCondition: Condition = .none,
             tasks: [Task],
+            codes: [Task.Code] = [],
+            observationExtraction: ObservationExtraction? = nil,
             fhirGroupId: String? = nil
         ) {
             self.id = id
             self.title = title
             self.shortTitle = shortTitle
+            self.codes = codes
+            self.observationExtraction = observationExtraction
             self.fhirGroupId = fhirGroupId
             // we don't actually support section-level conditions, so instead we simply propagate the condition down into the tasks
             self.tasks = tasks.map { task in

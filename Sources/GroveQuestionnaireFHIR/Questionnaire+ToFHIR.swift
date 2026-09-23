@@ -174,9 +174,11 @@ extension ModelsR4.Questionnaire {
             if !section.title.base.isEmpty {
                 group.text = section.title.asFHIRStringPrimitive()
             }
-            if let shortTitle = section.shortTitle {
-                group.extension = [.shortText(shortTitle)]
+            if !section.codes.isEmpty {
+                group.code = section.codes.map(\.fhirCoding)
             }
+            let extensions = (section.shortTitle.map { [.shortText($0)] } ?? []) + (section.observationExtraction?.fhirExtensions ?? [])
+            group.extension = extensions.isEmpty ? nil : extensions
             group.item = sectionItems
             items.append(group)
         }
@@ -220,6 +222,7 @@ extension ModelsR4.Questionnaire {
             .components(separatedBy: .alphanumerics.inverted).joined().asFHIRStringPrimitive()
         self.description_fhir = metadata.explainer.base.isEmpty ? nil : metadata.explainer.asFHIRStringPrimitive()
         self.purpose = metadata.purpose?.asFHIRStringPrimitive()
+        self.useContext = metadata.useContexts.isEmpty ? nil : metadata.useContexts.map(\.fhirUsageContext)
         self.publisher = metadata.publisher?.asFHIRStringPrimitive()
         self.copyright = metadata.copyright?.asFHIRStringPrimitive()
     }

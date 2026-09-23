@@ -16,6 +16,7 @@ Import, present, and export FHIR R4 questionnaires.
 
 `GroveQuestionnaireFHIR` connects Grove's questionnaire model with [FHIR R4 Questionnaire](https://hl7.org/fhir/R4/questionnaire.html) and [QuestionnaireResponse](https://hl7.org/fhir/R4/questionnaireresponse.html) resources.
 Supported SDC branching, variables, initial and calculated expressions, item metadata, and nested groups survive an import/export round trip.
+So do its `useContext` concepts, the codes on groups and questions, and the SDC observation-extraction markings and categories.
 So does every language: the base `language` and each `translation` extension on the rendered text.
 
 ### Import a Questionnaire

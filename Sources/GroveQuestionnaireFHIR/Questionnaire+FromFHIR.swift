@@ -148,7 +148,8 @@ extension GroveQuestionnaire.Questionnaire {
             copyright: other.copyright?.value?.string,
             administrationWarnings: try administrationWarnings(of: other, lifecycle: lifecycle, at: instant),
             entryMode: entryMode(of: other),
-            variables: try other.sdcVariables()
+            variables: try other.sdcVariables(),
+            useContexts: try (other.useContext ?? []).map { context throws(ConversionError) in try .init(context) }
         )
     }
 
@@ -385,6 +386,8 @@ extension ModelsR4.QuestionnaireItem {
             tasks: try nestedItems.flatMap2 { item throws(ConversionError) in
                 try item.toTasks(using: itemContext)
             },
+            codes: itemCodes(),
+            observationExtraction: try .init(self),
             fhirGroupId: isSynthesized ? nil : linkId
         )
     }
@@ -410,7 +413,9 @@ extension ModelsR4.QuestionnaireItem {
                 id: try getLinkId(),
                 title: .init(self.text) ?? "",
                 shortTitle: shortText(),
-                condition: try .init(self, using: context)
+                condition: try .init(self, using: context),
+                codes: itemCodes(),
+                observationExtraction: try .init(self)
             )
             let itemContext = ConversionContext(
                 options: context.options,
@@ -458,6 +463,7 @@ extension ModelsR4.QuestionnaireItem {
             constraints: try targetConstraints(),
             codes: itemCodes(),
             definition: self.definition?.value?.url,
+            observationExtraction: try .init(self),
             groupPath: context.groupPath,
             parentTaskId: context.parentTaskId
         )
@@ -905,13 +911,8 @@ extension ModelsR4.QuestionnaireItem {
 
     /// The codes identifying the question itself (`item.code`), carried through unchanged
     /// so a standardised instrument re-exports with the codes it was published with.
-    private func itemCodes() -> [GroveQuestionnaire.Questionnaire.Task.Code] {
-        (self.code ?? []).compactMap { coding in
-            guard let code = coding.code?.value?.string else {
-                return nil
-            }
-            return .init(system: coding.system?.value?.url, code: code, display: coding.display?.value?.string)
-        }
+    fileprivate func itemCodes() -> [GroveQuestionnaire.Questionnaire.Task.Code] {
+        (self.code ?? []).compactMap { .init($0) }
     }
 
     /// The item's authored current `targetConstraint` extensions.

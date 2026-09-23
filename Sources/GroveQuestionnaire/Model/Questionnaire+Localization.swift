@@ -44,10 +44,16 @@ extension Questionnaire {
     }
 
     private var localizedTexts: [LocalizedText] {
-        [metadata.title, metadata.explainer] + (metadata.purpose.map { [$0] } ?? [])
-            + sections.flatMap { section in
-                [section.title] + (section.shortTitle.map { [$0] } ?? []) + section.tasks.flatMap(\.localizedTexts)
-            }
+        var texts = [metadata.title, metadata.explainer] + [metadata.purpose].compactMap(\.self)
+        for context in metadata.useContexts {
+            texts += context.code.localizedTexts + context.localizedTexts
+        }
+        for section in sections {
+            texts += [section.title] + [section.shortTitle].compactMap(\.self)
+            texts += section.codes.flatMap(\.localizedTexts) + (section.observationExtraction?.localizedTexts ?? [])
+            texts += section.tasks.flatMap(\.localizedTexts)
+        }
+        return texts
     }
 
     /// The offered language to render the questionnaire in for `locale`.
@@ -67,7 +73,11 @@ extension Questionnaire.Task {
         var texts = [title, subtitle, footer]
         texts += [markdownText, prefix, shortTitle, media?.altText].compactMap(\.self)
         texts += constraints.map(\.humanDescription)
-        texts += groupPath.flatMap { [$0.title] + ($0.shortTitle.map { [$0] } ?? []) }
+        texts += codes.flatMap(\.localizedTexts) + (observationExtraction?.localizedTexts ?? [])
+        for group in groupPath {
+            texts += [group.title] + [group.shortTitle].compactMap(\.self)
+            texts += group.codes.flatMap(\.localizedTexts) + (group.observationExtraction?.localizedTexts ?? [])
+        }
         switch kind.variant {
         case .instructional(let text):
             texts.append(text)
@@ -84,5 +94,46 @@ extension Questionnaire.Task {
             break
         }
         return texts
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension Questionnaire.Task.Code {
+    fileprivate var localizedTexts: [Questionnaire.LocalizedText] {
+        display.map { [$0] } ?? []
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension Questionnaire.Concept {
+    fileprivate var localizedTexts: [Questionnaire.LocalizedText] {
+        codes.flatMap(\.localizedTexts) + (text.map { [$0] } ?? [])
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension Questionnaire.ObservationExtraction {
+    fileprivate var localizedTexts: [Questionnaire.LocalizedText] {
+        categories.flatMap(\.localizedTexts)
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension Questionnaire.UsageContext {
+    fileprivate var localizedTexts: [Questionnaire.LocalizedText] {
+        switch value {
+        case .concept(let concept):
+            concept.localizedTexts
+        case .quantity(let quantity):
+            [quantity.unit].compactMap(\.self)
+        case let .range(low, high):
+            [low?.unit, high?.unit].compactMap(\.self)
+        case .reference(let reference):
+            [reference.display].compactMap(\.self)
+        }
     }
 }

@@ -22,6 +22,93 @@ struct LocalizationTests {
     private static let url = URL(string: "https://example.org/fhir/Questionnaire/localized")
     private static let moodSystem = URL(string: "https://example.org/mood")!
 
+    /// A panel marked for observation extraction, in a questionnaire declaring its use context, both translated.
+    /// One use context of each value kind, its displayed text translated.
+    private static let useContexts = [
+        #"""
+        {
+          "code": {"system": "http://terminology.hl7.org/CodeSystem/usage-context-type", "code": "focus"},
+          "valueCodeableConcept": {"text": "Heart Risk", "_text": \#(spanish("Riesgo cardíaco"))}
+        }
+        """#,
+        #"""
+        {
+          "code": {"system": "http://terminology.hl7.org/CodeSystem/usage-context-type", "code": "age"},
+          "valueQuantity": {"value": 18, "comparator": ">=", "unit": "years", "_unit": \#(spanish("años")), "system": "http://unitsofmeasure.org", "code": "a"}
+        }
+        """#,
+        #"""
+        {
+          "code": {"system": "http://terminology.hl7.org/CodeSystem/usage-context-type", "code": "age"},
+          "valueRange": {
+            "low": {"value": 18, "unit": "years", "_unit": \#(spanish("años")), "system": "http://unitsofmeasure.org", "code": "a"},
+            "high": {"value": 99, "unit": "years", "system": "http://unitsofmeasure.org", "code": "a"}
+          }
+        }
+        """#,
+        #"""
+        {
+          "code": {"system": "http://terminology.hl7.org/CodeSystem/usage-context-type", "code": "program"},
+          "valueReference": {
+            "reference": "ResearchStudy/heart",
+            "type": "ResearchStudy",
+            "identifier": {"system": "https://example.org/studies", "value": "heart"},
+            "display": "My Heart Counts",
+            "_display": \#(spanish("Mi corazón cuenta"))
+          }
+        }
+        """#
+    ]
+
+    private static let extractablePanel = #"""
+    {
+      "resourceType": "Questionnaire",
+      "url": "https://example.org/fhir/Questionnaire/vitals",
+      "version": "1.0.0",
+      "language": "en-US",
+      "status": "active",
+      "useContext": [\#(useContexts.joined(separator: ", "))],
+      "item": [{
+        "linkId": "vitals",
+        "type": "group",
+        "text": "Vitals",
+        "item": [{
+          "linkId": "blood-pressure",
+          "type": "group",
+          "code": [{"system": "http://loinc.org", "code": "85354-9"}],
+          "extension": [
+            {"url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-observationExtract", "valueBoolean": true},
+            {
+              "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-observation-extract-category",
+              "valueCodeableConcept": {"coding": [{
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs",
+                "_display": {"extension": [{
+                  "url": "http://hl7.org/fhir/StructureDefinition/translation",
+                  "extension": [{"url": "lang", "valueCode": "es-US"}, {"url": "content", "valueString": "Signos vitales"}]
+                }]}
+              }]}
+            }
+          ],
+          "item": [{
+            "linkId": "systolic",
+            "type": "integer",
+            "text": "Systolic",
+            "code": [{"system": "http://loinc.org", "code": "8480-6"}],
+            "extension": [{"url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-observationExtract", "valueCode": "component"}]
+          }]
+        }]
+      }]
+    }
+    """#
+
+    /// A primitive's extensions (`_element`) carrying one `es-US` translation.
+    private static func spanish(_ content: String) -> String {
+        #"{"extension": [{"url": "http://hl7.org/fhir/StructureDefinition/translation", "#
+            + #""extension": [{"url": "lang", "valueCode": "es-US"}, {"url": "content", "valueString": "\#(content)"}]}]}"#
+    }
+
     /// A questionnaire written in `en-US`, translated into British English, Spanish and Mexican Spanish.
     private static func questionnaire(language: String? = "en-US") -> GroveQuestionnaire.Questionnaire {
         let translated = { (base: String) in
@@ -257,5 +344,62 @@ struct LocalizationTests {
         }
         #expect(config.options.first?.title == Text("meh", translations: ["es": "regular"]))
         #expect(config.options.first?.answerValue == .string("meh"))
+    }
+
+    @Test
+    func useContextAndExtractionRoundTripInEveryLanguage() throws {
+        let source = try JSONDecoder().decode(ModelsR4.Questionnaire.self, from: Data(Self.extractablePanel.utf8))
+        let imported = try GroveQuestionnaire.Questionnaire(source, clock: questionnaireResponseTestClock)
+        #expect(imported.languages == ["en-US", "es-US"])
+        let exported = try ModelsR4.Questionnaire(imported)
+        #expect(try ModelsR4.Questionnaire(GroveQuestionnaire.Questionnaire(exported, clock: questionnaireResponseTestClock)) == exported)
+
+        #expect(exported.useContext == source.useContext)
+        let panel = try #require(exported.item?.first?.item?.first)
+        let sourcePanel = try #require(source.item?.first?.item?.first)
+        #expect(panel.code == sourcePanel.code)
+        #expect(panel.extension == sourcePanel.extension)
+        let systolic = try #require(panel.item?.first)
+        #expect(systolic.code == sourcePanel.item?.first?.code)
+        #expect(systolic.extension == sourcePanel.item?.first?.extension)
+        guard case .codeableConcept(let category)? = panel.extension?.last?.value else {
+            Issue.record("Expected the extraction category")
+            return
+        }
+        #expect(category.coding?.first?.display?.translations == ["es-US": "Signos vitales"])
+        #expect(exported.useContext?.count == 4)
+    }
+
+    @Test("Every kind of use context imports", arguments: 0..<4)
+    func everyUseContextKindImports(index: Int) throws {
+        let json = #"{"resourceType": "Questionnaire", "url": "https://example.org/fhir/Questionnaire/context", "version": "1.0.0", "#
+            + #""language": "en-US", "status": "active", "useContext": [\#(Self.useContexts[index])], "#
+            + #""item": [{"linkId": "well", "type": "boolean", "text": "Well?"}]}"#
+        let source = try JSONDecoder().decode(ModelsR4.Questionnaire.self, from: Data(json.utf8))
+        let imported = try GroveQuestionnaire.Questionnaire(source, clock: questionnaireResponseTestClock)
+        let context = try #require(imported.metadata.useContexts.first)
+        switch (index, context.value) {
+        case (0, .concept(let concept)):
+            #expect(concept.text == .init("Heart Risk", translations: ["es-US": "Riesgo cardíaco"]))
+        case (1, .quantity(let quantity)):
+            #expect(quantity == .init(
+                value: 18,
+                comparator: ">=",
+                unit: .init("years", translations: ["es-US": "años"]),
+                system: URL(string: "http://unitsofmeasure.org"),
+                code: "a"
+            ))
+        case let (2, .range(low, high)):
+            #expect(low?.unit == .init("years", translations: ["es-US": "años"]))
+            #expect(high?.value == 99)
+        case (3, .reference(let reference)):
+            #expect(reference.reference == "ResearchStudy/heart")
+            #expect(reference.identifierValue == "heart")
+            #expect(reference.display == .init("My Heart Counts", translations: ["es-US": "Mi corazón cuenta"]))
+        default:
+            Issue.record("Use context \(index) imported as \(context.value)")
+        }
+        #expect(imported.languages == ["en-US", "es-US"])
+        #expect(try ModelsR4.Questionnaire(imported).useContext == source.useContext)
     }
 }

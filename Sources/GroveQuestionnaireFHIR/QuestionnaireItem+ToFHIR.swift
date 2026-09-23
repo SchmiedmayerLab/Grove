@@ -22,10 +22,14 @@ extension ModelsR4.QuestionnaireItem {
         if !group.title.base.isEmpty {
             self.text = group.title.asFHIRStringPrimitive()
         }
+        if !group.codes.isEmpty {
+            self.code = group.codes.map(\.fhirCoding)
+        }
         var extensions: [Extension] = []
         if let shortTitle = group.shortTitle {
             extensions.append(.shortText(shortTitle))
         }
+        extensions += group.observationExtraction?.fhirExtensions ?? []
         try applyCondition(group.condition, using: context, extensions: &extensions)
         self.extension = extensions.isEmpty ? nil : extensions
     }
@@ -377,14 +381,9 @@ extension ModelsR4.QuestionnaireItem {
         }
         self.prefix = task.prefix?.asFHIRStringPrimitive()
         if !task.codes.isEmpty {
-            self.code = task.codes.map { code in
-                Coding(
-                    code: code.code.asFHIRStringPrimitive(),
-                    display: code.display?.asFHIRStringPrimitive(),
-                    system: code.system?.asFHIRURIPrimitive()
-                )
-            }
+            self.code = task.codes.map(\.fhirCoding)
         }
+        extensions += task.observationExtraction?.fhirExtensions ?? []
         self.definition = task.definition?.asFHIRURIPrimitive()
         if let shortTitle = task.shortTitle {
             extensions.append(.shortText(shortTitle))
