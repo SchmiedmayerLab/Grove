@@ -270,38 +270,6 @@
         }
       }
     },
-    "Dismiss Keyboard" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tastatur ausblenden"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ocultar el teclado"
-          }
-        }
-      }
-    },
-    "Do you want to remove all annotations?" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alle Annotationen entfernen?"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "¿Quieres eliminar todas las anotaciones?"
-          }
-        }
-      }
-    },
     "Done" : {
       "localizations" : {
         "de" : {
@@ -366,18 +334,18 @@
         }
       }
     },
-    "Follow-Up" : {
+    "Eraser" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Folgefrage"
+            "value" : "Radiergummi"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seguimiento"
+            "value" : "Borrador"
           }
         }
       }
@@ -526,22 +494,6 @@
         }
       }
     },
-    "Not Yet Implemented" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Noch nicht implementiert"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aún no implementado"
-          }
-        }
-      }
-    },
     "Opens an editor with drawing and zoom controls." : {
       "localizations" : {
         "de" : {
@@ -618,6 +570,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Responde a las siguientes preguntas sobre la opción **«%@»** que acabas de seleccionar."
+          }
+        }
+      }
+    },
+    "Progress" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortschritt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progreso"
           }
         }
       }
@@ -718,22 +686,6 @@
         }
       }
     },
-    "Remove Annotations" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Annotationen entfernen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eliminar anotaciones"
-          }
-        }
-      }
-    },
     "Search options…" : {
       "localizations" : {
         "de" : {
@@ -746,6 +698,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Buscar opciones…"
+          }
+        }
+      }
+    },
+    "Select all that apply" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle zutreffenden auswählen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecciona todas las que correspondan"
           }
         }
       }

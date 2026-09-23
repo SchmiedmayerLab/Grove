@@ -83,6 +83,9 @@ struct ChoiceRow<AccessoryIfSelected: View>: View {
                 }
             }())
             .accessibilityIdentifier("Choice:\(id)")
+            // Timed by the direction the row is moving: the one being confirmed is worth watching arrive,
+            // the one being cleared is not.
+            .animation(isSelected ? SelectionFeedback.confirmation : SelectionFeedback.deselection, value: isSelected)
         }
         // Every option of a question shares one row of the list. Under the automatic style that
         // row is a single button: the options come out tinted like links, and a tap on one of

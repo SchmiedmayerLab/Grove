@@ -32,6 +32,17 @@ struct SelectionFeedbackTests {
         #expect(events.count(where: { $0 == "advanced" }) <= 1, "The page should be moved on at most once.")
     }
 
+    /// Nothing animates here, so a completion handler would never run; the page has to move on all the same.
+    @Test
+    func thePageMovesOnWithoutAnAnimationToComplete() async throws {
+        var advanced = false
+
+        SelectionFeedback.record(reduceMotion: false, {}, thenAdvance: { advanced = true })
+        try await Task.sleep(for: SelectionFeedback.advanceDelay * 5)
+
+        #expect(advanced)
+    }
+
     @Test
     func reducedMotionMovesOnWithoutWaitingForAConfirmation() {
         var recorded = false

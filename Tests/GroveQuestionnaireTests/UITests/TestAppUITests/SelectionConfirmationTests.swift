@@ -36,6 +36,24 @@ final class SelectionConfirmationTests: TestAppUITests, @unchecked Sendable {
         )
     }
 
+    /// Moving on is timed, not left to an animation's completion: where nothing animates, a completion
+    /// never comes, and the participant would be left on a question already answered.
+    @MainActor
+    func testAnAnswerMovesThePageOnWithAnimationsDisabled() {
+        launchAppAndStartFHIRExample("Glasgow Coma Score", under: [.animationsDisabled])
+
+        XCTAssert(questionnaire.question("1.1").waitUntilAsked())
+        let answered = questionnaire.question("1.1").element
+        let before = answered.frame.minY
+        questionnaire.question("1.1").select("Confused")
+        let deadline = Date().addingTimeInterval(5)
+        var movedOn = false
+        repeat {
+            movedOn = !answered.exists || answered.frame.minY < before - 20
+        } while !movedOn && Date() < deadline
+        XCTAssert(movedOn, "An answer to a single-choice question has to move the page on even when nothing animates.")
+    }
+
     /// Clearing an answer is not progress, so it leaves the participant on the question they cleared.
     @MainActor
     func testClearingAnAnswerLeavesTheParticipantOnTheQuestion() {
