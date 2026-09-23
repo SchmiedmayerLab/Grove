@@ -324,9 +324,10 @@ class TestAppUITests: XCTestCase { // swiftlint:disable:this type_body_length
         // Picking another day re-queries the schedule, so the new rows only arrive after a round trip.
         XCTAssert(app.collectionViews.staticTexts["Tomorrow"].waitForExistence(timeout: 5))
         XCTAssert(app.collectionViews.staticTexts["Timed Walking Test"].waitForExistence(timeout: 5))
-        XCTAssert(app.collectionViews.staticTexts.matching(
+        let timedWalkingTestRow = app.collectionViews.staticTexts.matching(
             NSPredicate(format: "label MATCHES 'Timed Walking Test, Active Task, In .*, \(uses12HourClock ? "12:00 AM" : "00:00")'")
-        ).element.exists)
+        ).element
+        XCTAssert(timedWalkingTestRow.waitForExistence(timeout: 5))
         
         // Part 2: verify the actual notification scheduling
         app.goToTab(.notifications)
