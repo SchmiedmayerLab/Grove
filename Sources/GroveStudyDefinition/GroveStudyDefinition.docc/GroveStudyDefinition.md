@@ -23,6 +23,8 @@ See the ``StudyBundle`` documentation for more information.
 A questionnaire is authored as one Questionnaire file per locale, such as `Survey+en-US.json` and `Survey+es-US.json`.
 The files must share one `url`, `version` and structure, and each names its own `language`.
 Once the bundle validates, ``StudyBundle/writeToDisk(at:definition:files:)`` merges them into one multilingual Questionnaire: the `en-US` file is the base, and every other file's text becomes a `translation` extension on the base text.
+The files are compared element by element: a presentation string that differs, such as a title, an item's text, a display or a unit's text, becomes a translation.
+Any other difference is data, such as a code, a system, a value or a `valueString` answer option, and fails validation instead of merging.
 ``StudyBundle/questionnaire(for:)`` returns that merged resource, merging on load a bundle that still carries per-locale files, and the renderer picks the language to show.
 Articles, consent documents and other files stay per locale.
 

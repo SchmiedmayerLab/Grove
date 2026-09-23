@@ -361,6 +361,7 @@ private struct QuestionnaireValidator: ~Copyable { // swiftlint:disable:this typ
     
     private mutating func validateQuestionnaires() throws {
         for fileRef in fileRefs {
+            let issueCount = issues.count
             let questionnaires = try studyBundle.localizedQuestionnaires(for: fileRef)
             guard let base = StudyBundle.base(of: questionnaires) else {
                 continue
@@ -388,6 +389,22 @@ private struct QuestionnaireValidator: ~Copyable { // swiftlint:disable:this typ
                     at: baseFileRef,
                     path: .root
                 )
+            }
+            // Once the structure lines up, whatever else differs must be text that merges as a translation.
+            guard issues.count == issueCount else {
+                continue
+            }
+            for other in questionnaires where other.url != base.url {
+                var merged = base.questionnaire
+                for conflict in try merged.addTranslations(from: other.questionnaire, in: other.language) {
+                    issues.append(.mismatchingFieldValues(
+                        baseFileRef: LocalizedFileReference(fileRef: fileRef, localization: base.localization),
+                        localizedFileRef: LocalizedFileReference(fileRef: fileRef, localization: other.localization),
+                        path: conflict.path,
+                        baseValue: conflict.baseValue,
+                        localizedValue: conflict.localizedValue
+                    ))
+                }
             }
         }
     }

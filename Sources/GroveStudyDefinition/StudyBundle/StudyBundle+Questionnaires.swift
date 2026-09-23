@@ -36,15 +36,19 @@ extension StudyBundle {
 
     /// The base file, carrying every other file's text as translations.
     ///
-    /// The files must share one structure, which the bundle's validation guarantees.
-    private static func merged(_ files: [LocalizedQuestionnaire]) -> LocalizedQuestionnaire? {
+    /// The files must differ in presentation text alone, which the bundle's validation guarantees; data that differs keeps
+    /// its base value.
+    private static func merged(_ files: [LocalizedQuestionnaire]) throws -> LocalizedQuestionnaire? {
         guard let base = base(of: files) else {
             return nil
         }
         var questionnaire = base.questionnaire
         questionnaire.language = FHIRPrimitive(FHIRString(base.language))
         for file in files where file.url != base.url {
-            questionnaire.addTranslations(from: file.questionnaire, in: file.language)
+            let conflicts = try questionnaire.addTranslations(from: file.questionnaire, in: file.language)
+            if !conflicts.isEmpty {
+                logger.error("\(file.url.lastPathComponent) differs from its base in data at \(conflicts.map(\.path.description))")
+            }
         }
         return LocalizedQuestionnaire(questionnaire: questionnaire, localization: base.localization, url: base.url)
     }
@@ -56,7 +60,7 @@ extension StudyBundle {
     /// A renderer then picks the language to show.
     public func questionnaire(for fileRef: FileReference) -> Questionnaire? {
         do {
-            return Self.merged(try localizedQuestionnaires(for: fileRef))?.questionnaire
+            return try Self.merged(try localizedQuestionnaires(for: fileRef))?.questionnaire
         } catch {
             Self.logger.error("Unable to load questionnaire '\(fileRef)': \(error)")
             return nil
@@ -128,7 +132,7 @@ extension StudyBundle {
         encoder.outputFormatting = .sortedKeys
         for fileRef in questionnaireFileRefs() {
             let files = try localizedQuestionnaires(for: fileRef)
-            guard files.count > 1, let merged = Self.merged(files) else {
+            guard files.count > 1, let merged = try Self.merged(files) else {
                 continue
             }
             try encoder.encode(merged.questionnaire).write(to: merged.url)
