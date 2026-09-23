@@ -83,6 +83,32 @@ struct ExchangeGraphCorpusTests {
         _ = try graph(named: "retraction-bundle.json", kind: .retraction)
     }
 
+    @Test("Serialized shared fixtures preserve their event identity", arguments: [
+        ("exchange-bundle.json", ExchangeGraphKind.active),
+        ("retraction-bundle.json", ExchangeGraphKind.retraction)
+    ])
+    func acceptsSerializedSharedFixtures(name: String, kind: ExchangeGraphKind) throws {
+        let bytes = try Data(contentsOf: corpusDirectory.appendingPathComponent(name))
+        let parsed = try ExchangeGraph(kind: kind, jsonData: bytes)
+        let expected = try graph(named: name, kind: kind)
+        #expect(parsed.eventIdentifier == expected.eventIdentifier)
+        #expect(parsed.bundle == expected.bundle)
+    }
+
+    @Test("An otherwise valid graph cannot hide a duplicated JSON member", arguments: [
+        ("exchange-bundle.json", ExchangeGraphKind.active),
+        ("retraction-bundle.json", ExchangeGraphKind.retraction)
+    ])
+    func rejectsDuplicateMemberInValidGraph(name: String, kind: ExchangeGraphKind) throws {
+        let bytes = try Data(contentsOf: corpusDirectory.appendingPathComponent(name))
+        var json = String(decoding: bytes, as: UTF8.self)
+        let root = try #require(json.firstIndex(of: "{"))
+        json.insert(contentsOf: #""resourceType":"Bundle","#, at: json.index(after: root))
+        #expect(throws: ExchangeGraphError.invalidEntries("Serialized event is not strict JSON")) {
+            try ExchangeGraph(kind: kind, jsonData: Data(json.utf8))
+        }
+    }
+
     @Test("Provider-owned semantics require their exact provider envelope")
     func providerOwnedSemanticEnvelope() throws {
         let semantic = Profile.ouraReadinessScore
