@@ -45,8 +45,6 @@ extension HealthKitConverter {
         let evidence = try clinicalRecordingEvidence(
             data: fhirResource.data,
             release: fhirResource.fhirVersion.fhirRelease,
-            versionDescription: fhirResource.fhirVersion.stringRepresentation,
-            sourceUUID: record.uuid,
             sourceTypeIdentifier: record.sampleType.identifier
         )
         return try assembleDocumentGraph(for: record, evidence: evidence, context: context)
@@ -55,8 +53,6 @@ extension HealthKitConverter {
     static func clinicalRecordingEvidence(
         data: Data,
         release: HKFHIRRelease,
-        versionDescription: String,
-        sourceUUID: UUID,
         sourceTypeIdentifier: String
     ) throws(HealthKitConversionError) -> HealthKitRecordingEvidence {
         let releaseCode: String

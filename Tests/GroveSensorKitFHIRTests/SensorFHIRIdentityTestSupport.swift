@@ -31,11 +31,11 @@ enum SensorFHIRIdentityTestSupport {
         manufacturer: "Example Device Company",
         modelNumber: "Phone One"
     )
-    static let subjectIdentity = try! BusinessIdentifier(
+    static let subjectIdentifier = try! BusinessIdentifier(
         system: "https://grovealliance.org/fhir/testing/identifiers/participant",
         value: "example"
     )
-    static let subject: Subject = .logical(subjectIdentity)
+    static let subject: Subject = .logical(subjectIdentifier)
     static let repositoryScope = try! BusinessIdentifier(
         system: "https://grovealliance.org/fhir/testing/identifiers/repository",
         value: "primary"
@@ -99,26 +99,18 @@ enum SensorFHIRIdentityTestSupport {
         structuredDiscriminator: String?,
         includesNativeRecording: Bool
     ) throws -> [RoledIdentifier] {
+        let sourceRecord = try identityScope.sourceRecord(
+            adapterID: "sensorkit",
+            sourceType: sourceToken,
+            repositoryScope: repositoryScope,
+            nativeRecordID: sourceRecordID.value
+        )
         var outputs: [RoledIdentifier] = []
         if let structuredDiscriminator {
-            outputs.append(try identityScope.sourceOutput(
-                adapterID: "sensorkit",
-                sourceType: sourceToken,
-                repositoryScope: repositoryScope,
-                nativeRecordID: sourceRecordID.value,
-                outputRole: "structured",
-                outputDiscriminator: structuredDiscriminator
-            ))
+            outputs.append(try sourceRecord.output(role: "structured", discriminator: structuredDiscriminator))
         }
         if includesNativeRecording {
-            outputs.append(try identityScope.sourceOutput(
-                adapterID: "sensorkit",
-                sourceType: sourceToken,
-                repositoryScope: repositoryScope,
-                nativeRecordID: sourceRecordID.value,
-                outputRole: "native-recording",
-                outputDiscriminator: "single"
-            ))
+            outputs.append(try sourceRecord.output(role: "native-recording", discriminator: "single"))
         }
         return outputs
     }

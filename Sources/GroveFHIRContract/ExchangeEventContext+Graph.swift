@@ -124,7 +124,7 @@ extension ExchangeEventContext {
             let snapshot = try identityScope.deviceSnapshot(
                 event: event,
                 role: .application,
-                sourceDeviceToken: application.bundleIdentifier
+                sourceDeviceToken: application.sourceDeviceToken
             )
             return try? snapshot.fullURLString
         }
@@ -132,19 +132,5 @@ extension ExchangeEventContext {
 
     private func nodeKey(_ role: StudyContextEntryNodeRole, ordinal: UInt64) throws(ExchangeIdentityError) -> EntryNodeKey {
         try EntryNodeKey(system: entryNodeIdentifierSystem, event: event, nodeRole: role.rawValue, ordinal: ordinal)
-    }
-
-    /// The `workflow-researchStudy` and `observation-gatewayDevice` extensions an output carries.
-    package func outputExtensions(studyContext: StudyContext, gatewayURL: String?) -> [Extension] {
-        var extensions = studyContext.studyReferences.map { study in
-            Extension(url: Canonicals.researchStudy, value: .reference(study))
-        }
-        if let gatewayURL {
-            extensions.append(Extension(
-                url: Canonicals.gatewayDevice,
-                value: .reference(Reference(reference: gatewayURL.asFHIRStringPrimitive()))
-            ))
-        }
-        return extensions
     }
 }

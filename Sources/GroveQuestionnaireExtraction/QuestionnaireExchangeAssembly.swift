@@ -98,9 +98,7 @@ private struct GraphFrame {
     let context: QuestionnaireExtractionContext
     let response: ModelsR4.QuestionnaireResponse
     let authored: DateTime
-    let sourceType: String
-    let nativeRecordID: String
-    let sourceRecord: RoledIdentifier
+    let sourceRecord: SourceRecordIdentity
     let patientNode: EntryNodeKey
     let patientReference: Reference
     let responseNode: EntryNodeKey
@@ -126,14 +124,11 @@ private struct GraphFrame {
         self.context = context
         self.response = response
         self.authored = authored
-        self.nativeRecordID = nativeRecordID
         // The source type names the record kind, as every adapter's does; which instrument was
         // answered stays in the response the Observations derive from.
-        let sourceType = "QuestionnaireResponse"
-        self.sourceType = sourceType
         self.sourceRecord = try context.identityScope.sourceRecord(
             adapterID: QuestionnaireExchangeProjection.adapterID,
-            sourceType: sourceType,
+            sourceType: "QuestionnaireResponse",
             repositoryScope: context.repositoryScope,
             nativeRecordID: nativeRecordID
         )
@@ -150,7 +145,6 @@ private struct GraphFrame {
         let application = try Self.applicationDevice(
             writer: writer,
             context: context,
-            hostIdentity: host?.identity,
             hostURL: try host.map { try $0.identity.fullURLString }
         )
         self.application = application
@@ -234,14 +228,7 @@ extension GraphFrame {
     }
 
     func observationEntry(for measurement: ExtractedMeasurement) throws -> (entry: BundleEntry, url: String) {
-        let output = try context.identityScope.sourceOutput(
-            adapterID: QuestionnaireExchangeProjection.adapterID,
-            sourceType: sourceType,
-            repositoryScope: context.repositoryScope,
-            nativeRecordID: nativeRecordID,
-            outputRole: measurement.contract.id,
-            outputDiscriminator: "single"
-        )
+        let output = try sourceRecord.output(role: measurement.contract.id, discriminator: "single")
         let entry = try BundleEntry(
             identifier: output,
             resource: ResourceProxy(with: try observation(for: measurement, output: output))
@@ -261,7 +248,7 @@ extension GraphFrame {
             entry: entries,
             identifier: context.eventIdentifier.identifier.fhirIdentifier,
             meta: Meta(profile: [Profile.groveMobileExchangeBundle]),
-            timestamp: FHIRPrimitive(try Instant(date: context.conversionInstant, timeZone: Self.utcTimeZone)),
+            timestamp: FHIRPrimitive(try Instant(utc: context.conversionInstant)),
             type: FHIRPrimitive(.collection)
         )
         return try ExchangeGraph(
@@ -297,7 +284,7 @@ extension GraphFrame {
     static func instant(from authored: DateTime) throws -> FHIRPrimitive<Instant> {
         FHIRPrimitive(try Instant(
             date: try authored.asNSDate(),
-            timeZone: authored.timeZone ?? utcTimeZone
+            timeZone: authored.timeZone ?? .utc
         ))
     }
 
@@ -318,7 +305,7 @@ extension GraphFrame {
             status: FHIRPrimitive(status)
         )
         observation.meta = Meta(profile: [measurement.contract.profile])
-        observation.identifier = [sourceRecord.fhirIdentifier, sourceOutput.fhirIdentifier]
+        observation.identifier = [sourceRecord.identifier.fhirIdentifier, sourceOutput.fhirIdentifier]
         observation.subject = patientReference
         if response.author != nil {
             observation.performer = [patientReference]
@@ -364,7 +351,7 @@ extension GraphFrame {
         let identity = try context.identityScope.deviceSnapshot(
             event: context.eventIdentifier,
             role: .host,
-            sourceDeviceToken: "questionnaire-host|\(model)|\(osVersion)"
+            sourceDeviceToken: "\(model)|\(osVersion)"
         )
         var device = Device()
         device.meta = Meta(profile: [Profile.groveHostDevice])
@@ -388,18 +375,14 @@ extension GraphFrame {
     static func applicationDevice(
         writer: QuestionnaireWriterContext,
         context: QuestionnaireExtractionContext,
-        hostIdentity: RoledIdentifier?,
         hostURL: String?
     ) throws -> IdentifiedDevice {
-        var token = "questionnaire-application|\(writer.applicationIdentifier.system.rawValue)"
-            + "|\(writer.applicationIdentifier.value)|\(writer.applicationVersion)"
-        if let hostIdentity {
-            token += "|\(hostIdentity.identifier.value)"
-        }
         let identity = try context.identityScope.deviceSnapshot(
             event: context.eventIdentifier,
             role: .application,
-            sourceDeviceToken: token
+            sourceDeviceToken: [writer.applicationIdentifier.value, writer.applicationVersion, writer.applicationBuild]
+                .compactMap(\.self)
+                .joined(separator: "|")
         )
         var device = Device()
         device.meta = Meta(profile: [Profile.groveApplicationDevice])
@@ -448,8 +431,6 @@ extension GraphFrame {
 // MARK: Provenance
 
 extension GraphFrame {
-    static let utcTimeZone = TimeZone(identifier: "UTC") ?? .current
-
     func provenance(targets: [String]) throws -> Provenance {
         Provenance(
             activity: CodeableConcept(coding: [
@@ -474,15 +455,15 @@ extension GraphFrame {
             entity: [
     ProvenanceEntity(
                     role: FHIRPrimitive(.source),
-                    what: Reference(identifier: sourceRecord.fhirIdentifier)
+                    what: Reference(identifier: sourceRecord.identifier.fhirIdentifier)
                 )
             ],
             meta: Meta(profile: [Profile.groveMobileConversionProvenance]),
             occurred: .dateTime(FHIRPrimitive(try DateTime(
                 date: context.conversionInstant,
-                timeZone: authored.timeZone ?? Self.utcTimeZone
+                timeZone: authored.timeZone ?? .utc
             ))),
-            recorded: FHIRPrimitive(try Instant(date: context.conversionInstant, timeZone: Self.utcTimeZone)),
+            recorded: FHIRPrimitive(try Instant(utc: context.conversionInstant)),
             target: targets.map { Reference(reference: $0.asFHIRStringPrimitive()) }
         )
     }

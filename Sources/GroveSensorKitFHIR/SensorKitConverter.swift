@@ -36,7 +36,7 @@ public struct SensorKitConversionContext: Sendable {
     var repositoryScope: BusinessIdentifier { event.repositoryScope }
     var entryNodeIdentifierSystem: IdentifierSystem { event.entryNodeIdentifierSystem }
     var conversionInstant: Date { event.conversionInstant }
-    var subjectIdentity: BusinessIdentifier { event.subject.identifier }
+    var subjectIdentifier: BusinessIdentifier { event.subject.identifier }
     var subject: Reference { get throws { try event.subjectReference() } }
     var researchStudies: [Reference] { get throws { try event.studyReferences() } }
 
@@ -234,7 +234,7 @@ extension SensorKitConverter {
         context: SensorKitConversionContext
     ) throws -> SensorKitConversion {
         try validate(record: record, context: context)
-        let sourceIdentifier = try context.identityScope.sourceRecord(
+        let sourceRecord = try context.identityScope.sourceRecord(
             adapterID: Self.adapterID,
             sourceType: record.sourceToken,
             repositoryScope: context.repositoryScope,
@@ -244,30 +244,30 @@ extension SensorKitConverter {
         let structuredNode = try descriptors.structured.map {
             try outputNode(
                 record: record,
+                sourceRecord: sourceRecord,
                 discriminator: $0,
                 outputRole: "structured",
-                includesArtifact: false,
-                context: context
+                includesArtifact: false
             )
         }
         let rawNode = try descriptors.raw.map { _ in
             try outputNode(
                 record: record,
+                sourceRecord: sourceRecord,
                 discriminator: "single",
                 outputRole: "native-recording",
-                includesArtifact: true,
-                context: context
+                includesArtifact: true
             )
         }
         let converterApplicationIdentity = try context.identityScope.deviceSnapshot(
             event: context.eventIdentifier,
             role: .application,
-            sourceDeviceToken: context.event.application.bundleIdentifier
+            sourceDeviceToken: context.event.application.sourceDeviceToken
         )
         let converterHostIdentity = try context.identityScope.deviceSnapshot(
             event: context.eventIdentifier,
             role: .host,
-            sourceDeviceToken: "converter-host"
+            sourceDeviceToken: context.event.host.sourceDeviceToken
         )
         let converterURL = try converterApplicationIdentity.fullURLString
         let converterHostURL = try converterHostIdentity.fullURLString
@@ -276,7 +276,7 @@ extension SensorKitConverter {
         let recordingDeviceIdentity = try context.recordingDevice.map {
             try context.identityScope.recordingDevice(
                 adapterID: Self.adapterID,
-                subject: context.subjectIdentity,
+                subject: context.subjectIdentifier,
                 stableUnitToken: $0.stableUnitToken
             )
         }
@@ -293,7 +293,7 @@ extension SensorKitConverter {
 
         var observations = try buildObservations(
             record,
-            sourceIdentifier: sourceIdentifier,
+            sourceIdentifier: sourceRecord.identifier,
             outputNode: structuredNode,
             rawURL: rawNode?.fullURL,
             context: context,
@@ -302,7 +302,7 @@ extension SensorKitConverter {
         )
         var document = try buildDocument(
             record,
-            sourceIdentifier: sourceIdentifier,
+            sourceIdentifier: sourceRecord.identifier,
             outputNode: rawNode,
             relatedURLs: structuredNode.map { [$0.fullURL] } ?? [],
             context: context,
@@ -342,11 +342,10 @@ extension SensorKitConverter {
             ordinal: 0
         )
         var provenance = try conversionProvenance(
-            sourceIdentifier: sourceIdentifier.fhirIdentifier,
+            sourceIdentifier: sourceRecord.identifier.fhirIdentifier,
             targetURLs: outputNodes.map(\.fullURL),
             converterURL: converterURL,
-            recordedAt: context.conversionInstant,
-            timeZone: context.sourceTimeZone
+            recordedAt: context.conversionInstant
         )
         provenance.id = context.repositoryID(.provenance)?.primitive
 
@@ -390,7 +389,7 @@ extension SensorKitConverter {
             entry: entries,
             identifier: context.eventIdentifier.identifier.fhirIdentifier,
             meta: Meta(profile: [Profile.groveMobileExchangeBundle]),
-            timestamp: FHIRPrimitive(try exactInstant(context.conversionInstant, timeZone: context.sourceTimeZone)),
+            timestamp: FHIRPrimitive(try exactInstant(context.conversionInstant, timeZone: .utc)),
             type: FHIRPrimitive(.collection)
         )
         bundle.id = context.repositoryID(.bundle)?.primitive
@@ -400,7 +399,7 @@ extension SensorKitConverter {
             bundle: bundle
         )
         return SensorKitConversion(
-            sourceIdentifier: sourceIdentifier.fhirIdentifier,
+            sourceIdentifier: sourceRecord.identifier.fhirIdentifier,
             sourceTypeToken: record.sourceToken,
             primaryOutputIdentifier: primaryOutputIdentifier,
             outputIdentifiers: outputNodes.map(\.identifier),
@@ -475,28 +474,14 @@ extension SensorKitConverter {
 
     private static func outputNode(
         record: SensorKitRecord,
+        sourceRecord: SourceRecordIdentity,
         discriminator: String,
         outputRole: String,
-        includesArtifact: Bool,
-        context: SensorKitConversionContext
+        includesArtifact: Bool
     ) throws -> OutputNode {
-        let identifier = try context.identityScope.sourceOutput(
-            adapterID: Self.adapterID,
-            sourceType: record.sourceToken,
-            repositoryScope: context.repositoryScope,
-            nativeRecordID: record.sourceRecordID.value,
-            outputRole: outputRole,
-            outputDiscriminator: discriminator
-        )
+        let identifier = try sourceRecord.output(role: outputRole, discriminator: discriminator)
         let artifactIdentifier = try record.nativeRecording.map { recording in
-            try context.identityScope.sourceArtifact(
-                adapterID: Self.adapterID,
-                sourceType: record.sourceToken,
-                repositoryScope: context.repositoryScope,
-                nativeRecordID: record.sourceRecordID.value,
-                formatCode: recording.format.rawValue,
-                partIndex: 0
-            )
+            try sourceRecord.artifact(formatCode: recording.format.rawValue, partIndex: 0)
         }
         return OutputNode(
             identifier: identifier,
@@ -522,7 +507,7 @@ extension SensorKitConverter {
         let identity = try context.identityScope.deviceSnapshot(
             event: context.eventIdentifier,
             role: .application,
-            sourceDeviceToken: application.bundleIdentifier
+            sourceDeviceToken: application.sourceDeviceToken
         )
         var resource = SensorConverter.applicationDevice(application)
         resource.identifier = [identity.fhirIdentifier]

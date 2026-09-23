@@ -608,7 +608,7 @@ struct HealthKitFHIRConverterTests {
         #expect(automatic.observation.extension?.contains {
             $0.url == Canonicals.recordingMethod
         } != true)
-        #expect(automatic.sourceAuthor == nil)
+        #expect(automatic.writer == nil)
 
         let manual = try converter.convert(
             quantitySample(
@@ -838,22 +838,17 @@ struct HealthKitFHIRConverterTests {
     @Test("Clinical transport preserves exact DSTU2 and R4 bytes with their declared release")
     @available(iOS 18, macOS 15, *)
     func clinicalTransportPreservesAdmittedReleases() throws {
-        let sourceUUID = try #require(UUID(uuidString: "be22dfdc-8870-4413-9f8f-8c2aad0c9cbc"))
         let dstu2JSON = Data("  {\"resourceType\":\"Observation\",\"id\":\"dstu2\"}\n".utf8)
         let r4JSON = Data("{\n  \"resourceType\": \"Observation\", \"id\": \"r4\"\n}\n".utf8)
 
         let dstu2 = try HealthKitConverter.clinicalRecordingEvidence(
             data: dstu2JSON,
             release: .dstu2,
-            versionDescription: "1.0.2",
-            sourceUUID: sourceUUID,
             sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord"
         )
         let r4Evidence = try HealthKitConverter.clinicalRecordingEvidence(
             data: r4JSON,
             release: .r4,
-            versionDescription: "4.0.1",
-            sourceUUID: sourceUUID,
             sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord"
         )
 
@@ -868,15 +863,12 @@ struct HealthKitFHIRConverterTests {
     @Test("Unknown clinical releases fail before Grove creates an exchange document")
     @available(iOS 18, macOS 15, *)
     func unknownClinicalReleaseFailsClosed() throws {
-        let sourceUUID = try #require(UUID(uuidString: "be22dfdc-8870-4413-9f8f-8c2aad0c9cbc"))
         let payload = Data(#"{"resourceType":"Observation"}"#.utf8)
 
         #expect(throws: HealthKitConversionError.clinicalRecord(.unsupportedRelease)) {
             _ = try HealthKitConverter.clinicalRecordingEvidence(
                 data: payload,
                 release: .unknown,
-                versionDescription: "unknown",
-                sourceUUID: sourceUUID,
                 sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord"
             )
         }
@@ -892,14 +884,10 @@ struct HealthKitFHIRConverterTests {
     )
     @available(iOS 18, macOS 15, *)
     func invalidClinicalResourceSyntaxFailsClosed(payload: Data) throws {
-        let sourceUUID = try #require(UUID(uuidString: "be22dfdc-8870-4413-9f8f-8c2aad0c9cbc"))
-
         #expect(throws: HealthKitConversionError.clinicalRecord(.undecodable)) {
             _ = try HealthKitConverter.clinicalRecordingEvidence(
                 data: payload,
                 release: .r4,
-                versionDescription: "4.0.1",
-                sourceUUID: sourceUUID,
                 sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord"
             )
         }
@@ -908,15 +896,12 @@ struct HealthKitFHIRConverterTests {
     @Test("Typed R4 inspection still rejects a DSTU2 payload without changing transport support")
     @available(iOS 18, macOS 15, *)
     func typedR4InspectionRejectsDSTU2() throws {
-        let sourceUUID = try #require(UUID(uuidString: "be22dfdc-8870-4413-9f8f-8c2aad0c9cbc"))
         let dstu2JSON = Data(#"{"resourceType":"Observation","id":"dstu2"}"#.utf8)
 
         #expect(throws: HealthKitConversionError.clinicalRecord(.unsupportedRelease)) {
             _ = try HealthKitConverter.decodeR4ClinicalResource(
                 data: dstu2JSON,
-                release: .dstu2,
-                versionDescription: "1.0.2",
-                sourceUUID: sourceUUID
+                release: .dstu2
             )
         }
     }

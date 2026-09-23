@@ -17,7 +17,8 @@ public enum Subject: Hashable, Sendable {
     case logical(BusinessIdentifier)
     case bundled(BusinessIdentifier, Patient)
 
-    package var identifier: BusinessIdentifier {
+    /// The pseudonym, however the subject travels.
+    public var identifier: BusinessIdentifier {
         switch self {
         case .logical(let identifier), .bundled(let identifier, _):
             identifier

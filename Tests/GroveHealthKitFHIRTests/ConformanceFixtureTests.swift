@@ -412,8 +412,7 @@ struct ConformanceFixtureTests {
         let ecgInput = HealthKitECGObservationInput(
             source: ecgSource,
             waveform: ecgWaveform,
-            symptomOutputIdentifiers: [],
-            context: ecgContext
+            symptomOutputIdentifiers: []
         )
         // HKElectrocardiogram has no public synthetic initializer. This already-fetched
         // HealthKit sample supplies only the graph envelope's UUID/device/source-revision

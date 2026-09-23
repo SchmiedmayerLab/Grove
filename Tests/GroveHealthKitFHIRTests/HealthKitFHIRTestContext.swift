@@ -215,8 +215,8 @@ extension HealthKitConversion {
     var converterApplication: Device { graph.resource(Device.self, at: identifiers.applicationSnapshot)! }
     var converterHost: Device { graph.resource(Device.self, at: identifiers.hostSnapshot)! }
     var recordingDevice: Device? { identifiers.recordingDeviceSnapshot.flatMap { graph.resource(Device.self, at: $0) } }
-    var sourceAuthor: Device? { identifiers.sourceAuthorSnapshot.flatMap { graph.resource(Device.self, at: $0) } }
-    var sourceAuthorHost: Device? { identifiers.sourceAuthorHostSnapshot.flatMap { graph.resource(Device.self, at: $0) } }
+    var writer: Device? { identifiers.writerSnapshot.flatMap { graph.resource(Device.self, at: $0) } }
+    var writerHost: Device? { identifiers.writerHostSnapshot.flatMap { graph.resource(Device.self, at: $0) } }
 }
 
 
@@ -234,8 +234,8 @@ extension HealthKitConversionSet {
     var converterApplication: Device { primary.converterApplication }
     var converterHost: Device { primary.converterHost }
     var recordingDevice: Device? { primary.recordingDevice }
-    var sourceAuthor: Device? { primary.sourceAuthor }
-    var sourceAuthorHost: Device? { primary.sourceAuthorHost }
+    var writer: Device? { primary.writer }
+    var writerHost: Device? { primary.writerHost }
 }
 
 

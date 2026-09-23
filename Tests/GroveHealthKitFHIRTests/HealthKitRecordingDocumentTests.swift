@@ -110,8 +110,7 @@ struct HealthKitRecordingDocumentTests {
     func beatIntervalPayloadMatchesThePublishedExample() throws {
         let payload = try HealthKitConverter.beatIntervalPayload(
             seriesStart: Self.seriesStart,
-            heartbeats: Self.heartbeats,
-            sampleType: HKDataTypeIdentifierHeartbeatSeries
+            heartbeats: Self.heartbeats
         )
 
         #expect(String(decoding: payload, as: UTF8.self) == """
@@ -132,8 +131,7 @@ struct HealthKitRecordingDocumentTests {
         #expect(throws: HealthKitValueFailure.emptyRecordingSeries) {
             try HealthKitConverter.beatIntervalPayload(
                 seriesStart: Self.seriesStart,
-                heartbeats: [],
-                sampleType: HKDataTypeIdentifierHeartbeatSeries
+                heartbeats: []
             )
         }
     }
@@ -142,8 +140,7 @@ struct HealthKitRecordingDocumentTests {
     func beatSeriesGraphCarriesThePublishedContract() throws {
         let payload = try HealthKitConverter.beatIntervalPayload(
             seriesStart: Self.seriesStart,
-            heartbeats: Self.heartbeats,
-            sampleType: HKDataTypeIdentifierHeartbeatSeries
+            heartbeats: Self.heartbeats
         )
         let conversion = try HealthKitConverter.assembleDocumentGraph(
             for: envelopeSample(),
@@ -191,8 +188,7 @@ struct HealthKitRecordingDocumentTests {
                 title: "Heartbeat series beat intervals",
                 payload: try HealthKitConverter.beatIntervalPayload(
                     seriesStart: Self.seriesStart,
-                    heartbeats: Self.heartbeats,
-                    sampleType: HKDataTypeIdentifierHeartbeatSeries
+                    heartbeats: Self.heartbeats
                 )
             ),
             context: context()
@@ -226,8 +222,7 @@ struct HealthKitRecordingDocumentTests {
     func routeIsOmittedByDefault() throws {
         #expect(try HealthKitConverter.locationTrackPayload(
             Self.locations,
-            context: context(),
-            sampleType: HKWorkoutRouteTypeIdentifier
+            context: context()
         ) == nil)
     }
 
@@ -235,8 +230,7 @@ struct HealthKitRecordingDocumentTests {
     func authorizedRouteIsCarried() throws {
         let payload = try #require(try HealthKitConverter.locationTrackPayload(
             Self.locations,
-            context: context(routeDisclosurePolicy: .authorized),
-            sampleType: HKWorkoutRouteTypeIdentifier
+            context: context(routeDisclosurePolicy: .authorized)
         ))
 
         // The second fix reports no altitude, speed, or course, and each unavailable reading is an
@@ -254,8 +248,7 @@ struct HealthKitRecordingDocumentTests {
         #expect(throws: HealthKitValueFailure.emptyRecordingSeries) {
             try HealthKitConverter.locationTrackPayload(
                 [],
-                context: context(routeDisclosurePolicy: .authorized),
-                sampleType: HKWorkoutRouteTypeIdentifier
+                context: context(routeDisclosurePolicy: .authorized)
             )
         }
     }

@@ -25,6 +25,12 @@ public struct ApplicationDevice: Hashable, Sendable {
     public let version: String
     public let build: String?
 
+    /// The token the application's event-scoped Device snapshot identity is minted from:
+    /// `<bundle identifier>|<version>`, then `|<build>` when the application states one.
+    public var sourceDeviceToken: String {
+        [bundleIdentifier, version, build].compactMap(\.self).joined(separator: "|")
+    }
+
     public init(
         name: String,
         bundleIdentifier: String,

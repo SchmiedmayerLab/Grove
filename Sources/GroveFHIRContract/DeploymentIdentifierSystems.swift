@@ -15,6 +15,11 @@ public struct DeploymentIdentifierSystems: Hashable, Sendable {
     public let event: IdentifierSystem
     public let entryNode: IdentifierSystem
 
+    /// Every system the deployment reserves for its graph identities.
+    package var all: [IdentifierSystem] {
+        opaque.all + [event, entryNode]
+    }
+
     public init(
         opaque: OpaqueIdentitySystems,
         event: IdentifierSystem,

@@ -98,7 +98,7 @@ extension HealthKitConverter {
         let identity = try context.identityScope.deviceSnapshot(
             event: context.eventIdentifier,
             role: .application,
-            sourceDeviceToken: application.bundleIdentifier
+            sourceDeviceToken: application.sourceDeviceToken
         )
         var resource = applicationDevice(application)
         resource.id = repositoryID?.primitive
@@ -109,14 +109,13 @@ extension HealthKitConverter {
 
     static func hostSnapshot(
         _ host: HostDevice,
-        sourceDeviceToken: String,
         repositoryID: RepositoryID?,
         context: HealthKitConversionContext
     ) throws -> IdentifiedDevice {
         let identity = try context.identityScope.deviceSnapshot(
             event: context.eventIdentifier,
             role: .host,
-            sourceDeviceToken: sourceDeviceToken
+            sourceDeviceToken: host.sourceDeviceToken
         )
         var resource = hostDevice(host)
         resource.id = repositoryID?.primitive
@@ -163,7 +162,7 @@ extension HealthKitConverter {
         }
         let stableIdentity = try context.identityScope.recordingDevice(
             adapterID: HealthKitConverter.adapterID,
-            subject: context.subjectIdentity,
+            subject: context.subjectIdentifier,
             stableUnitToken: recorder.stableUnitToken
         )
         let snapshotIdentity = try context.identityScope.deviceSnapshot(
@@ -178,25 +177,25 @@ extension HealthKitConverter {
         )
     }
 
-    static func sourceAuthor(
+    static func writer(
         for revision: HKSourceRevision,
         classification: HealthKitWriter,
         context: HealthKitConversionContext
-    ) throws -> SourceAuthorDevices? {
+    ) throws -> WriterDevices? {
         switch classification {
         case .application:
-            return try sourceApplicationAuthor(for: revision, context: context)
+            return try writerApplication(for: revision, context: context)
         case .device:
-            // The graph envelope reuses its recording Device as the author. A second Device keyed
+            // The graph envelope reuses its recording Device as the writer. A second Device keyed
             // from application, model, or record identifiers would falsely claim a physical unit.
             return nil
         }
     }
 
-    private static func sourceApplicationAuthor(
+    private static func writerApplication(
         for revision: HKSourceRevision,
         context: HealthKitConversionContext
-    ) throws -> SourceAuthorDevices? {
+    ) throws -> WriterDevices? {
         guard let name = revision.source.name.nonBlank,
               let bundleIdentifier = revision.source.bundleIdentifier.nonBlank else {
             return nil
@@ -216,27 +215,22 @@ extension HealthKitConverter {
         } catch {
             throw HealthKitConversionError.sourceApplicationInvalid
         }
-        let hostSnapshot = try hostSnapshot(
-            host,
-            sourceDeviceToken: revision.productType?.nonBlank ?? bundleIdentifier,
-            repositoryID: context.repositoryID(.sourceAuthorHost),
-            context: context
-        )
+        let hostSnapshot = try hostSnapshot(host, repositoryID: context.repositoryID(.writerHost), context: context)
         let hostURL = try hostSnapshot.identity.fullURLString
         let identity = try context.identityScope.deviceSnapshot(
             event: context.eventIdentifier,
             role: .application,
-            sourceDeviceToken: bundleIdentifier
+            sourceDeviceToken: application.sourceDeviceToken
         )
         var device = applicationDevice(application)
         if revision.version?.nonBlank == nil {
             device.version = nil
         }
-        device.id = context.repositoryID(.sourceAuthor)?.primitive
+        device.id = context.repositoryID(.writer)?.primitive
         device.identifier = [identity.fhirIdentifier] + (device.identifier ?? [])
         device.parent = Reference(reference: hostURL.asFHIRStringPrimitive())
-        return SourceAuthorDevices(
-            author: IdentifiedDevice(resource: device, identity: identity),
+        return WriterDevices(
+            application: IdentifiedDevice(resource: device, identity: identity),
             host: hostSnapshot
         )
     }
@@ -249,10 +243,10 @@ extension HealthKitConverter {
         sourceIdentifier: Identifier,
         targetURL: String,
         converterURL: String,
-        sourceAuthorURL: String?,
+        writerURL: String?,
         recordedAt: Date
     ) throws -> Provenance {
-        let author = sourceAuthorURL.map { url in
+        let writer = writerURL.map { url in
             ProvenanceAgent(
                 type: CodeableConcept(coding: [Coding(
                     code: "author",
@@ -266,7 +260,7 @@ extension HealthKitConverter {
             role: FHIRPrimitive(.source),
             what: Reference(identifier: sourceIdentifier)
         )
-        entity.agent = author.map { [$0] }
+        entity.agent = writer.map { [$0] }
         return Provenance(
             activity: CodeableConcept(coding: [Coding(
                 code: "transform",
@@ -283,8 +277,8 @@ extension HealthKitConverter {
             )],
             entity: [entity],
             meta: Meta(profile: [HealthKitContract.conversionProvenanceProfile]),
-            occurred: .dateTime(FHIRPrimitive(try DateTime(date: recordedAt))),
-            recorded: FHIRPrimitive(try Instant(date: recordedAt)),
+            occurred: .dateTime(FHIRPrimitive(try DateTime(utc: recordedAt))),
+            recorded: FHIRPrimitive(try Instant(utc: recordedAt)),
             target: [Reference(reference: targetURL.asFHIRStringPrimitive())]
         )
     }

@@ -18,8 +18,8 @@ public struct ExchangeGraphIdentifiers: Hashable, Sendable {
     public let childOutputs: [RoledIdentifier]
     public let sourceArtifact: RoledIdentifier?
     public let recordingDeviceSnapshot: RoledIdentifier?
-    public let sourceAuthorSnapshot: RoledIdentifier?
-    public let sourceAuthorHostSnapshot: RoledIdentifier?
+    public let writerSnapshot: RoledIdentifier?
+    public let writerHostSnapshot: RoledIdentifier?
 
     public init(
         event: RoledIdentifier,
@@ -31,8 +31,8 @@ public struct ExchangeGraphIdentifiers: Hashable, Sendable {
         childOutputs: [RoledIdentifier] = [],
         sourceArtifact: RoledIdentifier? = nil,
         recordingDeviceSnapshot: RoledIdentifier? = nil,
-        sourceAuthorSnapshot: RoledIdentifier? = nil,
-        sourceAuthorHostSnapshot: RoledIdentifier? = nil
+        writerSnapshot: RoledIdentifier? = nil,
+        writerHostSnapshot: RoledIdentifier? = nil
     ) {
         self.event = event
         self.sourceRecord = sourceRecord
@@ -43,7 +43,7 @@ public struct ExchangeGraphIdentifiers: Hashable, Sendable {
         self.childOutputs = childOutputs
         self.sourceArtifact = sourceArtifact
         self.recordingDeviceSnapshot = recordingDeviceSnapshot
-        self.sourceAuthorSnapshot = sourceAuthorSnapshot
-        self.sourceAuthorHostSnapshot = sourceAuthorHostSnapshot
+        self.writerSnapshot = writerSnapshot
+        self.writerHostSnapshot = writerHostSnapshot
     }
 }

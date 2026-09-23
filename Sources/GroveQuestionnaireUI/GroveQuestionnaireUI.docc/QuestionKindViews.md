@@ -21,6 +21,14 @@ platform-neutral: it travels with the instrument and validates wherever the inst
 A kind that is also *shown* conforms to ``QuestionKindDefinitionWithViewSupport``, which adds the
 one thing the model cannot express — the SwiftUI view the participant answers in.
 
+@Row {
+    @Column {
+        @Image(source: "CustomKind", alt: "Screenshot showing a stopwatch question an app defined itself, rendered like the built-in kinds."){
+            A stopwatch, defined by the app: its card, validation and FHIR export work like those of the built-in kinds.
+        }
+    }
+}
+
 Splitting it this way keeps a kind usable off-screen. A questionnaire using a custom kind can be
 converted, scored, and stored on a server that has no view layer at all.
 

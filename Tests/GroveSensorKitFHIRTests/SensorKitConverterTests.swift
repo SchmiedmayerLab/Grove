@@ -86,20 +86,40 @@ struct GroveSensorKitFHIRConverterTests {
     ])
     func outputIdentityIsDeploymentScopedAndDoesNotDiscloseItsSource(discriminator: String) throws {
         let sourceID = try Self.sourceID
-        let identifier = try SensorFHIRIdentityTestSupport.identityScope.sourceOutput(
+        let record = try SensorFHIRIdentityTestSupport.identityScope.sourceRecord(
             adapterID: "sensorkit",
             sourceType: "SRSensor.rotationRate",
             repositoryScope: SensorFHIRIdentityTestSupport.repositoryScope,
-            nativeRecordID: sourceID.value,
-            outputRole: RetractionTargetRole.primaryOutput.rawValue,
-            outputDiscriminator: discriminator
+            nativeRecordID: sourceID.value
         )
+        let identifier = try record.output(role: RetractionTargetRole.primaryOutput.rawValue, discriminator: discriminator)
         #expect(identifier.systemValue ==
             "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-output/test/1")
         #expect(identifier.role == .sourceOutput)
         #expect(identifier.value.hasPrefix("v0:test:1:"))
         #expect(!identifier.value.contains(sourceID.value))
         #expect(!identifier.value.contains(discriminator))
+    }
+
+    @Test("Clock instants are UTC while effective bounds keep the source zone")
+    func clockInstantsAreUTC() throws {
+        let record = SensorKitRotationRateRecord(
+            sourceRecordID: try Self.sourceID,
+            samples: [
+                .init(timestamp: Self.start, x: 0.01, y: -0.02, z: 0.03),
+                .init(timestamp: Self.start.addingTimeInterval(0.01), x: 0.02, y: -0.01, z: 0.04)
+            ]
+        )
+        let conversion = try SensorKitConverter().convert(.rotationRate(record), context: Self.context)
+        #expect(conversion.bundle.timestamp?.value?.description == "2026-08-17T23:31:00Z")
+        #expect(conversion.provenance.recorded.value?.description == "2026-08-17T23:31:00Z")
+        guard case .dateTime(let occurred)? = conversion.provenance.occurred,
+              case .period(let effective)? = conversion.observations.first?.effective else {
+            Issue.record("The graph lost its Provenance time or its effective period")
+            return
+        }
+        #expect(occurred.value?.description == "2026-08-17T23:31:00Z")
+        #expect(effective.start?.value?.description == "2026-08-17T16:30:00-07:00")
     }
 
     @Test

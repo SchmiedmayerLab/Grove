@@ -80,9 +80,7 @@ extension HealthKitConverter {
         }
         let resource = try Self.decodeR4ClinicalResource(
             data: fhirResource.data,
-            release: fhirResource.fhirVersion.fhirRelease,
-            versionDescription: fhirResource.fhirVersion.stringRepresentation,
-            sourceUUID: record.uuid
+            release: fhirResource.fhirVersion.fhirRelease
         )
         var attachments: [HealthKitClinicalAttachment] = []
         if let healthKit {
@@ -116,9 +114,7 @@ extension HealthKitConverter {
     /// makes the DSTU2 rejection testable without constructing Apple's read-only HKFHIRResource.
     static func decodeR4ClinicalResource(
         data: Data,
-        release: HKFHIRRelease,
-        versionDescription: String,
-        sourceUUID: UUID
+        release: HKFHIRRelease
     ) throws(HealthKitConversionError) -> any ModelsR4.Resource {
         guard release == .r4 else {
             throw .clinicalRecord(.unsupportedRelease)

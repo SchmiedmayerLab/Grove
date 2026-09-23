@@ -102,24 +102,16 @@ extension HealthKitConverter {
             context: context,
             outputRole: output.role,
             outputDiscriminator: output.discriminator,
-            childBuilder: (sample as? HKWorkout).map { workout in workoutChildBuilder(for: workout, context: context) }
+            childBuilder: (sample as? HKWorkout).map(workoutChildBuilder(for:))
         ) { graphContext in
-            try observation(
-                for: sample,
-                binding: binding,
-                context: context,
-                graphContext: graphContext
-            )
+            try observation(for: sample, binding: binding, graphContext: graphContext)
         }
     }
 
     /// A workout's segments hang off its session totals as `hasMember` children.
-    private static func workoutChildBuilder(
-        for workout: HKWorkout,
-        context: HealthKitConversionContext
-    ) -> (GraphEnvelope) throws -> [GraphChildOutput] {
+    private static func workoutChildBuilder(for workout: HKWorkout) -> (GraphEnvelope) throws -> [GraphChildOutput] {
         { envelope in
-            try workoutSegments(workout, context: context, envelope: envelope).map { segment in
+            try workoutSegments(workout, envelope: envelope).map { segment in
                 GraphChildOutput(
                     identity: segment.identity,
                     observation: segment.observation,

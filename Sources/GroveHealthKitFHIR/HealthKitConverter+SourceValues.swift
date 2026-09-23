@@ -63,7 +63,7 @@ extension HealthKitConverter {
         _ sample: HKSample,
         contract: HealthKitFHIRObservationContract
     ) throws -> CodeableConcept {
-        let stage = try sleepStage(try categorySample(sample).value, sampleType: sample.sampleType.identifier)
+        let stage = try sleepStage(try categorySample(sample).value)
         return CodeableConcept(coding: [
             Coding(
                 code: stage.sharedCode.asFHIRStringPrimitive(),
@@ -155,10 +155,7 @@ extension HealthKitConverter {
         }
     }
 
-    private static func sleepStage(
-        _ value: Int,
-        sampleType: String
-    ) throws -> HealthKitSleepStage {
+    private static func sleepStage(_ value: Int) throws -> HealthKitSleepStage {
         switch value {
         case HKCategoryValueSleepAnalysis.inBed.rawValue:
             HealthKitSleepStage(

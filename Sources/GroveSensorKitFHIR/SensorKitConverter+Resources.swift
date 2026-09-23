@@ -130,7 +130,7 @@ extension SensorKitConverter {
                 format: try recordingFormat(native.format, entry: entry)
             )],
             context: documentContext,
-            date: FHIRPrimitive(try exactInstant(context.conversionInstant, timeZone: context.sourceTimeZone)),
+            date: FHIRPrimitive(try exactInstant(context.conversionInstant, timeZone: .utc)),
             identifier: [
                 sourceIdentifier.fhirIdentifier,
                 outputNode.identifier.fhirIdentifier

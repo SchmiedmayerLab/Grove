@@ -73,7 +73,7 @@ extension SensorConverter {
         observation.meta = Meta(profile: profiles)
         observation.identifier = [sourceRecord.fhirIdentifier, sourceOutput.fhirIdentifier]
         observation.subject = try context.subject
-        observation.effective = .period(try period(start: record.start, end: record.end))
+        observation.effective = .period(try period(start: record.start, end: record.end, sourceTimeZone: context.sourceTimeZone))
         observation.device = recordingDeviceURL.map(reference)
         observation.extension = try contextExtensions(context, converterURL: converterURL)
         observation.value = .sampledData(try sampledData(
@@ -110,7 +110,7 @@ extension SensorConverter {
         observation.meta = Meta(profile: profiles)
         observation.identifier = [sourceRecord.fhirIdentifier, sourceOutput.fhirIdentifier]
         observation.subject = try context.subject
-        observation.effective = .period(try period(start: record.start, end: record.end))
+        observation.effective = .period(try period(start: record.start, end: record.end, sourceTimeZone: context.sourceTimeZone))
         observation.device = recordingDeviceURL.map(reference)
         observation.extension = try contextExtensions(context, converterURL: converterURL)
         observation.component = try record.channels.map { channel in
@@ -160,7 +160,7 @@ extension SensorConverter {
                 )
             )],
             context: related.isEmpty ? nil : DocumentReferenceContext(related: related),
-            date: FHIRPrimitive(try Instant(date: context.conversionInstant)),
+            date: FHIRPrimitive(try Instant(utc: context.conversionInstant)),
             identifier: [
                 sourceRecord.fhirIdentifier,
                 sourceOutput.fhirIdentifier,
@@ -200,10 +200,11 @@ extension SensorConverter {
         String(groveFHIRPlainDecimal: value)
     }
 
-    static func period(start: Date, end: Date) throws -> Period {
+    /// An effective period in the source's own time zone, or in UTC when the context names none.
+    static func period(start: Date, end: Date, sourceTimeZone: TimeZone?) throws -> Period {
         Period(
-            end: FHIRPrimitive(try DateTime(date: end)),
-            start: FHIRPrimitive(try DateTime(date: start))
+            end: FHIRPrimitive(try DateTime(date: end, timeZone: sourceTimeZone ?? .utc)),
+            start: FHIRPrimitive(try DateTime(date: start, timeZone: sourceTimeZone ?? .utc))
         )
     }
 
@@ -344,8 +345,8 @@ extension SensorConverter {
                 what: Reference(identifier: sourceIdentifier)
             )],
             meta: Meta(profile: [GroveLifecycleContract.conversionProvenanceProfile]),
-            occurred: .dateTime(FHIRPrimitive(try DateTime(date: recordedAt))),
-            recorded: FHIRPrimitive(try Instant(date: recordedAt)),
+            occurred: .dateTime(FHIRPrimitive(try DateTime(utc: recordedAt))),
+            recorded: FHIRPrimitive(try Instant(utc: recordedAt)),
             target: [reference(targetURL)]
         )
     }

@@ -19,9 +19,7 @@ extension HealthKitConverter {
         guard case let .authorized(nativeSystem, _) = context.options.nativeIdentifierDisclosure else {
             return
         }
-        let systems = context.identityScope.systems
-        let reservedSystems = Set(systems.opaque.all + [systems.event, systems.entryNode])
-        guard !reservedSystems.contains(nativeSystem) else {
+        guard !context.identityScope.systems.all.contains(nativeSystem) else {
             throw .reservedIdentifierSystem
         }
     }

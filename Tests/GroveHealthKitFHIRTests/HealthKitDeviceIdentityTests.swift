@@ -165,9 +165,9 @@ struct HealthKitFHIRDeviceIdentityTests {
         )
         let author = try #require(conversion.provenance.entity?.first?.agent?.first)
 
-        #expect(conversion.sourceAuthor == nil)
+        #expect(conversion.writer == nil)
         #expect(author.who.reference == conversion.observation.device?.reference)
-        #expect(conversion.graphIdentifiers.sourceAuthorSnapshot == nil)
+        #expect(conversion.graphIdentifiers.writerSnapshot == nil)
         #expect(conversion.graphIdentifiers.recordingDeviceSnapshot != nil)
     }
 }

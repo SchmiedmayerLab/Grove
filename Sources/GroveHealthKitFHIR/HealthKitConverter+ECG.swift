@@ -72,7 +72,7 @@ extension HealthKitConverter {
             Profile.healthkitEcgAverageHeartRateObservation
         ])
         observation.identifier = [
-            envelope.sourceRecord.fhirIdentifier,
+            envelope.sourceRecord.identifier.fhirIdentifier,
             identity.fhirIdentifier
         ]
         observation.subject = envelope.graphContext.subject

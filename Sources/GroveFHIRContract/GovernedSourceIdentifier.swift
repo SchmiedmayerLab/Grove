@@ -37,6 +37,15 @@ public enum GovernedSourceIdentifierDisclosurePolicy: Hashable, Sendable {
             value: value.asFHIRStringPrimitive()
         )
     }
+
+    /// The disclosed native record identifier a retraction target carries, or nil when the deployment
+    /// omits clear source identifiers.
+    package func nativeRecordIdentifier(for value: String) -> BusinessIdentifier? {
+        guard case let .authorized(system, _) = self else {
+            return nil
+        }
+        return try? BusinessIdentifier(system: system, value: value)
+    }
 }
 
 

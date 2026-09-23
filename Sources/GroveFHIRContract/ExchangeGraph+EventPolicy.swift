@@ -474,12 +474,17 @@ extension ExchangeGraph {
         guard natives.count <= 1 else {
             throw .ruleViolation(.mobileRetractionNativeRecordIdentifier)
         }
-        var nativeRecordIdentifier: Identifier?
+        var nativeRecordIdentifier: BusinessIdentifier?
         if let native = natives.first {
-            guard case .identifier(let disclosed)? = native.value else {
+            // Any coding in the Grove role system restates a graph identity, whether or not its code parses.
+            guard case .identifier(let disclosed)? = native.value,
+                  !(disclosed.type?.coding ?? []).contains(where: {
+                      $0.system?.value?.url.absoluteString == Canonicals.identifierRoleCodeSystemValue
+                  }),
+                  let identifier = try? BusinessIdentifier(disclosed) else {
                 throw .ruleViolation(.mobileRetractionNativeRecordIdentifier)
             }
-            nativeRecordIdentifier = disclosed
+            nativeRecordIdentifier = identifier
         }
         do {
             return try RetractionTarget(
@@ -489,12 +494,7 @@ extension ExchangeGraph {
                 nativeRecordIdentifier: nativeRecordIdentifier
             )
         } catch {
-            switch error {
-            case .identifierRoleMismatch, .resourceTypeMismatch:
-                throw .ruleViolation(.mobileRetractionRoleTargetType)
-            case .invalidNativeRecordIdentifier:
-                throw .ruleViolation(.mobileRetractionNativeRecordIdentifier)
-            }
+            throw .ruleViolation(.mobileRetractionRoleTargetType)
         }
     }
 }

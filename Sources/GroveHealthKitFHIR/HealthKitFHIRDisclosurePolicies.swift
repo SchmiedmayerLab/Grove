@@ -29,7 +29,8 @@ public enum HealthKitUDIDisclosurePolicy: Hashable, Sendable {
 /// `HKSource` always carries a bundle identifier and is an application; hardware attribution is
 /// `HKDevice`, which the recording device carries separately.
 public enum HealthKitWriter: Hashable, Sendable {
-    /// Record the writer as the application it is. This is the default.
+    /// Record the writer as the application it is, with the host it ran on, as the graph's
+    /// `ExchangeGraphNode.writer` and `ExchangeGraphNode.writerHost` snapshots. This is the default.
     case application
     /// The caller has established that the source stands for a device rather than an application.
     /// The Provenance author reuses the dual-identity recording Device when stable per-unit

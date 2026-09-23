@@ -77,7 +77,7 @@ public struct HealthKitConversionContext: Sendable {
     var repositoryScope: BusinessIdentifier { event.repositoryScope }
     var entryNodeIdentifierSystem: IdentifierSystem { event.entryNodeIdentifierSystem }
     var conversionInstant: Date { event.conversionInstant }
-    var subjectIdentity: BusinessIdentifier { event.subject.identifier }
+    var subjectIdentifier: BusinessIdentifier { event.subject.identifier }
 
     public init(event: ExchangeEventContext, options: HealthKitConversionOptions = .default) {
         self.event = event

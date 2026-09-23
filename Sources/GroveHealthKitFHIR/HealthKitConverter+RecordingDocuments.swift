@@ -99,8 +99,7 @@ extension HealthKitConverter {
                     title: "Heartbeat series beat intervals",
                     payload: try Self.beatIntervalPayload(
                         seriesStart: record.series.startDate,
-                        heartbeats: record.heartbeats,
-                        sampleType: record.series.sampleType.identifier
+                        heartbeats: record.heartbeats
                     )
                 ),
                 context: context
@@ -122,8 +121,7 @@ extension HealthKitConverter {
         do {
             guard let payload = try Self.locationTrackPayload(
                 record.locations,
-                context: context,
-                sampleType: record.route.sampleType.identifier
+                context: context
             ) else {
                 return nil
             }
@@ -144,8 +142,7 @@ extension HealthKitConverter {
 
     static func beatIntervalPayload(
         seriesStart: Date,
-        heartbeats: [HealthKitHeartbeat],
-        sampleType: String
+        heartbeats: [HealthKitHeartbeat]
     ) throws -> Data {
         guard !heartbeats.isEmpty else {
             throw HealthKitValueFailure.emptyRecordingSeries
@@ -166,8 +163,7 @@ extension HealthKitConverter {
     /// The route's track, or `nil` when the deployment has not authorized disclosing one.
     static func locationTrackPayload(
         _ locations: [CLLocation],
-        context: HealthKitConversionContext,
-        sampleType: String
+        context: HealthKitConversionContext
     ) throws -> Data? {
         guard context.options.routeDisclosure == .authorized else {
             return nil
@@ -205,14 +201,7 @@ extension HealthKitConverter {
             outputRole: evidence.outputRole,
             outputDiscriminator: "single"
         )
-        let artifactIdentity = try context.identityScope.sourceArtifact(
-            adapterID: HealthKitConverter.adapterID,
-            sourceType: sample.sampleType.identifier,
-            repositoryScope: context.repositoryScope,
-            nativeRecordID: envelope.sourceUUID,
-            formatCode: evidence.format.rawValue,
-            partIndex: 0
-        )
+        let artifactIdentity = try envelope.sourceRecord.artifact(formatCode: evidence.format.rawValue, partIndex: 0)
         let document = try recordingDocument(
             for: sample,
             evidence: evidence,
@@ -221,10 +210,10 @@ extension HealthKitConverter {
             artifactIdentity: artifactIdentity
         )
         var provenance = try Self.provenance(
-            sourceIdentifier: envelope.sourceRecord.fhirIdentifier,
+            sourceIdentifier: envelope.sourceRecord.identifier.fhirIdentifier,
             targetURL: envelope.primaryURL,
             converterURL: envelope.converterURL,
-            sourceAuthorURL: envelope.sourceAuthorURL,
+            writerURL: envelope.writerURL,
             recordedAt: context.conversionInstant
         )
         provenance.id = context.repositoryID(.provenance)?.primitive
@@ -278,9 +267,9 @@ extension HealthKitConverter {
             context: envelope.studyContext.studyReferences.isEmpty
                 ? nil
                 : DocumentReferenceContext(related: envelope.studyContext.studyReferences),
-            date: FHIRPrimitive(try Instant(date: context.conversionInstant)),
+            date: FHIRPrimitive(try Instant(utc: context.conversionInstant)),
             identifier: [
-                envelope.sourceRecord.fhirIdentifier,
+                envelope.sourceRecord.identifier.fhirIdentifier,
                 envelope.primary.fhirIdentifier,
                 artifactIdentity.fhirIdentifier
             ] + nativeIdentifiers(for: sample, policy: context.options.nativeIdentifierDisclosure),

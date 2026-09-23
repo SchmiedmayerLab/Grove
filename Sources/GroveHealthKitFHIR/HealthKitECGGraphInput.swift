@@ -18,7 +18,6 @@ import ModelsR4
 struct HealthKitGraphContext: Sendable {
     let subject: Reference
     let recordingDeviceURL: String?
-    let converterURL: String
     /// The application that mediated the measurement, when the converter role names one.
     let gatewayURL: String?
     let studyReferences: [Reference]
@@ -30,7 +29,6 @@ struct HealthKitECGObservationInput: Sendable {
     let source: HealthKitECGSourceEvidence
     let waveform: HealthKitECGValidatedWaveform
     let symptomOutputIdentifiers: [RoledIdentifier]
-    let context: HealthKitConversionContext
 }
 
 

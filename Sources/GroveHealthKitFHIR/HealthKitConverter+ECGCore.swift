@@ -37,8 +37,7 @@ extension HealthKitConverter {
             symptomOutputIdentifiers: try validatedSymptomOutputIdentifiers(
                 symptomConversions,
                 expectedSystem: context.identityScope.systems.opaque.sourceOutput
-            ),
-            context: context
+            )
         )
         guard let output = HealthKitCatalog.primaryOutput(for: .electrocardiogram) else {
             throw HealthKitConversionError.unsupportedSourceType(.electrocardiogram)
@@ -230,14 +229,7 @@ extension HealthKitConverter {
         guard averageHeartRate.isFinite else {
             throw HealthKitConversionError.ecgEvidence(.invalidAverageHeartRate)
         }
-        let identity = try input.context.identityScope.sourceOutput(
-            adapterID: HealthKitConverter.adapterID,
-            sourceType: input.source.sourceTypeIdentifier,
-            repositoryScope: input.context.repositoryScope,
-            nativeRecordID: envelope.sourceUUID,
-            outputRole: "average-heart-rate",
-            outputDiscriminator: "single"
-        )
+        let identity = try envelope.sourceRecord.output(role: "average-heart-rate", discriminator: "single")
         let effective = try effectivePeriod(
             source: input.source,
             waveform: input.waveform,
@@ -439,12 +431,14 @@ extension HealthKitConverter {
     }
 
     static func healthKitTimeZone(metadata: [String: Any]) throws -> TimeZone {
+        try sourceTimeZone(metadata: metadata) ?? .utc
+    }
+
+    /// The time zone HealthKit states for a sample, or nil when it names none.
+    static func sourceTimeZone(metadata: [String: Any]) throws -> TimeZone? {
         switch metadata[HKMetadataKeyTimeZone] {
         case nil:
-            guard let utc = TimeZone(secondsFromGMT: 0) else {
-                preconditionFailure("Foundation must provide a zero-offset time zone.")
-            }
-            return utc
+            return nil
         case let identifier as String:
             guard let timeZone = TimeZone(identifier: identifier) else {
                 throw HealthKitValueFailure.unsupportedMetadataValue(.timeZone)

@@ -272,19 +272,16 @@ struct HealthKitFHIRCategoryConversionTests {
     @Test("Menstrual flow without HealthKit's mandatory cycle-start metadata fails closed")
     func menstrualCycleStartIsRequired() throws {
         let contract = HealthKitFHIRObservationContract(shared: MeasurementCatalog.menstruationFlow)
-        let sampleType = HKCategoryTypeIdentifier.menstrualFlow.rawValue
 
         #expect(throws: HealthKitValueFailure.requiredMetadataMissing(.menstrualCycleStart)) {
             try HealthKitConverter.menstrualCycleStartComponent(
                 metadata: [:],
-                sampleType: sampleType,
                 contract: contract
             )
         }
         #expect(throws: HealthKitValueFailure.unsupportedMetadataValue(.menstrualCycleStart)) {
             try HealthKitConverter.menstrualCycleStartComponent(
                 metadata: [HKMetadataKeyMenstrualCycleStart: "yes"],
-                sampleType: sampleType,
                 contract: contract
             )
         }

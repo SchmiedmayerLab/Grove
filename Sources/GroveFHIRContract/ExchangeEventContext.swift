@@ -28,8 +28,10 @@ public enum ExchangeGraphNode: Hashable, Sendable {
     case recordingDevice
     case applicationDevice
     case hostDevice
-    case sourceAuthor
-    case sourceAuthorHost
+    /// The application that wrote the source record, when it is not the recording device.
+    case writer
+    /// The host the writer ran on.
+    case writerHost
     case provenance
 }
 

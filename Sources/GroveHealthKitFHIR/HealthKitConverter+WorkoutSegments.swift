@@ -26,11 +26,10 @@ extension HealthKitConverter {
     /// session through `hasMember`.
     static func workoutSegments(
         _ workout: HKWorkout,
-        context: HealthKitConversionContext,
         envelope: GraphEnvelope
     ) throws -> [(identity: RoledIdentifier, observation: Observation)] {
-        let sourceRecord = envelope.sourceRecord
-        let sourceUUID = envelope.sourceUUID
+        let sourceRecord = envelope.sourceRecord.identifier
+        let sourceTimeZone = try sourceTimeZone(metadata: workout.metadata ?? [:])
         var segments: [(identity: RoledIdentifier, observation: Observation)] = []
         var eventOccurrences: [String: Int] = [:]
         for event in workout.workoutEvents ?? [] {
@@ -40,19 +39,16 @@ extension HealthKitConverter {
             )
             let occurrence = eventOccurrences[coordinate, default: 0]
             eventOccurrences[coordinate] = occurrence + 1
-            let identity = try context.identityScope.sourceOutput(
-                adapterID: HealthKitConverter.adapterID,
-                sourceType: workout.sampleType.identifier,
-                repositoryScope: context.repositoryScope,
-                nativeRecordID: sourceUUID,
-                outputRole: "workout-segment",
-                outputDiscriminator: "\(coordinate):\(occurrence)"
-            )
+            let identity = try envelope.sourceRecord.output(role: "workout-segment", discriminator: "\(coordinate):\(occurrence)")
             segments.append((
                 identity: identity,
                 observation: try segmentObservation(
                     value: segmentValue(for: event.type),
-                    interval: event.dateInterval,
+                    effective: try effectivePeriod(
+                        start: event.dateInterval.start,
+                        end: event.dateInterval.end,
+                        sourceTimeZone: sourceTimeZone
+                    ),
                     components: [],
                     sourceTypeIdentifier: workout.sampleType.identifier,
                     subject: envelope.graphContext.subject,
@@ -74,19 +70,12 @@ extension HealthKitConverter {
             )
             let occurrence = activityOccurrences[coordinate, default: 0]
             activityOccurrences[coordinate] = occurrence + 1
-            let identity = try context.identityScope.sourceOutput(
-                adapterID: HealthKitConverter.adapterID,
-                sourceType: workout.sampleType.identifier,
-                repositoryScope: context.repositoryScope,
-                nativeRecordID: sourceUUID,
-                outputRole: "workout-segment",
-                outputDiscriminator: "\(coordinate):\(occurrence)"
-            )
+            let identity = try envelope.sourceRecord.output(role: "workout-segment", discriminator: "\(coordinate):\(occurrence)")
             segments.append((
                 identity: identity,
                 observation: try segmentObservation(
                     value: try workoutValue(activityType: activity.workoutConfiguration.activityType),
-                    interval: interval,
+                    effective: try effectivePeriod(start: activity.startDate, end: end, sourceTimeZone: sourceTimeZone),
                     components: try activityComponents(activity),
                     sourceTypeIdentifier: workout.sampleType.identifier,
                     subject: envelope.graphContext.subject,
@@ -112,7 +101,7 @@ extension HealthKitConverter {
 
     private static func segmentObservation(
         value: CodeableConcept,
-        interval: DateInterval,
+        effective: Period,
         components: [ObservationComponent],
         sourceTypeIdentifier: String,
         subject: Reference,
@@ -132,10 +121,7 @@ extension HealthKitConverter {
         observation.meta = Meta(profile: [Profile.groveMobileWorkoutSegment])
         observation.identifier = [sourceRecord.fhirIdentifier, output.fhirIdentifier]
         observation.subject = subject
-        observation.effective = .period(Period(
-            end: FHIRPrimitive(try DateTime(date: interval.end)),
-            start: FHIRPrimitive(try DateTime(date: interval.start))
-        ))
+        observation.effective = .period(effective)
         observation.value = .codeableConcept(value)
         observation.component = components.isEmpty ? nil : components
         return observation

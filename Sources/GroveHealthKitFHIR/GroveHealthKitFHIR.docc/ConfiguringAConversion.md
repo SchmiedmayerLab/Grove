@@ -56,6 +56,7 @@ The converter emits the `ResearchStudy`, `PlanDefinition`, and `ResearchSubject`
 
 `ApplicationDevice` records which app produced the graph; `HostDevice` is the separate device on which it ran.
 Both become immutable event-time `Device` snapshots, and the application snapshot links to its host.
+Each snapshot's identity is minted from the event and the device's `sourceDeviceToken`: `<bundle identifier>|<version>`, plus `|<build>` when present, for the application, and `<model>|<operating-system version>` for the host, whose model `HostDevice.current()` reads from `uname`.
 Do not update one stable Device resource across historical events.
 
 `ApplicationDevice(bundle:)` reads the running bundle; a bare test runner has no bundle identity and fails there rather than inside a conversion.
@@ -102,6 +103,7 @@ Every output carries typed `source-record` and `source-output` identifiers; reco
 `options.recordingDevice` names the physical unit behind a sample's `HKDevice`.
 The default ``HealthKitLocalIdentifierResolver`` uses the per-unit `HKDevice.localIdentifier`; model and version facts cannot identify a unit, so a device without one yields no recording Device and the conversion reports ``HealthKitConversionWarning/recordingDeviceOmitted(deviceName:)``.
 Every disclosure policy defaults to omission: the UDI, the workout route, and the clear native identifier are emitted only under an explicit authorized policy, and an omission a policy chose never warns.
+The native-identifier policy governs both paths: the primary output of a conversion and the targets ``HealthKitConverter/retractionTargets(for:context:)`` names for a deletion carry the HealthKit UUID under the same authorized system.
 
 ## Understanding the two kinds of time
 
@@ -109,9 +111,9 @@ FHIR separates when a measurement happened from when a record was published; the
 
 This converter keeps the distinct clocks explicit:
 
-- `Observation.effective` is read from each sample's own `HKSample.startDate` and `endDate`, in the sample's own time zone when `HKMetadataKeyTimeZone` names one and in UTC with ``HealthKitConversionWarning/sourceOffsetUnavailable`` otherwise.
+- `Observation.effective` is read from each sample's own `HKSample.startDate` and `endDate`, in the sample's own time zone when `HKMetadataKeyTimeZone` names one and in UTC with ``HealthKitConversionWarning/sourceOffsetUnavailable(field:)`` naming each effective element otherwise; a workout's segments follow the workout's zone the same way, and no effective value ever takes the phone's current zone.
 - `Observation.issued` is absent because HealthKit exposes no object availability/modification instant.
-- `Provenance.occurred`, `Provenance.recorded`, and `Bundle.timestamp` take the event's persisted `conversionInstant`.
+- `Provenance.occurred`, `Provenance.recorded`, and `Bundle.timestamp` take the event's persisted `conversionInstant`, always in UTC, so a retry after the phone changed time zone rebuilds the same bytes.
 - A retry reuses that instant; a later source version receives a new event and instant.
 
 The converter never reads the clock.

@@ -34,7 +34,6 @@ extension HealthKitConverter {
     static func observation(
         for sample: HKSample,
         binding: HealthKitFHIRBinding,
-        context: HealthKitConversionContext,
         graphContext: HealthKitGraphContext
     ) throws -> Observation {
         let contract = binding.contract
@@ -157,57 +156,42 @@ extension HealthKitConverter {
         sample: HKSample,
         contract: HealthKitFHIRObservationContract
     ) throws {
-        let timeZone = try healthKitTimeZone(for: sample)
+        let sourceTimeZone = try sourceTimeZone(metadata: sample.metadata ?? [:])
         switch contract.effective {
         case .dateTime, .dateTimeOrPeriod:
             // Scalar HealthKit samples stay point-in-time even when the shared profile also admits
             // a Period for a separately modeled aggregate such as ECG average heart rate.
-            observation.effective = .dateTime(FHIRPrimitive(try HealthKitMobileCanonicalization.effectiveDateTime(
-                sample.startDate,
-                timeZone: timeZone
-            )))
+            observation.effective = .dateTime(try effectiveDateTime(sample.startDate, sourceTimeZone: sourceTimeZone))
         case .period:
             guard sample.endDate > sample.startDate else {
                 throw HealthKitValueFailure.effectivePeriodInvalid
             }
-            observation.effective = .period(Period(
-                end: FHIRPrimitive(try HealthKitMobileCanonicalization.effectiveDateTime(
-                    sample.endDate,
-                    timeZone: timeZone
-                )),
-                start: FHIRPrimitive(try HealthKitMobileCanonicalization.effectiveDateTime(
-                    sample.startDate,
-                    timeZone: timeZone
-                ))
+            observation.effective = .period(try effectivePeriod(
+                start: sample.startDate,
+                end: sample.endDate,
+                sourceTimeZone: sourceTimeZone
             ))
-        }
-        if sample.metadata?[HKMetadataKeyTimeZone] != nil {
-            attachTimeZoneExtension(to: &observation, identifier: timeZone.identifier)
         }
     }
 
-    private static func attachTimeZoneExtension(to observation: inout Observation, identifier: String) {
-        let timeZoneExtension = Extension(
-            url: Canonicals.timezone,
-            value: .code(identifier.asFHIRStringPrimitive())
-        )
-        switch observation.effective {
-        case .dateTime(var dateTime):
-            dateTime.append(extension: timeZoneExtension, behaviour: .replace)
-            observation.effective = .dateTime(dateTime)
-        case .period(var period):
-            if var start = period.start {
-                start.append(extension: timeZoneExtension, behaviour: .replace)
-                period.start = start
-            }
-            if var end = period.end {
-                end.append(extension: timeZoneExtension, behaviour: .replace)
-                period.end = end
-            }
-            observation.effective = .period(period)
-        default:
-            break
+    /// An effective instant in the source's own time zone, which also travels as the `timezone`
+    /// extension, or in UTC when the source names none.
+    static func effectiveDateTime(_ date: Date, sourceTimeZone: TimeZone?) throws -> FHIRPrimitive<DateTime> {
+        var dateTime = FHIRPrimitive(try HealthKitMobileCanonicalization.effectiveDateTime(date, timeZone: sourceTimeZone ?? .utc))
+        if let sourceTimeZone {
+            dateTime.append(
+                extension: Extension(url: Canonicals.timezone, value: .code(sourceTimeZone.identifier.asFHIRStringPrimitive())),
+                behaviour: .replace
+            )
         }
+        return dateTime
+    }
+
+    static func effectivePeriod(start: Date, end: Date, sourceTimeZone: TimeZone?) throws -> Period {
+        Period(
+            end: try effectiveDateTime(end, sourceTimeZone: sourceTimeZone),
+            start: try effectiveDateTime(start, sourceTimeZone: sourceTimeZone)
+        )
     }
 
     private static func measurementDisplay(_ contract: HealthKitFHIRObservationContract) -> String {
@@ -305,7 +289,6 @@ extension HealthKitConverter {
         }
         let component = try menstrualCycleStartComponent(
             metadata: sample.metadata ?? [:],
-            sampleType: sample.sampleType.identifier,
             contract: contract
         )
         observation.component = (observation.component ?? []) + [component]
@@ -313,7 +296,6 @@ extension HealthKitConverter {
 
     static func menstrualCycleStartComponent(
         metadata: [String: Any],
-        sampleType: String,
         contract: HealthKitFHIRObservationContract
     ) throws -> ObservationComponent {
         guard let contractComponent = contract.components.first(where: { $0.id == "cycleStart" }),

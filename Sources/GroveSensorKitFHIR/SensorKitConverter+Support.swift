@@ -84,8 +84,7 @@ extension SensorKitConverter {
         sourceIdentifier: Identifier,
         targetURLs: [String],
         converterURL: String,
-        recordedAt: Date,
-        timeZone: TimeZone
+        recordedAt: Date
     ) throws -> Provenance {
         Provenance(
             activity: CodeableConcept(coding: [Coding(
@@ -104,8 +103,8 @@ extension SensorKitConverter {
                 what: Reference(identifier: sourceIdentifier)
             )],
             meta: Meta(profile: [profile(SensorKitContract.conversionProvenanceProfile)]),
-            occurred: .dateTime(FHIRPrimitive(try exactDateTime(recordedAt, timeZone: timeZone))),
-            recorded: FHIRPrimitive(try exactInstant(recordedAt, timeZone: timeZone)),
+            occurred: .dateTime(FHIRPrimitive(try exactDateTime(recordedAt, timeZone: .utc))),
+            recorded: FHIRPrimitive(try exactInstant(recordedAt, timeZone: .utc)),
             target: targetURLs.map(reference)
         )
     }

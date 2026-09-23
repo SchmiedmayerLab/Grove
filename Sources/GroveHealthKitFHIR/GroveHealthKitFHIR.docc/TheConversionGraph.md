@@ -59,7 +59,9 @@ Each is an immutable event-time snapshot; an application links to its host throu
 
 A HealthKit application Device claims the HealthKit application profile and carries exactly two identifiers: the opaque event-scoped `device-snapshot`, plus the clear Apple product bundle identifier typed as `healthkit-identifier-type#apple-bundle-id`.
 That clear value identifies an application product, never an installation, host, account, or person.
-The converter always uses this shape; an `HKSourceRevision` author uses it only when the caller classifies the source as an application through ``HealthKitWriter``.
+The converter always uses this shape; the writer of an `HKSourceRevision` uses it only when the caller classifies the source as an application through ``HealthKitWriter``.
+That writer snapshot and the host it ran on are the graph's `writer` and `writerHost` nodes, the source agent of the Provenance; a writer classified as a device is the recording Device itself.
+A writer snapshot the converter already states, such as the phone the converter runs on, is that one entry rather than a second one.
 
 A recording Device carries two identities.
 `recording-device` is the stable HMAC identity for the physical unit named by the ``RecordingDeviceResolver``.
@@ -120,3 +122,4 @@ It is not an HTTP delete instruction.
 
 The target role closes both identity and resource type: `primary-output`, `child-output`, `specimen`, and `source-artifact` target a `source-output` identifier with the role's admitted resource type; `device-snapshot` targets a Device's `device-snapshot` identifier.
 A recording document's `source-artifact` role therefore selects the document's exact source-output entry key, not its attachment identifier.
+A disclosed native record identifier rides beside the target in the Grove retraction native-identifier extension; it never addresses the target.

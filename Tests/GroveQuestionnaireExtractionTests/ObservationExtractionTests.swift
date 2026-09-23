@@ -354,10 +354,8 @@ struct ObservationExtractionTests {
     /// value derivable, and reproduces the protocol's canonical minting where it does not.
     ///
     /// The keyless entry-node keys and their deterministic URNs match the committed bundle byte
-    /// for byte. The HMAC identities are asserted against vectors minted with the protocol's own
-    /// Python implementation and the published conformance key: the committed bundle's HMAC
-    /// values do not correspond to canonical preimages and are pattern-checked only by the
-    /// guide's gates, which is reported as an upstream fixture defect.
+    /// for byte, and the HMAC identities match the vectors the guide publishes for the same
+    /// preimages under the conformance key.
     @Test("Keyless derivations match the guide's bundle; identities match the canonical mint")
     func matchesTheGuidesExchangeBundle() throws {
         let url = try #require(Bundle.module.url(forResource: "HomeVitals_bundle", withExtension: "json"))
@@ -402,6 +400,19 @@ struct ObservationExtractionTests {
             #expect(values["source-record"] == sourceRecord)
             #expect(values["source-output"] == canonical[code])
         }
+
+        // questionnaire-extraction-{application,host}-snapshot, minted from `<application>|<version>|<build>`
+        // and `<model>|<operating-system version>`.
+        let snapshots = Set(entries.compactMap { entry -> String? in
+            guard case .device(let device)? = entry.resource else {
+                return nil
+            }
+            return device.identifier?.first { $0.type?.coding?.first?.code?.value?.string == "device-snapshot" }?.value?.value?.string
+        })
+        #expect(snapshots == [
+            "v0:test-key:1:W8r_v8DzqOippQF5DUZiyhr_iwyRQk3NTa_sQLF8aM0",
+            "v0:test-key:1:Bjx_NBNO2-QhII9c1M5mcLUUOJRB0YSTXbg68kkTDdc"
+        ])
     }
 
     // MARK: Beyond the Guide's Example
