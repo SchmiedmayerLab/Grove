@@ -6,19 +6,45 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(Darwin)
 public import Foundation
+#else
+import Foundation
+#endif
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses {
+    #if canImport(Darwin)
+    /// What a rejected response says to the participant: a resource the view resolves in its own locale.
+    ///
+    /// The alias is `String` off Apple platforms. That is safe: it is a new name that never shadows Foundation's type,
+    /// and here it is exactly the `LocalizedStringResource` the cases carried on main.
+    public typealias ResponseValidationMessage = LocalizedStringResource
+    #else
+    /// What a rejected response says to the participant: the message itself.
+    ///
+    /// There is no catalogue to resolve against off Apple platforms, and these messages are authored
+    /// as text, so the literal is already the finished message.
+    public typealias ResponseValidationMessage = String
+    #endif
+
     public enum ResponseValidationResult: Sendable {
         /// The response provided for the task is ok.
         case ok
         /// The response provided for the task is invalid.
-        case invalid(message: LocalizedStringResource)
+        case invalid(message: ResponseValidationMessage)
         /// The response is on its way but not there yet, such as "Other" chosen with nothing typed. Unlike an
         /// invalid one, the page says so only once the participant tries to move on, as for a missing answer.
-        case incomplete(message: LocalizedStringResource)
+        case incomplete(message: ResponseValidationMessage)
+
+        #if canImport(Darwin)
+        /// How a message is written in this package: a catalogue key with its arguments.
+        typealias MessageLiteral = String.LocalizationValue
+        #else
+        /// How a message is written in this package: the finished text, there being no catalogue.
+        typealias MessageLiteral = String
+        #endif
         
         package var isOk: Bool {
             switch self {
@@ -41,13 +67,30 @@ extension QuestionnaireResponses {
         /// Creates a ``invalid(message:)`` localized to the specified bundle.
         ///
         /// - Important: Use this function when creating `invalid` results within the package, to ensure that the localization is picked up correctly.
-        static func invalid(message: String.LocalizationValue, bundle: Bundle) -> Self {
+        static func invalid(message: MessageLiteral, bundle: Bundle) -> Self {
+            #if canImport(Darwin)
             .invalid(message: LocalizedStringResource(message, bundle: bundle))
+            #else
+            .invalid(message: message)
+            #endif
         }
 
         /// Creates a ``incomplete(message:)`` localized to the specified bundle.
-        static func incomplete(message: String.LocalizationValue, bundle: Bundle) -> Self {
+        static func incomplete(message: MessageLiteral, bundle: Bundle) -> Self {
+            #if canImport(Darwin)
             .incomplete(message: LocalizedStringResource(message, bundle: bundle))
+            #else
+            .incomplete(message: message)
+            #endif
+        }
+
+        /// Creates a ``invalid(message:)`` from text the questionnaire itself authored, which is shown as written.
+        static func invalid(authored message: String) -> Self {
+            #if canImport(Darwin)
+            .invalid(message: LocalizedStringResource(stringLiteral: message))
+            #else
+            .invalid(message: message)
+            #endif
         }
     }
     
@@ -76,7 +119,7 @@ extension QuestionnaireResponses {
             for constraint in task.constraints where constraint.severity == .error {
                 do {
                     if try engine.evaluateBoolean(constraint.expression, scope: .answer(task.id), in: self) == .false {
-                        return .invalid(message: LocalizedStringResource(stringLiteral: constraint.humanDescription))
+                        return .invalid(authored: constraint.humanDescription)
                     }
                 } catch {
                     // A rule that cannot be evaluated proves nothing, so the answer stands;
