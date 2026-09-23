@@ -6661,7 +6661,7 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
     }
 
     /// A warning names what an accepted record lost; every other rule refuses the record or graph.
-    public var severity: ExchangeGraphDiagnostic.Severity {
+    public var severity: ProducerDiagnostic.Severity {
         switch self {
         case .mobileOmissionRecordingDevice, .mobileOmissionSourceOffset, .mobileOmissionUnmodeledMetadata:
             .warning
@@ -6678,6 +6678,55 @@ public enum StudyContextEntryNodeRole: String, CaseIterable, Sendable {
     case researchStudy = "research-study"
     case researchSubject = "research-subject"
     case planDefinition = "plan-definition"
+}
+
+
+/// The catalog's component rules for each opaque identity kind, generated from exchange-protocol.json.
+extension OpaqueIdentityKind {
+    /// The kind's typed components, in preimage order.
+    var componentNames: [String] {
+        switch self {
+        case .sourceRecord:
+            ["adapter-id", "source-type", "repository-scope-system", "repository-scope-value", "native-record-id"]
+        case .sourceOutput:
+            ["adapter-id", "source-type", "repository-scope-system", "repository-scope-value", "native-record-id", "output-role", "output-discriminator"]
+        case .writerRecord:
+            ["writer-application-system", "writer-application-value", "writer-record-id"]
+        case .providerRecord:
+            ["provider-code", "source-type", "provider-scope-system", "provider-scope-value", "native-record-id"]
+        case .providerOutput:
+            ["provider-code", "source-type", "provider-scope-system", "provider-scope-value", "native-record-id", "output-role", "output-discriminator"]
+        case .sourceArtifact:
+            ["adapter-id", "source-type", "repository-scope-system", "repository-scope-value", "native-record-id", "format-code", "part-index"]
+        case .providerArtifact:
+            ["provider-code", "source-type", "provider-scope-system", "provider-scope-value", "native-record-id", "format-code", "part-index"]
+        case .sourceContext:
+            ["adapter-id", "context-type", "repository-scope-system", "repository-scope-value", "native-context-id"]
+        case .recordingDevice:
+            ["adapter-id", "subject-system", "subject-value", "stable-unit-token"]
+        case .deviceSnapshot:
+            ["event-system", "event-value", "device-role", "source-device-token"]
+        }
+    }
+
+    /// The role the kind's identifiers carry in `Identifier.type`.
+    var identifierRole: GroveIdentifierRole {
+        switch self {
+        case .sourceRecord: .sourceRecord
+        case .sourceOutput: .sourceOutput
+        case .writerRecord: .writerRecord
+        case .providerRecord: .sourceRecord
+        case .providerOutput: .sourceOutput
+        case .sourceArtifact: .sourceArtifact
+        case .providerArtifact: .sourceArtifact
+        case .sourceContext: .sourceContext
+        case .recordingDevice: .recordingDevice
+        case .deviceSnapshot: .deviceSnapshot
+        }
+    }
+
+    /// Components whose value is a canonical unsigned decimal.
+    static let unsignedDecimalComponents: Set<String> = ["part-index"]
 }
 
 

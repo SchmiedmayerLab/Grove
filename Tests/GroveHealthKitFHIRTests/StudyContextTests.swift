@@ -46,7 +46,7 @@ struct StudyContextTests {
     }
 
     /// The diagnostic a re-parse reports after the entries are rewritten, or nil when the graph stays valid.
-    private static func revalidate(_ graph: ExchangeGraph, rewriting: (Entries) throws -> Entries) throws -> ExchangeGraphDiagnostic? {
+    private static func revalidate(_ graph: ExchangeGraph, rewriting: (Entries) throws -> Entries) throws -> ProducerDiagnostic? {
         var object = try bundleObject(graph)
         object["entry"] = try rewriting(try #require(object["entry"] as? Entries))
         let data = try JSONSerialization.data(withJSONObject: object)

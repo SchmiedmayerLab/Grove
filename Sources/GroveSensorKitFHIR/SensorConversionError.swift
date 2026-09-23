@@ -31,14 +31,17 @@ public enum SensorConversionError: Error, Equatable, Sendable {
     /// instant it could not convert, and that instant identifies a participant.
     case unexpectedConversionFailure(String)
 
-    public var diagnostic: ExchangeGraphDiagnostic {
+    public var diagnostic: ProducerDiagnostic {
         switch self {
         case .exchangeGraph(let error):
             return error.diagnostic
+        case .exchangeIdentity(let error):
+            return error.diagnostic
+        case .opaqueIdentity(let error):
+            return error.diagnostic
         case .payloadTooLarge:
             return ExchangeGraphRule.mobileInputRecordingPayloadTooLarge.diagnostic
-        case .invalidExchangeIdentity, .repositoryIDWithoutRecordingDevice, .exchangeIdentity, .opaqueIdentity,
-             .unexpectedConversionFailure:
+        case .invalidExchangeIdentity, .repositoryIDWithoutRecordingDevice, .unexpectedConversionFailure:
             return ExchangeGraphRule.mobileInputUnclassified.diagnostic
         }
     }

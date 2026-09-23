@@ -54,11 +54,6 @@ public enum OpaqueIdentityKind: String, CaseIterable, Hashable, Sendable {
 
     /// The frozen number of typed fields in this identity kind's protocol preimage.
     public var componentCount: Int {
-        switch self {
-        case .sourceRecord, .providerRecord, .sourceContext: 5
-        case .sourceOutput, .providerOutput, .sourceArtifact, .providerArtifact: 7
-        case .writerRecord: 3
-        case .recordingDevice, .deviceSnapshot: 4
-        }
+        componentNames.count
     }
 }

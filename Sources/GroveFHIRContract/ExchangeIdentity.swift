@@ -73,6 +73,18 @@ public enum ExchangeIdentityError: Error, Equatable, Sendable {
     case identityComponentTooLarge(Int)
     case identityFramingFailure
     case invalidInstant
+
+    /// The registered diagnostic, the same on every platform for the same fault.
+    ///
+    /// A stored event identifier out of its canonical form is the fault a record can carry; every other one is a
+    /// producer or deployment defect.
+    public var diagnostic: ProducerDiagnostic {
+        if case .invalidEventIdentifier = self {
+            ExchangeGraphRule.mobileExchangeEventIdentity.diagnostic
+        } else {
+            ExchangeGraphRule.mobileInputUnclassified.diagnostic
+        }
+    }
 }
 
 

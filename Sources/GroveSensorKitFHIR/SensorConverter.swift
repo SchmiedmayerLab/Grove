@@ -11,36 +11,41 @@
 
 import CryptoKit
 import FHIRModelsExtensions
-import Foundation
+public import Foundation
 public import GroveFHIRContract
 public import ModelsR4
 
 
 /// The shared event context plus what the Sensor adapter needs of its own: the adapter token every
-/// identity preimage carries and the physical recorder, when known.
+/// identity preimage carries, the physical recorder and the source's time zone, when known.
 public struct SensorConversionContext: Sendable {
     public let event: ExchangeEventContext
     /// Closed adapter token included in every source identity.
     public let adapterID: String
     public let recordingDevice: RecordingDevice?
+    /// The zone the source recorded in, whose offset every effective bound states; without one the bounds
+    /// are serialized in UTC and the conversion warns.
+    public let sourceTimeZone: TimeZone?
 
     var identityScope: OpaqueIdentityScope { event.identityScope }
     var eventIdentifier: ExchangeEventIdentifier { event.event }
     var repositoryScope: BusinessIdentifier { event.repositoryScope }
     var entryNodeIdentifierSystem: IdentifierSystem { event.entryNodeIdentifierSystem }
     var conversionInstant: Date { event.conversionInstant }
-    var subjectIdentity: BusinessIdentifier { event.subject.identifier }
+    var subjectIdentifier: BusinessIdentifier { event.subject.identifier }
     var subject: Reference { get throws { try event.subjectReference() } }
     var researchStudies: [Reference] { get throws { try event.studyReferences() } }
 
     public init(
         event: ExchangeEventContext,
         adapterID: String,
-        recordingDevice: RecordingDevice? = nil
+        recordingDevice: RecordingDevice? = nil,
+        sourceTimeZone: TimeZone? = nil
     ) {
         self.event = event
         self.adapterID = adapterID
         self.recordingDevice = recordingDevice
+        self.sourceTimeZone = sourceTimeZone
     }
 
     func repositoryID(_ node: ExchangeGraphNode) -> RepositoryID? {
@@ -70,6 +75,23 @@ public enum SensorPrimaryResource: Sendable {
 }
 
 
+/// Something an accepted Sensor record carried that its graph does not; each case is one registered
+/// `mobile-omission` rule.
+public enum SensorConversionWarning: Hashable, Sendable {
+    /// The context stated no time zone, so the effective element `field`, such as
+    /// `Observation.effectivePeriod.start`, is serialized in UTC.
+    case sourceOffsetUnavailable(field: String)
+
+    /// The registered diagnostic, located at the element that lost its offset.
+    public var diagnostic: ProducerDiagnostic {
+        switch self {
+        case .sourceOffsetUnavailable(let field):
+            ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: field)
+        }
+    }
+}
+
+
 /// One complete Sensor conversion graph and collection Bundle.
 public struct SensorConversion: Sendable {
     public let sourceIdentifier: Identifier
@@ -82,6 +104,8 @@ public struct SensorConversion: Sendable {
     public let provenance: Provenance
     /// The authoritative graph. Upload and persistence code must serialize this value.
     public let graph: ExchangeGraph
+    /// Empty when the graph carries everything the record supplied.
+    public let warnings: [SensorConversionWarning]
 
     public var bundle: ModelsR4.Bundle { graph.bundle }
 }
@@ -156,33 +180,19 @@ extension SensorConverter {
         case .recordingDocument:
             ("native-recording", "single")
         }
-        let sourceOutput = try context.identityScope.sourceOutput(
-            adapterID: context.adapterID,
-            sourceType: record.sourceTypeIdentifier,
-            repositoryScope: context.repositoryScope,
-            nativeRecordID: record.nativeRecordID,
-            outputRole: outputDescriptor.role,
-            outputDiscriminator: outputDescriptor.discriminator
-        )
-        let sourceArtifact = try (record.recordingFormat).map { format in
-            try context.identityScope.sourceArtifact(
-                adapterID: context.adapterID,
-                sourceType: record.sourceTypeIdentifier,
-                repositoryScope: context.repositoryScope,
-                nativeRecordID: record.nativeRecordID,
-                formatCode: format.rawValue,
-                partIndex: 0
-            )
+        let sourceOutput = try sourceRecord.output(role: outputDescriptor.role, discriminator: outputDescriptor.discriminator)
+        let sourceArtifact = try record.recordingFormat.map { format in
+            try sourceRecord.artifact(formatCode: format.rawValue, partIndex: 0)
         }
         let converterApplicationIdentity = try context.identityScope.deviceSnapshot(
             event: context.eventIdentifier,
             role: .application,
-            sourceDeviceToken: context.event.application.bundleIdentifier
+            sourceDeviceToken: context.event.application.sourceDeviceToken
         )
         let converterHostIdentity = try context.identityScope.deviceSnapshot(
             event: context.eventIdentifier,
             role: .host,
-            sourceDeviceToken: "converter-host"
+            sourceDeviceToken: context.event.host.sourceDeviceToken
         )
         let provenanceNode = try EntryNodeKey(
             system: context.entryNodeIdentifierSystem,
@@ -193,7 +203,7 @@ extension SensorConverter {
         let recordingDeviceIdentity = try context.recordingDevice.map { device in
             try context.identityScope.recordingDevice(
                 adapterID: context.adapterID,
-                subject: context.subjectIdentity,
+                subject: context.subjectIdentifier,
                 stableUnitToken: device.stableUnitToken
             )
         }
@@ -229,7 +239,7 @@ extension SensorConverter {
 
         let primaryResource = try primaryResource(
             record,
-            sourceRecord: sourceRecord,
+            sourceRecord: sourceRecord.identifier,
             sourceOutput: sourceOutput,
             sourceArtifact: sourceArtifact,
             context: context,
@@ -251,7 +261,7 @@ extension SensorConverter {
         }
 
         var provenance = try provenance(
-            sourceIdentifier: sourceRecord.fhirIdentifier,
+            sourceIdentifier: sourceRecord.identifier.fhirIdentifier,
             targetURL: recordURL,
             converterURL: converterURL,
             recordedAt: context.conversionInstant
@@ -288,7 +298,7 @@ extension SensorConverter {
             entry: entries,
             identifier: context.eventIdentifier.identifier.fhirIdentifier,
             meta: Meta(profile: [Profile.groveMobileExchangeBundle]),
-            timestamp: FHIRPrimitive(try Instant(date: context.conversionInstant)),
+            timestamp: FHIRPrimitive(try Instant(utc: context.conversionInstant)),
             type: FHIRPrimitive(.collection)
         )
         bundle.id = context.repositoryID(.bundle)?.primitive
@@ -299,11 +309,11 @@ extension SensorConverter {
         )
 
         return SensorConversion(
-            sourceIdentifier: sourceRecord.fhirIdentifier,
+            sourceIdentifier: sourceRecord.identifier.fhirIdentifier,
             sourceTypeIdentifier: record.sourceTypeIdentifier,
             graphIdentifiers: SensorGraphIdentifiers(
                 event: context.eventIdentifier.identifier,
-                sourceRecord: sourceRecord,
+                sourceRecord: sourceRecord.identifier,
                 sourceOutput: sourceOutput,
                 sourceArtifact: sourceArtifact,
                 recordingDevice: recordingDeviceIdentity,
@@ -317,8 +327,20 @@ extension SensorConverter {
             converterApplication: converterApplication,
             converterHost: converterHost,
             provenance: provenance,
-            graph: graph
+            graph: graph,
+            warnings: sourceOffsetWarnings(for: retainedPrimary, context: context)
         )
+    }
+
+    /// The effective bounds an Observation serialized in UTC because the context named no time zone.
+    private static func sourceOffsetWarnings(
+        for primary: SensorPrimaryResource,
+        context: SensorConversionContext
+    ) -> [SensorConversionWarning] {
+        guard case .observation = primary, context.sourceTimeZone == nil else {
+            return []
+        }
+        return ["Observation.effectivePeriod.start", "Observation.effectivePeriod.end"].map { .sourceOffsetUnavailable(field: $0) }
     }
 
     /// A distinct gateway application travels as a second application snapshot; the converter
@@ -330,7 +352,7 @@ extension SensorConverter {
         let identity = try context.identityScope.deviceSnapshot(
             event: context.eventIdentifier,
             role: .application,
-            sourceDeviceToken: application.bundleIdentifier
+            sourceDeviceToken: application.sourceDeviceToken
         )
         var resource = applicationDevice(application)
         resource.identifier = [identity.fhirIdentifier]

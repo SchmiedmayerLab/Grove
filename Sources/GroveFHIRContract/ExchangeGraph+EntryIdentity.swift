@@ -25,7 +25,7 @@ extension ExchangeGraph {
     ]
 
     static func diagnostic(_ rule: ExchangeGraphRule, location: String) -> ExchangeGraphError {
-        .contractViolation(ExchangeGraphDiagnostic(code: rule.rawValue, reason: rule.reason, location: location))
+        .contractViolation(ProducerDiagnostic(code: rule.rawValue, reason: rule.reason, location: location))
     }
 
     /// Every Grove-typed resource Identifier carries one closed role, a canonical value, and a role no

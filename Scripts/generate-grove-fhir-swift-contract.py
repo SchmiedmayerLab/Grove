@@ -120,7 +120,7 @@ def producer_rule_lines(exchange_protocol: dict) -> list[str]:
         "    }",
         "",
         "    /// A warning names what an accepted record lost; every other rule refuses the record or graph.",
-        "    public var severity: ExchangeGraphDiagnostic.Severity {",
+        "    public var severity: ProducerDiagnostic.Severity {",
         "        switch self {",
     ])
     warnings = [row for row in rows if row.get("severity", "error") == "warning"]
@@ -152,6 +152,48 @@ def study_context_lines(exchange_protocol: dict) -> list[str]:
     for role in roles:
         lines.append(f"    case {swift_name(role)} = {swift_string(role)}")
     lines.extend(["}", "", ""])
+    return lines
+
+
+def opaque_identity_lines(exchange_protocol: dict) -> list[str]:
+    opaque_identity = exchange_protocol["opaqueIdentity"]
+    kinds = opaque_identity["identityKinds"]
+    names = {name for kind in kinds for name in kind["components"]}
+    unsigned_decimal = opaque_identity["componentRequirements"]["unsignedDecimal"]
+    if not set(unsigned_decimal) <= names:
+        raise ValueError(f"unsigned-decimal components {unsigned_decimal!r} are not identity components")
+    lines = [
+        "/// The catalog's component rules for each opaque identity kind, generated from exchange-protocol.json.",
+        "extension OpaqueIdentityKind {",
+        "    /// The kind's typed components, in preimage order.",
+        "    var componentNames: [String] {",
+        "        switch self {",
+    ]
+    for kind in kinds:
+        if len(kind["components"]) != len(set(kind["components"])) or not kind["components"]:
+            raise ValueError(f"identity kind {kind['kind']!r} must name unique components")
+        lines.append(f"        case .{swift_name(kind['kind'])}:")
+        lines.append(f"            [{', '.join(swift_string(name) for name in kind['components'])}]")
+    lines.extend([
+        "        }",
+        "    }",
+        "",
+        "    /// The role the kind's identifiers carry in `Identifier.type`.",
+        "    var identifierRole: GroveIdentifierRole {",
+        "        switch self {",
+    ])
+    for kind in kinds:
+        lines.append(f"        case .{swift_name(kind['kind'])}: .{swift_name(kind['identifierRole'])}")
+    lines.extend([
+        "        }",
+        "    }",
+        "",
+        "    /// Components whose value is a canonical unsigned decimal.",
+        f"    static let unsignedDecimalComponents: Set<String> = [{', '.join(swift_string(name) for name in unsigned_decimal)}]",
+        "}",
+        "",
+        "",
+    ])
     return lines
 
 
@@ -1034,6 +1076,7 @@ def generate(catalog_directory: Path) -> str:
     ])
     lines.extend(producer_rule_lines(exchange_protocol))
     lines.extend(study_context_lines(exchange_protocol))
+    lines.extend(opaque_identity_lines(exchange_protocol))
     system_forms = identifier_system_forms(exchange_protocol)
     vectors = equality_vectors(exchange_protocol)
     lines.extend([

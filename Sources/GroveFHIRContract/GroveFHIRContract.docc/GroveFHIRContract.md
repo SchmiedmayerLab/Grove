@@ -135,8 +135,9 @@ A ``RepositoryID`` per ``ExchangeGraphNode`` gives a graph node the logical id y
 A retry is exact when ``ExchangeGraph/isSemanticallyEqual(to:)`` says so: member order, whitespace and escaping do not matter, but `72` and `72.0` are different content.
 
 A ``RetractionEvent`` takes back earlier outputs by typed identity; each ``RetractionTarget`` names the identity, the resource type and its ``RetractionTargetRole``.
+A target carries the record's ``RetractionTarget/nativeRecordIdentifier`` only where the governed-source-identifier policy authorizes it, and the event renders it beside the target without ever addressing the target by it.
 
-Every refusal and every warning is one ``ExchangeGraphDiagnostic`` whose code is a registered ``ExchangeGraphRule``.
+Every refusal and every warning is one ``ProducerDiagnostic`` whose code is a registered ``ExchangeGraphRule``.
 The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter's output against the grove-fhir corpora and the official validator.
 
 > Tip: Keep one identity scope per key epoch, and keep the epoch in the systems, so an old graph stays verifiable after a rotation.
@@ -150,14 +151,15 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 | Business identifier | ``BusinessIdentifier`` |
 | Identifier role | ``GroveIdentifierRole`` on a ``RoledIdentifier`` |
 | Opaque identity | minted by ``OpaqueIdentityScope`` under ``DeploymentIdentifierSystems`` |
+| Source-record identity | ``SourceRecordIdentity``, or ``ProviderRecordIdentity`` for a provider-owned record; it mints the output and artifact identities that extend it |
 | Entry-node key | ``EntryNodeKey`` |
-| Subject | ``Subject`` |
+| Subject | ``Subject`` and its ``Subject/identifier`` |
 | Study enrollment | ``StudyEnrollment`` |
 | Application, host and recording device | ``ApplicationDevice``, ``HostDevice``, ``RecordingDevice`` |
-| Writer | the adapter's writer option, for HealthKit `HealthKitWriter` |
+| Writer | ``ExchangeGraphNode/writer`` and ``ExchangeGraphNode/writerHost``, chosen by the adapter's writer option, for HealthKit `HealthKitWriter` |
 | Retraction event and target | ``RetractionEvent``, ``RetractionTarget``, ``RetractionTargetRole`` |
 | Governed source identifier | ``GovernedSourceIdentifierDisclosurePolicy`` |
-| Producer diagnostic | ``ExchangeGraphDiagnostic`` with its ``ExchangeGraphRule`` |
+| Producer diagnostic | ``ProducerDiagnostic`` with its ``ExchangeGraphRule`` |
 
 ## Topics
 
@@ -170,6 +172,8 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 - ``DeploymentIdentifierSystems``
 - ``OpaqueIdentitySystems``
 - ``OpaqueIdentityScope``
+- ``SourceRecordIdentity``
+- ``ProviderRecordIdentity``
 - ``OpaqueIdentityKind``
 - ``EventSequence``
 - ``ExchangeEventIdentifier``
@@ -194,7 +198,7 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 - ``ExchangeGraph``
 - ``ExchangeGraphKind``
 - ``ExchangeGraphRule``
-- ``ExchangeGraphDiagnostic``
+- ``ProducerDiagnostic``
 - ``ExchangeGraphError``
 - ``RetractionEvent``
 - ``RetractionTarget``

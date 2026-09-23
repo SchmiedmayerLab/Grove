@@ -68,26 +68,43 @@ struct GroveFHIRExchangeIdentityTests {
                 value: "default"
             ),
             nativeRecordID: "record|東京"
-        )
+        ).identifier
         #expect(identifier.value == "v0:test-key:1:BDCkwCFA2Wg4-fHVRsy4L0JWYuvQknZkCTXL4Ct01IQ")
         #expect(identifier.role == .sourceRecord)
     }
 
     @Test("A source-output HMAC has exactly one role and one discriminator frame")
     func sourceOutputVector() throws {
-        let identifier = try Self.scope.sourceOutput(
+        let record = try Self.scope.sourceRecord(
             adapterID: "health-connect",
             sourceType: "HeartRateRecord",
             repositoryScope: BusinessIdentifier(
                 system: "urn:uuid:1f5c58aa-6ec6-4e79-a682-829a9debd3f5",
                 value: "default"
             ),
-            nativeRecordID: "record-heart-001",
-            outputRole: "sample",
-            outputDiscriminator: "2026-08-19T10:30:00.000000000Z|0"
+            nativeRecordID: "record-heart-001"
         )
+        let identifier = try record.output(role: "sample", discriminator: "2026-08-19T10:30:00.000000000Z|0")
         #expect(identifier.value == "v0:test-key:1:MYPFjAMsSt0suOqpN29y_KjG__sagIpCbYKAfVKx6ck")
         #expect(identifier.role == .sourceOutput)
+    }
+
+    @Test("A record identity prints its opaque identifier, never the key or the native record identifier")
+    func recordIdentityDebugDescription() throws {
+        let source = try Self.scope.sourceRecord(
+            adapterID: "healthkit",
+            sourceType: "HKQuantityTypeIdentifierHeartRate",
+            repositoryScope: Self.identifier("https://store.example.org", "default"),
+            nativeRecordID: "native-record-001"
+        )
+        let provider = try Self.scope.providerRecord(
+            providerCode: .oura,
+            sourceType: "heart-rate",
+            providerScope: Self.identifier("https://accounts.example.org", "patient"),
+            nativeRecordID: "native-record-002"
+        )
+        #expect(String(reflecting: source) == "SourceRecordIdentity(identifier: \(source.identifier.value))")
+        #expect(String(reflecting: provider) == "ProviderRecordIdentity(identifier: \(provider.identifier.value))")
     }
 
     @Test("Matches complete-pair provider, writer, and recording-device vectors")
@@ -97,23 +114,21 @@ struct GroveFHIRExchangeIdentityTests {
             sourceType: "measure",
             providerScope: Self.identifier("https://accounts.example.org", "patient|α"),
             nativeRecordID: "17348211"
-        )
-        let providerOutput = try Self.scope.providerOutput(
+        ).identifier
+        let panel = try Self.scope.providerRecord(
             providerCode: .withings,
             sourceType: "getmeas:9+10",
             providerScope: Self.identifier("https://accounts.example.org", "patient|α"),
-            nativeRecordID: "17348211",
-            outputRole: "blood-pressure-panel",
-            outputDiscriminator: "single"
+            nativeRecordID: "17348211"
         )
-        let providerArtifact = try Self.scope.providerArtifact(
+        let recording = try Self.scope.providerRecord(
             providerCode: .googleHealthAPI,
             sourceType: "heart-rate",
             providerScope: Self.identifier("https://accounts.example.org", "patient|α"),
-            nativeRecordID: "recording-001",
-            formatCode: "provider-recording",
-            partIndex: 0
+            nativeRecordID: "recording-001"
         )
+        let providerOutput = try panel.output(role: "blood-pressure-panel", discriminator: "single")
+        let providerArtifact = try recording.artifact(formatCode: "provider-recording", partIndex: 0)
         let writer = try Self.scope.writerRecord(
             writerApplication: Self.identifier("https://applications.example.org", "com.withings.wiscale2"),
             writerRecordID: "logical-record-001"
@@ -213,7 +228,7 @@ extension GroveFHIRExchangeIdentityTests {
         for providerCode in GroveProviderCode.allCases.map(\.rawValue) {
             expectProviderKindRequired(providerCode, repository: repository)
         }
-        expectEmptyDerivedComponents(
+        try expectEmptyDerivedComponents(
             repository: repository,
             application: application,
             subject: subject,
@@ -225,17 +240,17 @@ extension GroveFHIRExchangeIdentityTests {
             sourceType: "type",
             repositoryScope: repository,
             nativeRecordID: " "
-        ).role == .sourceRecord)
+        ).identifier.role == .sourceRecord)
     }
 
     private func expectEmptySourceComponents(repository: BusinessIdentifier) {
-        #expect(throws: OpaqueIdentityError.emptyComponent("adapterID")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("source-record.adapter-id")) {
             try Self.scope.sourceRecord(adapterID: "", sourceType: "type", repositoryScope: repository, nativeRecordID: "id")
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("sourceType")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("source-record.source-type")) {
             try Self.scope.sourceRecord(adapterID: "adapter", sourceType: "", repositoryScope: repository, nativeRecordID: "id")
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("nativeRecordID")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("source-record.native-record-id")) {
             try Self.scope.sourceRecord(adapterID: "adapter", sourceType: "type", repositoryScope: repository, nativeRecordID: "")
         }
     }
@@ -245,54 +260,39 @@ extension GroveFHIRExchangeIdentityTests {
         application: BusinessIdentifier,
         subject: BusinessIdentifier,
         event: ExchangeEventIdentifier
-    ) {
-        #expect(throws: OpaqueIdentityError.emptyComponent("outputRole")) {
-            try Self.scope.sourceOutput(
-                adapterID: "adapter",
-                sourceType: "type",
-                repositoryScope: repository,
-                nativeRecordID: "id",
-                outputRole: "",
-                outputDiscriminator: "single"
-            )
+    ) throws {
+        let record = try Self.scope.sourceRecord(
+            adapterID: "adapter",
+            sourceType: "type",
+            repositoryScope: repository,
+            nativeRecordID: "id"
+        )
+        #expect(throws: OpaqueIdentityError.emptyComponent("source-output.output-role")) {
+            try record.output(role: "", discriminator: "single")
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("outputDiscriminator")) {
-            try Self.scope.sourceOutput(
-                adapterID: "adapter",
-                sourceType: "type",
-                repositoryScope: repository,
-                nativeRecordID: "id",
-                outputRole: "primary",
-                outputDiscriminator: ""
-            )
+        #expect(throws: OpaqueIdentityError.emptyComponent("source-output.output-discriminator")) {
+            try record.output(role: "primary", discriminator: "")
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("writerRecordID")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("writer-record.writer-record-id")) {
             try Self.scope.writerRecord(writerApplication: application, writerRecordID: "")
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("formatCode")) {
-            try Self.scope.sourceArtifact(
-                adapterID: "adapter",
-                sourceType: "type",
-                repositoryScope: repository,
-                nativeRecordID: "id",
-                formatCode: "",
-                partIndex: 0
-            )
+        #expect(throws: OpaqueIdentityError.emptyComponent("source-artifact.format-code")) {
+            try record.artifact(formatCode: "", partIndex: 0)
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("contextType")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("source-context.context-type")) {
             try Self.scope.sourceContext(
                 adapterID: "adapter", contextType: "", repositoryScope: repository, nativeContextID: "id"
             )
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("nativeContextID")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("source-context.native-context-id")) {
             try Self.scope.sourceContext(
                 adapterID: "adapter", contextType: "context", repositoryScope: repository, nativeContextID: ""
             )
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("stableUnitToken")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("recording-device.stable-unit-token")) {
             try Self.scope.recordingDevice(adapterID: "adapter", subject: subject, stableUnitToken: "")
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("sourceDeviceToken")) {
+        #expect(throws: OpaqueIdentityError.emptyComponent("device-snapshot.source-device-token")) {
             try Self.scope.deviceSnapshot(event: event, role: .host, sourceDeviceToken: "")
         }
     }
@@ -304,26 +304,6 @@ extension GroveFHIRExchangeIdentityTests {
                 sourceType: "type",
                 repositoryScope: repository,
                 nativeRecordID: "id"
-            )
-        }
-        #expect(throws: OpaqueIdentityError.providerKindRequired(providerCode)) {
-            try Self.scope.sourceOutput(
-                adapterID: providerCode,
-                sourceType: "type",
-                repositoryScope: repository,
-                nativeRecordID: "id",
-                outputRole: "primary",
-                outputDiscriminator: "single"
-            )
-        }
-        #expect(throws: OpaqueIdentityError.providerKindRequired(providerCode)) {
-            try Self.scope.sourceArtifact(
-                adapterID: providerCode,
-                sourceType: "type",
-                repositoryScope: repository,
-                nativeRecordID: "id",
-                formatCode: "native",
-                partIndex: 0
             )
         }
     }
@@ -360,7 +340,7 @@ extension GroveFHIRExchangeIdentityTests {
             sourceType: "HKQuantityTypeIdentifierHeartRate",
             repositoryScope: BusinessIdentifier(system: "https://store.example.org", value: "default"),
             nativeRecordID: "record-001"
-        )
+        ).identifier
         let event = try ExchangeEventIdentifier(
             system: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
             producerInstance: #require(UUID(uuidString: "1f5c58aa-6ec6-4e79-a682-829a9debd3f5")),
@@ -372,14 +352,13 @@ extension GroveFHIRExchangeIdentityTests {
             nodeRole: "conversion-provenance",
             ordinal: CanonicalNonnegativeDecimal(aboveUInt64)
         )
-        let artifact = try Self.scope.sourceArtifact(
+        let deviceUsage = try Self.scope.sourceRecord(
             adapterID: "sensorkit",
             sourceType: "device-usage",
             repositoryScope: BusinessIdentifier(system: "https://store.example.org", value: "default"),
-            nativeRecordID: "record-001",
-            formatCode: "native-recording",
-            partIndex: CanonicalNonnegativeDecimal(aboveUInt64)
+            nativeRecordID: "record-001"
         )
+        let artifact = try deviceUsage.artifact(formatCode: "native-recording", partIndex: CanonicalNonnegativeDecimal(aboveUInt64))
         #expect(event.sequence.rawValue == aboveUInt64)
         #expect(wideEpochScope.epoch.rawValue == aboveUInt64)
         #expect(wideEpochIdentity.value.hasPrefix("v0:wide-epoch:\(aboveUInt64):"))
@@ -501,22 +480,14 @@ extension GroveFHIRExchangeIdentityTests {
     @Test("A source-artifact retraction addresses the document's selected source-output key")
     func sourceArtifactRetractionUsesSelectedEntryKey() throws {
         let repository = try BusinessIdentifier(system: "https://study.example.org/repository", value: "primary")
-        let output = try Self.scope.sourceOutput(
+        let record = try Self.scope.sourceRecord(
             adapterID: "healthkit",
             sourceType: "HKDataTypeIdentifierHeartbeatSeries",
             repositoryScope: repository,
-            nativeRecordID: "recording-001",
-            outputRole: "native-recording",
-            outputDiscriminator: "single"
+            nativeRecordID: "recording-001"
         )
-        let artifact = try Self.scope.sourceArtifact(
-            adapterID: "healthkit",
-            sourceType: "HKDataTypeIdentifierHeartbeatSeries",
-            repositoryScope: repository,
-            nativeRecordID: "recording-001",
-            formatCode: "beat-interval-series",
-            partIndex: 0
-        )
+        let output = try record.output(role: "native-recording", discriminator: "single")
+        let artifact = try record.artifact(formatCode: "beat-interval-series", partIndex: 0)
         let target = try RetractionTarget(
             identifier: output,
             resourceType: .documentReference,

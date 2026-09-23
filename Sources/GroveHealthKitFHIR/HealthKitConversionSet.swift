@@ -17,17 +17,19 @@ public import GroveFHIRContract
 public enum HealthKitConversionWarning: Hashable, Sendable {
     /// The source named a recording device without a stable per-unit token.
     case recordingDeviceOmitted(deviceName: String?)
-    /// The source stated no UTC offset or time zone, so the effective instant is serialized in UTC.
-    case sourceOffsetUnavailable
-    /// The record carried metadata outside the adapter's typed allowlist.
+    /// The source stated no UTC offset or time zone for the effective element `field`, such as
+    /// `Observation.effectiveDateTime`, so it is serialized in UTC.
+    case sourceOffsetUnavailable(field: String)
+    /// The record carried metadata outside the adapter's typed allowlist, named by its keys in sorted order.
     case unmodeledMetadataWithheld(keys: [String])
 
-    public var diagnostic: ExchangeGraphDiagnostic {
+    /// The registered diagnostic, located at the element that lost the offset for a source-offset warning.
+    public var diagnostic: ProducerDiagnostic {
         switch self {
         case .recordingDeviceOmitted:
             ExchangeGraphRule.mobileOmissionRecordingDevice.diagnostic
-        case .sourceOffsetUnavailable:
-            ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic
+        case .sourceOffsetUnavailable(let field):
+            ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: field)
         case .unmodeledMetadataWithheld:
             ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic
         }

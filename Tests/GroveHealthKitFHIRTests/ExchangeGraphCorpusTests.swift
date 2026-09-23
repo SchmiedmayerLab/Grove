@@ -54,10 +54,10 @@ struct ExchangeGraphCorpusTests {
                 let code: String
                 let reason: String
                 let location: String
-                let severity: ExchangeGraphDiagnostic.Severity
+                let severity: ProducerDiagnostic.Severity
 
-                var diagnostic: ExchangeGraphDiagnostic {
-                    ExchangeGraphDiagnostic(
+                var diagnostic: ProducerDiagnostic {
+                    ProducerDiagnostic(
                         code: code,
                         reason: reason,
                         location: location,
@@ -752,22 +752,27 @@ struct ExchangeGraphCorpusTests {
         let targetIdentifier = try RoledIdentifier(#require(fixtureTarget.identifier))
         let targetType = try #require(fixtureTarget.type?.value?.url.absoluteString)
         let resourceType = try #require(ResourceType(rawValue: targetType))
-        let policy = GovernedSourceIdentifierDisclosurePolicy.authorized(
-            system: "https://study.example.org/fhir/NamingSystem/source-store"
+        let context = try retractionContext(event: ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier))))
+        func retraction(nativeRecordIdentifier: BusinessIdentifier) throws -> ExchangeGraph {
+            let target = try RetractionTarget(
+                identifier: targetIdentifier,
+                resourceType: resourceType,
+                role: .primaryOutput,
+                nativeRecordIdentifier: nativeRecordIdentifier
+            )
+            return try RetractionEvent(
+                targets: [target],
+                context: context,
+                sourceRecord: sourceRecord,
+                retractedAt: Date(timeIntervalSince1970: 1_787_299_200)
+            ).graph
+        }
+
+        let nativeRecordIdentifier = try BusinessIdentifier(
+            system: "https://study.example.org/fhir/NamingSystem/source-store",
+            value: "8ad4f0f6-2f11-4f5a-9d0f-51f3a1c0b2e7"
         )
-        let nativeRecordID = "8ad4f0f6-2f11-4f5a-9d0f-51f3a1c0b2e7"
-        let target = try RetractionTarget(
-            identifier: targetIdentifier,
-            resourceType: resourceType,
-            role: .primaryOutput,
-            nativeRecordIdentifier: policy.identifier(for: nativeRecordID)
-        )
-        let graph = try RetractionEvent(
-            targets: [target],
-            context: retractionContext(event: ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier)))),
-            sourceRecord: sourceRecord,
-            retractedAt: Date(timeIntervalSince1970: 1_787_299_200)
-        ).graph
+        let graph = try retraction(nativeRecordIdentifier: nativeRecordIdentifier)
         guard case .provenance(let provenance)? = graph.bundle.entry?.first?.resource else {
             Issue.record("Builder did not emit Provenance")
             return
@@ -779,37 +784,39 @@ struct ExchangeGraphCorpusTests {
             Issue.record("The native record identifier is not an Identifier")
             return
         }
-        #expect(identifier.value?.value?.string == nativeRecordID)
-        #expect(identifier.system?.value?.url.absoluteString == "https://study.example.org/fhir/NamingSystem/source-store")
+        #expect(identifier == nativeRecordIdentifier.fhirIdentifier)
 
         // The opaque Grove identity is never restated as the clear native one.
-        #expect(throws: RetractionTargetError.invalidNativeRecordIdentifier) {
-            try RetractionTarget(
-                identifier: targetIdentifier,
-                resourceType: resourceType,
-                role: .primaryOutput,
-                nativeRecordIdentifier: sourceRecord.fhirIdentifier
-            )
+        #expect(throws: RetractionEventError.reservedIdentifierSystem) {
+            try retraction(nativeRecordIdentifier: BusinessIdentifier(
+                system: context.identityScope.systems.opaque.sourceRecord,
+                value: nativeRecordIdentifier.value
+            ))
         }
 
-        // A role coding refuses the target even when its code is not one Grove recognises.
-        let unrecognisedRole = Identifier(
-            system: FHIRPrimitive(FHIRURI(stringLiteral: "https://study.example.org/fhir/NamingSystem/source-store")),
+        // A parsed native identifier that carries a Grove role restates a graph identity.
+        var rewritten = provenance
+        let roleCodedIdentifier = Identifier(
+            system: nativeRecordIdentifier.fhirIdentifier.system,
             type: CodeableConcept(coding: [
-    Coding(
-                    code: "not-a-grove-role".asFHIRStringPrimitive(),
-                    system: Canonicals.identifierRoleCodeSystem
-                )
+                Coding(code: "source-record".asFHIRStringPrimitive(), system: Canonicals.identifierRoleCodeSystem)
             ]),
-            value: nativeRecordID.asFHIRStringPrimitive()
+            value: nativeRecordIdentifier.fhirIdentifier.value
         )
-        #expect(throws: RetractionTargetError.invalidNativeRecordIdentifier) {
-            try RetractionTarget(
-                identifier: targetIdentifier,
-                resourceType: resourceType,
-                role: .primaryOutput,
-                nativeRecordIdentifier: unrecognisedRole
-            )
+        let target = rewritten.target[0]
+        rewritten.target[0] = Reference(
+            extension: target.extension?.map { element in
+                element.url == Canonicals.retractionTargetNativeIdentifier
+                    ? Extension(url: element.url, value: .identifier(roleCodedIdentifier))
+                    : element
+            },
+            identifier: target.identifier,
+            type: target.type
+        )
+        var roleCoded = graph.bundle
+        roleCoded.entry?[0].resource = .provenance(rewritten)
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileRetractionNativeRecordIdentifier)) {
+            try validate(roleCoded, kind: .retraction)
         }
     }
 

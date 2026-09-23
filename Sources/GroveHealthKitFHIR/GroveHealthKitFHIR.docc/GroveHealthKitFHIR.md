@@ -140,8 +140,8 @@ A `RepositoryID` per `ExchangeGraphNode` in `repositoryIDs` gives a graph node t
 
 ``HealthKitConversionSet/warnings`` lists what the graph does not carry although the sample did.
 ``HealthKitConversionWarning/recordingDeviceOmitted(deviceName:)`` means the sample's device had no per-unit token, so no recording Device was emitted; supply your own ``RecordingDeviceResolver`` when you have one.
-``HealthKitConversionWarning/sourceOffsetUnavailable`` means the sample named no time zone, so the effective time is in UTC.
-``HealthKitConversionWarning/unmodeledMetadataWithheld(keys:)`` names metadata keys outside the typed allowlist that were left out.
+``HealthKitConversionWarning/sourceOffsetUnavailable(field:)`` names the effective element, such as `Observation.effectiveDateTime`, that is in UTC because the sample named no time zone, and its diagnostic is located there.
+``HealthKitConversionWarning/unmodeledMetadataWithheld(keys:)`` names, in sorted order, the metadata keys outside the typed allowlist that were left out.
 
 A batch supplies a context per sample, because every sample is its own event, and keeps a ``HealthKitRecordFailure`` for every sample it did not emit.
 
@@ -151,7 +151,21 @@ let batch = HealthKitConverter().convert(samples) { sample in
 }
 ```
 
-A retry is exact when `ExchangeGraph.isSemanticallyEqual(to:)` says so; a deleted sample is taken back with ``HealthKitConverter/retractionTargets(for:context:)`` and a `RetractionEvent`.
+A retry is exact when `ExchangeGraph.isSemanticallyEqual(to:)` says so.
+A deleted sample is taken back with ``HealthKitConverter/retractionTargets(for:context:)`` and a `RetractionEvent`.
+`retractionContext` is a ``HealthKitConversionContext`` for the retraction's own new event, and `sourceRecord` the source record of the ``HealthKitConversion/identifiers`` you kept with the sample's conversion.
+
+```swift
+let targets = try HealthKitConverter().retractionTargets(for: deletedRecord, context: retractionContext)
+let retraction = try RetractionEvent(
+    targets: targets,
+    context: retractionContext.event,
+    sourceRecord: sourceRecord,
+    retractedAt: deletedAt
+)
+```
+
+A target carries the HealthKit UUID as its native record identifier only when the context's native-identifier disclosure authorizes it, exactly as on the conversion that emitted it.
 
 `Observation.healthKitSample(syncIdentifier:)` and `ExchangeGraph.healthKitSamples()` read a graph back into HealthKit samples, syncing under the minted source-output identity.
 
@@ -175,7 +189,7 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapt
 | Writer | ``HealthKitWriter`` |
 | Retraction event and target | `RetractionEvent`, `RetractionTarget` |
 | Governed source identifier | `GovernedSourceIdentifierDisclosurePolicy` |
-| Producer diagnostic | `ExchangeGraphDiagnostic` from ``HealthKitConversionError/diagnostic`` or ``HealthKitConversionWarning/diagnostic`` |
+| Producer diagnostic | `ProducerDiagnostic` from ``HealthKitConversionError/diagnostic`` or ``HealthKitConversionWarning/diagnostic`` |
 
 ## Topics
 

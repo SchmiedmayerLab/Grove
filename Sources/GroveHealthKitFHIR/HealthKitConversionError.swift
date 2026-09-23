@@ -6,9 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
-// The registry mapping reads top-down from the refusal to its code.
-// swiftlint:disable file_types_order
-
 #if canImport(HealthKit)
 
 public import Foundation
@@ -115,16 +112,13 @@ public enum HealthKitClinicalRecordFailure: Hashable, Sendable {
 ///
 /// Only the type is compared: a failing FHIR date conversion describes itself with the exact
 /// instant it could not convert, and that instant identifies a participant.
-public struct HealthKitDependencyFailure: Error, Sendable {
+public struct HealthKitDependencyFailure: Error, Equatable, Sendable {
     public let underlying: any Error
 
     public init(underlying: any Error) {
         self.underlying = underlying
     }
-}
 
-
-extension HealthKitDependencyFailure: Equatable {
     public static func == (lhs: Self, rhs: Self) -> Bool {
         String(reflecting: type(of: lhs.underlying)) == String(reflecting: type(of: rhs.underlying))
     }
@@ -157,12 +151,16 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
     case dependency(HealthKitDependencyFailure)
 
     /// The registered diagnostic; a refusal the registry does not name reports `mobile-input.unclassified`.
-    public var diagnostic: ExchangeGraphDiagnostic {
+    public var diagnostic: ProducerDiagnostic {
         switch self {
         case .exchangeGraph(let error):
             return error.diagnostic
+        case .exchangeIdentity(let error):
+            return error.diagnostic
+        case .opaqueIdentity(let error):
+            return error.diagnostic
         default:
-            return ExchangeGraphDiagnostic(code: rule.rawValue, reason: rule.reason, location: location, severity: rule.severity)
+            return rule.diagnostic(at: location)
         }
     }
 

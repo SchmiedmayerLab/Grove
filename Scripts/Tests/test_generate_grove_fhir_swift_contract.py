@@ -426,6 +426,14 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                     "recommendedSystemForm": (
                         "<deployment-root>/NamingSystem/grove-<identity-kind>-v0/<key-id>/<epoch>"
                     ),
+                    "componentRequirements": {"unsignedDecimal": ["part-index"]},
+                    "identityKinds": [
+                        {
+                            "kind": "source-artifact",
+                            "identifierRole": "source-artifact",
+                            "components": ["adapter-id", "format-code", "part-index"],
+                        },
+                    ],
                 },
                 "event": {
                     "bundleIdentifier": {
@@ -488,6 +496,20 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         self.assertIn('public static let equalityFormattingVector = "reformatted-retry"', generated)
         self.assertIn('public static let equalityDecimalLexemeVector = "lexeme-retry"', generated)
         self.assertIn('public static let equalityVectorCorpus = "Conformance/corpora/receiver-lifecycle"', generated)
+
+    def test_generates_the_opaque_identity_component_rules(self):
+        generated = self.generate(self.catalogs())
+
+        self.assertIn('        case .sourceArtifact:\n            ["adapter-id", "format-code", "part-index"]', generated)
+        self.assertIn("        case .sourceArtifact: .sourceArtifact", generated)
+        self.assertIn('static let unsignedDecimalComponents: Set<String> = ["part-index"]', generated)
+
+    def test_rejects_an_unsigned_decimal_rule_for_no_identity_component(self):
+        catalogs = self.catalogs()
+        catalogs["exchange-protocol.json"]["opaqueIdentity"]["componentRequirements"]["unsignedDecimal"] = ["ordinal"]
+
+        with self.assertRaisesRegex(ValueError, "not identity components"):
+            self.generate(catalogs)
 
     def test_rejects_rules_whose_codes_collapse_to_one_swift_case(self):
         catalogs = self.catalogs()

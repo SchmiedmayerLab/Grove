@@ -17,13 +17,13 @@ public enum ExchangeGraphError: Error, Equatable, Sendable {
     case eventIdentifierMismatch
     case invalidEntries(String)
     case ruleViolation(ExchangeGraphRule)
-    case contractViolation(ExchangeGraphDiagnostic)
+    case contractViolation(ProducerDiagnostic)
 
     /// The machine-readable producer diagnostic this failure reports.
     ///
     /// A failure the registry does not name reports the registered unclassified diagnostic rather
     /// than borrowing another rule's code.
-    public var diagnostic: ExchangeGraphDiagnostic {
+    public var diagnostic: ProducerDiagnostic {
         switch self {
         case .ruleViolation(let rule):
             rule.diagnostic
@@ -39,8 +39,8 @@ public enum ExchangeGraphError: Error, Equatable, Sendable {
 
 extension ExchangeGraphRule {
     /// The diagnostic this rule reports at the location a Swift producer checks it.
-    package var diagnostic: ExchangeGraphDiagnostic {
-        ExchangeGraphDiagnostic(code: rawValue, reason: reason, location: location, severity: severity)
+    package var diagnostic: ProducerDiagnostic {
+        diagnostic(at: location)
     }
 
     /// Where the Swift producer checks each rule it raises; the conformance corpus fixes these paths.
@@ -86,5 +86,10 @@ extension ExchangeGraphRule {
         case .mobileOmissionUnmodeledMetadata: "Observation.extension"
         default: "Bundle"
         }
+    }
+
+    /// The diagnostic this rule reports at an element only the finding knows.
+    package func diagnostic(at location: String) -> ProducerDiagnostic {
+        ProducerDiagnostic(code: rawValue, reason: reason, location: location, severity: severity)
     }
 }

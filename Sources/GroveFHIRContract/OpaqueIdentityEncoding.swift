@@ -9,20 +9,6 @@
 public import Foundation
 
 
-/// Failures raised before an opaque identifier can be minted.
-public enum OpaqueIdentityError: Error, Equatable, Sendable {
-    case invalidKeyID(String)
-    case keyTooShort(actualBytes: Int)
-    case publishedConformanceKeyProhibited
-    case emptyComponent(String)
-    case invalidCodeToken(field: String, value: String)
-    case providerKindRequired(String)
-    case reusedIdentifierSystem
-    case componentTooLarge(byteCount: Int)
-    case invalidComponentCount(kind: OpaqueIdentityKind, expected: Int, actual: Int)
-}
-
-
 /// The frozen byte framing shared by HMAC preimages and UUIDv5 entry names.
 public enum LengthFramedUTF8 {
     /// Encodes every UTF-8 field with its unsigned 32-bit big-endian byte count.

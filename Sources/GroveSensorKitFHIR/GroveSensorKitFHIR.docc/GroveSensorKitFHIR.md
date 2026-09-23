@@ -232,6 +232,7 @@ On iOS, typed initializers map Grove's already-fetched safe representations into
 ``SensorConverter`` is the same exchange contract without SensorKit: it converts ``SensorRecord`` values a caller assembles from any sensor source into the identical graph shape, and imports no Apple sensor framework.
 Its records carry the payload directly, as sampled data, an electrocardiogram, or a recording document.
 ``SensorConversionContext`` wraps the same `ExchangeEventContext` and states the adapter token that the SensorKit context fixes to `sensorkit`.
+Its `sourceTimeZone` gives every effective bound the source's own offset; without one the bounds are in UTC and ``SensorConversion/warnings`` reports ``SensorConversionWarning/sourceOffsetUnavailable(field:)`` for each of them.
 
 > Tip: Keep the conversion context beside the outbox entry it produced; a retry then rebuilds identical bytes without touching the clock.
 
@@ -251,7 +252,7 @@ Its records carry the payload directly, as sampled data, an electrocardiogram, o
 | Writer | the converting application, which SensorKit records as the assembler |
 | Retraction event and target | `RetractionEvent`, `RetractionTarget` |
 | Governed source identifier | `GovernedSourceIdentifierDisclosurePolicy` on ``SensorKitConversionContext/sourceIdentifierDisclosurePolicy`` |
-| Producer diagnostic | `ExchangeGraphDiagnostic` from ``SensorKitConversionError/diagnostic`` |
+| Producer diagnostic | `ProducerDiagnostic` from ``SensorKitConversionError/diagnostic`` |
 
 ## Topics
 
@@ -273,6 +274,7 @@ Its records carry the payload directly, as sampled data, an electrocardiogram, o
 - ``SensorConverter``
 - ``SensorConversionContext``
 - ``SensorConversion``
+- ``SensorConversionWarning``
 - ``SensorGraphIdentifiers``
 - ``SensorBatchResult``
 - ``SensorRecordFailure``

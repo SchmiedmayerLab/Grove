@@ -27,7 +27,7 @@ public enum HealthKitSampleProjectionError: Error, Equatable, Sendable {
     case componentMissing(id: String, code: String)
     case effectiveMissing(id: String)
 
-    public var diagnostic: ExchangeGraphDiagnostic {
+    public var diagnostic: ProducerDiagnostic {
         let (rule, location): (ExchangeGraphRule, String) = switch self {
         case .measurementUnknown, .measurementNotMappable: (.mobileInputUnsupportedSourceType, "Observation.code")
         case .unitNotMappable: (.mobileOutputFixedQuantityUnit, "Observation.valueQuantity.code")
@@ -35,7 +35,7 @@ public enum HealthKitSampleProjectionError: Error, Equatable, Sendable {
         case .componentMissing: (.mobileInputRequiredComponentMissing, "Observation.component")
         case .effectiveMissing: (.mobileInputEffectivePeriodInvalid, "Observation.effective")
         }
-        return ExchangeGraphDiagnostic(code: rule.rawValue, reason: rule.reason, location: location, severity: rule.severity)
+        return ProducerDiagnostic(code: rule.rawValue, reason: rule.reason, location: location, severity: rule.severity)
     }
 }
 

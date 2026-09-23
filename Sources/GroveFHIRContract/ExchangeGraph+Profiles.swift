@@ -304,7 +304,7 @@ extension ExchangeGraph {
         let contract = claim.quantity
         guard quantity.system?.value?.url.absoluteString == contract.system,
               quantity.code?.value?.string == contract.code else {
-            throw .contractViolation(ExchangeGraphDiagnostic(
+            throw .contractViolation(ProducerDiagnostic(
                 code: ExchangeGraphRule.mobileOutputFixedQuantityUnit.rawValue,
                 reason: ExchangeGraphRule.mobileOutputFixedQuantityUnit.reason,
                 location: "Bundle.entry[\(entryIndex)].resource.valueQuantity.code"
@@ -313,7 +313,7 @@ extension ExchangeGraph {
         if let domain = contract.valueDomain,
            let decimal = quantity.value?.value?.decimal {
             if !domain.contains(decimal) {
-                throw .contractViolation(ExchangeGraphDiagnostic(
+                throw .contractViolation(ProducerDiagnostic(
                     code: ExchangeGraphRule.mobileOutputQuantityValueDomain.rawValue,
                     reason: ExchangeGraphRule.mobileOutputQuantityValueDomain.reason,
                     location: "Bundle.entry[\(entryIndex)].resource.valueQuantity.value"

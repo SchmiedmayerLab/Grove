@@ -27,7 +27,7 @@ public enum GroveLifecycleContract {
 
 
 /// Exact structured producer diagnostic shared with the Grove conformance corpus.
-public struct ExchangeGraphDiagnostic: Codable, Hashable, Sendable {
+public struct ProducerDiagnostic: Codable, Hashable, Sendable {
     public enum Severity: String, Codable, Hashable, Sendable {
         /// The record was refused or the graph is invalid.
         case error

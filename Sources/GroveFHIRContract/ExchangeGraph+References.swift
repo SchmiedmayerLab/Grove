@@ -248,7 +248,7 @@ extension ExchangeGraph {
         guard let baseLocation else {
             return .ruleViolation(rule)
         }
-        return .contractViolation(ExchangeGraphDiagnostic(
+        return .contractViolation(ProducerDiagnostic(
             code: rule.rawValue,
             reason: rule.reason,
             location: field.map { "\(baseLocation).\($0)" } ?? baseLocation

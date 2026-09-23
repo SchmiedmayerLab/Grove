@@ -47,7 +47,7 @@ public enum SensorKitRecordError: Error, Equatable, Sendable {
     case unsupportedProviderValue(field: String, rawValue: Int)
 
     /// The registered input rule this refusal reports.
-    public var diagnostic: ExchangeGraphDiagnostic {
+    public var diagnostic: ProducerDiagnostic {
         let rule: ExchangeGraphRule = switch self {
         case .sourceTypeNotAdmitted, .sourceTypeHasNoRawContract:
             .mobileInputUnsupportedSourceType
@@ -67,7 +67,7 @@ public enum SensorKitRecordError: Error, Equatable, Sendable {
         case .unsupportedProviderValue:
             .mobileInputUnsupportedSourceValue
         }
-        return ExchangeGraphDiagnostic(code: rule.rawValue, reason: rule.reason, location: "SensorKitRecord", severity: rule.severity)
+        return ProducerDiagnostic(code: rule.rawValue, reason: rule.reason, location: "SensorKitRecord", severity: rule.severity)
     }
 }
 

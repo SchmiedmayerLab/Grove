@@ -240,6 +240,87 @@ struct SensorFHIRConverterTests {
         ]))
     }
 
+    @Test("An identity fault reports its own registry code through both sensor adapters")
+    func identityFaultsKeepTheirCodes() {
+        let opaque = [
+            OpaqueIdentityError.emptyComponent("source-record.native-record-id"),
+            .nonCanonicalPartIndex("source-artifact.part-index")
+        ]
+        for fault in opaque {
+            #expect(SensorConversionError.opaqueIdentity(fault).diagnostic == fault.diagnostic)
+            #expect(SensorKitConversionError.opaqueIdentity(fault).diagnostic == fault.diagnostic)
+        }
+        #expect(opaque.map(\.diagnostic.code) == ["mobile-input.required-metadata-missing", "mobile-input.unclassified"])
+        let malformed = ExchangeIdentityError.invalidEventIdentifier("e0:x")
+        #expect(SensorConversionError.exchangeIdentity(malformed).diagnostic.code == "mobile-exchange.event-identity")
+        #expect(SensorKitConversionError.exchangeIdentity(malformed).diagnostic == malformed.diagnostic)
+    }
+
+    @Test("Effective bounds state the source's zone, else UTC with a warning, never the host's")
+    func effectiveBoundsNeverTakeTheHostZone() throws {
+        let zone = try #require(TimeZone(identifier: "America/Los_Angeles"))
+        let end = Self.start.addingTimeInterval(600)
+        let named = try SensorConverter.period(start: Self.start, end: end, sourceTimeZone: zone)
+        #expect(named.start?.value?.description == "2026-08-17T16:30:00-07:00")
+        #expect(named.end?.value?.description == "2026-08-17T16:40:00-07:00")
+        let unnamed = try SensorConverter.period(start: Self.start, end: end, sourceTimeZone: nil)
+        #expect(unnamed.start?.value?.description == "2026-08-17T23:30:00Z")
+        #expect(unnamed.end?.value?.description == "2026-08-17T23:40:00Z")
+
+        let context = try Self.context
+        let lossy = try SensorConverter().convert(.sampledData(Self.sampledData()), context: context)
+        #expect(lossy.warnings == [
+            .sourceOffsetUnavailable(field: "Observation.effectivePeriod.start"),
+            .sourceOffsetUnavailable(field: "Observation.effectivePeriod.end")
+        ])
+        #expect(lossy.warnings.map(\.diagnostic.location) == ["Observation.effectivePeriod.start", "Observation.effectivePeriod.end"])
+        #expect(lossy.warnings.allSatisfy { $0.diagnostic.code == "mobile-omission.source-offset" && $0.diagnostic.severity == .warning })
+
+        let stated = try SensorConverter().convert(
+            .sampledData(Self.sampledData()),
+            context: SensorConversionContext(
+                event: context.event,
+                adapterID: context.adapterID,
+                recordingDevice: context.recordingDevice,
+                sourceTimeZone: zone
+            )
+        )
+        #expect(stated.warnings.isEmpty)
+        guard case .observation(let observation) = stated.primaryResource, case .period(let period)? = observation.effective else {
+            Issue.record("The sampled data did not become an Observation with an effective period")
+            return
+        }
+        #expect(period.start?.value?.description == "2026-08-17T16:30:00-07:00")
+    }
+
+    @Test("Clock instants are UTC, so the same event yields the same bytes whatever zone the host is in")
+    func clockInstantsIgnoreTheHostZone() throws {
+        let base = try Self.context
+        func bytes(_ zone: String) throws -> Data {
+            let context = SensorConversionContext(
+                event: base.event,
+                adapterID: base.adapterID,
+                recordingDevice: base.recordingDevice,
+                sourceTimeZone: try #require(TimeZone(identifier: zone))
+            )
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .sortedKeys
+            return try encoder.encode(SensorConverter().convert(.recordingDocument(Self.recordingDocument()), context: context).bundle)
+        }
+        #expect(try bytes("America/Los_Angeles") == bytes("Asia/Tokyo"))
+
+        let conversion = try SensorConverter().convert(.recordingDocument(Self.recordingDocument()), context: base)
+        #expect(conversion.bundle.timestamp?.value?.description == "2026-08-17T23:30:20Z")
+        #expect(conversion.provenance.recorded.value?.description == "2026-08-17T23:30:20Z")
+        guard case .dateTime(let occurred)? = conversion.provenance.occurred,
+              case .recordingDocument(let document) = conversion.primaryResource else {
+            Issue.record("The recording document graph lost its Provenance time or its document")
+            return
+        }
+        #expect(occurred.value?.description == "2026-08-17T23:30:20Z")
+        #expect(document.date?.value?.description == "2026-08-17T23:30:20Z")
+    }
+
     @Test
     func invalidRecordsFailClosedBeforeSerialization() throws {
         let identifier = try BusinessIdentifier(
