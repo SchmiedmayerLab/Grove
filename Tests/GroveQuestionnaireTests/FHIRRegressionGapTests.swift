@@ -50,7 +50,7 @@ struct FHIRRegressionGapTests {
         #expect(throws: GroveQuestionnaire.Questionnaire.ConversionError.self) {
             _ = try GroveQuestionnaire.Questionnaire(
                 makeQuestionnaire(items: [item]),
-                evaluationInstant: questionnaireResponseTestAuthoredAt
+                clock: questionnaireResponseTestClock
             )
         }
     }
@@ -72,7 +72,7 @@ struct FHIRRegressionGapTests {
         whenUnanswered.enableWhen = [exists("source", false)]
         let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [
             booleanItem("source"), whenAnswered, whenUnanswered
-        ]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        ]), clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let tasks = questionnaire.sections.flatMap(\.tasks)
         let answered = try #require(tasks.first { $0.id == "when-answered" })
@@ -106,7 +106,7 @@ struct FHIRRegressionGapTests {
         )
         ]
         #expect(throws: GroveQuestionnaire.Questionnaire.ConversionError.self) {
-            try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [booleanItem("q1"), item]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+            try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [booleanItem("q1"), item]), clock: questionnaireResponseTestClock)
         }
     }
 
@@ -136,7 +136,7 @@ struct FHIRRegressionGapTests {
         let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [
             integerItem("with-step", extensions: [control, step]),
             integerItem("without-step", extensions: [control])
-        ]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        ]), clock: questionnaireResponseTestClock)
         let tasks = questionnaire.sections.flatMap(\.tasks)
         guard case .numeric(let withStep) = try #require(tasks.first { $0.id == "with-step" }).kind.variant,
               case .numeric(let withoutStep) = try #require(tasks.first { $0.id == "without-step" }).kind.variant else {
@@ -158,7 +158,7 @@ struct FHIRRegressionGapTests {
         }
         var top = ModelsR4.QuestionnaireItem(linkId: "top".asFHIRStringPrimitive(), type: .init(.group))
         top.item = [group("left", item: booleanItem("q1")), group("right", item: booleanItem("q2"))]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [top]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [top]), clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["q1"] = .init(value: .bool(true))
         responses.responses["q2"] = .init(value: .bool(false))
@@ -233,7 +233,7 @@ struct FHIRRegressionGapTests {
             ))
         )
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [decimal]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [decimal]), clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["weight"] = .init(value: .number(72.5))
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
@@ -255,7 +255,7 @@ struct FHIRRegressionGapTests {
         choice.answerOption = [1, 2, 3].map {
             QuestionnaireItemAnswerOption(value: .integer(FHIRPrimitive(FHIRInteger($0))))
         }
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]), clock: questionnaireResponseTestClock)
         let task = try #require(questionnaire.sections.flatMap(\.tasks).first)
         guard case .choice(let config) = task.kind.variant else {
             Issue.record("Expected a choice task")
@@ -281,7 +281,7 @@ struct FHIRRegressionGapTests {
         }
         let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [
             textItem("short", .string), textItem("long", .text), textItem("link", .url)
-        ]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        ]), clock: questionnaireResponseTestClock)
         let tasks = questionnaire.sections.flatMap(\.tasks)
         func freeTextConfig(_ linkId: String) -> GroveQuestionnaire.Questionnaire.Task.Kind.FreeTextConfig? {
             guard case .freeText(let config)? = tasks.first(where: { $0.id == linkId })?.kind.variant else {
@@ -310,7 +310,7 @@ extension FHIRRegressionGapTests {
 
     @Test
     func phq9ConvertsToTheExpectedStructure() throws {
-        let questionnaire = try GroveQuestionnaire.Questionnaire(ModelsR4.Questionnaire.phq9, evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(ModelsR4.Questionnaire.phq9, clock: questionnaireResponseTestClock)
         let tasks = questionnaire.sections.flatMap(\.tasks)
         let choiceTasks = tasks.filter {
             if case .choice = $0.kind.variant { true } else { false }

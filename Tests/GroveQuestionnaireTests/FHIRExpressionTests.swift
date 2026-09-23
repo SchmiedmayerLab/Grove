@@ -67,7 +67,7 @@ struct FHIRExpressionTests {
             value: .expression(fhirPath("%resource.item.where(linkId = 'age').answer.value.first() >= 18"))
         )
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [age, followUp]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [age, followUp]), clock: questionnaireResponseTestClock)
         #expect(questionnaire.expressionEngine != nil)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let target = try #require(questionnaire.sections.flatMap(\.tasks).first { $0.id == "adult-only" })
@@ -96,7 +96,7 @@ struct FHIRExpressionTests {
                 value: .expression(fhirPath("%resource.descendants().where(linkId = 'age').answer.value.first() >= 18"))
             )
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [intake, adults]))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [intake, adults]), clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let target = try #require(questionnaire.sections.flatMap(\.tasks).first { $0.id == "consent" })
         #expect(!responses.shouldEnable(task: target), "the group's expression gates the items it holds")
@@ -125,7 +125,7 @@ struct FHIRExpressionTests {
         ]
         let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [
             weightedChoice("q1"), weightedChoice("q2"), total
-        ]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        ]), clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["q1"] = .init(value: .choice(.init(selectedOptions: ["https://example.org/scale|several-days"])))
         responses.responses["q2"] = .init(value: .choice(.init(selectedOptions: ["https://example.org/scale|nearly-every-day"])))
@@ -161,7 +161,7 @@ struct FHIRExpressionTests {
             value: .expression(scoreVariable)
         )
         ]
-        let converted = try GroveQuestionnaire.Questionnaire(questionnaire, evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let converted = try GroveQuestionnaire.Questionnaire(questionnaire, clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: converted)
         let target = try #require(converted.sections.flatMap(\.tasks).first { $0.id == "flagged" })
         responses.responses["q1"] = .init(value: .choice(.init(selectedOptions: ["https://example.org/scale|several-days"])))
@@ -204,7 +204,7 @@ struct FHIRExpressionTests {
         group.extension = [declaring, firstAnswer].map {
             Extension(url: "http://hl7.org/fhir/StructureDefinition/variable", value: .expression($0))
         }
-        let converted = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [group]))
+        let converted = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [group]), clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: converted)
         let target = try #require(converted.sections.flatMap(\.tasks).first { $0.id == "g.b" })
         responses.responses["g.a"] = .init(value: .bool(false))
@@ -230,7 +230,7 @@ struct FHIRExpressionTests {
         patient.name = [HumanName(family: "Lovelace".asFHIRStringPrimitive(), given: ["Ada".asFHIRStringPrimitive()])]
         let questionnaire = try GroveQuestionnaire.Questionnaire(
             makeQuestionnaire(items: [name]),
-            evaluationInstant: questionnaireResponseTestAuthoredAt,
+            clock: questionnaireResponseTestClock,
             using: .init(launchContext: ["patient": ResourceProxy(with: patient)])
         )
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
@@ -264,7 +264,7 @@ struct FHIRExpressionTests {
         ]
 
         let source = makeQuestionnaire(items: [capturedAt])
-        let evaluationInstant = Date(timeIntervalSince1970: 1_700_000_000.125)
+        let instant = Date(timeIntervalSince1970: 1_700_000_000.125)
         let authored = Date(timeIntervalSince1970: 1_700_000_100)
         let identifier = Identifier(
             system: "https://example.org/fhir/NamingSystem/questionnaire-responses".asFHIRURIPrimitive(),
@@ -276,7 +276,7 @@ struct FHIRExpressionTests {
         func encodedResponse(evaluatedAt instant: Date) throws -> Data {
             let questionnaire = try GroveQuestionnaire.Questionnaire(
                 source,
-                evaluationInstant: instant
+                clock: .fixed(at: instant, in: questionnaireResponseTestTimeZone)
             )
             let responses = QuestionnaireResponses(questionnaire: questionnaire)
             let response = try ModelsR4.QuestionnaireResponse(
@@ -288,10 +288,12 @@ struct FHIRExpressionTests {
             return try encoder.encode(response)
         }
 
-        let first = try encodedResponse(evaluatedAt: evaluationInstant)
-        let second = try encodedResponse(evaluatedAt: evaluationInstant)
+        let first = try encodedResponse(evaluatedAt: instant)
+        let second = try encodedResponse(evaluatedAt: instant)
+        let later = try encodedResponse(evaluatedAt: instant.addingTimeInterval(60))
 
         #expect(first == second)
+        #expect(first != later)
     }
 
     // MARK: targetConstraint
@@ -308,7 +310,7 @@ struct FHIRExpressionTests {
             Extension(url: "human", value: .string(FHIRPrimitive(ModelsR4.FHIRString("Please enter a plausible number of drinks per week."))))
         ]
         count.extension = [constraint]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [count]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [count]), clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let task = try #require(questionnaire.sections.flatMap(\.tasks).first)
         responses.responses["drinks"] = .init(value: .number(12))
@@ -333,7 +335,7 @@ struct FHIRExpressionTests {
             value: .expression(fhirPath("%resource.item.notAFunction()"))
         )
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [flagged]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [flagged]), clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let task = try #require(questionnaire.sections.flatMap(\.tasks).first)
         // The item still disappears — but the reason is recoverable rather than lost.
@@ -355,7 +357,7 @@ struct FHIRExpressionTests {
             Extension(url: "human", value: .string(FHIRPrimitive(ModelsR4.FHIRString("Unreachable."))))
         ]
         count.extension = [constraint]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [count]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [count]), clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let task = try #require(questionnaire.sections.flatMap(\.tasks).first)
         responses.responses["drinks"] = .init(value: .number(12))
@@ -380,7 +382,7 @@ struct FHIRExpressionTests {
         )
         ]
         #expect(throws: GroveQuestionnaire.Questionnaire.ConversionError.self) {
-            try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+            try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), clock: questionnaireResponseTestClock)
         }
     }
 }

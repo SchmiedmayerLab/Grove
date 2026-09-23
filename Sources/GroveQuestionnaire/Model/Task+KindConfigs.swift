@@ -271,7 +271,7 @@ extension Questionnaire.Task.Kind.ChoiceConfig {
         public let fhirCoding: FHIRCoding?
         /// The option's non-coding FHIR value, if it was created from one.
         public let answerValue: AnswerValue?
-        /// The option's scoring weight (FHIR `itemWeight`).
+        /// The option's scoring weight: FHIR `itemWeight`, else R4's `ordinalValue`.
         public let weight: Decimal?
         /// Whether selecting this option deselects all others (FHIR `questionnaire-optionExclusive`).
         public let isExclusive: Bool

@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-private import FHIRPathParser
+public import FHIRPathParser
 public import Foundation
 public import ModelsR4
 
@@ -258,20 +258,18 @@ extension QuestionnaireItem {
     /// No Grove extension assigns UIKit-specific text-content behavior.
     public var autocompleteRawValue: String? { nil }
 
-    /// The minimum value for a date answer, resolving relative FHIRPath values at
-    /// the caller-supplied instant.
-    /// - Parameter evaluationInstant: The explicit instant used by clock-sensitive expressions.
+    /// The minimum value for a date answer, resolving a relative FHIRPath bound such as `today()` at the clock.
+    /// - Parameter clock: The instant and zone clock-sensitive expressions read.
     /// - Returns: An optional `DateComponents` containing the minimum date allowed.
-    public func minDateValue(evaluationInstant: Date) throws -> DateComponents? {
-        try dateMinMaxValue(url: SupportedExtensions.minValue, evaluationInstant: evaluationInstant)
+    public func minDateValue(at clock: FHIRPathClock) throws -> DateComponents? {
+        try dateMinMaxValue(url: SupportedExtensions.minValue, clock: clock)
     }
 
-    /// The maximum value for a date answer, resolving relative FHIRPath values at
-    /// the caller-supplied instant.
-    /// - Parameter evaluationInstant: The explicit instant used by clock-sensitive expressions.
+    /// The maximum value for a date answer, resolving a relative FHIRPath bound such as `today()` at the clock.
+    /// - Parameter clock: The instant and zone clock-sensitive expressions read.
     /// - Returns: An optional `DateComponents` containing the maximum date allowed.
-    public func maxDateValue(evaluationInstant: Date) throws -> DateComponents? {
-        try dateMinMaxValue(url: SupportedExtensions.maxValue, evaluationInstant: evaluationInstant)
+    public func maxDateValue(at clock: FHIRPathClock) throws -> DateComponents? {
+        try dateMinMaxValue(url: SupportedExtensions.maxValue, clock: clock)
     }
     
     /// Checks this QuestionnaireItem for an extension matching the given URL and then return it if it exists.
@@ -327,7 +325,7 @@ extension QuestionnaireItem {
     // swiftlint:disable:next cyclomatic_complexity
     private func dateMinMaxValue(
         url: String,
-        evaluationInstant: Date
+        clock: FHIRPathClock
     ) throws -> DateComponents? {
         guard let ext = try uniqueExtension(url: url) else {
             return nil
@@ -352,27 +350,10 @@ extension QuestionnaireItem {
             guard let expression = value.value?.string else {
                 throw QuestionnaireItemBoundError.missingValue(url: url)
             }
-            let values: [FHIRPathValue]
             do {
-                values = try FHIRPathExpression.evaluate(
-                    expression: expression,
-                    context: FHIRPathEvaluationContext(now: evaluationInstant)
-                )
+                return try FHIRPathExpression.evaluate(expression: expression, clock: clock, as: DateComponents.self)
             } catch {
-                throw QuestionnaireItemBoundError.invalidFHIRPath(
-                    url: url,
-                    expression: expression,
-                    reason: String(describing: error)
-                )
-            }
-            guard values.count == 1 else {
-                throw QuestionnaireItemBoundError.unsupportedValue(url: url)
-            }
-            switch values[0] {
-            case .date(let components), .dateTime(let components), .time(let components):
-                return components
-            default:
-                throw QuestionnaireItemBoundError.unsupportedValue(url: url)
+                throw QuestionnaireItemBoundError.invalidFHIRPath(url: url, expression: expression, reason: String(describing: error))
             }
         default:
             throw QuestionnaireItemBoundError.unsupportedValue(url: url)

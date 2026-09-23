@@ -150,7 +150,7 @@ struct FHIRConversionCustomTasksTests {
         )
         let questionnaire = try GroveQuestionnaire.Questionnaire(
             try JSONDecoder().decode(ModelsR4.Questionnaire.self, from: input),
-            evaluationInstant: questionnaireResponseTestAuthoredAt,
+            clock: questionnaireResponseTestClock,
             using: .init(
                 extraQuestionKinds: [RankChoicesTask.self]
             )

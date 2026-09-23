@@ -82,16 +82,17 @@ extension GroveQuestionnaire.Questionnaire {
     /// Creates a Grove `Questionnaire` from a FHIR R4 `Questionnaire`.
     ///
     /// - parameter other: A FHIR R4 Questionnaire
-    /// - parameter evaluationInstant: The instant used for publication-lifecycle warnings and
-    ///   every clock-sensitive FHIRPath expression. Defaults to the wall clock; pass a fixed
-    ///   instant to make a conversion reproducible.
+    /// - parameter clock: What the time functions read: `QuestionnaireClock.live(in:)` while a participant answers,
+    ///   ``QuestionnaireClock/authored(_:)`` to evaluate a stored response. The conversion reads it once, for
+    ///   publication-lifecycle warnings, relative date bounds and initial values.
     /// - parameter options: Additional options to control the conversion process. Use this to specify e.g. custom question kinds.
     public init(
         _ other: ModelsR4.Questionnaire,
-        evaluationInstant: Date = Date(),
+        clock: QuestionnaireClock,
         using options: ConversionOptions = .init()
     ) throws(ConversionError) {
-        let metadata = try Self.metadata(of: other, evaluationInstant: evaluationInstant, using: options)
+        let conversionClock = FHIRPathClock(instant: clock.instant(), timeZone: clock.timeZone)
+        let metadata = try Self.metadata(of: other, at: conversionClock.instant, using: options)
         // R4: a resource with unprocessed modifier extensions must not be processed as if
         // their meaning were understood; none are supported, so conversion refuses them.
         if let modifier = other.modifierExtension?.first {
@@ -104,17 +105,14 @@ extension GroveQuestionnaire.Questionnaire {
                 engine = try FHIRQuestionnaireExpressionEngine(
                     questionnaire: other,
                     variables: variables,
-                    launchContext: try options.launchContext.mapValues { try FHIRPathNode.encoding($0) }
+                    launchContext: try options.launchContext.mapValues { try FHIRPathNode.encoding($0) },
+                    clock: clock
                 )
             } catch {
                 throw .other("Failed to set up the expression engine: \(error)")
             }
         }
-        let sections = try other.toSections(
-            using: options,
-            engine: engine,
-            evaluationInstant: evaluationInstant
-        )
+        let sections = try other.toSections(using: options, engine: engine, clock: conversionClock)
         do {
             self = try .validated(metadata: metadata, sections: sections)
         } catch {
@@ -125,7 +123,7 @@ extension GroveQuestionnaire.Questionnaire {
 
     private static func metadata(
         of other: ModelsR4.Questionnaire,
-        evaluationInstant: Date,
+        at instant: Date,
         using options: ConversionOptions
     ) throws(ConversionError) -> Metadata {
         guard let id = other.url?.value?.url.absoluteString ?? other.id?.value?.string else {
@@ -150,11 +148,7 @@ extension GroveQuestionnaire.Questionnaire {
             lifecycle: lifecycle,
             publisher: other.publisher?.value?.string,
             copyright: other.copyright?.value?.string,
-            administrationWarnings: try administrationWarnings(
-                of: other,
-                lifecycle: lifecycle,
-                evaluationInstant: evaluationInstant
-            ),
+            administrationWarnings: try administrationWarnings(of: other, lifecycle: lifecycle, at: instant),
             entryMode: entryMode(of: other),
             variables: try other.sdcVariables()
         )
@@ -164,7 +158,7 @@ extension GroveQuestionnaire.Questionnaire {
     private static func administrationWarnings(
         of other: ModelsR4.Questionnaire,
         lifecycle: PublicationLifecycle,
-        evaluationInstant: Date
+        at instant: Date
     ) throws(ConversionError) -> [String] {
         var warnings: [String] = []
         if lifecycle == .draft {
@@ -176,7 +170,7 @@ extension GroveQuestionnaire.Questionnaire {
         if let startValue = other.effectivePeriod?.start?.value {
             do {
                 let start = try startValue.asNSDate() as Date
-                if evaluationInstant < start {
+                if instant < start {
                     warnings.append("The questionnaire is not yet effective (effectivePeriod starts \(start)).")
                 }
             } catch {
@@ -186,7 +180,7 @@ extension GroveQuestionnaire.Questionnaire {
         if let endValue = other.effectivePeriod?.end?.value {
             do {
                 let end = try endValue.asNSDate() as Date
-                if evaluationInstant > end {
+                if instant > end {
                     warnings.append("The questionnaire is past its effectivePeriod (ended \(end)).")
                 }
             } catch {
@@ -260,8 +254,8 @@ extension GroveQuestionnaire.Questionnaire {
 @available(iOS 18, macOS 15, watchOS 11, *)
 private struct ConversionContext {
     let options: GroveQuestionnaire.Questionnaire.ConversionOptions
-    /// The caller-supplied instant used to resolve relative date bounds.
-    let evaluationInstant: Date
+    /// The clock the conversion read once, for relative date bounds and initial values.
+    let clock: FHIRPathClock
     /// The FHIR questionnaire being converted
     let questionnaire: ModelsR4.Questionnaire
     /// The "is enabled" condition of the parent item.
@@ -296,7 +290,7 @@ extension ModelsR4.Questionnaire {
     fileprivate func toSections(
         using options: GroveQuestionnaire.Questionnaire.ConversionOptions,
         engine: FHIRQuestionnaireExpressionEngine? = nil,
-        evaluationInstant: Date
+        clock: FHIRPathClock
     ) throws(GroveQuestionnaire.Questionnaire.ConversionError) -> [GroveQuestionnaire.Questionnaire.Section] {
         guard let items = item, !items.isEmpty else {
             throw .emptyQuestionnaire
@@ -308,7 +302,7 @@ extension ModelsR4.Questionnaire {
             }
             let context = ConversionContext(
                 options: options,
-                evaluationInstant: evaluationInstant,
+                clock: clock,
                 questionnaire: self,
                 parentItemCondition: .none,
                 engine: engine
@@ -381,7 +375,7 @@ extension ModelsR4.QuestionnaireItem {
         let groupCondition = try enabledCondition(using: context)
         let itemContext = ConversionContext(
             options: context.options,
-            evaluationInstant: context.evaluationInstant,
+            clock: context.clock,
             questionnaire: context.questionnaire,
             parentItemCondition: groupCondition,
             engine: context.engine
@@ -422,7 +416,7 @@ extension ModelsR4.QuestionnaireItem {
             )
             let itemContext = ConversionContext(
                 options: context.options,
-                evaluationInstant: context.evaluationInstant,
+                clock: context.clock,
                 questionnaire: context.questionnaire,
                 parentItemCondition: context.parentItemCondition,
                 engine: context.engine,
@@ -473,7 +467,7 @@ extension ModelsR4.QuestionnaireItem {
                 throw .other("Item '\(task.id)' declares initialExpression but no expression engine is available")
             }
             do {
-                task.initialValue = try engine.evaluateInitialValue(initialExpression, for: task)
+                task.initialValue = try engine.evaluateInitialValue(initialExpression, for: task, at: context.clock)
             } catch {
                 throw .other("initialExpression on item '\(task.id)' failed: \(error)")
             }
@@ -558,7 +552,7 @@ extension ModelsR4.QuestionnaireItem {
     ) throws(ConversionError) -> [GroveQuestionnaire.Questionnaire.Task] {
         let itemContext = ConversionContext(
             options: context.options,
-            evaluationInstant: context.evaluationInstant,
+            clock: context.clock,
             questionnaire: context.questionnaire,
             parentItemCondition: context.parentItemCondition && task.enabledCondition
                 && .hasResponse(taskId: task.id),
@@ -1051,8 +1045,8 @@ extension ModelsR4.QuestionnaireItem {
         do {
             return .dateTime(.init(
                 style: style,
-                minValue: try minDateValue(evaluationInstant: context.evaluationInstant),
-                maxValue: try maxDateValue(evaluationInstant: context.evaluationInstant)
+                minValue: try minDateValue(at: context.clock),
+                maxValue: try maxDateValue(at: context.clock)
             ))
         } catch {
             throw .other("Invalid temporal answer bound: \(error)")

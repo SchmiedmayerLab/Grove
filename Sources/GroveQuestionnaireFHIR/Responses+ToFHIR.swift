@@ -176,7 +176,10 @@ extension ModelsR4.QuestionnaireResponse {
             }
             self.identifier = responseIdentifier
         }
-        let items = try Self.items(for: other, droppingUnconvertibleAnswers: droppingUnconvertibleAnswers)
+        let items = try Self.items(
+            for: other.settled(status: status, authored: authored, in: authoredTimeZone),
+            droppingUnconvertibleAnswers: droppingUnconvertibleAnswers
+        )
         // An empty `item` array is invalid FHIR JSON; omit the element instead.
         self.item = items.isEmpty ? nil : items
     }
@@ -449,5 +452,27 @@ extension QuestionnaireResponseItemAnswer {
             size: data.count.asFHIRUnsignedIntegerPrimitive(),
             title: attachment.filename.asFHIRStringPrimitive(),
         )))
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension GroveQuestionnaire.QuestionnaireResponses {
+    /// The answers as a completed or amended response states them: every calculated item recomputed at `authored`, in
+    /// its zone, so evaluating the response again later on any device yields the same values.
+    fileprivate func settled(
+        status: QuestionnaireResponseStatus,
+        authored: Date?,
+        in timeZone: TimeZone?
+    ) -> GroveQuestionnaire.QuestionnaireResponses {
+        guard [.completed, .amended].contains(status), let authored, let timeZone,
+              let engine = questionnaire.expressionEngine as? FHIRQuestionnaireExpressionEngine else {
+            return self
+        }
+        var questionnaire = questionnaire
+        questionnaire.expressionEngine = engine.reading(.fixed(at: authored, in: timeZone))
+        let settled = GroveQuestionnaire.QuestionnaireResponses(id: id, questionnaire: questionnaire)
+        settled.responses = responses
+        return settled
     }
 }

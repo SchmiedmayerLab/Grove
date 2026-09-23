@@ -73,15 +73,11 @@ extension GroveQuestionnaire.Questionnaire {
     /// questionnaire converts cleanly and carries no administration warnings.
     public static func authoringDiagnostics(
         for questionnaire: ModelsR4.Questionnaire,
-        evaluationInstant: Date,
+        clock: QuestionnaireClock,
         using options: ConversionOptions = .init()
     ) -> [String] {
         do {
-            let converted = try GroveQuestionnaire.Questionnaire(
-                questionnaire,
-                evaluationInstant: evaluationInstant,
-                using: options
-            )
+            let converted = try GroveQuestionnaire.Questionnaire(questionnaire, clock: clock, using: options)
             return converted.metadata.administrationWarnings
         } catch {
             return [error.localizedDescription]
@@ -100,20 +96,30 @@ extension ModelsR4.Questionnaire {
         _ questionnaire: GroveQuestionnaire.Questionnaire,
         repositoryID: RepositoryID? = nil
     ) throws {
-        if let url = questionnaire.metadata.url {
-            guard ContractRules.isValidQuestionnaireURL(url.absoluteString) else {
-                throw ContractError.invalidQuestionnaireCanonical(url.absoluteString)
-            }
+        guard let url = questionnaire.metadata.url else {
+            throw ContractError.missingQuestionnaireURL
         }
-        if let version = questionnaire.metadata.version {
-            guard ContractRules.isSemanticVersion(version) else {
-                throw ContractError.invalidQuestionnaireVersion(version)
-            }
+        guard ContractRules.isValidQuestionnaireURL(url.absoluteString) else {
+            throw ContractError.invalidQuestionnaireCanonical(url.absoluteString)
         }
-        self.init(status: FHIRPrimitive(Self.publicationStatus(of: questionnaire.metadata.lifecycle)))
+        guard let version = questionnaire.metadata.version else {
+            throw ContractError.missingQuestionnaireVersion
+        }
+        guard ContractRules.isSemanticVersion(version) else {
+            throw ContractError.invalidQuestionnaireVersion(version)
+        }
+        guard !version.contains("|"), !version.contains("#") else {
+            throw ContractError.invalidQuestionnaireCanonical("\(url.absoluteString)|\(version)")
+        }
+        try self.init(projecting: questionnaire)
         self.id = repositoryID?.primitive
-            ?? (questionnaire.metadata.url == nil ? questionnaire.metadata.id.asFHIRStringPrimitive() : nil)
         self.meta = Meta(profile: [Profile.groveQuestionnaire])
+    }
+
+    /// The questionnaire as its expressions read it, which needs no canonical: it is never exported, so it claims no
+    /// profile.
+    init(projecting questionnaire: GroveQuestionnaire.Questionnaire) throws {
+        self.init(status: FHIRPrimitive(Self.publicationStatus(of: questionnaire.metadata.lifecycle)))
         // Grove questionnaires are administered to the app participant. Declaring Patient keeps
         // every native export inside the Grove Questionnaire profile and lets pair validation reject
         // a response whose subject targets a different resource type.

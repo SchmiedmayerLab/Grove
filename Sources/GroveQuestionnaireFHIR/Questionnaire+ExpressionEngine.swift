@@ -20,20 +20,22 @@ extension GroveQuestionnaire.Questionnaire {
     /// scores stay empty without it.
     ///
     /// ```swift
-    /// let questionnaire = try SleepCheckIn.questionnaire.withExpressionEngine()
+    /// let questionnaire = try SleepCheckIn.questionnaire.withExpressionEngine(clock: .live(in: .current))
     /// ```
     ///
     /// The engine reads the FHIR projection of this questionnaire, but the questionnaire
     /// itself is unchanged — anything the FHIR export does not carry survives, because the
     /// model is never round-tripped.
     ///
+    /// - parameter clock: What the time functions read, such as `today()` in a score.
     /// - parameter launchContext: Resources the SDC `launchContext` expressions may read.
-    public func withExpressionEngine(launchContext: [String: ResourceProxy] = [:]) throws -> Self {
+    public func withExpressionEngine(clock: QuestionnaireClock, launchContext: [String: ResourceProxy] = [:]) throws -> Self {
         var copy = self
         copy.expressionEngine = try FHIRQuestionnaireExpressionEngine(
-            questionnaire: try ModelsR4.Questionnaire(self),
+            questionnaire: try ModelsR4.Questionnaire(projecting: self),
             variables: [],
-            launchContext: launchContext.mapValues { try FHIRPathNode.encoding($0) }
+            launchContext: launchContext.mapValues { try FHIRPathNode.encoding($0) },
+            clock: clock
         )
         return copy
     }

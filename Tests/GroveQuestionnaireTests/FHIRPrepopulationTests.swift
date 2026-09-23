@@ -36,7 +36,7 @@ struct FHIRPrepopulationTests {
         integer.text = "count".asFHIRStringPrimitive()
         integer.initial = [QuestionnaireItemInitial(value: .integer(FHIRPrimitive(FHIRInteger(7))))]
 
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [boolean, integer]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [boolean, integer]), clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         #expect(responses.responses["consented"].value == .bool(true))
         #expect(responses.responses["count"].value == .number(7))
@@ -65,7 +65,7 @@ struct FHIRPrepopulationTests {
         var choice = ModelsR4.QuestionnaireItem(linkId: "pick".asFHIRStringPrimitive(), type: .init(.choice))
         choice.text = "pick".asFHIRStringPrimitive()
         choice.answerOption = [option("a"), option("b", selected: true)]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]), clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         #expect(responses.responses["pick"].value.choiceValue.selectedOptions == ["https://example.org/opts|b"])
     }
@@ -77,7 +77,7 @@ struct FHIRPrepopulationTests {
         locked.required = FHIRPrimitive(FHIRBool(true))
         locked.readOnly = FHIRPrimitive(FHIRBool(true))
         locked.initial = [QuestionnaireItemInitial(value: .boolean(FHIRPrimitive(FHIRBool(true))))]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [locked]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [locked]), clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let section = try #require(questionnaire.sections.first)
         #expect(responses.isComplete(in: section))
@@ -92,12 +92,12 @@ struct FHIRPrepopulationTests {
         ])
         fhirQuestionnaire.status = FHIRPrimitive(PublicationStatus.retired)
         #expect(throws: GroveQuestionnaire.Questionnaire.ConversionError.self) {
-            try GroveQuestionnaire.Questionnaire(fhirQuestionnaire, evaluationInstant: questionnaireResponseTestAuthoredAt)
+            try GroveQuestionnaire.Questionnaire(fhirQuestionnaire, clock: questionnaireResponseTestClock)
         }
         // Inspection tooling can opt out of the gate.
         let converted = try GroveQuestionnaire.Questionnaire(
             fhirQuestionnaire,
-            evaluationInstant: questionnaireResponseTestAuthoredAt,
+            clock: questionnaireResponseTestClock,
             using: .init(enforcesPublicationLifecycle: false)
         )
         #expect(converted.metadata.lifecycle == .retired)
@@ -113,12 +113,12 @@ struct FHIRPrepopulationTests {
         fhirQuestionnaire.effectivePeriod = period
         // Out-of-period instruments still convert (published examples carry ended
         // periods), but the app is told so it can warn or refuse.
-        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire, evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire, clock: questionnaireResponseTestClock)
         #expect(questionnaire.metadata.administrationWarnings.contains { $0.contains("effectivePeriod") })
     }
 
     @Test
-    func relativeDateBoundsUseTheExplicitEvaluationInstant() throws {
+    func relativeDateBoundsReadTheClock() throws {
         var birthday = ModelsR4.QuestionnaireItem(
             linkId: "birthday".asFHIRStringPrimitive(),
             text: "Birthday".asFHIRStringPrimitive(),
@@ -135,7 +135,7 @@ struct FHIRPrepopulationTests {
         func maximum(at instant: Date) throws -> DateComponents {
             let questionnaire = try GroveQuestionnaire.Questionnaire(
                 source,
-                evaluationInstant: instant
+                clock: .fixed(at: instant, in: questionnaireResponseTestTimeZone)
             )
             let task = try #require(questionnaire.sections.flatMap(\.tasks).first)
             guard case .dateTime(let config) = task.kind.variant else {
@@ -150,7 +150,8 @@ struct FHIRPrepopulationTests {
         let first = try maximum(at: firstInstant)
         let repeated = try maximum(at: firstInstant)
         let later = try maximum(at: laterInstant)
-        let calendar = Calendar.current
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = questionnaireResponseTestTimeZone
         let expectedDate = try #require(calendar.date(byAdding: .year, value: -18, to: firstInstant))
         let expected = calendar.dateComponents([.year, .month, .day], from: expectedDate)
 
@@ -168,7 +169,7 @@ struct FHIRPrepopulationTests {
         ])
         fhirQuestionnaire.publisher = "Pfizer Inc.".asFHIRStringPrimitive()
         fhirQuestionnaire.copyright = "© Pfizer Inc. All rights reserved.".asFHIRStringPrimitive()
-        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire, evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire, clock: questionnaireResponseTestClock)
         #expect(questionnaire.metadata.publisher == "Pfizer Inc.")
         #expect(questionnaire.metadata.copyright == "© Pfizer Inc. All rights reserved.")
     }
@@ -189,13 +190,13 @@ struct FHIRPrepopulationTests {
 
         let german = try GroveQuestionnaire.Questionnaire(
             makeQuestionnaire(items: [item]),
-            evaluationInstant: questionnaireResponseTestAuthoredAt,
+            clock: questionnaireResponseTestClock,
             using: .init(locale: Locale(identifier: "de_DE"))
         )
         #expect(german.sections.flatMap(\.tasks).first?.title == "Wie geht es Ihnen heute?")
         let english = try GroveQuestionnaire.Questionnaire(
             makeQuestionnaire(items: [item]),
-            evaluationInstant: questionnaireResponseTestAuthoredAt,
+            clock: questionnaireResponseTestClock,
             using: .init(locale: Locale(identifier: "en_US"))
         )
         #expect(english.sections.flatMap(\.tasks).first?.title == "How are you today?")
@@ -207,7 +208,7 @@ struct FHIRPrepopulationTests {
     func responseCarriesAttributionAndItemText() throws {
         var item = ModelsR4.QuestionnaireItem(linkId: "q1".asFHIRStringPrimitive(), type: .init(.boolean))
         item.text = "Do you feel well?".asFHIRStringPrimitive()
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["q1"] = .init(value: .bool(true))
         let fhirResponse = try ModelsR4.QuestionnaireResponse(

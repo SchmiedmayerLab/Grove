@@ -7,6 +7,7 @@
 //
 
 import FHIRModelsExtensions
+import FHIRPathParser
 import FHIRQuestionnaires
 import Foundation
 import ModelsR4
@@ -15,7 +16,8 @@ import Testing
 
 @Suite
 struct FHIRToResearchKitTests {
-    private static let evaluationInstant = Date(timeIntervalSince1970: 1_700_000_000)
+    private static let clock = FHIRPathClock(instant: Date(timeIntervalSince1970: 1_700_000_000), timeZone: utc)
+    private static let utc = TimeZone.gmt
 
     @Test
     func testGetContainedValueSets() throws {
@@ -95,7 +97,7 @@ struct FHIRToResearchKitTests {
     @Test
     func testMinDateValueExtension() throws {
         let minDateValue = try Questionnaire.dateTimeExample.item?.first?.minDateValue(
-            evaluationInstant: Self.evaluationInstant
+            at: Self.clock
         )
         let unwrappedMinDateValue = try #require(minDateValue)
         #expect(unwrappedMinDateValue == DateComponents(year: 2001, month: 1, day: 1))
@@ -104,7 +106,7 @@ struct FHIRToResearchKitTests {
     @Test
     func testMaxDateValueExtension() throws {
         let maxDateValue = try Questionnaire.dateTimeExample.item?.first?.maxDateValue(
-            evaluationInstant: Self.evaluationInstant
+            at: Self.clock
         )
         let unwrappedMaxDateValue = try #require(maxDateValue)
         #expect(unwrappedMaxDateValue == DateComponents(year: 2024, month: 1, day: 1))
@@ -131,7 +133,7 @@ struct FHIRToResearchKitTests {
             type: FHIRPrimitive(.date)
         )
         #expect(throws: QuestionnaireItemBoundError.self) {
-            _ = try malformedDate.minDateValue(evaluationInstant: Self.evaluationInstant)
+            _ = try malformedDate.minDateValue(at: Self.clock)
         }
 
         let malformedNumber = QuestionnaireItem(
@@ -162,13 +164,10 @@ struct FHIRToResearchKitTests {
             linkId: "date".asFHIRStringPrimitive(),
             type: FHIRPrimitive(.date)
         )
-        let epoch = Date(timeIntervalSince1970: 0)
-        let twoDaysLater = Date(timeIntervalSince1970: 172_800)
-        let first = try #require(try item.minDateValue(evaluationInstant: epoch))
-        let later = try #require(try item.minDateValue(evaluationInstant: twoDaysLater))
-        #expect(first.day == Calendar.current.component(.day, from: epoch))
-        #expect(later.day == Calendar.current.component(.day, from: twoDaysLater))
-        #expect(first != later)
+        let first = try #require(try item.minDateValue(at: FHIRPathClock(instant: Date(timeIntervalSince1970: 0), timeZone: Self.utc)))
+        let later = try #require(try item.minDateValue(at: FHIRPathClock(instant: Date(timeIntervalSince1970: 172_800), timeZone: Self.utc)))
+        #expect(first.day == 1)
+        #expect(later.day == 3)
     }
 
     @Test("Invalid extension URL text throws", arguments: ["", "http://["])

@@ -160,6 +160,6 @@ extension GroveQuestionnaire.Questionnaire {
         // swiftlint:disable:next force_try
         try! SleepCheckIn.questionnaire.checkDeclaration(of: SleepCheckIn.self)
         // swiftlint:disable:next force_try
-        return try! SleepCheckIn.questionnaire.withExpressionEngine(evaluationInstant: .now)
+        return try! SleepCheckIn.questionnaire.withExpressionEngine(clock: .live(in: .current))
     }()
 }

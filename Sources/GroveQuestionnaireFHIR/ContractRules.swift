@@ -19,6 +19,10 @@ public enum ContractError: Error, Equatable, Sendable {
     case incompleteResponseIdentifier
     case invalidQuestionnaireCanonical(String)
     case invalidPair([ValidationIssue])
+    /// A stored response states no `authored`, so nothing fixes when its time functions read.
+    case missingAuthored
+    /// A stored response's `authored` states no time and offset, so `today()` has no zone to be read in.
+    case authoredWithoutOffset
 }
 
 

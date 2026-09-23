@@ -48,7 +48,7 @@ struct FHIRFoundationFixesTests {
             value: .boolean(FHIRPrimitive(FHIRBool(true)))
         )
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [hidden, booleanItem("visible")]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [hidden, booleanItem("visible")]), clock: questionnaireResponseTestClock)
         let tasks = questionnaire.sections.flatMap(\.tasks)
         let carrier = try #require(tasks.first { $0.id == "carrier" })
         #expect(carrier.isHidden)
@@ -72,7 +72,7 @@ struct FHIRFoundationFixesTests {
         )
         ]
         #expect(throws: GroveQuestionnaire.Questionnaire.ConversionError.self) {
-            try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+            try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), clock: questionnaireResponseTestClock)
         }
     }
 
@@ -87,7 +87,7 @@ struct FHIRFoundationFixesTests {
         nested.item = [booleanItem("q2")]
         group2.item = [nested]
         #expect(throws: GroveQuestionnaire.Questionnaire.ConversionError.self) {
-            try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [group1, group2]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+            try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [group1, group2]), clock: questionnaireResponseTestClock)
         }
     }
 
@@ -96,7 +96,7 @@ struct FHIRFoundationFixesTests {
         var group = ModelsR4.QuestionnaireItem(linkId: "shared".asFHIRStringPrimitive(), type: .init(.group))
         group.item = [booleanItem("q1")]
         #expect(throws: GroveQuestionnaire.Questionnaire.ConversionError.self) {
-            try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [group, booleanItem("shared")]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+            try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [group, booleanItem("shared")]), clock: questionnaireResponseTestClock)
         }
     }
 
@@ -118,7 +118,7 @@ struct FHIRFoundationFixesTests {
         var fhirQuestionnaire = makeQuestionnaire(items: [choice])
         fhirQuestionnaire.contained = [ResourceProxy(with: valueSet)]
 
-        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire, evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire, clock: questionnaireResponseTestClock)
         let task = try #require(questionnaire.sections.flatMap(\.tasks).first)
         guard case .choice(let config) = task.kind.variant else {
             Issue.record("Expected a choice task")
@@ -151,7 +151,7 @@ struct FHIRFoundationFixesTests {
         choice.text = "symptoms".asFHIRStringPrimitive()
         choice.repeats = FHIRPrimitive(FHIRBool(true))
         choice.answerOption = [option("cough"), option("fever"), option("none", exclusive: true)]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]), clock: questionnaireResponseTestClock)
         let task = try #require(questionnaire.sections.flatMap(\.tasks).first)
         guard case .choice(let config) = task.kind.variant else {
             Issue.record("Expected a choice task")
@@ -190,7 +190,7 @@ struct FHIRFoundationFixesTests {
             weighted("not-at-all", 0, url: "http://hl7.org/fhir/StructureDefinition/itemWeight"),
             weighted("nearly-every-day", 3, url: "http://hl7.org/fhir/StructureDefinition/itemWeight")
         ]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [choice]), clock: questionnaireResponseTestClock)
         let task = try #require(questionnaire.sections.flatMap(\.tasks).first)
         guard case .choice(let config) = task.kind.variant else {
             Issue.record("Expected a choice task")
@@ -246,7 +246,7 @@ struct FHIRFoundationFixesTests {
         )
         var followUp = booleanItem("follow-up")
         followUp.enableWhen = [enableWhen]
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [weight, followUp]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [weight, followUp]), clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let target = try #require(questionnaire.sections.flatMap(\.tasks).first { $0.id == "follow-up" })
         #expect(!responses.shouldEnable(task: target))
@@ -262,7 +262,7 @@ struct FHIRFoundationFixesTests {
     func urlInputIsValidatedBeforeSubmission() throws {
         var url = ModelsR4.QuestionnaireItem(linkId: "website".asFHIRStringPrimitive(), type: .init(.url))
         url.text = "website".asFHIRStringPrimitive()
-        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [url]), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [url]), clock: questionnaireResponseTestClock)
         let task = try #require(questionnaire.sections.flatMap(\.tasks).first)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["website"] = .init(value: .string("not a url"))

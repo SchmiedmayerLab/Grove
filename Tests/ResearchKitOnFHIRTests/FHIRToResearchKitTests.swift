@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import FHIRPathParser
 import FHIRQuestionnaires
 import Foundation
 import ModelsR4
@@ -162,7 +163,7 @@ struct FHIRToResearchKitTests {
     @Test("Minimum date value extension")
     func testMinDateValueExtension() throws {
         let minDateValue = try Questionnaire.dateTimeExample.item?.first?.minDateValue(
-            evaluationInstant: Date(timeIntervalSince1970: 0)
+            at: FHIRPathClock(instant: Date(timeIntervalSince1970: 0), timeZone: .gmt)
         )
         let unwrappedMinDate = try #require(minDateValue)
         #expect(unwrappedMinDate.year == 2001)
@@ -174,7 +175,7 @@ struct FHIRToResearchKitTests {
     @Test("Maximum date value extension")
     func testMaxDateValueExtension() throws {
         let maxDateValue = try Questionnaire.dateTimeExample.item?.first?.maxDateValue(
-            evaluationInstant: Date(timeIntervalSince1970: 0)
+            at: FHIRPathClock(instant: Date(timeIntervalSince1970: 0), timeZone: .gmt)
         )
         let unwrappedMaxDate = try #require(maxDateValue)
         #expect(unwrappedMaxDate.year == 2024)

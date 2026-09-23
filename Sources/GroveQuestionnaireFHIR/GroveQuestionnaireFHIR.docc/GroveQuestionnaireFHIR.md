@@ -26,15 +26,18 @@ import GroveQuestionnaireFHIR
 import ModelsR4
 
 let resource = try JSONDecoder().decode(ModelsR4.Questionnaire.self, from: data)
-let questionnaire = try Questionnaire(resource)
+let questionnaire = try Questionnaire(resource, clock: .live(in: .current))
 ```
 
-Clock-sensitive expressions such as `today()` use the wall clock by default.
-Pass `evaluationInstant:` to make a conversion reproducible, for example in tests or when re-evaluating a stored submission:
+Time functions such as `today()` never read the device's clock, zone or calendar on their own; they read the clock the conversion is given.
+While a participant answers, `QuestionnaireClock.live(in:)` reads the wall clock once per state of the answers, in the participant's zone.
+A stored response is evaluated at the instant and offset it was authored in, so it yields the same values on any device:
 
 ```swift
-let questionnaire = try Questionnaire(resource, evaluationInstant: submittedAt)
+let questionnaire = try Questionnaire(resource, clock: .authored(storedResponse))
 ```
+
+A completed or amended response is exported with its calculated answers recomputed at `authored`, so that later evaluation agrees with what was stored.
 
 ### Export a Response
 
@@ -78,13 +81,14 @@ Custom question kinds participate by conforming to the protocols below; unsuppor
 
 ### Conversion
 
-- ``GroveQuestionnaire/Questionnaire/init(_:evaluationInstant:using:)``
+- ``GroveQuestionnaire/Questionnaire/init(_:clock:using:)``
+- ``GroveQuestionnaire/QuestionnaireClock/authored(_:)``
 - ``ModelsR4/Questionnaire/init(_:repositoryID:)``
 - ``ModelsR4/QuestionnaireResponse/init(_:subject:author:source:status:identifier:repositoryID:authored:authoredTimeZone:)``
 - ``ResourceBuilder``
 - ``ResourcePair``
 - ``PairValidator``
-- ``GroveQuestionnaire/Questionnaire/withExpressionEngine(evaluationInstant:launchContext:)``
+- ``GroveQuestionnaire/Questionnaire/withExpressionEngine(clock:launchContext:)``
 
 ### Custom Question Kinds
 

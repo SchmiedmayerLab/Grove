@@ -403,6 +403,16 @@ custom_rules:
     message: "Logger subsystems are org.grovealliance[.<module>]; the module goes in the category."
     severity: error
     excluded: ".*/Tests/.*"
+  device_clock_in_expression_evaluation:
+    name: "Explicit Evaluation Clock"
+    regex: '(Calendar|TimeZone)\.current\b|\bDate\(\)|\.now\b'
+    message: "FHIRPath and the questionnaire engine read the clock their caller passes, never the device's clock, zone or calendar."
+    severity: error
+    included: ".*/Sources/(FHIRPathParser|GroveQuestionnaireFHIR)/.*\\.swift"
+    excluded_match_kinds:
+      - comment
+      - doccomment
+      - string
 
 deployment_target: # Availability checks or attributes shouldn’t be using older versions that are satisfied by the deployment target.
   iOSApplicationExtension_deployment_target: 16.0

@@ -23,7 +23,7 @@ struct FHIRConversionTests {
         for input in allR4Inputs {
             // simply test that we can import all of the sample questionnaires without failure
             // IDEA maybe also test that they are what we expect
-            _ = try GroveQuestionnaire.Questionnaire(input, evaluationInstant: questionnaireResponseTestAuthoredAt)
+            _ = try GroveQuestionnaire.Questionnaire(input, clock: questionnaireResponseTestClock)
         }
     }
 
@@ -36,7 +36,7 @@ struct FHIRConversionTests {
     func everyBundledExampleExports() throws {
         let allR4Inputs = ModelsR4.Questionnaire.exampleQuestionnaires + ModelsR4.Questionnaire.researchQuestionnaires
         for input in allR4Inputs {
-            let questionnaire = try GroveQuestionnaire.Questionnaire(input, evaluationInstant: questionnaireResponseTestAuthoredAt)
+            let questionnaire = try GroveQuestionnaire.Questionnaire(input, clock: questionnaireResponseTestClock)
             _ = try ModelsR4.QuestionnaireResponse(
                 QuestionnaireResponses(questionnaire: questionnaire),
                 authored: questionnaireResponseTestAuthoredAt,
@@ -203,7 +203,7 @@ struct FHIRConversionTests {
         }()
         
         // Convert to GroveQuestionnaire
-        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire, evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire, clock: questionnaireResponseTestClock)
         
         // Retrieve the converted tasks
         let section = try #require(questionnaire.sections.first)

@@ -59,7 +59,8 @@ struct PageProgressTests {
         )
 
     private static func responses(_ json: String) throws -> QuestionnaireResponses {
-        let questionnaire = try GroveQuestionnaire.Questionnaire(JSONDecoder().decode(ModelsR4.Questionnaire.self, from: Data(json.utf8)))
+        let resource = try JSONDecoder().decode(ModelsR4.Questionnaire.self, from: Data(json.utf8))
+        let questionnaire = try GroveQuestionnaire.Questionnaire(resource, clock: questionnaireResponseTestClock)
         return QuestionnaireResponses(questionnaire: questionnaire)
     }
 

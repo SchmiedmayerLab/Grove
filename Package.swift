@@ -351,6 +351,7 @@ var targets: [Target] = [
         name: "FHIRModelsExtensionsTests",
         dependencies: [
             .target(name: "FHIRModelsExtensions"),
+            .target(name: "FHIRPathParser"),
             .target(name: "FHIRQuestionnaires")
         ],
         swiftSettings: defaultSwiftSettings,
@@ -405,6 +406,7 @@ var targets: [Target] = [
         name: "ResearchKitOnFHIRTests",
         dependencies: [
             .target(name: "ResearchKitOnFHIR", condition: .when(traits: [researchKitTrait])),
+            .target(name: "FHIRPathParser"),
             .target(name: "FHIRQuestionnaires")
         ],
         exclude: testTargetExcludes("ResearchKitOnFHIRTests", additional: ["UITests"]),

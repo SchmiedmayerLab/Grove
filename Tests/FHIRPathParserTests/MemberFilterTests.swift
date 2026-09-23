@@ -31,7 +31,11 @@ struct MemberFilterTests {
 
     private static func context() throws -> FHIRPathEvaluationContext {
         let node = try FHIRPathNode(jsonData: Data(json.utf8))
-        return FHIRPathEvaluationContext(focus: [.object(node)], constants: ["resource": [.object(node)]])
+        return FHIRPathEvaluationContext(
+            focus: [.object(node)],
+            constants: ["resource": [.object(node)]],
+            clock: FHIRPathClock(instant: Date(timeIntervalSince1970: 0), timeZone: FHIRPathCalendar.utc)
+        )
     }
 
     /// The parsed expression has to outlive the filter's reading of it: ANTLR's tokens read their text lazily.

@@ -54,9 +54,9 @@ private final class ResponseState: Sendable {
     let revision: QuestionnaireResponses.Revision
     let node: FHIRPathNode
     let items: [String: [FHIRPathNode]]
-    /// The instant every expression of this state reads as `now()`: time moves on with the answers, so a page
-    /// asked twice about the same answers hears the same thing.
-    let created = Date()
+    /// What every expression of this state reads as `now()`: time moves on with the answers, so a page asked twice
+    /// about the same answers hears the same thing.
+    let clock: FHIRPathClock
     /// `%resource.descendants()`, walked once for this state; the questionnaire's come from the engine.
     let descendants: FHIRPathDescendantsCache
     private let results = Mutex(Results())
@@ -65,11 +65,13 @@ private final class ResponseState: Sendable {
         revision: QuestionnaireResponses.Revision,
         node: FHIRPathNode,
         items: [String: [FHIRPathNode]],
+        clock: FHIRPathClock,
         questionnaireDescendants: FHIRPathDescendantsCache
     ) {
         self.revision = revision
         self.node = node
         self.items = items
+        self.clock = clock
         self.descendants = FHIRPathDescendantsCache(constants: ["resource"], parent: questionnaireDescendants)
     }
 
@@ -145,7 +147,7 @@ private final class ResponseStates: Sendable {
 ///
 /// Created by the FHIR conversion when the source questionnaire uses expression
 /// features; the engine captures the questionnaire, its `variable` declarations,
-/// and the app-supplied `launchContext` resources.
+/// the app-supplied `launchContext` resources, and the clock its time functions read.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEngine, Sendable {
     struct Variable {
@@ -168,22 +170,46 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
     private let variables: [Variable]
     /// App-supplied launch-context resources, keyed by their declared name.
     private let launchContext: [String: FHIRPathNode]
-    private let expressions = ParsedExpressions()
+    private let clock: QuestionnaireClock
+    private let expressions: ParsedExpressions
     private let states = ResponseStates()
     /// `%questionnaire.descendants()`, walked once for the engine's lifetime: the questionnaire never changes.
-    private let questionnaireDescendants = FHIRPathDescendantsCache(constants: ["questionnaire"])
+    private let questionnaireDescendants: FHIRPathDescendantsCache
 
     /// What the engine has done so far: expressions parsed and states of the answers encoded.
     var work: (parsedExpressions: Int, encodedStates: Int) {
         (expressions.count, states.built)
     }
 
-    init(questionnaire: ModelsR4.Questionnaire, variables: [Variable], launchContext: [String: FHIRPathNode]) throws {
+    init(
+        questionnaire: ModelsR4.Questionnaire,
+        variables: [Variable],
+        launchContext: [String: FHIRPathNode],
+        clock: QuestionnaireClock
+    ) throws {
         let questionnaireNode = try FHIRPathNode.encoding(questionnaire)
         self.questionnaireNode = questionnaireNode
         self.questionnaireItems = Self.itemsByLinkId(in: questionnaireNode)
         self.variables = variables
         self.launchContext = launchContext
+        self.clock = clock
+        self.expressions = ParsedExpressions()
+        self.questionnaireDescendants = FHIRPathDescendantsCache(constants: ["questionnaire"])
+    }
+
+    private init(_ engine: FHIRQuestionnaireExpressionEngine, clock: QuestionnaireClock) {
+        self.questionnaireNode = engine.questionnaireNode
+        self.questionnaireItems = engine.questionnaireItems
+        self.variables = engine.variables
+        self.launchContext = engine.launchContext
+        self.clock = clock
+        self.expressions = engine.expressions
+        self.questionnaireDescendants = engine.questionnaireDescendants
+    }
+
+    /// The same engine reading another clock; what depends on the questionnaire alone is shared.
+    func reading(_ clock: QuestionnaireClock) -> FHIRQuestionnaireExpressionEngine {
+        FHIRQuestionnaireExpressionEngine(self, clock: clock)
     }
 
     public func evaluateBoolean(
@@ -193,7 +219,7 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
     ) throws -> GroveQuestionnaire.Questionnaire.ExpressionBoolean {
         let state = try state(for: responses)
         return try state.boolean(expression, in: scope) {
-            let context = try evaluationContext(scope: scope, state: state)
+            let context = try evaluationContext(scope: scope, state: state, clock: state.clock)
             return switch try expressions.expression(expression).evaluateBoolean(context: context) {
             case .true: .true
             case .false: .false
@@ -209,18 +235,19 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
     ) throws -> QuestionnaireResponses.Response.Value? {
         let state = try state(for: responses)
         return try state.value(expression, in: .item(task.id)) {
-            let context = try evaluationContext(scope: .item(task.id), state: state)
+            let context = try evaluationContext(scope: .item(task.id), state: state, clock: state.clock)
             let result = try expressions.expression(expression).evaluate(context: context)
             return try Self.responseValue(from: result, for: task)
         }
     }
 
-    /// Evaluates an expression with no response yet (SDC `initialExpression`).
+    /// Evaluates an expression with no response yet (SDC `initialExpression`), at the clock of the conversion.
     func evaluateInitialValue(
         _ expression: String,
-        for task: GroveQuestionnaire.Questionnaire.Task
+        for task: GroveQuestionnaire.Questionnaire.Task,
+        at clock: FHIRPathClock
     ) throws -> QuestionnaireResponses.Response.Value? {
-        let context = try evaluationContext(scope: .item(task.id), state: nil)
+        let context = try evaluationContext(scope: .item(task.id), state: nil, clock: clock)
         let result = try expressions.expression(expression).evaluate(context: context)
         return try Self.responseValue(from: result, for: task)
     }
@@ -242,6 +269,7 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
                 revision: revision,
                 node: node,
                 items: Self.itemsByLinkId(in: node),
+                clock: FHIRPathClock(instant: clock.instant(), timeZone: clock.timeZone),
                 questionnaireDescendants: questionnaireDescendants
             )
         }
@@ -252,7 +280,8 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
     /// `%qitem` is the questionnaire item they answer.
     private func evaluationContext(
         scope: GroveQuestionnaire.Questionnaire.ExpressionScope,
-        state: ResponseState?
+        state: ResponseState?,
+        clock: FHIRPathClock
     ) throws -> FHIRPathEvaluationContext {
         var constants: [String: [FHIRPathValue]] = [:]
         constants["questionnaire"] = [.object(questionnaireNode)]
@@ -267,7 +296,7 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
         var context = FHIRPathEvaluationContext(
             focus: qrNode.map { [.object($0)] } ?? [],
             constants: constants,
-            now: state?.created ?? .now
+            clock: clock
         )
         context.descendants = state?.descendants ?? questionnaireDescendants
         // `variable`s may reference earlier variables and the response. A questionnaire-level one reads the
@@ -377,119 +406,5 @@ extension FHIRQuestionnaireExpressionEngine {
         }
         visit(node)
         return found
-    }
-}
-
-
-// MARK: Result Mapping
-
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension FHIRQuestionnaireExpressionEngine {
-    /// Maps an evaluation result onto the response value shape of the task's kind.
-    private static func responseValue(
-        from result: [FHIRPathValue],
-        for task: GroveQuestionnaire.Questionnaire.Task
-    ) throws -> QuestionnaireResponses.Response.Value? {
-        guard let first = result.first else {
-            return QuestionnaireResponses.Response.Value.none
-        }
-        let value: QuestionnaireResponses.Response.Value? = switch task.kind.variant {
-        case .boolean:
-            boolValue(from: first)
-        case .numeric:
-            numberValue(from: first)
-        case .freeText:
-            stringValue(from: first)
-        case .dateTime:
-            dateValue(from: first)
-        case .choice(let config):
-            try choiceValue(from: result, options: config.options)
-        case .instructional, .fileAttachment, .custom:
-            nil
-        }
-        guard let value else {
-            throw FHIRPathEvaluationError.typeMismatch("Cannot express \(first) as a response for task '\(task.id)'")
-        }
-        return value
-    }
-
-    private static func boolValue(from value: FHIRPathValue) -> QuestionnaireResponses.Response.Value? {
-        guard case .boolean(let value) = value else {
-            return nil
-        }
-        return .bool(value)
-    }
-
-    private static func numberValue(from value: FHIRPathValue) -> QuestionnaireResponses.Response.Value? {
-        switch value {
-        case .integer(let value):
-            return .number(Double(value))
-        case .decimal(let value), .quantity(let value, _):
-            return .number(value.doubleValue)
-        default:
-            return nil
-        }
-    }
-
-    private static func stringValue(from value: FHIRPathValue) -> QuestionnaireResponses.Response.Value? {
-        switch value {
-        case .string(let value):
-            return .string(value)
-        case .integer(let value):
-            return .string(String(value))
-        case .decimal(let value):
-            return .string("\(value)")
-        default:
-            return nil
-        }
-    }
-
-    private static func dateValue(from value: FHIRPathValue) -> QuestionnaireResponses.Response.Value? {
-        switch value {
-        case .date(let components), .dateTime(let components), .time(let components):
-            return .date(components)
-        case .string(let string):
-            switch FHIRPathValue.parseTemporal(string) {
-            case .date(let components), .dateTime(let components):
-                return .date(components)
-            default:
-                return nil
-            }
-        default:
-            return nil
-        }
-    }
-
-    /// Codings (or code strings) select the options they match.
-    private static func choiceValue(
-        from result: [FHIRPathValue],
-        options: [GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option]
-    ) throws -> QuestionnaireResponses.Response.Value? {
-        var selected: Set<String> = []
-        for value in result {
-            switch value {
-            case .object(let node):
-                guard let code = node.stringMember("code") else {
-                    continue
-                }
-                let system = node.stringMember("system").flatMap(URL.init(string:))
-                if node.stringMember("system") != nil, system == nil {
-                    throw FHIRPathEvaluationError.typeMismatch("Coding.system is not an absolute URI")
-                }
-                if let match = try ChoiceOptionResolver.coding(system: system, code: code, in: options) {
-                    selected.insert(match.id)
-                }
-            case .string(let string):
-                if let match = try ChoiceOptionResolver.token(string, in: options) {
-                    selected.insert(match.id)
-                }
-            default:
-                continue
-            }
-        }
-        guard !selected.isEmpty else {
-            return nil
-        }
-        return .choice(.init(selectedOptions: selected))
     }
 }

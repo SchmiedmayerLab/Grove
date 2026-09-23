@@ -7,7 +7,8 @@
 //
 
 import FHIRPathParser
-public import Foundation
+import Foundation
+import GroveQuestionnaire
 public import ModelsR4
 
 
@@ -175,12 +176,16 @@ public struct ResourcePair {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension PairExpressionEvaluator {
     /// Creates the built-in FHIRPath evaluator bound to one exact resource pair.
+    ///
+    /// The time functions read the response's `authored`, in the offset it carries; a response without one is
+    /// refused rather than read at whatever zone the evaluating device is in.
     public static func fhirPath(
         questionnaire: ModelsR4.Questionnaire,
         response: ModelsR4.QuestionnaireResponse,
-        evaluationInstant: Date,
         launchContext: [String: ResourceProxy] = [:]
     ) throws -> Self {
+        let authored = try QuestionnaireClock.authored(response)
+        let clock = FHIRPathClock(instant: authored.instant(), timeZone: authored.timeZone)
         let questionnaireNode = try FHIRPathNode.encoding(questionnaire)
         let responseNode = try FHIRPathNode.encoding(response)
         let launchNodes = try launchContext.mapValues { try FHIRPathNode.encoding($0) }
@@ -196,7 +201,7 @@ extension PairExpressionEvaluator {
             let context = FHIRPathEvaluationContext(
                 focus: [.object(responseNode)],
                 constants: constants,
-                now: evaluationInstant
+                clock: clock
             )
             return switch try FHIRPathExpression.evaluateBoolean(
                 expression: expression,

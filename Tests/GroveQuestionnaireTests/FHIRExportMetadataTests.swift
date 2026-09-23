@@ -75,7 +75,7 @@ struct FHIRExportMetadataTests {
 
     @Test
     func draftSurvivesTheRoundTrip() throws {
-        let imported = try GroveQuestionnaire.Questionnaire(makeFHIRQuestionnaire(status: .draft), evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let imported = try GroveQuestionnaire.Questionnaire(makeFHIRQuestionnaire(status: .draft), clock: questionnaireResponseTestClock)
         #expect(imported.metadata.lifecycle == .draft)
         #expect(try ModelsR4.Questionnaire(imported).status.value == .draft)
     }
@@ -84,7 +84,7 @@ struct FHIRExportMetadataTests {
     func retiredSurvivesTheRoundTrip() throws {
         let imported = try GroveQuestionnaire.Questionnaire(
             makeFHIRQuestionnaire(status: .retired),
-            evaluationInstant: questionnaireResponseTestAuthoredAt,
+            clock: questionnaireResponseTestClock,
             using: .init(enforcesPublicationLifecycle: false)
         )
         #expect(imported.metadata.lifecycle == .retired)
@@ -92,7 +92,7 @@ struct FHIRExportMetadataTests {
     }
 
     @Test
-    func publicationWarningsUseTheExplicitEvaluationInstant() throws {
+    func publicationWarningsReadTheClock() throws {
         var source = makeFHIRQuestionnaire(status: .active)
         source.effectivePeriod = try Period(
             end: FHIRPrimitive(DateTime(date: Date(timeIntervalSince1970: 1_750_000_000))),
@@ -101,15 +101,15 @@ struct FHIRExportMetadataTests {
 
         let before = try GroveQuestionnaire.Questionnaire(
             source,
-            evaluationInstant: Date(timeIntervalSince1970: 1_650_000_000)
+            clock: .fixed(at: Date(timeIntervalSince1970: 1_650_000_000), in: questionnaireResponseTestTimeZone)
         )
         let within = try GroveQuestionnaire.Questionnaire(
             source,
-            evaluationInstant: Date(timeIntervalSince1970: 1_725_000_000)
+            clock: .fixed(at: Date(timeIntervalSince1970: 1_725_000_000), in: questionnaireResponseTestTimeZone)
         )
         let after = try GroveQuestionnaire.Questionnaire(
             source,
-            evaluationInstant: Date(timeIntervalSince1970: 1_800_000_000)
+            clock: .fixed(at: Date(timeIntervalSince1970: 1_800_000_000), in: questionnaireResponseTestTimeZone)
         )
 
         #expect(before.metadata.administrationWarnings.contains { $0.contains("not yet effective") })
@@ -129,7 +129,7 @@ struct FHIRExportMetadataTests {
 
         let exported = try ModelsR4.Questionnaire(GroveQuestionnaire.Questionnaire(
             source,
-            evaluationInstant: questionnaireResponseTestAuthoredAt
+            clock: questionnaireResponseTestClock
         ))
         guard case .code(let mode)? = exported.extensions(
             for: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-entryMode"
@@ -141,6 +141,31 @@ struct FHIRExportMetadataTests {
     }
 
     // MARK: Instrument Link
+
+    /// Reading a third-party questionnaire without a canonical is fine; claiming the Grove profile for one is not.
+    @Test
+    func aQuestionnaireWithoutItsCanonicalIsNotExported() throws {
+        let tasks: [GroveQuestionnaire.Questionnaire.Section] = [.init(id: "s1", tasks: [.init(id: "agree", title: "Agree?", kind: .boolean)])]
+        let unversioned = GroveQuestionnaire.Questionnaire(
+            metadata: .init(id: "local", url: Self.url, title: "Local", explainer: ""),
+            sections: tasks
+        )
+        let unaddressed = GroveQuestionnaire.Questionnaire(
+            metadata: .init(id: "local", url: nil, version: "1.0.0", title: "Local", explainer: ""),
+            sections: tasks
+        )
+        #expect(throws: ContractError.missingQuestionnaireVersion) {
+            try ModelsR4.Questionnaire(unversioned)
+        }
+        #expect(throws: ContractError.missingQuestionnaireURL) {
+            try ModelsR4.Questionnaire(unaddressed)
+        }
+        var imported = makeFHIRQuestionnaire(status: .active)
+        imported.version = nil
+        #expect(throws: Never.self) {
+            try GroveQuestionnaire.Questionnaire(imported, clock: questionnaireResponseTestClock)
+        }
+    }
 
     @Test
     func aResponseWithoutAnInstrumentCanonicalIsRefused() throws {
@@ -291,7 +316,7 @@ struct FHIRExportMetadataTests {
 
         let exported = try ModelsR4.Questionnaire(GroveQuestionnaire.Questionnaire(
             source,
-            evaluationInstant: questionnaireResponseTestAuthoredAt
+            clock: questionnaireResponseTestClock
         ))
         let score = try #require(item("score", in: exported))
         guard case .integer(let places)? = score.extensions(

@@ -109,7 +109,7 @@ struct ScoreExpressionTests {
     @Test
     func scoresEvaluateAgainstRealResponses() throws {
         let fhir = try ModelsR4.Questionnaire(Burdens.questionnaire)
-        let reimported = try GroveQuestionnaire.Questionnaire(fhir, evaluationInstant: questionnaireResponseTestAuthoredAt)
+        let reimported = try GroveQuestionnaire.Questionnaire(fhir, clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: reimported)
         let system = try #require(Burden.system?.absoluteString)
 

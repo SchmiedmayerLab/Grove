@@ -9,6 +9,7 @@
 #if ResearchKit
 
 import FHIRModelsExtensions
+import FHIRPathParser
 import ModelsR4
 import ResearchKit
 
@@ -195,23 +196,9 @@ extension QuestionnaireItem {
             }
             return ORKTextChoiceAnswerFormat(style: choiceAnswerStyle, textChoices: answerOptions)
         case .date:
-            let evaluationInstant = Date()
-            return ORKDateAnswerFormat(
-                style: .date,
-                defaultDate: nil,
-                minimumDate: try minDateValue(evaluationInstant: evaluationInstant).flatMap { Calendar.current.date(from: $0) },
-                maximumDate: try maxDateValue(evaluationInstant: evaluationInstant).flatMap { Calendar.current.date(from: $0) },
-                calendar: nil
-            )
+            return try dateAnswerFormat(style: .date)
         case .dateTime:
-            let evaluationInstant = Date()
-            return ORKDateAnswerFormat(
-                style: .dateAndTime,
-                defaultDate: nil,
-                minimumDate: try minDateValue(evaluationInstant: evaluationInstant).flatMap { Calendar.current.date(from: $0) },
-                maximumDate: try maxDateValue(evaluationInstant: evaluationInstant).flatMap { Calendar.current.date(from: $0) },
-                calendar: nil
-            )
+            return try dateAnswerFormat(style: .dateAndTime)
         case .time:
             return ORKTimeOfDayAnswerFormat()
         case .decimal, .quantity:
@@ -336,4 +323,23 @@ extension QuestionnaireItem {
         return choices
     }
 }
+
+
+extension QuestionnaireItem {
+    /// The participant answers now, on this device, so its clock and zone resolve the relative bounds; FHIR
+    /// dates are Gregorian whatever calendar the device shows.
+    fileprivate func dateAnswerFormat(style: ORKDateAnswerStyle) throws -> ORKDateAnswerFormat {
+        let clock = FHIRPathClock(instant: Date(), timeZone: .current)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = clock.timeZone
+        return ORKDateAnswerFormat(
+            style: style,
+            defaultDate: nil,
+            minimumDate: try minDateValue(at: clock).flatMap { calendar.date(from: $0) },
+            maximumDate: try maxDateValue(at: clock).flatMap { calendar.date(from: $0) },
+            calendar: nil
+        )
+    }
+}
+
 #endif

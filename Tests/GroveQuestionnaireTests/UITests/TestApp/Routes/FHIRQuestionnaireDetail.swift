@@ -55,7 +55,7 @@ struct FHIRQuestionnaireDetail: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             converted = Result {
-                try GroveQuestionnaire.Questionnaire(example.fhir, evaluationInstant: .now)
+                try GroveQuestionnaire.Questionnaire(example.fhir, clock: .live(in: .current))
             }
         }
         .runsQuestionnaires($running)
