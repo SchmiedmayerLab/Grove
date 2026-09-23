@@ -730,8 +730,12 @@ struct ExchangeGraphCorpusTests {
         #expect(ExchangeGraph.rule(for: .missingResource) == .mobileExchangeUnclassified)
     }
 
-    @Test("The retraction builder carries its source-record entity")
-    func retractionBuilderCarriesSourceEntity() throws {
+    @Test("The retraction builder carries its source-record entity and known time bounds", arguments: [
+        RetractionOccurrence.instant(Date(timeIntervalSince1970: 1_787_299_200)),
+        .period(start: nil, end: Date(timeIntervalSince1970: 1_787_299_200)),
+        .period(start: Date(timeIntervalSince1970: 1_787_295_600), end: Date(timeIntervalSince1970: 1_787_299_200))
+    ])
+    func retractionBuilderCarriesSourceEntity(occurred: RetractionOccurrence) throws {
         let fixture = try bundle(named: "retraction-bundle.json")
         guard case .provenance(let fixtureProvenance)? = fixture.entry?.first?.resource else {
             Issue.record("Fixture lifecycle resource is not Provenance")
@@ -753,7 +757,7 @@ struct ExchangeGraphCorpusTests {
             targets: [target],
             context: retractionContext(event: event),
             sourceRecord: sourceRecord,
-            retractedAt: Date(timeIntervalSince1970: 1_787_299_200)
+            occurred: occurred
         ).graph
         guard case .provenance(let provenance)? = graph.bundle.entry?.first?.resource else {
             Issue.record("Builder did not emit Provenance")
@@ -762,6 +766,41 @@ struct ExchangeGraphCorpusTests {
         #expect(try RoledIdentifier(#require(provenance.entity?.first?.what.identifier)) == sourceRecord)
         #expect(provenance.agent.first?.who.identifier != nil)
         #expect(provenance.agent.first?.who.type?.value?.url.absoluteString == "Device")
+        let end = FHIRPrimitive(try DateTime("2026-08-21T08:00:00Z"))
+        switch occurred {
+        case .instant:
+            #expect(provenance.occurred == .dateTime(end))
+        case .period(nil, _):
+            #expect(provenance.occurred == .period(Period(end: end)))
+        case .period:
+            #expect(provenance.occurred == .period(Period(end: end, start: FHIRPrimitive(try DateTime("2026-08-21T07:00:00Z")))))
+        }
+        _ = try ExchangeGraph(kind: .retraction, jsonData: JSONEncoder().encode(graph.bundle))
+    }
+
+    @Test("A retraction period cannot start after it ends")
+    func retractionPeriodIsOrdered() throws {
+        let fixture = try bundle(named: "retraction-bundle.json")
+        guard case .provenance(let fixtureProvenance)? = fixture.entry?.first?.resource else {
+            Issue.record("Fixture lifecycle resource is not Provenance")
+            return
+        }
+        let target = try RetractionTarget(
+            identifier: RoledIdentifier(#require(fixtureProvenance.target.first?.identifier)),
+            resourceType: .observation,
+            role: .primaryOutput
+        )
+        let context = try retractionContext(event: ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier))))
+        let sourceRecord = try RoledIdentifier(#require(fixtureProvenance.entity?.first?.what.identifier))
+        let end = Date(timeIntervalSince1970: 1_787_299_200)
+        #expect(throws: RetractionEventError.invalidOccurrencePeriod) {
+            try RetractionEvent(
+                targets: [target],
+                context: context,
+                sourceRecord: sourceRecord,
+                occurred: .period(start: end.addingTimeInterval(1), end: end)
+            )
+        }
     }
 
     @Test("An authorized native record identifier rides beside the opaque retraction target")
@@ -790,7 +829,7 @@ struct ExchangeGraphCorpusTests {
                 targets: [target],
                 context: context,
                 sourceRecord: sourceRecord,
-                retractedAt: Date(timeIntervalSince1970: 1_787_299_200)
+                occurred: .instant(Date(timeIntervalSince1970: 1_787_299_200))
             ).graph
         }
 
