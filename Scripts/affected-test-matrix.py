@@ -40,7 +40,8 @@
 # exercises every job variant without repeating it for every package. An unknown script under
 # Scripts/ is an error until it is classified below, as a new target must be assigned to a package.
 # The workflow temporarily passes --ignore-manifest-and-ci-changes to suspend selection from manifest
-# and shared CI edits. Source/test dependency selection and explicit __ALL__ runs remain enabled.
+# and shared CI edits. Source/test dependency selection, explicit __ALL__ runs and the conformance job
+# an edit to the test workflow reaches remain enabled.
 #
 # Emits (to stdout, GITHUB_OUTPUT format):
 #   matrix={"include":[{"package":"GroveAccount","platform":"macOS","selfHosted":false,"selfHostedLabels":"[...]"}, ...]}  # unit
@@ -464,6 +465,9 @@ def main():
         is_manifest = path == "Package.swift" or path.startswith("Package@")
         is_infrastructure = path in INFRASTRUCTURE_PATHS or path.startswith(INFRASTRUCTURE_PREFIXES)
         if args.ignore_manifest_and_ci_changes and (is_manifest or is_infrastructure):
+            # The package matrix stays suspended, but the conformance job is defined in the workflow itself,
+            # so an edit there still validates.
+            run_fhir_conformance |= INFRASTRUCTURE_PATHS.get(path, False)
             continue
         if path in FHIR_VALIDATION_PATHS:
             affected.update(FHIR_PACKAGES & set(PKGS))

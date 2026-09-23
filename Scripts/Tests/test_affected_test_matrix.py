@@ -205,6 +205,25 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
         self.assertEqual(result["fhir_components"], "healthkit,questionnaire,sensor")
         self.assertEqual(result["affected"], "(none)")
 
+    def test_fhir_workflow_builds_each_selected_guide_set_once(self):
+        workflow = (SCRIPT.parents[1] / ".github/workflows/tests.yml").read_text()
+        build_step = workflow.split("- name: Build active implementation guides", 1)[1].split(
+            "- name: Validate resources emitted by Grove",
+            1,
+        )[0]
+
+        self.assertIn("add_guide()", build_step)
+        self.assertEqual(build_step.count("./Scripts/build-guides.sh"), 1)
+
+    def test_guide_cache_key_includes_the_resolved_contract_revision(self):
+        workflow = (SCRIPT.parents[1] / ".github/workflows/tests.yml").read_text()
+        cache_key_step = workflow.split("- name: Pin the implementation-guide cache key", 1)[1].split(
+            "- name: Restore built implementation guides",
+            1,
+        )[0]
+
+        self.assertIn("RESOLVED_GROVE_FHIR_SHA", cache_key_step)
+
     def test_runner_script_runs_the_smoke_set_without_conformance(self):
         result = run_selector("Scripts/run-package-tests.sh")
 
@@ -345,6 +364,24 @@ class SourceChangeSelectionTests(unittest.TestCase):
 
         self.assertEqual(set(result["affected"].split(",")), {"GroveFoundation", "GroveChat"})
 
+    def test_shared_target_schedules_its_consumers_and_no_more(self):
+        """A target every package does not consume must not schedule every package."""
+        dump = {
+            "targets": [
+                {"name": "Vault", "dependencies": []},
+                {"name": "GroveViews", "dependencies": [{"target": ["Vault"]}]},
+                {"name": "GroveChat", "dependencies": [{"target": ["GroveViews"]}]},
+                {"name": "GroveBluetooth", "dependencies": []},
+            ]
+        }
+        packages = MODULE.packages_consuming("Vault", dump)
+        self.assertIn("GroveViews", packages)
+        self.assertIn("GroveChat", packages)
+        self.assertNotIn("GroveBluetooth", packages)
+
+    def test_target_absent_from_the_graph_refuses_to_answer(self):
+        self.assertIsNone(MODULE.packages_consuming("NotInGraph", {"targets": []}))
+
     def test_without_the_head_graph_only_the_owner_is_scheduled(self):
         result = run_selector("Sources/GroveChat/ChatView.swift")
 
@@ -358,7 +395,6 @@ class IgnoredSharedChangeTests(unittest.TestCase):
         paths = (
             "Package.swift",
             "Package@swift-6.1.swift",
-            ".github/workflows/tests.yml",
             ".github/actions/setup/action.yml",
             ".swiftpm/xcode/xcshareddata/xcschemes/Grove.xcscheme",
             "Scripts/run-package-tests.sh",
@@ -372,6 +408,14 @@ class IgnoredSharedChangeTests(unittest.TestCase):
                 self.assertEqual(json.loads(result["ui_matrix"])["include"], [])
                 self.assertEqual(result["has_fhir_conformance"], "false")
                 self.assertEqual(result["fhir_components"], "(none)")
+
+    def test_a_workflow_edit_still_runs_conformance_when_shared_changes_are_ignored(self):
+        result = run_selector(".github/workflows/tests.yml", extra_arguments=self.ARGUMENTS)
+
+        self.assertEqual(result["affected"], "(none)")
+        self.assertEqual(json.loads(result["matrix"])["include"], [])
+        self.assertEqual(result["has_fhir_conformance"], "true")
+        self.assertEqual(set(result["fhir_components"].split(",")), MODULE.ALL_FHIR_COMPONENTS)
 
     def test_source_and_test_changes_keep_their_consumers_when_shared_changes_are_ignored(self):
         head = package_dump([
