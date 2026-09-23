@@ -28,6 +28,7 @@ struct TaskView: View {
     @Environment(\.scrollToNextTask) private var scrollToNextTask
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.questionnaireHints) private var hints
+    @Environment(\.questionnaireLanguage) private var language
 
     /// The room the message takes, and the room it took: the card unfolds from the one to the other.
     @State private var messageHeight: CGFloat = 0
@@ -61,7 +62,7 @@ struct TaskView: View {
     /// container, working; the rules below restore the appearance a list is expected to have.
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if !displayTitle.isEmpty || !task.subtitle.isEmpty {
+            if !displayTitle.isEmpty || !subtitle.isEmpty {
                 heading
                     .padding(.top, 6)
                     .padding(.bottom, 11)
@@ -89,11 +90,11 @@ struct TaskView: View {
     /// A section label is an instructional task with no text, which otherwise came out as a card
     /// holding a heading and a rule with nothing beneath it.
     private var hasContentBelowTitle: Bool {
-        if task.media != nil || !task.footer.isEmpty {
+        if task.media != nil || !footer.isEmpty {
             return true
         }
         if case .instructional(let text) = task.kind.variant {
-            return !text.isEmpty
+            return !text.base.isEmpty
         }
         return true
     }
@@ -113,8 +114,8 @@ struct TaskView: View {
                 Text(markdown: displayTitle)
                     .font(.headline)
             }
-            if !task.subtitle.isEmpty {
-                Text(markdown: task.subtitle)
+            if !subtitle.isEmpty {
+                Text(markdown: subtitle)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -137,8 +138,8 @@ struct TaskView: View {
     }
 
     @ViewBuilder private var supplementaryText: some View {
-        if !task.footer.isEmpty {
-            Text(markdown: task.footer)
+        if !footer.isEmpty {
+            Text(markdown: footer)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .padding(.vertical, 8)
@@ -188,7 +189,7 @@ struct TaskView: View {
         if let message {
             return message
         }
-        if case .invalid(let verdict) = allResponses.validateResponse(for: task) {
+        if case .invalid(let verdict) = allResponses.validateResponse(for: task, in: language) {
             return Text(verdict)
         }
         return nil
@@ -197,12 +198,22 @@ struct TaskView: View {
     /// The rendered title: question numbering (`item.prefix`) joined with the title, preferring
     /// the SDC `shortText` on watchOS and standing in with it where no title was authored.
     private var displayTitle: String {
+        let title = task.title.resolved(in: language)
+        let shortTitle = task.shortTitle?.resolved(in: language)
         #if os(watchOS)
-        let base = task.shortTitle ?? task.title
+        let base = shortTitle ?? title
         #else
-        let base = task.title.isEmpty ? (task.shortTitle ?? "") : task.title
+        let base = title.isEmpty ? (shortTitle ?? "") : title
         #endif
-        return task.prefix.map { "\($0) \(base)" } ?? base
+        return task.prefix.map { "\($0.resolved(in: language)) \(base)" } ?? base
+    }
+
+    private var subtitle: String {
+        task.subtitle.resolved(in: language)
+    }
+
+    private var footer: String {
+        task.footer.resolved(in: language)
     }
 
     /// The task's SDC `itemMedia` image, when one is declared.
@@ -214,7 +225,7 @@ struct TaskView: View {
                     .resizable()
                     .scaledToFit()
                     .padding(.vertical, 8)
-                    .accessibilityLabel(media.altText ?? "")
+                    .accessibilityLabel(media.altText?.resolved(in: language) ?? "")
             }
             #elseif canImport(AppKit)
             if let image = NSImage(data: media.data) {
@@ -222,7 +233,7 @@ struct TaskView: View {
                     .resizable()
                     .scaledToFit()
                     .padding(.vertical, 8)
-                    .accessibilityLabel(media.altText ?? "")
+                    .accessibilityLabel(media.altText?.resolved(in: language) ?? "")
             }
             #endif
         }
@@ -231,15 +242,15 @@ struct TaskView: View {
     @ViewBuilder private var mainContent: some View {
         switch task.kind.variant {
         case .instructional(let text):
-            Instructions(text: text)
+            Instructions(text: text.resolved(in: language))
         case .choice(let config):
             ChoiceAnswering(task: task, config: config, response: $response)
         case .freeText(let config):
-            FreeTextEntry(label: task.title, config: config, response: $response.value.stringValue.withDefault(""))
+            FreeTextEntry(label: task.title.resolved(in: language), config: config, response: $response.value.stringValue.withDefault(""))
         case .dateTime(let config):
-            DatePickerRow(label: task.title, config: config, response: $response.value.dateValue)
+            DatePickerRow(label: task.title.resolved(in: language), config: config, response: $response.value.dateValue)
         case .numeric(let config):
-            NumericInputRow(label: task.title, config: config, value: $response.value)
+            NumericInputRow(label: task.title.resolved(in: language), config: config, value: $response.value)
         case .boolean:
             yesNoRows
         case .fileAttachment(let config):

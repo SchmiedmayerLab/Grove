@@ -25,7 +25,7 @@ public struct Instruction: QuestionnaireComponent {
     }
 
     public func _makeTasks() -> [Questionnaire.Task] { // swiftlint:disable:this identifier_name
-        var task = Questionnaire.Task(id: id, title: "", kind: .instructional(text))
+        var task = Questionnaire.Task(id: id, title: "", kind: .instructional(.init(text)))
         _core.apply(to: &task)
         return [task]
     }

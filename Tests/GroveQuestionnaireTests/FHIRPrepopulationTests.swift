@@ -19,6 +19,7 @@ import Testing
 struct FHIRPrepopulationTests {
     private func makeQuestionnaire(items: [ModelsR4.QuestionnaireItem]) -> ModelsR4.Questionnaire {
         var questionnaire = ModelsR4.Questionnaire(status: FHIRPrimitive(PublicationStatus.active))
+        questionnaire.language = "en-US"
         questionnaire.url = "https://example.org/fhir/Questionnaire/prepopulation".asFHIRURIPrimitive()
         questionnaire.version = "1.0.0".asFHIRStringPrimitive()
         questionnaire.item = items
@@ -43,6 +44,7 @@ struct FHIRPrepopulationTests {
         // Seeded values flow into the generated response.
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -177,7 +179,7 @@ struct FHIRPrepopulationTests {
     // MARK: Localization
 
     @Test
-    func translationExtensionSelectsLocalizedText() throws {
+    func importKeepsEveryTranslation() throws {
         var text: FHIRPrimitive<ModelsR4.FHIRString> = "How are you today?"
         var translation = Extension(url: "http://hl7.org/fhir/StructureDefinition/translation")
         translation.extension = [
@@ -187,19 +189,15 @@ struct FHIRPrepopulationTests {
         text.extension = [translation]
         var item = ModelsR4.QuestionnaireItem(linkId: "mood".asFHIRStringPrimitive(), type: .init(.boolean))
         item.text = text
+        var fhirQuestionnaire = makeQuestionnaire(items: [item])
+        fhirQuestionnaire.language = "en"
 
-        let german = try GroveQuestionnaire.Questionnaire(
-            makeQuestionnaire(items: [item]),
-            clock: questionnaireResponseTestClock,
-            using: .init(locale: Locale(identifier: "de_DE"))
-        )
-        #expect(german.sections.flatMap(\.tasks).first?.title == "Wie geht es Ihnen heute?")
-        let english = try GroveQuestionnaire.Questionnaire(
-            makeQuestionnaire(items: [item]),
-            clock: questionnaireResponseTestClock,
-            using: .init(locale: Locale(identifier: "en_US"))
-        )
-        #expect(english.sections.flatMap(\.tasks).first?.title == "How are you today?")
+        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire, clock: questionnaireResponseTestClock)
+        let title = try #require(questionnaire.sections.flatMap(\.tasks).first?.title)
+        #expect(title == .init("How are you today?", translations: ["de": "Wie geht es Ihnen heute?"]))
+        #expect(questionnaire.languages == ["en", "de"])
+        #expect(title.resolved(in: questionnaire.renderingLanguage(for: Locale(identifier: "de_DE"))) == "Wie geht es Ihnen heute?")
+        #expect(title.resolved(in: questionnaire.renderingLanguage(for: Locale(identifier: "en_US"))) == "How are you today?")
     }
 
     // MARK: Response attribution
@@ -215,6 +213,7 @@ struct FHIRPrepopulationTests {
             responses,
             subject: Reference(reference: "Patient/participant-1".asFHIRStringPrimitive()),
             author: Reference(reference: "Device/app-instance".asFHIRStringPrimitive()),
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )

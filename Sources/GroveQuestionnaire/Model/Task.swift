@@ -22,14 +22,19 @@ extension Questionnaire {
             /// The group's identifier (FHIR `linkId`).
             public var id: String
             /// The group's user-displayed title (FHIR `item.text`).
-            public var title: String
+            public var title: Questionnaire.LocalizedText
             /// An abbreviated title for constrained displays (SDC `shortText`).
-            public var shortTitle: String?
+            public var shortTitle: Questionnaire.LocalizedText?
             /// Controls when the group, and with it every task inside it, is enabled.
             public var condition: Condition
 
             /// Creates a group.
-            public init(id: String, title: String = "", shortTitle: String? = nil, condition: Condition = .none) {
+            public init(
+                id: String,
+                title: Questionnaire.LocalizedText = "",
+                shortTitle: Questionnaire.LocalizedText? = nil,
+                condition: Condition = .none
+            ) {
                 self.id = id
                 self.title = title
                 self.shortTitle = shortTitle
@@ -57,9 +62,9 @@ extension Questionnaire {
             /// The media's MIME content type.
             public let contentType: String
             /// The accessibility description (from the attachment's `title`).
-            public let altText: String?
+            public let altText: Questionnaire.LocalizedText?
 
-            public init(data: Data, contentType: String, altText: String? = nil) {
+            public init(data: Data, contentType: String, altText: Questionnaire.LocalizedText? = nil) {
                 self.data = data
                 self.contentType = contentType
                 self.altText = altText
@@ -71,17 +76,17 @@ extension Questionnaire {
         /// - Important: Task identifiers must be unique across all tasks in all sections of the questionnaire.
         public var id: String
         /// The task's user-displayed title.
-        public var title: String
+        public var title: Questionnaire.LocalizedText
         /// A short display prefix such as question numbering (FHIR `item.prefix`, e.g. "1a.").
-        public var prefix: String?
+        public var prefix: Questionnaire.LocalizedText?
         /// An abbreviated title for constrained displays (SDC `shortText`).
-        public var shortTitle: String?
+        public var shortTitle: Questionnaire.LocalizedText?
         /// The task's user-displayed subtitle.
         ///
         /// Set this property to an empty string in order to omit the subtitle.
-        public var subtitle: String
+        public var subtitle: Questionnaire.LocalizedText
         /// A footer text displayed below the task.
-        public var footer: String
+        public var footer: Questionnaire.LocalizedText
         /// An image rendered alongside the task (SDC `itemMedia`).
         public var media: Media?
         /// The task's kind
@@ -141,11 +146,11 @@ extension Questionnaire {
         /// Creates a new task.
         public init(
             id: String,
-            title: String,
-            prefix: String? = nil,
-            shortTitle: String? = nil,
-            subtitle: String = "",
-            footer: String = "",
+            title: Questionnaire.LocalizedText,
+            prefix: Questionnaire.LocalizedText? = nil,
+            shortTitle: Questionnaire.LocalizedText? = nil,
+            subtitle: Questionnaire.LocalizedText = "",
+            footer: Questionnaire.LocalizedText = "",
             media: Media? = nil,
             kind: Kind,
             isOptional: Bool = false,

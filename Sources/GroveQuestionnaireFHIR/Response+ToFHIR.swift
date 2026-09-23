@@ -15,6 +15,9 @@ import ModelsR4
 extension QuestionnaireResponses.Response {
     struct FHIRConversionContext { // maybe also use this for the CustomResponseValue conversion?
         let task: GroveQuestionnaire.Questionnaire.Task
+        /// Whether the response is rendered in the questionnaire's base language, the only one in which items carry
+        /// their question text and codings their display.
+        let inBaseLanguage: Bool
     }
 
     func toFHIR( // swiftlint:disable:this function_body_length cyclomatic_complexity
@@ -29,10 +32,10 @@ extension QuestionnaireResponses.Response {
         var responseItem = QuestionnaireResponseItem(
             linkId: context.task.id.asFHIRStringPrimitive()
         )
-        if !task.title.isEmpty {
-            // Carry the question text so consumers can review answers without
-            // resolving the questionnaire.
-            responseItem.text = task.title.asFHIRStringPrimitive()
+        if context.inBaseLanguage && !task.title.base.isEmpty {
+            // Carry the question text so consumers can review answers without resolving the questionnaire.
+            // It must equal the base text, so a response rendered in a translation leaves it out.
+            responseItem.text = task.title.base.asFHIRStringPrimitive()
         }
         switch task.kind.variant {
         case let .custom(questionKind, config: _):
@@ -86,7 +89,7 @@ extension QuestionnaireResponses.Response {
                 value = .quantity(Quantity(
                     code: config.unitCode?.asFHIRStringPrimitive(),
                     system: config.unitSystem?.asFHIRURIPrimitive(),
-                    unit: (config.unit.isEmpty ? config.unitCode : config.unit)?.asFHIRStringPrimitive(),
+                    unit: (config.unit.base.isEmpty ? config.unitCode : config.unit.base)?.asFHIRStringPrimitive(),
                     value: response.asFHIRDecimalPrimitive()
                 ))
             case .decimal:
@@ -103,7 +106,7 @@ extension QuestionnaireResponses.Response {
                 .init(value: .quantity(Quantity(
                 code: unitCode.asFHIRStringPrimitive(),
                 system: (unitOption?.system ?? config.unitSystem)?.asFHIRURIPrimitive(),
-                unit: (unitOption?.display ?? (config.unit.isEmpty ? unitCode : config.unit)).asFHIRStringPrimitive(),
+                unit: (unitOption?.display.base ?? (config.unit.base.isEmpty ? unitCode : config.unit.base)).asFHIRStringPrimitive(),
                 value: response.asFHIRDecimalPrimitive()
             )))
             ]
@@ -115,7 +118,7 @@ extension QuestionnaireResponses.Response {
                 guard let option = try ChoiceOptionResolver.token(optionId, in: config.options) else {
                     throw FHIRResponseConversionError("Unable to find option for '\(optionId)'")
                 }
-                return QuestionnaireResponseItemAnswer(value: try option.toFHIRAnswerValue())
+                return QuestionnaireResponseItemAnswer(value: try option.toFHIRAnswerValue(displayed: context.inBaseLanguage))
             }
             if let otherText = response.freeTextOtherResponse {
                 answers.append(.init(value: .string(otherText.asFHIRStringPrimitive())))
@@ -155,11 +158,14 @@ extension QuestionnaireResponses.Response {
                     guard self.value.choiceValue.selectedOptions.contains(option.id) else {
                         throw FHIRResponseConversionError("Found a nested answer for a choice option that isn't selected ('\(option.id)')")
                     }
+                    let coding = option.toFHIRCoding(displayed: context.inBaseLanguage)
                     guard var answers = responseItem.answer,
-                          let answerIdx = answers.firstIndex(where: { $0.value == .coding(option.toFHIRCoding()) }) else {
+                          let answerIdx = answers.firstIndex(where: { $0.value == .coding(coding) }) else {
                         throw FHIRResponseConversionError("Unable to find answer for choice option")
                     }
-                    answers[answerIdx].item = try responses.toFHIR(using: .init(allTasks: task.kind.followUpTasks))
+                    answers[answerIdx].item = try responses.toFHIR(
+                        using: .init(allTasks: task.kind.followUpTasks, inBaseLanguage: context.inBaseLanguage)
+                    )
                     responseItem.answer = answers
                 }
             }

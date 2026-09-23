@@ -37,6 +37,7 @@ struct QuestionnaireSectionView<Header: View>: View {
     @Environment(ManagedNavigationStack.Path.self) private var navigationPath
     @Environment(QuestionnaireResponses.self) private var responses
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.questionnaireLanguage) var language
 
     private let header: Header
     let context: Context
@@ -206,7 +207,7 @@ struct QuestionnaireSectionView<Header: View>: View {
     private func caption(for run: TaskRun, in runs: [TaskRun]) -> TaskRun.Caption {
         TaskRun.Caption(
             intro: run.id == runs.first?.id ? introText : nil,
-            groups: run.groupHeadings(otherThan: pageTitle)
+            groups: run.groupHeadings(otherThan: pageTitle, in: language)
         )
     }
 
@@ -271,7 +272,7 @@ struct QuestionnaireSectionView<Header: View>: View {
         if responses.isMissingResponse(for: task) {
             return Text("Answer this question to continue", bundle: .module)
         }
-        if case .incomplete(let message) = responses.validateResponse(for: task) {
+        if case .incomplete(let message) = responses.validateResponse(for: task, in: language) {
             return Text(message)
         }
         return nil
@@ -332,10 +333,11 @@ extension QuestionnaireSectionView {
     /// section's own short name is then not in the bar either, and without this the name the
     /// author wrote would appear nowhere.
     private var introText: String? {
-        guard section.title.isEmpty else {
-            return section.title
+        let title = section.title.resolved(in: language)
+        guard title.isEmpty else {
+            return title
         }
-        guard let shortTitle = section.shortTitle, !shortTitle.isEmpty, shortTitle != pageTitle else {
+        guard let shortTitle = section.shortTitle?.resolved(in: language), !shortTitle.isEmpty, shortTitle != pageTitle else {
             return nil
         }
         return shortTitle

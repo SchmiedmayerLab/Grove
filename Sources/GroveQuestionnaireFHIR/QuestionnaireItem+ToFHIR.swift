@@ -19,7 +19,7 @@ extension ModelsR4.QuestionnaireItem {
         using context: FHIRExportContext
     ) throws {
         self.init(linkId: group.id.asFHIRStringPrimitive(), type: FHIRPrimitive(QuestionnaireItemType.group))
-        if !group.title.isEmpty {
+        if !group.title.base.isEmpty {
             self.text = group.title.asFHIRStringPrimitive()
         }
         var extensions: [Extension] = []
@@ -46,7 +46,7 @@ extension ModelsR4.QuestionnaireItem {
         extensions += Self.expressionExtensions(of: task)
         extensions += Self.constraintExtensions(of: task)
         // The footer authored via .help() exports as a nested help display item.
-        if !task.footer.isEmpty && !isDisplay {
+        if !task.footer.base.isEmpty && !isDisplay {
             self.item = [Self.helpItem(for: task)]
         }
 
@@ -371,7 +371,7 @@ extension ModelsR4.QuestionnaireItem {
         case .instructional(let text):
             self.text = text.asFHIRStringPrimitive()
         default:
-            if !task.title.isEmpty {
+            if !task.title.base.isEmpty {
                 self.text = task.title.asFHIRStringPrimitive()
             }
         }

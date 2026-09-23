@@ -86,6 +86,7 @@ private enum ActivityLog {
     static let questionnaire = GroveQuestionnaire.Questionnaire(
         url: URL(string: "https://example.org/fhir/Questionnaire/activity-log")!,
         version: "1.0.0",
+        language: "en-US",
         title: "Activity Log"
     ) {
         Section("log", title: "Your Week") {
@@ -120,6 +121,7 @@ private enum CheckIn {
     static let questionnaire = GroveQuestionnaire.Questionnaire(
         url: URL(string: "https://example.org/fhir/Questionnaire/check-in")!,
         version: "2.1.0",
+        language: "en-US",
         title: "Daily Check-In",
         explainer: "Two questions about the last two weeks."
     ) {
@@ -180,6 +182,7 @@ struct QuestionnaireDSLTests {
         responses[CheckIn.mood] = .nearlyEveryDay
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -230,6 +233,7 @@ struct QuestionnaireDSLTests {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: try #require(URL(string: "https://example.org/fhir/Questionnaire/dynamic")),
             version: "1.0.0",
+            language: "en-US",
             title: "Dynamic"
         ) {
             Section("s1") { colour }
@@ -248,6 +252,7 @@ struct QuestionnaireDSLTests {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: try #require(URL(string: "https://example.org/fhir/Questionnaire/boolean")),
             version: "1.0.0",
+            language: "en-US",
             title: "Boolean"
         ) {
             Section("s1") {
@@ -288,6 +293,7 @@ struct QuestionnaireDSLTests {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: URL(string: "https://example.org/fhir/Questionnaire/preselect")!,
             version: "1.0.0",
+            language: "en-US",
             title: "Preselect"
         ) {
             Section("s1") { mood }
@@ -377,6 +383,7 @@ struct QuestionnaireDSLTests {
         // And the collected answers export as a QuestionnaireResponse with the score.
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -391,6 +398,7 @@ struct QuestionnaireDSLTests {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: URL(string: "https://example.org/fhir/Questionnaire/builder-forms")!,
             version: "1.0.0",
+            language: "en-US",
             title: "Builder Forms"
         ) {
             Section("always", title: "Always") {
@@ -413,6 +421,7 @@ struct QuestionnaireDSLTests {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: try #require(URL(string: "https://example.org/fhir/Questionnaire/groups")),
             version: "1.0.0",
+            language: "en-US",
             title: "Groups"
         ) {
             Section("s1", title: "Screening") {
@@ -449,6 +458,7 @@ struct QuestionnaireDSLTests {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: try #require(URL(string: "https://example.org/fhir/Questionnaire/nested")),
             version: "1.0.0",
+            language: "en-US",
             title: "Nested"
         ) {
             Section("s1") {
@@ -499,7 +509,7 @@ struct QuestionnaireDSLTests {
         let activitySystem = try #require(Activity.system)
         let cadenceSystem = try #require(Cadence.system)
         func option(_ system: URL, _ code: String, _ title: String) -> GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
-            .init(id: "\(system.absoluteString)|\(code)", title: title, fhirCoding: .init(system: system, code: code))
+            .init(id: "\(system.absoluteString)|\(code)", title: .init(title), fhirCoding: .init(system: system, code: code))
         }
         let handWritten = GroveQuestionnaire.Questionnaire.Task(
             id: "activities",
@@ -546,6 +556,7 @@ struct QuestionnaireDSLTests {
         ]
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -573,6 +584,7 @@ struct QuestionnaireDSLTests {
         let withoutFollowUps = GroveQuestionnaire.Questionnaire(
             url: try #require(URL(string: "https://example.org/fhir/Questionnaire/activity-log")),
             version: "1.0.0",
+            language: "en-US",
             title: "Activity Log"
         ) {
             Section("log", title: "Your Week") {

@@ -22,6 +22,7 @@ struct GroveQuestionnaireFHIRContractTests {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: Self.canonical,
             version: "2.1.0",
+            language: "en-US",
             title: "Daily Check-In"
         ) {
             Section("daily") {
@@ -37,6 +38,7 @@ struct GroveQuestionnaireFHIRContractTests {
     func builderProducesTheExactVersionedPair() throws {
         let pair = try ResourceBuilder().pair(
             from: responses(),
+            renderedIn: questionnaireResponseTestLocale,
             authored: Date(timeIntervalSince1970: 1_700_000_000),
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -64,6 +66,7 @@ struct GroveQuestionnaireFHIRContractTests {
             from: responses(),
             questionnaireRepositoryID: questionnaireID,
             responseRepositoryID: responseID,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -76,6 +79,7 @@ struct GroveQuestionnaireFHIRContractTests {
     func pairValidationRejectsCanonicalDrift() throws {
         let valid = try ResourceBuilder().pair(
             from: responses(),
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -101,6 +105,7 @@ struct GroveQuestionnaireFHIRContractTests {
     func pairValidationRejectsWrongAnswerTypesAndUnknownItems() throws {
         let valid = try ResourceBuilder().pair(
             from: responses(),
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -124,6 +129,7 @@ struct GroveQuestionnaireFHIRContractTests {
     func pairValidationChecksPrimitiveInlineOptionsByValue() throws {
         let valid = try ResourceBuilder().pair(
             from: responses(),
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -162,6 +168,7 @@ struct GroveQuestionnaireFHIRContractTests {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: Self.canonical,
             version: version,
+            language: "en-US",
             title: "Invalid"
         ) {
             Section("daily") {
@@ -177,6 +184,7 @@ struct GroveQuestionnaireFHIRContractTests {
     func exportSurfaceDoesNotExtractObservations() throws {
         let pair = try ResourceBuilder().pair(
             from: responses(),
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )

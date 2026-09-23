@@ -112,7 +112,7 @@ extension QuestionnaireResponses {
         guard case .instructional(let text) = task.kind.variant else {
             return true
         }
-        return !text.isEmpty || !task.title.isEmpty || !task.subtitle.isEmpty || !task.footer.isEmpty || task.media != nil
+        return !text.base.isEmpty || !task.title.base.isEmpty || !task.subtitle.base.isEmpty || !task.footer.base.isEmpty || task.media != nil
     }
 
     /// Whether the section would put anything on screen.

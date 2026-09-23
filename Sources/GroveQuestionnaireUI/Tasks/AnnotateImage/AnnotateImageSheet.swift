@@ -20,6 +20,7 @@ struct AnnotateImageSheet: View {
     private static let overlayPadding = CGFloat(8)
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.questionnaireLanguage) private var language
 
     let task: Questionnaire.Task
     let config: AnnotateImageConfig
@@ -45,7 +46,7 @@ struct AnnotateImageSheet: View {
                     history: history
                 )
                 VStack(spacing: 0) {
-                    AnnotationSheetHeader(title: task.title, subtitle: task.subtitle)
+                    AnnotationSheetHeader(title: task.title.resolved(in: language), subtitle: task.subtitle.resolved(in: language))
                         .padding(.horizontal, Self.imageMargin)
                         .onGeometryChange(
                             for: CGFloat.self,

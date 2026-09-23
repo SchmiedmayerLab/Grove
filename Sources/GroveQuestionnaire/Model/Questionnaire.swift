@@ -214,10 +214,14 @@ extension Questionnaire {
         /// When present, generated `QuestionnaireResponse`s pin their `questionnaire`
         /// canonical to this version (`url|version`).
         public let version: String?
+        /// The BCP 47 tag of the language the questionnaire's base text is written in (FHIR `Questionnaire.language`).
+        ///
+        /// Exporting the questionnaire, or a response to it, requires it.
+        public let language: String?
         /// The questionnaire's user-displayed title.
-        public let title: String
+        public let title: LocalizedText
         /// Natural-language description of the questionnaire.
-        public let explainer: String
+        public let explainer: LocalizedText
         /// The questionnaire's publication lifecycle.
         public let lifecycle: PublicationLifecycle
         /// The instrument's publisher, for attribution of licensed instruments.
@@ -236,8 +240,9 @@ extension Questionnaire {
             id: String,
             url: URL?,
             version: String? = nil,
-            title: String,
-            explainer: String,
+            language: String? = nil,
+            title: LocalizedText,
+            explainer: LocalizedText,
             lifecycle: PublicationLifecycle = .active,
             publisher: String? = nil,
             copyright: String? = nil,
@@ -248,6 +253,7 @@ extension Questionnaire {
             self.id = id
             self.url = url
             self.version = version
+            self.language = language
             self.title = title
             self.explainer = explainer
             self.lifecycle = lifecycle
@@ -266,9 +272,9 @@ extension Questionnaire {
     /// A group of tasks.
     public struct Section: Hashable, Identifiable, Sendable {
         public var id: String
-        public var title: String
+        public var title: LocalizedText
         /// An abbreviated title for constrained displays (SDC `shortText`).
-        public var shortTitle: String?
+        public var shortTitle: LocalizedText?
         public var tasks: [Task]
         /// The linkId of the top-level FHIR group this section was created from, if any.
         ///
@@ -291,8 +297,8 @@ extension Questionnaire {
         /// - parameter fhirGroupId: The linkId of the FHIR group this section mirrors, if any.
         public init(
             id: String,
-            title: String = "",
-            shortTitle: String? = nil,
+            title: LocalizedText = "",
+            shortTitle: LocalizedText? = nil,
             enabledCondition: Condition = .none,
             tasks: [Task],
             fhirGroupId: String? = nil

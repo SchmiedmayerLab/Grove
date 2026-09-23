@@ -14,6 +14,8 @@ import SwiftUI
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension TaskView {
     struct NumericInputRow: View {
+        @Environment(\.questionnaireLanguage) private var language
+
         let label: String
         let config: Questionnaire.Task.Kind.NumericTaskConfig
         @Binding var value: QuestionnaireResponses.Response.Value
@@ -38,7 +40,7 @@ extension TaskView {
             guard config.unitOptions.count <= 1 else {
                 return nil
             }
-            let display = config.unitOptions.first?.display ?? config.unit
+            let display = (config.unitOptions.first?.display ?? config.unit).resolved(in: language)
             return display.isEmpty ? nil : display
         }
 
@@ -75,7 +77,7 @@ extension TaskView {
         }
 
         private var selectedUnitCode: String {
-            value.quantityValue?.unitCode ?? config.unitCode ?? config.unitOptions.first?.code ?? config.unit
+            value.quantityValue?.unitCode ?? config.unitCode ?? config.unitOptions.first?.code ?? config.unit.base
         }
 
         /// The unit chooser for `questionnaire-unitOption` items.
@@ -88,7 +90,7 @@ extension TaskView {
                 }
             }) {
                 ForEach(config.unitOptions, id: \.code) { option in
-                    Text(option.display)
+                    Text(option.display.resolved(in: language))
                         .tag(option.code)
                 }
             } label: {

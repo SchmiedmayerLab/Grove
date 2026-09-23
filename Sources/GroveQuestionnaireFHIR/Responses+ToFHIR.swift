@@ -75,6 +75,9 @@ extension ModelsR4.QuestionnaireResponse {
     ///     Grove uses the questionnaire canonical as its system and the response UUID as its value.
     /// - parameter repositoryID: A repository-assigned logical id for the resource. Leave it `nil`
     ///     unless the caller already holds an id assignment from the receiving repository.
+    /// - parameter locale: The locale the questionnaire was rendered in. The language it selects
+    ///     (`Questionnaire.renderingLanguage(for:)`) becomes `QuestionnaireResponse.language`, and items carry
+    ///     their question text only when that is the questionnaire's base language.
     /// - parameter authored: The caller-persisted instant at which the response was authored.
     /// - parameter authoredTimeZone: The explicit zone used to serialize `authored`.
     public init(
@@ -85,9 +88,14 @@ extension ModelsR4.QuestionnaireResponse {
         status: QuestionnaireResponseStatus = .completed,
         identifier: Identifier? = nil,
         repositoryID: RepositoryID? = nil,
+        renderedIn locale: Locale,
         authored: Date,
         authoredTimeZone: TimeZone
     ) throws {
+        guard let baseLanguage = other.questionnaire.metadata.language,
+              let language = other.questionnaire.renderingLanguage(for: locale) else {
+            throw ContractError.missingQuestionnaireLanguage
+        }
         try self.init(
             other,
             subject: subject,
@@ -98,8 +106,10 @@ extension ModelsR4.QuestionnaireResponse {
             repositoryID: repositoryID,
             authored: authored,
             authoredTimeZone: authoredTimeZone,
+            inBaseLanguage: language.caseInsensitiveCompare(baseLanguage) == .orderedSame,
             droppingUnconvertibleAnswers: false
         )
+        self.language = FHIRPrimitive(ModelsR4.FHIRString(language))
     }
 
     /// A best-effort, non-exportable snapshot of the answers so far, for expression evaluation.
@@ -116,6 +126,7 @@ extension ModelsR4.QuestionnaireResponse {
             repositoryID: nil,
             authored: nil,
             authoredTimeZone: nil,
+            inBaseLanguage: true,
             droppingUnconvertibleAnswers: true
         )
     }
@@ -130,6 +141,7 @@ extension ModelsR4.QuestionnaireResponse {
         repositoryID: RepositoryID?,
         authored: Date?,
         authoredTimeZone: TimeZone?,
+        inBaseLanguage: Bool,
         droppingUnconvertibleAnswers: Bool
     ) throws {
         self.init(status: .init(status))
@@ -178,6 +190,7 @@ extension ModelsR4.QuestionnaireResponse {
         }
         let items = try Self.items(
             for: other.settled(status: status, authored: authored, in: authoredTimeZone),
+            inBaseLanguage: inBaseLanguage,
             droppingUnconvertibleAnswers: droppingUnconvertibleAnswers
         )
         // An empty `item` array is invalid FHIR JSON; omit the element instead.
@@ -187,19 +200,24 @@ extension ModelsR4.QuestionnaireResponse {
     /// The response items for the questionnaire's sections, in section order.
     private static func items(
         for other: GroveQuestionnaire.QuestionnaireResponses,
+        inBaseLanguage: Bool,
         droppingUnconvertibleAnswers: Bool
     ) throws -> [QuestionnaireResponseItem] {
         var items: [QuestionnaireResponseItem] = []
         for section in other.questionnaire.sections {
-            let sectionItems = try other.responses.toFHIR(section: section, droppingUnconvertibleAnswers: droppingUnconvertibleAnswers)
+            let sectionItems = try other.responses.toFHIR(
+                section: section,
+                inBaseLanguage: inBaseLanguage,
+                droppingUnconvertibleAnswers: droppingUnconvertibleAnswers
+            )
             guard !sectionItems.isEmpty else {
                 continue
             }
             if let groupId = section.fhirGroupId {
                 // The section mirrors a FHIR group: wrap its answers in the group's item.
                 var wrapper = QuestionnaireResponseItem(linkId: groupId.asFHIRStringPrimitive())
-                if !section.title.isEmpty {
-                    wrapper.text = section.title.asFHIRStringPrimitive()
+                if inBaseLanguage && !section.title.base.isEmpty {
+                    wrapper.text = section.title.base.asFHIRStringPrimitive()
                 }
                 wrapper.item = sectionItems
                 items.append(wrapper)
@@ -220,6 +238,7 @@ extension QuestionnaireResponses.Responses {
         /// For non-nested tasks, this simply contains all root-level tasks in the questionnaire.
         /// For nested tasks, this contains all nested tasks for the nested task's parent task.
         let allTasks: [GroveQuestionnaire.Questionnaire.Task]
+        let inBaseLanguage: Bool
     }
 
     /// Builds the flat response items for a set of tasks (used for choice-option
@@ -229,7 +248,7 @@ extension QuestionnaireResponses.Responses {
             guard let task = context.allTasks.first(where: { $0.id == taskId }) else {
                 throw FHIRResponseConversionError("Unable to find task '\(taskId)'")
             }
-            return try response.toFHIR(using: .init(task: task))
+            return try response.toFHIR(using: .init(task: task, inBaseLanguage: context.inBaseLanguage))
         }
         // sort the items by task
         let tasksIdsByOverallPosition: [String: Int] = context.allTasks
@@ -252,23 +271,25 @@ extension QuestionnaireResponses.Responses {
     /// child-question answers beneath their parent per ``Questionnaire/Task/parentTaskId``.
     fileprivate func toFHIR(
         section: GroveQuestionnaire.Questionnaire.Section,
-        droppingUnconvertibleAnswers: Bool = false
+        inBaseLanguage: Bool,
+        droppingUnconvertibleAnswers: Bool
     ) throws -> [QuestionnaireResponseItem] {
-        let items = try flatItems(for: section, droppingUnconvertibleAnswers: droppingUnconvertibleAnswers)
+        let items = try flatItems(for: section, inBaseLanguage: inBaseLanguage, droppingUnconvertibleAnswers: droppingUnconvertibleAnswers)
         let nested = attachingChildItems(to: items, in: section)
-        return groupWrappedItems(nested, in: section)
+        return groupWrappedItems(nested, in: section, inBaseLanguage: inBaseLanguage)
     }
 
     /// The flat response item of every responded task in the section, keyed by task id.
     private func flatItems(
         for section: GroveQuestionnaire.Questionnaire.Section,
+        inBaseLanguage: Bool,
         droppingUnconvertibleAnswers: Bool
     ) throws -> [String: QuestionnaireResponseItem] {
         var itemsByTaskId: [String: QuestionnaireResponseItem] = [:]
         for task in section.tasks {
             do {
                 // The subscript yields an empty response for unanswered tasks; toFHIR maps those to nil.
-                if let item = try self[task.id].toFHIR(using: .init(task: task)) {
+                if let item = try self[task.id].toFHIR(using: .init(task: task, inBaseLanguage: inBaseLanguage)) {
                     itemsByTaskId[task.id] = item
                 }
             } catch {
@@ -312,7 +333,8 @@ extension QuestionnaireResponses.Responses {
     /// ``Questionnaire/Task/groupPath`` names.
     private func groupWrappedItems(
         _ itemsByTaskId: [String: QuestionnaireResponseItem],
-        in section: GroveQuestionnaire.Questionnaire.Section
+        in section: GroveQuestionnaire.Questionnaire.Section,
+        inBaseLanguage: Bool
     ) -> [QuestionnaireResponseItem] {
         var result: [QuestionnaireResponseItem] = []
         // Stack of currently open group wrappers, outermost first.
@@ -342,9 +364,9 @@ extension QuestionnaireResponses.Responses {
             close(downTo: shared)
             for group in path[shared...] {
                 var wrapper = QuestionnaireResponseItem(linkId: group.id.asFHIRStringPrimitive())
-                if !group.title.isEmpty {
+                if inBaseLanguage && !group.title.base.isEmpty {
                     // A QuestionnaireResponse group item carries the group's text, never its enableWhen.
-                    wrapper.text = group.title.asFHIRStringPrimitive()
+                    wrapper.text = group.title.base.asFHIRStringPrimitive()
                 }
                 openGroups.append((group.id, wrapper))
             }
@@ -363,19 +385,14 @@ extension QuestionnaireResponses.Responses {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
-    func toFHIRCoding() -> Coding {
+    /// The option's coding, carrying its base display when `displayed`: a response rendered in a translation
+    /// identifies the answer by system and code alone.
+    func toFHIRCoding(displayed: Bool) -> Coding {
+        let display: FHIRPrimitive<ModelsR4.FHIRString>? = displayed ? title.base.asFHIRStringPrimitive() : nil
         var coding = if let fhirCoding {
-            Coding(
-                code: fhirCoding.code.asFHIRStringPrimitive(),
-                display: title.asFHIRStringPrimitive(),
-                system: fhirCoding.system.asFHIRURIPrimitive()
-            )
+            Coding(code: fhirCoding.code.asFHIRStringPrimitive(), display: display, system: fhirCoding.system.asFHIRURIPrimitive())
         } else {
-            Coding(
-                code: id.asFHIRStringPrimitive(),
-                display: title.asFHIRStringPrimitive(),
-                system: nil
-            )
+            Coding(code: id.asFHIRStringPrimitive(), display: display, system: nil)
         }
         if let weight {
             // Carry the definitional weight onto the answer so consumers can score
@@ -392,7 +409,7 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
 
     /// The FHIR answer value for a selected option, typed to match the
     /// `answerOption` the option was created from.
-    func toFHIRAnswerValue() throws -> QuestionnaireResponseItemAnswer.ValueX {
+    func toFHIRAnswerValue(displayed: Bool) throws -> QuestionnaireResponseItemAnswer.ValueX {
         switch answerValue {
         case .string(let string):
             return .string(string.asFHIRStringPrimitive())
@@ -417,7 +434,7 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
                 second: components.second.map { Decimal($0) } ?? 0
             )))
         case nil:
-            return .coding(toFHIRCoding())
+            return .coding(toFHIRCoding(displayed: displayed))
         }
     }
 }

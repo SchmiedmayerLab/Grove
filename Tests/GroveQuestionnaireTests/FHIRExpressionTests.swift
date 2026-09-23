@@ -26,6 +26,7 @@ struct FHIRExpressionTests {
 
     private func makeQuestionnaire(items: [ModelsR4.QuestionnaireItem]) -> ModelsR4.Questionnaire {
         var questionnaire = ModelsR4.Questionnaire(status: FHIRPrimitive(PublicationStatus.active))
+        questionnaire.language = "en-US"
         questionnaire.url = "https://example.org/fhir/Questionnaire/expressions".asFHIRURIPrimitive()
         questionnaire.version = "1.0.0".asFHIRStringPrimitive()
         questionnaire.item = items
@@ -133,6 +134,7 @@ struct FHIRExpressionTests {
         // The hidden score item flows into the emitted response.
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -282,6 +284,7 @@ struct FHIRExpressionTests {
             let response = try ModelsR4.QuestionnaireResponse(
                 responses,
                 identifier: identifier,
+                renderedIn: questionnaireResponseTestLocale,
                 authored: authored,
                 authoredTimeZone: questionnaireResponseTestTimeZone
             )

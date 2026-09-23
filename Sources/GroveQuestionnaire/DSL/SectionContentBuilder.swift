@@ -85,13 +85,13 @@ extension Questionnaire.Section {
     /// }
     /// ```
     public init(_ id: String, title: String = "", @SectionContentBuilder content: () -> [any QuestionnaireComponent]) {
-        self.init(id: id, title: title, tasks: content().flatMap { $0._makeTasks() }, fhirGroupId: id)
+        self.init(id: id, title: .init(title), tasks: content().flatMap { $0._makeTasks() }, fhirGroupId: id)
     }
 
     /// An abbreviated title for constrained displays (SDC `shortText`).
     public func shortTitle(_ shortTitle: String) -> Self {
         var copy = self
-        copy.shortTitle = shortTitle
+        copy.shortTitle = .init(shortTitle)
         return copy
     }
 }

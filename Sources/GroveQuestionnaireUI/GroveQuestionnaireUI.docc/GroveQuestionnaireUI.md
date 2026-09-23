@@ -70,6 +70,9 @@ QuestionnaireSheet(Screener.questionnaire) { result in
 }
 ```
 
+The sheet renders in one language for the whole questionnaire: `Questionnaire.renderingLanguage(for:)` selects it from the environment's `locale`.
+Export the responses with that same locale, so the response names the language the participant saw.
+
 Every built-in question kind renders as a card of its own:
 
 @Row {

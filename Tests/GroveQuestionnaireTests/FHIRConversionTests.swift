@@ -39,6 +39,7 @@ struct FHIRConversionTests {
             let questionnaire = try GroveQuestionnaire.Questionnaire(input, clock: questionnaireResponseTestClock)
             _ = try ModelsR4.QuestionnaireResponse(
                 QuestionnaireResponses(questionnaire: questionnaire),
+                renderedIn: questionnaireResponseTestLocale,
                 authored: questionnaireResponseTestAuthoredAt,
                 authoredTimeZone: questionnaireResponseTestTimeZone
             )
@@ -64,6 +65,7 @@ struct FHIRConversionTests {
         }
         var fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -79,9 +81,10 @@ struct FHIRConversionTests {
             response.id = nil
             response.identifier = nil
             response.questionnaire = nil
-            // Grove enriches beyond the RKoF golden file: completionMode + item.text, and the
-            // profile it claims, which the golden file predates.
+            // Grove enriches beyond the RKoF golden file: completionMode + item.text, the language it
+            // was rendered in, and the profile it claims, which the golden file predates.
             response.extension = nil
+            response.language = nil
             response.meta = nil
             func strippingText(_ items: [QuestionnaireResponseItem]) -> [QuestionnaireResponseItem] {
                 items.map { item in
@@ -106,6 +109,7 @@ struct FHIRConversionTests {
                 id: "numeric-answer",
                 url: URL(string: "https://example.org/fhir/Questionnaire/numeric-answer"),
                 version: "1.0.0",
+                language: "en-US",
                 title: "",
                 explainer: ""
             ),
@@ -119,6 +123,7 @@ struct FHIRConversionTests {
         responses.responses["t0"].value.numberValue = 123
         let fhir = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )

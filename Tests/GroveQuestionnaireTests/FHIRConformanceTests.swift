@@ -22,6 +22,7 @@ struct FHIRConformanceTests {
 
     private func makeQuestionnaire(items: [ModelsR4.QuestionnaireItem]) -> ModelsR4.Questionnaire {
         var questionnaire = ModelsR4.Questionnaire(status: FHIRPrimitive(PublicationStatus.active))
+        questionnaire.language = "en-US"
         questionnaire.url = "https://example.org/fhir/Questionnaire/conformance".asFHIRURIPrimitive()
         questionnaire.version = "1.0.0".asFHIRStringPrimitive()
         questionnaire.item = items
@@ -230,6 +231,7 @@ struct FHIRConformanceTests {
         responses.responses["count"] = .init(value: .number(3))
         let exported = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -250,6 +252,7 @@ struct FHIRConformanceTests {
         responses.responses["website"] = .init(value: .string("https://example.org"))
         let exported = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -281,6 +284,7 @@ struct FHIRConformanceTests {
         responses.responses["weight"] = .init(value: .number(72.5))
         let exported = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -309,6 +313,7 @@ struct FHIRConformanceTests {
         responses.responses["inner-q"] = .init(value: .bool(false))
         let exported = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -333,6 +338,7 @@ struct FHIRConformanceTests {
         responses.responses["child-q"] = .init(value: .bool(false))
         let exported = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -377,6 +383,7 @@ struct FHIRConformanceTests {
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let exported = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -394,6 +401,7 @@ struct FHIRConformanceTests {
         responses.responses["q1"] = .init(value: .bool(true))
         let exported = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -418,6 +426,7 @@ struct FHIRConformanceTests {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: URL(string: "https://example.org/fhir/Questionnaire/display")!,
             version: "1.0.0",
+            language: "en-US",
             title: "Display"
         ) {
             Section("s1", title: "Section") {
@@ -450,6 +459,7 @@ struct FHIRConformanceTests {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: URL(string: "https://example.org/fhir/Questionnaire/preselect")!,
             version: "1.0.0",
+            language: "en-US",
             title: "Preselect"
         ) {
             Section("s1") { mood }
@@ -473,6 +483,7 @@ struct FHIRConformanceTests {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: URL(string: "https://example.org/fhir/Questionnaire/constraints")!,
             version: "1.0.0",
+            language: "en-US",
             title: "Constraints"
         ) {
             Section("s1") {
@@ -502,6 +513,7 @@ struct FHIRConformanceTests {
                 id: "units",
                 url: URL(string: "https://example.org/fhir/Questionnaire/units"),
                 version: "1.0.0",
+                language: "en-US",
                 title: "Units",
                 explainer: ""
             ),
@@ -558,6 +570,7 @@ struct FHIRConformanceTests {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: URL(string: "https://example.org/fhir/Questionnaire/keyboard")!,
             version: "1.0.0",
+            language: "en-US",
             title: "Keyboard"
         ) {
             Section("s1") {
@@ -645,6 +658,7 @@ struct FHIRConformanceTests {
                 id: "follow-ups",
                 url: URL(string: "https://example.org/fhir/Questionnaire/follow-ups"),
                 version: "1.0.0",
+                language: "en-US",
                 title: "Follow-ups",
                 explainer: ""
             ),
@@ -684,6 +698,7 @@ struct FHIRConformanceTests {
         responses.responses["flavor"] = .init(value: .choice(.init(selectedOptions: ["string|Vanilla"])))
         let exported = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )

@@ -17,6 +17,9 @@ public import SwiftUI
 /// Unless externally provided, the sheet implicitly creates and owns a `QuestionnaireResponses` instance,
 /// which, upon successful completion of the questionnaire, will be made available via the result handler.
 ///
+/// The sheet renders in the language `Questionnaire.renderingLanguage(for:)` selects for the environment's `locale`.
+/// Pass the same locale when exporting the responses, so `QuestionnaireResponse.language` names the language the participant saw.
+///
 /// The `QuestionnaireSheet` uses an internal `NavigationStack` to display the questionnaire's content;
 /// each section in the input questionnaire is displayed as one page on the stack. A page's action floats
 /// over the foot of its questions, and the navigation bar names the page: inline, with the progress bar hanging
@@ -65,6 +68,7 @@ public struct QuestionnaireSheet: View {
 
     @State private var responses: QuestionnaireResponses
     @State private var progressState = QuestionnaireProgressState()
+    @Environment(\.locale) private var locale
 
     @_documentation(visibility: internal)
     public var body: some View {
@@ -105,6 +109,7 @@ public struct QuestionnaireSheet: View {
         }
         .environment(progressState)
         .environment(\.questionnaireHints, hints)
+        .environment(\.questionnaireLanguage, questionnaire.renderingLanguage(for: locale))
         // The sheet knows the shape its content wants; asking every app to say so again only
         // gives them a way to get it wrong.
         .presentationSizing(.page)

@@ -29,15 +29,20 @@ public struct ResourceBuilder: Sendable {
     /// Creates a profiled QuestionnaireResponse with a complete business identifier.
     ///
     /// Use this when the response travels alone -- for example when the receiving system already
-    /// holds the Questionnaire. When both resources travel together, prefer ``pair(from:subject:author:responseSource:writerContext:status:identifier:questionnaireRepositoryID:responseRepositoryID:valueSets:authored:authoredTimeZone:)``,
+    /// holds the Questionnaire. When both resources travel together, prefer ``pair(from:subject:author:responseSource:writerContext:status:identifier:questionnaireRepositoryID:responseRepositoryID:valueSets:renderedIn:authored:authoredTimeZone:)``,
     /// which also cross-validates the two against the published pair rules.
     ///
     /// ```swift
     /// let response = try ResourceBuilder().response(
     ///     from: responses,
-    ///     subject: Reference(reference: "Patient/example")
+    ///     subject: Reference(reference: "Patient/example"),
+    ///     renderedIn: locale,
+    ///     authored: authored,
+    ///     authoredTimeZone: .current
     /// )
     /// ```
+    ///
+    /// `locale` is the locale the questionnaire was rendered in; the language it selects becomes `QuestionnaireResponse.language`.
     public func response(
         from source: GroveQuestionnaire.QuestionnaireResponses,
         subject: Reference? = nil,
@@ -47,6 +52,7 @@ public struct ResourceBuilder: Sendable {
         status: QuestionnaireResponseStatus = .completed,
         identifier: Identifier? = nil,
         repositoryID: RepositoryID? = nil,
+        renderedIn locale: Locale,
         authored: Date,
         authoredTimeZone: TimeZone
     ) throws -> ModelsR4.QuestionnaireResponse {
@@ -58,6 +64,7 @@ public struct ResourceBuilder: Sendable {
             status: status,
             identifier: identifier,
             repositoryID: repositoryID,
+            renderedIn: locale,
             authored: authored,
             authoredTimeZone: authoredTimeZone
         )
@@ -70,7 +77,7 @@ public struct ResourceBuilder: Sendable {
     /// Creates an exact Questionnaire/QuestionnaireResponse pair and validates them against each other.
     ///
     /// Unlike calling ``questionnaire(from:repositoryID:)`` and
-    /// ``response(from:subject:author:source:writerContext:status:identifier:repositoryID:authored:authoredTimeZone:)`` separately,
+    /// ``response(from:subject:author:source:writerContext:status:identifier:repositoryID:renderedIn:authored:authoredTimeZone:)`` separately,
     /// the pair is checked against the published pair rules -- every answer's linkId, type, and
     /// enable-when relationship must line up -- so an inconsistent export fails here instead of at
     /// the receiving system.
@@ -78,7 +85,10 @@ public struct ResourceBuilder: Sendable {
     /// ```swift
     /// let pair = try ResourceBuilder().pair(
     ///     from: responses,
-    ///     subject: Reference(reference: "Patient/example")
+    ///     subject: Reference(reference: "Patient/example"),
+    ///     renderedIn: locale,
+    ///     authored: authored,
+    ///     authoredTimeZone: .current
     /// )
     /// send(pair.questionnaire, pair.response)
     /// ```
@@ -93,6 +103,7 @@ public struct ResourceBuilder: Sendable {
         questionnaireRepositoryID: RepositoryID? = nil,
         responseRepositoryID: RepositoryID? = nil,
         valueSets: [ModelsR4.ValueSet] = [],
+        renderedIn locale: Locale,
         authored: Date,
         authoredTimeZone: TimeZone
     ) throws -> ResourcePair {
@@ -109,6 +120,7 @@ public struct ResourceBuilder: Sendable {
             status: status,
             identifier: identifier,
             repositoryID: responseRepositoryID,
+            renderedIn: locale,
             authored: authored,
             authoredTimeZone: authoredTimeZone
         )

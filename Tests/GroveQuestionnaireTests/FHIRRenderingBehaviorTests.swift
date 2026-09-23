@@ -19,6 +19,7 @@ import Testing
 struct FHIRRenderingBehaviorTests {
     private func makeQuestionnaire(items: [ModelsR4.QuestionnaireItem]) -> ModelsR4.Questionnaire {
         var questionnaire = ModelsR4.Questionnaire(status: FHIRPrimitive(PublicationStatus.active))
+        questionnaire.language = "en-US"
         questionnaire.url = "https://example.org/fhir/Questionnaire/rendering".asFHIRURIPrimitive()
         questionnaire.version = "1.0.0".asFHIRStringPrimitive()
         questionnaire.item = items
@@ -137,7 +138,7 @@ struct FHIRRenderingBehaviorTests {
         )
         ]
         let task = try firstTask(try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), clock: questionnaireResponseTestClock))
-        #expect(task.footer.contains("https://example.org/what-is-hypertension"))
+        #expect(task.footer.base.contains("https://example.org/what-is-hypertension"))
     }
 
     @Test

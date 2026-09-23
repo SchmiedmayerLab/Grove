@@ -389,7 +389,7 @@ extension QuestionnaireResponses {
                     // Same-unit magnitude comparison; a condition without a unit matches any.
                     // A unit the participant chose (unitOption) takes precedence over the fixed unit.
                     let taskUnit = responses[task.id].value.quantityValue?.unitCode
-                        ?? config.unitCode ?? (config.unit.isEmpty ? nil : config.unit)
+                        ?? config.unitCode ?? (config.unit.base.isEmpty ? nil : config.unit.base)
                     guard unitCode == nil || unitCode == taskUnit,
                           let response = responses[task.id].value.numberValue else {
                         return false

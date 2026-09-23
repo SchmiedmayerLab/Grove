@@ -203,7 +203,7 @@ public final class QuestionnaireResponses: Identifiable {
             // A questionnaire declared in Swift carries no engine until `withExpressionEngine(clock:)`
             // attaches one. Saying so beats leaving every computed value empty, which reads as
             // a scoring bug rather than a setup step.
-            let title = questionnaire.metadata.title
+            let title = questionnaire.metadata.title.base
             // os.Logger redacts interpolated values unless marked public; swift-log has no such concept.
             #if canImport(os)
             Self.logger.warning("\(title, privacy: .public) has calculated expressions but no expression engine; call withExpressionEngine(clock:) on it.")

@@ -14,6 +14,10 @@ import GroveFoundation
 public enum ContractError: Error, Equatable, Sendable {
     case missingQuestionnaireURL
     case missingQuestionnaireVersion
+    /// The questionnaire names no base language (`Questionnaire.language`).
+    case missingQuestionnaireLanguage
+    /// A text translates into the base language, or more than once into this language.
+    case conflictingTranslation(String)
     case invalidQuestionnaireVersion(String)
     case emptyQuestionnaire
     case incompleteResponseIdentifier

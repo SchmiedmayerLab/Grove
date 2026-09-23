@@ -31,6 +31,7 @@ enum Screener {
     static let questionnaire = Questionnaire(
         url: URL(string: "https://example.org/fhir/Questionnaire/screener")!,
         version: "1.0.0",
+        language: "en",
         title: "Screener"
     ) {
         Section("screening", title: "Screening") {
@@ -45,6 +46,9 @@ A declared question is both the item in the questionnaire and the handle used to
 answer and to condition on it. The first argument is its linkId — the stable identity
 that travels to FHIR and back — so it is written explicitly rather than derived from the
 Swift name.
+
+`language` is the BCP 47 tag of the language the strings are written in.
+Every string a declaration takes is that base text, without translations.
 
 ``Instrument()`` is what makes the declarations checkable: it reads the type at build time
 and reports what does not hold together. It also generates a `LinkID` enum

@@ -33,22 +33,23 @@ struct QuestionnaireConformanceFixtureTests {
                 id: "daily-check-in",
                 url: URL(string: "https://example.org/fhir/Questionnaire/daily-check-in"),
                 version: "1.0.0",
-                title: "Daily Check-In",
-                explainer: "A compact conformance fixture.",
+                language: "en-US",
+                title: .init("Daily Check-In", translations: ["es-US": "Control diario"]),
+                explainer: .init("A compact conformance fixture.", translations: ["es-US": "Un caso de conformidad compacto."]),
                 entryMode: .sequential
             ),
             sections: [
                 .init(id: "daily", tasks: [
-                    .init(id: "well", title: "Are you feeling well?", kind: .boolean),
+                    .init(id: "well", title: .init("Are you feeling well?", translations: ["es-US": "¿Se siente bien?"]), kind: .boolean),
                     .init(
                         id: "temperature",
-                        title: "Temperature",
+                        title: .init("Temperature", translations: ["es-US": "Temperatura"]),
                         kind: .numeric(.init(
                             inputMode: .numberPad(.decimal),
                             minimum: 30,
                             maximum: 45,
                             maxDecimalPlaces: 1,
-                            unit: "(degree Celsius)",
+                            unit: .init("(degree Celsius)", translations: ["es-US": "(grado Celsius)"]),
                             unitSystem: URL(string: "http://unitsofmeasure.org"),
                             unitCode: "Cel",
                             valueKind: .quantity
@@ -64,10 +65,13 @@ struct QuestionnaireConformanceFixtureTests {
         let pair = try ResourceBuilder().pair(
             from: responses,
             subject: Reference(reference: "Patient/example"),
+            // Rendered in a translation, so the pair exercises `language` and the omitted item text.
+            renderedIn: Locale(identifier: "es_US"),
             authored: Date(timeIntervalSince1970: 1_700_000_000),
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
         #expect(pair.questionnaire.subjectType?.map(\.value) == [.patient])
+        #expect(pair.response.language?.value?.string == "es-US")
         let fixtures: [String: ResourceProxy] = [
             "questionnaire": ResourceProxy(with: pair.questionnaire),
             "questionnaire-response": ResourceProxy(with: pair.response)

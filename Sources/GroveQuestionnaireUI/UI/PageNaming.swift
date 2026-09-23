@@ -80,8 +80,8 @@ extension QuestionnaireSectionView {
     var pageTitle: String {
         switch context {
         case .regular(let questionnaire):
-            let shortNames = [soleVisibleGroup?.shortTitle, section.shortTitle].compactMap { $0 }
-            return shortNames.first { !$0.isEmpty } ?? questionnaire.metadata.title
+            let shortNames = [soleVisibleGroup?.shortTitle, section.shortTitle].compactMap { $0?.resolved(in: language) }
+            return shortNames.first { !$0.isEmpty } ?? questionnaire.metadata.title.resolved(in: language)
         case .answerNestedQuestions(parentTask: _, let selectedOptionTitle, sections: _):
             return String(localized: "Follow-Up: \(selectedOptionTitle)", bundle: .module)
         }
@@ -89,10 +89,11 @@ extension QuestionnaireSectionView {
 
     /// The instrument's name, on a page named after one of its parts.
     var pageSubtitle: String? {
-        guard case let .regular(questionnaire) = context, questionnaire.metadata.title != pageTitle else {
+        guard case let .regular(questionnaire) = context else {
             return nil
         }
-        return questionnaire.metadata.title
+        let title = questionnaire.metadata.title.resolved(in: language)
+        return title == pageTitle ? nil : title
     }
 
     /// The group every rendered task belongs to, when they all share exactly one.

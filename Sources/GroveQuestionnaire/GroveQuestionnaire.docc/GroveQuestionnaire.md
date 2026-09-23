@@ -94,6 +94,7 @@ enum PHQ2 {
     static let questionnaire = Questionnaire(
         url: URL(string: "https://example.org/fhir/Questionnaire/phq2")!,
         version: "1.0.0",
+        language: "en",
         title: "PHQ-2"
     ) {
         Section("phq2", title: "Over the last two weeks") {
@@ -156,6 +157,7 @@ func export(_ responses: QuestionnaireResponses) {
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
             subject: participant,
+            renderedIn: locale,
             authored: submittedAt,
             authoredTimeZone: .current
         )
@@ -166,6 +168,8 @@ func export(_ responses: QuestionnaireResponses) {
 }
 ```
 
+`renderedIn` is the locale the questionnaire was shown in, which names the response's language.
+
 If the app was written against a specific instrument, declare it in Swift anyway and check
 the imported resource against it once, before typed handles read from it. A questionnaire
 that drifted from the declaration otherwise surfaces as answers that are quietly always
@@ -175,6 +179,20 @@ that drifted from the declaration otherwise surfaces as answers that are quietly
 try questionnaire.checkDeclaration(of: PHQ2.self)
 ```
 
+
+## Languages
+
+A questionnaire is one instrument in every language it offers.
+Its base strings are written in ``Questionnaire/Metadata/language``, and each text the participant sees is a ``Questionnaire/LocalizedText`` carrying its translations, keyed by BCP 47 tag.
+Importing a FHIR questionnaire keeps every `translation` extension, and exporting one writes them all back.
+
+A renderer picks one language for the whole questionnaire with ``Questionnaire/renderingLanguage(for:)``: an exact tag match first (`es-US`), then the locale's primary language (`es`), then the base language.
+Every text then resolves in that language with ``Questionnaire/LocalizedText/resolved(in:)``.
+
+A response states that language in `QuestionnaireResponse.language`.
+Its items carry the question text only when the base language was shown, since that text must equal the questionnaire's base text.
+Likewise, a coded answer carries its base display only in the base language; in a translation, its system and code alone identify it.
+
 ## Topics
 
 ### Authoring
@@ -182,6 +200,11 @@ try questionnaire.checkDeclaration(of: PHQ2.self)
 - ``Instrument()``
 - ``Questionnaire``
 - <doc:QuestionKinds>
+
+### Languages
+- ``Questionnaire/LocalizedText``
+- ``Questionnaire/languages``
+- ``Questionnaire/renderingLanguage(for:)``
 
 ### Responses
 - ``QuestionnaireResponses``

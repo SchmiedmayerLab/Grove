@@ -33,6 +33,7 @@ extension TaskView {
 
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @Environment(\.scrollToNextTask) private var scrollToNextTask
+        @Environment(\.questionnaireLanguage) private var language
 
         let task: Questionnaire.Task
         let config: Questionnaire.Task.Kind.ChoiceConfig
@@ -47,7 +48,7 @@ extension TaskView {
             case .autocomplete:
                 autocompleteFilterField
                 optionRows(config.options.filter {
-                    autocompleteFilter.isEmpty || $0.title.localizedCaseInsensitiveContains(autocompleteFilter)
+                    autocompleteFilter.isEmpty || $0.title.resolved(in: language).localizedCaseInsensitiveContains(autocompleteFilter)
                 }, ruled: .aboveEveryRow)
             default:
                 optionRows(config.options, ruled: .betweenRows)
@@ -78,13 +79,13 @@ extension TaskView {
                     thenAdvance: newValue == nil ? nil : scrollToNextTask
                 )
             }
-            let selectedTitle = config.options.first { $0.id == selected }.map { Text($0.title) }
+            let selectedTitle = config.options.first { $0.id == selected }.map { Text($0.title.resolved(in: language)) }
             return Menu {
                 Picker(selection: selection) {
                     Text("Select…", bundle: .module)
                         .tag(String?.none)
                     ForEach(config.options) { option in
-                        Text(option.title)
+                        Text(option.title.resolved(in: language))
                             .tag(String?.some(option.id))
                     }
                 } label: {
@@ -101,7 +102,7 @@ extension TaskView {
                 .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(task.title)
+            .accessibilityLabel(task.title.resolved(in: language))
             .accessibilityValue(selectedTitle ?? Text("Select…", bundle: .module))
         }
 
@@ -119,7 +120,7 @@ extension TaskView {
         private var otherOptionRow: some View {
                 ChoiceRow(
                     id: "openChoice",
-                    title: config.freeTextOtherOptionLabel ?? String(localized: "Other", bundle: .module),
+                    title: config.freeTextOtherOptionLabel?.resolved(in: language) ?? String(localized: "Other", bundle: .module),
                     subtitle: "",
                     isSelected: response.value.choiceValue.didSelectFreeTextOtherOption,
                     isSeparated: hasRowsAboveOtherOption,
@@ -209,6 +210,7 @@ extension TaskView.ChoiceAnswering {
         @Environment(QuestionnaireResponses.self) private var responses
         @Environment(\.scrollToNextTask) private var scrollToNextTask
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        @Environment(\.questionnaireLanguage) private var language
 
         let task: Questionnaire.Task
         let config: Questionnaire.Task.Kind.ChoiceConfig
@@ -220,8 +222,8 @@ extension TaskView.ChoiceAnswering {
         var body: some View {
             ChoiceRow(
                 id: option.id,
-                title: option.title,
-                subtitle: option.subtitle,
+                title: option.title.resolved(in: language),
+                subtitle: option.subtitle.resolved(in: language),
                 isSelected: response.value.choiceValue.didSelect(option.id),
                 isSeparated: isSeparated,
                 mark: config.allowsMultipleSelection ? .multiple : .single
@@ -238,7 +240,7 @@ extension TaskView.ChoiceAnswering {
                 ManagedNavigationStack {
                     QuestionnaireSectionView(
                         nestedQuestionsFor: task,
-                        selectedOptionTitle: option.title,
+                        selectedOptionTitle: option.title.resolved(in: language),
                         tasks: config.followUpTasks,
                         completionStepConfig: .disable
                     ) { result in
@@ -253,7 +255,7 @@ extension TaskView.ChoiceAnswering {
                         }
                     } header: {
                         Text(
-                            "Please answer the follow-up questions below, for the **'\(option.title)'** option you just selected.",
+                            "Please answer the follow-up questions below, for the **'\(option.title.resolved(in: language))'** option you just selected.",
                             bundle: .module
                         )
                         .font(.subheadline)

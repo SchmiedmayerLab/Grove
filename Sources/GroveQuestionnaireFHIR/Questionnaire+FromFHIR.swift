@@ -31,8 +31,6 @@ extension GroveQuestionnaire.Questionnaire {
         /// `retired` ones, and ones outside their `effectivePeriod`. Disable only for
         /// tooling that inspects rather than administers.
         fileprivate let enforcesPublicationLifecycle: Bool
-        /// The locale used to resolve `translation` extensions on user-visible text.
-        fileprivate let locale: Locale
         /// App-supplied resources for SDC `launchContext` (e.g. the study participant's
         /// `Patient`), keyed by the context name expressions reference (`%patient`).
         fileprivate let launchContext: [String: ResourceProxy]
@@ -43,13 +41,11 @@ extension GroveQuestionnaire.Questionnaire {
         public init(
             extraQuestionKinds: [any QuestionKindDefinition.Type] = [],
             enforcesPublicationLifecycle: Bool = true,
-            locale: Locale = .autoupdatingCurrent,
             launchContext: [String: ResourceProxy] = [:],
             resolveValueSet: (@Sendable (URL) -> ModelsR4.ValueSet?)? = nil
         ) {
             self.knownQuestionKinds = extraQuestionKinds + GroveQuestionnaire.Questionnaire.builtinQuestionKinds
             self.enforcesPublicationLifecycle = enforcesPublicationLifecycle
-            self.locale = locale
             self.launchContext = launchContext
             self.resolveValueSet = resolveValueSet
         }
@@ -143,8 +139,9 @@ extension GroveQuestionnaire.Questionnaire {
             id: id,
             url: other.url?.value?.url,
             version: other.version?.value?.string,
-            title: other.title?.localizedString(for: options.locale) ?? "",
-            explainer: other.description_fhir?.localizedString(for: options.locale) ?? "",
+            language: other.language?.value?.string,
+            title: .init(other.title) ?? "",
+            explainer: .init(other.description_fhir) ?? "",
             lifecycle: lifecycle,
             publisher: other.publisher?.value?.string,
             copyright: other.copyright?.value?.string,
@@ -382,8 +379,8 @@ extension ModelsR4.QuestionnaireItem {
         )
         return .init(
             id: linkId,
-            title: isSynthesized ? "" : self.text?.localizedString(for: context.options.locale) ?? "",
-            shortTitle: isSynthesized ? nil : shortText(for: context.options.locale),
+            title: isSynthesized ? "" : .init(self.text) ?? "",
+            shortTitle: isSynthesized ? nil : shortText(),
             tasks: try nestedItems.flatMap2 { item throws(ConversionError) in
                 try item.toTasks(using: itemContext)
             },
@@ -410,8 +407,8 @@ extension ModelsR4.QuestionnaireItem {
             // condition that let the export and the response emitter restore the hierarchy.
             let group = GroveQuestionnaire.Questionnaire.Task.Group(
                 id: try getLinkId(),
-                title: self.text?.localizedString(for: context.options.locale) ?? "",
-                shortTitle: shortText(for: context.options.locale),
+                title: .init(self.text) ?? "",
+                shortTitle: shortText(),
                 condition: try .init(self, using: context)
             )
             let itemContext = ConversionContext(
@@ -442,10 +439,10 @@ extension ModelsR4.QuestionnaireItem {
         let media = try itemMedia(for: kind)
         var task = GroveQuestionnaire.Questionnaire.Task(
             id: try self.getLinkId(),
-            title: itemType == .display ? "" : self.text?.localizedString(for: context.options.locale) ?? "",
-            prefix: self.prefix?.localizedString(for: context.options.locale),
-            shortTitle: shortText(for: context.options.locale),
-            footer: supportLinkFooter(),
+            title: itemType == .display ? "" : .init(self.text) ?? "",
+            prefix: .init(self.prefix),
+            shortTitle: shortText(),
+            footer: .init(supportLinkFooter()),
             media: media,
             kind: kind,
             isOptional: !(self.required?.value?.bool ?? false), // FHIR defines the default of `required` as false.
@@ -479,10 +476,9 @@ extension ModelsR4.QuestionnaireItem {
         // question, not standalone items; surface them as the task's footer.
         let helpItems = nestedItems.filter { $0.type.value == .display && ($0.itemControl == "help" || $0.itemControl == "help-button") }
         if !helpItems.isEmpty {
-            let helpText = helpItems
-                .compactMap { $0.text?.localizedString(for: context.options.locale) }
-                .joined(separator: "\n")
-            task.footer = task.footer.isEmpty ? helpText : "\(helpText)\n\(task.footer)"
+            let helpTexts = helpItems.compactMap { GroveQuestionnaire.Questionnaire.LocalizedText($0.text) }
+            let footers = task.footer.base.isEmpty ? helpTexts : helpTexts + [task.footer]
+            task.footer = .joined(footers, separator: "\n")
         }
         let questionItems = nestedItems.filter { item in !helpItems.contains { $0.linkId == item.linkId } }
         return try [task] + nestedTasks(of: questionItems, under: task, using: context)
@@ -521,7 +517,7 @@ extension ModelsR4.QuestionnaireItem {
             // second time as decoration would show the body map twice.
             return nil
         }
-        return .init(data: data, contentType: contentType, altText: attachment.title?.value?.string)
+        return .init(data: data, contentType: contentType, altText: .init(attachment.title))
     }
 
     private func supportLinkFooter() -> String {
@@ -577,11 +573,11 @@ extension ModelsR4.QuestionnaireItem {
         case .display:
             // rendering-markdown on _text supplies a markdown-formatted equivalent,
             // which the native renderer displays with full markdown support.
-            var displayText = text?.localizedString(for: context.options.locale)
+            var displayText = GroveQuestionnaire.Questionnaire.LocalizedText(text)
             if case .markdown(let markdown)? = text?.extension?.first(where: {
                 $0.url.value?.url.absoluteString == "http://hl7.org/fhir/StructureDefinition/rendering-markdown"
-            })?.value, let string = markdown.value?.string {
-                displayText = string
+            })?.value, let markdownText = GroveQuestionnaire.Questionnaire.LocalizedText(markdown) {
+                displayText = markdownText
             }
             guard let text = displayText else {
                 throw .other("QuestionnaireItem of type display is missing 'text'")
@@ -634,7 +630,7 @@ extension ModelsR4.QuestionnaireItem {
                     throw .other("unitOption without a coded unit")
                 }
                 unitOptions.append(.init(
-                    display: coding.display?.localizedString(for: context.options.locale) ?? code,
+                    display: .init(coding.display) ?? .init(code),
                     system: coding.system?.value?.url,
                     code: code
                 ))
@@ -649,7 +645,7 @@ extension ModelsR4.QuestionnaireItem {
                             continue
                         }
                         unitOptions.append(.init(
-                            display: concept.display?.localizedString(for: context.options.locale) ?? code,
+                            display: .init(concept.display) ?? .init(code),
                             system: include.system?.value?.url,
                             code: code
                         ))
@@ -672,7 +668,7 @@ extension ModelsR4.QuestionnaireItem {
                 minimum: minimumValue?.doubleValue,
                 maximum: maximumValue?.doubleValue,
                 maxDecimalPlaces: self.maximumDecimalPlaces?.uintValue,
-                unit: unitCoding?.display?.value?.string ?? unit ?? fixedQuantityUnit?.display ?? unitOptions.first?.display ?? "",
+                unit: .init(unitCoding?.display) ?? unit.map { .init($0) } ?? fixedQuantityUnit?.display ?? unitOptions.first?.display ?? "",
                 unitSystem: unitCoding?.system?.value?.url ?? fixedQuantityUnit?.system,
                 unitCode: unitCoding?.code?.value?.string ?? fixedQuantityUnit?.code,
                 valueKind: {
@@ -771,7 +767,7 @@ extension ModelsR4.QuestionnaireItem {
                 guard let valueSet else {
                     throw .other("Unable to find answer options")
                 }
-                options += try valueSet.choiceOptions(for: context.options.locale)
+                options += try valueSet.choiceOptions()
             } else {
                 // If the `QuestionnaireItem` has `answerOptions` defined instead, extract these options
                 // and convert them to `Questionnaire.Task.Kind.ChoiceConfig.Option`s
@@ -780,14 +776,14 @@ extension ModelsR4.QuestionnaireItem {
                 }
                 for option in answerOptions {
                     // questionnaire-optionPrefix ("A.", "B.") joins the displayed title.
-                    var prefix: String?
+                    var prefix: GroveQuestionnaire.Questionnaire.LocalizedText?
                     if case .string(let value)? = option.extensions(
                         for: "http://hl7.org/fhir/StructureDefinition/questionnaire-optionPrefix"
                     ).first?.value {
-                        prefix = value.localizedString(for: context.options.locale)
+                        prefix = .init(value)
                     }
-                    func title(_ display: String) -> String {
-                        prefix.map { "\($0) \(display)" } ?? display
+                    func title(_ display: GroveQuestionnaire.Questionnaire.LocalizedText) -> GroveQuestionnaire.Questionnaire.LocalizedText {
+                        prefix.map { .joined([$0, display], separator: " ") } ?? display
                     }
                     switch option.value {
                     case .coding(let coding):
@@ -798,7 +794,7 @@ extension ModelsR4.QuestionnaireItem {
                         options.append(.init(
                             // system|code token, so identical codes from different systems stay distinct
                             id: system.map { "\($0.absoluteString)|\(code)" } ?? code,
-                            title: title(coding.display?.localizedString(for: context.options.locale) ?? code),
+                            title: title(.init(coding.display) ?? .init(code)),
                             subtitle: "", // could supply this via an extension
                             fhirCoding: system.map { .init(system: $0, code: code) },
                             // the weight may sit on the answerOption element or on its coding
@@ -809,12 +805,13 @@ extension ModelsR4.QuestionnaireItem {
                         guard let string = value.value?.string else {
                             throw .other("Invalid string value for answer option")
                         }
-                        options.append(.init(id: "string|\(string)", title: title(string), answerValue: .string(string)))
+                        // The base value is the answer a response stores; a translation only changes what is displayed.
+                        options.append(.init(id: "string|\(string)", title: title(.init(string, translations: value.translations)), answerValue: .string(string)))
                     case .integer(let value):
                         guard let integer = value.value?.integer else {
                             throw .other("Invalid integer value for answer option")
                         }
-                        options.append(.init(id: "integer|\(integer)", title: title("\(integer)"), answerValue: .integer(Int(integer))))
+                        options.append(.init(id: "integer|\(integer)", title: title(.init("\(integer)")), answerValue: .integer(Int(integer))))
                     case .date(let value):
                         guard let date = value.value else {
                             throw .other("Invalid date value for answer option")
@@ -824,7 +821,7 @@ extension ModelsR4.QuestionnaireItem {
                             month: date.month.map(numericCast),
                             day: date.day.map(numericCast)
                         )
-                        options.append(.init(id: "date|\(date.description)", title: title(date.description), answerValue: .date(components)))
+                        options.append(.init(id: "date|\(date.description)", title: title(.init(date.description)), answerValue: .date(components)))
                     case .time(let value):
                         guard let time = value.value else {
                             throw .other("Invalid time value for answer option")
@@ -834,7 +831,7 @@ extension ModelsR4.QuestionnaireItem {
                             minute: numericCast(time.minute),
                             second: Int(time.second.doubleValue)
                         )
-                        options.append(.init(id: "time|\(time.description)", title: title(time.description), answerValue: .time(components)))
+                        options.append(.init(id: "time|\(time.description)", title: title(.init(time.description)), answerValue: .time(components)))
                     case .reference:
                         throw .other("Unsupported choice option value: \(option.value).")
                     }
@@ -848,11 +845,11 @@ extension ModelsR4.QuestionnaireItem {
             } else {
                 orientation = .vertical
             }
-            var openLabel: String?
+            var openLabel: GroveQuestionnaire.Questionnaire.LocalizedText?
             if case .string(let label)? = extensions(
                 for: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-openLabel"
             ).first?.value {
-                openLabel = label.localizedString(for: context.options.locale)
+                openLabel = .init(label)
             }
             return .choice(.init(
                 options: options,
@@ -938,10 +935,10 @@ extension ModelsR4.QuestionnaireItem {
         guard let expression = try constraintExpression(of: ext) else {
             throw .other("Constraint on item '\((try? getLinkId()) ?? "?")' is missing its expression")
         }
-        let human: String?
+        let human: GroveQuestionnaire.Questionnaire.LocalizedText?
         switch ext.subExtension("human")?.value {
         case .string(let value):
-            human = value.value?.string
+            human = .init(value)
         default:
             human = nil
         }
@@ -1080,9 +1077,7 @@ extension ModelsR4.QuestionnaireItem {
 extension ModelsR4.ValueSet {
     /// Builds choice options from a ValueSet, preferring a pre-computed `expansion`
     /// over `compose` (which must enumerate concepts — filters need an expansion).
-    fileprivate func choiceOptions(
-        for locale: Locale
-    ) throws(ConversionError) -> [GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option] {
+    fileprivate func choiceOptions() throws(ConversionError) -> [GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option] {
         var options: [GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option] = []
         if let contains = expansion?.contains, !contains.isEmpty {
             for entry in contains {
@@ -1091,7 +1086,7 @@ extension ModelsR4.ValueSet {
                 }
                 options.append(.init(
                     id: "\(system.absoluteString)|\(code)",
-                    title: entry.display?.localizedString(for: locale) ?? code,
+                    title: .init(entry.display) ?? .init(code),
                     subtitle: "",
                     fhirCoding: .init(system: system, code: code),
                     weight: entry.itemWeight
@@ -1117,7 +1112,7 @@ extension ModelsR4.ValueSet {
                 }
                 options.append(.init(
                     id: "\(system.absoluteString)|\(code)",
-                    title: option.display?.localizedString(for: locale) ?? code,
+                    title: .init(option.display) ?? .init(code),
                     subtitle: "", // could supply this via an extension
                     fhirCoding: .init(system: system, code: code),
                     weight: option.itemWeight
@@ -1238,13 +1233,13 @@ extension ModelsR4.QuestionnaireItem {
         return linkId
     }
 
-    fileprivate func shortText(for locale: Locale) -> String? {
+    fileprivate func shortText() -> GroveQuestionnaire.Questionnaire.LocalizedText? {
         guard case .string(let short)? = extensions(
             for: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-shortText"
         ).first?.value else {
             return nil
         }
-        return short.localizedString(for: locale)
+        return .init(short)
     }
 
     /// This item's linkId together with those of its descendants, i.e. the scope a `variable`

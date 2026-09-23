@@ -20,6 +20,7 @@ struct QuestionnaireWriterContextTests {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: URL(string: "https://example.org/fhir/Questionnaire/check-in")!,
             version: "2.1.0",
+            language: "en-US",
             title: "Daily Check-In"
         ) {
             Section("daily") {
@@ -49,6 +50,7 @@ struct QuestionnaireWriterContextTests {
         let pair = try ResourceBuilder().pair(
             from: responses(),
             writerContext: writerContext,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -75,6 +77,7 @@ struct QuestionnaireWriterContextTests {
         var response = try ResourceBuilder().response(
             from: responses(),
             writerContext: first,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -93,6 +96,7 @@ struct QuestionnaireWriterContextTests {
     func canonicalIdentityDistinguishesQuestionnaireVersions() throws {
         let valid = try ResourceBuilder().pair(
             from: responses(),
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )

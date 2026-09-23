@@ -22,6 +22,7 @@ struct FHIRFoundationFixesTests {
 
     private func makeQuestionnaire(items: [ModelsR4.QuestionnaireItem]) -> ModelsR4.Questionnaire {
         var questionnaire = ModelsR4.Questionnaire(status: FHIRPrimitive(PublicationStatus.active))
+        questionnaire.language = "en-US"
         questionnaire.url = "https://example.org/fhir/Questionnaire/foundation".asFHIRURIPrimitive()
         questionnaire.version = "1.0.0".asFHIRStringPrimitive()
         questionnaire.item = items
@@ -203,6 +204,7 @@ struct FHIRFoundationFixesTests {
         responses.responses["mood"] = .init(value: .choice(.init(selectedOptions: ["https://example.org/scale|nearly-every-day"])))
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )

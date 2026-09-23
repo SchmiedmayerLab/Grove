@@ -90,6 +90,9 @@ extension GroveQuestionnaire.Questionnaire {
 extension ModelsR4.Questionnaire {
     /// Exports a natively declared Grove questionnaire as a FHIR R4 `Questionnaire`.
     ///
+    /// The export is lossless for text: it writes the base `Questionnaire.Metadata.language`,
+    /// every base string, and one `translation` extension per language on each of them.
+    ///
     /// Together with `ModelsR4.QuestionnaireResponse.init(_:)` this closes the round
     /// trip: instruments authored with the Swift DSL serve FHIR-native consumers.
     public init(
@@ -110,6 +113,12 @@ extension ModelsR4.Questionnaire {
         }
         guard !version.contains("|"), !version.contains("#") else {
             throw ContractError.invalidQuestionnaireCanonical("\(url.absoluteString)|\(version)")
+        }
+        guard questionnaire.metadata.language != nil else {
+            throw ContractError.missingQuestionnaireLanguage
+        }
+        if let language = questionnaire.conflictingTranslationLanguage {
+            throw ContractError.conflictingTranslation(language)
         }
         try self.init(projecting: questionnaire)
         self.id = repositoryID?.primitive
@@ -162,7 +171,7 @@ extension ModelsR4.Questionnaire {
                 linkId: groupId.asFHIRStringPrimitive(),
                 type: FHIRPrimitive(QuestionnaireItemType.group)
             )
-            if !section.title.isEmpty {
+            if !section.title.base.isEmpty {
                 group.text = section.title.asFHIRStringPrimitive()
             }
             if let shortTitle = section.shortTitle {
@@ -205,10 +214,11 @@ extension ModelsR4.Questionnaire {
             self.url = url.asFHIRURIPrimitive()
         }
         self.version = metadata.version?.asFHIRStringPrimitive()
-        self.title = metadata.title.isEmpty ? nil : metadata.title.asFHIRStringPrimitive()
-        self.name = metadata.title.isEmpty ? nil : metadata.title
+        self.language = metadata.language.map { FHIRPrimitive(ModelsR4.FHIRString($0)) }
+        self.title = metadata.title.base.isEmpty ? nil : metadata.title.asFHIRStringPrimitive()
+        self.name = metadata.title.base.isEmpty ? nil : metadata.title.base
             .components(separatedBy: .alphanumerics.inverted).joined().asFHIRStringPrimitive()
-        self.description_fhir = metadata.explainer.isEmpty ? nil : metadata.explainer.asFHIRStringPrimitive()
+        self.description_fhir = metadata.explainer.base.isEmpty ? nil : metadata.explainer.asFHIRStringPrimitive()
         self.publisher = metadata.publisher?.asFHIRStringPrimitive()
         self.copyright = metadata.copyright?.asFHIRStringPrimitive()
     }
@@ -217,7 +227,7 @@ extension ModelsR4.Questionnaire {
 
 extension ModelsR4.Extension {
     /// The abbreviated title constrained displays fall back to (SDC `shortText`).
-    static func shortText(_ shortTitle: String) -> Extension {
+    static func shortText(_ shortTitle: GroveQuestionnaire.Questionnaire.LocalizedText) -> Extension {
         Extension(
             url: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-shortText",
             value: .string(shortTitle.asFHIRStringPrimitive())

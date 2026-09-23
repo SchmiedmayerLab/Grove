@@ -70,6 +70,7 @@ enum HeartCheckIn {
     static let questionnaire = GroveQuestionnaire.Questionnaire(
         url: URL(string: "https://grovealliance.org/samples/HeartCheckIn")!,
         version: "1.0.0",
+        language: "en-US",
         title: "Heart Check-In",
         explainer: "A few questions about your week, once a week."
     ) {

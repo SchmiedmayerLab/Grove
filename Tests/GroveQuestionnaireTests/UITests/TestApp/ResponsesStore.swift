@@ -29,6 +29,7 @@ final class ResponsesStore {
     func record(
         _ responses: QuestionnaireResponses,
         from source: String,
+        renderedIn locale: Locale,
         authored: Date,
         authoredTimeZone: TimeZone
     ) throws {
@@ -36,6 +37,7 @@ final class ResponsesStore {
             source: source,
             response: try QuestionnaireResponse(
                 responses,
+                renderedIn: locale,
                 authored: authored,
                 authoredTimeZone: authoredTimeZone
             )

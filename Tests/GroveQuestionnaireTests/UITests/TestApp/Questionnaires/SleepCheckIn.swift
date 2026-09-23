@@ -136,6 +136,7 @@ enum SleepCheckIn {
     static let questionnaire = GroveQuestionnaire.Questionnaire(
         url: URL(string: "https://grovealliance.org/samples/SleepCheckIn")!,
         version: "1.0.0",
+        language: "en-US",
         title: "Sleep Check-In",
         explainer: "A handful of questions about the past seven nights."
     ) {

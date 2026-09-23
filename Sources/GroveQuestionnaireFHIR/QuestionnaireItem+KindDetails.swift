@@ -180,7 +180,7 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.NumericTaskConfig {
                 url: FHIRPrimitive(FHIRURI(stringLiteral: unitExtension)),
                 value: .coding(Coding(
                     code: unitCode.asFHIRStringPrimitive(),
-                    display: unit.isEmpty ? nil : unit.asFHIRStringPrimitive(),
+                    display: unit.base.isEmpty ? nil : unit.asFHIRStringPrimitive(),
                     system: unitSystem?.asFHIRURIPrimitive()
                 ))
             ))
@@ -289,11 +289,14 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
     /// The `answerOption.value[x]` this option is written as, typed to match the value it was read from.
     fileprivate func answerOptionValue(on taskId: GroveQuestionnaire.Questionnaire.Task.ID) throws -> QuestionnaireItemAnswerOption.ValueX {
         guard fhirCoding == nil else {
-            return .coding(toFHIRCoding())
+            var coding = toFHIRCoding(displayed: false)
+            coding.display = title.asFHIRStringPrimitive()
+            return .coding(coding)
         }
         switch answerValue {
         case .string(let string):
-            return .string(string.asFHIRStringPrimitive())
+            // A displayed translation of a string value rides on the value itself; the base stays the stored answer.
+            return .string(title.base == string ? title.asFHIRStringPrimitive() : string.asFHIRStringPrimitive())
         case .integer(let integer):
             guard let value = Int32(exactly: integer) else {
                 throw ExportError("Choice option '\(id)' on '\(taskId)' is out of range for a FHIR integer")

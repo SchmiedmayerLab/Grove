@@ -91,7 +91,7 @@ public struct ChoiceQuestion<Option: QuestionnaireOption>: TypedQuestion {
     }
 
     public func _makeTasks() -> [Questionnaire.Task] { // swiftlint:disable:this identifier_name
-        var task = Questionnaire.Task(id: id, title: coded.title, kind: .choice(coded.makeConfig()))
+        var task = Questionnaire.Task(id: id, title: .init(coded.title), kind: .choice(coded.makeConfig()))
         _core.apply(to: &task)
         return [task]
     }

@@ -105,8 +105,10 @@ extension QuestionnaireResponses {
             .formatted(date: .omitted, time: .shortened)
     }
 
+    /// Validates the task's response; an authored rule's message reads in `language`, or in the base language when `nil`.
     package func validateResponse( // swiftlint:disable:this function_body_length cyclomatic_complexity
-        for task: Questionnaire.Task
+        for task: Questionnaire.Task,
+        in language: String? = nil
     ) -> ResponseValidationResult {
         guard hasResponse(for: task) else {
             // if no response exists, there is nothing that could be invalid.
@@ -119,7 +121,7 @@ extension QuestionnaireResponses {
             for constraint in task.constraints where constraint.severity == .error {
                 do {
                     if try engine.evaluateBoolean(constraint.expression, scope: .answer(task.id), in: self) == .false {
-                        return .invalid(authored: constraint.humanDescription)
+                        return .invalid(authored: constraint.humanDescription.resolved(in: language))
                     }
                 } catch {
                     // A rule that cannot be evaluated proves nothing, so the answer stands;

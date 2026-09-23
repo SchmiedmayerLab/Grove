@@ -20,6 +20,7 @@ import Testing
 struct FHIRChoiceFeatureTests {
     private func makeQuestionnaire(items: [ModelsR4.QuestionnaireItem]) -> ModelsR4.Questionnaire {
         var questionnaire = ModelsR4.Questionnaire(status: FHIRPrimitive(PublicationStatus.active))
+        questionnaire.language = "en-US"
         questionnaire.url = "https://example.org/fhir/Questionnaire/choice-features".asFHIRURIPrimitive()
         questionnaire.version = "1.0.0".asFHIRStringPrimitive()
         questionnaire.item = items
@@ -209,6 +210,7 @@ struct FHIRChoiceFeatureTests {
         responses.responses["weight"] = .init(value: .quantity(150, unitCode: "[lb_av]"))
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -234,6 +236,6 @@ struct FHIRChoiceFeatureTests {
         let questionnaire = try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [question]), clock: questionnaireResponseTestClock)
         let tasks = questionnaire.sections.flatMap(\.tasks)
         #expect(tasks.count == 1, "the help item must not become its own task")
-        #expect(tasks.first?.footer.contains("alcoholic beverage") == true)
+        #expect(tasks.first?.footer.base.contains("alcoholic beverage") == true)
     }
 }

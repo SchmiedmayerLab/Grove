@@ -59,6 +59,7 @@ private enum Burdens {
     static let questionnaire = GroveQuestionnaire.Questionnaire(
         url: URL(string: "https://example.org/fhir/Questionnaire/burdens")!,
         version: "1.0.0",
+        language: "en-US",
         title: "Burdens"
     ) {
         Section("burden", title: "Burden") {

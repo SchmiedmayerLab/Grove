@@ -23,6 +23,7 @@ struct FHIRExportMetadataTests {
 
     private func makeFHIRQuestionnaire(status: PublicationStatus) -> ModelsR4.Questionnaire {
         var questionnaire = ModelsR4.Questionnaire(status: FHIRPrimitive(status))
+        questionnaire.language = "en-US"
         questionnaire.url = Self.url.absoluteString.asFHIRURIPrimitive()
         questionnaire.version = "1.0.0".asFHIRStringPrimitive()
         var item = ModelsR4.QuestionnaireItem(linkId: "agree".asFHIRStringPrimitive(), type: .init(.boolean))
@@ -54,7 +55,7 @@ struct FHIRExportMetadataTests {
 
     @Test
     func exportedResourcesDeclareTheirProfile() throws {
-        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", title: "Export") {
+        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", language: "en-US", title: "Export") {
             Section("s1") {
                 BooleanQuestion("agree", "Agree?")
             }
@@ -65,6 +66,7 @@ struct FHIRExportMetadataTests {
         responses.responses["agree"] = .init(value: .bool(true))
         let fhirResponse = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -151,7 +153,7 @@ struct FHIRExportMetadataTests {
             sections: tasks
         )
         let unaddressed = GroveQuestionnaire.Questionnaire(
-            metadata: .init(id: "local", url: nil, version: "1.0.0", title: "Local", explainer: ""),
+            metadata: .init(id: "local", url: nil, version: "1.0.0", language: "en-US", title: "Local", explainer: ""),
             sections: tasks
         )
         #expect(throws: ContractError.missingQuestionnaireVersion) {
@@ -178,6 +180,7 @@ struct FHIRExportMetadataTests {
         #expect(throws: (any Error).self) {
             try ModelsR4.QuestionnaireResponse(
                 responses,
+                renderedIn: questionnaireResponseTestLocale,
                 authored: questionnaireResponseTestAuthoredAt,
                 authoredTimeZone: questionnaireResponseTestTimeZone
             )
@@ -186,7 +189,7 @@ struct FHIRExportMetadataTests {
 
     @Test
     func responseIdentityAndAuthoredTimestampAreStableWhenSupplied() throws {
-        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", title: "Export") {
+        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", language: "en-US", title: "Export") {
             Section("s1") {
                 BooleanQuestion("agree", "Agree?")
             }
@@ -194,8 +197,8 @@ struct FHIRExportMetadataTests {
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let authored = Date(timeIntervalSince1970: 1_700_000_000)
 
-        let first = try ModelsR4.QuestionnaireResponse(responses, authored: authored, authoredTimeZone: questionnaireResponseTestTimeZone)
-        let second = try ModelsR4.QuestionnaireResponse(responses, authored: authored, authoredTimeZone: questionnaireResponseTestTimeZone)
+        let first = try ModelsR4.QuestionnaireResponse(responses, renderedIn: questionnaireResponseTestLocale, authored: authored, authoredTimeZone: questionnaireResponseTestTimeZone)
+        let second = try ModelsR4.QuestionnaireResponse(responses, renderedIn: questionnaireResponseTestLocale, authored: authored, authoredTimeZone: questionnaireResponseTestTimeZone)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
 
@@ -207,7 +210,7 @@ struct FHIRExportMetadataTests {
 
     @Test
     func expressionEvaluationSnapshotHasNoHiddenClock() throws {
-        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", title: "Evaluation") {
+        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", language: "en-US", title: "Evaluation") {
             Section("s1") {
                 BooleanQuestion("agree", "Agree?")
             }
@@ -228,7 +231,7 @@ struct FHIRExportMetadataTests {
 
     @Test
     func numericBoundsTakeTheAnswerType() throws {
-        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", title: "Bounds") {
+        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", language: "en-US", title: "Bounds") {
             Section("s1") {
                 NumberQuestion.integer("count", "How many?").range(0...10)
                 NumberQuestion("score", "Score").range(0...1)
@@ -275,7 +278,7 @@ struct FHIRExportMetadataTests {
 
     @Test
     func fixedQuantityResponseUsesTheDeclaredUnitDisplay() throws {
-        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", title: "Temperature") {
+        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", language: "en-US", title: "Temperature") {
             Section("s1") {
                 NumberQuestion.quantity(
                     "temperature",
@@ -290,6 +293,7 @@ struct FHIRExportMetadataTests {
 
         let response = try ModelsR4.QuestionnaireResponse(
             responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )
@@ -332,7 +336,7 @@ struct FHIRExportMetadataTests {
 
     @Test
     func synthesizedConstraintKeysStayWithinTheIdAlphabet() throws {
-        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", title: "Keys") {
+        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", language: "en-US", title: "Keys") {
             Section("s1") {
                 TextQuestion("email_address", "Email").constraint("$this.matches('.+@.+')", message: "Enter a valid address.")
             }

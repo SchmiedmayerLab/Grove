@@ -537,6 +537,7 @@ extension GroveQuestionnaireFHIRPairRuleTests {
         let questionnaire = GroveQuestionnaire.Questionnaire(
             url: Self.canonical,
             version: "1.0.0",
+            language: "en-US",
             title: "Pair Rules"
         ) {
             Section("section") {
@@ -547,6 +548,7 @@ extension GroveQuestionnaireFHIRPairRuleTests {
         responses.responses["question"] = .init(value: .bool(true))
         let pair = try ResourceBuilder().pair(
             from: responses,
+            renderedIn: questionnaireResponseTestLocale,
             authored: questionnaireResponseTestAuthoredAt,
             authoredTimeZone: questionnaireResponseTestTimeZone
         )

@@ -53,38 +53,43 @@ extension FHIRTypeWithExtensions {
 
 
 extension FHIRPrimitive where PrimitiveType == FHIRString {
-    /// The string's best value for a locale, honoring `translation` extensions
-    /// carried on the primitive (the FHIR mechanism for multi-language resources).
-    public func localizedString(for locale: Locale = .autoupdatingCurrent) -> String? {
-        let translations = `extension`?.filter {
-            $0.url.value?.url.absoluteString == "http://hl7.org/fhir/StructureDefinition/translation"
-        } ?? []
-        // Not `locale.language.languageCode`: that needs iOS 16 / macOS 13, above the lowered
-        // deployment floor the package still builds against.
-        let language = locale.identifier.split { $0 == "-" || $0 == "_" }.first?.lowercased()
-        if !translations.isEmpty, let language {
-            for translation in translations {
-                guard case let .code(langCode)? = translation.extension?.first(where: { $0.url.value?.url.absoluteString == "lang" })?.value,
-                      let lang = langCode.value?.string.lowercased(),
-                      lang == language || lang.hasPrefix("\(language)-") else {
+    private static let translationURL = "http://hl7.org/fhir/StructureDefinition/translation"
+
+    /// The string's `translation` extensions (the FHIR mechanism for multilingual resources), keyed by BCP 47 language tag.
+    ///
+    /// Setting it replaces every `translation` extension, writing one per language in tag order and keeping the string's other extensions.
+    public var translations: [String: String] {
+        get {
+            var translations: [String: String] = [:]
+            for translation in `extension` ?? [] where translation.url.value?.url.absoluteString == Self.translationURL {
+                guard case let .code(language)? = translation.extension?.first(where: { $0.url.value?.url.absoluteString == "lang" })?.value,
+                      let language = language.value?.string else {
                     continue
                 }
-                let content = translation.extension?.first { $0.url.value?.url.absoluteString == "content" }?.value
-                switch content {
-                case .string(let value):
-                    if let string = value.value?.string {
-                        return string
-                    }
-                case .markdown(let value):
-                    if let string = value.value?.string {
-                        return string
-                    }
+                switch translation.extension?.first(where: { $0.url.value?.url.absoluteString == "content" })?.value {
+                case .string(let content), .markdown(let content):
+                    translations[language] = content.value?.string
                 default:
-                    break
+                    continue
                 }
             }
+            return translations
         }
-        return value?.string
+        set {
+            let others = (`extension` ?? []).filter { $0.url.value?.url.absoluteString != Self.translationURL }
+            let translations = newValue.sorted { $0.key < $1.key }.map { language, content in
+                var translation = Extension(url: FHIRPrimitive<FHIRURI>(FHIRURI(stringLiteral: Self.translationURL)))
+                translation.extension = [
+                    Extension(url: "lang", value: .code(FHIRPrimitive(FHIRString(language)))),
+                    Extension(url: "content", value: .string(FHIRPrimitive(FHIRString(content))))
+                ]
+                return translation
+            }
+            `extension` = others + translations
+            if `extension`?.isEmpty == true {
+                `extension` = nil
+            }
+        }
     }
 }
 

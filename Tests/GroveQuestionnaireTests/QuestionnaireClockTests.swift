@@ -27,6 +27,7 @@ struct QuestionnaireClockTests {
         var answered = ModelsR4.QuestionnaireItem(linkId: "answered".asFHIRStringPrimitive(), type: .init(.boolean))
         answered.text = "answered".asFHIRStringPrimitive()
         var questionnaire = ModelsR4.Questionnaire(status: FHIRPrimitive(PublicationStatus.active))
+        questionnaire.language = "en-US"
         questionnaire.url = "https://example.org/fhir/Questionnaire/clock".asFHIRURIPrimitive()
         questionnaire.version = "1.0.0".asFHIRStringPrimitive()
         questionnaire.item = [
@@ -60,7 +61,7 @@ struct QuestionnaireClockTests {
         responses.responses["answered"] = .init(value: .bool(true))
         #expect(responses.responses["new-year"].value == .bool(true), "answered in Tokyo, where it is New Year's Day")
 
-        let exported = try ModelsR4.QuestionnaireResponse(responses, authored: Self.instant, authoredTimeZone: Self.pacific)
+        let exported = try ModelsR4.QuestionnaireResponse(responses, renderedIn: questionnaireResponseTestLocale, authored: Self.instant, authoredTimeZone: Self.pacific)
         let newYear = exported.item?.first { $0.linkId.value?.string == "new-year" }
         #expect(newYear?.answer?.first?.value == .boolean(FHIRPrimitive(FHIRBool(false))), "recomputed at authored")
 
