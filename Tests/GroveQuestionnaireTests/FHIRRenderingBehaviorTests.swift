@@ -109,7 +109,7 @@ struct FHIRRenderingBehaviorTests {
     }
 
     @Test
-    func renderingMarkdownIsPreferredForDisplayItems() throws {
+    func renderingMarkdownIsKeptBesideThePlainText() throws {
         var text = FHIRPrimitive(ModelsR4.FHIRString("Important: do not eat before the test."))
         text.extension = [
             Extension(
@@ -120,11 +120,12 @@ struct FHIRRenderingBehaviorTests {
         var item = ModelsR4.QuestionnaireItem(linkId: "d1".asFHIRStringPrimitive(), type: .init(.display))
         item.text = text
         let task = try firstTask(try GroveQuestionnaire.Questionnaire(makeQuestionnaire(items: [item]), clock: questionnaireResponseTestClock))
-        guard case .instructional(let rendered) = task.kind.variant else {
+        guard case .instructional(let plain) = task.kind.variant else {
             Issue.record("Expected an instructional task")
             return
         }
-        #expect(rendered == "**Important:** do *not* eat before the test.")
+        #expect(plain == "Important: do not eat before the test.")
+        #expect(task.markdownText == "**Important:** do *not* eat before the test.")
     }
 
     @Test

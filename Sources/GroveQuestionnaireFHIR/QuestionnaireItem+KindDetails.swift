@@ -144,11 +144,16 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.NumericTaskConfig {
                     value: .decimal(value.asFHIRDecimalPrimitive())
                 )
             case .quantity:
-                Extension(
-                    url: FHIRPrimitive(FHIRURI(stringLiteral: quantity)),
-                    value: .quantity(context.quantity(value, unitCode: unitCode, forTaskWithId: taskId))
-                )
+                Extension(url: FHIRPrimitive(FHIRURI(stringLiteral: quantity)), value: .quantity(boundQuantity(value)))
             }
+        }
+        // The bound states its unit as the question displays it, in every language the question offers.
+        func boundQuantity(_ value: Double) -> Quantity {
+            var quantity = context.quantity(value, unitCode: unitCode, forTaskWithId: taskId)
+            if !unit.base.isEmpty {
+                quantity.unit = unit.asFHIRStringPrimitive()
+            }
+            return quantity
         }
         var extensions: [Extension] = []
         if let minimum {

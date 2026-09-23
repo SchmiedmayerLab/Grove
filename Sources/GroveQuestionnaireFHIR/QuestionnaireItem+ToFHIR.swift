@@ -369,10 +369,10 @@ extension ModelsR4.QuestionnaireItem {
     ) {
         switch task.kind.variant {
         case .instructional(let text):
-            self.text = text.asFHIRStringPrimitive()
+            self.text = text.asFHIRStringPrimitive(markdown: task.markdownText)
         default:
             if !task.title.base.isEmpty {
-                self.text = task.title.asFHIRStringPrimitive()
+                self.text = task.title.asFHIRStringPrimitive(markdown: task.markdownText)
             }
         }
         self.prefix = task.prefix?.asFHIRStringPrimitive()

@@ -44,7 +44,7 @@ extension Questionnaire {
     }
 
     private var localizedTexts: [LocalizedText] {
-        [metadata.title, metadata.explainer]
+        [metadata.title, metadata.explainer] + (metadata.purpose.map { [$0] } ?? [])
             + sections.flatMap { section in
                 [section.title] + (section.shortTitle.map { [$0] } ?? []) + section.tasks.flatMap(\.localizedTexts)
             }
@@ -65,7 +65,7 @@ extension Questionnaire {
 extension Questionnaire.Task {
     fileprivate var localizedTexts: [Questionnaire.LocalizedText] {
         var texts = [title, subtitle, footer]
-        texts += [prefix, shortTitle, media?.altText].compactMap(\.self)
+        texts += [markdownText, prefix, shortTitle, media?.altText].compactMap(\.self)
         texts += constraints.map(\.humanDescription)
         texts += groupPath.flatMap { [$0.title] + ($0.shortTitle.map { [$0] } ?? []) }
         switch kind.variant {

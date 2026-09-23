@@ -184,7 +184,7 @@ try questionnaire.checkDeclaration(of: PHQ2.self)
 
 A questionnaire is one instrument in every language it offers.
 Its base strings are written in ``Questionnaire/Metadata/language``, and each text the participant sees is a ``Questionnaire/LocalizedText`` carrying its translations, keyed by BCP 47 tag.
-Importing a FHIR questionnaire keeps every `translation` extension, and exporting one writes them all back.
+Importing a FHIR questionnaire keeps every `translation` extension, and exporting one writes them all back, the `purpose` and each `rendering-markdown` equivalent included.
 
 A renderer picks one language for the whole questionnaire with ``Questionnaire/renderingLanguage(for:)``: an exact tag match first (`es-US`), then the locale's primary language (`es`), then the base language.
 Every text then resolves in that language with ``Questionnaire/LocalizedText/resolved(in:)``.

@@ -222,6 +222,8 @@ extension Questionnaire {
         public let title: LocalizedText
         /// Natural-language description of the questionnaire.
         public let explainer: LocalizedText
+        /// Why the questionnaire exists (FHIR `Questionnaire.purpose`).
+        public let purpose: LocalizedText?
         /// The questionnaire's publication lifecycle.
         public let lifecycle: PublicationLifecycle
         /// The instrument's publisher, for attribution of licensed instruments.
@@ -243,6 +245,7 @@ extension Questionnaire {
             language: String? = nil,
             title: LocalizedText,
             explainer: LocalizedText,
+            purpose: LocalizedText? = nil,
             lifecycle: PublicationLifecycle = .active,
             publisher: String? = nil,
             copyright: String? = nil,
@@ -256,6 +259,7 @@ extension Questionnaire {
             self.language = language
             self.title = title
             self.explainer = explainer
+            self.purpose = purpose
             self.lifecycle = lifecycle
             self.publisher = publisher
             self.copyright = copyright

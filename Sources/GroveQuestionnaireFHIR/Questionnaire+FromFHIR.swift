@@ -142,6 +142,7 @@ extension GroveQuestionnaire.Questionnaire {
             language: other.language?.value?.string,
             title: .init(other.title) ?? "",
             explainer: .init(other.description_fhir) ?? "",
+            purpose: .init(other.purpose),
             lifecycle: lifecycle,
             publisher: other.publisher?.value?.string,
             copyright: other.copyright?.value?.string,
@@ -440,6 +441,7 @@ extension ModelsR4.QuestionnaireItem {
         var task = GroveQuestionnaire.Questionnaire.Task(
             id: try self.getLinkId(),
             title: itemType == .display ? "" : .init(self.text) ?? "",
+            markdownText: .init(renderingMarkdown),
             prefix: .init(self.prefix),
             shortTitle: shortText(),
             footer: .init(supportLinkFooter()),
@@ -571,15 +573,7 @@ extension ModelsR4.QuestionnaireItem {
         case .group:
             throw .other("Attempted to request '\(GroveQuestionnaire.Questionnaire.Task.Kind.self)' for questionnaire item of type '\(itemType)'")
         case .display:
-            // rendering-markdown on _text supplies a markdown-formatted equivalent,
-            // which the native renderer displays with full markdown support.
-            var displayText = GroveQuestionnaire.Questionnaire.LocalizedText(text)
-            if case .markdown(let markdown)? = text?.extension?.first(where: {
-                $0.url.value?.url.absoluteString == "http://hl7.org/fhir/StructureDefinition/rendering-markdown"
-            })?.value, let markdownText = GroveQuestionnaire.Questionnaire.LocalizedText(markdown) {
-                displayText = markdownText
-            }
-            guard let text = displayText else {
+            guard let text = GroveQuestionnaire.Questionnaire.LocalizedText(text) else {
                 throw .other("QuestionnaireItem of type display is missing 'text'")
             }
             switch itemControl {
@@ -1226,6 +1220,16 @@ extension ModelsR4.Extension.ValueX {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ModelsR4.QuestionnaireItem {
+    /// The Markdown equivalent `rendering-markdown` supplies for the item's text.
+    fileprivate var renderingMarkdown: FHIRPrimitive<ModelsR4.FHIRString>? {
+        guard case .markdown(let markdown)? = text?.extension?.first(where: {
+            $0.url.value?.url.absoluteString == renderingMarkdownURL
+        })?.value else {
+            return nil
+        }
+        return markdown
+    }
+
     fileprivate func getLinkId() throws(ConversionError) -> String {
         guard let linkId = self.linkId.value?.string else {
             throw .other("QuestionnaireItem is missing 'linkId'")

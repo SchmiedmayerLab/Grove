@@ -195,10 +195,10 @@ struct TaskView: View {
         return nil
     }
 
-    /// The rendered title: question numbering (`item.prefix`) joined with the title, preferring
+    /// The rendered title: question numbering (`item.prefix`) joined with the title, or its Markdown equivalent, preferring
     /// the SDC `shortText` on watchOS and standing in with it where no title was authored.
     private var displayTitle: String {
-        let title = task.title.resolved(in: language)
+        let title = (task.markdownText ?? task.title).resolved(in: language)
         let shortTitle = task.shortTitle?.resolved(in: language)
         #if os(watchOS)
         let base = shortTitle ?? title
@@ -242,7 +242,7 @@ struct TaskView: View {
     @ViewBuilder private var mainContent: some View {
         switch task.kind.variant {
         case .instructional(let text):
-            Instructions(text: text.resolved(in: language))
+            Instructions(text: (task.markdownText ?? text).resolved(in: language))
         case .choice(let config):
             ChoiceAnswering(task: task, config: config, response: $response)
         case .freeText(let config):

@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import FHIRModelsExtensions
 import Foundation
 import GroveFHIRContract
 import GroveQuestionnaire
@@ -33,7 +34,8 @@ struct LocalizationTests {
                 version: "1.0.0",
                 language: language,
                 title: translated("Check-In"),
-                explainer: translated("How you are doing")
+                explainer: translated("How you are doing"),
+                purpose: translated("Why we ask")
             ),
             sections: [
                 .init(
@@ -41,7 +43,12 @@ struct LocalizationTests {
                     title: translated("Today"),
                     shortTitle: translated("Now"),
                     tasks: [
-                        .init(id: "intro", title: "", kind: .instructional(translated("Please answer"))),
+                        .init(
+                            id: "intro",
+                            title: "",
+                            markdownText: translated("**Please** answer"),
+                            kind: .instructional(translated("Please answer"))
+                        ),
                         .init(
                             id: "mood",
                             title: translated("How do you feel?"),
@@ -69,6 +76,8 @@ struct LocalizationTests {
                             title: "Weight",
                             kind: .numeric(.init(
                                 inputMode: .numberPad(.decimal),
+                                minimum: 20,
+                                maximum: 200,
                                 unit: translated("kilograms"),
                                 unitSystem: URL(string: "http://unitsofmeasure.org"),
                                 unitCode: "kg",
@@ -118,7 +127,7 @@ struct LocalizationTests {
         #expect(fhir.language?.value?.string == "en-US")
         let json = try String(decoding: JSONEncoder().encode(fhir), as: UTF8.self)
         let texts = [
-            "Check-In", "How you are doing", "Today", "Now", "Please answer", "How do you feel?", "1.", "Mood", "Take your time",
+            "Check-In", "How you are doing", "Why we ask", "**Please** answer", "Today", "Now", "Please answer", "How do you feel?", "1.", "Mood", "Take your time",
             "Good", "Something else", "Pick one", "Feelings", "F", "kilograms"
         ]
         for base in texts {
@@ -127,6 +136,17 @@ struct LocalizationTests {
             }
         }
         #expect(json.contains("\"regular\""))
+        let weight = try #require(fhir.item?.first?.item?.last)
+        for bound in ["minQuantity", "maxQuantity"] {
+            guard case .quantity(let quantity)? = weight.extensions(
+                for: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-\(bound)"
+            ).first?.value else {
+                Issue.record("Expected a quantity bound")
+                return
+            }
+            #expect(quantity.unit?.value?.string == "kilograms")
+            #expect(quantity.unit?.translations == ["en-GB": "kilograms (GB)", "es": "kilograms (es)", "es-MX": "kilograms (MX)"])
+        }
     }
 
     @Test
@@ -135,6 +155,8 @@ struct LocalizationTests {
         let exported = try ModelsR4.Questionnaire(questionnaire)
         let imported = try GroveQuestionnaire.Questionnaire(exported, clock: questionnaireResponseTestClock)
         #expect(imported.metadata.language == "en-US")
+        #expect(imported.metadata.purpose == questionnaire.metadata.purpose)
+        #expect(imported.sections.first?.tasks.first?.markdownText == questionnaire.sections[0].tasks[0].markdownText)
         #expect(imported.languages == questionnaire.languages)
         #expect(try ModelsR4.Questionnaire(imported) == exported)
         let mood = try #require(imported.sections.first?.tasks.first { $0.id == "mood" })

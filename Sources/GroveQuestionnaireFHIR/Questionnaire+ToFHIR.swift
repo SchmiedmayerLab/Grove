@@ -219,6 +219,7 @@ extension ModelsR4.Questionnaire {
         self.name = metadata.title.base.isEmpty ? nil : metadata.title.base
             .components(separatedBy: .alphanumerics.inverted).joined().asFHIRStringPrimitive()
         self.description_fhir = metadata.explainer.base.isEmpty ? nil : metadata.explainer.asFHIRStringPrimitive()
+        self.purpose = metadata.purpose?.asFHIRStringPrimitive()
         self.publisher = metadata.publisher?.asFHIRStringPrimitive()
         self.copyright = metadata.copyright?.asFHIRStringPrimitive()
     }

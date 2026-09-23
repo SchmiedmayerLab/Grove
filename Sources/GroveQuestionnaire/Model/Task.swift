@@ -77,6 +77,9 @@ extension Questionnaire {
         public var id: String
         /// The task's user-displayed title.
         public var title: Questionnaire.LocalizedText
+        /// The item's text formatted as Markdown (FHIR `rendering-markdown`), which renderers show in place of the plain
+        /// ``title``, or of an instructional task's text.
+        public var markdownText: Questionnaire.LocalizedText?
         /// A short display prefix such as question numbering (FHIR `item.prefix`, e.g. "1a.").
         public var prefix: Questionnaire.LocalizedText?
         /// An abbreviated title for constrained displays (SDC `shortText`).
@@ -147,6 +150,7 @@ extension Questionnaire {
         public init(
             id: String,
             title: Questionnaire.LocalizedText,
+            markdownText: Questionnaire.LocalizedText? = nil,
             prefix: Questionnaire.LocalizedText? = nil,
             shortTitle: Questionnaire.LocalizedText? = nil,
             subtitle: Questionnaire.LocalizedText = "",
@@ -169,6 +173,7 @@ extension Questionnaire {
         ) {
             self.id = id
             self.title = title
+            self.markdownText = markdownText
             self.prefix = prefix
             self.shortTitle = shortTitle
             self.subtitle = subtitle
