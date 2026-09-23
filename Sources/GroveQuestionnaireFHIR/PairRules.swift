@@ -343,20 +343,12 @@ struct PairContext {
         }
     }
 
-    // swiftlint:disable:next function_body_length
     mutating func validateItem(
         definition: FHIRJSONObject,
         response: FHIRJSONObject,
         path: String,
         enabled: Bool?
     ) {
-        if response["text"] as? String != definition["text"] as? String {
-            issues.append(.init(
-                code: .responseText,
-                path: "\(path).text",
-                message: "Response text must equal the Questionnaire item text."
-            ))
-        }
         let itemType = definition["type"] as? String ?? ""
         let answers = response["answer"] as? [FHIRJSONObject] ?? []
         if ["group", "display"].contains(itemType), !answers.isEmpty {

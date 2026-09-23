@@ -150,6 +150,20 @@ struct GroveQuestionnaireFHIRPairRuleTests {
         #expect(issues.isEmpty)
     }
 
+    @Test("Response item text is presentation and never compared with the prompt", arguments: [nil, "¿Pregunta?"])
+    func acceptsOmittedOrLocalizedResponseText(text: String?) throws {
+        var objects = try basePairObjects()
+        var response = try question(in: objects.response)
+        response["text"] = text
+        try replaceQuestion(in: &objects.response, with: response)
+        let pair = try decodePair(objects)
+        let issues = PairValidator().issues(
+            questionnaire: pair.questionnaire,
+            response: pair.response
+        )
+        #expect(issues.isEmpty)
+    }
+
     @Test("Rejects every deterministic answer-constraint family", arguments: AnswerRuleCase.allCases)
     func rejectsAnswerConstraintFamily(testCase: AnswerRuleCase) throws {
         var objects = try basePairObjects()

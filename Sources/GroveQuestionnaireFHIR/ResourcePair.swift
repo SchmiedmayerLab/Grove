@@ -30,7 +30,6 @@ public struct ValidationIssue: Equatable, Hashable, Sendable {
         case itemMisplaced
         case itemDuplicate
         case itemDisabled
-        case responseText
         case answerType
         case answerOption
         case answerValueSet
