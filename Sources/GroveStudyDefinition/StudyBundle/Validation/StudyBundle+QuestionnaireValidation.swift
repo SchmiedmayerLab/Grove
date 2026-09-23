@@ -313,46 +313,7 @@ private struct QuestionnaireValidator: ~Copyable { // swiftlint:disable:this typ
     
     init(studyBundle: StudyBundle) {
         self.studyBundle = studyBundle
-        let fileRefs = { () -> Set<FileReference> in
-            // we look at all questionnaires that are explicitly referenced from study components ...
-            var fileRefs: Set<FileReference> = studyBundle.studyDefinition.components.compactMapIntoSet {
-                switch $0 {
-                case .questionnaire(let component):
-                    component.fileRef
-                default:
-                    nil
-                }
-            }
-            // ... and also at all those that are not, but still are included with the study bundle.
-            let questionnairesUrl = StudyBundle
-                .folderUrl(for: .questionnaire, relativeTo: studyBundle.bundleUrl)
-                .resolvingSymlinksInPath()
-                .absoluteURL
-            guard let enumerator = FileManager.default.enumerator(at: questionnairesUrl, includingPropertiesForKeys: nil) else {
-                return fileRefs
-            }
-            for url in enumerator.lazy.compactMap({ (($0 as? NSURL)?.path).map { URL(filePath: $0) } }) {
-                guard let unlocalizedUrl = LocalizedFileResolution.parse(url.absoluteURL)?.unlocalizedUrl.standardized,
-                      unlocalizedUrl.pathExtension == "json" else {
-                    continue
-                }
-                // we can only call -resolvingSymlinksInPath on a URL that actually points to a valid file system object,
-                // so we need to do a little dance here where we remove the last component (to make the URL point to the containing folder),
-                // and then re-add it after having normalized the path.
-                let pathComponents = unlocalizedUrl
-                    .deletingLastPathComponent()
-                    .resolvingSymlinksInPath()
-                    .appending(component: unlocalizedUrl.deletingPathExtension().lastPathComponent)
-                    .pathComponents
-                fileRefs.insert(.init(
-                    category: .questionnaire,
-                    filename: pathComponents.dropFirst(questionnairesUrl.pathComponents.count).joined(separator: "/"),
-                    fileExtension: "json"
-                ))
-            }
-            return fileRefs
-        }()
-        self.fileRefs = fileRefs.sorted(using: [KeyPathComparator(\.category.rawValue), KeyPathComparator(\.filename)])
+        self.fileRefs = studyBundle.questionnaireFileRefs()
     }
     
     
@@ -399,53 +360,45 @@ private struct QuestionnaireValidator: ~Copyable { // swiftlint:disable:this typ
     
     
     private mutating func validateQuestionnaires() throws {
-        let fileManager = FileManager.default
         for fileRef in fileRefs {
-            /// all files for this fileRef's category
-            let urls = (try? fileManager.contentsOfDirectory(
-                at: StudyBundle.folderUrl(for: fileRef.category, relativeTo: studyBundle.bundleUrl),
-                includingPropertiesForKeys: nil
-            )) ?? []
-            let candidates = LocalizedFileResolution.selectCandidatesIgnoringLocalization(
-                matching: LocalizedFileResource(fileRef),
-                from: urls
-            )
-            let questionnaires = try candidates.map {
-                (questionnaire: try JSONDecoder().decode(Questionnaire.self, from: try Data(contentsOf: $0.url)), fileRef: $0)
+            let questionnaires = try studyBundle.localizedQuestionnaires(for: fileRef)
+            guard let base = StudyBundle.base(of: questionnaires) else {
+                continue
             }
-            
-            let base = questionnaires.first { $0.0.language == "en-US" || $0.fileRef.localization == .enUS }
-                ?? questionnaires.first { $0.0.language == "en" || $0.fileRef.localization.language.isEquivalent(to: .init(identifier: "en")) }
-                ?? questionnaires.first! // swiftlint:disable:this force_unwrapping - SAFETY: we have checked above that this is non-empty
-            
-            check(
-                base.questionnaire,
-                at: .init(fileRef: fileRef, localization: base.fileRef.localization)
-            )
-            
-            for other in questionnaires.filter({ $0.fileRef != base.fileRef }) {
-                check(
-                    other.questionnaire,
-                    at: .init(fileRef: fileRef, localization: other.fileRef.localization)
-                )
-                if base.questionnaire.id?.value?.string != other.questionnaire.id?.value?.string {
+            let baseFileRef = LocalizedFileReference(fileRef: fileRef, localization: base.localization)
+            check(base.questionnaire, at: baseFileRef)
+            for other in questionnaires where other.url != base.url {
+                let otherFileRef = LocalizedFileReference(fileRef: fileRef, localization: other.localization)
+                check(other.questionnaire, at: otherFileRef)
+                // One url|version names one multilingual questionnaire, which the per-locale files merge into.
+                for ((path, baseValue), (_, otherValue)) in zip(identity(of: base.questionnaire), identity(of: other.questionnaire))
+                where baseValue != otherValue {
                     issues.append(.mismatchingFieldValues(
-                        baseFileRef: .init(fileRef: fileRef, localization: base.fileRef.localization),
-                        localizedFileRef: .init(fileRef: fileRef, localization: other.fileRef.localization),
-                        path: Path.id,
-                        baseValue: Value(base.questionnaire.id?.value?.string),
-                        localizedValue: Value(other.questionnaire.id?.value?.string)
+                        baseFileRef: baseFileRef,
+                        localizedFileRef: otherFileRef,
+                        path: path,
+                        baseValue: baseValue,
+                        localizedValue: otherValue
                     ))
                 }
                 checkItems(
                     of: other.questionnaire,
-                    at: .init(fileRef: fileRef, localization: other.fileRef.localization),
+                    at: otherFileRef,
                     against: base.questionnaire,
-                    at: .init(fileRef: fileRef, localization: base.fileRef.localization),
+                    at: baseFileRef,
                     path: .root
                 )
             }
         }
+    }
+    
+    
+    private func identity(of questionnaire: Questionnaire) -> [(Path, Value)] {
+        [
+            (Path.id, Value(questionnaire.id?.value?.string)),
+            (Path.url, Value(questionnaire.url?.value?.url)),
+            (Path.version, Value(questionnaire.version?.value?.string))
+        ]
     }
     
     

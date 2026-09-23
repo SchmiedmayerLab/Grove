@@ -20,6 +20,12 @@ See the ``StudyBundle`` documentation for more information.
 
 ## Localized Questionnaires
 
+A questionnaire is authored as one Questionnaire file per locale, such as `Survey+en-US.json` and `Survey+es-US.json`.
+The files must share one `url`, `version` and structure, and each names its own `language`.
+Once the bundle validates, ``StudyBundle/writeToDisk(at:definition:files:)`` merges them into one multilingual Questionnaire: the `en-US` file is the base, and every other file's text becomes a `translation` extension on the base text.
+``StudyBundle/questionnaire(for:)`` returns that merged resource, merging on load a bundle that still carries per-locale files, and the renderer picks the language to show.
+Articles, consent documents and other files stay per locale.
+
 `StudyBundle` validates that localized Questionnaire resources preserve the same structural and
 measurement semantics. The current StudyDefinition presentation supports fixed-unit quantity items:
 each localization must declare exactly one `questionnaire-unitOption` with the same coding system and

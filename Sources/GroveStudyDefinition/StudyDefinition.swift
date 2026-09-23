@@ -160,11 +160,7 @@ extension StudyBundle {
         case .informational(let component):
             documentMetadata(for: component, in: locale, using: localeMatchingBehaviour)?.title
         case .questionnaire(let component):
-            questionnaire(
-                for: component.fileRef,
-                in: locale,
-                using: localeMatchingBehaviour
-            )?.title?.value?.string
+            questionnaire(for: component.fileRef).flatMap { $0.rendered(\.title, for: locale) }
         case .timedWalkingTest(let component):
             #if canImport(Darwin)
             String(localized: component.test.displayTitle(in: locale))
@@ -194,7 +190,7 @@ extension StudyBundle {
         case .informational(let component):
             documentMetadata(for: component, in: locale, using: localeMatchingBehaviour)?["lede"]
         case .questionnaire(let component):
-            questionnaire(for: component.fileRef, in: locale, using: localeMatchingBehaviour)?.purpose?.value?.string
+            questionnaire(for: component.fileRef).flatMap { $0.rendered(\.purpose, for: locale) }
         case .timedWalkingTest:
             nil
         case .healthDataCollection:

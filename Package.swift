@@ -1664,6 +1664,7 @@ var targets: [Target] = [
         name: "GroveStudyDefinition",
         dependencies: [
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
+            .target(name: "FHIRModelsExtensions"),
             .target(name: "GroveHealthKit"),
             .target(name: "GroveHealthKitBulkExport"),
             .target(name: "GroveFoundation"),
@@ -1684,6 +1685,7 @@ var targets: [Target] = [
         dependencies: { () -> [Target.Dependency] in
             var deps: [Target.Dependency] = [
                 .target(name: "GroveStudyDefinition"),
+                .target(name: "FHIRModelsExtensions"),
                 .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
             ]
             #if canImport(Darwin)
