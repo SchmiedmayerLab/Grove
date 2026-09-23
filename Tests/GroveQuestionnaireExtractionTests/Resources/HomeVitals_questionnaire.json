@@ -144,6 +144,7 @@
   ],
   "url": "https://grovealliance.org/fhir/questionnaire/Questionnaire/GroveHomeVitalsExample",
   "version": "0.6.0",
+  "language": "en-US",
   "name": "GroveHomeVitals",
   "title": "Home Vitals",
   "status": "active"

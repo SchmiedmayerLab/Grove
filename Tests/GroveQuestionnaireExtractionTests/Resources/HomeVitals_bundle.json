@@ -130,6 +130,7 @@
           "system": "https://study.example.org/fhir/NamingSystem/questionnaire-response",
           "value": "home-vitals-2026-08-28"
         },
+        "language": "en-US",
         "questionnaire": "https://grovealliance.org/fhir/questionnaire/Questionnaire/GroveHomeVitalsExample|0.6.0",
         "status": "completed",
         "subject": {
