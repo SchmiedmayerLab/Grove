@@ -78,9 +78,9 @@ public struct ResourceBuilder: Sendable {
     ///
     /// Unlike calling ``questionnaire(from:repositoryID:)`` and
     /// ``response(from:subject:author:source:writerContext:status:identifier:repositoryID:renderedIn:authored:authoredTimeZone:)`` separately,
-    /// the pair is checked against the published pair rules -- every answer's linkId, type, and
-    /// enable-when relationship must line up -- so an inconsistent export fails here instead of at
-    /// the receiving system.
+    /// the pair is checked against the published pair rules -- every answer's linkId, type, text, and
+    /// enable-when relationship must line up, in a language the questionnaire offers -- so an inconsistent
+    /// export fails here instead of at the receiving system.
     ///
     /// ```swift
     /// let pair = try ResourceBuilder().pair(

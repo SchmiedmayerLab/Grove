@@ -150,8 +150,8 @@ struct GroveQuestionnaireFHIRPairRuleTests {
         #expect(issues.isEmpty)
     }
 
-    @Test("Response item text is presentation and never compared with the prompt", arguments: [nil, "¿Pregunta?"])
-    func acceptsOmittedOrLocalizedResponseText(text: String?) throws {
+    @Test("Response item text may be omitted or equal the base text", arguments: [nil, "Question"])
+    func acceptsOmittedOrBaseResponseText(text: String?) throws {
         var objects = try basePairObjects()
         var response = try question(in: objects.response)
         response["text"] = text
@@ -162,6 +162,86 @@ struct GroveQuestionnaireFHIRPairRuleTests {
             response: pair.response
         )
         #expect(issues.isEmpty)
+    }
+
+    @Test("Response item text other than the base text is rejected, a translation included", arguments: ["¿Pregunta?", "Question?"])
+    func rejectsResponseTextOtherThanTheBase(text: String) throws {
+        var objects = try basePairObjects()
+        var response = try question(in: objects.response)
+        response["text"] = text
+        try replaceQuestion(in: &objects.response, with: response)
+        let pair = try decodePair(objects)
+        let issues = PairValidator().issues(
+            questionnaire: pair.questionnaire,
+            response: pair.response
+        )
+        #expect(issues.map(\.code) == [.itemText])
+        #expect(issues.first?.path == "QuestionnaireResponse.item[0].item[0].text")
+        #expect(issues.first?.severity == .error)
+    }
+
+    @Test("The response language is the base language or a translation language", arguments: ["en-US", "es", "ES"])
+    func acceptsOfferedResponseLanguage(language: String) throws {
+        var objects = try basePairObjects()
+        var definition = try question(in: objects.questionnaire)
+        definition["_text"] = ["extension": [translationJSON(language: "es", content: "¿Pregunta?")]]
+        try replaceQuestion(in: &objects.questionnaire, with: definition)
+        objects.response["language"] = language
+        var response = try question(in: objects.response)
+        response["text"] = nil
+        try replaceQuestion(in: &objects.response, with: response)
+        let pair = try decodePair(objects)
+        let issues = PairValidator().issues(
+            questionnaire: pair.questionnaire,
+            response: pair.response
+        )
+        #expect(issues.isEmpty)
+    }
+
+    @Test("A response language the questionnaire does not offer is rejected", arguments: ["de", "en-GB"])
+    func rejectsUnofferedResponseLanguage(language: String) throws {
+        var objects = try basePairObjects()
+        objects.response["language"] = language
+        let pair = try decodePair(objects)
+        let issues = PairValidator().issues(
+            questionnaire: pair.questionnaire,
+            response: pair.response
+        )
+        #expect(issues.map(\.code) == [.responseLanguage])
+        #expect(issues.first?.path == "QuestionnaireResponse.language")
+        #expect(issues.first?.severity == .error)
+    }
+
+    @Test
+    func rejectsMissingLanguages() throws {
+        var objects = try basePairObjects()
+        objects.questionnaire["language"] = nil
+        objects.response["language"] = nil
+        let pair = try decodePair(objects)
+        let issues = PairValidator().issues(
+            questionnaire: pair.questionnaire,
+            response: pair.response
+        )
+        #expect(issues.map(\.code) == [.questionnaireLanguageRequired, .responseLanguageRequired])
+        #expect(issues.map(\.path) == ["Questionnaire.language", "QuestionnaireResponse.language"])
+    }
+
+    @Test("A text translates neither into the base language nor twice into one language", arguments: [
+        ["EN-us"],
+        ["es", "ES"]
+    ])
+    func rejectsConflictingTranslations(languages: [String]) throws {
+        var objects = try basePairObjects()
+        var definition = try question(in: objects.questionnaire)
+        definition["_text"] = ["extension": languages.map { translationJSON(language: $0, content: "Traducción") }]
+        try replaceQuestion(in: &objects.questionnaire, with: definition)
+        let pair = try decodePair(objects)
+        let issues = PairValidator().issues(
+            questionnaire: pair.questionnaire,
+            response: pair.response
+        )
+        #expect(issues.map(\.code) == [.questionnaireTranslation])
+        #expect(issues.first?.path == "Questionnaire.item[0].item[0]._text.extension")
     }
 
     @Test("Rejects every deterministic answer-constraint family", arguments: AnswerRuleCase.allCases)
@@ -614,6 +694,16 @@ extension GroveQuestionnaireFHIRPairRuleTests {
         var extensions = object["extension"] as? [JSONObject] ?? []
         extensions.append(newExtension)
         object["extension"] = extensions
+    }
+
+    private func translationJSON(language: String, content: String) -> JSONObject {
+        [
+            "url": "http://hl7.org/fhir/StructureDefinition/translation",
+            "extension": [
+                ["url": "lang", "valueCode": language],
+                ["url": "content", "valueString": content]
+            ]
+        ]
     }
 
     private func extensionJSON(_ url: String, _ valueKey: String, _ value: Any) -> JSONObject {

@@ -80,6 +80,7 @@ let warnings = try PairValidator().validate(
 ```
 
 The offline preflight enforces identifiers, hierarchy, answer datatypes, enablement, ValueSet membership, bounds, units, and attachment limits.
+It also requires both languages, rejects item text other than the questionnaire's base text and a response language the questionnaire does not offer, and rejects a text that translates into its base language or twice into one language.
 Supply every ValueSet an answer or unit constraint references; unresolved terminology fails closed, and the validator never performs a network lookup.
 Completed and amended responses that depend on an unevaluated error-severity `targetConstraint` or `enableWhenExpression` are rejected; warning-severity constraints surface in ``ResourcePair/warnings`` instead.
 

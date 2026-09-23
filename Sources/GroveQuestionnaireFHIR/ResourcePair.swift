@@ -23,13 +23,23 @@ public struct ValidationIssue: Equatable, Hashable, Sendable {
         case questionnaireProfile
         case responseProfile
         case questionnaireCanonical
+        /// `Questionnaire.language` is missing.
+        case questionnaireLanguageRequired
+        /// A text translates into the base language, or more than once into one language.
+        case questionnaireTranslation
         case subjectType
         case responseIdentifier
+        /// `QuestionnaireResponse.language` is missing.
+        case responseLanguageRequired
+        /// `QuestionnaireResponse.language` is not a language the Questionnaire offers.
+        case responseLanguage
         case responseEnteredInError
         case itemUnknown
         case itemMisplaced
         case itemDuplicate
         case itemDisabled
+        /// A response item states text other than its Questionnaire item's base text.
+        case itemText
         case answerType
         case answerOption
         case answerValueSet

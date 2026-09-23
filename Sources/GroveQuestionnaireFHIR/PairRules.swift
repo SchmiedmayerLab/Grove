@@ -161,6 +161,7 @@ enum PairRules {
             ))
         }
         validateSubjectType(questionnaire: questionnaire, response: response, issues: &issues)
+        validateLanguage(questionnaire: questionnaire, response: response, issues: &issues)
         if response["status"] as? String == "entered-in-error" {
             issues.append(.init(
                 code: .responseEnteredInError,
@@ -343,12 +344,24 @@ struct PairContext {
         }
     }
 
+    /// Omitted text is never an issue: a response rendered in a translation leaves it out.
+    private mutating func validateText(definition: FHIRJSONObject, response: FHIRJSONObject, path: String) {
+        if let text = response["text"] as? String, text != definition["text"] as? String {
+            issues.append(.init(
+                code: .itemText,
+                path: "\(path).text",
+                message: "Response text must equal the Questionnaire item's base text."
+            ))
+        }
+    }
+
     mutating func validateItem(
         definition: FHIRJSONObject,
         response: FHIRJSONObject,
         path: String,
         enabled: Bool?
     ) {
+        validateText(definition: definition, response: response, path: path)
         let itemType = definition["type"] as? String ?? ""
         let answers = response["answer"] as? [FHIRJSONObject] ?? []
         if ["group", "display"].contains(itemType), !answers.isEmpty {
