@@ -424,12 +424,35 @@ struct ProducerSurfaceTests {
         #expect(provenance.recorded.value?.description == "2026-08-17T23:30:00Z")
         #expect(provenance.occurred == .dateTime(FHIRPrimitive(try DateTime("2026-08-17T23:30:00Z"))))
 
+        let helper = try HealthKitConverter().retraction(for: record, context: context, retractedAt: ExchangeEventContext.testInstant)
+        #expect(helper.graph.bundle == graph.bundle)
+
         let reserved = HealthKitConversionContext(
             nativeIdentifierDisclosurePolicy: .authorized(system: context.event.identityScope.systems.opaque.sourceOutput)
         )
         #expect(throws: HealthKitConversionError.reservedIdentifierSystem) {
             try HealthKitConverter().retractionTargets(for: record, context: reserved)
         }
+        #expect(throws: HealthKitConversionError.reservedIdentifierSystem) {
+            try HealthKitConverter().retraction(for: record, context: reserved, retractedAt: ExchangeEventContext.testInstant)
+        }
+    }
+
+    @Test("A deletion reported for a sample type retracts every output of that type")
+    func retractionFromDeletedObject() throws {
+        let type = try #require(HealthKitSourceType(HKQuantityType(.heartRate)))
+        #expect(HealthKitSourceType(HKCategoryType(.sleepAnalysis)) == .sleepAnalysis)
+        let retraction = try HealthKitConverter().retraction(
+            for: HealthKitSourceRecord(uuid: Self.heartRate.uuid, type: type),
+            context: HealthKitConversionContext(),
+            retractedAt: ExchangeEventContext.testInstant
+        )
+        let conversion = try HealthKitConverter().convert(Self.heartRate, context: HealthKitConversionContext())
+        let provenance = try #require(retraction.graph.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
+        let targets = try provenance.target.map { try RoledIdentifier(#require($0.identifier)) }
+        #expect(targets == [conversion.primary.identifiers.primaryOutput])
+        let source = try RoledIdentifier(#require(provenance.entity?.first?.what.identifier))
+        #expect(source == conversion.primary.identifiers.sourceRecord)
     }
 }
 

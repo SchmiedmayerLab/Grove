@@ -153,20 +153,23 @@ let batch = HealthKitConverter().convert(samples) { sample in
 ```
 
 A retry is exact when `ExchangeGraph.isSemanticallyEqual(to:)` says so.
-A deleted sample is taken back with ``HealthKitConverter/retractionTargets(for:context:)`` and a `RetractionEvent`.
-`retractionContext` is a ``HealthKitConversionContext`` for the retraction's own new event, and `sourceRecord` the source record of the ``HealthKitConversion/identifiers`` you kept with the sample's conversion.
+A deleted sample is taken back with ``HealthKitConverter/retraction(for:context:retractedAt:)``.
+It needs only the deleted object's UUID and the sample type it was reported for; the source record and every output it retracts are recomputed, so nothing from the sample's conversion has to be kept.
+`retractionContext` is a ``HealthKitConversionContext`` for the retraction's own new event, under the same identity scope, repository scope and native-identifier disclosure as the conversion.
 
 ```swift
-let targets = try HealthKitConverter().retractionTargets(for: deletedRecord, context: retractionContext)
-let retraction = try RetractionEvent(
-    targets: targets,
-    context: retractionContext.event,
-    sourceRecord: sourceRecord,
+guard let type = HealthKitSourceType(sampleType.hkSampleType) else {
+    return // Never converted, so there is nothing to retract.
+}
+let retraction = try HealthKitConverter().retraction(
+    for: HealthKitSourceRecord(uuid: deletedObject.uuid, type: type),
+    context: retractionContext,
     retractedAt: deletedAt
 )
 ```
 
 A target carries the HealthKit UUID as its native record identifier only when the context's native-identifier disclosure authorizes it, exactly as on the conversion that emitted it.
+``HealthKitConverter/retractionTargets(for:context:)`` names the targets alone.
 
 `Observation.healthKitSample(syncIdentifier:)` and `ExchangeGraph.healthKitSamples()` read a graph back into HealthKit samples, syncing under the minted source-output identity.
 
