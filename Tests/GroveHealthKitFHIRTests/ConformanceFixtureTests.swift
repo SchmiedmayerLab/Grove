@@ -384,8 +384,22 @@ struct ConformanceFixtureTests {
             subject: Self.subject,
             converter: context.converter,
             graphIdentifierSystem: context.graphIdentifierSystem,
-            conversionInstant: contextTime
+            conversionInstant: contextTime,
+            studies: [.test("study-a"), .test("study-b")]
         )
+        let studyQuantity = try converter.convert(
+            quantity(
+                .heartRate,
+                .count().unitDivided(by: .minute()),
+                72,
+                effective: .dateTime("2026-08-20T08:20:00-07:00")
+            ),
+            context: ecgContext
+        )
+        fixtures["heart-rate-two-studies"] = studyQuantity.bundle
+        let quantityStudies = studyQuantity.observation.extension?.filter { $0.url == Canonicals.researchStudy } ?? []
+        #expect(quantityStudies.count == 2)
+        #expect(studyQuantity.observation.extension?.contains { $0.url == Canonicals.instantiatesCanonical } != true)
         let ecgSource = HealthKitECGSourceEvidence(
             sourceTypeIdentifier: HealthKitContract.electrocardiogramSourceTypeIdentifier,
             startDate: ecgStart,
@@ -440,6 +454,9 @@ struct ConformanceFixtureTests {
             try HealthKitConverter.ecgObservation(input: ecgInput, graphContext: graphContext)
         }
         let ecgObservation = ecgConversion.observation
+        let ecgStudies = ecgObservation.extension?.filter { $0.url == Canonicals.researchStudy } ?? []
+        #expect(ecgStudies.map(\.value) == quantityStudies.map(\.value))
+        #expect(ecgObservation.extension?.contains { $0.url == Canonicals.instantiatesCanonical } != true)
         guard case .period(let ecgEffectivePeriod) = ecgObservation.effective else {
             Issue.record("ECG fixture must use an effectivePeriod")
             return
@@ -508,7 +525,7 @@ struct ConformanceFixtureTests {
         try encoder.encode(ecgConversion.bundle).write(
             to: directory.appendingPathComponent("electrocardiogram.json")
         )
-        #expect(fixtures.count == 26)
+        #expect(fixtures.count == 27)
         let emittedVectorIDs = Set(fixtures.keys).intersection(Set(MobileSemanticVectorFixtures.all.map(\.id)))
         #expect(emittedVectorIDs == Set([
             "active-energy",

@@ -415,7 +415,7 @@ struct ProducerSurfaceTests {
             targets: disclosed,
             context: context.event,
             sourceRecord: sourceRecord,
-            retractedAt: ExchangeEventContext.testInstant
+            occurred: .instant(ExchangeEventContext.testInstant)
         ).graph
         let provenance = try #require(graph.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
         let rendered = provenance.target.first?.extension?.first { $0.url == Canonicals.retractionTargetNativeIdentifier }
@@ -424,7 +424,7 @@ struct ProducerSurfaceTests {
         #expect(provenance.recorded.value?.description == "2026-08-17T23:30:00Z")
         #expect(provenance.occurred == .dateTime(FHIRPrimitive(try DateTime("2026-08-17T23:30:00Z"))))
 
-        let helper = try HealthKitConverter().retraction(for: record, context: context, retractedAt: ExchangeEventContext.testInstant)
+        let helper = try HealthKitConverter().retraction(for: record, context: context, occurred: .instant(ExchangeEventContext.testInstant))
         #expect(helper.graph.bundle == graph.bundle)
 
         let reserved = HealthKitConversionContext(
@@ -434,7 +434,7 @@ struct ProducerSurfaceTests {
             try HealthKitConverter().retractionTargets(for: record, context: reserved)
         }
         #expect(throws: HealthKitConversionError.reservedIdentifierSystem) {
-            try HealthKitConverter().retraction(for: record, context: reserved, retractedAt: ExchangeEventContext.testInstant)
+            try HealthKitConverter().retraction(for: record, context: reserved, occurred: .instant(ExchangeEventContext.testInstant))
         }
     }
 
@@ -445,7 +445,7 @@ struct ProducerSurfaceTests {
         let retraction = try HealthKitConverter().retraction(
             for: HealthKitSourceRecord(uuid: Self.heartRate.uuid, type: type),
             context: HealthKitConversionContext(),
-            retractedAt: ExchangeEventContext.testInstant
+            occurred: .period(start: nil, end: ExchangeEventContext.testInstant)
         )
         let conversion = try HealthKitConverter().convert(Self.heartRate, context: HealthKitConversionContext())
         let provenance = try #require(retraction.graph.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
@@ -453,6 +453,15 @@ struct ProducerSurfaceTests {
         #expect(targets == [conversion.primary.identifiers.primaryOutput])
         let source = try RoledIdentifier(#require(provenance.entity?.first?.what.identifier))
         #expect(source == conversion.primary.identifiers.sourceRecord)
+        #expect(provenance.occurred == .period(Period(end: FHIRPrimitive(try DateTime("2026-08-17T23:30:00Z")))))
+
+        #expect(throws: HealthKitConversionError.dependency(HealthKitDependencyFailure(underlying: RetractionEventError.invalidOccurrencePeriod))) {
+            try HealthKitConverter().retraction(
+                for: HealthKitSourceRecord(uuid: Self.heartRate.uuid, type: type),
+                context: HealthKitConversionContext(),
+                occurred: .period(start: ExchangeEventContext.testInstant, end: ExchangeEventContext.testInstant.addingTimeInterval(-1))
+            )
+        }
     }
 }
 

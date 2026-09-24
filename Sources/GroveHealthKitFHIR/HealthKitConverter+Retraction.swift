@@ -8,7 +8,7 @@
 
 #if canImport(HealthKit)
 
-public import Foundation
+import Foundation
 public import GroveFHIRContract
 public import HealthKit
 
@@ -44,7 +44,7 @@ extension HealthKitConverter {
     public func retraction(
         for record: HealthKitSourceRecord,
         context: HealthKitConversionContext,
-        retractedAt: Date
+        occurred: RetractionOccurrence
     ) throws(HealthKitConversionError) -> RetractionEvent {
         let targets = try retractionTargets(for: record, context: context)
         let sourceRecord = try Self.sourceRecord(for: record, context: context)
@@ -53,7 +53,7 @@ extension HealthKitConverter {
                 targets: targets,
                 context: context.event,
                 sourceRecord: sourceRecord.identifier,
-                retractedAt: retractedAt
+                occurred: occurred
             )
         } catch {
             throw HealthKitConversionError(error)
@@ -118,7 +118,7 @@ extension HealthKitConversionError {
         case .opaqueIdentity(let error): .opaqueIdentity(error)
         case .exchangeIdentity(let error): .exchangeIdentity(error)
         case .exchangeGraph(let error): .exchangeGraph(error)
-        case .emptyTargets, .duplicateTarget, .invalidSourceRecord, .invalidInstant:
+        case .emptyTargets, .duplicateTarget, .invalidSourceRecord, .invalidInstant, .invalidOccurrencePeriod:
             .dependency(HealthKitDependencyFailure(underlying: error))
         }
     }
