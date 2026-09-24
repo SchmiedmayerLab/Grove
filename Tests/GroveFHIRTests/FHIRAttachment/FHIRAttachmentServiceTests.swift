@@ -9,6 +9,7 @@
 #if canImport(PDFKit) && canImport(UniformTypeIdentifiers)
 
 @testable import GroveFHIR
+import GroveFoundation
 import PDFKit
 import Testing
 import UniformTypeIdentifiers
@@ -20,7 +21,7 @@ private struct MockFHIRAttachment: FHIRAttachment {
     
     init() {}
     
-    init(data: Data, mimeType: UTType) {
+    init(data: Data, mimeType: MIMEType) {
         self.init()
         self.setData(data, mimeType: mimeType)
     }
@@ -31,7 +32,7 @@ private struct MockFHIRAttachment: FHIRAttachment {
 struct FHIRAttachmentServiceTests {
     @Test("Successfully stringifies text content")
     func testStringifyTextContent() throws {
-        let textType = try #require(UTType(mimeType: "text/plain"))
+        let textType: MIMEType = .plainText
         #expect(textType == .plainText)
         
         var attachment = MockFHIRAttachment(
@@ -57,7 +58,7 @@ struct FHIRAttachmentServiceTests {
     
     @Test("Successfully stringifies PDF content")
     func testStringifyPDFContent() throws {
-        let pdfType = try #require(UTType(mimeType: "application/pdf"))
+        let pdfType: MIMEType = .pdf
         #expect(pdfType == .pdf)
         // swiftlint:disable:next line_length
         let pdfBase64 = "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA0IDAgUiA+PiA+PiAvQ29udGVudHMgNSAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago1IDAgb2JqCjw8IC9MZW5ndGggNDQgPj4Kc3RyZWFtCkJUCi9GMSAxNiBUZgo1MCA3MDAgVGQKKFBERjogV2VsY29tZSB0byBHcm92ZUZISVIpIFRqCkVUCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmCjAwMDAwMDAwMDkgMDAwMDAgbgowMDAwMDAwMDU4IDAwMDAwIG4KMDAwMDAwMDExNSAwMDAwMCBuCjAwMDAwMDAyMjkgMDAwMDAgbgowMDAwMDAwMjk1IDAwMDAwIG4KdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgozOTEKJSVFT0Y="
@@ -92,7 +93,7 @@ struct FHIRAttachmentServiceTests {
     @Test("Throws error when base64 string is missing")
     func testMissingBase64String() throws {
         var attachment = MockFHIRAttachment()
-        attachment._contentTypeString = try #require(UTType(mimeType: "text/plain")).preferredMIMEType
+        attachment._contentTypeString = MIMEType.plainText.rawValue
         attachment._base64String = nil
         #expect(throws: FHIRAttachmentError.noData) {
             try attachment.stringify(using: .init())
@@ -103,7 +104,7 @@ struct FHIRAttachmentServiceTests {
     @Test("Throws error when base64 data is invalid")
     func testInvalidBase64Data() throws {
         var attachment = MockFHIRAttachment()
-        attachment._contentTypeString = try #require(UTType(mimeType: "text/plain")).preferredMIMEType
+        attachment._contentTypeString = MIMEType.plainText.rawValue
         attachment._base64String = "invalid-base64-string"
         #expect(throws: FHIRAttachmentError.noData) {
             try attachment.stringify(using: .init())
@@ -113,9 +114,10 @@ struct FHIRAttachmentServiceTests {
     
     @Test("Throws error when content type is unsupported")
     func testUnsupportedContentType() throws {
-        let customType = try #require(UTType(mimeType: "application/custom"))
+        // A vendor type the platform cannot name still round-trips now.
+        let customType: MIMEType = "application/custom"
         var attachment = MockFHIRAttachment()
-        attachment._contentTypeString = customType.preferredMIMEType
+        attachment._contentTypeString = customType.rawValue
         attachment._base64String = "V2VsY29tZSB0byBHcm92ZUZISVI="
         #expect(throws: FHIRAttachmentError.unsupportedContentType(customType)) {
             try attachment.stringify(using: .init(contentExtractors: [.text]))
@@ -125,9 +127,9 @@ struct FHIRAttachmentServiceTests {
     
     @Test("Throws error when no extractors are available")
     func testServiceWithEmptyExtractors() throws {
-        let textPlainType = try #require(UTType(mimeType: "text/plain"))
+        let textPlainType: MIMEType = .plainText
         var attachment = MockFHIRAttachment()
-        attachment._contentTypeString = textPlainType.preferredMIMEType
+        attachment._contentTypeString = textPlainType.rawValue
         attachment._base64String = "SGVsbG8sIHdvcmxkIQ=="
         #expect(throws: FHIRAttachmentError.unsupportedContentType(textPlainType)) {
             try attachment.stringify(using: .init(contentExtractors: []))

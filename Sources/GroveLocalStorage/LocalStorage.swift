@@ -42,6 +42,7 @@ public final class LocalStorage: Module, DefaultInitializable, EnvironmentAccess
     @Application(\.logger) private var logger
     
     private let fileManager = FileManager.default
+    private let resourceValueWriter: @Sendable (URL, Bool) throws -> Void
     /* private-but-tests */ let localStorageDirectory: URL
     private let encryptionAlgorithm: SecKeyAlgorithm = .eciesEncryptionCofactorX963SHA256AESGCM
     
@@ -54,13 +55,24 @@ public final class LocalStorage: Module, DefaultInitializable, EnvironmentAccess
     /// Creates a `LocalStorage` scoped to an explicit namespace.
     ///
     /// - Parameter namespace: Where the app's data lives.
-    init(namespace: StorageNamespace) {
+    init(
+        namespace: StorageNamespace,
+        resourceValueWriter: @escaping @Sendable (URL, Bool) throws -> Void = LocalStorage.writeResourceValues
+    ) {
         // Application Support is where app-created data the user does not manipulate directly belongs.
         // A namespace only fails to resolve outside an app bundle, where there is no sensible answer;
         // falling back keeps a command-line host working rather than trapping at launch.
         localStorageDirectory = (try? namespace.directory(.localStorage))
             ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("LocalStorage")
+        self.resourceValueWriter = resourceValueWriter
+    }
+
+    private static func writeResourceValues(at url: URL, excludedFromBackup: Bool) throws {
+        var url = url
+        var resourceValues = URLResourceValues()
+        resourceValues.isExcludedFromBackup = excludedFromBackup
+        try url.setResourceValues(resourceValues)
     }
     
     
@@ -106,6 +118,32 @@ public final class LocalStorage: Module, DefaultInitializable, EnvironmentAccess
             }
         }
     }
+
+    /// Atomically replaces a value when its currently persisted value matches `expectedValue`.
+    ///
+    /// The comparison and replacement execute while holding the storage key's lock. This is useful for
+    /// acknowledgement tokens and other optimistic-concurrency operations where a stale writer must not
+    /// advance durable state.
+    ///
+    /// - returns: `true` when the replacement was performed; `false` when the persisted value did not match.
+    public func compareExchange<Value: Equatable>(
+        expected expectedValue: Value?,
+        desired desiredValue: Value?,
+        for key: LocalStorageKey<Value>
+    ) throws -> Bool {
+        try key.withLock {
+            let currentValue = try readImp(key, context: Void?.none)
+            guard currentValue == expectedValue else {
+                return false
+            }
+            if let desiredValue {
+                try storeImp(desiredValue, for: key, context: Void?.none)
+            } else {
+                try deleteImp(key)
+            }
+            return true
+        }
+    }
     
     /// Put a value into the `LocalStorage`.
     ///
@@ -131,49 +169,60 @@ public final class LocalStorage: Module, DefaultInitializable, EnvironmentAccess
     
     /// - invariant: assumes that the key's write lock is held.
     private func storeImp<Value>(_ value: Value, for key: LocalStorageKey<Value>, context: some Any) throws {
-        var fileURL = fileURL(for: key)
-        let fileExistsAlready = fileManager.fileExists(atPath: fileURL.path)
+        let data = try key.encode(value, context: context)
+        let persistedData: Data
+        if let keys = try key.setting.keys(from: keychainStorage) {
+            guard SecKeyIsAlgorithmSupported(keys.publicKey, .encrypt, encryptionAlgorithm) else {
+                throw LocalStorageError.encryptionNotPossible
+            }
+            var encryptError: Unmanaged<CFError>?
+            guard let encryptedData = SecKeyCreateEncryptedData(
+                keys.publicKey,
+                encryptionAlgorithm,
+                data as CFData,
+                &encryptError
+            ) as Data? else {
+                throw LocalStorageError.encryptionNotPossible
+            }
+            persistedData = encryptedData
+        } else {
+            persistedData = data
+        }
 
-        // Called at the end of each execution path
-        // We can not use defer as the function can potentially throw an error.
-        func setResourceValues() throws {
+        try replaceStoredData(persistedData, for: key)
+        key.informSubscribersAboutNewValue(value)
+    }
+
+    /// Stages bytes and their resource metadata together, then atomically replaces the visible file.
+    /// If metadata preparation fails, an existing value remains byte-for-byte untouched.
+    private func replaceStoredData(_ data: Data, for key: LocalStorageKey<some Any>) throws {
+        let destination = fileURL(for: key)
+        let staging = destination.deletingLastPathComponent().appendingPathComponent(
+            ".\(destination.lastPathComponent).\(UUID().uuidString.lowercased()).staging"
+        )
+        do {
+            try data.write(to: staging, options: .atomic)
             do {
-                var resourceValues = URLResourceValues()
-                resourceValues.isExcludedFromBackup = key.setting.isExcludedFromBackup
-                try fileURL.setResourceValues(resourceValues)
+                try resourceValueWriter(staging, key.setting.isExcludedFromBackup)
             } catch {
-                // Revert a written file if it did not exist before.
-                if !fileExistsAlready {
-                    try fileManager.removeItem(atPath: fileURL.path)
-                }
                 throw LocalStorageError.failedToExcludeFromBackup
             }
+            if fileManager.fileExists(atPath: destination.path) {
+                _ = try fileManager.replaceItemAt(
+                    destination,
+                    withItemAt: staging,
+                    backupItemName: nil,
+                    options: [.usingNewMetadataOnly]
+                )
+            } else {
+                try fileManager.moveItem(at: staging, to: destination)
+            }
+        } catch {
+            if fileManager.fileExists(atPath: staging.path) {
+                try? fileManager.removeItem(at: staging)
+            }
+            throw error
         }
-
-        let data = try key.encode(value, context: context)
-
-        // Determine if the data should be encrypted or not:
-        guard let keys = try key.setting.keys(from: keychainStorage) else {
-            // No encryption:
-            try data.write(to: fileURL)
-            try setResourceValues()
-            key.informSubscribersAboutNewValue(value)
-            return
-        }
-
-        // Encryption enabled:
-        guard SecKeyIsAlgorithmSupported(keys.publicKey, .encrypt, encryptionAlgorithm) else {
-            throw LocalStorageError.encryptionNotPossible
-        }
-
-        var encryptError: Unmanaged<CFError>?
-        guard let encryptedData = SecKeyCreateEncryptedData(keys.publicKey, encryptionAlgorithm, data as CFData, &encryptError) as Data? else {
-            throw LocalStorageError.encryptionNotPossible
-        }
-
-        try encryptedData.write(to: fileURL)
-        try setResourceValues()
-        key.informSubscribersAboutNewValue(value)
     }
     
     
@@ -287,7 +336,10 @@ public final class LocalStorage: Module, DefaultInitializable, EnvironmentAccess
     ///
     /// - Note: This operation is not synchronized with reads or writes on individual storage keys.
     public func deleteAll(where predicate: (_ rawKey: String) -> Bool) throws {
-        for url in (try? fileManager.contentsOfDirectory(at: localStorageDirectory, includingPropertiesForKeys: nil)) ?? [] {
+        for url in try fileManager.contentsOfDirectory(
+            at: localStorageDirectory,
+            includingPropertiesForKeys: nil
+        ) {
             let rawKey = url.deletingPathExtension().lastPathComponent
             if predicate(rawKey) {
                 try fileManager.removeItem(at: url)
@@ -356,5 +408,22 @@ public final class LocalStorage: Module, DefaultInitializable, EnvironmentAccess
     func fileURL(for storageKey: LocalStorageKey<some Any>) -> URL {
         let storageKey = storageKey.key
         return localStorageDirectory.appending(path: storageKey).appendingPathExtension("localstorage")
+    }
+
+    /// Returns persisted raw keys matching a prefix without decoding their values.
+    ///
+    /// This SPI supports cursor-reset implementations that must discover partitions which are not
+    /// currently reported by their platform framework. Values remain accessible only through their
+    /// original typed `LocalStorageKey`.
+    @_spi(Internal)
+    public func persistedRawKeys(withPrefix prefix: String) throws -> [String] {
+        guard fileManager.fileExists(atPath: localStorageDirectory.path) else {
+            return []
+        }
+        return try fileManager
+            .contentsOfDirectory(at: localStorageDirectory, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "localstorage" }
+            .map { $0.deletingPathExtension().lastPathComponent }
+            .filter { $0.hasPrefix(prefix) }
     }
 }

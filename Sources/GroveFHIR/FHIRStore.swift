@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+private import Foundation
 public import Grove
 public import struct ModelsR4.Bundle
 public import Observation
@@ -15,6 +16,14 @@ public import Observation
 @available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class FHIRStore: Module, DefaultInitializable, Sendable {
+    public enum StoreError: Error, Equatable, Sendable {
+        case duplicateIdentity(FHIRResource.ID)
+        case duplicateBundleFullURL(String)
+        case invalidBundleFullURL(entry: Int, value: String?)
+        case unrecognizedResource(entry: Int)
+        case invalidResource(entry: Int, FHIRResource.ValidationError)
+    }
+
     /// The actual ``FHIRResource``s held by the ``FHIRStore``
     ///
     /// The `_resources` property needs to be marked with `@ObservationIgnored` to prevent changes to it
@@ -107,34 +116,92 @@ extension FHIRStore {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRStore {
-    /// Inserts a FHIR resource into the ``FHIRStore``, unless it is already in the store.
+    private static func resources(in bundle: ModelsR4.Bundle) throws(StoreError) -> [FHIRResource] {
+        var resources: [FHIRResource] = []
+        var fullURLs: Set<String> = []
+        var identities: Set<FHIRResource.ID> = []
+        for (index, entry) in (bundle.entry ?? []).enumerated() {
+            guard let proxy = entry.resource else {
+                continue
+            }
+            let fullURL: String?
+            if let primitive = entry.fullUrl {
+                guard let value = primitive.value?.url.absoluteString,
+                      !value.isEmpty,
+                      let parsed = URL(string: value),
+                      parsed.scheme != nil else {
+                    throw .invalidBundleFullURL(entry: index, value: primitive.value?.url.absoluteString)
+                }
+                guard fullURLs.insert(value).inserted else {
+                    throw .duplicateBundleFullURL(value)
+                }
+                fullURL = value
+            } else {
+                fullURL = nil
+            }
+            if case .unrecognized = proxy {
+                throw .unrecognizedResource(entry: index)
+            }
+            let resource: FHIRResource
+            do {
+                resource = try FHIRResource(
+                    resource: proxy.get(),
+                    displayName: proxy.displayName,
+                    identitySource: fullURL.map(FHIRResource.IdentitySource.bundleFullURL)
+                )
+            } catch {
+                throw .invalidResource(entry: index, error)
+            }
+            guard identities.insert(resource.id).inserted else {
+                throw .duplicateIdentity(resource.id)
+            }
+            resources.append(resource)
+        }
+        return resources
+    }
+
+    /// Inserts or replaces a FHIR resource by stable identity.
     ///
     /// - parameter resource: The `FHIRResource` to be inserted.
-    /// - returns: A `Bool` indicating whether the resource was inserted into the store. (I.e., `false` if the store already contained a resource with an equivalent id.)
+    /// - returns: `true` when the store changed; `false` when the same identity already carried
+    ///   byte-for-byte equivalent resource and presentation content.
     @MainActor
     @discardableResult
     public func insert(_ resource: FHIRResource) -> Bool {
-        guard !self.contains(resource) else {
+        let previous = _resources.first { $0.id == resource.id }
+        guard previous?.hasSameContents(as: resource) != true else {
             return false
         }
-        return mutatingResourceCategories(CollectionOfOne(resource.category)) {
-            _resources.insert(resource).inserted
+        let categories = [previous?.category, resource.category].compactMap { $0 }
+        return mutatingResourceCategories(categories) {
+            _resources.update(with: resource)
+            return true
         }
     }
     
     /// Inserts multiple ``FHIRResource``s into the store.
     ///
-    /// Any resources that already exist in the store will be skipped; only new resources will be inserted
-    ///
     /// - Parameter resourcesToInsert: The `FHIRResource`s to be inserted.
     @MainActor
-    public func insert(contentsOf resourcesToInsert: some Sequence<FHIRResource>) {
-        let resourcesToInsert = resourcesToInsert.filter { !self._resources.contains($0) }
-        guard !resourcesToInsert.isEmpty else {
+    public func insert(contentsOf resourcesToInsert: some Sequence<FHIRResource>) throws(StoreError) {
+        let resourcesToInsert = Array(resourcesToInsert)
+        var identities: Set<FHIRResource.ID> = []
+        for resource in resourcesToInsert where !identities.insert(resource.id).inserted {
+            throw .duplicateIdentity(resource.id)
+        }
+        let changed = resourcesToInsert.filter { candidate in
+            !_resources.contains { $0.hasSameContents(as: candidate) }
+        }
+        guard !changed.isEmpty else {
             return
         }
-        mutatingResourceCategories(resourcesToInsert.lazy.map(\.category)) {
-            _resources.formUnion(resourcesToInsert)
+        let replacedCategories = changed.compactMap { candidate in
+            _resources.first { $0.id == candidate.id }?.category
+        }
+        mutatingResourceCategories(changed.map(\.category) + replacedCategories) {
+            for resource in changed {
+                _resources.update(with: resource)
+            }
         }
     }
     
@@ -142,21 +209,20 @@ extension FHIRStore {
     ///
     /// - Parameter bundle: The FHIR `Bundle` containing resources to be loaded.
     @MainActor
-    public func load(bundle: ModelsR4.Bundle) {
-        guard let resourceProxies = bundle.entry?.compactMap(\.resource), !resourceProxies.isEmpty else {
-            return
+    public func load(bundle: ModelsR4.Bundle) throws {
+        try insert(contentsOf: Self.resources(in: bundle))
+    }
+
+    /// Validates a complete bundle before replacing the store, so one malformed resource cannot
+    /// leave a half-updated patient selection.
+    @MainActor
+    public func replaceContents(with bundle: ModelsR4.Bundle) throws {
+        let resources = try Self.resources(in: bundle)
+        let replacement = Set(resources)
+        let categories = _resources.map(\.category) + replacement.map(\.category)
+        mutatingResourceCategories(categories) {
+            _resources = replacement
         }
-        insert(contentsOf: resourceProxies.lazy.compactMap {
-            switch $0 {
-            case .unrecognized:
-                // `ResourceProxy.get()` returns empty empemeral `Basic` resources for .unrecognized ResourceProxies;
-                // we need to filter this out in order to prevent the FHIRStore from getting filled up with unwanted such
-                // empty `Basic` resources.
-                nil
-            default:
-                FHIRResource(resource: $0.get(), displayName: $0.displayName)
-            }
-        })
     }
 }
 
@@ -167,28 +233,12 @@ extension FHIRStore {
 extension FHIRStore {
     /// Removes a FHIR resource from the ``FHIRStore``.
     ///
-    /// - Parameter fhirId: The FHIR `id` of the resource that should be removed.
+    /// - Parameter id: The composite stable identity of the resource that should be removed.
     /// - returns: The removed ``FHIRResource``, if applicable.
     @MainActor
     @discardableResult
-    public func removeResource(withId fhirId: String) -> FHIRResource? {
-        guard let resource = _resources.first(where: { $0.fhirId == fhirId }) else {
-            return nil
-        }
-        return mutatingResourceCategories(CollectionOfOne(resource.category)) {
-            _resources.remove(resource)
-        }
-    }
-    
-    /// Removes a FHIR resource from the ``FHIRStore``.
-    ///
-    /// - Parameter healthKitId: The HealthKit `uuid` of the resource that should be removed.
-    /// - returns: The removed ``FHIRResource``, if applicable.
-    @_spi(Internal)
-    @MainActor
-    @discardableResult
-    public func removeResource(withHealthKitUUID healthKitId: String) -> FHIRResource? {
-        guard let resource = _resources.first(where: { $0.healthKitSampleId == healthKitId }) else {
+    public func removeResource(withID id: FHIRResource.ID) -> FHIRResource? {
+        guard let resource = _resources.first(where: { $0.id == id }) else {
             return nil
         }
         return mutatingResourceCategories(CollectionOfOne(resource.category)) {

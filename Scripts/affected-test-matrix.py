@@ -40,7 +40,8 @@
 # exercises every job variant without repeating it for every package. An unknown script under
 # Scripts/ is an error until it is classified below, as a new target must be assigned to a package.
 # The workflow temporarily passes --ignore-manifest-and-ci-changes to suspend selection from manifest
-# and shared CI edits. Source/test dependency selection and explicit __ALL__ runs remain enabled.
+# and shared CI edits. Source/test dependency selection, explicit __ALL__ runs and the conformance job
+# an edit to the test workflow reaches remain enabled.
 #
 # Emits (to stdout, GITHUB_OUTPUT format):
 #   matrix={"include":[{"package":"GroveAccount","platform":"macOS","selfHosted":false,"selfHostedLabels":"[...]"}, ...]}  # unit
@@ -48,6 +49,7 @@
 #   has_jobs=true|false
 #   has_ui_jobs=true|false
 #   has_fhir_conformance=true|false
+#   fhir_components=healthkit,questionnaire,sensor
 #   affected=GroveAccount,GroveViews
 import argparse
 import json
@@ -103,6 +105,7 @@ NON_TEST_SCRIPT_PATHS = {
     "Scripts/build-documentation.sh",
     "Scripts/build-floor.sh",
     "Scripts/check-documentation-targets.py",
+    "Scripts/check-gyb-output.sh",
     "Scripts/ci-dryrun.sh",
     "Scripts/cleanup-generated-artifacts.sh",
     "Scripts/documentation-screenshots.sh",
@@ -110,9 +113,16 @@ NON_TEST_SCRIPT_PATHS = {
     "Scripts/run-periphery.sh",
 }
 
-FHIR_VALIDATION_PATH = "Scripts/validate-fhir-conformance.sh"
+FHIR_VALIDATION_PATHS = {
+    "Scripts/check-fhir-canonical-hygiene.sh",
+    "Scripts/generate-grove-fhir-producer-manifest.py",
+    "Scripts/generate-grove-fhir-semantic-vector-fixtures.py",
+    "Scripts/generate-grove-fhir-swift-contract.py",
+    "Scripts/generate-grove-sensor-swift-contract.py",
+    "Scripts/validate-fhir-conformance.sh",
+}
 # The end-to-end validator is expensive, so its CI job runs only when one of these FHIR-producing or
-# FHIR-consuming packages is affected (or when its orchestration script changes directly).
+# FHIR-consuming packages is affected (or when one of its scripts changes directly).
 FHIR_PACKAGES = {
     "FHIRModelsExtensions",
     "ResearchKitOnFHIR",
@@ -120,7 +130,17 @@ FHIR_PACKAGES = {
     "GroveHealthKitFHIR",
     "GroveQuestionnaire",
     "GroveSensorKit",
+    "GroveSensorKitFHIR",
 }
+
+# Each producer validates only the implementation guides it implements; a shared model, generator or
+# tooling change that names no producer validates every lane.
+FHIR_COMPONENT_PACKAGES = {
+    "healthkit": {"GroveHealthKitFHIR"},
+    "questionnaire": {"GroveQuestionnaire", "ResearchKitOnFHIR"},
+    "sensor": {"GroveSensorKit", "GroveSensorKitFHIR"},
+}
+ALL_FHIR_COMPONENTS = set(FHIR_COMPONENT_PACKAGES)
 
 # TEMPORARY: limit UNIT-test scheduling to these platforms (macCatalyst/visionOS/tvOS excluded for
 # now — remove from this tuple to restore). Linux runs on GitHub-hosted ubuntu.
@@ -180,6 +200,11 @@ def parse_args():
         "--ignore-manifest-and-ci-changes",
         action="store_true",
         help="Temporarily skip test selection caused by manifest and shared CI edits.",
+    )
+    parser.add_argument(
+        "--fhir-only",
+        action="store_true",
+        help="Run every FHIR producer conformance lane without scheduling unit or UI jobs.",
     )
     return parser.parse_args()
 
@@ -403,19 +428,48 @@ def affected_by_package_configuration(base_packages):
     return {package for package in changed_packages if package in PKGS}
 
 
+def fhir_components_for_packages(packages):
+    return {
+        component
+        for component, component_packages in FHIR_COMPONENT_PACKAGES.items()
+        if set(packages) & component_packages
+    }
+
+
+def write_outputs(unit, ui, run_fhir_conformance, fhir_components, affected):
+    lines = [
+        f'matrix={json.dumps({"include": unit})}',
+        f'ui_matrix={json.dumps({"include": ui})}',
+        f'has_jobs={"true" if unit else "false"}',
+        f'has_ui_jobs={"true" if ui else "false"}',
+        f'has_fhir_conformance={"true" if run_fhir_conformance else "false"}',
+        f'fhir_components={",".join(sorted(fhir_components)) if fhir_components else "(none)"}',
+        f'affected={",".join(sorted(affected)) if affected else "(none)"}',
+    ]
+    sys.stdout.write("\n".join(lines) + "\n")
+
+
 def main():
     args = parse_args()
+    if args.fhir_only:
+        write_outputs([], [], True, ALL_FHIR_COMPONENTS, set())
+        sys.stderr.write(f"[affected-test-matrix] fhir_only=true fhir_components={sorted(ALL_FHIR_COMPONENTS)}\n")
+        return
     changed = read_changed(args.changed_files)
     run_all = False
     run_fhir_conformance = False
+    fhir_components = set()
     affected = set()
     head_dump = load_json(args.head_package_dump) if args.head_package_dump else None
     for path in changed:
         is_manifest = path == "Package.swift" or path.startswith("Package@")
         is_infrastructure = path in INFRASTRUCTURE_PATHS or path.startswith(INFRASTRUCTURE_PREFIXES)
         if args.ignore_manifest_and_ci_changes and (is_manifest or is_infrastructure):
+            # The package matrix stays suspended, but the conformance job is defined in the workflow itself,
+            # so an edit there still validates.
+            run_fhir_conformance |= INFRASTRUCTURE_PATHS.get(path, False)
             continue
-        if path == FHIR_VALIDATION_PATH:
+        if path in FHIR_VALIDATION_PATHS:
             affected.update(FHIR_PACKAGES & set(PKGS))
             run_fhir_conformance = True
             continue
@@ -436,6 +490,7 @@ def main():
         if path == "__ALL__":
             run_all = True
             run_fhir_conformance = True
+            fhir_components.update(ALL_FHIR_COMPONENTS)
             continue
         if is_manifest:
             # A version-specific manifest is evaluated like the main one: dump-package already picks
@@ -458,6 +513,7 @@ def main():
                 continue
             affected.update(manifest_affected)
             run_fhir_conformance |= bool(manifest_affected & FHIR_PACKAGES)
+            fhir_components.update(fhir_components_for_packages(manifest_affected))
             continue
         if path == UI_TEST_PROJECTS_PATH:
             if not args.base_ui_test_projects:
@@ -470,6 +526,7 @@ def main():
                 continue
             affected.update(projects_affected)
             run_fhir_conformance |= bool(projects_affected & FHIR_PACKAGES)
+            fhir_components.update(fhir_components_for_packages(projects_affected))
             continue
         if path == "packages.toml":
             if not args.base_packages:
@@ -483,12 +540,14 @@ def main():
                 continue
             affected.update(configuration_affected)
             run_fhir_conformance |= bool(configuration_affected & FHIR_PACKAGES)
+            fhir_components.update(fhir_components_for_packages(configuration_affected))
             continue
         if path.startswith("Tests/TestPlans/"):
             package = os.path.splitext(os.path.basename(path))[0]
             if package in PKGS:
                 affected.add(package)
                 run_fhir_conformance |= package in FHIR_PACKAGES
+                fhir_components.update(fhir_components_for_packages({package}))
             else:
                 # The _All-<platform> plans cover multiple packages. Keep this conservative until
                 # the matrix supports a platform-only all-packages selection.
@@ -511,6 +570,10 @@ def main():
                 continue
             affected.update(packages)
             run_fhir_conformance |= bool(packages & FHIR_PACKAGES)
+            fhir_components.update(fhir_components_for_packages(packages))
+    if run_fhir_conformance and not fhir_components:
+        # A shared validator, model or tooling change names no producer, so every lane validates.
+        fhir_components.update(ALL_FHIR_COMPONENTS)
     if run_all:
         affected = set(PKGS.keys())
 
@@ -540,18 +603,10 @@ def main():
             ui.append({"package": pkg, "platform": platform, "selfHosted": "ui" in self_hosted,
                        "selfHostedLabels": self_hosted_labels})
 
-    lines = [
-        f'matrix={json.dumps({"include": unit})}',
-        f'ui_matrix={json.dumps({"include": ui})}',
-        f'has_jobs={"true" if unit else "false"}',
-        f'has_ui_jobs={"true" if ui else "false"}',
-        f'has_fhir_conformance={"true" if run_fhir_conformance else "false"}',
-        f'affected={",".join(sorted(affected)) if affected else "(none)"}',
-    ]
-    sys.stdout.write("\n".join(lines) + "\n")
+    write_outputs(unit, ui, run_fhir_conformance, fhir_components, affected)
     sys.stderr.write(
         f"[affected-test-matrix] run_all={run_all} affected={sorted(affected)} "
-        f"unit_jobs={len(unit)} ui_jobs={len(ui)} fhir_conformance={run_fhir_conformance}\n"
+        f"unit_jobs={len(unit)} ui_jobs={len(ui)} fhir_components={sorted(fhir_components)}\n"
     )
 
 if __name__ == "__main__":

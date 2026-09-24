@@ -94,14 +94,19 @@ extension Questionnaire.Task {
         /// The boolean expression that must evaluate to `true` for the response to be valid.
         public let expression: String
         /// The human-readable message shown when the constraint is violated.
-        public let humanDescription: String
+        public let humanDescription: Questionnaire.LocalizedText
         public let severity: Severity
         /// The rule's identifier (FHIR `targetConstraint.key`), unique within the questionnaire.
         ///
         /// Exports synthesize one from the task id when none was authored.
         public let key: String?
 
-        public init(expression: String, humanDescription: String, severity: Severity = .error, key: String? = nil) {
+        public init(
+            expression: String,
+            humanDescription: Questionnaire.LocalizedText,
+            severity: Severity = .error,
+            key: String? = nil
+        ) {
             self.expression = expression
             self.humanDescription = humanDescription
             self.severity = severity

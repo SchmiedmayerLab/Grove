@@ -19,13 +19,17 @@ extension ModelsR4.QuestionnaireItem {
         using context: FHIRExportContext
     ) throws {
         self.init(linkId: group.id.asFHIRStringPrimitive(), type: FHIRPrimitive(QuestionnaireItemType.group))
-        if !group.title.isEmpty {
+        if !group.title.base.isEmpty {
             self.text = group.title.asFHIRStringPrimitive()
+        }
+        if !group.codes.isEmpty {
+            self.code = group.codes.map(\.fhirCoding)
         }
         var extensions: [Extension] = []
         if let shortTitle = group.shortTitle {
             extensions.append(.shortText(shortTitle))
         }
+        extensions += group.observationExtraction?.fhirExtensions ?? []
         try applyCondition(group.condition, using: context, extensions: &extensions)
         self.extension = extensions.isEmpty ? nil : extensions
     }
@@ -46,7 +50,7 @@ extension ModelsR4.QuestionnaireItem {
         extensions += Self.expressionExtensions(of: task)
         extensions += Self.constraintExtensions(of: task)
         // The footer authored via .help() exports as a nested help display item.
-        if !task.footer.isEmpty && !isDisplay {
+        if !task.footer.base.isEmpty && !isDisplay {
             self.item = [Self.helpItem(for: task)]
         }
 
@@ -170,7 +174,7 @@ extension ModelsR4.QuestionnaireItem {
         case .fileAttachment:
             return .attachment
         case .custom:
-            throw FHIRExportError("Custom question kind on '\(task.id)' has no FHIR export")
+            throw ExportError("Custom question kind on '\(task.id)' has no FHIR export")
         }
     }
 
@@ -319,7 +323,7 @@ extension ModelsR4.QuestionnaireItem {
         case .choice(let choice):
             return try initialCoding(forOption: choice.selectedOptions.first, on: task.id)
         case .attachments, .custom:
-            throw FHIRExportError("Initial value on '\(task.id)' is not exportable")
+            throw ExportError("Initial value on '\(task.id)' is not exportable")
         }
     }
 
@@ -338,7 +342,7 @@ extension ModelsR4.QuestionnaireItem {
         on taskId: GroveQuestionnaire.Questionnaire.Task.ID
     ) throws -> QuestionnaireItemInitial {
         guard let year = components.year else {
-            throw FHIRExportError("Initial date on '\(taskId)' is missing a year")
+            throw ExportError("Initial date on '\(taskId)' is missing a year")
         }
         return QuestionnaireItemInitial(value: .date(FHIRPrimitive(FHIRDate(
             year: year,
@@ -352,7 +356,7 @@ extension ModelsR4.QuestionnaireItem {
         on taskId: GroveQuestionnaire.Questionnaire.Task.ID
     ) throws -> QuestionnaireItemInitial {
         guard let optionId, let separator = optionId.firstIndex(of: "|") else {
-            throw FHIRExportError("Initial choice on '\(taskId)' must reference a coded option")
+            throw ExportError("Initial choice on '\(taskId)' must reference a coded option")
         }
         return QuestionnaireItemInitial(value: .coding(Coding(
             code: String(optionId[optionId.index(after: separator)...]).asFHIRStringPrimitive(),
@@ -369,22 +373,17 @@ extension ModelsR4.QuestionnaireItem {
     ) {
         switch task.kind.variant {
         case .instructional(let text):
-            self.text = text.asFHIRStringPrimitive()
+            self.text = text.asFHIRStringPrimitive(markdown: task.markdownText)
         default:
-            if !task.title.isEmpty {
-                self.text = task.title.asFHIRStringPrimitive()
+            if !task.title.base.isEmpty {
+                self.text = task.title.asFHIRStringPrimitive(markdown: task.markdownText)
             }
         }
         self.prefix = task.prefix?.asFHIRStringPrimitive()
         if !task.codes.isEmpty {
-            self.code = task.codes.map { code in
-                Coding(
-                    code: code.code.asFHIRStringPrimitive(),
-                    display: code.display?.asFHIRStringPrimitive(),
-                    system: code.system?.asFHIRURIPrimitive()
-                )
-            }
+            self.code = task.codes.map(\.fhirCoding)
         }
+        extensions += task.observationExtraction?.fhirExtensions ?? []
         self.definition = task.definition?.asFHIRURIPrimitive()
         if let shortTitle = task.shortTitle {
             extensions.append(.shortText(shortTitle))

@@ -69,7 +69,7 @@ let defaultEnabledTraits: Set<String> = if isLoweredDeploymentTargetEnabled {
 let excludeDocCCatalogs = Context.environment["GROVE_EXCLUDE_DOCC_CATALOGS"] == "1"
 
 let packagePlatforms: [SupportedPlatform] = if isLoweredDeploymentTargetEnabled {
-    [.iOS(.v15), .macOS(.v12), .watchOS(.v9)]
+    [.iOS(.v15), .macOS(.v12), .watchOS(.v8)]
 } else {
     [.iOS(.v18), .macOS(.v15), .watchOS(.v11)]
 }
@@ -145,15 +145,18 @@ func matchingFiles(in targetPath: String, skipping skippedExcludes: [String], wh
 
 var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/antlr/antlr4.git", from: "4.13.1"),
-    // 0.9.1 lower bound: 0.9.0 breaks the DSTU2 models (BackboneElement typealias collapse).
-    // <0.9.2 upper bound: 0.9.2 raises FHIRModels' deployment targets to iOS 16/macOS 13 (OSAllocatedUnfairLock),
-    // which conflicts with the lowered-deployment-target builds (`isLoweredDeploymentTargetEnabled`).
+    // 0.9.3 fixes the DSTU2 model regression and restores iOS 15/macOS 12 deployment support
+    // after 0.9.2 temporarily raised those floors. `.upToNextMinor` intentionally admits only
+    // compatible 0.9.x fixes; lowered watchOS 8 builds still exclude FHIRModels as documented above.
     .package(url: "https://github.com/SchmiedmayerLab/FHIRModels.git", .upToNextMinor(from: "0.9.3")),
     .package(url: "https://github.com/PhoneNumberKit/PhoneNumberKit.git", from: "5.0.0"),
     .package(url: "https://github.com/apple/swift-algorithms.git", from: "1.2.1"),
     .package(url: "https://github.com/apple/swift-async-algorithms.git", from: "1.1.3"),
     .package(url: "https://github.com/apple/swift-atomics.git", from: "1.2.0"),
-    .package(url: "https://github.com/apple/swift-collections.git", from: "1.1.4"),
+    // 1.7.0 references swift_initBorrow, absent before iOS 27.
+    .package(url: "https://github.com/apple/swift-collections.git", "1.1.4"..<"1.7.0"),
+    // CryptoKit's HMAC API for the Linux legs; Apple platforms keep CryptoKit itself.
+    .package(url: "https://github.com/apple/swift-crypto.git", "4.0.0"..<"6.0.0"),
     .package(url: "https://github.com/apple/swift-log.git", from: "1.6.2"),
     .package(url: "https://github.com/gonzalezreal/swift-markdown-ui.git", from: "2.4.1"),
     .package(url: "https://github.com/apple/swift-nio.git", from: "2.59.0"),
@@ -223,6 +226,7 @@ var products: [Product] = [
     .library(name: "GroveDevicesUI", targets: ["GroveDevicesUI"]),
     .library(name: "GroveOmron", targets: ["GroveOmron"]),
     // MARK: GroveFHIR
+    .library(name: "GroveFHIRContract", targets: ["GroveFHIRContract"]),
     .library(name: "GroveFHIR", targets: ["GroveFHIR"]),
     .library(name: "GroveFHIRMockPatients", targets: ["GroveFHIRMockPatients"]),
     // MARK: GroveFileFormats
@@ -262,14 +266,17 @@ var products: [Product] = [
     .library(name: "GroveOnboarding", targets: ["GroveOnboarding"]),
     // MARK: GroveQuestionnaire
     .library(name: "GroveQuestionnaire", targets: ["GroveQuestionnaire"]),
+    .library(name: "GroveQuestionnaireUI", targets: ["GroveQuestionnaireUI"]),
     .library(name: "GroveQuestionnaireCatalog", targets: ["GroveQuestionnaireCatalog"]),
     .library(name: "GroveQuestionnaireFHIR", targets: ["GroveQuestionnaireFHIR"]),
+    .library(name: "GroveQuestionnaireExtraction", targets: ["GroveQuestionnaireExtraction"]),
     .library(name: "GroveQuestionnaireLegacy", targets: ["GroveQuestionnaireLegacy"]),
     .library(name: "XCTGroveQuestionnaire", targets: ["XCTGroveQuestionnaire"]),
     // MARK: GroveScheduler
     .library(name: "GroveScheduler", targets: ["GroveScheduler"]),
     // MARK: GroveSensorKit
     .library(name: "GroveSensorKit", targets: ["GroveSensorKit"]),
+    .library(name: "GroveSensorKitFHIR", targets: ["GroveSensorKitFHIR"]),
     // MARK: GroveSpeech
     .library(name: "GroveSpeechRecognizer", targets: ["GroveSpeechRecognizer"]),
     .library(name: "GroveSpeechSynthesizer", targets: ["GroveSpeechSynthesizer"]),
@@ -313,10 +320,9 @@ var targets: [Target] = [
     .target(
         name: "FHIRModelsExtensions",
         dependencies: [
-            .target(name: "GroveLegacyIdentifiers"),
             .target(name: "FHIRPathParser"),
-            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
-            .product(name: "ModelsDSTU2", package: "FHIRModels", condition: fhirModelsCondition)
+            .product(name: "ModelsDSTU2", package: "FHIRModels", condition: fhirModelsCondition),
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
         ],
         exclude: targetExcludes("FHIRModelsExtensions", additional: ["FHIR+ExtensionUtils.swift.gyb"]),
         swiftSettings: defaultSwiftSettings,
@@ -345,8 +351,8 @@ var targets: [Target] = [
     .testTarget(
         name: "FHIRModelsExtensionsTests",
         dependencies: [
-            .target(name: "GroveLegacyIdentifiers"),
             .target(name: "FHIRModelsExtensions"),
+            .target(name: "FHIRPathParser"),
             .target(name: "FHIRQuestionnaires")
         ],
         swiftSettings: defaultSwiftSettings,
@@ -361,34 +367,12 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     // MARK: GroveHealthKitFHIR
-    .macro(
-        name: "GroveHealthKitFHIRMacrosImpl",
-        dependencies: [
-            .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-            .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-            .product(name: "SwiftDiagnostics", package: "swift-syntax"),
-            .product(name: "Algorithms", package: "swift-algorithms")
-        ],
-        swiftSettings: defaultSwiftSettings,
-        plugins: [] + defaultPlugins
-    ),
-    .target(
-        name: "GroveHealthKitFHIRMacros",
-        dependencies: [
-            .target(name: "GroveHealthKitFHIRMacrosImpl")
-        ],
-        swiftSettings: defaultSwiftSettings,
-        plugins: [] + defaultPlugins
-    ),
     .target(
         name: "GroveHealthKitFHIR",
         dependencies: [
-            .target(name: "GroveHealthKitFHIRMacros"),
+            .target(name: "GroveFHIRContract"),
             .target(name: "GroveHealthKit"),
-            .target(name: "GroveFoundation"),
-            .target(name: "GroveFHIR"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
-            .product(name: "ModelsDSTU2", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions")
         ],
         exclude: targetExcludes("GroveHealthKitFHIR"),
@@ -398,22 +382,10 @@ var targets: [Target] = [
     .testTarget(
         name: "GroveHealthKitFHIRTests",
         dependencies: [
-            .target(name: "GroveHealthKitFHIR"),
-            .target(name: "GroveFoundation")
+            .target(name: "GroveFHIRContract"),
+            .target(name: "GroveHealthKitFHIR")
         ],
         exclude: testTargetExcludes("GroveHealthKitFHIRTests", additional: ["UITests"]),
-        swiftSettings: defaultSwiftSettings,
-        plugins: [] + defaultPlugins
-    ),
-    .testTarget(
-        name: "GroveHealthKitFHIRMacrosTests",
-        dependencies: [
-            .target(name: "GroveHealthKitFHIRMacros"),
-            .target(name: "GroveHealthKitFHIRMacrosImpl"),
-            .target(name: "FHIRModelsExtensions"),
-            .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-            .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
-        ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
@@ -435,6 +407,7 @@ var targets: [Target] = [
         name: "ResearchKitOnFHIRTests",
         dependencies: [
             .target(name: "ResearchKitOnFHIR", condition: .when(traits: [researchKitTrait])),
+            .target(name: "FHIRPathParser"),
             .target(name: "FHIRQuestionnaires")
         ],
         exclude: testTargetExcludes("ResearchKitOnFHIRTests", additional: ["UITests"]),
@@ -817,6 +790,26 @@ var targets: [Target] = [
         plugins: [] + defaultPlugins
     ),
     // MARK: GroveFHIR
+    .target(
+        name: "GroveQuestionnaireExtraction",
+        dependencies: [
+            .target(name: "GroveFHIRContract"),
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
+        ],
+        exclude: targetExcludes("GroveQuestionnaireExtraction"),
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .target(
+        name: "GroveFHIRContract",
+        dependencies: [
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
+            .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux]))
+        ],
+        exclude: targetExcludes("GroveFHIRContract"),
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
     .target(
         name: "GroveFHIR",
         dependencies: [
@@ -1399,12 +1392,28 @@ var targets: [Target] = [
         name: "GroveQuestionnaire",
         dependencies: [
             .target(name: "GroveQuestionnaireMacrosImpl"),
-            .target(name: "GroveQuestionnaireLegacy", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
-            .target(name: "GroveViews"),
-            .product(name: "MarkdownUI", package: "swift-markdown-ui"),
+            .target(name: "GroveFoundation"),
+            .product(name: "Algorithms", package: "swift-algorithms"),
             .product(name: "Numerics", package: "swift-numerics")
         ],
         exclude: targetExcludes("GroveQuestionnaire"),
+        resources: [
+            .process("Resources")
+        ],
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .target(
+        name: "GroveQuestionnaireUI",
+        dependencies: [
+            .target(name: "GroveQuestionnaire"),
+            .target(name: "GroveQuestionnaireMacrosImpl"),
+            .target(name: "GroveQuestionnaireLegacy", condition: .when(platforms: [.iOS], traits: [researchKitTrait])),
+            .target(name: "GroveViews", condition: applePlatformsOnly),
+            .product(name: "MarkdownUI", package: "swift-markdown-ui", condition: applePlatformsOnly),
+            .product(name: "Numerics", package: "swift-numerics")
+        ],
+        exclude: targetExcludes("GroveQuestionnaireUI"),
         resources: [
             .process("Resources")
         ],
@@ -1422,8 +1431,10 @@ var targets: [Target] = [
     .target(
         name: "GroveQuestionnaireFHIR",
         dependencies: [
-            .target(name: "GroveLegacyIdentifiers"),
+            .target(name: "GroveQuestionnaireExtraction"),
+            .target(name: "GroveFHIRContract"),
             .target(name: "GroveQuestionnaire"),
+            .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux])),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions"),
             .target(name: "FHIRPathParser"),
@@ -1456,7 +1467,9 @@ var targets: [Target] = [
     .testTarget(
         name: "GroveQuestionnaireTests",
         dependencies: [
+            .target(name: "GroveFHIRContract"),
             .target(name: "GroveQuestionnaire"),
+            .target(name: "GroveQuestionnaireUI"),
             .target(name: "GroveQuestionnaireCatalog"),
             .target(name: "GroveQuestionnaireFHIR"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
@@ -1464,6 +1477,19 @@ var targets: [Target] = [
             .target(name: "FHIRQuestionnaires")
         ],
         exclude: testTargetExcludes("GroveQuestionnaireTests", additional: ["UITests"]),
+        resources: [
+            .process("Resources")
+        ],
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .testTarget(
+        name: "GroveQuestionnaireExtractionTests",
+        dependencies: [
+            .target(name: "GroveQuestionnaireExtraction"),
+            .target(name: "GroveFHIRContract"),
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
+        ],
         resources: [
             .process("Resources")
         ],
@@ -1520,12 +1546,37 @@ var targets: [Target] = [
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
+    .target(
+        name: "GroveSensorKitFHIR",
+        dependencies: [
+            .target(name: "FHIRModelsExtensions"),
+            .target(name: "GroveFHIRContract"),
+            .target(name: "GroveSensorKit", condition: .when(platforms: [.iOS])),
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
+            .target(name: "GroveFoundation")
+        ],
+        exclude: targetExcludes("GroveSensorKitFHIR"),
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
     .testTarget(
         name: "GroveSensorKitTests",
         dependencies: [
             .target(name: "GroveSensorKit")
         ],
         exclude: testTargetExcludes("GroveSensorKitTests", additional: ["UITests"]),
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .testTarget(
+        name: "GroveSensorKitFHIRTests",
+        dependencies: [
+            .target(name: "GroveSensorKitFHIR"),
+            .target(name: "GroveFHIRContract"),
+            .target(name: "GroveSensorKit", condition: .when(platforms: [.iOS])),
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
+        ],
+        exclude: testTargetExcludes("GroveSensorKitFHIRTests"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
@@ -1599,6 +1650,7 @@ var targets: [Target] = [
     .testTarget(
         name: "GroveStorageTests",
         dependencies: [
+            .target(name: "GroveFoundation"),
             .target(name: "GroveLegacyIdentifiers"),
             .target(name: "GroveLocalStorage"),
             .target(name: "XCTGrove")
@@ -1612,6 +1664,7 @@ var targets: [Target] = [
         name: "GroveStudyDefinition",
         dependencies: [
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
+            .target(name: "FHIRModelsExtensions"),
             .target(name: "GroveHealthKit"),
             .target(name: "GroveHealthKitBulkExport"),
             .target(name: "GroveFoundation"),
@@ -1632,6 +1685,7 @@ var targets: [Target] = [
         dependencies: { () -> [Target.Dependency] in
             var deps: [Target.Dependency] = [
                 .target(name: "GroveStudyDefinition"),
+                .target(name: "FHIRModelsExtensions"),
                 .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
             ]
             #if canImport(Darwin)

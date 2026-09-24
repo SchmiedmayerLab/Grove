@@ -16,11 +16,19 @@ import SensorKit
 extension AnchoredFetcher {
     /// Async iterator that fetches samples batched by time interval.
     struct TimeIntervalBasedFetcher: AsyncIteratorProtocol {
+        typealias FetchOperation = @Sendable (
+            Sensor<Sample>,
+            SRDevice,
+            Range<Date>
+        ) async throws -> [Sample.SafeRepresentation]
+
         private enum State {
             /// The fetcher hasn't run at all yet.
             case initial
             /// The next `next()` call should fetch and return samples for `timeRange`
-            case process(timeRange: Range<Date>)
+            case process(timeRange: Range<Date>, expectedAnchor: QueryAnchor)
+            /// A non-empty batch has been yielded and must be acknowledged before another batch is requested.
+            case awaitingAcknowledgement(timeRange: Range<Date>, expectedAnchor: QueryAnchor)
             /// The data fetcher is done, i.e. has fetched (and returned) all data that is currently available.
             case done
         }
@@ -33,6 +41,7 @@ extension AnchoredFetcher {
         private let quarantineCutoff: Date
         private let batchSize: TimeInterval
         private let device: SRDevice
+        private let fetchOperation: FetchOperation
         private var state: State = .initial
         
         init(
@@ -40,13 +49,17 @@ extension AnchoredFetcher {
             anchor: ManagedQueryAnchor,
             quarantineCutoff: Date,
             batchSize: TimeInterval,
-            device: SRDevice
+            device: SRDevice,
+            fetchOperation: @escaping FetchOperation = { sensor, device, timeRange in
+                try await sensor.fetch(from: device, timeRange: timeRange)
+            }
         ) {
             self.sensor = sensor
             self.anchor = anchor
             self.quarantineCutoff = quarantineCutoff
             self.batchSize = Swift::max(batchSize, Self.minAllowedBatchSize)
             self.device = device
+            self.fetchOperation = fetchOperation
             if self.batchSize <= 0 || !self.batchSize.isNormal {
                 state = .done
                 let logger = Logger(subsystem: "org.grovealliance", category: "GroveSensorKit")
@@ -54,35 +67,62 @@ extension AnchoredFetcher {
             }
         }
         
-        private mutating func advanceState() throws {
+        private mutating func prepareInitialState() throws {
             switch state {
             case .done:
                 return
             case .initial:
                 var currentAnchor = try anchor.value
+                if let pendingBatch = currentAnchor.pendingBatch {
+                    guard pendingBatch.mode == .timeRange,
+                          pendingBatch.sampleCount > 0,
+                          let pendingRange = pendingBatch.timeRange else {
+                        throw SensorKit.QueryAnchorAcknowledgementError.pendingBatchMismatch
+                    }
+                    state = .process(timeRange: pendingRange, expectedAnchor: currentAnchor)
+                    return
+                }
                 guard currentAnchor.timestamp < quarantineCutoff else {
                     state = .done
                     return
                 }
                 if currentAnchor.timestamp == .distantPast {
                     // first time
-                    currentAnchor = .init(timestamp: quarantineCutoff.addingTimeInterval(-Duration.days(7).timeInterval))
-                    try anchor.update(currentAnchor)
+                    let initialAnchor = currentAnchor.advancedPastEmptyRange(
+                        to: quarantineCutoff.addingTimeInterval(-Duration.days(7).timeInterval)
+                    )
+                    guard try anchor.update(from: currentAnchor, to: initialAnchor) else {
+                        throw SensorKit.QueryAnchorAcknowledgementError.staleCursor
+                    }
+                    currentAnchor = initialAnchor
                 }
                 let batchStartDate = currentAnchor.timestamp
                 let batchEndDate = Swift.min(batchStartDate.addingTimeInterval(batchSize), quarantineCutoff)
-                state = .process(timeRange: batchStartDate..<batchEndDate)
-            case .process(let timeRange):
-                try anchor.update(.init(timestamp: timeRange.upperBound))
-                guard timeRange.upperBound < quarantineCutoff else {
-                    // we already were processing the last (currently available) batch
-                    state = .done
-                    return
-                }
-                let newStartDate = timeRange.upperBound
-                let newEndDate = Swift.min(newStartDate.addingTimeInterval(batchSize), quarantineCutoff)
-                state = .process(timeRange: newStartDate..<newEndDate)
+                state = .process(timeRange: batchStartDate..<batchEndDate, expectedAnchor: currentAnchor)
+            case .process, .awaitingAcknowledgement:
+                return
             }
+        }
+
+        private mutating func commitAndAdvance(_ timeRange: Range<Date>, expectedAnchor: QueryAnchor) throws {
+            guard expectedAnchor.pendingBatch == nil else {
+                throw SensorKit.QueryAnchorAcknowledgementError.pendingBatchMismatch
+            }
+            let desiredAnchor = expectedAnchor.advancedPastEmptyRange(to: timeRange.upperBound)
+            guard try anchor.update(from: expectedAnchor, to: desiredAnchor) else {
+                throw SensorKit.QueryAnchorAcknowledgementError.staleCursor
+            }
+            advanceAfterCommit(timeRange, committedAnchor: desiredAnchor)
+        }
+
+        private mutating func advanceAfterCommit(_ timeRange: Range<Date>, committedAnchor: QueryAnchor) {
+            guard timeRange.upperBound < quarantineCutoff else {
+                state = .done
+                return
+            }
+            let newStartDate = timeRange.upperBound
+            let newEndDate = Swift.min(newStartDate.addingTimeInterval(batchSize), quarantineCutoff)
+            state = .process(timeRange: newStartDate..<newEndDate, expectedAnchor: committedAnchor)
         }
         
         mutating func next(isolation: isolated (any Actor)?) async throws(Failure) -> Element? {
@@ -90,9 +130,16 @@ extension AnchoredFetcher {
             case .done:
                 return nil
             case .initial:
-                try advanceState()
+                try prepareInitialState()
                 return try await fetchNextBatch(isolation: isolation)
             case .process:
+                return try await fetchNextBatch(isolation: isolation)
+            case let .awaitingAcknowledgement(timeRange, expectedAnchor):
+                let committedAnchor = try expectedAnchor.committingPendingBatch()
+                guard try anchor.value == committedAnchor else {
+                    throw SensorKit.QueryAnchorAcknowledgementError.outstandingBatch
+                }
+                advanceAfterCommit(timeRange, committedAnchor: committedAnchor)
                 return try await fetchNextBatch(isolation: isolation)
             }
         }
@@ -109,6 +156,8 @@ extension AnchoredFetcher {
         ///
         /// This function advances the state as it moves through the fetches.
         private mutating func fetchNextBatch(isolation _: isolated (any Actor)?) async throws(Failure) -> Element? {
+            // SensorKit's device descriptor is immutable. Keep one handle for the complete fetch
+            // loop and confine the unchecked transfer to this SDK boundary.
             nonisolated(unsafe) let device = device
             // SAFETY:
             // this loop will terminate eventually:
@@ -120,27 +169,68 @@ extension AnchoredFetcher {
                     return nil
                 }
                 switch state {
-                case .process(let timeRange):
-                    let results = try await sensor.fetch(from: device, timeRange: timeRange)
-                    try advanceState()
+                case let .process(timeRange, expectedAnchor):
+                    let results = try await fetchOperation(sensor, device, timeRange)
                     if !results.isEmpty {
-                        // the batch is not empty, so we simply return it and that's it.
-                        let batchInfo = SensorKit.BatchInfo(timeRange: timeRange, device: SensorKit.DeviceInfo(device))
-                        return (batchInfo, results)
+                        return try prepareAnchoredBatch(
+                            results,
+                            timeRange: timeRange,
+                            expectedAnchor: expectedAnchor,
+                            device: device
+                        )
                     } else {
+                        guard expectedAnchor.pendingBatch == nil else {
+                            throw SensorKit.QueryAnchorAcknowledgementError.pendingBatchMismatch
+                        }
                         // the batch is empty, i.e. there were no samples for the time range.
                         // the easy way here would be to simply not have the loop and instead
                         // just `return try await next(isolation: isolation)`, but since we
                         // don't know how small the batch size is, and how many empty batches there might be,
                         // we don't want to have the risk of potentially effectively unbounded recursion,
                         // so we instead implement it as a loop
+                        try commitAndAdvance(timeRange, expectedAnchor: expectedAnchor)
                         continue
                     }
-                case .done, .initial:
+                case .done, .initial, .awaitingAcknowledgement:
                     // initial is unreachable here, so we simply group it in with done
                     return nil
                 }
             }
+        }
+
+        private mutating func prepareAnchoredBatch(
+            _ results: [Sample.SafeRepresentation],
+            timeRange: Range<Date>,
+            expectedAnchor: QueryAnchor,
+            device: SRDevice
+        ) throws -> Element {
+            let pendingBatch = QueryAnchor.PendingBatch.timeRange(timeRange, sampleCount: results.count)
+            let pendingAnchor: QueryAnchor
+            if let persistedPending = expectedAnchor.pendingBatch {
+                guard persistedPending == pendingBatch else {
+                    throw SensorKit.QueryAnchorAcknowledgementError.pendingBatchMismatch
+                }
+                pendingAnchor = expectedAnchor
+            } else {
+                pendingAnchor = expectedAnchor.preparing(pendingBatch)
+                guard try anchor.update(from: expectedAnchor, to: pendingAnchor) else {
+                    throw SensorKit.QueryAnchorAcknowledgementError.staleCursor
+                }
+            }
+            let committedAnchor = try pendingAnchor.committingPendingBatch()
+            state = .awaitingAcknowledgement(timeRange: timeRange, expectedAnchor: pendingAnchor)
+            let batchInfo = SensorKit.BatchInfo(
+                timeRange: timeRange,
+                device: SensorKit.DeviceInfo(device),
+                acquisitionBatch: expectedAnchor.acquisitionBatchCoordinate
+            )
+            let anchor = self.anchor
+            let acknowledgement = SensorKit.QueryAnchorAcknowledgement {
+                guard try anchor.update(from: pendingAnchor, to: committedAnchor) else {
+                    throw SensorKit.QueryAnchorAcknowledgementError.staleCursor
+                }
+            }
+            return SensorKit.AnchoredBatch(info: batchInfo, samples: results, acknowledgement: acknowledgement)
         }
     }
 }

@@ -31,6 +31,8 @@ enum ReopenableSurvey {
 
     static let questionnaire = Questionnaire(
         url: URL(string: "https://grovealliance.org/samples/ReopenableSurvey")!,
+        version: "1.0.0",
+        language: "en-US",
         title: "Reopenable Survey",
         explainer: "One question, answered once and then reopened."
     ) {

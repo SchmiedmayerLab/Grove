@@ -100,7 +100,7 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.NumericTaskConfig {
         using context: FHIRExportContext
     ) -> [Extension] {
         var extensions: [Extension] = []
-        if let maxDecimalPlaces {
+        if valueKind == .decimal, let maxDecimalPlaces {
             extensions.append(Extension(
                 url: "http://hl7.org/fhir/StructureDefinition/maxDecimalPlaces",
                 value: .integer(FHIRPrimitive(FHIRInteger(Int32(clamping: maxDecimalPlaces))))
@@ -144,11 +144,16 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.NumericTaskConfig {
                     value: .decimal(value.asFHIRDecimalPrimitive())
                 )
             case .quantity:
-                Extension(
-                    url: FHIRPrimitive(FHIRURI(stringLiteral: quantity)),
-                    value: .quantity(context.quantity(value, unitCode: unitCode, forTaskWithId: taskId))
-                )
+                Extension(url: FHIRPrimitive(FHIRURI(stringLiteral: quantity)), value: .quantity(boundQuantity(value)))
             }
+        }
+        // The bound states its unit as the question displays it, in every language the question offers.
+        func boundQuantity(_ value: Double) -> Quantity {
+            var quantity = context.quantity(value, unitCode: unitCode, forTaskWithId: taskId)
+            if !unit.base.isEmpty {
+                quantity.unit = unit.asFHIRStringPrimitive()
+            }
+            return quantity
         }
         var extensions: [Extension] = []
         if let minimum {
@@ -180,7 +185,7 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.NumericTaskConfig {
                 url: FHIRPrimitive(FHIRURI(stringLiteral: unitExtension)),
                 value: .coding(Coding(
                     code: unitCode.asFHIRStringPrimitive(),
-                    display: unit.isEmpty ? nil : unit.asFHIRStringPrimitive(),
+                    display: unit.base.isEmpty ? nil : unit.asFHIRStringPrimitive(),
                     system: unitSystem?.asFHIRURIPrimitive()
                 ))
             ))
@@ -289,19 +294,22 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
     /// The `answerOption.value[x]` this option is written as, typed to match the value it was read from.
     fileprivate func answerOptionValue(on taskId: GroveQuestionnaire.Questionnaire.Task.ID) throws -> QuestionnaireItemAnswerOption.ValueX {
         guard fhirCoding == nil else {
-            return .coding(toFHIRCoding())
+            var coding = toFHIRCoding(displayed: false)
+            coding.display = title.asFHIRStringPrimitive()
+            return .coding(coding)
         }
         switch answerValue {
         case .string(let string):
-            return .string(string.asFHIRStringPrimitive())
+            // A displayed translation of a string value rides on the value itself; the base stays the stored answer.
+            return .string(title.base == string ? title.asFHIRStringPrimitive() : string.asFHIRStringPrimitive())
         case .integer(let integer):
             guard let value = Int32(exactly: integer) else {
-                throw FHIRExportError("Choice option '\(id)' on '\(taskId)' is out of range for a FHIR integer")
+                throw ExportError("Choice option '\(id)' on '\(taskId)' is out of range for a FHIR integer")
             }
             return .integer(FHIRPrimitive(FHIRInteger(value)))
         case .date(let components):
             guard let year = components.year else {
-                throw FHIRExportError("Choice option '\(id)' on '\(taskId)' is missing a year")
+                throw ExportError("Choice option '\(id)' on '\(taskId)' is missing a year")
             }
             return .date(FHIRPrimitive(FHIRDate(
                 year: year,
@@ -315,7 +323,7 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
                 second: Decimal(components.second ?? 0)
             )))
         case nil:
-            throw FHIRExportError("Choice option '\(id)' on '\(taskId)' has no coding; declare a system")
+            throw ExportError("Choice option '\(id)' on '\(taskId)' has no coding; declare a system")
         }
     }
 }

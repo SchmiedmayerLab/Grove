@@ -24,12 +24,19 @@ import Testing
 
 
 private actor TestStandard: Standard, HealthKitConstraint {
-    func handleNewSamples<Sample>(_ addedSamples: some Collection<Sample>, ofType sampleType: SampleType<Sample>) async {
-        // ...
+    func handleNewSamples<Sample>(
+        _ addedSamples: some Collection<Sample>,
+        ofType sampleType: SampleType<Sample>
+    ) async -> HealthKitAnchorCommitAction? {
+        nil
     }
 
-    func handleDeletedObjects<Sample>(_ deletedObjects: some Collection<HKDeletedObject>, ofType sampleType: SampleType<Sample>) async {
-        // ...
+    func handleDeletedObjects<Sample>(
+        _ deletedObjects: some Collection<HKDeletedObject>,
+        ofType sampleType: SampleType<Sample>,
+        deletedAfter: Date?
+    ) async -> HealthKitAnchorCommitAction? {
+        nil
     }
 }
 

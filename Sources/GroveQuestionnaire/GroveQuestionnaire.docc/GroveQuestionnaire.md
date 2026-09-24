@@ -19,28 +19,15 @@ their scoring are ordinary declarations the compiler checks. Questionnaires publ
 someone else arrive as [FHIR R4 Questionnaires](https://hl7.org/fhir/R4/questionnaire.html)
 and are imported instead.
 
-Both paths produce the same ``Questionnaire``, render through the same
-``QuestionnaireSheet``, and export the same conformant FHIR `Questionnaire` and
-`QuestionnaireResponse`. Every page keeps its action floating at the bottom and lifts its
-title into the navigation bar as it scrolls, like every other Grove page.
+Both paths produce the same ``Questionnaire`` and export the same conformant FHIR
+`Questionnaire` and `QuestionnaireResponse`.
 
-@Row {
-    @Column {
-        @Image(source: "Overview", alt: "Screenshot showing the first page of a questionnaire rendered by the Questionnaire module."){
-            A questionnaire rendered by ``QuestionnaireSheet``, one question to a card.
-        }
-    }
-    @Column {
-        @Image(source: "Validation", alt: "Screenshot showing an unanswered question marked in red after the participant tried to continue."){
-            Continuing early marks what still needs an answer and brings the page back to it.
-        }
-    }
-    @Column {
-        @Image(source: "Score", alt: "Screenshot showing a score computed from the chosen options, and an instruction that appeared once it crossed a threshold."){
-            Questions follow from answers: a score computed from the option weights updates as they are chosen, and an instruction appears once it crosses a threshold.
-        }
-    }
-}
+This module is the instrument and the answers collected for it — no user interface. It builds
+anywhere Swift does, so a questionnaire can be read, converted, scored, and stored on a server
+exactly as it is on a device.
+
+> Tip: To put a questionnaire on screen, add `GroveQuestionnaireUI` and present its
+`QuestionnaireSheet`. Everything here describes the instrument that module renders.
 
 
 ## Setup
@@ -50,11 +37,6 @@ Add the Grove Questionnaire Swift package to
 [Swift package](https://developer.apple.com/documentation/xcode/creating-a-standalone-swift-package-with-xcode#Add-a-dependency-on-another-Swift-package).
 
 > Important: If your application is not yet configured to use Grove, follow the [Grove setup article](../../Grove/Grove.docc/Initial-Setup.md) and set up the core Grove infrastructure.
-
-To offer **Take Photo** for image attachment questions on iOS, add a nonempty
-`NSCameraUsageDescription` to your app's `Info.plist` explaining why the questionnaire needs camera access.
-The camera option appears only when that description is present and a camera is available. Apps without it
-can still import photos and files.
 
 
 ## Authoring in Swift
@@ -112,6 +94,7 @@ enum PHQ2 {
     static let questionnaire = Questionnaire(
         url: URL(string: "https://example.org/fhir/Questionnaire/phq2")!,
         version: "1.0.0",
+        language: "en",
         title: "PHQ-2"
     ) {
         Section("phq2", title: "Over the last two weeks") {
@@ -125,33 +108,19 @@ enum PHQ2 {
 }
 ```
 
-Present it, and read the answers back through the same declarations that made them:
+Read the answers back through the same declarations that made them:
 
 ```swift
-import GroveQuestionnaire
 import GroveQuestionnaireFHIR
-import SwiftUI
 
 
-struct DailyCheckIn: View {
-    @State private var isPresented = false
+let responses = QuestionnaireResponses(
+    questionnaire: try PHQ2.questionnaire.withExpressionEngine(clock: .live(in: .current)),
+    resuming: draft
+)
 
-    var body: some View {
-        Button("Answer the PHQ-2") {
-            isPresented = true
-        }
-        .sheet(isPresented: $isPresented) {
-            QuestionnaireSheet(try! PHQ2.questionnaire.withExpressionEngine()) { result in
-                guard case .completed(let responses) = result else {
-                    return
-                }
-                let score = responses[PHQ2.total]        // Double?
-                let mood = responses[PHQ2.mood]         // Frequency?
-                // ... store the responses
-            }
-        }
-    }
-}
+let score = responses[PHQ2.total]        // Double?
+let mood = responses[PHQ2.mood]          // Frequency?
 ```
 
 `responses[PHQ2.mood]` is a `Frequency?`, not a string looked up by linkId, and
@@ -170,29 +139,36 @@ import GroveQuestionnaireFHIR
 import ModelsR4
 
 let resource = try JSONDecoder().decode(ModelsR4.Questionnaire.self, from: data)
-let questionnaire = try Questionnaire(resource).withExpressionEngine()
+let questionnaire = try Questionnaire(resource, clock: .live(in: .current))
 ```
 
-`withExpressionEngine()` enables SDC conditions, initial values, and calculated
-FHIRPath expressions. Install it before presenting any questionnaire that uses those
-features.
+FHIR import enables supported SDC conditions, initial values, and calculated FHIRPath
+expressions.
+Their time functions never read the device on their own: `now()` and `today()` read the clock the questionnaire is given.
+While a participant answers, that is `.live(in:)` their zone, read once per state of the answers.
+A stored response is evaluated at `.authored(_:)`, the instant and offset it was authored in, so it reads the same on any device.
 
-The result is an ordinary ``Questionnaire``, so it renders the same way, and the collected
+The result is an ordinary ``Questionnaire``, so it behaves the same way, and the collected
 answers export as a `QuestionnaireResponse`:
 
 ```swift
-QuestionnaireSheet(questionnaire) { result in
-    guard case .completed(let responses) = result else {
-        return
-    }
+func export(_ responses: QuestionnaireResponses) {
     do {
-        let fhirResponse = try ModelsR4.QuestionnaireResponse(responses, subject: participant)
+        let fhirResponse = try ModelsR4.QuestionnaireResponse(
+            responses,
+            subject: participant,
+            renderedIn: locale,
+            authored: submittedAt,
+            authoredTimeZone: .current
+        )
         // ... upload the response
     } catch {
         // ... report the failure
     }
 }
 ```
+
+`renderedIn` is the locale the questionnaire was shown in, which names the response's language.
 
 If the app was written against a specific instrument, declare it in Swift anyway and check
 the imported resource against it once, before typed handles read from it. A questionnaire
@@ -203,6 +179,20 @@ that drifted from the declaration otherwise surfaces as answers that are quietly
 try questionnaire.checkDeclaration(of: PHQ2.self)
 ```
 
+
+## Languages
+
+A questionnaire is one instrument in every language it offers.
+Its base strings are written in ``Questionnaire/Metadata/language``, and each text the participant sees is a ``Questionnaire/LocalizedText`` carrying its translations, keyed by BCP 47 tag.
+Importing a FHIR questionnaire keeps every `translation` extension, and exporting one writes them all back, the `purpose` and each `rendering-markdown` equivalent included.
+
+A renderer picks one language for the whole questionnaire with ``Questionnaire/renderingLanguage(for:)``: an exact tag match first (`es-US`), then the locale's primary language (`es`), then the base language.
+Every text then resolves in that language with ``Questionnaire/LocalizedText/resolved(in:)``.
+
+A response states that language in `QuestionnaireResponse.language`.
+Its items carry the question text only when the base language was shown, since that text must equal the questionnaire's base text.
+Likewise, a coded answer carries its base display only in the base language; in a translation, its system and code alone identify it.
+
 ## Topics
 
 ### Authoring
@@ -211,15 +201,14 @@ try questionnaire.checkDeclaration(of: PHQ2.self)
 - ``Questionnaire``
 - <doc:QuestionKinds>
 
+### Languages
+- ``Questionnaire/LocalizedText``
+- ``Questionnaire/languages``
+- ``Questionnaire/renderingLanguage(for:)``
+
 ### Responses
 - ``QuestionnaireResponses``
 
-### UI
-
-The sheet shows a progress bar unless asked otherwise; a questionnaire that is one step of a longer flow passes
-`progressRange:` to fill only its part of it. Hints such as "Select all that apply" are off unless asked for.
-``QuestionnaireProgress`` takes over from `QuestionProgressConfig`, which is deprecated.
-
-- ``QuestionnaireSheet``
-- ``QuestionnaireProgress``
-- ``QuestionnaireHints``
+### Expressions
+- ``QuestionnaireExpressionEngine``
+- ``QuestionnaireClock``

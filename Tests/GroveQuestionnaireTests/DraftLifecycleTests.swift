@@ -23,6 +23,7 @@ struct DraftLifecycleTests {
                 id: "https://example.org/fhir/Questionnaire/draft-test",
                 url: URL(string: "https://example.org/fhir/Questionnaire/draft-test"),
                 version: version,
+                language: "en-US",
                 title: "Draft Test",
                 explainer: ""
             ),
@@ -89,10 +90,21 @@ struct DraftLifecycleTests {
         let questionnaire = makeQuestionnaire()
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         responses.responses["mood"] = .init(value: .bool(true))
-        let fhirResponse = try ModelsR4.QuestionnaireResponse(responses, status: .inProgress)
+        let fhirResponse = try ModelsR4.QuestionnaireResponse(
+            responses,
+            status: .inProgress,
+            renderedIn: questionnaireResponseTestLocale,
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
+        )
         #expect(fhirResponse.status.value == .inProgress)
         // The default remains a completed response.
-        let completed = try ModelsR4.QuestionnaireResponse(responses)
+        let completed = try ModelsR4.QuestionnaireResponse(
+            responses,
+            renderedIn: questionnaireResponseTestLocale,
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
+        )
         #expect(completed.status.value == .completed)
     }
 }

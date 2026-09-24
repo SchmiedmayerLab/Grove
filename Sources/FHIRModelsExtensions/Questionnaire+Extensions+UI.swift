@@ -31,15 +31,23 @@ extension QuestionnaireItem {
             .numbersAndPunctuation
         case "URL":
             .URL
+        case "url":
+            .URL
         case "numberPad":
             .numberPad
         case "phonePad":
+            .phonePad
+        case "phone":
             .phonePad
         case "namePhonePad":
             .namePhonePad
         case "emailAddress":
             .emailAddress
+        case "email":
+            .emailAddress
         case "decimalPad":
+            .decimalPad
+        case "number":
             .decimalPad
         case "twitter":
             .twitter

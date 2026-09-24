@@ -8,6 +8,7 @@
 
 
 import GroveQuestionnaire
+import GroveQuestionnaireUI
 import SwiftUI
 
 
@@ -35,7 +36,7 @@ struct Example: Identifiable {
         hints: QuestionnaireHints = .all,
         completionAction: CompletionAction = .submit
     ) {
-        self.title = title ?? questionnaire.metadata.title
+        self.title = title ?? questionnaire.metadata.title.base
         self.questionnaire = questionnaire
         self.completionStepConfig = completionStepConfig
         self.progress = progress
@@ -114,6 +115,7 @@ private struct QuestionnaireRunner: ViewModifier {
 
     @Environment(ResponsesStore.self) private var responsesStore
     @Environment(SheetSettings.self) private var settings
+    @Environment(\.locale) private var locale
 
     @Binding var example: Example?
 
@@ -138,7 +140,13 @@ private struct QuestionnaireRunner: ViewModifier {
                         guard !failsSubmission else {
                             throw SubmissionFailure()
                         }
-                        try responsesStore.record(responses, from: running.title)
+                        try responsesStore.record(
+                            responses,
+                            from: running.title,
+                            renderedIn: locale,
+                            authored: .now,
+                            authoredTimeZone: .current
+                        )
                     }
                     example = nil
                 }

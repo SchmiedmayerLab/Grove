@@ -78,7 +78,8 @@ public indirect enum FHIRPathNode: Hashable, Sendable {
         case let array as [Any]:
             self = .array(array.compactMap { FHIRPathNode(jsonObject: $0) })
         case let number as NSNumber:
-            if CFGetTypeID(number) == CFBooleanGetTypeID() {
+            // JSONSerialization boxes JSON booleans in the class of NSNumber(value: true) on every platform.
+            if type(of: number) == type(of: NSNumber(value: true)) {
                 self = .bool(number.boolValue)
             } else {
                 self = .number(number.decimalValue)

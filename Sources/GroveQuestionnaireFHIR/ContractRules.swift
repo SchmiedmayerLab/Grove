@@ -1,0 +1,56 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+import Foundation
+import GroveFoundation
+
+
+/// Contract-level failures raised before Grove emits a Questionnaire resource or pair.
+public enum ContractError: Error, Equatable, Sendable {
+    case missingQuestionnaireURL
+    case missingQuestionnaireVersion
+    /// The questionnaire names no base language (`Questionnaire.language`).
+    case missingQuestionnaireLanguage
+    /// A text translates into the base language, or more than once into this language.
+    case conflictingTranslation(String)
+    case invalidQuestionnaireVersion(String)
+    case emptyQuestionnaire
+    case incompleteResponseIdentifier
+    case invalidQuestionnaireCanonical(String)
+    case invalidPair([ValidationIssue])
+    /// A stored response states no `authored`, so nothing fixes when its time functions read.
+    case missingAuthored
+    /// A stored response's `authored` states no time and offset, so `today()` has no zone to be read in.
+    case authoredWithoutOffset
+}
+
+
+/// Shared fixed values and validation helpers for the Grove Questionnaire contract.
+public enum ContractRules {
+    /// Semantic Versioning 2.0.0, matching the `qg-version-1` IG invariant.
+    public static func isSemanticVersion(_ value: String) -> Bool {
+        Version(value) != nil
+    }
+
+    /// Grove Questionnaire canonicals are exact dereferenceable HTTP(S) URLs without a
+    /// fragment or embedded version separator.
+    public static func isValidQuestionnaireURL(_ value: String) -> Bool {
+        guard value == value.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty,
+              !value.contains("|"),
+              !value.contains("#"),
+              let components = URLComponents(string: value),
+              let scheme = components.scheme?.lowercased(),
+              ["http", "https"].contains(scheme),
+              components.host?.isEmpty == false,
+              components.fragment == nil else {
+            return false
+        }
+        return true
+    }
+}

@@ -14,6 +14,15 @@ struct UITestsApp: App {
     @State private var responsesStore = ResponsesStore()
     @State private var sheetSettings = SheetSettings()
 
+    init() {
+        #if os(iOS)
+        // Nothing animates on a host that has turned animations off, which a page has to cope with as well.
+        if ProcessInfo.processInfo.arguments.contains("--disableAnimations") {
+            UIView.setAnimationsEnabled(false)
+        }
+        #endif
+    }
+
     var body: some Scene {
         WindowGroup {
             NavigationStack {

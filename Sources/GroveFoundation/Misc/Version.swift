@@ -79,9 +79,16 @@ public struct Version: Hashable, Sendable {
         self.minor = minor
         self.patch = patch
         func isValidIdentifier(_ string: String) -> Bool {
-            string.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }
+            !string.isEmpty
+                && string.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }
         }
-        precondition(prereleaseIdentifiers.allSatisfy(isValidIdentifier))
+        func isValidPrereleaseIdentifier(_ string: String) -> Bool {
+            guard isValidIdentifier(string) else {
+                return false
+            }
+            return string.count == 1 || string.first != "0" || string.contains { !$0.isNumber }
+        }
+        precondition(prereleaseIdentifiers.allSatisfy(isValidPrereleaseIdentifier))
         precondition(buildMetadata.allSatisfy(isValidIdentifier))
         self.prereleaseIdentifiers = prereleaseIdentifiers
         self.buildMetadata = buildMetadata
@@ -116,7 +123,7 @@ extension Version: Equatable, Comparable {
     public static func == (lhs: Version, rhs: Version) -> Bool {
         !(lhs < rhs) && !(lhs > rhs)
     }
-    
+
     /// Compares two ``Version``s for precedence, based on the rules defined in the [SemVer 2.0.0 specification](https://semver.org/#spec-item-11)
     public static func < (lhs: Version, rhs: Version) -> Bool { // swiftlint:disable:this cyclomatic_complexity
         // all lines prefixed with `> ` are quoting from version 2 of the SemVer spec.
@@ -135,11 +142,11 @@ extension Version: Equatable, Comparable {
             return false
         case (true, false):
             // lhs is a pre-release component, but rhs is not, and all lhs components until now have compared equal to their respective rhs components
-            // --> lhs predeced rhs
+            // --> lhs precedes rhs
             return true
         case (false, true):
             // lhs is not a pre-release component, but rhs is, and all lhs components until now have compared equal to their respective rhs components
-            // --> lhs does not predede rhs
+            // --> lhs does not precede rhs
             return false
         case (true, true):
             // > Precedence for two pre-release versions with the same major, minor, and patch version MUST be determined by comparing each dot separated identifier from left to right until a difference is found as follows:
@@ -160,7 +167,7 @@ extension Version: Equatable, Comparable {
                     lhs < rhs
                 // > 2. Identifiers with letters or hyphens are compared lexically in ASCII sort order.
                 case (.none, .none):
-                    !lhs.lexicographicallyPrecedes(lhs)
+                    lhs.lexicographicallyPrecedes(rhs)
                 // 3. Numeric identifiers always have lower precedence than non-numeric identifiers.
                 case (.some, .none):
                     true // lhs is numeric --> it has precedence
@@ -174,11 +181,24 @@ extension Version: Equatable, Comparable {
             return lhs.prereleaseIdentifiers.count < rhs.prereleaseIdentifiers.count
         }
     }
+
+    /// Hashes the fields that participate in SemVer precedence. Build metadata is deliberately
+    /// excluded because ``==(_:_:)`` follows SemVer and treats it as precedence-neutral.
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(major)
+        hasher.combine(minor)
+        hasher.combine(patch)
+        hasher.combine(prereleaseIdentifiers)
+    }
 }
 
 
-@available(iOS 18, macOS 15, watchOS 11, *)
 extension Version: LosslessStringConvertible {
+    // The exact SemVer 2.0.0 grammar, including its leading-zero rules. Matched with
+    // NSRegularExpression so parsing works at the package deployment floor.
+    // swiftlint:disable:next line_length
+    private static let grammar = try? NSRegularExpression(pattern: #"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$"#)
+
     public var description: String {
         var desc = "\(major).\(minor).\(patch)"
         if !prereleaseIdentifiers.isEmpty {
@@ -192,24 +212,31 @@ extension Version: LosslessStringConvertible {
         return desc
     }
     
-    /// Attempts to create a ``Version` by parsing a `String`.
+    /// Attempts to create a ``Version`` by parsing a `String` against the exact SemVer 2.0.0 grammar.
     public init?(_ description: String) {
-        // swiftlint:disable:next line_length
-        let pattern = /^(?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)(?<prerelease>-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(?<buildMetadata>\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$/
-        guard let match = try? pattern.wholeMatch(in: description) else {
+        let range = NSRange(description.startIndex..., in: description)
+        guard let grammar = Self.grammar,
+              let match = grammar.firstMatch(in: description, options: [.anchored], range: range),
+              match.range == range else {
             return nil
         }
-        guard let major = UInt(match.output.major),
-              let minor = UInt(match.output.minor),
-              let patch = UInt(match.output.patch) else {
+        func group(_ index: Int) -> String? {
+            guard let bounds = Range(match.range(at: index), in: description) else {
+                return nil
+            }
+            return String(description[bounds])
+        }
+        guard let major = group(1).flatMap(UInt.init),
+              let minor = group(2).flatMap(UInt.init),
+              let patch = group(3).flatMap(UInt.init) else {
             return nil
         }
         self.init(
             major,
             minor,
             patch,
-            prereleaseIdentifiers: match.output.prerelease?.dropFirst().components(separatedBy: ".") ?? [],
-            buildMetadata: match.output.buildMetadata?.dropFirst().components(separatedBy: ".") ?? []
+            prereleaseIdentifiers: group(4)?.components(separatedBy: ".") ?? [],
+            buildMetadata: group(5)?.components(separatedBy: ".") ?? []
         )
     }
 }

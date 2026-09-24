@@ -32,6 +32,24 @@ jobs:
       - name: Verify generated UI test projects
         run: python3 Scripts/generate-ui-test-projects.py --check
 
+  generated-sources:
+    name: Generated Source Consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install gyb
+        # Pinned: gyb from a moving branch could flip this check with no change in this repository.
+        env:
+          SWIFT_TAG: swift-6.1.2-RELEASE
+        run: curl -fsSL "https://raw.githubusercontent.com/apple/swift/$SWIFT_TAG/utils/gyb.py" -o "$RUNNER_TEMP/gyb.py"
+      - name: Set up Swift
+        uses: SwiftyLab/setup-swift@v1
+      - name: Resolve packages
+        # FHIR+ExtensionUtils.swift.gyb reads the ModelsR4 sources out of the resolved checkout.
+        run: swift package resolve
+      - name: Verify every gyb template matches its committed output
+        run: GYB="$RUNNER_TEMP/gyb.py" Scripts/check-gyb-output.sh
+
   documentation-targets:
     name: Documentation Target Consistency
     runs-on: ubuntu-latest

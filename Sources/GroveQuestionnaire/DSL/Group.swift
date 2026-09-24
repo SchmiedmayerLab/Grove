@@ -44,7 +44,7 @@ public struct Group: QuestionnaireComponent {
     public func _makeTasks() -> [Questionnaire.Task] { // swiftlint:disable:this identifier_name
         let group = Questionnaire.Task.Group(
             id: id,
-            title: title,
+            title: .init(title),
             shortTitle: _core.shortTitle,
             condition: _core.enabledCondition
         )

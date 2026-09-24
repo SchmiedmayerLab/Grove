@@ -32,7 +32,7 @@ extension QuestionnaireSheetNavigator {
 
     /// A page that is gone has no first line; asking a missing element for its frame would fail the test.
     private var pageSnapshot: (texts: [String], firstLine: CGRect) {
-        let firstLine = section.staticTexts.firstMatch
+        let firstLine = scrollablePage.staticTexts.firstMatch
         return (visibleText, firstLine.exists ? firstLine.frame : .zero)
     }
 
@@ -41,6 +41,7 @@ extension QuestionnaireSheetNavigator {
     /// A `Form` builds only the rows around the fold, so anything further down the page than it
     /// has been scrolled is not in the accessibility tree at all. Scanning is what tells a question
     /// the questionnaire is not asking from one it has not built yet, and it leaves it on screen.
+    @discardableResult
     func scan(for isFound: () -> Bool) -> Bool {
         guard !isFound() else {
             return true
@@ -56,9 +57,15 @@ extension QuestionnaireSheetNavigator {
     /// Whether a tap on `element` lands on it.
     ///
     /// The page scrolls under its navigation bar, and a row peeking out from beneath the bar still
-    /// reports itself hittable while the tap goes to the bar.
+    /// reports itself hittable while the tap goes to the bar. A page without a bar scrolls under the
+    /// status bar instead, and one running past the foot of the page is clipped out of it.
     func isReachable(_ element: XCUIElement) -> Bool {
-        element.isHittable && element.frame.minY >= navigationBar.frame.maxY
+        guard element.isHittable else {
+            return false
+        }
+        let page = scrollablePage.frame
+        let underneath = navigationBar.exists ? navigationBar.frame.maxY : page.minY
+        return element.frame.minY >= underneath && element.frame.midY <= page.maxY
     }
 
     /// Scrolls one way until `isFound` holds or the page stops moving.
@@ -68,7 +75,7 @@ extension QuestionnaireSheetNavigator {
     private func scroll(_ swipe: (XCUIElement) -> Void, lookingFor isFound: () -> Bool) -> Bool {
         var lastSeen = pageAtRest
         for _ in 0..<Self.maximumScanSwipes {
-            let page = section
+            let page = scrollablePage
             guard page.exists else {
                 return false
             }

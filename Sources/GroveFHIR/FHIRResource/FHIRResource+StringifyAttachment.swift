@@ -6,11 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-#if canImport(UniformTypeIdentifiers)
 
+private import GroveFoundation
 private import ModelsDSTU2
 private import ModelsR4
-private import UniformTypeIdentifiers
 
 
 extension FHIRResource {
@@ -29,7 +28,7 @@ extension FHIRResource {
             self.contentExtractors = contentExtractors
         }
         
-        fileprivate func extractor(for contentType: UTType) -> (any FHIRAttachmentContentExtractor)? {
+        fileprivate func extractor(for contentType: MIMEType) -> (any FHIRAttachmentContentExtractor)? {
             contentExtractors.first { $0.isCompatible(with: contentType) }
         }
     }
@@ -64,7 +63,11 @@ extension FHIRResource {
             for idx in docRef.content.indices {
                 try docRef.content[idx].attachment.stringify(using: options)
             }
-            self = .init(versionedResource: .r4(docRef), displayName: self.displayName)
+            self = try .init(
+                versionedResource: .r4(docRef),
+                displayName: self.displayName,
+                identitySource: nonLogicalIdentitySource
+            )
         case .dstu2(let resource):
             guard var docRef = resource as? ModelsDSTU2.DocumentReference else {
                 return
@@ -72,7 +75,11 @@ extension FHIRResource {
             for idx in docRef.content.indices {
                 try docRef.content[idx].attachment.stringify(using: options)
             }
-            self = .init(versionedResource: .dstu2(docRef), displayName: self.displayName)
+            self = try .init(
+                versionedResource: .dstu2(docRef),
+                displayName: self.displayName,
+                identitySource: nonLogicalIdentitySource
+            )
         }
     }
 }
@@ -99,7 +106,7 @@ extension FHIRAttachment {
         }
     }
     
-    private func _stringify(using options: FHIRResource.StringificationOptions) throws -> (UTType, Data) {
+    private func _stringify(using options: FHIRResource.StringificationOptions) throws -> (MIMEType, Data) {
         guard let contentType = self.mimeType else {
             throw FHIRAttachmentError.missingMimeType
         }
@@ -112,5 +119,3 @@ extension FHIRAttachment {
         return try extractor.extractContent(from: data)
     }
 }
-
-#endif

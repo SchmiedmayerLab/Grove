@@ -294,19 +294,16 @@ extension FHIRPathFunctionCall {
     private func evaluateEnvironment() throws -> [FHIRPathValue] {
         switch name {
         case "today":
-            var components = Calendar.current.dateComponents([.year, .month, .day], from: evaluator.context.now)
-            components.timeZone = nil
-            return [.date(components)]
+            let clock = evaluator.context.clock
+            return [.date(clock.calendar.dateComponents([.year, .month, .day], from: clock.instant))]
         case "now":
-            var components = Calendar.current.dateComponents(
-                [.year, .month, .day, .hour, .minute, .second],
-                from: evaluator.context.now
-            )
-            components.timeZone = TimeZone.current
+            let clock = evaluator.context.clock
+            var components = clock.calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: clock.instant)
+            components.timeZone = clock.timeZone
             return [.dateTime(components)]
         case "timeOfDay":
-            let components = Calendar.current.dateComponents([.hour, .minute, .second], from: evaluator.context.now)
-            return [.time(components)]
+            let clock = evaluator.context.clock
+            return [.time(clock.calendar.dateComponents([.hour, .minute, .second], from: clock.instant))]
         case "weight":
             return weights()
         default:
@@ -314,8 +311,8 @@ extension FHIRPathFunctionCall {
         }
     }
 
-    /// SDC: the scoring weight of a QR answer — read from the itemWeight
-    /// (or retired ordinalValue) extension carried on the answer's coding.
+    /// SDC: the scoring weight of a QR answer — the `itemWeight` extension on the answer's coding, else R4's
+    /// `ordinalValue`, so an instrument scored before `itemWeight` existed keeps its score.
     private func weights() -> [FHIRPathValue] {
         input.compactMap { value -> FHIRPathValue? in
             guard case .object(let node) = value else {

@@ -6,8 +6,13 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(CryptoKit)
 private import CryptoKit
+#else
+private import Crypto
+#endif
 public import Foundation
+public import GroveFHIRContract
 public import GroveQuestionnaire
 public import ModelsR4
 
@@ -40,6 +45,19 @@ extension GroveQuestionnaire.QuestionnaireResponses {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ModelsR4.QuestionnaireResponse {
+    private static var electronicCompletionMode: Extension {
+        Extension(
+            url: "http://hl7.org/fhir/StructureDefinition/questionnaireresponse-completionMode",
+            value: .codeableConcept(CodeableConcept(coding: [
+                Coding(
+                    code: "ELECTRONIC".asFHIRStringPrimitive(),
+                    display: "electronic data".asFHIRStringPrimitive(),
+                    system: "http://terminology.hl7.org/CodeSystem/v3-ParticipationMode".asFHIRURIPrimitive()
+                )
+            ]))
+        )
+    }
+
     /// Creates a FHIR R4 `QuestionnaireResponse` from a Grove `QuestionnaireResponses`.
     ///
     /// The generated response mirrors the questionnaire's structure: answers within FHIR
@@ -55,8 +73,13 @@ extension ModelsR4.QuestionnaireResponse {
     ///     exporting a partially answered draft.
     /// - parameter identifier: A business identifier for the response. By default,
     ///     Grove uses the questionnaire canonical as its system and the response UUID as its value.
-    /// - parameter authored: When the response was authored. Pass a stored timestamp
-    ///     when repeated exports must be byte-stable.
+    /// - parameter repositoryID: A repository-assigned logical id for the resource. Leave it `nil`
+    ///     unless the caller already holds an id assignment from the receiving repository.
+    /// - parameter locale: The locale the questionnaire was rendered in. The language it selects
+    ///     (`Questionnaire.renderingLanguage(for:)`) becomes `QuestionnaireResponse.language`, and items carry
+    ///     their question text only when that is the questionnaire's base language.
+    /// - parameter authored: The caller-persisted instant at which the response was authored.
+    /// - parameter authoredTimeZone: The explicit zone used to serialize `authored`.
     public init(
         _ other: GroveQuestionnaire.QuestionnaireResponses,
         subject: Reference? = nil,
@@ -64,8 +87,15 @@ extension ModelsR4.QuestionnaireResponse {
         source: Reference? = nil,
         status: QuestionnaireResponseStatus = .completed,
         identifier: Identifier? = nil,
-        authored: Date = .now
+        repositoryID: RepositoryID? = nil,
+        renderedIn locale: Locale,
+        authored: Date,
+        authoredTimeZone: TimeZone
     ) throws {
+        guard let baseLanguage = other.questionnaire.metadata.language,
+              let language = other.questionnaire.renderingLanguage(for: locale) else {
+            throw ContractError.missingQuestionnaireLanguage
+        }
         try self.init(
             other,
             subject: subject,
@@ -73,18 +103,32 @@ extension ModelsR4.QuestionnaireResponse {
             source: source,
             status: status,
             identifier: identifier,
+            repositoryID: repositoryID,
             authored: authored,
+            authoredTimeZone: authoredTimeZone,
+            inBaseLanguage: language.caseInsensitiveCompare(baseLanguage) == .orderedSame,
             droppingUnconvertibleAnswers: false
         )
+        self.language = FHIRPrimitive(ModelsR4.FHIRString(language))
     }
 
-    /// A best-effort snapshot of the answers so far, for expression evaluation.
+    /// A best-effort, non-exportable snapshot of the answers so far, for expression evaluation.
     ///
     /// An answer that cannot be expressed in FHIR yet — a half-entered number in an
     /// integer item, say — is left out rather than failing the conversion, which would
-    /// take every expression in the form down with it.
+    /// take every expression in the form down with it. This internal snapshot deliberately omits
+    /// `authored`; expression evaluation must not read the wall clock or masquerade as an export.
     init(evaluating responses: GroveQuestionnaire.QuestionnaireResponses) throws {
-        try self.init(responses, status: .inProgress, identifier: nil, authored: .now, droppingUnconvertibleAnswers: true)
+        try self.init(
+            responses,
+            status: .inProgress,
+            identifier: nil,
+            repositoryID: nil,
+            authored: nil,
+            authoredTimeZone: nil,
+            inBaseLanguage: true,
+            droppingUnconvertibleAnswers: true
+        )
     }
 
     private init(
@@ -94,51 +138,61 @@ extension ModelsR4.QuestionnaireResponse {
         source: Reference? = nil,
         status: QuestionnaireResponseStatus,
         identifier: Identifier?,
-        authored: Date,
+        repositoryID: RepositoryID?,
+        authored: Date?,
+        authoredTimeZone: TimeZone?,
+        inBaseLanguage: Bool,
         droppingUnconvertibleAnswers: Bool
     ) throws {
         self.init(status: .init(status))
-        // Self-declare the profile so validators and profile-aware stores pick up
-        // the contract without out-of-band knowledge.
-        self.meta = Meta(profile: [
-            FHIRPrimitive(Canonical(
-            "https://grovealliance.org/fhir/core/StructureDefinition/grove-questionnaire-response"
-        ))
-        ])
-        self.id = other.id.uuidString.asFHIRStringPrimitive()
-        self.identifier = identifier ?? Identifier(
-            system: other.questionnaire.metadata.url?.asFHIRURIPrimitive(),
-            value: other.id.uuidString.asFHIRStringPrimitive()
-        )
-        self.authored = try FHIRPrimitive(DateTime(date: authored))
+        if !droppingUnconvertibleAnswers {
+            self.meta = Meta(profile: [Profile.groveQuestionnaireResponse])
+            self.id = repositoryID?.primitive
+        }
+        if let authored {
+            guard let authoredTimeZone else {
+                throw FHIRResponseConversionError("authoredTimeZone is required with authored")
+            }
+            self.authored = try FHIRPrimitive(DateTime(date: authored, timeZone: authoredTimeZone))
+        }
         self.subject = subject
         self.author = author
         self.source = source
-        // questionnaireresponse-completionMode: this renderer only captures
-        // electronically. The bound value set draws from v3 ParticipationMode.
-        self.extension = [
-            Extension(
-            url: "http://hl7.org/fhir/StructureDefinition/questionnaireresponse-completionMode",
-            value: .codeableConcept(CodeableConcept(coding: [
-                Coding(
-                code: "ELECTRONIC".asFHIRStringPrimitive(),
-                display: "electronic data".asFHIRStringPrimitive(),
-                system: "http://terminology.hl7.org/CodeSystem/v3-ParticipationMode".asFHIRURIPrimitive()
+        if !droppingUnconvertibleAnswers {
+            self.extension = [Self.electronicCompletionMode]
+            guard let url = other.questionnaire.metadata.url else {
+                throw ContractError.missingQuestionnaireURL
+            }
+            guard let version = other.questionnaire.metadata.version else {
+                throw ContractError.missingQuestionnaireVersion
+            }
+            guard ContractRules.isSemanticVersion(version) else {
+                throw ContractError.invalidQuestionnaireVersion(version)
+            }
+            let canonical = "\(url.absoluteString)|\(version)"
+            guard !url.absoluteString.contains("|"),
+                  !url.absoluteString.contains("#"),
+                  !version.contains("|"),
+                  !version.contains("#") else {
+                throw ContractError.invalidQuestionnaireCanonical(canonical)
+            }
+            self.questionnaire = FHIRPrimitive(Canonical(stringLiteral: canonical))
+            let responseIdentifier = identifier ?? Identifier(
+                system: url.asFHIRURIPrimitive(),
+                value: other.id.uuidString.lowercased().asFHIRStringPrimitive()
             )
-            ]))
-        )
-        ]
-        if let url = other.questionnaire.metadata.url {
-            // Pin the canonical to the questionnaire's business version when known.
-            self.questionnaire = FHIRPrimitive(Canonical(url, version: other.questionnaire.metadata.version))
-        } else if !droppingUnconvertibleAnswers {
-            // Nothing else names the instrument, so a response without it cannot be read
-            // back. The evaluation snapshot never leaves the renderer and may go without.
-            throw FHIRResponseConversionError(
-                "Questionnaire '\(other.questionnaire.metadata.id)' has no url; its responses cannot reference the instrument they answer"
-            )
+            do {
+                _ = try BusinessIdentifier(responseIdentifier)
+            } catch {
+                throw ContractError.incompleteResponseIdentifier
+            }
+            self.identifier = responseIdentifier
         }
-        let items = try Self.items(for: other, droppingUnconvertibleAnswers: droppingUnconvertibleAnswers)
+        let items = try Self.items(
+            for: other.settled(status: status, authored: authored, in: authoredTimeZone),
+            inBaseLanguage: inBaseLanguage,
+            droppingUnconvertibleAnswers: droppingUnconvertibleAnswers
+        )
         // An empty `item` array is invalid FHIR JSON; omit the element instead.
         self.item = items.isEmpty ? nil : items
     }
@@ -146,19 +200,24 @@ extension ModelsR4.QuestionnaireResponse {
     /// The response items for the questionnaire's sections, in section order.
     private static func items(
         for other: GroveQuestionnaire.QuestionnaireResponses,
+        inBaseLanguage: Bool,
         droppingUnconvertibleAnswers: Bool
     ) throws -> [QuestionnaireResponseItem] {
         var items: [QuestionnaireResponseItem] = []
         for section in other.questionnaire.sections {
-            let sectionItems = try other.responses.toFHIR(section: section, droppingUnconvertibleAnswers: droppingUnconvertibleAnswers)
+            let sectionItems = try other.responses.toFHIR(
+                section: section,
+                inBaseLanguage: inBaseLanguage,
+                droppingUnconvertibleAnswers: droppingUnconvertibleAnswers
+            )
             guard !sectionItems.isEmpty else {
                 continue
             }
             if let groupId = section.fhirGroupId {
                 // The section mirrors a FHIR group: wrap its answers in the group's item.
                 var wrapper = QuestionnaireResponseItem(linkId: groupId.asFHIRStringPrimitive())
-                if !section.title.isEmpty {
-                    wrapper.text = section.title.asFHIRStringPrimitive()
+                if inBaseLanguage && !section.title.base.isEmpty {
+                    wrapper.text = section.title.base.asFHIRStringPrimitive()
                 }
                 wrapper.item = sectionItems
                 items.append(wrapper)
@@ -179,6 +238,7 @@ extension QuestionnaireResponses.Responses {
         /// For non-nested tasks, this simply contains all root-level tasks in the questionnaire.
         /// For nested tasks, this contains all nested tasks for the nested task's parent task.
         let allTasks: [GroveQuestionnaire.Questionnaire.Task]
+        let inBaseLanguage: Bool
     }
 
     /// Builds the flat response items for a set of tasks (used for choice-option
@@ -188,17 +248,22 @@ extension QuestionnaireResponses.Responses {
             guard let task = context.allTasks.first(where: { $0.id == taskId }) else {
                 throw FHIRResponseConversionError("Unable to find task '\(taskId)'")
             }
-            return try response.toFHIR(using: .init(task: task))
+            return try response.toFHIR(using: .init(task: task, inBaseLanguage: context.inBaseLanguage))
         }
         // sort the items by task
         let tasksIdsByOverallPosition: [String: Int] = context.allTasks
             .enumerated()
             .reduce(into: [:]) { $0[$1.element.id] = $1.offset }
-        return try items.sorted { lhs, rhs in
-            let lhsLinkId = try lhs.getLinkId()
-            let rhsLinkId = try rhs.getLinkId()
-            return tasksIdsByOverallPosition[lhsLinkId]! < tasksIdsByOverallPosition[rhsLinkId]! // swiftlint:disable:this force_unwrapping
+        let positioned = try items.map { item -> (item: QuestionnaireResponseItem, position: Int) in
+            let linkId = try item.getLinkId()
+            guard let position = tasksIdsByOverallPosition[linkId] else {
+                throw FHIRResponseConversionError(
+                    "Response item '\(linkId)' is not present in the validated task scope \(context.allTasks.map(\.id))"
+                )
+            }
+            return (item, position)
         }
+        return positioned.sorted { $0.position < $1.position }.map(\.item)
     }
 
     /// Builds the response items for one section, restoring the questionnaire's structure:
@@ -206,23 +271,25 @@ extension QuestionnaireResponses.Responses {
     /// child-question answers beneath their parent per ``Questionnaire/Task/parentTaskId``.
     fileprivate func toFHIR(
         section: GroveQuestionnaire.Questionnaire.Section,
-        droppingUnconvertibleAnswers: Bool = false
+        inBaseLanguage: Bool,
+        droppingUnconvertibleAnswers: Bool
     ) throws -> [QuestionnaireResponseItem] {
-        let items = try flatItems(for: section, droppingUnconvertibleAnswers: droppingUnconvertibleAnswers)
+        let items = try flatItems(for: section, inBaseLanguage: inBaseLanguage, droppingUnconvertibleAnswers: droppingUnconvertibleAnswers)
         let nested = attachingChildItems(to: items, in: section)
-        return groupWrappedItems(nested, in: section)
+        return groupWrappedItems(nested, in: section, inBaseLanguage: inBaseLanguage)
     }
 
     /// The flat response item of every responded task in the section, keyed by task id.
     private func flatItems(
         for section: GroveQuestionnaire.Questionnaire.Section,
+        inBaseLanguage: Bool,
         droppingUnconvertibleAnswers: Bool
     ) throws -> [String: QuestionnaireResponseItem] {
         var itemsByTaskId: [String: QuestionnaireResponseItem] = [:]
         for task in section.tasks {
             do {
                 // The subscript yields an empty response for unanswered tasks; toFHIR maps those to nil.
-                if let item = try self[task.id].toFHIR(using: .init(task: task)) {
+                if let item = try self[task.id].toFHIR(using: .init(task: task, inBaseLanguage: inBaseLanguage)) {
                     itemsByTaskId[task.id] = item
                 }
             } catch {
@@ -266,7 +333,8 @@ extension QuestionnaireResponses.Responses {
     /// ``Questionnaire/Task/groupPath`` names.
     private func groupWrappedItems(
         _ itemsByTaskId: [String: QuestionnaireResponseItem],
-        in section: GroveQuestionnaire.Questionnaire.Section
+        in section: GroveQuestionnaire.Questionnaire.Section,
+        inBaseLanguage: Bool
     ) -> [QuestionnaireResponseItem] {
         var result: [QuestionnaireResponseItem] = []
         // Stack of currently open group wrappers, outermost first.
@@ -296,9 +364,9 @@ extension QuestionnaireResponses.Responses {
             close(downTo: shared)
             for group in path[shared...] {
                 var wrapper = QuestionnaireResponseItem(linkId: group.id.asFHIRStringPrimitive())
-                if !group.title.isEmpty {
+                if inBaseLanguage && !group.title.base.isEmpty {
                     // A QuestionnaireResponse group item carries the group's text, never its enableWhen.
-                    wrapper.text = group.title.asFHIRStringPrimitive()
+                    wrapper.text = group.title.base.asFHIRStringPrimitive()
                 }
                 openGroups.append((group.id, wrapper))
             }
@@ -317,19 +385,14 @@ extension QuestionnaireResponses.Responses {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
-    func toFHIRCoding() -> Coding {
+    /// The option's coding, carrying its base display when `displayed`: a response rendered in a translation
+    /// identifies the answer by system and code alone.
+    func toFHIRCoding(displayed: Bool) -> Coding {
+        let display: FHIRPrimitive<ModelsR4.FHIRString>? = displayed ? title.base.asFHIRStringPrimitive() : nil
         var coding = if let fhirCoding {
-            Coding(
-                code: fhirCoding.code.asFHIRStringPrimitive(),
-                display: title.asFHIRStringPrimitive(),
-                system: fhirCoding.system.asFHIRURIPrimitive()
-            )
+            Coding(code: fhirCoding.code.asFHIRStringPrimitive(), display: display, system: fhirCoding.system.asFHIRURIPrimitive())
         } else {
-            Coding(
-                code: id.asFHIRStringPrimitive(),
-                display: title.asFHIRStringPrimitive(),
-                system: nil
-            )
+            Coding(code: id.asFHIRStringPrimitive(), display: display, system: nil)
         }
         if let weight {
             // Carry the definitional weight onto the answer so consumers can score
@@ -346,7 +409,7 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
 
     /// The FHIR answer value for a selected option, typed to match the
     /// `answerOption` the option was created from.
-    func toFHIRAnswerValue() throws -> QuestionnaireResponseItemAnswer.ValueX {
+    func toFHIRAnswerValue(displayed: Bool) throws -> QuestionnaireResponseItemAnswer.ValueX {
         switch answerValue {
         case .string(let string):
             return .string(string.asFHIRStringPrimitive())
@@ -371,7 +434,7 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
                 second: components.second.map { Decimal($0) } ?? 0
             )))
         case nil:
-            return .coding(toFHIRCoding())
+            return .coding(toFHIRCoding(displayed: displayed))
         }
     }
 }
@@ -397,8 +460,8 @@ extension QuestionnaireResponseItemAnswer {
         let sha1 = Insecure.SHA1.hash(data: data)
         self.init(value: .attachment(.init(
             // att-1: inline data requires a contentType; fall back to the generic binary
-            // type when the UTType lookup cannot produce a MIME type.
-            contentType: (attachment.contentType?.preferredMIMEType ?? "application/octet-stream").asFHIRStringPrimitive(),
+            // type when the platform did not record one for the file.
+            contentType: (attachment.contentType ?? .octetStream).rawValue.asFHIRStringPrimitive(),
 //                        creation: <#T##FHIRPrimitive<DateTime>?#>, // not easy bc eg an imported photo/file will likely not be brand new...
             data: FHIRPrimitive(Base64Binary(data.base64EncodedString())),
             hash: FHIRPrimitive(Base64Binary(Data(sha1).base64EncodedString())),
@@ -406,5 +469,27 @@ extension QuestionnaireResponseItemAnswer {
             size: data.count.asFHIRUnsignedIntegerPrimitive(),
             title: attachment.filename.asFHIRStringPrimitive(),
         )))
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension GroveQuestionnaire.QuestionnaireResponses {
+    /// The answers as a completed or amended response states them: every calculated item recomputed at `authored`, in
+    /// its zone, so evaluating the response again later on any device yields the same values.
+    fileprivate func settled(
+        status: QuestionnaireResponseStatus,
+        authored: Date?,
+        in timeZone: TimeZone?
+    ) -> GroveQuestionnaire.QuestionnaireResponses {
+        guard [.completed, .amended].contains(status), let authored, let timeZone,
+              let engine = questionnaire.expressionEngine as? FHIRQuestionnaireExpressionEngine else {
+            return self
+        }
+        var questionnaire = questionnaire
+        questionnaire.expressionEngine = engine.reading(.fixed(at: authored, in: timeZone))
+        let settled = GroveQuestionnaire.QuestionnaireResponses(id: id, questionnaire: questionnaire)
+        settled.responses = responses
+        return settled
     }
 }

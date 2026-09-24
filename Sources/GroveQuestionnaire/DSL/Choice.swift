@@ -47,7 +47,7 @@ public struct Choice: Hashable, Sendable {
         let system = system ?? defaultSystem
         return .init(
             id: system.map { "\($0.absoluteString)|\(code)" } ?? code,
-            title: title,
+            title: .init(title),
             fhirCoding: system.map { .init(system: $0, code: code) },
             weight: weight,
             isExclusive: isExclusive
