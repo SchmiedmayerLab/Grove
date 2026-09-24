@@ -12,6 +12,7 @@ import Foundation
 import Grove
 @testable import GroveHealthKit
 import GroveTesting
+import HealthKit
 import Testing
 
 private actor TestStandard: Standard, HealthKitConstraint {
@@ -23,9 +24,30 @@ private actor TestStandard: Standard, HealthKitConstraint {
     }
     func handleDeletedObjects<Sample>(
         _ deletedObjects: some Collection<HKDeletedObject>,
+        ofType sampleType: SampleType<Sample>,
+        deletedAfter: Date?
+    ) async -> HealthKitAnchorCommitAction? {
+        nil
+    }
+}
+
+private actor DeletionBoundRecorder: Standard, HealthKitConstraint {
+    private(set) var bounds: [Date?] = []
+
+    func handleNewSamples<Sample>(
+        _ addedSamples: some Collection<Sample>,
         ofType sampleType: SampleType<Sample>
     ) async -> HealthKitAnchorCommitAction? {
         nil
+    }
+
+    func handleDeletedObjects<Sample>(
+        _ deletedObjects: some Collection<HKDeletedObject>,
+        ofType sampleType: SampleType<Sample>,
+        deletedAfter: Date?
+    ) async -> HealthKitAnchorCommitAction? {
+        bounds.append(deletedAfter)
+        return nil
     }
 }
 
@@ -48,6 +70,63 @@ extension GroveHealthKitTests {
                 store: { _ in throw StartDateStorageError.unavailable }
             )
         }
+    }
+
+    @MainActor
+    @Test("Each deletion batch follows the query that produced its starting anchor")
+    func deletionLowerBound() async throws {
+        let standard = DeletionBoundRecorder()
+        let healthKit = HealthKit()
+        await withDependencyResolution(standard: standard) {
+            healthKit
+        }
+        let collector = HealthKitSampleCollector(
+            source: .collectSamples,
+            healthKit: healthKit,
+            standard: standard,
+            sampleType: .heartRate,
+            timeRange: .ever,
+            predicate: nil,
+            deliverySetting: HealthDataCollectorDeliverySetting(startSetting: .manual, continueInBackground: false)
+        )
+        let added: [HKQuantitySample] = []
+        let deleted = [try #require(HKDeletedObject.make())]
+        try healthKit.queryAnchors.store(nil, for: .heartRate)
+        defer { try? healthKit.queryAnchors.store(nil, for: .heartRate) }
+
+        // Single-object queries start from the persisted anchor.
+        let firstQuery = Date.now
+        try await collector.commit(added: added, deleted: deleted, from: nil, to: HKQueryAnchor(fromValue: 1), queriedAt: firstQuery)
+        let persisted = try healthKit.queryAnchors.load(for: .heartRate)
+        #expect(persisted?.queriedAt == firstQuery)
+        try await collector.commit(
+            added: added,
+            deleted: deleted,
+            from: persisted,
+            to: HKQueryAnchor(fromValue: 2),
+            queriedAt: firstQuery.addingTimeInterval(60)
+        )
+
+        // A reset clears the bound; each continuous update then starts from the one before it.
+        try healthKit.queryAnchors.store(nil, for: .heartRate)
+        let streamStart = Date.now
+        var expected: QueryAnchor?
+        for value in 3...5 {
+            expected = try await collector.commit(
+                added: added,
+                deleted: deleted,
+                from: expected,
+                to: HKQueryAnchor(fromValue: value),
+                queriedAt: streamStart
+            )
+        }
+        #expect(try healthKit.queryAnchors.load(for: .heartRate) == expected)
+        #expect(await standard.bounds == [nil, firstQuery, nil, streamStart, streamStart])
+
+        await #expect(throws: (any Error).self) {
+            try await collector.commit(added: added, deleted: deleted, from: persisted, to: nil, queriedAt: .now)
+        }
+        #expect(try healthKit.queryAnchors.load(for: .heartRate) == expected)
     }
 
     @Test("Collect Samples Registration Deduplication")

@@ -88,7 +88,8 @@ actor ExampleStandard: Standard, HealthKitConstraint {
     // Remove the deleted HealthKit objects from your application.
     func handleDeletedObjects<Sample>(
         _ deletedObjects: some Collection<HKDeletedObject> & Sendable,
-        ofType sampleType: SampleType<Sample>
+        ofType sampleType: SampleType<Sample>,
+        deletedAfter: Date?
     ) async throws -> HealthKitAnchorCommitAction? {
         // ...
         return nil

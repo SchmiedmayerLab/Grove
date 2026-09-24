@@ -46,7 +46,7 @@ public struct HealthKitAnchorCommitAction: Sendable {
 /// idempotently. When one delta contains additions and deletions, Grove invokes additions first and
 /// advances the anchor only if both callbacks succeed.
 /// 
-/// The ``HealthKitConstraint/handleNewSamples(_:ofType:)`` function is triggered once for every batch of newly collected HealthKit samples, and ``HealthKitConstraint/handleDeletedObjects(_:ofType:)`` once for every batch of deleted HealthKit objects.
+/// The ``HealthKitConstraint/handleNewSamples(_:ofType:)`` function is triggered once for every batch of newly collected HealthKit samples, and ``HealthKitConstraint/handleDeletedObjects(_:ofType:deletedAfter:)`` once for every batch of deleted HealthKit objects.
 /// ```swift
 /// actor ExampleStandard: Standard, HealthKitConstraint {
 ///     // Add the newly collected `HKSample`s to your application.
@@ -61,7 +61,8 @@ public struct HealthKitAnchorCommitAction: Sendable {
 ///     // Remove the deleted `HKObject`s from your application.
 ///     func handleDeletedObjects<Sample>(
 ///         _ deletedObjects: some Collection<HKDeletedObject> & Sendable,
-///         ofType sampleType: SampleType<Sample>
+///         ofType sampleType: SampleType<Sample>,
+///         deletedAfter: Date?
 ///     ) async throws -> HealthKitAnchorCommitAction? {
 ///         // ...
 ///         return nil
@@ -71,7 +72,7 @@ public struct HealthKitAnchorCommitAction: Sendable {
 /// ## Topics
 /// ### Responding to Health Store Changes
 /// - ``handleNewSamples(_:ofType:)``
-/// - ``handleDeletedObjects(_:ofType:)``
+/// - ``handleDeletedObjects(_:ofType:deletedAfter:)``
 /// - ``HealthKitAnchorCommitAction``
 @available(iOS 18, macOS 15, watchOS 11, *)
 public protocol HealthKitConstraint: Standard {
@@ -92,11 +93,18 @@ public protocol HealthKitConstraint: Standard {
     /// Return only after every deletion intent is durable. Throwing retains the previous query
     /// anchor. The same delta's additions have already been presented, so retries must be idempotent.
     /// Return an anchor-commit action when retry-only deletion state may be released afterwards.
+    ///
+    /// HealthKit reports no deletion time. `deletedAfter` is the latest instant every deletion in the
+    /// batch is known to follow: when the query that produced the previous anchor was issued.
     /// - parameter deletedObjects: The `HKDeletedObject`s that were removed from the HealthKit database
     /// - parameter sampleType: The ``SampleType`` of the deleted objects
+    /// - parameter deletedAfter: A lower bound for when the objects were deleted, or `nil` on the first
+    ///   query, after ``HealthKit-swift.class/resetSampleCollection(for:)``, or from an anchor persisted
+    ///   before Grove recorded it.
     func handleDeletedObjects<Sample>(
         _ deletedObjects: some Collection<HKDeletedObject> & Sendable,
-        ofType sampleType: SampleType<Sample>
+        ofType sampleType: SampleType<Sample>,
+        deletedAfter: Date?
     ) async throws -> HealthKitAnchorCommitAction?
 }
 

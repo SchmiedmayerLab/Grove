@@ -147,12 +147,24 @@ struct GroveHealthKitTests {
 
     @Test("Query anchors codable", arguments: [
         QueryAnchor(HKQueryAnchor(fromValue: 5734987678924)),
+        QueryAnchor(HKQueryAnchor(fromValue: 5734987678924), queriedAt: .now),
         QueryAnchor()
     ])
     func equalQueryAnchorCoding2(_ anchor: QueryAnchor) throws {
         let encoded = try JSONEncoder().encode(anchor)
         let decoded = try JSONDecoder().decode(QueryAnchor.self, from: encoded)
         #expect(anchor == decoded)
+    }
+
+    @Test("Anchors persisted before the query instant decode without one")
+    func legacyQueryAnchorDecoding() throws {
+        let hkAnchor = HKQueryAnchor(fromValue: 5734987678924)
+        let archive = try NSKeyedArchiver.archivedData(withRootObject: hkAnchor, requiringSecureCoding: true)
+        let legacy = try JSONDecoder().decode(QueryAnchor.self, from: JSONEncoder().encode(archive))
+        #expect(legacy == QueryAnchor(hkAnchor))
+        #expect(legacy.queriedAt == nil)
+        let empty = try JSONDecoder().decode(QueryAnchor.self, from: Data("null".utf8))
+        #expect(empty == QueryAnchor())
     }
     
     @Test
@@ -221,6 +233,22 @@ struct GroveHealthKitTests {
         await processing.release()
         await tracker.cancelAndWait()
         #expect(completionCount.withLock { $0 } == 1)
+    }
+}
+
+
+extension HKDeletedObject {
+    static func make(uuid: UUID = UUID()) -> HKDeletedObject? {
+        // +(id)_deletedObjectWithUUID:(id)arg1 metadata:(id)arg2
+        let sel = Selector(("_deletedObjectWithUUID:metadata:"))
+        guard let method = class_getClassMethod(self, sel) else {
+            return nil
+        }
+        let imp = unsafeBitCast(
+            method_getImplementation(method),
+            to: (@convention(c) (HKDeletedObject.Type, Selector, NSUUID, NSDictionary?) -> HKDeletedObject).self
+        )
+        return imp(self, sel, uuid as NSUUID, nil)
     }
 }
 

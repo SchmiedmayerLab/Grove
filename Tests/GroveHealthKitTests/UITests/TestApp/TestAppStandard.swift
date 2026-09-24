@@ -48,7 +48,8 @@ actor TestAppStandard: Standard, HealthKitConstraint {
     
     func handleDeletedObjects<Sample>(
         _ deletedObjects: some Collection<HKDeletedObject>,
-        ofType sampleType: SampleType<Sample>
+        ofType sampleType: SampleType<Sample>,
+        deletedAfter: Date?
     ) async -> HealthKitAnchorCommitAction? {
         for object in deletedObjects {
             await fakeHealthStore.remove(object)
