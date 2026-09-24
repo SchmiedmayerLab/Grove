@@ -376,11 +376,11 @@ extension HealthKitConverter {
             primary: HealthKitConversion(
                 source: envelope.source,
                 identifiers: identifiers(envelope: envelope, context: context, childOutputs: resources.children.map(\.identity)),
-                graph: graph
-            ),
-            warnings: envelope.warnings + sourceOffsetWarnings(
-                for: sample,
-                outputs: [resources.observation] + resources.children.map(\.observation)
+                graph: graph,
+                warnings: envelope.warnings + sourceOffsetWarnings(
+                    for: sample,
+                    outputs: [resources.observation] + resources.children.map(\.observation)
+                )
             )
         )
     }

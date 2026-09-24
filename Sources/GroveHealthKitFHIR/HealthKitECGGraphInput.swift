@@ -25,6 +25,13 @@ struct HealthKitGraphContext: Sendable {
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
+struct HealthKitECGEvidence: Sendable {
+    let source: HealthKitECGSourceEvidence
+    let waveform: HealthKitECGValidatedWaveform
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct HealthKitECGObservationInput: Sendable {
     let source: HealthKitECGSourceEvidence
     let waveform: HealthKitECGValidatedWaveform

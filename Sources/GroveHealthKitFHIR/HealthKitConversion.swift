@@ -33,7 +33,7 @@ public struct HealthKitSourceRecord: Hashable, Sendable, CustomDebugStringConver
 }
 
 
-/// One complete conversion graph.
+/// One complete conversion graph, and what its record carried that the graph does not.
 ///
 /// Resources have no logical `Resource.id` unless the caller supplied a repository id.
 /// Deterministic UUIDv5 Bundle fullUrls connect graph entries.
@@ -41,13 +41,21 @@ public struct HealthKitConversion: Sendable {
     public let source: HealthKitSourceRecord
     public let identifiers: ExchangeGraphIdentifiers
     public let graph: ExchangeGraph
+    /// Empty when the graph carries everything its record supplied.
+    public let warnings: [HealthKitConversionWarning]
 
     public var bundle: ModelsR4.Bundle { graph.bundle }
 
-    public init(source: HealthKitSourceRecord, identifiers: ExchangeGraphIdentifiers, graph: ExchangeGraph) {
+    public init(
+        source: HealthKitSourceRecord,
+        identifiers: ExchangeGraphIdentifiers,
+        graph: ExchangeGraph,
+        warnings: [HealthKitConversionWarning] = []
+    ) {
         self.source = source
         self.identifiers = identifiers
         self.graph = graph
+        self.warnings = warnings
     }
 }
 

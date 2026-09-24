@@ -228,9 +228,9 @@ extension HealthKitConverter {
             primary: HealthKitConversion(
                 source: envelope.source,
                 identifiers: identifiers(envelope: envelope, context: context, sourceArtifact: artifactIdentity),
-                graph: graph
-            ),
-            warnings: envelope.warnings
+                graph: graph,
+                warnings: envelope.warnings
+            )
         )
     }
 

@@ -23,17 +23,33 @@ extension HealthKitConverter {
         symptomContexts: [HealthKitConversionContext]
     ) throws -> HealthKitConversionSet {
         try validate(context: context)
-        let ecg = record.electrocardiogram
-        let source = try ecgSourceEvidence(ecg)
+        let source = try ecgSourceEvidence(record.electrocardiogram)
+        return try convertECG(
+            record.electrocardiogram,
+            evidence: HealthKitECGEvidence(source: source, waveform: try validatedWaveform(for: record, source: source)),
+            symptoms: record.correlatedSymptoms,
+            context: context,
+            symptomContexts: symptomContexts
+        )
+    }
+
+    /// `ecg` supplies only the graph envelope's identity, device and source evidence.
+    static func convertECG(
+        _ ecg: HKSample,
+        evidence: HealthKitECGEvidence,
+        symptoms: [HKCategorySample],
+        context: HealthKitConversionContext,
+        symptomContexts: [HealthKitConversionContext]
+    ) throws -> HealthKitConversionSet {
         let symptomConversions = try symptomConversions(
-            for: record,
-            source: source,
+            symptoms,
+            source: evidence.source,
             context: context,
             symptomContexts: symptomContexts
         )
         let input = HealthKitECGObservationInput(
-            source: source,
-            waveform: try validatedWaveform(for: record, source: source),
+            source: evidence.source,
+            waveform: evidence.waveform,
             symptomOutputIdentifiers: try validatedSymptomOutputIdentifiers(
                 symptomConversions,
                 expectedSystem: context.identityScope.systems.opaque.sourceOutput
@@ -60,32 +76,28 @@ extension HealthKitConverter {
         guard !input.symptomOutputIdentifiers.contains(primary.primary.identifiers.primaryOutput) else {
             throw HealthKitConversionError.ecgEvidence(.invalidSymptomOutputIdentity)
         }
-        return HealthKitConversionSet(
-            primary: primary.primary,
-            companions: symptomConversions,
-            warnings: primary.warnings
-        )
+        return HealthKitConversionSet(primary: primary.primary, companions: symptomConversions)
     }
 
     /// Converts each correlated symptom under its own event context, in the deterministic order the
     /// ECG references them.
     private static func symptomConversions(
-        for record: HealthKitECGRecord,
+        _ correlatedSymptoms: [HKCategorySample],
         source: HealthKitECGSourceEvidence,
         context: HealthKitConversionContext,
         symptomContexts: [HealthKitConversionContext]
     ) throws -> [HealthKitConversion] {
-        guard symptomContexts.count == record.correlatedSymptoms.count else {
+        guard symptomContexts.count == correlatedSymptoms.count else {
             throw HealthKitConversionError.ecgEvidence(.symptomContextCountMismatch(
-                symptoms: record.correlatedSymptoms.count,
+                symptoms: correlatedSymptoms.count,
                 contexts: symptomContexts.count
             ))
         }
         let contextsBySample = Dictionary(
-            record.correlatedSymptoms.map(\.uuid).enumerated().map { ($1, symptomContexts[$0]) },
+            correlatedSymptoms.map(\.uuid).enumerated().map { ($1, symptomContexts[$0]) },
             uniquingKeysWith: { first, _ in first }
         )
-        let symptoms = try validatedSymptomSamples(record.correlatedSymptoms, status: source.symptomsStatus)
+        let symptoms = try validatedSymptomSamples(correlatedSymptoms, status: source.symptomsStatus)
         return try symptoms.map { symptom in
             guard let symptomContext = contextsBySample[symptom.uuid] else {
                 throw HealthKitConversionError.ecgEvidence(.duplicateSymptomSource(symptom.uuid))

@@ -242,6 +242,51 @@ struct HealthKitECGEvidenceValidatorTests {
         #expect(repeatedTypeValidated.count == repeatedTypeSamples.count)
     }
 
+    @Test("A symptom's warnings stay with its own graph and reach the set")
+    func symptomWarningsReachTheSet() throws {
+        let start = Date(timeIntervalSince1970: 1_787_148_600)
+        let source = HealthKitECGSourceEvidence(
+            sourceTypeIdentifier: HealthKitContract.electrocardiogramSourceTypeIdentifier,
+            startDate: start,
+            endDate: start.addingTimeInterval(30),
+            timeZone: try #require(TimeZone(identifier: "America/Los_Angeles")),
+            classification: .sinusRhythm,
+            symptomsStatus: .present,
+            numberOfVoltageMeasurements: Self.validPoints.count,
+            averageHeartRate: nil,
+            samplingFrequency: 500,
+            algorithmVersion: nil,
+            wasUserEntered: false
+        )
+        let waveform = try HealthKitECGEvidenceValidator.validateWaveform(
+            reportedCount: Self.validPoints.count,
+            samplingFrequencyHertz: 500,
+            points: Self.validPoints
+        )
+        // HKElectrocardiogram has no public initializer; this sample stands in for its envelope only.
+        let envelope = HKQuantitySample(
+            type: HKQuantityType(.heartRate),
+            quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 72),
+            start: start,
+            end: start,
+            metadata: [HKMetadataKeyTimeZone: "America/Los_Angeles"]
+        )
+        let set = try HealthKitConverter.convertECG(
+            envelope,
+            evidence: HealthKitECGEvidence(source: source, waveform: waveform),
+            symptoms: [symptom(.dizziness)],
+            context: HealthKitConversionContext(),
+            symptomContexts: [HealthKitConversionContext(conversionInstant: ExchangeEventContext.testInstant.addingTimeInterval(1))]
+        )
+        let symptomWarnings: [HealthKitConversionWarning] = [
+            .sourceOffsetUnavailable(field: "Observation.effectivePeriod.start"),
+            .sourceOffsetUnavailable(field: "Observation.effectivePeriod.end")
+        ]
+        #expect(set.primary.warnings.isEmpty)
+        #expect(set.companions.map(\.warnings) == [symptomWarnings])
+        #expect(set.warnings == symptomWarnings)
+    }
+
     private func symptom(_ type: HKCategoryTypeIdentifier) -> HKCategorySample {
         HKCategorySample(
             type: HKCategoryType(type),

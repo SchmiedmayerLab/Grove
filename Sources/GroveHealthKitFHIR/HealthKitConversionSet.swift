@@ -54,19 +54,15 @@ public enum HealthKitRecordFailure<ContextError: Error>: Error {
 public struct HealthKitConversionSet: Sendable {
     public let primary: HealthKitConversion
     public let companions: [HealthKitConversion]
-    /// Empty when the graphs carry everything the source supplied.
-    public let warnings: [HealthKitConversionWarning]
 
     public var all: [HealthKitConversion] { [primary] + companions }
 
-    public init(
-        primary: HealthKitConversion,
-        companions: [HealthKitConversion] = [],
-        warnings: [HealthKitConversionWarning] = []
-    ) {
+    /// Every graph's warnings in ``all`` order; each graph's own stay on its ``HealthKitConversion/warnings``.
+    public var warnings: [HealthKitConversionWarning] { all.flatMap(\.warnings) }
+
+    public init(primary: HealthKitConversion, companions: [HealthKitConversion] = []) {
         self.primary = primary
         self.companions = companions
-        self.warnings = warnings
     }
 }
 

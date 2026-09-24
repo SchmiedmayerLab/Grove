@@ -138,7 +138,8 @@ A `RepositoryID` per `ExchangeGraphNode` in `repositoryIDs` gives a graph node t
 
 `ConverterRole.gatewayApplication` names a distinct application that mediated the measurement; it travels as a second application snapshot.
 
-``HealthKitConversionSet/warnings`` lists what the graph does not carry although the sample did.
+``HealthKitConversion/warnings`` lists what a graph does not carry although its record did; log them with that graph's event.
+``HealthKitConversionSet/warnings`` flattens them over every graph of the set, so an ECG's list includes its symptoms'.
 ``HealthKitConversionWarning/recordingDeviceOmitted(deviceName:)`` means the sample's device had no per-unit token, so no recording Device was emitted; supply your own ``RecordingDeviceResolver`` when you have one.
 ``HealthKitConversionWarning/sourceOffsetUnavailable(field:)`` names the effective element, such as `Observation.effectiveDateTime`, that is in UTC because the sample named no time zone, and its diagnostic is located there.
 ``HealthKitConversionWarning/unmodeledMetadataWithheld(keys:)`` names, in sorted order, the metadata keys outside the typed allowlist that were left out.
