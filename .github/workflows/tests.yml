@@ -160,7 +160,7 @@ jobs:
     if: needs.detect.outputs.has_jobs == 'true'
     # Runner per job: Linux -> GitHub-hosted ubuntu; otherwise self-hosted iff packages.toml's
     # self-hosted-ci routed unit tests there (matrix.selfHosted), else GitHub-hosted macos-latest. The
-    # self-hosted label set (matrix.selfHostedLabels) is temporarily ["self-hosted","macOS","stanford"] plus any
+    # self-hosted label set (matrix.selfHostedLabels) is the base ["self-hosted","macOS"] plus any
     # per-package `extra_runner_labels` from packages.toml (e.g. "python3.11+"), computed by
     # Scripts/affected-test-matrix.py.
     runs-on: ${{ matrix.platform == 'Linux' && 'ubuntu-latest' || (matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macos-latest"]')) }}

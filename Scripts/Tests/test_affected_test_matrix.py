@@ -378,7 +378,7 @@ class IgnoredSharedChangeTests(unittest.TestCase):
 
 
 class RunnerRoutingTests(unittest.TestCase):
-    def test_every_self_hosted_unit_and_ui_job_requires_stanford(self):
+    def test_self_hosted_unit_and_ui_jobs_do_not_require_stanford(self):
         result = run_selector("__ALL__")
         for matrix in ("matrix", "ui_matrix"):
             with self.subTest(matrix=matrix):
@@ -387,7 +387,8 @@ class RunnerRoutingTests(unittest.TestCase):
                 for job in jobs:
                     with self.subTest(package=job["package"], platform=job["platform"]):
                         labels = json.loads(job["selfHostedLabels"])
-                        self.assertTrue({"self-hosted", "macOS", "stanford"}.issubset(labels))
+                        self.assertTrue({"self-hosted", "macOS"}.issubset(labels))
+                        self.assertNotIn("stanford", labels)
 
     def test_runtime_assertions_keeps_its_python_runner_requirement(self):
         result = run_selector("Sources/RuntimeAssertions/Assertions.swift")
