@@ -31,8 +31,8 @@ permissions:
 jobs:
   detect:
     name: Detect affected packages
-    # Package.swift changes are compared through SwiftPM's evaluated manifest graph. A macOS runner
-    # makes that graph include the dependencies guarded by `#if canImport(Darwin)` as well.
+    # SwiftPM's evaluated graph validates manifest changes and follows source/test dependencies.
+    # A macOS runner includes dependencies guarded by `#if canImport(Darwin)` as well.
     runs-on: [self-hosted, macOS]
     outputs:
       matrix: ${{ steps.compute.outputs.matrix }}
@@ -114,9 +114,7 @@ jobs:
       - name: Compute test matrix
         id: compute
         run: |
-          # TEMPORARY: avoid extra test jobs for manifest/shared CI edits while stabilizing runners.
-          # Remove this flag to restore that selection; source/test changes and explicit run_all still apply.
-          ARGS=(changed.txt --head-package-dump "$RUNNER_TEMP/head-package.json" --ignore-manifest-and-ci-changes)
+          ARGS=(changed.txt --head-package-dump "$RUNNER_TEMP/head-package.json")
           if [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
             ARGS+=(--base-package-dump "$RUNNER_TEMP/base-package.json")
           fi

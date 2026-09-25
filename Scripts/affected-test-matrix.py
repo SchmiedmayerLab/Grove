@@ -8,8 +8,8 @@
 #
 # Maps a list of changed files to the set of affected packages and emits TWO GitHub Actions job
 # matrices: one for unit tests and one for UI tests. Used by .github/workflows/tests.yml so only the
-# tests of packages whose code actually changed are run — and whenever a package's unit tests run, its
-# UI tests do too. Each emitted job carries a `selfHosted` bool (see self-hosted-ci) that the
+# tests of affected packages are run, with full runs for manifest and shared CI changes. Whenever a
+# package's unit tests run, its UI tests do too. Each emitted job carries a `selfHosted` bool that the
 # workflow's `runs-on` uses to pick the self-hosted vs the GitHub-hosted runner.
 #
 # The logical sub-packages are defined in the repo-root packages.toml:
@@ -33,14 +33,10 @@
 # that owns its target plus every package that consumes that target, transitively, so a change in a
 # shared module runs exactly what builds on it. Without the head graph the owner alone is scheduled.
 #
-# Only a manifest change the graph diff cannot classify runs the whole matrix; no lockfile is
-# tracked (Package.resolved is ignored). Changes to the test workflow, the shared actions,
-# the runner script or the Xcode scheme run a smoke set instead: one package per distinct
-# configuration shape in packages.toml (platforms, UI tests, Linux targets, runner routing), which
-# exercises every job variant without repeating it for every package. An unknown script under
-# Scripts/ is an error until it is classified below, as a new target must be assigned to a package.
-# The workflow temporarily passes --ignore-manifest-and-ci-changes to suspend selection from manifest
-# and shared CI edits. Source/test dependency selection and explicit __ALL__ runs remain enabled.
+# Package.swift (including version-specific manifests), workflow YAML, shared actions, the runner
+# script and Xcode configuration select the whole matrix. Manifest graph comparisons still check
+# that new targets are assigned to a package. No lockfile is tracked (Package.resolved is ignored).
+# An unknown script under Scripts/ is an error until it is classified below.
 #
 # Emits (to stdout, GITHUB_OUTPUT format):
 #   matrix={"include":[{"package":"GroveAccount","platform":"macOS","selfHosted":false,"selfHostedLabels":"[...]"}, ...]}  # unit
@@ -83,18 +79,14 @@ def directory_to_package(packages):
 
 DIR2PKG = directory_to_package(PKGS)
 
-# Infrastructure every job shares; a change here is checked on the smoke set (see smoke_packages).
+# Changes to shared test infrastructure select the full unit/UI matrix.
 INFRASTRUCTURE_PREFIXES = (".github/actions/", ".swiftpm/")
 
 # Declares one UI-test project per top-level table, keyed by logical package, so a change here can
 # be diffed per table instead of fanning out into every package's tests.
 UI_TEST_PROJECTS_PATH = "Tests/UITestProjects.toml"
 
-INFRASTRUCTURE_PATHS = {
-    # value: whether the shared change can also affect the FHIR conformance job
-    ".github/workflows/tests.yml": True,
-    "Scripts/run-package-tests.sh": False,
-}
+INFRASTRUCTURE_PATHS = {"Scripts/run-package-tests.sh"}
 
 # These scripts have their own static-analysis or deployment-floor checks. Editing them cannot alter
 # a package's unit/UI behavior, so they should not fan out into the package test matrix.
@@ -130,22 +122,6 @@ CI_PLATFORMS = ("iOS", "macOS", "watchOS", "Linux")
 # `uiTests`) is iOS/iPadOS/visionOS; iPadOS + visionOS are disabled for now — add them back here to re-enable.
 UI_PLATFORMS = ("iOS",)
 
-def smoke_packages(packages=None):
-    """One package per distinct configuration shape: enough to exercise every job variant."""
-    packages = packages or PKGS
-    shapes = {}
-    for name, info in packages.items():
-        shape = (
-            tuple(sorted(set(info["platforms"]) & set(CI_PLATFORMS))),
-            tuple(sorted(set(info.get("uiTests", [])) & set(UI_PLATFORMS))),
-            bool(info.get("linuxTargets")),
-            tuple(sorted(info.get("self-hosted-ci", ["ui"]))),
-            tuple(info.get("extra_runner_labels", [])),
-        )
-        shapes.setdefault(shape, []).append(name)
-    return {sorted(names, key=lambda name: (len(packages[name]["targets"]), name))[0] for names in shapes.values()}
-
-
 def packages_consuming(directory, head_dump):
     """The packages owning the targets under `Sources/<directory>` or `Tests/<directory>` and every
     package consuming them, transitively. None when the graph does not know the directory."""
@@ -176,11 +152,6 @@ def parse_args():
     parser.add_argument("--base-ui-test-projects")
     parser.add_argument("--head-package-dump")
     parser.add_argument("--base-packages")
-    parser.add_argument(
-        "--ignore-manifest-and-ci-changes",
-        action="store_true",
-        help="Temporarily skip test selection caused by manifest and shared CI edits.",
-    )
     return parser.parse_args()
 
 
@@ -412,16 +383,15 @@ def main():
     head_dump = load_json(args.head_package_dump) if args.head_package_dump else None
     for path in changed:
         is_manifest = path == "Package.swift" or path.startswith("Package@")
+        is_workflow = path.startswith(".github/workflows/") and path.endswith((".yml", ".yaml"))
         is_infrastructure = path in INFRASTRUCTURE_PATHS or path.startswith(INFRASTRUCTURE_PREFIXES)
-        if args.ignore_manifest_and_ci_changes and (is_manifest or is_infrastructure):
-            continue
         if path == FHIR_VALIDATION_PATH:
             affected.update(FHIR_PACKAGES & set(PKGS))
             run_fhir_conformance = True
             continue
-        if is_infrastructure:
-            affected.update(smoke_packages())
-            run_fhir_conformance |= INFRASTRUCTURE_PATHS.get(path, False)
+        if is_workflow or is_infrastructure:
+            run_all = True
+            run_fhir_conformance = True
             continue
         if path in NON_TEST_SCRIPT_PATHS or path.startswith("Scripts/Tests/"):
             continue
@@ -431,33 +401,28 @@ def main():
                 "add it to NON_TEST_SCRIPT_PATHS or INFRASTRUCTURE_PATHS"
             )
         if path.startswith(".github/"):
-            # Other workflows validate their own configuration.
+            # Non-workflow GitHub metadata does not affect the package test matrix.
             continue
         if path == "__ALL__":
             run_all = True
             run_fhir_conformance = True
             continue
         if is_manifest:
-            # A version-specific manifest is evaluated like the main one: dump-package already picks
-            # the manifest that applies to the toolchain running the tests.
+            run_all = True
+            run_fhir_conformance = True
+            # Keep the graph validation for newly unclassified targets, but any manifest edit runs
+            # every package even when the graph diff would select only a subset (or nothing).
+            # dump-package selects the version-specific manifest for the active toolchain.
             if not args.base_package_dump or not args.head_package_dump:
-                run_all = True
-                run_fhir_conformance = True
                 continue
             try:
-                manifest_affected = affected_by_manifest(
+                affected_by_manifest(
                     load_json(args.base_package_dump),
                     load_json(args.head_package_dump),
                     load_toml(args.base_packages) if args.base_packages else PKGS,
                 )
             except UnclassifiedTargetsError as error:
                 sys.exit(f"error: {error}")
-            if manifest_affected is None:
-                run_all = True
-                run_fhir_conformance = True
-                continue
-            affected.update(manifest_affected)
-            run_fhir_conformance |= bool(manifest_affected & FHIR_PACKAGES)
             continue
         if path == UI_TEST_PROJECTS_PATH:
             if not args.base_ui_test_projects:

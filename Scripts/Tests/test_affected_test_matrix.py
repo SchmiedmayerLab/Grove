@@ -164,12 +164,6 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
         self.assertEqual(result["has_fhir_conformance"], "true")
         self.assertEqual(set(result["affected"].split(",")), MODULE.FHIR_PACKAGES)
 
-    def test_runner_script_runs_the_smoke_set_without_conformance(self):
-        result = run_selector("Scripts/run-package-tests.sh")
-
-        self.assertEqual(result["has_fhir_conformance"], "false")
-        self.assertEqual(set(result["affected"].split(",")), MODULE.smoke_packages())
-
 
 class InfrastructureSelectionTests(unittest.TestCase):
     def test_source_directory_outside_every_package_runs_full_matrix(self):
@@ -193,36 +187,9 @@ class InfrastructureSelectionTests(unittest.TestCase):
         self.assertEqual(result["has_jobs"], "false")
         self.assertEqual(result["affected"], "(none)")
 
-    def test_tests_workflow_runs_the_smoke_set(self):
-        result = run_selector(".github/workflows/tests.yml")
-
-        self.assertEqual(set(result["affected"].split(",")), MODULE.smoke_packages())
-        self.assertEqual(result["has_fhir_conformance"], "true")
-
-    def test_smoke_set_covers_every_configuration_shape_once(self):
-        smoke = MODULE.smoke_packages()
-        shapes = {
-            (tuple(sorted(info["platforms"])), tuple(sorted(info.get("uiTests", []))), bool(info.get("linuxTargets")),
-             tuple(sorted(info.get("self-hosted-ci", ["ui"]))), tuple(info.get("extra_runner_labels", [])))
-            for name, info in MODULE.PKGS.items() if name in smoke
-        }
-        self.assertEqual(len(shapes), len(smoke))
-        self.assertLess(len(smoke), len(MODULE.PKGS) // 2)
-
-    def test_shared_local_action_runs_the_smoke_set(self):
-        result = run_selector(".github/actions/setup/action.yml")
-
-        self.assertEqual(set(result["affected"].split(",")), MODULE.smoke_packages())
-
     def test_unknown_script_must_be_classified(self):
         with self.assertRaises(SystemExit):
             run_selector("Scripts/new-build-tool.sh")
-
-    def test_version_specific_manifest_is_treated_as_the_manifest(self):
-        result = run_selector("Package@swift-6.1.swift")
-
-        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
-        self.assertEqual(result["has_fhir_conformance"], "true")
 
     def test_shared_all_platform_test_plan_runs_every_package(self):
         result = run_selector("Tests/TestPlans/_All-iOS.xctestplan")
@@ -301,67 +268,90 @@ class SourceChangeSelectionTests(unittest.TestCase):
 
         self.assertEqual(set(result["affected"].split(",")), {"GroveFoundation", "GroveChat"})
 
+    def test_a_test_change_schedules_its_package(self):
+        head = package_dump([
+            target("GroveAccount", path="Sources/GroveAccount"),
+            target("GroveAccountTests", ["GroveAccount"], path="Tests/GroveAccountTests"),
+            target("GroveChat", path="Sources/GroveChat"),
+        ])
+        result = self.run_with_head("Tests/GroveAccountTests/AccountTests.swift", head=head)
+
+        self.assertEqual(result["affected"], "GroveAccount")
+
     def test_without_the_head_graph_only_the_owner_is_scheduled(self):
         result = run_selector("Sources/GroveChat/ChatView.swift")
 
         self.assertEqual(result["affected"], "GroveChat")
 
 
-class IgnoredSharedChangeTests(unittest.TestCase):
-    ARGUMENTS = ("--ignore-manifest-and-ci-changes",)
-
-    def test_shared_changes_alone_do_not_schedule_tests_when_ignored(self):
+class FullSuiteSelectionTests(unittest.TestCase):
+    def test_manifest_and_shared_ci_changes_run_the_full_suite(self):
+        expected = run_selector("__ALL__")
         paths = (
             "Package.swift",
             "Package@swift-6.1.swift",
             ".github/workflows/tests.yml",
+            ".github/workflows/static-analysis.yml",
+            ".github/workflows/release.yaml",
             ".github/actions/setup/action.yml",
+            ".github/actions/setup/setup.sh",
             ".swiftpm/xcode/xcshareddata/xcschemes/Grove.xcscheme",
             "Scripts/run-package-tests.sh",
         )
         for path in paths:
             with self.subTest(path=path):
-                result = run_selector(path, extra_arguments=self.ARGUMENTS)
+                self.assertEqual(run_selector(path), expected)
 
-                self.assertEqual(result["affected"], "(none)")
-                self.assertEqual(json.loads(result["matrix"])["include"], [])
-                self.assertEqual(json.loads(result["ui_matrix"])["include"], [])
-                self.assertEqual(result["has_fhir_conformance"], "false")
-
-    def test_source_and_test_changes_keep_their_consumers_when_shared_changes_are_ignored(self):
-        head = package_dump([
-            target("GroveChat", path="Sources/GroveChat"),
-            target("GroveLLM", ["GroveChat"], path="Sources/GroveLLM"),
-            target("GroveAccount", path="Sources/GroveAccount"),
-            target("GroveAccountTests", ["GroveAccount"], path="Tests/GroveAccountTests"),
-        ])
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as head_file:
+    def run_with_graphs(self, *paths, base, head):
+        with (
+            tempfile.NamedTemporaryFile(mode="w", suffix=".json") as base_file,
+            tempfile.NamedTemporaryFile(mode="w", suffix=".json") as head_file,
+        ):
+            base_file.write(json.dumps(base))
+            base_file.flush()
             head_file.write(json.dumps(head))
             head_file.flush()
-            for path, expected in (
-                ("Sources/GroveChat/ChatView.swift", {"GroveChat", "GroveLLM"}),
-                ("Tests/GroveAccountTests/AccountTests.swift", {"GroveAccount"}),
-            ):
-                with self.subTest(path=path):
-                    result = run_selector(
-                        "Package.swift", ".github/workflows/tests.yml", path,
-                        extra_arguments=(*self.ARGUMENTS, "--head-package-dump", head_file.name),
-                    )
+            return run_selector(
+                *paths,
+                extra_arguments=("--base-package-dump", base_file.name, "--head-package-dump", head_file.name),
+            )
 
-                    self.assertEqual(set(result["affected"].split(",")), expected)
-                    for matrix in ("matrix", "ui_matrix"):
-                        self.assertEqual(
-                            {job["package"] for job in json.loads(result[matrix])["include"]}, expected,
-                        )
-
-    def test_explicit_full_run_overrides_ignored_shared_changes(self):
+    def test_classifiable_manifest_change_still_runs_the_full_suite(self):
+        base = package_dump([target("GroveChat", settings=[])])
+        head = package_dump([target("GroveChat", settings=[{"swift": "changed"}])])
         expected = run_selector("__ALL__")
-        result = run_selector("__ALL__", "Package.swift", extra_arguments=self.ARGUMENTS)
 
-        self.assertEqual(result, expected)
-        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
-        self.assertEqual(result["has_fhir_conformance"], "true")
+        for path in ("Package.swift", "Package@swift-6.1.swift"):
+            with self.subTest(path=path):
+                self.assertEqual(self.run_with_graphs(path, base=base, head=head), expected)
 
+    def test_identical_evaluated_manifests_still_run_the_full_suite(self):
+        manifest = package_dump([target("GroveChat")])
+
+        self.assertEqual(
+            self.run_with_graphs("Package.swift", base=manifest, head=manifest), run_selector("__ALL__"),
+        )
+
+    def test_shared_ci_changes_override_source_dependency_selection(self):
+        manifest = package_dump([
+            target("GroveChat", path="Sources/GroveChat"),
+            target("GroveLLM", ["GroveChat"], path="Sources/GroveLLM"),
+        ])
+        result = self.run_with_graphs(
+            "Sources/GroveChat/ChatView.swift", ".github/workflows/tests.yml", base=manifest, head=manifest,
+        )
+
+        self.assertEqual(result, run_selector("__ALL__"))
+
+    def test_full_manifest_run_rejects_new_unclassified_targets(self):
+        base = package_dump([])
+        head = package_dump([target("UnclassifiedTarget")])
+
+        with self.assertRaisesRegex(SystemExit, "UnclassifiedTarget"):
+            self.run_with_graphs("Package.swift", base=base, head=head)
+
+
+class PackageConfigurationSelectionTests(unittest.TestCase):
     def test_package_configuration_changes_remain_package_specific(self):
         head = pathlib.Path(MODULE.ROOT, "packages.toml").read_text()
         base = head.replace("[GroveLLM]", "[GroveLLM]\nremoved_marker = true", 1)
@@ -371,7 +361,7 @@ class IgnoredSharedChangeTests(unittest.TestCase):
             base_file.flush()
             result = run_selector(
                 "packages.toml",
-                extra_arguments=(*self.ARGUMENTS, "--base-packages", base_file.name),
+                extra_arguments=("--base-packages", base_file.name),
             )
 
         self.assertEqual(result["affected"], "GroveLLM")
