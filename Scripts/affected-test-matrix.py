@@ -103,6 +103,7 @@ NON_TEST_SCRIPT_PATHS = {
     "Scripts/build-documentation.sh",
     "Scripts/build-floor.sh",
     "Scripts/check-documentation-targets.py",
+    "Scripts/check-sample-type-defs.py",
     "Scripts/ci-dryrun.sh",
     "Scripts/cleanup-generated-artifacts.sh",
     "Scripts/documentation-screenshots.sh",

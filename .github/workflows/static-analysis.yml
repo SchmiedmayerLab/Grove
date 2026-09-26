@@ -40,6 +40,14 @@ jobs:
       - name: Verify .spi.yml documents every library product
         run: python3 Scripts/check-documentation-targets.py
 
+  sample-type-defs:
+    name: SampleType HealthKit Consistency
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify SampleType definitions against HealthKit
+        run: python3 Scripts/check-sample-type-defs.py
+
   # REUSE runs as part of the Repository Standards workflow.
   swiftlint:
     name: SwiftLint

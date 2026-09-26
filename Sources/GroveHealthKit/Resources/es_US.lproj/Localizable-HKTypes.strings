@@ -38,6 +38,7 @@
 "HKCategoryTypeIdentifierHeadphoneAudioExposureEvent" = "Notificaciones de audífonos";
 "HKCategoryTypeIdentifierHeartburn" = "Acidez estomacal";
 "HKCategoryTypeIdentifierHighHeartRateEvent" = "Notificaciones de frecuencia alta";
+"HKCategoryTypeIdentifierHypertensionEvent" = "Notificaciones de hipertensión";
 "HKCategoryTypeIdentifierHotFlashes" = "Bochornos";
 "HKCategoryTypeIdentifierInfrequentMenstrualCycles" = "Periodos poco frecuentes";
 "HKCategoryTypeIdentifierIntermenstrualBleeding" = "Manchado";

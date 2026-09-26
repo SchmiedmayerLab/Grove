@@ -192,6 +192,9 @@ extension HKCategoryTypeIdentifier {
                 if #available(iOS 18.0, macOS 15.0, watchOS 11.0, visionOS 2.0, *),
                    self == .bleedingDuringPregnancy || self == .bleedingAfterPregnancy {
                     return .init(valueType: HKCategoryValueVaginalBleeding.self)
+                } else if #available(iOS 26.2, macOS 26.2, watchOS 26.2, visionOS 26.2, *),
+                          self == .hypertensionEvent {
+                    return .noDataCarried
                 } else {
                     throw GroveHealthKitFHIRError.notSupported
                 }

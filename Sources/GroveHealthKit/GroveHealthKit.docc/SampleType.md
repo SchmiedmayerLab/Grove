@@ -19,6 +19,10 @@ For example, the sample type representing heart rate samples (``SampleType/heart
 
 > Note: `SampleType` already defines extensions for many HealthKit data types. It is strongly recommended you use these, whenever possible.
 
+The well-known identifiers are hand-authored in `SampleTypeDefs.py` and regenerated into Swift with `./useGYB`.
+CI runs `Scripts/check-sample-type-defs.py` against the HealthKit SDK so Apple additions, removals, deprecations, and availability changes fail the build instead of drifting silently.
+The check never auto-adds Grove definitions (canonical units and titles still require a human author).
+
 
 ## Topics
 
