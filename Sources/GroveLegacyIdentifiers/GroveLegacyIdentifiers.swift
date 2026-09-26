@@ -30,6 +30,7 @@
 /// - ``LegacyStorage``
 /// - ``LegacyKeychain``
 /// - ``LegacyNotifications``
+/// - ``LegacySceneStorageKey``
 ///
 /// ### Published
 /// - ``SupersededFHIRURLs``
