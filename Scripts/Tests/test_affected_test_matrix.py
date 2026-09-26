@@ -378,7 +378,7 @@ class IgnoredSharedChangeTests(unittest.TestCase):
 
 
 class RunnerRoutingTests(unittest.TestCase):
-    def test_every_self_hosted_unit_and_ui_job_requires_stanford(self):
+    def test_self_hosted_unit_and_ui_jobs_use_base_and_package_labels(self):
         result = run_selector("__ALL__")
         for matrix in ("matrix", "ui_matrix"):
             with self.subTest(matrix=matrix):
@@ -387,9 +387,12 @@ class RunnerRoutingTests(unittest.TestCase):
                 for job in jobs:
                     with self.subTest(package=job["package"], platform=job["platform"]):
                         labels = json.loads(job["selfHostedLabels"])
-                        self.assertTrue({"self-hosted", "macOS", "stanford"}.issubset(labels))
+                        self.assertEqual(
+                            labels,
+                            ["self-hosted", "macOS"] + list(MODULE.PKGS[job["package"]].get("extra_runner_labels", [])),
+                        )
 
-    def test_runtime_assertions_keeps_its_python_runner_requirement(self):
+    def test_runtime_assertions_uses_standard_self_hosted_runners(self):
         result = run_selector("Sources/RuntimeAssertions/Assertions.swift")
         jobs = json.loads(result["matrix"])["include"]
 
@@ -397,7 +400,7 @@ class RunnerRoutingTests(unittest.TestCase):
         for job in jobs:
             self.assertEqual(job["package"], "RuntimeAssertions")
             self.assertTrue(job["selfHosted"])
-            self.assertIn("python3.11+", json.loads(job["selfHostedLabels"]))
+            self.assertEqual(json.loads(job["selfHostedLabels"]), ["self-hosted", "macOS"])
 
     def test_linux_and_ordinary_unit_jobs_remain_github_hosted(self):
         result = run_selector("__ALL__")

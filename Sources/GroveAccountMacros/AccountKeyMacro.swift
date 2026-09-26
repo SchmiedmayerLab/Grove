@@ -146,7 +146,7 @@ extension AccountKeyMacro: PeerMacro {
             accountKeyProtocol = "RequiredAccountKey"
         }
 
-        guard valueTypeInitializer.forceToText == valueTypeName.forceToText else {
+        guard valueTypeInitializer.canonicalTypeText == valueTypeName.canonicalTypeText else {
             throw DiagnosticsError(
                 syntax: valueTypeName,
                 message: "Value type '\(valueTypeName)' is expected to match the property binding type annotation '\(valueTypeInitializer.forceToText)'",
@@ -373,6 +373,16 @@ extension LabeledExprSyntax {
 extension SyntaxProtocol {
     var forceToText: String {
         String(decoding: syntaxTextBytes, as: UTF8.self)
+    }
+
+    /// The node's text reduced to its raw tokens, discarding all trivia.
+    ///
+    /// Used to compare two type expressions that may be spelled with different whitespace or comments
+    /// (e.g. `ModuleA::GenderIdentity` vs `ModuleA :: GenderIdentity`) but denote the same type.
+    var canonicalTypeText: String {
+        tokens(viewMode: .sourceAccurate)
+            .map { $0.text }
+            .joined()
     }
 }
 
