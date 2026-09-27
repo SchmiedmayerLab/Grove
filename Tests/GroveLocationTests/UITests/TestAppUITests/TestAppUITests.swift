@@ -19,7 +19,7 @@ class TestAppUITests: XCTestCase {
         let app = XCUIApplication()
         
         #if !os(macOS)
-        app.deleteAndLaunch(withSpringboardAppName: "TestApp")
+        app.resetAuthorizationStatus(for: .location)
         #else
         app.launch()
         #endif
