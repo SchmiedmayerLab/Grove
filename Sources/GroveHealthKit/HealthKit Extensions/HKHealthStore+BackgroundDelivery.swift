@@ -8,7 +8,7 @@
 
 #if canImport(HealthKit)
 
-import Grove
+import class GroveFoundation.AsyncSemaphore
 import HealthKit
 import OSLog
 import Synchronization
@@ -203,21 +203,17 @@ extension HKHealthStore {
         return false
     }
     
-    @MainActor @discardableResult
+    @MainActor
+    @discardableResult
     func startBackgroundDelivery(
-        for sampleTypes: Set<HKSampleType>,
+        for sampleType: HKSampleType,
         withPredicate predicate: NSPredicate? = nil,
         updateHandler: @escaping @MainActor @Sendable (
             Result<Set<HKSampleType>, any Error>
         ) async -> Void
     ) async throws -> BackgroundObserverQueryInvalidator {
-        let observation = installBackgroundObserver(for: sampleTypes, withPredicate: predicate, updateHandler: updateHandler)
-        do {
-            try await enableBackgroundDelivery(for: observation.objectTypes)
-        } catch {
-            await observation.invalidateAndWait()
-            throw error
-        }
+        let observation = installBackgroundObserver(for: [sampleType], withPredicate: predicate, updateHandler: updateHandler)
+        try await registerBackgroundDelivery(for: observation)
         return observation
     }
 
@@ -229,10 +225,10 @@ extension HKHealthStore {
         updateHandler: @escaping @MainActor @Sendable (Result<Set<HKSampleType>, any Error>) async -> Void
     ) -> BackgroundObserverQueryInvalidator {
         let taskTracker = BackgroundDeliveryTaskTracker()
-        let queryDescriptors: [HKQueryDescriptor] = sampleTypes
+        let objectTypes = Set(sampleTypes
             .flatMap { $0.effectiveObjectTypesForAuthorization }
-            .compactMap { $0 as? HKSampleType }
-            .map { HKQueryDescriptor(sampleType: $0, predicate: predicate) }
+            .compactMap { $0 as? HKSampleType })
+        let queryDescriptors = objectTypes.map { HKQueryDescriptor(sampleType: $0, predicate: predicate) }
         let observerQuery = HKObserverQuery(queryDescriptors: queryDescriptors) { query, sampleTypes, completionHandler, error in
             // From https://developer.apple.com/documentation/healthkit/hkobserverquery/executing_observer_queries
             // "Whenever a matching sample is added to or deleted from the HealthKit store,
@@ -262,63 +258,104 @@ extension HKHealthStore {
             }
         }
         self.execute(observerQuery)
-        return .init(healthStore: self, query: observerQuery, objectTypes: queryDescriptors.mapIntoSet(\.sampleType), taskTracker: taskTracker)
+        return .init(healthStore: self, query: observerQuery, objectTypes: Set(objectTypes), taskTracker: taskTracker)
     }
-    
-    
-    func enableBackgroundDelivery(for objectTypes: Set<HKObjectType>) async throws {
-        var enabledObjectTypes: Set<HKObjectType> = []
+
+    /// Acquires delivery ownership for an installed observer. Failed registration owns its cleanup;
+    /// callers must not release the observation again after this method throws.
+    @MainActor
+    func registerBackgroundDelivery(for observation: BackgroundObserverQueryInvalidator) async throws {
+        var acquired = Set<HKObjectType>()
         do {
-            for objectType in objectTypes {
-                try await self.enableBackgroundDelivery(for: objectType, frequency: .immediate)
-                enabledObjectTypes.insert(objectType)
-                Self.backgroundDeliveryOwnership.withLock { $0.didEnable(objectType) }
+            try Task.checkCancellation()
+            for objectType in observation.objectTypes {
+                try Task.checkCancellation()
+                try await enableBackgroundDelivery(for: objectType)
+                acquired.insert(objectType)
             }
+            try Task.checkCancellation()
         } catch {
-            HealthKit.logger.error("Could not enable HealthKit Backgound access for \(objectTypes): \(error.localizedDescription)")
-            // Revert all changes as enable background delivery for the object types failed.
-            await disableBackgroundDelivery(for: enabledObjectTypes)
+            // Installation starts callbacks immediately. Stop and drain them before releasing any
+            // ownership, and roll back only acquisitions made by this registration attempt.
+            await observation.invalidateAndWait()
+            await disableBackgroundDelivery(for: acquired)
             throw error
         }
     }
-    
-    
+
+    /// Releases a successfully registered observation after its callbacks have finished.
     @MainActor
-    func disableBackgroundDelivery(
-        for objectTypes: Set<HKObjectType>
-    ) async {
-        // Teardown must finish even when its owner is cancelled, including rollback after
-        // partial registration. Await the independent task so retries cannot outlive cleanup.
+    func stopBackgroundDelivery(for observation: BackgroundObserverQueryInvalidator) async {
+        await observation.invalidateAndWait()
+        await disableBackgroundDelivery(for: observation.objectTypes)
+    }
+
+    @MainActor
+    private func disableBackgroundDelivery(for objectTypes: Set<HKObjectType>) async {
+        // A cancelled owner must still finish bounded SDK retries, including their retry delays.
+        // Each scalar operation owns the gate; holding it around this loop would deadlock.
         await Task { @MainActor in
-            let objectTypesToDisable = Self.backgroundDeliveryOwnership.withLock {
-                $0.requestDisable(for: objectTypes)
-            }
-            for objectType in objectTypesToDisable {
-                await disablePendingBackgroundDelivery(for: objectType)
+            for objectType in objectTypes {
+                do {
+                    try await disableBackgroundDelivery(for: objectType)
+                } catch {
+                    HealthKit.logger.error(
+                        "Failed to release background delivery for \(objectType.identifier); error type: \(String(reflecting: type(of: error)), privacy: .public)"
+                    )
+                }
             }
         }.value
     }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HKHealthStore {
+    private static let backgroundDeliveryOperationsGate = AsyncSemaphore()
+
 
     @MainActor
-    private func disablePendingBackgroundDelivery(for objectType: HKObjectType) async {
-        guard await retryPendingBackgroundDeliveryDisable(for: objectType) else {
+    func enableBackgroundDelivery(for objectType: HKObjectType) async throws {
+        await Self.backgroundDeliveryOperationsGate.wait()
+        defer { Self.backgroundDeliveryOperationsGate.signal() }
+
+        let alreadyEnabled = Self.backgroundDeliveryOwnership.withLock { ownership in
+            guard ownership.hasActiveOwner(objectType) else {
+                return false
+            }
+            ownership.didEnable(objectType)
+            return true
+        }
+        guard !alreadyEnabled else {
             return
         }
-        let completion = Self.backgroundDeliveryOwnership.withLock { $0.didDisable(objectType) }
-        guard completion == .supersededByOwner else {
-            return
-        }
-        await restoreBackgroundDeliveryIfOwned(for: objectType)
+        try await self.HealthKit::enableBackgroundDelivery(for: objectType, frequency: .immediate)
+        Self.backgroundDeliveryOwnership.withLock { $0.didEnable(objectType) }
     }
 
+
     @MainActor
-    private func retryPendingBackgroundDeliveryDisable(for objectType: HKObjectType) async -> Bool {
-        await Self.retryBackgroundDeliveryOperation(
+    func disableBackgroundDelivery(for objectType: HKObjectType) async throws {
+        await Self.backgroundDeliveryOperationsGate.wait()
+        defer { Self.backgroundDeliveryOperationsGate.signal() }
+
+        // Release this owner once. SDK retries must not decrement another collector's ownership.
+        let needsDisable = Self.backgroundDeliveryOwnership.withLock {
+            $0.requestDisable(for: [objectType]).contains(objectType)
+        }
+        guard needsDisable else {
+            return
+        }
+
+        // Keep the gate until the SDK operation and bookkeeping finish, so a new registration
+        // cannot be disabled by an older teardown. Failures leave delivery pending, not owned.
+        var lastError: (any Error)?
+        let disabled = await Self.retryBackgroundDeliveryOperation(
             shouldContinue: {
                 Self.backgroundDeliveryOwnership.withLock { $0.needsDisable(objectType) }
             },
             operation: {
-                try await self.disableBackgroundDelivery(for: objectType)
+                try await self.HealthKit::disableBackgroundDelivery(for: objectType)
             },
             waitBeforeRetry: { attempt in
                 do {
@@ -326,57 +363,22 @@ extension HKHealthStore {
                     try await Task.sleep(for: delay)
                     return true
                 } catch {
-                    HealthKit.logger.error(
-                        "Cancelled HealthKit background-delivery teardown retry for \(objectType): \(error.localizedDescription)"
-                    )
                     return false
                 }
             },
             onFailure: { error, attempt in
+                lastError = error
                 HealthKit.logger.error(
                     "HealthKit background-delivery teardown attempt \(attempt) failed for \(objectType): \(error.localizedDescription)"
                 )
             }
         )
-    }
-
-    @MainActor
-    private func restoreBackgroundDeliveryIfOwned(for objectType: HKObjectType) async {
-        // An owner can arrive while the SDK disable is suspended. The stale disable may then win
-        // the race at the OS boundary, so restore delivery with the same owned bounded retry.
-        let restored = await Self.retryBackgroundDeliveryOperation(
-            shouldContinue: {
-                Self.backgroundDeliveryOwnership.withLock { $0.hasActiveOwner(objectType) }
-            },
-            operation: {
-                try await self.enableBackgroundDelivery(for: objectType, frequency: .immediate)
-            },
-            waitBeforeRetry: { attempt in
-                do {
-                    let delay: Duration = attempt == 1 ? .milliseconds(250) : .seconds(1)
-                    try await Task.sleep(for: delay)
-                    return true
-                } catch {
-                    HealthKit.logger.error(
-                        "Cancelled HealthKit background-delivery restoration retry for \(objectType): \(error.localizedDescription)"
-                    )
-                    return false
-                }
-            },
-            onFailure: { error, attempt in
-                HealthKit.logger.error(
-                    "HealthKit background-delivery restoration attempt \(attempt) failed for \(objectType): \(error.localizedDescription)"
-                )
-            }
-        )
-        if !restored {
-            HealthKit.logger.error(
-                "HealthKit background delivery for \(objectType) could not be restored for its active owner"
-            )
-        } else if Self.backgroundDeliveryOwnership.withLock({ $0.needsDisable(objectType) }) {
-            // The restoring owner departed while SDK enable was suspended. Complete that newer
-            // teardown instead of leaving delivery enabled without a local owner.
-            await disablePendingBackgroundDelivery(for: objectType)
+        if disabled {
+            _ = Self.backgroundDeliveryOwnership.withLock { $0.didDisable(objectType) }
+        } else if let lastError {
+            // Keep the pending disable for later recovery. Never invent another active owner or
+            // broaden cleanup to types whose ownership this operation did not release.
+            throw lastError
         }
     }
 }

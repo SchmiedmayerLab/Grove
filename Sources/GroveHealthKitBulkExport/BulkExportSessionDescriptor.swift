@@ -79,6 +79,32 @@ struct ExportSessionDescriptor: Codable, Sendable {
         })
     }
     
+    /// Updates both batch lists together so persistence sees a complete transition.
+    mutating func finishBatch(
+        _ originalBatch: ExportBatch,
+        result: Result<Void, any Error>,
+        cancellationWasRequested: Bool
+    ) {
+        guard let index = pendingBatches.firstIndex(of: originalBatch) else {
+            preconditionFailure("Unable to find to-be-removed batch")
+        }
+        var batch = pendingBatches.remove(at: index)
+        switch result {
+        case .success:
+            batch.result = .success
+            completedBatches.append(batch)
+        case .failure(let error):
+            if error is CancellationError && cancellationWasRequested {
+                // A requested pause or termination leaves canceled work pending for resumption.
+                batch.result = nil
+                pendingBatches.insert(batch, at: 0)
+            } else {
+                batch.result = .failure(errorDescription: error.localizedDescription)
+                pendingBatches.append(batch)
+            }
+        }
+    }
+
     /// Resets the `result` of all failed batches to `nil`, so that they will be retried by the ``BulkExportSession``.
     mutating func unmarkAllFailedBatches() {
         assert(completedBatches.allSatisfy { $0.result == .success })
@@ -90,35 +116,6 @@ struct ExportSessionDescriptor: Codable, Sendable {
             }
             pendingBatches[idx] = batch
         }
-    }
-
-    mutating func record(_ batch: ExportBatch, result: Result<Void, any Error>) {
-        guard let batchIdx = pendingBatches.firstIndex(of: batch) else {
-            preconditionFailure("Unable to find to-be-removed batch")
-        }
-        var batch = pendingBatches.remove(at: batchIdx)
-        switch result {
-        case .success:
-            batch.result = .success
-            completedBatches.append(batch)
-        case .failure(let error) where error is CancellationError:
-            batch.result = nil
-            pendingBatches.insert(batch, at: 0)
-        case .failure(let error):
-            batch.result = .failure(errorDescription: error.localizedDescription)
-            pendingBatches.append(batch)
-        }
-    }
-
-    mutating func markPersistenceFailure(for completedBatch: ExportBatch, error: any Error) {
-        guard let batchIdx = completedBatches.firstIndex(where: {
-            $0.sampleType == completedBatch.sampleType && $0.timeRange == completedBatch.timeRange
-        }) else {
-            preconditionFailure("Unable to find completed batch whose descriptor failed to persist")
-        }
-        var batch = completedBatches.remove(at: batchIdx)
-        batch.result = .failure(errorDescription: error.localizedDescription)
-        pendingBatches.append(batch)
     }
 }
 

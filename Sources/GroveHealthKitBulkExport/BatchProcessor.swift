@@ -28,6 +28,8 @@ public protocol BatchProcessor<Output>: Sendable {
     /// and a failure to perform optional cleanup must not invalidate the already-committed output.
     /// Keep the work idempotent and cleanup-only because process termination can occur between the
     /// durable descriptor write and this callback.
+    /// After a checkpoint failure, the live session retains the output and retries persistence without
+    /// calling `process` again. This callback is deferred until that output's checkpoint succeeds.
     func didPersist(_ output: Output) async
 }
 

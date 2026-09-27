@@ -93,23 +93,20 @@ extension HKHealthStore {
         _ observation: BackgroundObserverQueryInvalidator?,
         operation: @MainActor () async throws -> Result
     ) async throws -> Result {
-        var enabled = false
+        if let observation {
+            // Registration owns partial-failure cleanup; only a successful registration may be
+            // released by the operation's cleanup below.
+            try await registerBackgroundDelivery(for: observation)
+        }
         let result: Result
         do {
             try Task.checkCancellation()
-            if let observation {
-                try await enableBackgroundDelivery(for: observation.objectTypes)
-                enabled = true
-            }
-            try Task.checkCancellation()
             result = try await operation()
         } catch {
-            await observation?.invalidateAndWait()
-            if enabled, let observation { await disableBackgroundDelivery(for: observation.objectTypes) }
+            if let observation { await stopBackgroundDelivery(for: observation) }
             throw error
         }
-        await observation?.invalidateAndWait()
-        if enabled, let observation { await disableBackgroundDelivery(for: observation.objectTypes) }
+        if let observation { await stopBackgroundDelivery(for: observation) }
         try Task.checkCancellation()
         return result
     }

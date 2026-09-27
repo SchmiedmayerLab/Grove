@@ -86,7 +86,7 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
         do {
             if deliverySetting.continueInBackground {
                 // set up a background query
-                let queryInvalidator = try await healthStore.startBackgroundDelivery(for: [sampleType.hkSampleType]) { [weak self] result in
+                let queryInvalidator = try await healthStore.startBackgroundDelivery(for: sampleType.hkSampleType) { [weak self] result in
                     guard let self, self.isActive else {
                         // if the sample collector has been turned off, we don't want to process these.
                         return
@@ -94,8 +94,7 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
                     await self.handleBackgroundDelivery(result, logger: logger)
                 }
                 guard isActive else {
-                    await queryInvalidator.invalidateAndWait()
-                    await healthStore.disableBackgroundDelivery(for: [sampleType.hkSampleType])
+                    await healthStore.stopBackgroundDelivery(for: queryInvalidator)
                     return
                 }
                 queryVariant = .backgroundDelivery(queryInvalidator)
@@ -163,8 +162,7 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
             task.cancel()
             _ = await task.result
         case .backgroundDelivery(let invalidator):
-            await invalidator.invalidateAndWait()
-            await healthStore.disableBackgroundDelivery(for: [sampleType.hkSampleType])
+            await healthStore.stopBackgroundDelivery(for: invalidator)
         }
         let backgroundRetryTask = exchange(&backgroundRetryTask, with: nil)
         backgroundRetryRequested = false

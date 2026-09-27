@@ -20,6 +20,7 @@ command -v periphery > /dev/null || {
   echo "::error::periphery is not installed (brew install periphery)"; exit 1
 }
 
+export GROVE_LOWERED_DEPLOYMENT_TARGETS=0
 export GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS=1
 export GROVE_EXCLUDE_DOCC_CATALOGS=1
 
@@ -39,6 +40,7 @@ PACKAGE_CACHE_PATH="${PACKAGE_CACHE_PATH:-${RUNNER_TEMP:-$PWD}/.packageCache}"
 xcodebuild -list > /dev/null 2>&1 || true
 # build-for-testing, not build: the unit test targets must be in the index or every
 # @testable-only reference reports as unused.
+# One Apple Silicon simulator architecture also avoids compiling Intel versions of host tools.
 attempt() {
 xcodebuild build-for-testing \
   -scheme Grove-Package \
@@ -46,6 +48,7 @@ xcodebuild build-for-testing \
   -derivedDataPath "$DERIVED_DATA_PATH" \
   -packageCachePath "$PACKAGE_CACHE_PATH" \
   -skipMacroValidation -skipPackagePluginValidation \
+  ARCHS=arm64 \
   COMPILER_INDEX_STORE_ENABLE=YES \
   | { command -v xcbeautify > /dev/null && xcbeautify --quiet || cat; }
 }
