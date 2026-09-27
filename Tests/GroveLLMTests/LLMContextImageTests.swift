@@ -32,6 +32,20 @@ struct LLMContextImageTests {
         #expect(context.chat[1].content.parts.map(\.content).first != .image(.generating))
     }
 
+    @Test("A conversation stored when media types were plain strings still decodes")
+    func decodesAStoredConversation() throws {
+        let image = Data(#"{ "contentType": "image/png", "base64Image": "aGVsbG8=" }"#.utf8)
+        #expect(try JSONDecoder().decode(LLMContextEntity._ImageContent.self, from: image) == picture)
+        let file = Data(#"{ "filename": "notes.txt", "contentType": "text/plain", "base64Data": "aGVsbG8=" }"#.utf8)
+        #expect(try JSONDecoder().decode(LLMContextEntity._FileContent.self, from: file).contentType == .plainText)
+
+        var context = LLMContext()
+        context.complete(assistantImage: picture)
+        let stored = try JSONEncoder().encode(context[0])
+        #expect(String(decoding: stored, as: UTF8.self).contains(#""contentType":"image\/png""#))
+        #expect(try JSONDecoder().decode(LLMContextEntity.self, from: stored) == context[0])
+    }
+
     @Test("A picture nobody announced is appended")
     func appendsAnUnannouncedPicture() {
         var context = LLMContext()

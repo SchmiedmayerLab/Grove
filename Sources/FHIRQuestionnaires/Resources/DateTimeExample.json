@@ -5,9 +5,6 @@
   "status": "draft",
   "publisher": "Stanford University",
   "meta": {
-    "profile": [
-      "https://grovealliance.org/fhir/core/StructureDefinition/sdf-Questionnaire"
-    ],
     "tag": [
       {
         "system": "urn:ietf:bcp:47",
@@ -41,7 +38,8 @@
   "subjectType": [
     "Patient"
   ],
-  "url": "https://grovealliance.org/fhir/core/Questionnaire/date-time-example",
+  "url": "https://example.org/fhir/Questionnaire/date-time-example",
+  "version": "1.0.0",
   "item": [
     {
       "linkId": "cc7f8427-15fc-4c52-b6a3-3ba6635b8249",

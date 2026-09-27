@@ -27,6 +27,14 @@ public struct SensorKitECGSession: SensorKitSampleSafeRepresentation {
                 flags = data.flags
                 voltage = data.value
             }
+
+            init(
+                flags: SRElectrocardiogramData.Flags,
+                voltage: Measurement<UnitElectricPotentialDifference>
+            ) {
+                self.flags = flags
+                self.voltage = voltage
+            }
         }
         
         /// The batch's offset from the start of the ECG, in seconds.
@@ -38,6 +46,15 @@ public struct SensorKitECGSession: SensorKitSampleSafeRepresentation {
     
     /// Start date of the overall ECG.
     public let startDate: Date
+
+    /// The SensorKit identifier that joins every provider session state for this ECG.
+    public let sessionIdentifier: String
+
+    /// The provider session states observed while assembling this ECG.
+    ///
+    /// Grove sorts these values by their raw representation so the safe representation remains
+    /// deterministic even though SensorKit supplies distinct session objects for one logical ECG.
+    public let sessionStates: [SRElectrocardiogramSession.State]
     
     @inlinable public var timeRange: Range<Date> {
         startDate..<startDate.addingTimeInterval(duration)
@@ -58,8 +75,10 @@ public struct SensorKitECGSession: SensorKitSampleSafeRepresentation {
     /// The individual batches of data.
     public let batches: [Batch]
     
-    fileprivate init(
+    init(
         startDate: Date,
+        sessionIdentifier: String,
+        sessionStates: [SRElectrocardiogramSession.State],
         frequency: Measurement<UnitFrequency>,
         lead: SRElectrocardiogramSample.Lead,
         guidance: SRElectrocardiogramSession.SessionGuidance,
@@ -67,7 +86,18 @@ public struct SensorKitECGSession: SensorKitSampleSafeRepresentation {
     ) {
         assert(batches.isSorted { $0.offset < $1.offset })
         self.startDate = startDate
-        self.duration = batches.last?.offset ?? 0
+        self.sessionIdentifier = sessionIdentifier
+        self.sessionStates = sessionStates.sorted { $0.rawValue < $1.rawValue }
+        let frequencyHertz = frequency.converted(to: .hertz).value
+        assert(frequencyHertz.isFinite && frequencyHertz > 0)
+        if let finalBatch = batches.last,
+           !finalBatch.samples.isEmpty,
+           frequencyHertz.isFinite,
+           frequencyHertz > 0 {
+            self.duration = finalBatch.offset + Double(finalBatch.samples.count - 1) / frequencyHertz
+        } else {
+            self.duration = batches.last?.offset ?? 0
+        }
         self.frequency = frequency
         self.lead = lead
         self.guidance = guidance
@@ -92,7 +122,7 @@ extension SRElectrocardiogramSample: SensorKitSampleProtocol {
         // Instead, there will be multiple `SRElectrocardiogramSession` objects for a single logical session
         // (they will all have the same `identifier`), each representing a different state of the session.
         let sessionsByIdentifier = Dictionary(grouping: samplesBySession.keys, by: \.identifier)
-        return sessionsByIdentifier.compactMap { _, sessions -> SensorKitECGSession? in
+        return sessionsByIdentifier.compactMap { identifier, sessions -> SensorKitECGSession? in
             guard let beginSession = sessions.first(where: { $0.state == .begin }),
                   let activeSession = sessions.first(where: { $0.state == .active }) else {
                 return nil
@@ -110,6 +140,8 @@ extension SRElectrocardiogramSample: SensorKitSampleProtocol {
             let startDate = samplesBySession[beginSession]?.min(of: \.date) ?? samples.first!.date // we just sorted samples by date.
             return SensorKitECGSession(
                 startDate: startDate,
+                sessionIdentifier: identifier,
+                sessionStates: sessions.map(\.state),
                 frequency: samples.first!.frequency, // swiftlint:disable:this force_unwrapping
                 lead: samples.first!.lead, // swiftlint:disable:this force_unwrapping
                 guidance: activeSession.sessionGuidance,

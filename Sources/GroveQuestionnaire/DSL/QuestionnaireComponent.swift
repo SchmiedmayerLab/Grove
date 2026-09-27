@@ -63,28 +63,28 @@ extension QuestionnaireComponent {
     /// A secondary text line below the title.
     public func subtitle(_ subtitle: String) -> Self {
         var copy = self
-        copy._core.subtitle = subtitle
+        copy._core.subtitle = .init(subtitle)
         return copy
     }
 
     /// Guidance shown below the item (exported as a `help` display item).
     public func help(_ text: String) -> Self {
         var copy = self
-        copy._core.footer = text
+        copy._core.footer = .init(text)
         return copy
     }
 
     /// Question numbering shown before the title (FHIR `item.prefix`, e.g. "1a.").
     public func prefix(_ prefix: String) -> Self {
         var copy = self
-        copy._core.prefix = prefix
+        copy._core.prefix = .init(prefix)
         return copy
     }
 
     /// An abbreviated title for constrained displays (SDC `shortText`).
     public func shortTitle(_ shortTitle: String) -> Self {
         var copy = self
-        copy._core.shortTitle = shortTitle
+        copy._core.shortTitle = .init(shortTitle)
         return copy
     }
 
@@ -123,7 +123,7 @@ extension QuestionnaireComponent {
     /// A cross-field validation rule with an authored message (FHIR `targetConstraint`).
     public func constraint(_ fhirPath: String, message: String) -> Self {
         var copy = self
-        copy._core.constraints.append(.init(expression: fhirPath, humanDescription: message))
+        copy._core.constraints.append(.init(expression: fhirPath, humanDescription: .init(message)))
         return copy
     }
 }

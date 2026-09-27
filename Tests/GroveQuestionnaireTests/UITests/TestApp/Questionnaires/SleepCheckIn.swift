@@ -136,6 +136,7 @@ enum SleepCheckIn {
     static let questionnaire = GroveQuestionnaire.Questionnaire(
         url: URL(string: "https://grovealliance.org/samples/SleepCheckIn")!,
         version: "1.0.0",
+        language: "en-US",
         title: "Sleep Check-In",
         explainer: "A handful of questions about the past seven nights."
     ) {
@@ -157,7 +158,9 @@ enum SleepCheckIn {
 extension GroveQuestionnaire.Questionnaire {
     /// The Swift-declared ``SleepCheckIn`` instrument, with the engine that evaluates its score.
     static let sleepCheckIn: GroveQuestionnaire.Questionnaire = {
+        // swiftlint:disable:next force_try
         try! SleepCheckIn.questionnaire.checkDeclaration(of: SleepCheckIn.self)
-        return try! SleepCheckIn.questionnaire.withExpressionEngine()
+        // swiftlint:disable:next force_try
+        return try! SleepCheckIn.questionnaire.withExpressionEngine(clock: .live(in: .current))
     }()
 }

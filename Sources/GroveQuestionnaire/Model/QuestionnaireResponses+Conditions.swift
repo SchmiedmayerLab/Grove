@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+private import Foundation
 private import GroveFoundation
 
 
@@ -29,7 +30,7 @@ extension QuestionnaireResponses {
     
     /// Determines whether the task should currently be enabled, based on its ``Questionnaire/Task/enabledCondition``
     /// and the conditions of the groups enclosing it.
-    func shouldEnable(task: Questionnaire.Task) -> Bool {
+    package func shouldEnable(task: Questionnaire.Task) -> Bool {
         shouldEnable(task: task, visited: [])
     }
 
@@ -85,7 +86,7 @@ extension QuestionnaireResponses {
     ///
     /// A condition over an unanswered question, or an expression with nothing to evaluate over, is
     /// unsettled: the task may yet be asked. Everything else is settled, one way or the other.
-    func isEnablementSettled(for task: Questionnaire.Task) -> Bool {
+    package func isEnablementSettled(for task: Questionnaire.Task) -> Bool {
         isEnablementSettled(for: task, visited: [])
     }
 
@@ -388,7 +389,7 @@ extension QuestionnaireResponses {
                     // Same-unit magnitude comparison; a condition without a unit matches any.
                     // A unit the participant chose (unitOption) takes precedence over the fixed unit.
                     let taskUnit = responses[task.id].value.quantityValue?.unitCode
-                        ?? config.unitCode ?? (config.unit.isEmpty ? nil : config.unit)
+                        ?? config.unitCode ?? (config.unit.base.isEmpty ? nil : config.unit.base)
                     guard unitCode == nil || unitCode == taskUnit,
                           let response = responses[task.id].value.numberValue else {
                         return false

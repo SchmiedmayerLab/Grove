@@ -8,6 +8,7 @@
 
 @testable import GroveQuestionnaire
 import GroveQuestionnaireFHIR
+@testable import GroveQuestionnaireUI
 import ModelsR4
 import SwiftUI
 
@@ -17,7 +18,7 @@ import SwiftUI
 /// Conforming to ``QuestionKindDefinitionWithFHIREncodingSupport`` is what lets an app-defined
 /// question end up in the `QuestionnaireResponse` as a proper coded value — here a UCUM
 /// `Quantity` in seconds rather than a bare number.
-struct StopwatchQuestionKind: QuestionKindDefinition {
+struct StopwatchQuestionKind: QuestionKindDefinitionWithViewSupport {
     typealias Config = EmptyQuestionKindConfig
 
     static func validate(

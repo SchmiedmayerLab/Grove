@@ -42,18 +42,25 @@ See Pausing and Recovery below for checkpoint failures and restoration behavior.
 
 This example implements a custom ``BatchProcessor``, which uploads the exported HealthKit samples received from the ``BulkHealthExporter`` into Firebase. 
 In this case, we implicitly define the Batch Processor's `Output` type as `Void`, since we're just interested in the uploading, and don't want to perform any additional on-device operations using the results of the individual batches. 
+The `conversionContext` closure both examples take mints one durable conversion context per sample; how to build it is documented in [GroveHealthKitFHIR](../../GroveHealthKitFHIR/GroveHealthKitFHIR.docc/ConfiguringAConversion.md).
 
 ```swift
 struct FirebaseUploader: BatchProcessor {
     let participantID: String
+    /// One durable conversion context per sample: a conversion event is never shared between samples.
+    let contextForSample: @Sendable (HKSample) throws -> HealthKitConversionContext
+    let converter = HealthKitConverter()
 
     func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) async throws {
         let db = Firestore.firestore()
         let healthData = db.collection("participants").document(participantID).collection("healthData")
         let batch = db.batch()
         for sample in samples {
-            let document = healthData.document(sample.uuid.uuidString)
-            try batch.setData(from: sample.resource(), for: document)
+            let conversions = try converter.convert(sample, context: contextForSample(sample))
+            for conversion in conversions.all {
+                let document = healthData.document(conversion.source.uuid.uuidString)
+                try batch.setData(from: conversion.bundle, for: document)
+            }
         }
         try await batch.commit()
     }
@@ -71,14 +78,14 @@ let session = try await bulkExporter.session(
     withId: .backgroundExport,
     for: [SampleType.activeEnergyBurned, SampleType.heartRate, SampleType.stepCount],
     startDate: .oldestSample,
-    using: FirebaseUploader(participantID: participantID)
+    using: FirebaseUploader(participantID: participantID, contextForSample: conversionContext)
 )
 
 // start the session
 try session.start()
 ```
 
-This Bulk Export Session will, in the background, go through all historical Health data for the Active Energy, Heart Rate, and Step Count quantity types, fetch the data from HealthKit, and pass it to the Batch Processor, which will then upload it to Firebase.
+This Bulk Export Session will, in the background, go through all historical Health data for the Active Energy, Heart Rate, and Step Count quantity types, fetch the data from HealthKit, and pass it to the Batch Processor, which will then upload it to Firebase. Firebase is only the destination chosen by this example; `GroveHealthKitFHIR` neither depends on Firebase nor reads from it.
 
 In this example, since the `FirebaseUploader`'s `Output` type is `Void`, we simply can call ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` and don't need to do anything beyond that.
 
@@ -93,9 +100,15 @@ extension BulkExportSessionIdentifier {
 }
 
 struct FHIREncodedJSONExporter: BatchProcessor {
+    let contextForSample: @Sendable (HKSample) throws -> HealthKitConversionContext
+
     func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) throws -> URL {
-        let resources = try samples.mapIntoResourceProxies() // using GroveHealthKitFHIR
-        let encoded = try JSONEncoder().encode(resources)
+        let healthKitSamples = samples.map { $0 as HKSample }
+        let result = HealthKitConverter().convert(healthKitSamples, context: contextForSample)
+        if let failure = result.failures.first {
+            throw failure
+        }
+        let encoded = try JSONEncoder().encode(result.conversions.flatMap(\.all).map(\.bundle))
         let url = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString, conformingTo: .json)
         try encoded.write(to: url)
         return url
@@ -107,7 +120,7 @@ let session = try await bulkExporter.session(
     withId: .backgroundFHIRExport,
     for: [SampleType.activeEnergyBurned, SampleType.heartRate, SampleType.stepCount],
     startDate: .oldestSample,
-    using: FHIREncodedJSONExporter()
+    using: FHIREncodedJSONExporter(contextForSample: conversionContext)
 )
 
 // start the session
@@ -135,7 +148,7 @@ When a session pauses, inspect the associated ``BulkExportPauseReason``:
 | `.notStarted` | Start the newly created or restored session. |
 | `.requested` | Resume when the caller requests it. |
 | `.failedBatches` | Inspect `failedBatches`, address the batch errors, and start with `retryFailedBatches: true`. |
-| `.failure(.checkpointWriteFailed(error))` | Retain the session and emitted files. Address `error.category` before retrying. |
+| `.failure(.checkpointWriteFailed(error))` | Retain the session and generated files. Address `error.category` before retrying. |
 
 ``CheckpointWriteFailure`` provides a recovery category and the error domain, code and message.
 For `.insufficientSpace`, free storage; for `.temporarilyUnavailable`, wait for storage to become available.
@@ -152,15 +165,24 @@ for await output in results {
 // Inspect session.state for completion or another pause reason.
 ```
 
-Saved checkpoints restore completed batches and remaining work across launches.
-If a checkpoint write fails, the live session retains its latest progress, so a retry need not repeat completed batches.
-If the app terminates before that progress is saved, restoration may repeat those batches.
-The checkpoint records processing progress; it is separate from generated files and upload receipts.
+Outputs enter the stream only after their batch completion is checkpointed, followed by ``BatchProcessor/didPersist(_:)``.
+If a checkpoint write fails, the session stops starting new batches, drains work already running, and pauses with the checkpoint error.
+Successful processing stays completed in memory; its unpublished output is retained instead of processing the batch again.
+On the next `start`, the session first persists its current progress and then publishes retained outputs before processing remaining batches.
+Retrying persistence does not require `retryFailedBatches: true`; that flag also retries batches whose processing failed.
+The first checkpoint error remains the pause reason even if a later write succeeds during draining.
+Outputs whose own checkpoint succeeded can still be delivered during that drain; failed publications wait for the next `start`.
+
+Saved checkpoints restore completed batches and remaining work across launches, but do not contain processor outputs.
+If the app terminates before progress is saved, restoration may repeat those batches.
+If progress was saved before an output was yielded or consumed, restoration skips that completed batch and cannot replay the output.
+The checkpoint records processing progress; it is separate from generated files, stream consumption, and upload receipts.
+Keep durable export or upload work in the batch processor, and use `didPersist` only for optional cleanup of retry state.
 Deduplicate HealthKit samples by participant ID and sample UUID.
 
 A checkpoint failure takes precedence over a requested pause or batch failures; inspect `failedBatches` for any batch errors.
 Retry after a user action or storage availability change, rather than in a loop.
-Delete restoration information only for an intentional restart.
+Delete restoration information only for an intentional restart: termination discards any retained unpublished outputs.
 
 ### Performance Considerations
 
@@ -169,6 +191,8 @@ With ``ExportSessionBatchSize/automatic``, high-volume types such as heart rate 
 Callers can choose a different calendar-based batch size through ``ExportSessionBatchSize``.
 
 Use `concurrencyLevel: .limit(n)` to cap concurrent batches or `.disabled` for serial processing; `.automatic` currently uses unlimited concurrency.
+After a checkpoint failure, outputs from already-running batches may remain in memory until recovery or termination.
+Choose a finite concurrency limit when outputs are large; unlimited concurrency also permits unlimited retained outputs.
 Multiple sessions can also run concurrently.
 Keep the number of simultaneous sessions low and choose batch limits based on the processor's memory and I/O needs.
 

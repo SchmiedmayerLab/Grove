@@ -7,6 +7,7 @@
 //
 
 import GroveQuestionnaire
+import GroveQuestionnaireUI
 import GroveQuestionnaireCatalog
 import SwiftUI
 

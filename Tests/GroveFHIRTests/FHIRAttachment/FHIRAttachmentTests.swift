@@ -9,6 +9,7 @@
 #if canImport(UniformTypeIdentifiers)
 
 @testable import GroveFHIR
+import GroveFoundation
 import ModelsDSTU2
 import ModelsR4
 import Testing
@@ -46,7 +47,7 @@ enum FHIRAttachmentTestHelper {
         }
     }
 
-    static func createAttachment(data: String, contentType: UTType, model: FHIRModel) -> any FHIRAttachment {
+    static func createAttachment(data: String, contentType: MIMEType, model: FHIRModel) -> any FHIRAttachment {
         var attachment: any FHIRAttachment = switch model {
         case .dstu2:
             ModelsDSTU2.Attachment()
@@ -68,7 +69,7 @@ struct FHIRAttachmentTests {
         let attachment = FHIRAttachmentTestHelper.createAttachment(contentType: "text/plain", model: model)
         let mimeType = attachment.mimeType
         #expect(mimeType != nil, "\(model.description) attachment should have non-nil MIME type")
-        #expect(mimeType?.preferredMIMEType == "text/plain", "\(model.description) attachment should have correct MIME type")
+        #expect(mimeType == "text/plain", "\(model.description) attachment should have correct MIME type")
     }
     
     
@@ -127,7 +128,7 @@ struct FHIRAttachmentTests {
     func testEncodeContent(_ model: FHIRModel) {
         var attachment = FHIRAttachmentTestHelper.createAttachment(model: model)
         let testContent = Data("This is test content".utf8)
-        attachment.setData(testContent, mimeType: .text)
+        attachment.setData(testContent, mimeType: .plainText)
         #expect(attachment.data() == testContent, "\(model.description) attachment should encode content correctly")
     }
 }

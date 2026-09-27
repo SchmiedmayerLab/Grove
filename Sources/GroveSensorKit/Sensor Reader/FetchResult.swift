@@ -33,11 +33,25 @@ extension SensorKit {
         public let samples: [Sample]
         
         init(_ fetchResult: SRFetchResult<AnyObject>, for sensor: Sensor<Sample>) throws {
-            sensorKitTimestamp = Date(fetchResult.timestamp)
             // IMPORTANT: accessing the `SRFetchResult.sample` is where SensorKit (if needed) will lazily materialize the batch;
             // for some sensors (eg PPG, or motion), this getter will perform actual O(n) decoding work, delegated to the sensor's
             // respective underlying framework.
-            let object: AnyObject = fetchResult.sample
+            try self.init(timestamp: fetchResult.timestamp, for: sensor) {
+                fetchResult.sample
+            }
+        }
+
+        init(
+            timestamp: SRAbsoluteTime,
+            for sensor: Sensor<Sample>,
+            materializingSample: () -> AnyObject
+        ) throws {
+            let object = try catchingNSException(materializingSample)
+            try self.init(sample: object, timestamp: timestamp, for: sensor)
+        }
+
+        init(sample object: AnyObject, timestamp: SRAbsoluteTime, for sensor: Sensor<Sample>) throws {
+            sensorKitTimestamp = Date(timestamp)
             switch sensor.sensorKitFetchReturnType {
             case .object:
                 guard let sample = object as? Sample else {

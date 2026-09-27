@@ -54,7 +54,7 @@ public struct BooleanQuestion: TypedQuestion {
     }
 
     public func _makeTasks() -> [Questionnaire.Task] { // swiftlint:disable:this identifier_name
-        var task = Questionnaire.Task(id: id, title: title, kind: .boolean)
+        var task = Questionnaire.Task(id: id, title: .init(title), kind: .boolean)
         _core.apply(to: &task)
         return [task]
     }
@@ -122,7 +122,7 @@ public struct TextQuestion: TypedQuestion {
     }
 
     public func _makeTasks() -> [Questionnaire.Task] { // swiftlint:disable:this identifier_name
-        var task = Questionnaire.Task(id: id, title: title, kind: .freeText(config))
+        var task = Questionnaire.Task(id: id, title: .init(title), kind: .freeText(config))
         _core.apply(to: &task)
         return [task]
     }
@@ -181,7 +181,7 @@ public struct DateQuestion: TypedQuestion {
     }
 
     public func _makeTasks() -> [Questionnaire.Task] { // swiftlint:disable:this identifier_name
-        var task = Questionnaire.Task(id: id, title: title, kind: .dateTime(.init(
+        var task = Questionnaire.Task(id: id, title: .init(title), kind: .dateTime(.init(
             style: style,
             minValue: minValue,
             maxValue: maxValue
@@ -238,7 +238,7 @@ public struct NumberQuestion: TypedQuestion {
     ) -> Self {
         var question = Self(id, title)
         question.valueKind = .quantity
-        question.unit = .init(display: display ?? unit, system: system, code: unit)
+        question.unit = .init(display: .init(display ?? unit), system: system, code: unit)
         return question
     }
 
@@ -298,7 +298,7 @@ public struct NumberQuestion: TypedQuestion {
         } else {
             .numberPad(valueKind == .integer ? .integer : .decimal)
         }
-        var task = Questionnaire.Task(id: id, title: title, kind: .numeric(.init(
+        var task = Questionnaire.Task(id: id, title: .init(title), kind: .numeric(.init(
             inputMode: inputMode,
             minimum: minimum,
             maximum: maximum,

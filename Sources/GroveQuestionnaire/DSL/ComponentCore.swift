@@ -10,10 +10,10 @@
 @_documentation(visibility: internal)
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct ComponentCore: Hashable, Sendable {
-    var subtitle = ""
-    var footer = ""
-    var prefix: String?
-    var shortTitle: String?
+    var subtitle: Questionnaire.LocalizedText = ""
+    var footer: Questionnaire.LocalizedText = ""
+    var prefix: Questionnaire.LocalizedText?
+    var shortTitle: Questionnaire.LocalizedText?
     var isOptional = false
     var isReadOnly = false
     var isHidden = false

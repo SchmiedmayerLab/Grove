@@ -2,6 +2,11 @@
 
 ResearchKitOnFHIR is a framework that allows you to use FHIR questionnaires with ResearchKit.
 
+> Important: `ResearchKitOnFHIR` is a legacy compatibility adapter and is deprecated. It does not
+> implement or claim conformance with the Grove FHIR Implementation Guides, and it will not gain
+> support for their new exchange formats. Use `GroveQuestionnaireFHIR` for conformant questionnaire
+> authoring and response exchange.
+
 <!--
                   
 This source file is part of the Grove open-source project

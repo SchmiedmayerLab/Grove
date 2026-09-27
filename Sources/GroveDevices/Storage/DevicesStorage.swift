@@ -42,7 +42,7 @@ enum DevicesStorage {
             }
             defaults.set(value, forKey: current)
             defaults.removeObject(forKey: legacy)
-            LegacyIdentifierReport.encountered(legacy, in: "GroveDevices", .duringMigration)
+            LegacyIdentifierReport.encountered(legacy, in: "GroveDevices")
         }
     }
 
@@ -78,7 +78,7 @@ enum DevicesStorage {
                 fileManager: fileManager
             )
             if outcome == .relocated {
-                LegacyIdentifierReport.encountered(legacyStoreName, in: "GroveDevices", .duringMigration)
+                LegacyIdentifierReport.encountered(legacyStoreName, in: "GroveDevices")
             }
         } catch {
             // Creating the directory now would let the next launch conclude the migration already

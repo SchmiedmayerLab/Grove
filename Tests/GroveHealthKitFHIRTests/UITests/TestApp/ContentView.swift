@@ -11,8 +11,6 @@ import SwiftUI
 
 
 struct ContentView: View {
-    @State private var healthKitManager = HealthKitManager()
-    
     var body: some View {
         NavigationStack {
             Form {
@@ -24,16 +22,15 @@ struct ContentView: View {
                     }
                 }
                 Section("Other") {
-                    NavigationLink("Read Data (appleStandTime)") {
-                        ReadDataView(.appleStandTime)
+                    NavigationLink("Read Data (heartRate)") {
+                        ReadDataView(.heartRate)
                     }
-                    NavigationLink("Read Data (appleStandHour)") {
-                        ReadDataView(.appleStandHour)
+                    NavigationLink("Read Data (basalBodyTemperature)") {
+                        ReadDataView(.basalBodyTemperature)
                     }
                 }
             }
             .navigationBarTitle("GroveHealthKitFHIR Tests")
         }
-        .environment(healthKitManager)
     }
 }

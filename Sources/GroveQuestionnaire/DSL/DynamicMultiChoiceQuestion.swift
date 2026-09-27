@@ -85,7 +85,7 @@ public struct DynamicMultiChoiceQuestion: TypedQuestion {
     }
 
     public func _makeTasks() -> [Questionnaire.Task] { // swiftlint:disable:this identifier_name
-        var task = Questionnaire.Task(id: id, title: title, kind: .choice(makeConfig()))
+        var task = Questionnaire.Task(id: id, title: .init(title), kind: .choice(makeConfig()))
         _core.apply(to: &task)
         return [task]
     }

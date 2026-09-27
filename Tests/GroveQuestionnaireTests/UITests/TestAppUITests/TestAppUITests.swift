@@ -35,11 +35,15 @@ class TestAppUITests: XCTestCase, @unchecked Sendable {
     enum LaunchCondition {
         case darkMode
         case largestAccessibilityText
+        /// Nothing animates, as on a host that has turned animations off.
+        case animationsDisabled
 
         var launchArguments: [String] {
             switch self {
             case .darkMode:
                 []
+            case .animationsDisabled:
+                ["--disableAnimations"]
             case .largestAccessibilityText:
                 ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
             }
@@ -50,7 +54,7 @@ class TestAppUITests: XCTestCase, @unchecked Sendable {
             switch self {
             case .darkMode:
                 XCUIDevice.shared.appearance = .dark
-            case .largestAccessibilityText:
+            case .largestAccessibilityText, .animationsDisabled:
                 break
             }
         }
@@ -86,6 +90,11 @@ class TestAppUITests: XCTestCase, @unchecked Sendable {
 
     @MainActor
     func launchApp(_ conditions: LaunchCondition...) {
+        launchApp(under: conditions)
+    }
+
+    @MainActor
+    private func launchApp(under conditions: [LaunchCondition]) {
         app.launchArguments += conditions.flatMap(\.launchArguments)
         conditions.forEach { $0.applyToDevice() }
         XCTAssert(app.launchAndWait(for: app.buttons["Route:\(Route.swiftDSL.rawValue)"]))
@@ -137,8 +146,8 @@ class TestAppUITests: XCTestCase, @unchecked Sendable {
     }
 
     @MainActor
-    func launchAppAndStartFHIRExample(_ title: String, titled pageTitle: String? = nil) {
-        launchApp()
+    func launchAppAndStartFHIRExample(_ title: String, titled pageTitle: String? = nil, under conditions: [LaunchCondition] = []) {
+        launchApp(under: conditions)
         open(.fhir)
         startFHIRExample(title, titled: pageTitle)
     }

@@ -52,7 +52,7 @@ extension QuestionnaireResponses {
     private func assertBelongsToQuestionnaire(_ question: some TypedQuestion) {
         assert(
             questionnaire.allLinkIDs.contains(question.id),
-            "'\(question.id)' is not part of '\(questionnaire.metadata.title)'; this access always sees no answer"
+            "'\(question.id)' is not part of '\(questionnaire.metadata.title.base)'; this access always sees no answer"
         )
     }
 

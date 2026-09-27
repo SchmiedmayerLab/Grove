@@ -3277,12 +3277,19 @@ extension HKClinicalType {
     ///
     /// Stored here rather than in `SampleType` bc that type is generic and the static property would get re-computed on each access,
     /// which is expensive.
+    #if os(watchOS)
     @available(watchOS, unavailable)
     @usableFromInline
-    nonisolated(unsafe)
+    static var _allKnownClinicalRecords: Set<SampleType<HKClinicalRecord>> {
+        preconditionFailure("Clinical records are unavailable on watchOS.")
+    }
+    #else
+    @available(watchOS, unavailable)
+    @usableFromInline
     static let _allKnownClinicalRecords: Set<SampleType<HKClinicalRecord>> = {
         HKClinicalType.allKnownClinicalRecords.compactMapIntoSet { $0.sampleType as? SampleType<HKClinicalRecord> }
     }()
+    #endif
 }
 
 @available(iOS 18, macOS 15, watchOS 11, *)

@@ -44,7 +44,6 @@ extension Questionnaire.Task {
     ///
     /// ### Image Annotation Questions
     /// - ``annotateImage(_:)``
-    /// - ``AnnotateImageConfig``
     ///
     /// ### Custom Questions
     /// - ``custom(_:config:)``
@@ -55,7 +54,7 @@ extension Questionnaire.Task {
         /// Enum cases might be added or removed in any new release of the package.
         public enum Variant: Sendable {
             /// A task that displays instructional text to the user.
-            case instructional(String)
+            case instructional(Questionnaire.LocalizedText)
             
             /// A task that collects a boolean Yes/No response from the user.
             case boolean
@@ -109,7 +108,7 @@ extension Questionnaire.Task.Kind {
     }
     
     /// A task that displays instructional text to the user.
-    public static func instructional(_ text: String) -> Self {
+    public static func instructional(_ text: Questionnaire.LocalizedText) -> Self {
         .init(variant: .instructional(text))
     }
     

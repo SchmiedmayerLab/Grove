@@ -25,6 +25,8 @@ public struct FHIRBundleSelector: View {
 
     @Environment(FHIRStore.self) private var store
     @State private var selectedBundleId: PatientIdentifiedBundle.ID?
+    @State private var loadErrorMessage = ""
+    @State private var isShowingLoadError = false
     private let bundles: [PatientIdentifiedBundle]
 
     public var body: some View {
@@ -65,8 +67,15 @@ public struct FHIRBundleSelector: View {
                       let selected = bundles.first(where: { $0.id == newValue }) else {
                     return
                 }
-                store.removeAllResources()
-                store.load(bundle: selected.bundle)
+                do {
+                    try store.replaceContents(with: selected.bundle)
+                } catch {
+                    loadErrorMessage = String(describing: error)
+                    isShowingLoadError = true
+                }
+            }
+            .alert("Unable to load FHIR bundle", isPresented: $isShowingLoadError) { } message: {
+                Text(loadErrorMessage)
             }
     }
     

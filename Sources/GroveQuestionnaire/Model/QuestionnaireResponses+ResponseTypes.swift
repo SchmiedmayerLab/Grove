@@ -8,10 +8,8 @@
 
 // swiftlint:disable missing_docs file_length
 
-private import CoreGraphics
-public import CoreTransferable
 public import Foundation
-public import UniformTypeIdentifiers
+public import GroveFoundation
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -248,7 +246,7 @@ extension QuestionnaireResponses {
         /// - Important: This property may only be used if ``value`` is not ``Value/none``
         public var nestedResponses: [NestedResponseIdentifier: Responses]
         
-        init(value: Value, nestedResponses: [NestedResponseIdentifier: Responses] = [:]) {
+        package init(value: Value, nestedResponses: [NestedResponseIdentifier: Responses] = [:]) {
             self.value = value
             self.nestedResponses = nestedResponses
         }
@@ -275,13 +273,13 @@ extension QuestionnaireResponses {
         
         /// The currently selected options.
         public private(set) var selectedOptions: Set<Option.ID>
-        public internal(set) var freeTextOtherResponse: String?
+        public package(set) var freeTextOtherResponse: String?
         
         var isEmpty: Bool {
             selectedOptions.isEmpty && freeTextOtherResponse == nil
         }
         
-        var didSelectFreeTextOtherOption: Bool {
+        package var didSelectFreeTextOtherOption: Bool {
             get {
                 freeTextOtherResponse != nil
             }
@@ -302,11 +300,11 @@ extension QuestionnaireResponses {
             self.freeTextOtherResponse = freeTextOtherResponse
         }
         
-        func didSelect(_ optionId: Option.ID) -> Bool {
+        package func didSelect(_ optionId: Option.ID) -> Bool {
             selectedOptions.contains(optionId)
         }
         
-        mutating func select(_ optionId: Option.ID) {
+        package mutating func select(_ optionId: Option.ID) {
             if !selectedOptions.contains(optionId) {
                 selectedOptions.insert(optionId)
             }
@@ -315,7 +313,7 @@ extension QuestionnaireResponses {
         /// Selects an option, applying `questionnaire-optionExclusive` semantics:
         /// selecting an exclusive option clears all other selections (and the free-text
         /// "other" response); selecting any option clears exclusive selections.
-        mutating func select(_ optionId: Option.ID, in config: Questionnaire.Task.Kind.ChoiceConfig) {
+        package mutating func select(_ optionId: Option.ID, in config: Questionnaire.Task.Kind.ChoiceConfig) {
             if config.options.first(where: { $0.id == optionId })?.isExclusive == true {
                 selectedOptions = [optionId]
                 freeTextOtherResponse = nil
@@ -325,7 +323,7 @@ extension QuestionnaireResponses {
             }
         }
 
-        mutating func deselect(_ optionId: Option.ID) {
+        package mutating func deselect(_ optionId: Option.ID) {
             selectedOptions.remove(optionId)
         }
     }
@@ -502,11 +500,6 @@ extension QuestionnaireResponses.Response.Value {
         set { self = newValue.map { Self.attachments($0) } ?? .none }
     }
     
-    public var annotatedImageValue: QuestionnaireResponses.ImageAnnotation? {
-        get { self[asCustomTypeA: QuestionnaireResponses.ImageAnnotation.self] }
-        set { self[asCustomTypeA: QuestionnaireResponses.ImageAnnotation.self] = newValue }
-    }
-    
     public subscript<T: QuestionnaireResponses.CustomResponseValueProtocol>(
         asCustomTypeA type: T.Type
     ) -> T? {
@@ -559,19 +552,23 @@ extension QuestionnaireResponses {
         /// The attachment's file size, in bytes
         public let size: UInt64?
         
-        /// The attachment's content type, determined based on the fle at `url`.
-        public var contentType: UTType? {
-            (try? url.resourceValues(forKeys: [.contentTypeKey]))?.contentType
-        }
-        
+        /// The attachment's MIME type, as carried by a FHIR `Attachment.contentType`.
+        public let contentType: MIMEType?
+
         /// Creates a new attachment by copying the file at a URL.
-        package init(url inputUrl: URL) throws {
+        ///
+        /// - Parameter contentType: The attachment's MIME type. Defaults to the type recorded for the file
+        ///   by the platform, which only Apple platforms can supply — pass it explicitly off-platform.
+        package init(url inputUrl: URL, contentType: MIMEType? = nil) throws {
+            #if canImport(Darwin)
+            // A picked file arrives security-scoped; only Apple platforms have the scope to claim.
             let needsToReleaseScopedResourceThing = inputUrl.startAccessingSecurityScopedResource()
             defer {
                 if needsToReleaseScopedResourceThing {
                     inputUrl.stopAccessingSecurityScopedResource()
                 }
             }
+            #endif
             self.filename = inputUrl.lastPathComponent
             self.url = Self.tmpDir
                 .appending(component: id.uuidString)
@@ -579,8 +576,17 @@ extension QuestionnaireResponses {
             try FileManager.default.createDirectory(at: Self.tmpDir, withIntermediateDirectories: true)
             try FileManager.default.copyItem(at: inputUrl, to: self.url)
             self.size = try FileManager.default.attributesOfItem(atPath: self.url.path)[FileAttributeKey.size] as? UInt64
+            self.contentType = contentType ?? Self.recordedContentType(of: inputUrl)
         }
-        
+
+        private static func recordedContentType(of url: URL) -> MIMEType? {
+            #if canImport(UniformTypeIdentifiers)
+            (try? url.resourceValues(forKeys: [.contentTypeKey]))?.contentType.flatMap(MIMEType.init)
+            #else
+            nil
+            #endif
+        }
+
         public static func == (lhs: CollectedAttachment, rhs: CollectedAttachment) -> Bool {
             lhs.id == rhs.id
         }
@@ -591,16 +597,6 @@ extension QuestionnaireResponses {
         
         deinit {
             try? FileManager.default.removeItem(at: url)
-        }
-    }
-}
-
-
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension QuestionnaireResponses.CollectedAttachment: Transferable {
-    public static var transferRepresentation: some TransferRepresentation {
-        FileRepresentation(importedContentType: .item) { input in
-            try Self(url: input.file)
         }
     }
 }

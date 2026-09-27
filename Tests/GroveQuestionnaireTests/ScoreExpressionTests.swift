@@ -58,6 +58,8 @@ private enum Burdens {
 
     static let questionnaire = GroveQuestionnaire.Questionnaire(
         url: URL(string: "https://example.org/fhir/Questionnaire/burdens")!,
+        version: "1.0.0",
+        language: "en-US",
         title: "Burdens"
     ) {
         Section("burden", title: "Burden") {
@@ -108,7 +110,7 @@ struct ScoreExpressionTests {
     @Test
     func scoresEvaluateAgainstRealResponses() throws {
         let fhir = try ModelsR4.Questionnaire(Burdens.questionnaire)
-        let reimported = try GroveQuestionnaire.Questionnaire(fhir)
+        let reimported = try GroveQuestionnaire.Questionnaire(fhir, clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: reimported)
         let system = try #require(Burden.system?.absoluteString)
 

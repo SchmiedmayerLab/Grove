@@ -54,6 +54,23 @@ public struct SensorKitOnWristEventSample: SensorKitSampleSafeRepresentation {
     /// When the state changes from on-wrist to off-wrist, ``offWristDate`` would be updated to the current date, and ``onWristDate`` would remain the same.
     public let offWristDate: Date?
     
+    /// Creates an on-wrist sample.
+    public init(
+        timestamp: Date,
+        onWrist: Bool,
+        wristLocation: SRWristDetection.WristLocation,
+        crownOrientation: SRWristDetection.CrownOrientation,
+        onWristDate: Date?,
+        offWristDate: Date?
+    ) {
+        self.timestamp = timestamp
+        self.onWrist = onWrist
+        self.wristLocation = wristLocation
+        self.crownOrientation = crownOrientation
+        self.onWristDate = onWristDate
+        self.offWristDate = offWristDate
+    }
+
     @inlinable
     init(timestamp: Date, sample: SRWristDetection) {
         self.timestamp = timestamp

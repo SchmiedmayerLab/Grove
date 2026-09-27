@@ -22,6 +22,7 @@ builder:
         - GroveDevicesUI
         - GroveOmron
         - GroveFHIR
+        - GroveFHIRContract
         - GroveFHIRMockPatients
         - EDFFormat
         - GroveFirebaseAccount
@@ -55,12 +56,15 @@ builder:
         - XCTGroveNotificationsUI
         - GroveOnboarding
         - GroveQuestionnaire
+        - GroveQuestionnaireUI
+        - GroveQuestionnaireExtraction
         - GroveQuestionnaireCatalog
         - GroveQuestionnaireFHIR
         - GroveQuestionnaireLegacy
         - XCTGroveQuestionnaire
         - GroveScheduler
         - GroveSensorKit
+        - GroveSensorKitFHIR
         - GroveSpeechRecognizer
         - GroveSpeechSynthesizer
         - GroveLocalStorage

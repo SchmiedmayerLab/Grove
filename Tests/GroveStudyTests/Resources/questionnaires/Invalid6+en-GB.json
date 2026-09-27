@@ -5,9 +5,6 @@
   "status": "draft",
   "id": "423EFEF6-7FC4-41B2-8211-668E90150E13",
   "meta": {
-    "profile": [
-      "http://spezi.health/fhir/StructureDefinition/sdf-Questionnaire"
-    ],
     "tag": [
       {
         "system": "urn:ietf:bcp:47",
@@ -46,10 +43,10 @@
       "text": "Enter a number of kilograms between 1 and 100",
       "extension": [
         {
-          "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-unit",
+          "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption",
           "valueCoding": {
-            "system": "http://unitsofmeasure.org",
-            "code": "kg",
+            "system": "https://example.org/units",
+            "code": "g",
             "display": "kilogram"
           }
         },
@@ -58,21 +55,21 @@
           "valueInteger": 3
         },
         {
-          "url": "http://hl7.org/fhir/StructureDefinition/minValue",
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-minQuantity",
           "valueQuantity": {
-            "value": 1,
+            "value": 2,
             "unit": "kg",
             "system": "http://unitsofmeasure.org",
             "code": "kg"
           }
         },
         {
-          "url": "http://hl7.org/fhir/StructureDefinition/maxValue",
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-maxQuantity",
           "valueQuantity": {
             "value": 100,
-            "unit": "kg",
-            "system": "http://unitsofmeasure.org",
-            "code": "kg"
+            "unit": "g",
+            "system": "https://example.org/units",
+            "code": "g"
           }
         }
       ],
@@ -91,11 +88,19 @@
       "required": false,
       "extension": [
         {
-          "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-unit",
+          "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption",
           "valueCoding": {
-            "system": "http://unitsofmeasure.org",
+            "system": "https://example.org/units",
             "code": "kg",
             "display": "Kilogram"
+          }
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption",
+          "valueCoding": {
+            "system": "http://unitsofmeasure.org",
+            "code": "[lb_av]",
+            "display": "Pound"
           }
         }
       ]

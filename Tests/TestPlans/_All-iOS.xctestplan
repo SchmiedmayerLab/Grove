@@ -1,50 +1,41 @@
 {
-  "configurations" : [
+  "configurations": [
     {
-      "id" : "A0A09AE7-6C26-4869-A626-173CD10D8313",
-      "name" : "Configuration 1",
-      "options" : {
-
-      }
+      "id": "A0A09AE7-6C26-4869-A626-173CD10D8313",
+      "name": "Configuration 1",
+      "options": {}
     }
   ],
-  "defaultOptions" : {
-    "codeCoverage" : false
+  "defaultOptions": {
+    "codeCoverage": false
   },
-  "testTargets" : [
+  "testTargets": [
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "ByteCodingTests",
-        "name" : "ByteCodingTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "ByteCodingTests",
+        "name": "ByteCodingTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "EDFFormatTests",
-        "name" : "EDFFormatTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "EDFFormatTests",
+        "name": "EDFFormatTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "FHIRModelsExtensionsTests",
-        "name" : "FHIRModelsExtensionsTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "FHIRModelsExtensionsTests",
+        "name": "FHIRModelsExtensionsTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "FHIRPathParserTests",
-        "name" : "FHIRPathParserTests"
-      }
-    },
-    {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveHealthKitFHIRMacrosTests",
-        "name" : "GroveHealthKitFHIRMacrosTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "FHIRPathParserTests",
+        "name": "FHIRPathParserTests"
       }
     },
     {
@@ -55,236 +46,243 @@
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "ResearchKitOnFHIRTests",
-        "name" : "ResearchKitOnFHIRTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "ResearchKitOnFHIRTests",
+        "name": "ResearchKitOnFHIRTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "RuntimeAssertionsTests",
-        "name" : "RuntimeAssertionsTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "RuntimeAssertionsTests",
+        "name": "RuntimeAssertionsTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveAccessGuardTests",
-        "name" : "GroveAccessGuardTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveAccessGuardTests",
+        "name": "GroveAccessGuardTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveBluetoothServicesTests",
-        "name" : "GroveBluetoothServicesTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveBluetoothServicesTests",
+        "name": "GroveBluetoothServicesTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveBluetoothTests",
-        "name" : "GroveBluetoothTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveBluetoothTests",
+        "name": "GroveBluetoothTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveChatTests",
-        "name" : "GroveChatTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveChatTests",
+        "name": "GroveChatTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveConsentTests",
-        "name" : "GroveConsentTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveConsentTests",
+        "name": "GroveConsentTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveContactTests",
-        "name" : "GroveContactTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveContactTests",
+        "name": "GroveContactTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveDevicesTests",
-        "name" : "GroveDevicesTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveDevicesTests",
+        "name": "GroveDevicesTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveFHIRTests",
-        "name" : "GroveFHIRTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveFHIRTests",
+        "name": "GroveFHIRTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveFirebaseTests",
-        "name" : "GroveFirebaseTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveFirebaseTests",
+        "name": "GroveFirebaseTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveFoundationTests",
-        "name" : "GroveFoundationTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveFoundationTests",
+        "name": "GroveFoundationTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveHealthKitTests",
-        "name" : "GroveHealthKitTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveHealthKitTests",
+        "name": "GroveHealthKitTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveLLMTests",
-        "name" : "GroveLLMTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveLLMTests",
+        "name": "GroveLLMTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveLicenseTests",
-        "name" : "GroveLicenseTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveLicenseTests",
+        "name": "GroveLicenseTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveLocalizationTests",
-        "name" : "GroveLocalizationTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveLocalizationTests",
+        "name": "GroveLocalizationTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveLocationTests",
-        "name" : "GroveLocationTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveLocationTests",
+        "name": "GroveLocationTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveNotificationsTests",
-        "name" : "GroveNotificationsTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveNotificationsTests",
+        "name": "GroveNotificationsTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveNumericsTests",
-        "name" : "GroveNumericsTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveNumericsTests",
+        "name": "GroveNumericsTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveOmronTests",
-        "name" : "GroveOmronTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveOmronTests",
+        "name": "GroveOmronTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveOnboardingTests",
-        "name" : "GroveOnboardingTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveOnboardingTests",
+        "name": "GroveOnboardingTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveQuestionnaireTests",
-        "name" : "GroveQuestionnaireTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveQuestionnaireTests",
+        "name": "GroveQuestionnaireTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveSchedulerTests",
-        "name" : "GroveSchedulerTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveSchedulerTests",
+        "name": "GroveSchedulerTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveSchedulerUITests",
-        "name" : "GroveSchedulerUITests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveSchedulerUITests",
+        "name": "GroveSchedulerUITests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveSensorKitTests",
-        "name" : "GroveSensorKitTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveSensorKitTests",
+        "name": "GroveSensorKitTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveSpeechTests",
-        "name" : "GroveSpeechTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveSpeechTests",
+        "name": "GroveSpeechTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveStorageTests",
-        "name" : "GroveStorageTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveStorageTests",
+        "name": "GroveStorageTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveStudyTests",
-        "name" : "GroveStudyTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveStudyTests",
+        "name": "GroveStudyTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveTests",
-        "name" : "GroveTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveTests",
+        "name": "GroveTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "GroveViewsTests",
-        "name" : "GroveViewsTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveViewsTests",
+        "name": "GroveViewsTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "XCTHealthKitTests",
-        "name" : "XCTHealthKitTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "XCTHealthKitTests",
+        "name": "XCTHealthKitTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "XCTestExtensionsTests",
-        "name" : "XCTestExtensionsTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "XCTestExtensionsTests",
+        "name": "XCTestExtensionsTests"
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "ThreadLocalTests",
-        "name" : "ThreadLocalTests"
+      "target": {
+        "containerPath": "container:",
+        "identifier": "ThreadLocalTests",
+        "name": "ThreadLocalTests"
+      }
+    },
+    {
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveSensorKitFHIRTests",
+        "name": "GroveSensorKitFHIRTests"
       }
     }
   ],
-  "version" : 1
+  "version": 1
 }

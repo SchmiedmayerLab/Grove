@@ -22,18 +22,31 @@ extension Questionnaire {
             /// The group's identifier (FHIR `linkId`).
             public var id: String
             /// The group's user-displayed title (FHIR `item.text`).
-            public var title: String
+            public var title: Questionnaire.LocalizedText
             /// An abbreviated title for constrained displays (SDC `shortText`).
-            public var shortTitle: String?
+            public var shortTitle: Questionnaire.LocalizedText?
             /// Controls when the group, and with it every task inside it, is enabled.
             public var condition: Condition
+            /// The codes identifying the group (FHIR `item.code`), such as a panel's LOINC code.
+            public var codes: [Code]
+            /// How the group takes part in SDC observation extraction.
+            public var observationExtraction: Questionnaire.ObservationExtraction?
 
             /// Creates a group.
-            public init(id: String, title: String = "", shortTitle: String? = nil, condition: Condition = .none) {
+            public init(
+                id: String,
+                title: Questionnaire.LocalizedText = "",
+                shortTitle: Questionnaire.LocalizedText? = nil,
+                condition: Condition = .none,
+                codes: [Code] = [],
+                observationExtraction: Questionnaire.ObservationExtraction? = nil
+            ) {
                 self.id = id
                 self.title = title
                 self.shortTitle = shortTitle
                 self.condition = condition
+                self.codes = codes
+                self.observationExtraction = observationExtraction
             }
         }
 
@@ -41,9 +54,9 @@ extension Questionnaire {
         public struct Code: Hashable, Sendable {
             public let system: URL?
             public let code: String
-            public let display: String?
+            public let display: Questionnaire.LocalizedText?
 
-            public init(system: URL? = nil, code: String, display: String? = nil) {
+            public init(system: URL? = nil, code: String, display: Questionnaire.LocalizedText? = nil) {
                 self.system = system
                 self.code = code
                 self.display = display
@@ -57,9 +70,9 @@ extension Questionnaire {
             /// The media's MIME content type.
             public let contentType: String
             /// The accessibility description (from the attachment's `title`).
-            public let altText: String?
+            public let altText: Questionnaire.LocalizedText?
 
-            public init(data: Data, contentType: String, altText: String? = nil) {
+            public init(data: Data, contentType: String, altText: Questionnaire.LocalizedText? = nil) {
                 self.data = data
                 self.contentType = contentType
                 self.altText = altText
@@ -71,17 +84,20 @@ extension Questionnaire {
         /// - Important: Task identifiers must be unique across all tasks in all sections of the questionnaire.
         public var id: String
         /// The task's user-displayed title.
-        public var title: String
+        public var title: Questionnaire.LocalizedText
+        /// The item's text formatted as Markdown (FHIR `rendering-markdown`), which renderers show in place of the plain
+        /// ``title``, or of an instructional task's text.
+        public var markdownText: Questionnaire.LocalizedText?
         /// A short display prefix such as question numbering (FHIR `item.prefix`, e.g. "1a.").
-        public var prefix: String?
+        public var prefix: Questionnaire.LocalizedText?
         /// An abbreviated title for constrained displays (SDC `shortText`).
-        public var shortTitle: String?
+        public var shortTitle: Questionnaire.LocalizedText?
         /// The task's user-displayed subtitle.
         ///
         /// Set this property to an empty string in order to omit the subtitle.
-        public var subtitle: String
+        public var subtitle: Questionnaire.LocalizedText
         /// A footer text displayed below the task.
-        public var footer: String
+        public var footer: Questionnaire.LocalizedText
         /// An image rendered alongside the task (SDC `itemMedia`).
         public var media: Media?
         /// The task's kind
@@ -126,6 +142,8 @@ extension Questionnaire {
         public var codes: [Code]
         /// The element definition this item is derived from (FHIR `item.definition`).
         public var definition: URL?
+        /// How the task takes part in SDC observation extraction.
+        public var observationExtraction: Questionnaire.ObservationExtraction?
         /// The (non-page-level) groups enclosing this task, outermost first.
         ///
         /// Empty for ungrouped tasks. The task is only enabled while every enclosing group's
@@ -141,11 +159,12 @@ extension Questionnaire {
         /// Creates a new task.
         public init(
             id: String,
-            title: String,
-            prefix: String? = nil,
-            shortTitle: String? = nil,
-            subtitle: String = "",
-            footer: String = "",
+            title: Questionnaire.LocalizedText,
+            markdownText: Questionnaire.LocalizedText? = nil,
+            prefix: Questionnaire.LocalizedText? = nil,
+            shortTitle: Questionnaire.LocalizedText? = nil,
+            subtitle: Questionnaire.LocalizedText = "",
+            footer: Questionnaire.LocalizedText = "",
             media: Media? = nil,
             kind: Kind,
             isOptional: Bool = false,
@@ -159,11 +178,13 @@ extension Questionnaire {
             constraints: [Constraint] = [],
             codes: [Code] = [],
             definition: URL? = nil,
+            observationExtraction: Questionnaire.ObservationExtraction? = nil,
             groupPath: [Group] = [],
             parentTaskId: Task.ID? = nil
         ) {
             self.id = id
             self.title = title
+            self.markdownText = markdownText
             self.prefix = prefix
             self.shortTitle = shortTitle
             self.subtitle = subtitle
@@ -181,6 +202,7 @@ extension Questionnaire {
             self.constraints = constraints
             self.codes = codes
             self.definition = definition
+            self.observationExtraction = observationExtraction
             self.groupPath = groupPath
             self.parentTaskId = parentTaskId
         }

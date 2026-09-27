@@ -8,6 +8,7 @@
 
 import Grove
 import GroveKeychainStorage
+import GroveLegacyIdentifiers
 public import Security
 
 
@@ -54,7 +55,7 @@ public enum LocalStorageSetting: Hashable, @unchecked Sendable {
         }
         
         let keyTag = CryptographicKeyTag(
-            "LocalStorage.\(storageOption.id)",
+            "\(FrozenKeyTags.localStorageKeyPrefix)\(storageOption.id)",
             storage: .secureEnclave(requireUserPresence: false)
         )
         

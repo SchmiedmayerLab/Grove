@@ -19,6 +19,8 @@ extension Questionnaire {
         metadata: .init(
             id: "gad7",
             url: URL(string: "https://grovealliance.org/fhir/Questionnaire/gad7"),
+            version: "1.0.0",
+            language: "en",
             title: "GAD-7 Anxiety",
             explainer: ""
         ),

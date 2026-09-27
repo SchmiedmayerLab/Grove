@@ -118,7 +118,7 @@ struct ExpressionPerformanceTests {
 
     private static func responses(pages: Int = 12) throws -> QuestionnaireResponses {
         let resource = try JSONDecoder().decode(ModelsR4.Questionnaire.self, from: Data(fixture(pages: pages).utf8))
-        return QuestionnaireResponses(questionnaire: try GroveQuestionnaire.Questionnaire(resource))
+        return QuestionnaireResponses(questionnaire: try GroveQuestionnaire.Questionnaire(resource, clock: questionnaireResponseTestClock))
     }
 
     /// A budget that grows with the questionnaire: `base` for twelve pages.

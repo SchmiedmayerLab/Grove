@@ -63,8 +63,8 @@ Grove introduces a module-based approach to building digital health applications
       <img src="Sources/GroveDevicesUI/GroveDevicesUI.docc/Resources/PairedDevices~dark.png#gh-dark-mode-only" alt="The paired devices list of the Bluetooth device modules" width="90%"/>
     </td>
     <td align="center" width="25%">
-      <img src="Sources/GroveQuestionnaire/GroveQuestionnaire.docc/Resources/Overview.png#gh-light-mode-only" alt="A questionnaire page with a choice, a multiple choice, a slider and a time question on cards" width="90%"/>
-      <img src="Sources/GroveQuestionnaire/GroveQuestionnaire.docc/Resources/Overview~dark.png#gh-dark-mode-only" alt="A questionnaire page with a choice, a multiple choice, a slider and a time question on cards" width="90%"/>
+      <img src="Sources/GroveQuestionnaireUI/GroveQuestionnaireUI.docc/Resources/Overview.png#gh-light-mode-only" alt="A questionnaire page with a choice, a multiple choice, a slider and a time question on cards" width="90%"/>
+      <img src="Sources/GroveQuestionnaireUI/GroveQuestionnaireUI.docc/Resources/Overview~dark.png#gh-dark-mode-only" alt="A questionnaire page with a choice, a multiple choice, a slider and a time question on cards" width="90%"/>
     </td>
     <td align="center" width="25%">
       <img src="Sources/GroveChat/GroveChat.docc/Resources/Conversation.png#gh-light-mode-only" alt="A conversation with an attached chart and a picture the assistant generated" width="90%"/>

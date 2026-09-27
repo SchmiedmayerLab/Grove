@@ -35,7 +35,7 @@ struct ScopedExpressionCacheTests {
             let questionnaire = try Questionnaire(
                 metadata: .init(id: "scoped-cache", url: URL(string: "https://example.org/scoped-cache"), title: "Scoped cache", explainer: ""),
                 sections: [.init(id: "section", tasks: [flag, parent, later])]
-            ).withExpressionEngine()
+            ).withExpressionEngine(clock: questionnaireResponseTestClock)
             root = QuestionnaireResponses(questionnaire: questionnaire)
             root.responses["flag"] = .init(value: .bool(true))
             root.responses["parent"] = .init(value: .choice(.init(selectedOptions: ["yes"])))
@@ -49,7 +49,7 @@ struct ScopedExpressionCacheTests {
         try Questionnaire(
             metadata: .init(id: "cache-identity", url: nil, title: "Cache identity", explainer: ""),
             sections: [.init(id: "section", tasks: [.init(id: "flag", title: "Flag", kind: .boolean)])]
-        ).withExpressionEngine()
+        ).withExpressionEngine(clock: questionnaireResponseTestClock)
     }
 
     private static func expectIndependentResults(first: QuestionnaireResponses, second: QuestionnaireResponses) throws {
