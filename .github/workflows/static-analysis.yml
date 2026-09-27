@@ -95,7 +95,7 @@ jobs:
           GIT_CONFIG_COUNT: 1
           GIT_CONFIG_KEY_0: url.https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/.insteadOf
           GIT_CONFIG_VALUE_0: https://github.com/
-        run: Scripts/build-documentation.sh
+        run: python3 Scripts/build-documentation.py
       - name: Clean generated artifacts
         if: always()
         run: bash Scripts/cleanup-generated-artifacts.sh
