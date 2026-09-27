@@ -208,20 +208,20 @@ struct BackgroundObservationScopeTests {
         )
         // Choose existing owners from the actual immutable set's registration order. The middle
         // type fails, so the first owner is acquired by this scope and the last never is.
-        let registrationOrder = Array(observation.objectTypes)
+        let registrationOrder = observation.objectTypes.compactMap { $0 as? HKSampleType }
         try #require(registrationOrder.count == 3)
-        try await store.enableBackgroundDelivery(for: registrationOrder[0])
-        try await store.enableBackgroundDelivery(for: registrationOrder[2])
+        let firstOwner = try await store.startBackgroundDelivery(for: registrationOrder[0], updateHandler: { _ in })
+        let lastOwner = try await store.startBackgroundDelivery(for: registrationOrder[2], updateHandler: { _ in })
 
         await #expect(throws: Failure.self) {
             try await store.registerBackgroundDelivery(for: observation)
         }
-        #expect(store.events == [.execute, .enable, .enable, .enable, .stop])
+        #expect(store.events == [.execute, .execute, .enable, .execute, .enable, .enable, .stop])
         #expect(store.enabledTypes.last == registrationOrder[1])
         #expect(store.disabledTypes.isEmpty, "Rollback must release only this scope's acquired ownership.")
 
-        try await store.GroveHealthKit::disableBackgroundDelivery(for: registrationOrder[0])
-        try await store.GroveHealthKit::disableBackgroundDelivery(for: registrationOrder[2])
+        await store.stopBackgroundDelivery(for: firstOwner)
+        await store.stopBackgroundDelivery(for: lastOwner)
         #expect(store.disabledTypes == [registrationOrder[0], registrationOrder[2]])
     }
 
@@ -265,7 +265,7 @@ struct BackgroundObservationScopeTests {
             healthStore: store, query: query, objectTypes: [sampleType], taskTracker: tracker
         )
         store.execute(query)
-        try await store.enableBackgroundDelivery(for: sampleType)
+        try await store.registerBackgroundDelivery(for: observation)
         let handler = HandlerGate()
         let acknowledgements = Mutex(0)
         let completion = HKHealthStore.ObserverQueryCompletion {
