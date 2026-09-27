@@ -20,9 +20,8 @@
 #                    ["unit", "ui"]. Optional; default ["ui"] (= today's behavior). Linux unit jobs
 #                    always run on GitHub-hosted ubuntu regardless (the self-hosted runner is macOS).
 #   extra_runner_labels = additional runner labels to require for this package's self-hosted jobs, on
-#                    top of the temporary base ["self-hosted", "macOS", "stanford"]. Optional; default []. Emitted per job as
-#                    `selfHostedLabels` for the workflow's `runs-on` (e.g. ["python3.11+"] pins the
-#                    jobs to a self-hosted runner with a new-enough Python).
+#                    top of the base ["self-hosted", "macOS"]. Optional; default []. Emitted per job as
+#                    `selfHostedLabels` for the workflow's `runs-on`.
 # The dir -> package map used for change detection is derived from each package's targets+tests.
 #
 # Usage:
@@ -523,11 +522,7 @@ def main():
         self_hosted = info.get("self-hosted-ci", ["ui"])
         # Self-hosted runner label set for this package: base labels + any package-specific extras,
         # emitted as a JSON string the workflow's `runs-on` reads via fromJson(matrix.selfHostedLabels).
-        # TEMPORARY: every Xcode test job resolves the shared package graph, including Google's Firebase
-        # binaries, even when its tested product does not use Firebase. Keep those downloads on Stanford
-        # runners until they work reliably on the other self-hosted machines. Manifest-only detection
-        # does not resolve dependencies and keeps its existing runner requirements.
-        self_hosted_labels = json.dumps(["self-hosted", "macOS", "stanford"] + list(info.get("extra_runner_labels", [])))
+        self_hosted_labels = json.dumps(["self-hosted", "macOS"] + list(info.get("extra_runner_labels", [])))
         for platform in info["platforms"]:
             if platform in CI_PLATFORMS:  # TEMPORARY unit-test platform limit (see CI_PLATFORMS above)
                 # Linux unit jobs always use GitHub-hosted ubuntu (the self-hosted runner is macOS).
