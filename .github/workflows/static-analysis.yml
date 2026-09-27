@@ -23,6 +23,10 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  # Match the toolchain used by the Apple test jobs.
+  ANALYSIS_XCODE_VERSION: '26.6'
+
 jobs:
   ui-test-projects:
     name: UI Test Project Consistency
@@ -55,21 +59,43 @@ jobs:
 
   periphery:
     name: Dead Code Analysis
-    runs-on: macos-latest
+    runs-on: [self-hosted, macOS, ARM64]
     steps:
       - uses: actions/checkout@v7
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.ANALYSIS_XCODE_VERSION }}
+      - name: Use selected Xcode for this job
+        # The runner's inherited DEVELOPER_DIR takes precedence over xcode-select.
+        run: echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
       - name: Install Periphery
         run: brew install periphery
       - name: Periphery
+        env:
+          # Authenticate package fetches across the shared runner fleet.
+          GIT_CONFIG_COUNT: 1
+          GIT_CONFIG_KEY_0: url.https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/.insteadOf
+          GIT_CONFIG_VALUE_0: https://github.com/
         run: Scripts/run-periphery.sh --strict
 
   documentation:
     name: Documentation
-    runs-on: macos-latest
+    runs-on: [self-hosted, macOS, ARM64]
     steps:
       - uses: actions/checkout@v7
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.ANALYSIS_XCODE_VERSION }}
+      - name: Use selected Xcode for this job
+        # The runner's inherited DEVELOPER_DIR takes precedence over xcode-select.
+        run: echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
       - name: Build DocC Documentation
-        run: Scripts/build-documentation.sh
+        env:
+          # Authenticate package fetches across the shared runner fleet.
+          GIT_CONFIG_COUNT: 1
+          GIT_CONFIG_KEY_0: url.https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/.insteadOf
+          GIT_CONFIG_VALUE_0: https://github.com/
+        run: python3 Scripts/build-documentation.py
       - name: Clean generated artifacts
         if: always()
         run: bash Scripts/cleanup-generated-artifacts.sh

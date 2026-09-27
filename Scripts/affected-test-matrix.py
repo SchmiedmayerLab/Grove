@@ -101,8 +101,12 @@ NON_TEST_SCRIPT_PATHS = {
     "Scripts/APPLE15_RELEASES.md",
     "Scripts/affected-test-matrix.py",
     "Scripts/apple15-release.py",
+    "Scripts/build-documentation.py",
+    # The deleted shell entry points still appear in diffs against pre-migration branches.
     "Scripts/build-documentation.sh",
+    "Scripts/build-floor.py",
     "Scripts/build-floor.sh",
+    "Scripts/build_support.py",
     "Scripts/check-documentation-targets.py",
     "Scripts/ci-dryrun.sh",
     "Scripts/cleanup-generated-artifacts.sh",
