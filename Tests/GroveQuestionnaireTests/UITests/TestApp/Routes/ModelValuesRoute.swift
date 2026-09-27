@@ -18,7 +18,7 @@ struct ModelValuesRoute: View {
         ExampleCatalog(route: .modelValues, groups: [
             ExampleGroup("Instruments", [
                 // The nine-item depression screener, and the one example that shows question progress.
-                Example(.phq9, questionProgressConfig: .enable),
+                Example(.phq9, progress: [.bar, .questionNumbers]),
                 // The seven-item anxiety screener, built the same way.
                 Example(.gad7)
             ]),

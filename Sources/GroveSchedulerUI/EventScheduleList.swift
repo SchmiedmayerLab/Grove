@@ -14,6 +14,8 @@ public import SwiftUI
 
 /// An overview of all task for a specific day.
 ///
+/// ![A day's events as tiles with their category, time, instructions and action.](Schedule)
+///
 /// The view renders all task occurring on a specified date in a list view.
 ///
 /// Example: display all tasks scheduled for today:
@@ -107,6 +109,7 @@ public struct EventScheduleList<Tile: View>: View {
 #if !os(macOS)
         .listSectionSpacing(.compact)
 #endif
+        .softScrollEdge()
         .overlay {
             contentUnavailableOverlay
         }

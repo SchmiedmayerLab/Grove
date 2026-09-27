@@ -167,15 +167,15 @@ final class OnboardingTests: XCTestCase {
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 2.0))
         app.buttons["Screenshots"].tap()
         
-        XCTAssert(app.staticTexts["Grove Template Application"].waitForExistence(timeout: 2))
+        XCTAssert(app.staticTexts["Heart Health Study"].waitForExistence(timeout: 2))
         app.buttons["Learn More"].tap()
         
-        XCTAssert(app.staticTexts["Interesting Modules"].waitForExistence(timeout: 2))
+        XCTAssert(app.staticTexts["What to Expect"].waitForExistence(timeout: 2))
         for (idx, step) in [
-            "The Onboarding module allows you to",
-            "GroveAccount enables user log in and sign up",
-            "Work with Health data collected by",
-            "Via Grove's Scheduler module, users can be prompted"
+            "Read what taking part means",
+            "Allow the app to read heart rate",
+            "Answer the first weekly questionnaire",
+            "Choose the evening you would like"
         ].enumerated() {
             let predicate = NSPredicate(format: "label BEGINSWITH %@", step)
             if idx > 0 {
@@ -188,6 +188,7 @@ final class OnboardingTests: XCTestCase {
         XCTAssert(app.buttons["Continue"].waitForExistence(timeout: 1))
         app.buttons["Continue"].tap()
         
-        XCTAssert(app.staticTexts["Health Access"].waitForExistence(timeout: 1))
+        XCTAssert(app.staticTexts["What to Expect"].waitForNonExistence(timeout: 1))
+        XCTAssert(app.buttons["Grant Access"].waitForExistence(timeout: 1))
     }
 }

@@ -12,6 +12,14 @@
 
 Letting a model call into your app.
 
+@Row {
+    @Column {
+        @Image(source: "ToolCall", alt: "Screenshot showing the assistant calling a tool to read health samples before it answers.") {
+            A tool call, its result and the answer it led to, as the [GroveChat](../../GroveChat/GroveChat.docc/GroveChat.md) module shows them.
+        }
+    }
+}
+
 ## Overview
 
 A model can be given [tools](https://platform.openai.com/docs/guides/function-calling) to call: named pieces of your app it may invoke, with arguments it fills in, whose results come back to it as part of the conversation. <!-- markdown-link-check-disable-line -->

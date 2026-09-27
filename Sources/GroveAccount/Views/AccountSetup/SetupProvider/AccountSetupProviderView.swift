@@ -89,7 +89,9 @@ public struct AccountSetupProviderView<Signup: View, PasswordReset: View>: View 
                 }
             }
             .sheet(isPresented: $presentingSignup) {
+                // Opaque even over the setup sheet, so the form looks the same wherever the setup is shown.
                 signupForm
+                    .presentationBackground(.background)
             }
     }
 

@@ -17,6 +17,7 @@ struct CompletionPage: View {
     private let action: @MainActor () async throws -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(QuestionnaireProgressState.self) private var progressState: QuestionnaireProgressState?
     // periphery:ignore - read through its projected value by viewStateAlert(state:)
     @State private var viewState: ViewState = .idle
     @State private var handOffFailed = false
@@ -38,15 +39,15 @@ struct CompletionPage: View {
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
-            // Nothing scrolls here, so the button simply ends the stack.
-            doneButton
         }
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // The same inset the questions were answered at, so the page the participant lands on
-        // is the page they have been on all along, one screen further.
         .padding(.horizontal, 16)
-        .padding(.bottom, 20)
+        // Where the questions' action was, so the page the participant lands on is the page they
+        // have been on all along, one screen further.
+        .floatingActions {
+            doneButton
+        }
         .makeBackgroundMatchFormBackground()
         .viewStateAlert(state: $viewState)
         #if os(iOS)
@@ -59,6 +60,10 @@ struct CompletionPage: View {
         .navigationBarBackButtonHidden(!handOffFailed)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("GroveQuestionnaireCompletionPage")
+        // The run is over: the page says so, and a bar would have nothing left to tell.
+        .onAppear {
+            progressState?.fraction = nil
+        }
     }
 
     private var doneButton: some View {
@@ -72,9 +77,10 @@ struct CompletionPage: View {
         } label: {
             Text("Done", bundle: .module)
                 .bold()
-                .frame(maxWidth: .infinity, minHeight: 44)
+                .frame(maxWidth: .infinity)
         }
-        .buttonStyleGlassProminent()
+        .actionButtonStyle(.primary)
+        .controlSize(.large)
         .accessibilityIdentifier("PrimaryAction")
         .accessibilityValue(Text("Ready", bundle: .module))
     }

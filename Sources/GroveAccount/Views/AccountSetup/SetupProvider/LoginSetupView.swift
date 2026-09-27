@@ -48,32 +48,33 @@ struct LoginSetupView<PasswordReset: View>: View {
     }
 
     var body: some View {
-        VStack {
-            fields
-                .padding(.vertical, 0)
+        VStack(spacing: 16) {
+            // The reset belongs to the password above it, not to the button below.
+            VStack(spacing: 6) {
+                fields
+                passwordResetButton
+            }
 
             AsyncButton(state: $state, action: loginButtonAction) {
                 Text("UP_LOGIN", bundle: .module)
-                    .padding(8)
+                    .bold()
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyleGlassProminent()
-            .disabled(!validation.allInputValid)
+            .actionButtonStyle(.primary)
+            .controlSize(.large)
             .environment(\.defaultErrorDescription, .init("UP_LOGIN_FAILED_DEFAULT_ERROR", bundle: .atURL(from: .module)))
-            .padding(.bottom, 12)
-            .padding(.top)
 
 
             if supportsSignup {
-                HStack {
-                    Text("UP_NO_ACCOUNT_YET", bundle: .module)
-                    Button(action: {
-                        presentingSignupSheet = true
-                    }) {
-                        Text("UP_SIGNUP", bundle: .module)
-                    }
+                Button(action: {
+                    presentingSignupSheet = true
+                }) {
+                    Text("UP_SIGNUP_LINK", bundle: .module)
+                        .bold()
+                        .frame(maxWidth: .infinity)
                 }
-                .font(.footnote)
+                .actionButtonStyle(.secondary)
+                .controlSize(.large)
             }
         }
         .disableDismissiveActions(isProcessing: state)
@@ -81,12 +82,14 @@ struct LoginSetupView<PasswordReset: View>: View {
         .receiveValidation(in: $validation)
         .sheet(isPresented: $presentingPasswordForgetSheet) {
             passwordReset
+                .presentationBackground(.background)
         }
     }
 
 
+    /// The two fields share a card, the way everything that asks for input does across Grove.
     @ViewBuilder @MainActor private var fields: some View {
-        VStack { // swiftlint:disable:this closure_body_length
+        VStack(spacing: 0) {
             Group {
                 VerifiableTextField(userIdConfiguration.idType.localizedStringResource, text: $userId)
                     .validate(input: userId, rules: .nonEmpty)
@@ -95,41 +98,40 @@ struct LoginSetupView<PasswordReset: View>: View {
 #if !os(macOS) && !os(watchOS)
                     .keyboardType(userIdConfiguration.keyboardType)
 #endif
-                    .padding(.bottom, 0.5)
+                    .accountCardRow()
 
-                VerifiableTextField(.init("UP_PASSWORD", bundle: .atURL(from: .module)), text: $password, type: .secure) {
-                    if !(passwordReset is EmptyView) {
-                        Button(action: {
-                            presentingPasswordForgetSheet = true
-                        }) {
-                            Text("UP_FORGOT_PASSWORD", bundle: .module)
-                                .font(.caption)
-                                .bold()
-#if os(macOS)
-                                .foregroundColor(Color(nsColor: .systemGray))
-#elseif os(watchOS)
-                                .foregroundColor(Color(uiColor: .gray))
-#else
-                                .foregroundColor(Color(uiColor: .systemGray))
-#endif
-                        }
-                    }
-                }
+                Divider()
+
+                VerifiableTextField(.init("UP_PASSWORD", bundle: .atURL(from: .module)), text: $password, type: .secure)
                     .validate(input: password, rules: .nonEmpty)
                     .focused($focusedField, equals: .password)
                     .textContentType(.password)
-
-                if passwordReset is EmptyView {
-                    Spacer()
-                        .frame(maxWidth: .infinity, maxHeight: 10)
-                }
+                    .accountCardRow()
             }
                 .environment(\.validationConfiguration, .hideFailedValidationOnEmptySubmit)
                 .disableFieldAssistants()
-#if !os(tvOS) && !os(watchOS)
-                .textFieldStyle(.roundedBorder)
+                .textFieldStyle(.plain)
+        }
+            .accountCard()
+    }
+
+    @ViewBuilder private var passwordResetButton: some View {
+        if !(passwordReset is EmptyView) {
+            Button(action: {
+                presentingPasswordForgetSheet = true
+            }) {
+                Text("UP_FORGOT_PASSWORD", bundle: .module)
+                    .font(.caption)
+                    .bold()
+#if os(macOS)
+                    .foregroundColor(Color(nsColor: .systemGray))
+#elseif os(watchOS)
+                    .foregroundColor(Color(uiColor: .gray))
+#else
+                    .foregroundColor(Color(uiColor: .systemGray))
 #endif
-                .font(.title3)
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }
 

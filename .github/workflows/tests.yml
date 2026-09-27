@@ -28,6 +28,12 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  # TEMPORARY: Swift 6.4 can link _swift_initBorrow when targeting the iOS 26.5 runtime.
+  # Keep every Apple test job on Swift 6.3.3 until the back-deployment fix ships.
+  # https://github.com/apple/swift-collections/issues/733
+  TEST_XCODE_VERSION: '26.6'
+
 jobs:
   detect:
     name: Detect affected packages
@@ -44,6 +50,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # need history to diff against the base / previous commit
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.TEST_XCODE_VERSION }}
+      - name: Use selected Xcode for this job
+        # The runner's inherited DEVELOPER_DIR takes precedence over xcode-select.
+        run: echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
       - name: Determine changed files
         id: changes
         run: |
@@ -54,11 +66,22 @@ jobs:
             git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
             BASE_SHA="${{ github.event.pull_request.base.sha }}"
             git diff --name-only "$BASE_SHA...HEAD" > changed.txt
-          elif [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+          elif [ "${{ github.ref }}" != "refs/heads/${{ github.event.repository.default_branch }}" ]; then
+            # A branch is measured against where it left the default branch, so its first push, a
+            # force-push and a rebase all schedule what the branch changes instead of everything.
+            git fetch --no-tags origin "${{ github.event.repository.default_branch }}"
+            BASE_SHA="$(git merge-base "origin/${{ github.event.repository.default_branch }}" HEAD || true)"
+            if [ -n "$BASE_SHA" ]; then
+              git diff --name-only "$BASE_SHA...HEAD" > changed.txt
+            else
+              echo "__ALL__" > changed.txt   # no shared history with the default branch
+            fi
+          elif [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ] \
+            && git cat-file -e "${{ github.event.before }}^{commit}" 2>/dev/null; then
             BASE_SHA="${{ github.event.before }}"
             git diff --name-only "$BASE_SHA" "${{ github.sha }}" > changed.txt
           else
-            echo "__ALL__" > changed.txt   # first push / unknown base -> test everything
+            echo "__ALL__" > changed.txt   # the default branch without a usable previous tip -> test everything
           fi
           echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
           if grep -Fxq "Package.swift" changed.txt; then
@@ -77,7 +100,10 @@ jobs:
             echo "ui_test_projects_changed=false" >> "$GITHUB_OUTPUT"
           fi
           echo "Changed files:"; cat changed.txt
-      - name: Evaluate package graphs
+      - name: Evaluate the head package graph
+        # Every source change is resolved through the graph, so the head revision is always dumped.
+        run: swift package --manifest-cache none dump-package > "$RUNNER_TEMP/head-package.json"
+      - name: Evaluate the base package graph and configuration
         if: steps.changes.outputs.manifest_changed == 'true' || steps.changes.outputs.packages_changed == 'true' || steps.changes.outputs.ui_test_projects_changed == 'true'
         env:
           BASE_SHA: ${{ steps.changes.outputs.base_sha }}
@@ -91,8 +117,7 @@ jobs:
             cp "$BASE_WORKTREE/Tests/UITestProjects.toml" "$RUNNER_TEMP/base-ui-test-projects.toml"
           fi
           if [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
-            swift package --package-path "$BASE_WORKTREE" dump-package > "$RUNNER_TEMP/base-package.json"
-            swift package dump-package > "$RUNNER_TEMP/head-package.json"
+            swift package --package-path "$BASE_WORKTREE" --manifest-cache none dump-package > "$RUNNER_TEMP/base-package.json"
           fi
       - name: Test affected-package selection
         env:
@@ -101,10 +126,11 @@ jobs:
       - name: Compute test matrix
         id: compute
         run: |
-          ARGS=(changed.txt)
+          # TEMPORARY: avoid extra test jobs for manifest/shared CI edits while stabilizing runners.
+          # Remove this flag to restore that selection; source/test changes and explicit run_all still apply.
+          ARGS=(changed.txt --head-package-dump "$RUNNER_TEMP/head-package.json" --ignore-manifest-and-ci-changes)
           if [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
             ARGS+=(--base-package-dump "$RUNNER_TEMP/base-package.json")
-            ARGS+=(--head-package-dump "$RUNNER_TEMP/head-package.json")
           fi
           if [ "${{ steps.changes.outputs.packages_changed }}" = "true" ] || [ "${{ steps.changes.outputs.manifest_changed }}" = "true" ]; then
             ARGS+=(--base-packages "$RUNNER_TEMP/base-packages.toml")
@@ -146,8 +172,8 @@ jobs:
     if: needs.detect.outputs.has_jobs == 'true'
     # Runner per job: Linux -> GitHub-hosted ubuntu; otherwise self-hosted iff packages.toml's
     # self-hosted-ci routed unit tests there (matrix.selfHosted), else GitHub-hosted macos-latest. The
-    # self-hosted label set (matrix.selfHostedLabels) is the base ["self-hosted","macOS"] plus any
-    # per-package `extra_runner_labels` from packages.toml (e.g. "python3.11+"), computed by
+    # self-hosted label set (matrix.selfHostedLabels) is ["self-hosted","macOS"] plus any
+    # per-package `extra_runner_labels` from packages.toml, computed by
     # Scripts/affected-test-matrix.py.
     runs-on: ${{ matrix.platform == 'Linux' && 'ubuntu-latest' || (matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macos-latest"]')) }}
     strategy:
@@ -155,10 +181,23 @@ jobs:
       matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v7
+      - uses: maxim-lobanov/setup-xcode@v1
+        if: matrix.platform != 'Linux'
+        with:
+          xcode-version: ${{ env.TEST_XCODE_VERSION }}
+      - name: Use selected Xcode for this job
+        if: matrix.platform != 'Linux'
+        run: echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
       - name: Set up Swift
         if: matrix.platform == 'Linux'
         uses: SwiftyLab/setup-swift@v1
       - name: Test ${{ matrix.package }} on ${{ matrix.platform }}
+        env:
+          # Package fetches would otherwise leave the runner anonymous, and GitHub throttles anonymous
+          # clones per address once a stack of PRs fans out across the self-hosted runners.
+          GIT_CONFIG_COUNT: 1
+          GIT_CONFIG_KEY_0: url.https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/.insteadOf
+          GIT_CONFIG_VALUE_0: https://github.com/
         run: Scripts/run-package-tests.sh "${{ matrix.package }}" "${{ matrix.platform }}"
       - name: Upload .xcresult
         if: always() && matrix.platform != 'Linux'   # always upload (pass or fail); Linux is a compile-check (no .xcresult)
@@ -179,7 +218,18 @@ jobs:
       matrix: ${{ fromJSON(needs.detect.outputs.ui_matrix) }}
     steps:
       - uses: actions/checkout@v7
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.TEST_XCODE_VERSION }}
+      - name: Use selected Xcode for this job
+        run: echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
       - name: UI test ${{ matrix.package }} on ${{ matrix.platform }}
+        env:
+          # Package fetches would otherwise leave the runner anonymous, and GitHub throttles anonymous
+          # clones per address once a stack of PRs fans out across the self-hosted runners.
+          GIT_CONFIG_COUNT: 1
+          GIT_CONFIG_KEY_0: url.https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/.insteadOf
+          GIT_CONFIG_VALUE_0: https://github.com/
         run: Scripts/run-package-tests.sh "${{ matrix.package }}" "${{ matrix.platform }}" ui
       - name: Upload .xcresult
         if: always()   # always upload the result bundle (pass or fail)
@@ -190,12 +240,12 @@ jobs:
 
   # Single gate to use as the required status check in branch protection.
   # Does no work itself; it aggregates the unit and UI test jobs.
-  # `if: always()` is required so it still runs (and reports pass/fail) when `test`
-  # failed or was skipped — otherwise the gate would be skipped and a skipped required
-  # check never satisfies branch protection.
+  # `!cancelled()` keeps it running (and reporting pass/fail) when `test` failed or was skipped —
+  # a skipped required check never satisfies branch protection — while a run superseded by a newer
+  # push shows as cancelled rather than failed.
   all-tests-pass:
     name: All tests pass
-    if: always()
+    if: ${{ !cancelled() }}
     needs: [detect, test, test-ui]
     runs-on: ubuntu-latest
     steps:

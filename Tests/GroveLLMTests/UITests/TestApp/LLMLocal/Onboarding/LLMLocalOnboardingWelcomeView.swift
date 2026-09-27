@@ -17,7 +17,7 @@ struct LLMLocalOnboardingWelcomeView: View {
 
     
     var body: some View {
-        OnboardingView(
+        PageView(
             title: "WELCOME_TITLE",
             subtitle: "WELCOME_SUBTITLE",
             areas: [

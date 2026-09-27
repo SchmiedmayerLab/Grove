@@ -79,7 +79,8 @@ private struct AssistantMessageView: View {
 
     /// Actions apply to a finished message; half a message is not worth copying or reading aloud.
     private var offersActions: Bool {
-        !enabledActions.isEmpty && message.complete
+        // The follow-up lives on the text selection's own menu, so it alone puts no menu on the message.
+        !enabledActions.subtracting(.followUp).isEmpty && message.complete
     }
 
     var body: some View {
@@ -104,6 +105,9 @@ private struct AssistantMessageView: View {
         let content = PlainMessageView(message)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(.rect)
+            // Selection is enabled where the message is rendered: with Textual the markup is composed into
+            // views that only its own modifier reaches, and without it a plain `Text` takes SwiftUI's.
+            .modifier(SelectableMessageText())
         if offersActions && presentation == .contextMenu {
             content.contextMenu {
                 actionButtons
@@ -226,9 +230,11 @@ public struct ChatMessageActions: OptionSet, Hashable, Sendable {
     public static let speak = Self(rawValue: 1 << 1)
     /// Offers the message to the system share sheet.
     public static let share = Self(rawValue: 1 << 2)
+    /// Offers to quote the selected passage in the composer, from the text selection's own menu. Needs Textual.
+    public static let followUp = Self(rawValue: 1 << 3)
 
     /// Every action.
-    public static let all: Self = [.copy, .speak, .share]
+    public static let all: Self = [.copy, .speak, .share, .followUp]
 
     public let rawValue: Int
 
@@ -243,7 +249,9 @@ public struct ChatMessageActions: OptionSet, Hashable, Sendable {
 public enum ChatMessageActionsPresentation: Hashable, Sendable {
     /// Through a long press on the message, the way Messages and Mail present per-item actions.
     ///
-    /// Costs the conversation nothing until the user asks for it, which is why it is the default.
+    /// Costs the conversation nothing until the user asks for it, which is why it is the default. The long
+    /// press is also the gesture that starts a text selection, so a chat that relies on selecting passages
+    /// should present its actions ``inline`` instead.
     case contextMenu
     /// As a row of buttons underneath every completed assistant message.
     ///

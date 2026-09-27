@@ -35,6 +35,7 @@ enum GroveViewsTests: String, TestAppTests {
     case shareSheet = "Share Sheet"
     #endif
     case dismissButton = "Dismiss Button"
+    case pageActions = "Page Actions"
     
     #if !os(macOS)
     @MainActor @ViewBuilder private var label: some View {
@@ -119,6 +120,8 @@ enum GroveViewsTests: String, TestAppTests {
         #endif
         case .dismissButton:
             DismissButtonTestView()
+        case .pageActions:
+            PageActionsTestView()
         }
     }
 }

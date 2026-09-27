@@ -12,7 +12,7 @@
 /// The `LLMTool` is the Grove-based implementation of an [OpenAI LLM function](https://platform.openai.com/docs/guides/function-calling).  <!-- markdown-link-check-disable-line -->
 /// It enables a structured, bidirectional, and reliable communication between the OpenAI LLMs and external tools, such as the Grove ecosystem.
 ///
-/// Upon initializing the ``LLMOpenAISchema``, developers can pass an array of ``LLMTool``s via ``LLMOpenAILikeSchema/init(parameters:modelParameters:injectIntoContext:searchesTheWeb:_:)``.
+/// Upon initializing the ``LLMOpenAISchema``, developers can pass an array of ``LLMTool``s via ``LLMOpenAILikeSchema/init(parameters:modelParameters:injectIntoContext:searchesTheWeb:generatesImages:_:)``.
 /// These functions are then made available to OpenAI's GPT models and can be called if the model decides to do so, based on the current conversational context.
 /// An ``LLMTool`` can have multiple ``LLMTool/Parameter``s (`@Parameter`) to tailor the requested functionality of the LLM.
 ///

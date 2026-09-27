@@ -69,32 +69,53 @@ public struct SignatureView: View {
     
     
     public var body: some View {
-        VStack {
-            ZStack(alignment: .bottomLeading) {
-                SignatureViewBackground(footer: footer, lineOffset: lineOffset)
-                #if !os(macOS)
-                signatureCanvas
-                #else
-                signatureTextField
-                #endif
-            }
-            .frame(height: 120)
+        ZStack(alignment: .bottomLeading) {
+            SignatureViewBackground(footer: footer, lineOffset: lineOffset)
             #if !os(macOS)
+            signatureCanvas
+            #else
+            signatureTextField
+            #endif
+        }
+        .frame(height: 120)
+        .clipShape(.rect(cornerRadius: 16, style: .continuous))
+        #if !os(macOS)
+        .overlay(alignment: .topTrailing) {
+            clearButton
+                .padding(8)
+        }
+        .animation(.easeInOut(duration: 0.2), value: canClear)
+        #endif
+    }
+
+    #if !os(macOS)
+    /// Sits in the corner of the field and only exists once there is ink to clear, so an empty field stays clean.
+    @ViewBuilder private var clearButton: some View {
+        if canClear {
             Button {
                 signature = .init()
             } label: {
-                Text("SIGNATURE_VIEW_CLEAR", bundle: .module)
+                Image(systemName: "eraser")
+                    .accessibilityLabel(Text("SIGNATURE_VIEW_CLEAR", bundle: .module))
             }
-            .disabled(!canClear)
-            #endif
+            .clearButtonStyle()
+            .buttonBorderShape(.circle)
+            .controlSize(.small)
+            // A tap sent to the element lands in the frame's corner, which the circle alone would let through to the canvas.
+            .contentShape(.rect)
+            .transition(.opacity)
         }
     }
+    #endif
     
     #if !os(macOS)
     private var signatureCanvas: some View {
         CanvasView(
             drawing: $signature,
-            isDrawing: $isSigning
+            isDrawing: $isSigning,
+            // Black, which PencilKit renders white in the dark; the dynamic label color would be stored as it was
+            // resolved when the stroke was drawn and keep that color after the appearance changes.
+            tool: PKInkingTool(.pen, color: .black, width: 1)
         )
         .accessibilityLabel(Text("SIGNATURE_FIELD", bundle: .module))
         .accessibilityAddTraits(.allowsDirectInteraction)
@@ -163,6 +184,21 @@ public struct SignatureView: View {
     }
     #endif
 }
+
+
+#if !os(macOS)
+extension View {
+    /// Glass where the platform has it, so the button sits on the field the way a control sits on content.
+    @ViewBuilder
+    fileprivate func clearButtonStyle() -> some View {
+        if #available(iOS 26, watchOS 26, visionOS 26, *) {
+            buttonStyle(.glass)
+        } else {
+            buttonStyle(.bordered)
+        }
+    }
+}
+#endif
 
 
 #if DEBUG && !os(macOS)

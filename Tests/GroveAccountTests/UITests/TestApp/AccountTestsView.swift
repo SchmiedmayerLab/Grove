@@ -64,12 +64,21 @@ struct AccountTestsView: View {
                 }
             }
                 .navigationTitle("Grove Account")
+#if os(macOS)
                 .sheet(isPresented: $showSetup) {
                     setupSheet()
                 }
                 .sheet(isPresented: $showOverview) {
                     overviewSheet
                 }
+#else
+                .fullScreenCover(isPresented: $showSetup) {
+                    setupSheet()
+                }
+                .fullScreenCover(isPresented: $showOverview) {
+                    overviewSheet
+                }
+#endif
         }
             .accountRequired(features.accountRequiredModifier) {
                 setupSheet(closeable: false)
@@ -183,7 +192,9 @@ struct AccountTestsView: View {
             }
                 .viewStateAlert(state: $setupState)
                 .toolbar {
-                    if closeable {
+                    // The documentation shows the account views as an app embeds them; the test app's own way
+                    // out of the sheet is not part of them.
+                    if closeable, !features.documentation {
                         toolbar(closing: $showSetup)
                     }
                 }

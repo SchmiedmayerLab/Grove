@@ -69,7 +69,7 @@ final class SleepCheckInTests: TestAppUITests, @unchecked Sendable {
 
         questionnaire.question("falling-asleep").select("Some nights") // 1
         questionnaire.question("waking-up").select("Most nights") // 2
-        questionnaire.question("daytime-tiredness").select("Every night") // 3
+        questionnaire.question("daytime-tiredness").select("Every day") // 3
 
         // The advisory is gated on the score, so its presence is the score being read back.
         XCTAssert(questionnaire.question("advisory").waitUntilAsked())

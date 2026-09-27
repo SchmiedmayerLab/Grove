@@ -33,8 +33,6 @@ final class BasicTests: TestAppUITests, @unchecked Sendable {
         tap(app.otherElements["Task:1.2"].buttons["Option: Obeys commands, Not Selected"])
         tap(app.otherElements["Task:1.3"].buttons["Option: Eye opening to verbal command, Not Selected"])
 
-        // the action is the page's last row, so a page this long has to be scrolled to reach it
-        questionnaire.scrollToPrimaryAction()
         let primaryAction = app.buttons.matching(identifier: "PrimaryAction").allElementsBoundByIndex.last
         XCTAssertEqual(primaryAction?.label, "Submit")
         XCTAssertEqual(primaryAction?.value as? String, "Ready")
@@ -76,7 +74,6 @@ final class BasicTests: TestAppUITests, @unchecked Sendable {
     func testScanningForSomethingThePageDoesNotHave() {
         launchAppAndStartExample("Patient Health Questionnaire-9", in: .modelValues)
         XCTAssert(questionnaire.question("H1/T1/Q1").waitUntilAsked())
-        XCTAssert(questionnaire.scrollToPrimaryAction())
 
         XCTAssertFalse(questionnaire.showsText("Nothing on this page"))
         XCTAssert(questionnaire.section.exists)
@@ -157,5 +154,24 @@ final class BasicTests: TestAppUITests, @unchecked Sendable {
         XCTAssertFalse(questionnaire.question("flavour").isSelected("Strawberry"))
         // reopened for review rather than for handing off, so the last button says so
         XCTAssertEqual(questionnaire.offeredAction, .done)
+    }
+
+    /// The keyboard goes the way a form lets it go: moving between fields keeps it, a tap beside them lets it go.
+    @MainActor
+    func testATapBesideTheFieldsDismissesTheKeyboard() throws {
+        launchAppAndStartExample("Simple Number Entry", in: .modelValues)
+        let first = questionnaire.question("t0").element.textFields.firstMatch
+        XCTAssert(first.waitForExistence(timeout: 10))
+        first.tap()
+        guard app.keyboards.firstMatch.waitForExistence(timeout: 3) else {
+            throw XCTSkip("A hardware keyboard is attached; there is no keyboard to dismiss.")
+        }
+
+        questionnaire.question("t1").element.textFields.firstMatch.tap()
+        XCTAssert(app.keyboards.firstMatch.exists, "moving to the next field keeps the keyboard")
+
+        // The form's margin beside the first card: above the keyboard, and on no field.
+        questionnaire.section.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.25)).tap()
+        XCTAssert(app.keyboards.firstMatch.waitForNonExistence(timeout: 3), "a tap beside the fields lets it go")
     }
 }

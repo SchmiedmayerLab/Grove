@@ -25,6 +25,8 @@ final class LLMChatViewUITests: TestAppTestCase {
 
         let stop = app.buttons["Stop Generating"]
         XCTAssert(stop.waitForExistence(timeout: 10), "A session that is working has to offer a way to stop it.")
+        XCTAssertTrue(stop.isEnabled, "The session must not disable the composer that owns Stop and queueing.")
+        XCTAssertTrue(stop.isHittable)
         stop.tap()
 
         XCTAssert(stop.waitForNonExistence(timeout: 15), "Stopping has to end the generation, not just hide the button.")

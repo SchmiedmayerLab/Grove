@@ -14,6 +14,8 @@ public import SwiftUI
 
 /// A tile view that present instructions for an event.
 ///
+/// ![Event tiles with centered headers.](ScheduleCentered)
+///
 /// This view presents an occurrence of an event and renders the instructions of the task.
 /// Creating a simple instructions tile is as easy as passing the event instance.
 ///

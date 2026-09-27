@@ -42,7 +42,7 @@ jobs:
 
   release-validation-complete:
     name: Release validation complete
-    if: always()
+    if: ${{ !cancelled() }}
     needs: [tests, deployment-floor, static-analysis, repository-standards]
     runs-on: ubuntu-latest
     steps:

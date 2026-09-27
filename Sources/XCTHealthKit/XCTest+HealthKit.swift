@@ -85,13 +85,34 @@ extension XCUIApplication {
             }
             return
         }
-        // The nav bar renders before healthd has populated the type list, so the row has to be waited for.
-        let turnOnAll = self.tables.staticTexts["Turn On All"]
-        XCTAssert(turnOnAll.wait(for: \.isHittable, toEqual: true, timeout: 10), "The Health permissions sheet did not finish loading")
+        // The nav bar renders before healthd has populated the type list, so the row has to be waited for. Before
+        // iOS 27 it is the "Turn On All" text in a table; from iOS 27 it is a cell of its own, labelled with the
+        // number of topics, so the identifier is what to look for.
+        let turnOnAll = self.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'UIA.Health.AuthSheet.AllCategoryButton' OR label == 'Turn On All'"))
+            .firstMatch
+        XCTAssert(turnOnAll.wait(for: \.isHittable, toEqual: true, timeout: 30), "The Health permissions sheet did not finish loading")
         turnOnAll.tap()
-        let allow = self.buttons["Allow"]
+        // "Allow" is a bar button before iOS 27; from it, a "Continue" button at the end of the list, which has to be
+        // scrolled to, so the identifier is what to look for.
+        // The button only enters the tree once its row is on screen, so the scrolling comes before any wait for it.
+        let allow = self.buttons.matching(NSPredicate(format: "identifier == 'UIA.Health.Allow.Button' OR label == 'Allow'")).firstMatch
+        for _ in 0..<12 where !(allow.exists && allow.isHittable) {
+            self.swipeUp()
+        }
         XCTAssert(allow.wait(for: \.isHittable, toEqual: true, timeout: 10), "'Allow' never became hittable")
         allow.tap()
+        // From iOS 27 a second page asks how much history to share, with "Allow" disabled until a choice is made;
+        // all of it, so the tests and walks see every sample they seeded.
+        let allRecorded = self.descendants(matching: .any)
+            .matching(NSPredicate(format: "label BEGINSWITH 'All Recorded Data'"))
+            .firstMatch
+        if allRecorded.waitForExistence(timeout: 5) {
+            allRecorded.tap()
+            let confirm = self.buttons["Allow"]
+            XCTAssert(confirm.wait(for: \.isHittable, toEqual: true, timeout: 10), "'Allow' never became hittable after choosing the history")
+            confirm.tap()
+        }
         if !sheet.waitForNonExistence(timeout: 10) {
             // The tap can land before the toggles commit, which leaves 'Allow' disabled and the tap a no-op.
             allow.tap()

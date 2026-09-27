@@ -7,7 +7,6 @@
 //
 
 public import GroveFoundation
-import GroveViews
 public import SwiftUI
 
 
@@ -31,14 +30,15 @@ public import SwiftUI
 ///     )
 /// }
 /// ```
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct OnboardingInformationView: View {
     private let areas: [Area]
     
     @_documentation(visibility: internal)
     public var body: some View {
-        VStack(alignment: .leading, spacing: 30) {
+        Grid(alignment: .topLeading, horizontalSpacing: 16, verticalSpacing: 16) {
             ForEach(0..<areas.count, id: \.self) { index in
-                areaView(area: areas[index])
+                areaRow(area: areas[index])
             }
         }
     }
@@ -55,24 +55,25 @@ public struct OnboardingInformationView: View {
         self.init(areas: areas())
     }
     
-    private func areaView(area: Area) -> some View {
-        HStack(spacing: 10) {
+    private func areaRow(area: Area) -> some View {
+        GridRow {
             area.icon
-                .font(.system(size: 40))
-                .frame(width: 40)
-                .foregroundColor(.accentColor)
-                .padding()
+                .font(.system(size: 28))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.tint)
+                .frame(width: 42, height: 42)
+                .gridCellAnchor(.topLeading)
                 .accessibilityHidden(true)
-            
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 4) {
                 area.title
                     .bold()
                     .accessibilityAddTraits(.isHeader)
                 area.description
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.bottom, 8)
         }
     }
 }

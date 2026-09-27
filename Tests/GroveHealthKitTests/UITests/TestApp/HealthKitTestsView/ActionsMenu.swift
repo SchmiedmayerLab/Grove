@@ -48,6 +48,9 @@ struct ActionsMenu: View {
                     try await addTestData([entry])
                 }
             }
+            actionButton("Add a Day of Samples") {
+                try await addTestData(Self.dayOfSamples)
+            }
             Divider()
             Menu("Request Access") {
                 actionButton("Only Blood Pressure") {
@@ -84,6 +87,25 @@ struct ActionsMenu: View {
             try await action()
             completedActions += 1
         }
+    }
+
+
+    /// Heart rate every half hour and blood oxygen every two hours across today, shaped like a day with a morning walk; the documentation charts it.
+    private static var dayOfSamples: [TestDataDefinition] {
+        let start = Calendar.current.startOfDay(for: .now)
+        let heartRates: [Double] = [
+            56, 55, 54, 55, 54, 56, 58, 62, 66, 64, 63, 68, 74, 96, 108, 102, 84, 72, 70, 69, 71, 74, 78, 76,
+            73, 70, 68, 71, 75, 79, 82, 77, 72, 70, 69, 67, 66, 65, 64, 66, 68, 65, 62, 60, 59, 58, 57, 56
+        ]
+        let oxygen: [Double] = [98, 97, 98, 99, 98, 97, 98, 98, 99, 98, 97, 98]
+        return [
+            .init(sampleType: .heartRate, samples: heartRates.enumerated().map { index, value in
+                .init(date: start.addingTimeInterval(Double(index) * 30 * 60), value: value, unit: .count() / .minute())
+            }),
+            .init(sampleType: .bloodOxygen, samples: oxygen.enumerated().map { index, value in
+                .init(date: start.addingTimeInterval(Double(index) * 2 * 60 * 60 + 15 * 60), value: value / 100, unit: .percent())
+            })
+        ]
     }
 
 

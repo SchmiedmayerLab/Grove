@@ -150,8 +150,10 @@ class PairedDevicesTests: XCTestCase {
         XCTAssert(app.buttons["Discover Device"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
         app.buttons["Discover Device"].tap()
 
-        XCTAssert(app.buttons["Add Device"].wait(for: \.isHittable, toEqual: true, timeout: 2.0))
-        app.buttons["Add Device"].tap()
+        // The menu is still closing and the toolbar re-lays out while discovery starts, which takes a while on a busy machine.
+        let addDevice = app.navigationBars.buttons["Add Device"]
+        XCTAssert(addDevice.wait(for: \.isHittable, toEqual: true, timeout: 5.0))
+        addDevice.tap()
 
         XCTAssert(app.staticTexts["Pair Accessory"].waitForExistence(timeout: 10.0))
         let closeButton = app.otherElements["AccessorySetupSheet"].navigationBars.buttons["Close"]

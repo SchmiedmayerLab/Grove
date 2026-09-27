@@ -52,6 +52,9 @@ struct Features: ParsableArguments {
 
     @Flag(help: "Include biography in default details")
     var includeInvitationCode = false
+
+    @Flag(help: "Show the account views as an app embeds them, without the test app's own controls")
+    var documentation = false
 }
 
 

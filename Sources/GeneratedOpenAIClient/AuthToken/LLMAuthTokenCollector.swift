@@ -10,7 +10,7 @@
 package import Foundation
 import Grove
 package import GroveKeychainStorage
-import GroveOnboarding
+import GroveViews
 package import SwiftUI
 
 
@@ -43,38 +43,38 @@ package struct LLMAuthTokenCollector: View {
 
 
     package var body: some View {
-        OnboardingView(
+        PageView(
             header: {
-                OnboardingTitleView(
-                    title: self.title
+                PageHeader(
+                    title: self.title,
+                    subtitle: self.subtitle,
+                    image: Image(systemName: "key.fill")
                 )
             },
             content: {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        Text(self.subtitle)
-                            .multilineTextAlignment(.center)
-                        
-                        TextField(
-                            self.prompt.localizedString(),
-                            text: $token
-                        )
-                        .frame(height: 50)
-                        .textFieldStyle(.roundedBorder)
-                        .padding(.vertical, 16)
-                        
-                        Text(
-                            (try? AttributedString(
-                                markdown: self.hint.localizedString()
-                            )) ?? ""
-                        )
-                        .multilineTextAlignment(.center)
-                        .font(.caption)
-                    }
+                VStack(spacing: 16) {
+                    TextField(
+                        self.prompt.localizedString(),
+                        text: $token
+                    )
+                    .textFieldStyle(.plain)
+                    .autocorrectionDisabled()
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(.fill.quaternary, in: .rect(cornerRadius: 16, style: .continuous))
+
+                    Text(
+                        (try? AttributedString(
+                            markdown: self.hint.localizedString()
+                        )) ?? ""
+                    )
+                    .multilineTextAlignment(.center)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
                 }
             },
             footer: {
-                OnboardingActionsView(
+                PageActions(
                     self.actionText,
                     action: {
                         try keychainStorage.store(

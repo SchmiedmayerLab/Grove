@@ -1,6 +1,6 @@
 # ``GrovePersonalInfo``
 
-A GroveViews target that provides a common set of SwiftUI views and related functionality for managing personal information.
+SwiftUI views for collecting and displaying personal information.
 
 <!--
 
@@ -16,10 +16,11 @@ SPDX-License-Identifier: MIT
 
 GrovePersonalInfo provides predefined UI components to deal with common cases in visualizing or collecting personal information.
 
-@Column {
-    @Image(source: "NameFields", alt: "Three text fields to input your first, middle and last name.") {
-        Collect the input for multiple [`PersonNameComponents`](https://developer.apple.com/documentation/foundation/personnamecomponents)
-        fields using [`NameFieldRow`](GrovePersonalInfo.md).
+@Row {
+    @Column {
+        @Image(source: "NameFields", alt: "A form with first, middle and last name fields; first and last name are filled in, the middle name shows its placeholder.") {
+            A ``NameFieldRow`` per component writes straight into one [`PersonNameComponents`](https://developer.apple.com/documentation/foundation/personnamecomponents) value.
+        }
     }
 }
 

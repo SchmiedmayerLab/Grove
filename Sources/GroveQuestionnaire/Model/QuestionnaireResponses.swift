@@ -59,7 +59,15 @@ public final class QuestionnaireResponses: Identifiable {
         /// A view into another ``QuestionnaireResponses`` instances, scoped to see only the responses at a specific path.
         case view(parent: QuestionnaireResponses, pathFromParent: ResponsesPath)
     }
-    
+
+    /// Identifies one state of one root's answers, independently of its persisted response ID.
+    /// A restored draft gets a fresh identity even when it keeps the same ``id``.
+    package struct Revision: Equatable, Sendable {
+        // periphery:ignore - read by synthesized Equatable to distinguish response roots
+        private let rootInstanceId = UUID()
+        fileprivate var number = 0
+    }
+
     /// An id identifying this responses instance
     public let id: UUID
     
@@ -81,12 +89,14 @@ public final class QuestionnaireResponses: Identifiable {
                 if sanitized != responses {
                     _variant = .root(sanitized)
                 }
+                _revision.number += 1
                 recalculateExpressions()
             case .view:
                 break
             }
         }
     }
+
 
     /// Guards ``recalculateExpressions()`` against re-entrancy: storing a calculated
     /// value mutates the responses, which triggers the observer again.
@@ -129,6 +139,33 @@ public final class QuestionnaireResponses: Identifiable {
         }
     }
     
+    /// The root's current revision; not observed, it is read while views render.
+    @ObservationIgnored private var _revision = Revision()
+
+    /// Which state the answers are in: the same as long as nothing changed, whichever view they are read through.
+    ///
+    /// Anything derived from the answers, like an expression engine's encoding of them, can be kept for as long
+    /// as the revision stays.
+    package var revision: Revision {
+        switch _variant {
+        case .root:
+            _revision
+        case let .view(parent, _):
+            parent.revision
+        }
+    }
+
+    /// The complete response tree, including when accessed from a choice's follow-up questions.
+    package var root: QuestionnaireResponses {
+        switch _variant {
+        case .root:
+            self
+        case .view(let parent, _):
+            parent.root
+        }
+    }
+
+
     init(id: UUID = UUID(), questionnaire: Questionnaire) {
         self.id = id
         self.questionnaire = questionnaire
@@ -147,8 +184,7 @@ public final class QuestionnaireResponses: Identifiable {
         questionnaire = parent.questionnaire
         _variant = .view(parent: parent, pathFromParent: pathFromParent)
     }
-    
-    
+
     func view(appending path: ResponsesPath) -> Self {
         Self(parent: self, pathFromParent: path)
     }
@@ -176,20 +212,31 @@ public final class QuestionnaireResponses: Identifiable {
         defer {
             isRecalculating = false
         }
-        for task in calculatedTasks {
-            guard let expression = task.calculatedExpression else {
-                continue
-            }
-            do {
-                guard let value = try engine.evaluateValue(expression, for: task, in: self) else {
+        // Every value of a pass is read against the same answers and written in one go: a write invalidates what
+        // the engine derived from the answers, and one per calculated item made an answer cost as many encodings.
+        // A calculated item that reads another settles in the next pass, a chain of them in as many passes as it
+        // is long; what has not settled by then is a cycle and stays as it is.
+        for _ in calculatedTasks.indices {
+            var updated = responses
+            for task in calculatedTasks {
+                guard let expression = task.calculatedExpression else {
                     continue
                 }
-                if responses[task.id].value != value {
-                    responses[task.id] = .init(value: value)
+                do {
+                    guard let value = try engine.evaluateValue(expression, for: task, in: self) else {
+                        continue
+                    }
+                    if updated[task.id].value != value {
+                        updated[task.id] = .init(value: value)
+                    }
+                } catch {
+                    recordExpressionFailure(expression, for: task.id, error: error)
                 }
-            } catch {
-                recordExpressionFailure(expression, for: task.id, error: error)
             }
+            guard updated != responses else {
+                return
+            }
+            responses = updated
         }
     }
 }

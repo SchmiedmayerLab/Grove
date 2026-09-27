@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension FHIRPathEvaluator {
     /// FHIRPath singleton boolean conversion: empty → `.empty`, boolean singleton → its
     /// value, any other singleton → `.true`; multi-item collections are an error.

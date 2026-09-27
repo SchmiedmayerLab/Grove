@@ -99,6 +99,18 @@ public final class LLMOpenAIRealtimeSession: LLMSession, SchemaProvidingLLMSessi
     
     /// Handles websockets connection with OpenAI Realtime API
     let apiConnection = LLMOpenAIRealtimeConnection()
+    /// Tracks pending user-audio transcripts across the whole connection, shared by all tool grace-period waits
+    /// across `generate()` calls. `stopEventHandling()` replaces it before setup/reconnect, on cancellation,
+    /// and when the event listener ends or fails. Already queued actor calls and pending waits retain the old
+    /// instance, isolating cancelled listeners from the next connection's transcript state. Within a connection,
+    /// disabling input transcription resets the existing tracker in place.
+    @MainActor var transcripts = UserTranscriptTracker()
+    @MainActor var transcribesUserAudio = false
+    @MainActor var assistantTranscripts = RealtimeAssistantTranscripts()
+    @MainActor var eventHandlingId = UUID()
+    @MainActor var eventTask: Task<Void, Never>?
+    @MainActor var toolTasks: [String: ToolTask] = [:]
+    @MainActor var activeGenerations: Set<String> = []
 
     @MainActor public var state: LLMState = .uninitialized
     @MainActor public var context: LLMContext = []
@@ -123,53 +135,32 @@ public final class LLMOpenAIRealtimeSession: LLMSession, SchemaProvidingLLMSessi
     /// Starts an assistant response and streams text deltas.
     ///
     /// This method sends the latest user message in the ``LLMOpenAIRealtimeSession/context`` to the Realtime API, then triggers the model to respond.
-    /// It returns an `AsyncThrowingStream` that yields partial text tokens as they arrive until the Realtime API indicates the end of that transcript.
+    /// It returns an `AsyncThrowingStream` that yields only this generation's text, including responses after tool calls.
+    /// Automatic voice responses and interjections remain available through the session's audio stream and context.
     ///
-    /// - Returns: An `AsyncThrowingStream` of `String` token deltas. The stream finishes when the assistant transcript
-    ///   completes or if the session is cancelled. Errors during setup or generation are propagated through the stream.
+    /// - Returns: An `AsyncThrowingStream` of `String` token deltas. The stream finishes when its final response completes.
+    ///   Cancelled, failed, and incomplete responses terminate the stream with an error, even when they contain no text.
     @discardableResult
     public func generate() async -> AsyncThrowingStream<String, any Error> {
-        typealias ResponseCreate = Components.Schemas.RealtimeClientEventResponseCreate
-        typealias ConversationItemCreate = Components.Schemas.RealtimeClientEventConversationItemCreate
+        let requestId = UUID().uuidString
 
-        // Stream the text response back to the `generate()` caller.
-        // Is done by filtering assistant transcript events in `events()`.
-        // Assumes that all events up to `.assistantTranscriptDone`
-        // contain content belonging to the current `generate()` call.
         return AsyncThrowingStream { [apiConnection] continuation in
             let task = Task {
                 do {
                     try await self.ensureSetup()
+                    try Task.checkCancellation()
+                    await self.registerGeneration(requestId)
+                    let connectionId = await apiConnection.connectionId
 
-                    // Get the relevant part of the context
-                    let lastContext = await self.context.last { $0.role == .user && $0.complete }
+                    // Subscribe before sending: even a fast refusal must reach this generation.
+                    let events = await apiConnection.events()
+                    let conversationEventId = UUID().uuidString
 
-                    // Send the conversation.item.create event with the message
-                    try await apiConnection.sendMessage(
-                        ConversationItemCreate(
-                            _type: .conversation_period_item_period_create,
-                            item: .init(
-                                value2: .init(
-                                    _type: .message,
-                                    role: .user,
-                                    content: [.init(_type: .input_text, text: lastContext?.content ?? "")]
-                                )
-                            )
-                        )
-                    )
+                    try await self.requestGeneration(requestId: requestId, conversationEventId: conversationEventId, connectionId: connectionId)
 
-                    // Trigger a response
-                    try await apiConnection.sendMessage(ResponseCreate(_type: .response_period_create))
-
-                    for try await event in await apiConnection.events() {
-                        if case .assistantTranscriptDone = event {
-                            // Finish as soon as the next transcript done event occurs
-                            continuation.finish()
-                        }
-
-                        if case .assistantTranscriptDelta(let delta) = event {
-                            continuation.yield(delta)
-                        }
+                    let response = Self.textResponse(from: events, requestId: requestId, conversationEventId: conversationEventId)
+                    for try await delta in response {
+                        continuation.yield(delta)
                     }
                     continuation.finish() // in case `events()` stream finished
                 } catch {
@@ -179,6 +170,7 @@ public final class LLMOpenAIRealtimeSession: LLMSession, SchemaProvidingLLMSessi
 
             continuation.onTermination = { @Sendable _ in
                 task.cancel()
+                Task { @MainActor in self.finishGeneration(requestId) }
             }
         }
     }
@@ -187,7 +179,11 @@ public final class LLMOpenAIRealtimeSession: LLMSession, SchemaProvidingLLMSessi
     ///
     /// Calling this function ends any active streams.
     public func cancel() {
-        Task { [apiConnection] in await apiConnection.cancel() }
+        Task { @MainActor [weak self, apiConnection] in
+            self?.stopEventHandling()
+            self?.state = .uninitialized
+            await apiConnection.cancel()
+        }
     }
 
     deinit {

@@ -61,6 +61,19 @@ struct ResponsesStreamBuilder {
         append(["type": "response.output_item.done", "item": ["type": "message", "role": "assistant"]])
     }
 
+    /// Announces an image before the server has produced its bytes.
+    mutating func imageAdded() {
+        append(["type": "response.output_item.added", "item": ["type": "image_generation_call", "status": "in_progress"]])
+    }
+
+    /// Finishes an image item, including a failed item in an otherwise completed response.
+    mutating func imageDone(succeeded: Bool) {
+        append([
+            "type": "response.output_item.done",
+            "item": ["type": "image_generation_call", "status": succeeded ? "completed" : "failed", "result": succeeded ? "aGVsbG8=" : ""]
+        ])
+    }
+
     /// `response.completed`, carrying the response id used for multi-turn continuation.
     mutating func completed(responseId: String = "resp_mock") {
         append(["type": "response.completed", "response": ["id": responseId, "status": "completed"]])

@@ -11,8 +11,8 @@ import XCTestExtensions
 import XCTGroveQuestionnaire
 
 
-/// The one button at the bottom of a section page: where it sits, what it says, and what it does
-/// when the page is not answered yet.
+/// The one button floating over the foot of a section page: where it sits, what it says, and what
+/// it does when the page is not answered yet.
 final class PrimaryActionTests: TestAppUITests, @unchecked Sendable {
     @MainActor
     func testTheButtonNamesTheStepItTakes() {
@@ -37,22 +37,21 @@ final class PrimaryActionTests: TestAppUITests, @unchecked Sendable {
     }
 
 
-    /// The button ends the page rather than covering it: the participant arrives at it by
-    /// finishing the questions, and nothing of the page is left underneath it.
+    /// The button floats over the page rather than ending it: it is within reach from the start,
+    /// and the questions scroll underneath it while it stays where it is.
     @MainActor
-    func testTheButtonEndsThePage() {
+    func testTheButtonFloatsOverThePage() {
         launchAppAndStartExample("Patient Health Questionnaire-9", in: .modelValues)
         XCTAssert(questionnaire.question("H1/T1/Q1").waitUntilAsked())
 
-        // a page this long opens with the button still below the fold
-        XCTAssertFalse(questionnaire.primaryAction.isHittable)
-        XCTAssert(questionnaire.scrollToPrimaryAction())
-
         let button = questionnaire.primaryAction
-        XCTAssertGreaterThan(button.frame.minY, questionnaire.question("H1/T1/Q9").element.frame.maxY)
-        // the foot of the page, so scrolling on cannot take the button anywhere
+        XCTAssert(button.isHittable)
         let restingFrame = button.frame
+        XCTAssertGreaterThan(restingFrame.minY, questionnaire.question("H1/T1/Q1").element.frame.maxY)
+
+        let seen = questionnaire.visibleText
         questionnaire.scrollDown()
+        XCTAssertNotEqual(questionnaire.visibleText, seen)
         XCTAssertEqual(button.frame, restingFrame)
     }
 

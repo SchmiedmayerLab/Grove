@@ -21,23 +21,30 @@ struct ChatImageViewer: View {
 
     @State private var selection: Int
     @State private var shareSheetInput: ShareSheetInput?
+    /// The pictures behind URLs, decoded once they have loaded.
+    @State private var loadedImages: [Int: PlatformImage] = [:]
 
     private var shareableImage: ShareSheetInput? {
         guard images.indices.contains(selection) else {
             return nil
         }
+        if let image = platformImage(for: images[selection], at: selection) {
+            return shareSheetInput(for: image)
+        }
         switch images[selection] {
         case .image(let image):
-            return ShareSheetInput(image)
+            return shareSheetInput(for: image)
         case .url(let url):
             return ShareSheetInput(url)
+        case .generating:
+            return nil
         }
     }
 
     var body: some View {
         NavigationStack {
             pages
-                .background(.black)
+                .background(.background)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         DismissButton()
@@ -93,16 +100,55 @@ struct ChatImageViewer: View {
     }
 
     init(images: [ChatEntity.Content.Image], startingAt index: Int = 0) {
-        self.images = images
-        self._selection = State(initialValue: images.indices.contains(index) ? index : 0)
+        let finished = images.filter { $0 != .generating }
+        let start = images.indices.contains(index) ? images[..<index].filter { $0 != .generating }.count : 0
+        self.images = finished
+        self._selection = State(initialValue: finished.indices.contains(start) ? start : 0)
     }
 
     @ViewBuilder
     private func zoomableImage(_ image: ChatEntity.Content.Image) -> some View {
+        #if os(iOS) || os(visionOS)
+        let index = images.firstIndex(of: image) ?? 0
+        if let loaded = platformImage(for: image, at: index) {
+            // Under the bar as well: the toolbar is glass over the picture, not a band above it.
+            ZoomableImageView(image: loaded)
+                .ignoresSafeArea()
+        } else {
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .task(id: index) {
+                    if case .url(let url) = image, let (data, _) = try? await URLSession.shared.data(from: url) {
+                        loadedImages[index] = PlatformImage(data: data)
+                    }
+                }
+        }
+        #else
         ScrollView([.horizontal, .vertical]) {
-            PlainMessageView.AttachedImagesView.imageContent(for: image, fillingTile: false)
+            PlainMessageView.AttachedImagesView.RevealingImage(image: image, fillingTile: false)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .scrollBounceBehavior(.basedOnSize)
+        #endif
+    }
+
+    /// With its title on iOS, where the sheet's header previews the picture; as it is elsewhere.
+    private func shareSheetInput(for image: PlatformImage) -> ShareSheetInput {
+        #if os(iOS) || os(visionOS)
+        ShareSheetInput(image: image, title: String(localized: "IMAGE", bundle: .module))
+        #else
+        ShareSheetInput(verbatim: image, id: ObjectIdentifier.init)
+        #endif
+    }
+
+    private func platformImage(for image: ChatEntity.Content.Image, at index: Int) -> PlatformImage? {
+        switch image {
+        case .image(let platformImage):
+            platformImage
+        case .url:
+            loadedImages[index]
+        case .generating:
+            nil
+        }
     }
 }

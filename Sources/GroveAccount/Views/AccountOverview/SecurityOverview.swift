@@ -55,6 +55,7 @@ struct SecurityOverview: View {
                 .injectEnvironmentObjects(configuration: accountDetails.accountServiceConfiguration, model: model)
                 .environment(\.defaultErrorDescription, model.defaultErrorDescription)
         }
+            .softScrollEdge()
             .viewStateAlert(state: $viewState)
             .navigationTitle(Text("SIGN_IN_AND_SECURITY", bundle: .module))
 #if !os(macOS) && !os(tvOS)

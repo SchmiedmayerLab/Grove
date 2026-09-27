@@ -37,13 +37,18 @@ public indirect enum FHIRPathNode: Hashable, Sendable {
 
     /// Every node below this one, depth-first: each child followed by its own descendants.
     var allDescendants: [FHIRPathNode] {
-        allChildren.flatMap { child in
-            if case .object = child {
-                [child] + child.allDescendants
-            } else {
-                [child]
+        var descendants: [FHIRPathNode] = []
+        var pending = allChildren.reversed() as [FHIRPathNode]
+        while let node = pending.popLast() {
+            descendants.append(node)
+            switch node {
+            case .object:
+                pending.append(contentsOf: node.allChildren.reversed())
+            case .array, .string, .number, .bool, .null:
+                break
             }
         }
+        return descendants
     }
 
     private var flattened: [FHIRPathNode] {

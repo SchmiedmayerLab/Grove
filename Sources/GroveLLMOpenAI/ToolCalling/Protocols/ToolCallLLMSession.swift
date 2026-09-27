@@ -144,6 +144,9 @@ extension ToolCallLLMSession {
     func checkForActiveToolCalls() async {
         if toolCallCounter.load(ordering: .sequentiallyConsistent) == 0 {
             await MainActor.run {
+                guard !Task.isCancelled else {
+                    return
+                }
                 self.state = toolCallCompletionState
             }
         }
@@ -156,6 +159,9 @@ extension ToolCallLLMSession {
             ordering: .sequentiallyConsistent
         ) == 0 {
             await MainActor.run {
+                guard !Task.isCancelled else {
+                    return
+                }
                 self.state = .callingTools
             }
         }
@@ -168,6 +174,9 @@ extension ToolCallLLMSession {
             ordering: .sequentiallyConsistent
         ) == 1 {
             await MainActor.run {
+                guard !Task.isCancelled else {
+                    return
+                }
                 self.state = toolCallCompletionState
             }
         }

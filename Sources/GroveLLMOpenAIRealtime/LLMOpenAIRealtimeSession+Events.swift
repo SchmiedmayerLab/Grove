@@ -15,40 +15,75 @@ import GroveLLMOpenAI
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension LLMOpenAIRealtimeSession: ToolCallLLMSession {
     @MainActor
-    func listenToLLMEvents() { // swiftlint:disable:this cyclomatic_complexity
-        Task { [weak self] in
-            guard let eventStream = await self?.apiConnection.events() else {
-                Self.logger.error("GroveLLMOpenAIRealtime: No self in listenToLLMEvents...")
-                return
-            }
+    func listenToLLMEvents(
+        _ eventStream: AsyncThrowingStream<LLMRealtimeAudioEvent, any Error>,
+        connectionId: UUID,
+        broadcaster: EventBroadcaster<LLMRealtimeAudioEvent>
+    ) {
+        let handlingId = eventHandlingId
+        eventTask = Task { [weak self] in
             do {
                 for try await event in eventStream {
-                    let shouldInject = self?.schema.injectIntoContext ?? true
-                    switch event {
-                    case .assistantTranscriptDelta(let content) where shouldInject:
-                        self?.context.append(assistantOutputDelta: content, isComplete: false, interactionId: nil)
-                    case .assistantTranscriptDone where shouldInject:
-                        self?.context.markAssistantOutputCompleted()
-                    case .userTranscriptDelta(let content) where shouldInject:
-                        self?.handleTranscript(itemId: content.itemId, content: content.delta, isComplete: false)
-                    case .userTranscriptDone(let content) where shouldInject:
-                        self?.handleTranscript(itemId: content.itemId, content: "", isComplete: true)
-                    case .speechStopped(let content) where shouldInject:
-                        self?.handleSpeechStopped(itemId: content.itemId)
-                    case .functionCallRequested(let functionCall):
-                        Task {
-                            await self?.handleFunctionCall(functionCall: functionCall)
-                        }
-                    default:
-                        break
+                    guard let self, !Task.isCancelled, self.eventHandlingId == handlingId else {
+                        return
                     }
+                    await self.handle(event, connectionId: connectionId, broadcaster: broadcaster, handlingId: handlingId)
                 }
-            } catch let error as any LLMError {
-                Self.logger.error("GroveLLMOpenAIRealtime: Encountered LLM Error: \(error)")
-                self?.state = .error(error: error)
             } catch {
-                Self.logger.error("GroveLLMOpenAIRealtime: Encountered unknown error: \(error)")
+                guard let self, !Task.isCancelled, self.eventHandlingId == handlingId else {
+                    return
+                }
+                Self.logger.error("GroveLLMOpenAIRealtime: Encountered error: \(error)")
+                self.state = .error(error: (error as? any LLMError) ?? LLMOpenAIError.connectivityIssues(error))
+                self.stopEventHandling()
+                await self.apiConnection.cancel()
+                return
             }
+            if let self, self.eventHandlingId == handlingId {
+                self.stopEventHandling()
+                self.state = .uninitialized
+            }
+        }
+    }
+
+    @MainActor
+    // swiftlint:disable:next cyclomatic_complexity
+    private func handle(
+        _ event: LLMRealtimeAudioEvent,
+        connectionId: UUID,
+        broadcaster: EventBroadcaster<LLMRealtimeAudioEvent>,
+        handlingId: UUID
+    ) async {
+        let shouldInject = schema.injectIntoContext
+        if shouldInject {
+            assistantTranscripts.consume(event, context: &context)
+        }
+        switch event {
+        case .inputTranscriptionConfigured(let enabled):
+            transcribesUserAudio = enabled
+            if !enabled {
+                await transcripts.reset()
+            }
+        case .userTranscriptDelta(let content) where shouldInject:
+            handleTranscript(itemId: content.itemId, content: content.delta, isComplete: false)
+        case .userTranscriptDone(let content):
+            if shouldInject {
+                // A transcriber that sends no deltas delivers the words here, all at once.
+                handleTranscript(itemId: content.itemId, content: "", isComplete: true, transcript: content.transcript)
+            }
+            // Release tools only after the final words are available in the context.
+            await transcripts.complete(content.itemId)
+        case .userTranscriptFailed(let content):
+            await transcripts.complete(content.itemId)
+        case .speechStopped(let content):
+            await expectTranscript(itemId: content.itemId, handlingId: handlingId)
+        case .userAudioCommitted(let itemId):
+            // Manual turn detection sends committed without a preceding speech_stopped event.
+            await expectTranscript(itemId: itemId, handlingId: handlingId)
+        case .responseDone(let response) where response.status == .completed && !response.functionCalls.isEmpty:
+            startToolContinuation(response, connectionId: connectionId, broadcaster: broadcaster)
+        default:
+            break
         }
     }
     
@@ -57,7 +92,7 @@ extension LLMOpenAIRealtimeSession: ToolCallLLMSession {
     /// If no message in the context has a UUID matching the deterministic UUID derived from `itemId`,
     /// this function does nothing and the content is ignored.
     @MainActor
-    private func handleTranscript(itemId: String, content: String, isComplete: Bool) {
+    private func handleTranscript(itemId: String, content: String, isComplete: Bool, transcript: String? = nil) {
         let contentUUID = UUID.deterministic(from: itemId)
         let existingTranscriptIdx = self.context.firstIndex {
             $0.id == contentUUID
@@ -68,27 +103,34 @@ extension LLMOpenAIRealtimeSession: ToolCallLLMSession {
         }
 
         let existingMessage = self.context[existingTranscriptIdx]
+        let accumulated = existingMessage.content + content
+        let final = transcript.map { $0.isEmpty ? accumulated : $0 } ?? accumulated
 
         self.context[existingTranscriptIdx] = .init(
             id: contentUUID,
             date: existingMessage.date,
             role: .user,
-            content: existingMessage.content + content,
+            content: final,
             complete: isComplete
         )
     }
     
-    /// When speech stops, directly append an empty user message to ensure it appears before any assistant
-    /// messages in the context. This message then gets completed using the `.userTranscriptDelta` event
+    /// When a turn ends, append a user message before the assistant responds, and wait for its transcript.
     ///
-    /// - Note: If no transcription settings are configured inside the LLMSession's schema parameter, no message is appended to the context.
+    /// Use the configuration confirmed by the server, since locally supplied settings are ignored in server mode.
     @MainActor
-    private func handleSpeechStopped(itemId: String) {
-        guard self.schema.parameters.transcriptionSettings != nil else {
+    private func expectTranscript(itemId: String, handlingId: UUID) async {
+        guard transcribesUserAudio else {
             return
         }
-
+        await transcripts.expect(itemId)
+        guard !Task.isCancelled, handlingId == eventHandlingId else {
+            return
+        }
         let contentUUID = UUID.deterministic(from: itemId)
+        guard schema.injectIntoContext, !context.contains(where: { $0.id == contentUUID }) else {
+            return
+        }
         self.context.append(
             .init(
                 id: contentUUID,
@@ -98,44 +140,5 @@ extension LLMOpenAIRealtimeSession: ToolCallLLMSession {
                 complete: false
             )
         )
-    }
-    
-    @MainActor
-    private func handleFunctionCall(functionCall: LLMOpenAIStreamResult.FunctionCall) async {
-        typealias ConversationItemCreateEvent = Components.Schemas.RealtimeClientEventConversationItemCreate
-        typealias RealtimeClientEventResponseCreate = Components.Schemas.RealtimeClientEventResponseCreate
-
-        let functionCallResponse = try? await self.callFunction(
-            availableFunctions: schema.functions,
-            functionCallArgs: functionCall,
-            failureHandling: .returnErrorInResponse
-        )
-
-        guard let functionCallResponse = functionCallResponse else {
-            // Should never happen while having `failureHandling: .returnErrorInResponse`
-            Self.logger.warning("LLMOpenAIRealtimeSession: callFunction() threw an error.")
-            return
-        }
-
-        do {
-            try await self.apiConnection.sendMessage(
-                ConversationItemCreateEvent(
-                    _type: .conversation_period_item_period_create,
-                    item: .init(
-                        value5: .init(
-                            _type: .function_call_output,
-                            call_id: functionCallResponse.functionID,
-                            output: functionCallResponse.response
-                        )
-                    )
-                )
-            )
-            
-            try await self.apiConnection.sendMessage(
-                RealtimeClientEventResponseCreate(_type: .response_period_create)
-            )
-        } catch {
-            Self.logger.error("LLMOpenAIRealtimeSession: Function call failed due to API connection")
-        }
     }
 }

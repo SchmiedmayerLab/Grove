@@ -23,6 +23,12 @@ private struct EntryView: DataEntryView {
     @Binding private var password: String
 
     var body: some View {
+        // A password row marks itself the way a name row does, so the card or the grid around it takes the tint.
+        entry
+            .reportsBlocking(validation.isDisplayingValidationErrors)
+    }
+
+    @ViewBuilder private var entry: some View {
         switch accountViewType {
         case .signup, .none:
             VerifiableTextField(fieldType.localizedStringResource, text: $password, type: .secure)

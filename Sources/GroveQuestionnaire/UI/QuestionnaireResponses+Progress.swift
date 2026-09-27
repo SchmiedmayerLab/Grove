@@ -7,6 +7,21 @@
 //
 
 
+/// How far through the run the participant is, in steps: every question is one, and so is every turn of a page.
+struct ProgressCount: Hashable, Sendable {
+    /// The steps behind the participant: the pages passed, their questions, and the answers given since.
+    let completed: Int
+    /// The steps still ahead: the questions to answer, and the pages still to reach.
+    let remaining: Int
+
+    /// Done over done plus remaining; a run with nothing left is complete.
+    var fraction: Double {
+        let total = completed + remaining
+        return total == 0 ? 1 : Double(completed) / Double(total)
+    }
+}
+
+
 /// Completeness and progress across several sections, which the exit flow needs in order to
 /// decide whether closing loses anything, and whether it can offer to submit instead.
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -50,6 +65,40 @@ extension QuestionnaireResponses {
         return Dictionary(
             uniqueKeysWithValues: questions.enumerated().map { ($1.id, ($0 + 1, questions.count)) }
         )
+    }
+
+    /// Where the participant is in the run, counted so the bar keeps moving forward.
+    ///
+    /// Pages passed and their questions are done, answered or left. Ahead lie the pages that may still come
+    /// and every question asked or not yet ruled out: one whose condition reads an unanswered question stays
+    /// in the count until an answer settles it.
+    func progress(at section: Questionnaire.Section, in sections: [Questionnaire.Section]) -> ProgressCount {
+        guard let index = sections.firstIndex(where: { $0.id == section.id }) else {
+            return ProgressCount(completed: 0, remaining: 1)
+        }
+        var completed = sections[..<index].reduce(0) { steps, page in
+            steps + (rendersContent(in: page) ? 1 : 0) + page.tasks.count { isQuestion($0) }
+        }
+        var remaining = sections[(index + 1)...].count { mayRenderContent(in: $0) }
+        for task in sections[index...].lazy.flatMap(\.tasks) where mayBeAsked(task) {
+            // Answered the way the page accepts it: an "Other" without its text is no step yet.
+            if isQuestion(task) && hasResponse(for: task) && validateResponse(for: task).isOk {
+                completed += 1
+            } else {
+                remaining += 1
+            }
+        }
+        return ProgressCount(completed: completed, remaining: remaining)
+    }
+
+    /// Whether the section shows something now, or still might once more has been answered.
+    private func mayRenderContent(in section: Questionnaire.Section) -> Bool {
+        section.tasks.contains { !$0.isHidden && (renders($0) || !isEnablementSettled(for: $0)) }
+    }
+
+    /// Whether the task is asked now, or still might be once more has been answered.
+    private func mayBeAsked(_ task: Questionnaire.Task) -> Bool {
+        !task.isHidden && asks(task) && (shouldEnable(task: task) || !isEnablementSettled(for: task))
     }
 
     /// Whether the task would put anything on screen.
@@ -117,14 +166,16 @@ extension QuestionnaireResponses {
 
     /// Whether the task asks the participant for something, as opposed to telling them something.
     private func isQuestion(_ task: Questionnaire.Task) -> Bool {
-        guard !task.isHidden, shouldEnable(task: task) else {
-            return false
-        }
+        !task.isHidden && shouldEnable(task: task) && asks(task)
+    }
+
+    /// Whether the task is the kind that asks for something, wherever it is shown.
+    private func asks(_ task: Questionnaire.Task) -> Bool {
         switch task.kind.variant {
         case .instructional:
-            return false
+            false
         case .boolean, .choice, .freeText, .dateTime, .numeric, .fileAttachment, .custom:
-            return true
+            true
         }
     }
 }

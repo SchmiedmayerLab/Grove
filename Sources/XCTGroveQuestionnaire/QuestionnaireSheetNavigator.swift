@@ -39,9 +39,13 @@ public import XCTest
 /// - ``section``
 ///
 /// ### Reading the Page
+/// - ``pageTitle``
+/// - ``progressBar``
+/// - ``progress``
+/// - ``isTitled(_:)``
+/// - ``waitUntilTitled(_:timeout:)``
 /// - ``navigationBar``
 /// - ``navigationBarShows(_:)``
-/// - ``waitUntilNavigationBarShows(_:timeout:)``
 /// - ``sectionIntro``
 /// - ``progressIndicator``
 /// - ``visibleText``
@@ -67,7 +71,6 @@ public import XCTest
 /// - ``tapPrimaryAction()``
 /// - ``goBack(timeout:file:line:)``
 /// - ``scrollDown()``
-/// - ``scrollToPrimaryAction()``
 ///
 /// ### Finishing
 /// - ``completionPage``
@@ -87,7 +90,7 @@ public import XCTest
 public struct QuestionnaireSheetNavigator {
     /// What the primary action is currently offering to do.
     ///
-    /// The renderer pins one button to the bottom of every page, and what it says is a fact
+    /// The renderer floats one button over the bottom of every page, and what it says is a fact
     /// about where the page sits in the questionnaire.
     public enum Action: String {
         /// More pages follow this one.
@@ -167,9 +170,17 @@ extension QuestionnaireSheetNavigator {
     /// The navigation bar of the page on screen.
     ///
     /// A questionnaire runs in a navigation stack of its own, and a follow-up question stacks a
-    /// second one on top, so the last bar is the one the participant can see.
+    /// second one on top, so the last of those stacks carries the bar the participant can see. The
+    /// app's own bars, behind the sheet, are not in the running.
     public var navigationBar: XCUIElement {
-        app.navigationBars.allElementsBoundByIndex.last ?? app.navigationBars.firstMatch
+        let stacks = app.descendants(matching: .any).matching(identifier: "GroveQuestionnaireNavStack")
+        return (stacks.allElementsBoundByIndex.last ?? app).navigationBars.firstMatch
+    }
+
+    /// The page's own title, at the head of its content on a run without a progress bar; with one, the
+    /// navigation bar names the page, and ``isTitled(_:)`` reads whichever of the two is showing.
+    public var pageTitle: XCUIElement {
+        app.staticTexts.lastMatch(identifier: "PageTitle")
     }
 
     /// The section's own text, above the questions, on every page whose section carries one.
@@ -197,20 +208,38 @@ extension QuestionnaireSheetNavigator {
         scan { section.staticTexts.matching(label: text).firstMatch.exists }
     }
 
-    /// Whether the navigation bar carries `text`, as the page's title or as its subtitle.
+    /// Whether the navigation bar carries `text`.
     ///
-    /// The renderer names a page by a short name (SDC `shortText`) alone: the sole group's if the
-    /// page has one, else the section's, else the questionnaire's own title. The questionnaire's
-    /// title is the subtitle wherever it is not already the name — and only the newest OS versions
-    /// draw a subtitle, so a test should not insist on seeing both.
+    /// The bar takes the page's title over only once the page has scrolled past it; a test that
+    /// has not scrolled asks ``isTitled(_:)`` instead.
     public func navigationBarShows(_ text: String) -> Bool {
         navigationBar.staticTexts.matching(label: text).firstMatch.exists
     }
 
-    /// Waits for the navigation bar to carry `text`.
+    /// Whether the page on screen is named `title`, at the head of its content or in the bar.
+    ///
+    /// The renderer names a page by a short name (SDC `shortText`) alone: the sole group's if the
+    /// page has one, else the section's, else the questionnaire's own title. The questionnaire's
+    /// title is shown under the name wherever it is not already the name.
+    public func isTitled(_ title: String) -> Bool {
+        let pageTitle = pageTitle
+        return pageTitle.exists && pageTitle.label == title || navigationBarShows(title)
+    }
+
+    /// Waits until the page on screen is named `title`.
+    ///
+    /// The page is looked up afresh on every check: a follow-up sheet brings a page of its own,
+    /// which is not there yet when the wait begins.
     @discardableResult
-    public func waitUntilNavigationBarShows(_ text: String, timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        navigationBar.staticTexts.matching(label: text).firstMatch.waitForExistence(timeout: timeout)
+    public func waitUntilTitled(_ title: String, timeout: TimeInterval = Self.defaultTimeout) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            if isTitled(title) {
+                return true
+            }
+            usleep(200_000)
+        } while Date() < deadline
+        return false
     }
 
     /// Scrolls the page down by roughly one screen.
@@ -221,13 +250,18 @@ extension QuestionnaireSheetNavigator {
         app.swipeUp()
     }
 
-    /// Scrolls until the page's action is on screen.
-    ///
-    /// The action is the last row of the form rather than chrome pinned over it, so on a long page
-    /// it is not in the accessibility tree until the list has realised that far.
+    /// The old name of ``waitUntilTitled(_:timeout:)``, from when only the bar named a page.
+    @available(*, deprecated, renamed: "waitUntilTitled(_:timeout:)")
+    @discardableResult
+    public func waitUntilNavigationBarShows(_ text: String, timeout: TimeInterval = Self.defaultTimeout) -> Bool {
+        waitUntilTitled(text, timeout: timeout)
+    }
+
+    /// The action floats over every page, so there is nothing left to scroll to.
+    @available(*, deprecated, message: "The primary action is always on screen.")
     @discardableResult
     public func scrollToPrimaryAction() -> Bool {
-        scan { primaryAction.isHittable }
+        primaryAction.exists
     }
 }
 
@@ -235,7 +269,7 @@ extension QuestionnaireSheetNavigator {
 // MARK: The Primary Action
 
 extension QuestionnaireSheetNavigator {
-    /// The one prominent button at the foot of the page on screen.
+    /// The one prominent button floating over the foot of the page on screen.
     ///
     /// Every page in the stack keeps its own, and a follow-up question stacks another sheet on
     /// top of them all, so the last match is the one the participant can reach.
@@ -243,18 +277,9 @@ extension QuestionnaireSheetNavigator {
         app.buttons.lastMatch(identifier: "PrimaryAction")
     }
 
-    /// The primary action, brought onto the screen first.
-    ///
-    /// The action is the page's last row rather than chrome pinned over it, so an unscrolled page
-    /// would otherwise report no action at all rather than the one it has.
-    private var reachablePrimaryAction: XCUIElement {
-        scrollToPrimaryAction()
-        return primaryAction
-    }
-
     /// What the primary action is offering to do, read from what it says.
     public var offeredAction: Action? {
-        Action(rawValue: reachablePrimaryAction.label)
+        Action(rawValue: primaryAction.label)
     }
 
     /// What the page reports about the answers it is holding.
@@ -262,7 +287,7 @@ extension QuestionnaireSheetNavigator {
     /// The button stays enabled either way — it has to be, to be able to explain what is
     /// missing — so readiness rides on the accessibility value rather than on `isEnabled`.
     public var readiness: Readiness? {
-        (reachablePrimaryAction.value as? String).flatMap(Readiness.init(rawValue:))
+        (primaryAction.value as? String).flatMap(Readiness.init(rawValue:))
     }
 
     /// Whether the page would move on if the primary action were tapped now.
@@ -273,13 +298,13 @@ extension QuestionnaireSheetNavigator {
     /// Waits until the page reports `readiness`.
     @discardableResult
     public func waitUntilReadiness(_ readiness: Readiness, timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        reachablePrimaryAction.wait(forValue: readiness.rawValue, timeout: timeout)
+        primaryAction.wait(forValue: readiness.rawValue, timeout: timeout)
     }
 
     /// Waits until the primary action offers `action`.
     @discardableResult
     public func waitUntilOffering(_ action: Action, timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        reachablePrimaryAction.wait(for: \.label, toEqual: action.rawValue, timeout: timeout)
+        primaryAction.wait(for: \.label, toEqual: action.rawValue, timeout: timeout)
     }
 }
 
@@ -300,7 +325,7 @@ extension QuestionnaireSheetNavigator {
             XCTFail("The page is not ready to advance; it reports '\(readiness?.rawValue ?? "nothing")'.", file: file, line: line)
             return
         }
-        reachablePrimaryAction.tap()
+        primaryAction.tap()
     }
 
     /// Hands the answers to the app, having checked that this really is the last page.
@@ -321,7 +346,7 @@ extension QuestionnaireSheetNavigator {
     /// Tapping an unfinished page is how a test reaches the marks: the renderer answers the tap
     /// by marking every question that blocks the page and bringing the first of them into view.
     public func tapPrimaryAction() {
-        reachablePrimaryAction.tap()
+        primaryAction.tap()
     }
 
     /// Returns to the previous page.
@@ -374,7 +399,7 @@ extension QuestionnaireSheetNavigator {
             XCTFail("The questionnaire is not at its completion page.", file: file, line: line)
             return
         }
-        reachablePrimaryAction.tap()
+        primaryAction.tap()
     }
 }
 

@@ -9,6 +9,7 @@
 import Antlr4
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct FHIRPathEvaluator {
     let context: FHIRPathEvaluationContext
     /// The `$index` within the innermost iteration function, if any.
@@ -25,13 +26,44 @@ struct FHIRPathEvaluator {
             guard let lhs = ctx.expression(), let invocation = ctx.invocation() else {
                 throw FHIRPathEvaluationError.malformedExpression("invocation expression without operands")
             }
-            let input = try evaluate(lhs, focus: focus)
-            return try evaluate(invocation: invocation, input: input, focus: focus)
+            if let cache = context.descendants {
+                if let constant = cachedDescendants(lhs, invocation, in: cache) {
+                    return try cache.descendants(of: constant) { try self.evaluate(lhs, invocation, focus: focus) }
+                }
+                if let filter = Self.memberFilter(of: invocation), let inner = lhs as? FHIRPathParser.InvocationExpressionContext,
+                   let innerLhs = inner.expression(), let innerInvocation = inner.invocation(),
+                   let constant = cachedDescendants(innerLhs, innerInvocation, in: cache) {
+                    return try cache.descendants(of: constant, whose: filter.member, isAmong: filter.literals) {
+                        try self.evaluate(innerLhs, innerInvocation, focus: focus)
+                    }
+                }
+            }
+            return try evaluate(lhs, invocation, focus: focus)
         case let ctx as FHIRPathParser.IndexerExpressionContext:
             return try evaluateIndexer(ctx, focus: focus)
         default:
             return try evaluateOperator(ctx, focus: focus)
         }
+    }
+
+    private func evaluate(
+        _ lhs: FHIRPathParser.ExpressionContext,
+        _ invocation: FHIRPathParser.InvocationContext,
+        focus: [FHIRPathValue]
+    ) throws -> [FHIRPathValue] {
+        try evaluate(invocation: invocation, input: evaluate(lhs, focus: focus), focus: focus)
+    }
+
+    /// The constant whose kept descendants `lhs.invocation` reads, when that is what it does.
+    private func cachedDescendants(
+        _ lhs: FHIRPathParser.ExpressionContext,
+        _ invocation: FHIRPathParser.InvocationContext,
+        in cache: FHIRPathDescendantsCache
+    ) -> String? {
+        guard let constant = Self.constantName(of: lhs), cache.keeps(constant), Self.isDescendants(invocation) else {
+            return nil
+        }
+        return constant
     }
 
     private func evaluateIndexer(_ ctx: FHIRPathParser.IndexerExpressionContext, focus: [FHIRPathValue]) throws -> [FHIRPathValue] {
@@ -104,5 +136,36 @@ struct FHIRPathEvaluator {
             }
             return node.children(named: name).map(FHIRPathValue.init(node:))
         }
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension FHIRPathEvaluator {
+    /// The `%name` a term reads, when it is one.
+    fileprivate static func constantName(of ctx: FHIRPathParser.ExpressionContext) -> String? {
+        guard let term = (ctx as? FHIRPathParser.TermExpressionContext)?.term() as? FHIRPathParser.ExternalConstantTermContext,
+              let constant = term.externalConstant() else {
+            return nil
+        }
+        return unquote(constant.identifier()?.getText() ?? constant.STRING()?.getText() ?? "")
+    }
+
+    /// Whether the invocation is a bare `descendants()`.
+    fileprivate static func isDescendants(_ ctx: FHIRPathParser.InvocationContext) -> Bool {
+        guard let function = (ctx as? FHIRPathParser.FunctionInvocationContext)?.function() else {
+            return false
+        }
+        return function.identifier()?.getText() == "descendants" && (function.paramList()?.expression() ?? []).isEmpty
+    }
+
+    /// The filter of a `where(...)` invocation, when its criteria are a member against string literals.
+    fileprivate static func memberFilter(of ctx: FHIRPathParser.InvocationContext) -> MemberFilter? {
+        guard let function = (ctx as? FHIRPathParser.FunctionInvocationContext)?.function(),
+              function.identifier()?.getText() == "where",
+              let params = function.paramList()?.expression(), params.count == 1 else {
+            return nil
+        }
+        return MemberFilter(criteria: params[0])
     }
 }
