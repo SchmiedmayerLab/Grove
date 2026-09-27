@@ -1979,6 +1979,13 @@ targets += [
 ]
 #endif
 
+// Scripts/build-floor.sh selects the library targets supported by each platform. Expose them as one
+// CI-only product so Xcode can build their combined dependency graph in a single invocation.
+if let floorBuildTargets = Context.environment["GROVE_FLOOR_BUILD_TARGETS"], !floorBuildTargets.isEmpty {
+    precondition(isLoweredDeploymentTargetEnabled, "The deployment-floor product requires lowered deployment targets")
+    products.append(.library(name: "GroveDeploymentFloor", targets: floorBuildTargets.split(separator: ",").map(String.init)))
+}
+
 let package = Package(
     name: "Grove",
     defaultLocalization: "en",
