@@ -142,8 +142,8 @@ public final class StudyManager: Module, EnvironmentAccessible, Sendable {
     
     /// Runs the identifier rewrite before anything reads the scheduler store.
     ///
-    /// Synchronous and outside `configure()`'s `Task` block on purpose: that block's `catch` returns
-    /// without logging, and the rewrite has to finish before tasks are registered against it.
+    /// Synchronous and outside `configure()`'s `Task` block on purpose: the rewrite has to finish
+    /// before tasks are registered against it.
     private func migrateLegacyTaskIdentifiersIfNeeded() {
         do {
             if try migrateLegacyTaskIdentifiers() {
@@ -159,47 +159,50 @@ public final class StudyManager: Module, EnvironmentAccessible, Sendable {
 
 
     @_documentation(visibility: internal)
-    public func configure() { // swiftlint:disable:this function_body_length
+    public func configure() {
         migrateLegacyTaskIdentifiersIfNeeded()
-        typealias Task = Swift::Task
-        Task { @MainActor [self] in
-            let enrollments: [StudyEnrollment]
+        Swift::Task { @MainActor in
             do {
-                enrollments = try modelContext.fetch(FetchDescriptor<StudyEnrollment>())
-                try registerStudyTasksWithScheduler(for: enrollments)
-                try await setupStudyBackgroundComponents(for: enrollments)
-                try removeOrphanedTasks()
-                try removeOrphanedStudyBundles()
+                try await _configure()
             } catch {
-                return
-            }
-            #if targetEnvironment(simulator)
-            if autosaveTask == nil {
-                autosaveTask = Task.detached {
-                    while true {
-                        await MainActor.run {
-                            try? self.modelContext.save()
-                        }
-                        try? await Task.sleep(for: .seconds(0.25))
-                    }
-                }
-            }
-            #endif
-            outcomesObserverToken = scheduler.observeNewOutcomes { [weak self] outcome in
-                guard let self,
-                      let studyContext = outcome.task.studyContext,
-                      let studyBundle = self.studyEnrollments.first(where: { $0.studyId == studyContext.studyId })?.studyBundle else {
-                    return
-                }
-                self.handleStudyLifecycleEvent(
-                    .completedTask(componentId: studyContext.componentId),
-                    for: studyBundle,
-                    at: .now
-                )
+                logger.error("configure failed: \(error)")
             }
         }
-        
-        Task { [weak self] in
+    }
+
+
+    @MainActor
+    private func _configure() async throws { // swiftlint:disable:this function_body_length
+        let enrollments = try modelContext.fetch(FetchDescriptor<StudyEnrollment>())
+        try registerStudyTasksWithScheduler(for: enrollments)
+        try await setupStudyBackgroundComponents(for: enrollments)
+        try removeOrphanedTasks()
+        try removeOrphanedStudyBundles()
+        #if targetEnvironment(simulator)
+        if autosaveTask == nil {
+            autosaveTask = Swift::Task {
+                while true {
+                    await MainActor.run {
+                        try? self.modelContext.save()
+                    }
+                    try? await Swift::Task.sleep(for: .seconds(0.25))
+                }
+            }
+        }
+        #endif
+        outcomesObserverToken = scheduler.observeNewOutcomes { [weak self = self] outcome in
+            guard let self,
+                  let studyContext = outcome.task.studyContext,
+                  let studyBundle = self.studyEnrollments.first(where: { $0.studyId == studyContext.studyId })?.studyBundle else {
+                return
+            }
+            self.handleStudyLifecycleEvent(
+                .completedTask(componentId: studyContext.componentId),
+                for: studyBundle,
+                at: .now
+            )
+        }
+        Swift::Task { [weak self] in
             let localeUpdates = NotificationCenter.default.notifications(named: NSLocale.currentLocaleDidChangeNotification)
             for await _ in localeUpdates {
                 guard let self else {
@@ -211,7 +214,7 @@ public final class StudyManager: Module, EnvironmentAccessible, Sendable {
             }
         }
         #if canImport(UIKit) && !os(watchOS)
-        Task { [weak self] in
+        Swift::Task { [weak self] in
             let timeUpdates = NotificationCenter.default.notifications(named: UIApplication.significantTimeChangeNotification)
             for await _ in timeUpdates {
                 guard let self else {
@@ -221,7 +224,6 @@ public final class StudyManager: Module, EnvironmentAccessible, Sendable {
             }
         }
         #endif
-        
         do {
             try fixTaskContextAndDuplicateVersions()
         } catch {
