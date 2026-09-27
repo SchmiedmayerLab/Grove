@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import GroveLegacyIdentifiers
 import SwiftUI
 
 
@@ -24,9 +25,13 @@ private struct FollowUpSession: Identifiable {
 struct VerifyRequiredAccountDetailsModifier: ViewModifier {
     private struct DetailsState: Equatable {
         // periphery:ignore - read by the synthesized Equatable that drives change detection
+        let accountId: String?
+        // periphery:ignore - read by the synthesized Equatable that drives change detection
         let signedIn: Bool
         // periphery:ignore - read by the synthesized Equatable that drives change detection
         let isIncomplete: Bool? // swiftlint:disable:this discouraged_optional_boolean
+        // periphery:ignore - read by the synthesized Equatable that drives change detection
+        let isAnonymous: Bool?
     }
     private let enabled: Bool
 
@@ -35,10 +40,20 @@ struct VerifyRequiredAccountDetailsModifier: ViewModifier {
 
     @SceneStorage("org.grovealliance.account.startupAccountCheck")
     private var verifiedAccount = false
+    @SceneStorage("org.grovealliance.account.startupAccountCheck.accountId")
+    private var verifiedAccountId: String?
+    @SceneStorage(LegacySceneStorageKey.accountStartupCheck)
+    private var legacyVerifiedAccount: Bool?
+
     @State private var followUpSession: FollowUpSession?
 
     @MainActor private var state: DetailsState {
-        DetailsState(signedIn: account.signedIn, isIncomplete: account.details?.isIncomplete)
+        DetailsState(
+            accountId: account.details?.accountId,
+            signedIn: account.signedIn,
+            isIncomplete: account.details?.isIncomplete,
+            isAnonymous: account.details?.isAnonymous
+        )
     }
 
     nonisolated init(enabled: Bool = true) {
@@ -63,24 +78,50 @@ struct VerifyRequiredAccountDetailsModifier: ViewModifier {
                     return
                 }
 
-                guard !verifiedAccount else {
-                    return
-                }
+                var checkState = AccountStartupCheckState(
+                    verifiedAccount: verifiedAccount,
+                    verifiedAccountId: verifiedAccountId,
+                    legacyVerifiedAccount: legacyVerifiedAccount
+                )
 
-                verifiedAccount = true
                 let missingKeys = account.configuration.missingRequiredKeys(for: details)
-
-                if !missingKeys.isEmpty {
-                    followUpSession = FollowUpSession(details: details, requiredKeys: missingKeys)
+                if let followUpKeys = checkState.evaluate(for: details, missingKeys: missingKeys) {
+                    followUpSession = FollowUpSession(details: details, requiredKeys: followUpKeys)
                 }
+
+                syncState(from: checkState)
             }
             .task {
-                guard !verifiedAccount else {
+                var checkState = AccountStartupCheckState(
+                    verifiedAccount: verifiedAccount,
+                    verifiedAccountId: verifiedAccountId,
+                    legacyVerifiedAccount: legacyVerifiedAccount
+                )
+
+                guard !checkState.verifiedAccount else {
+                    if checkState.legacyVerifiedAccount != nil {
+                        checkState.legacyVerifiedAccount = nil
+                        syncState(from: checkState)
+                    }
                     return
                 }
 
                 try? await Task.sleep(for: .seconds(5)) // we let the initial account setup take up to 5s
-                verifiedAccount = true
+                checkState.handleStartupTimeout()
+                syncState(from: checkState)
             }
+    }
+
+    @MainActor
+    private func syncState(from checkState: AccountStartupCheckState) {
+        if verifiedAccount != checkState.verifiedAccount {
+            verifiedAccount = checkState.verifiedAccount
+        }
+        if verifiedAccountId != checkState.verifiedAccountId {
+            verifiedAccountId = checkState.verifiedAccountId
+        }
+        if legacyVerifiedAccount != checkState.legacyVerifiedAccount {
+            legacyVerifiedAccount = checkState.legacyVerifiedAccount
+        }
     }
 }

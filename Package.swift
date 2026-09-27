@@ -530,6 +530,7 @@ var targets: [Target] = [
     .target(
         name: "GroveAccount",
         dependencies: [
+            .target(name: "GroveLegacyIdentifiers"),
             .target(name: "GroveFoundation"),
             .target(name: "Grove"),
             .target(name: "GroveViews"),
@@ -574,6 +575,7 @@ var targets: [Target] = [
     .testTarget(
         name: "GroveAccountTests",
         dependencies: [
+            .target(name: "GroveLegacyIdentifiers"),
             .target(name: "GroveAccount"),
             .target(name: "GroveAccountPhoneNumbers"),
             .target(name: "Grove"),

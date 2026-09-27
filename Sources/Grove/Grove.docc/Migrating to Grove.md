@@ -116,6 +116,7 @@ There is no API to call and no flag to set.
 | Study task rows | `Task.id` and `Task.Category` carrying `edu.stanford.spezi.SpeziStudy.*` | the same rows, prefix stripped |
 | Study bundles on disk | `<uuid>.spezistudybundle` | `<uuid>.studybundle` |
 | Scheduler and device preferences | `edu.stanford.spezi.*` UserDefaults keys | their unprefixed successors |
+| Account startup-check state | SceneStorage key `edu.stanford.spezi-account.startup-account-check` | SceneStorage key `org.grovealliance.account.startupAccountCheck` |
 
 Those old reverse-DNS strings are exactly what a pre-0.3.0 app wrote on the device.
 Grove reads each one, moves what it finds, and never writes it again.
