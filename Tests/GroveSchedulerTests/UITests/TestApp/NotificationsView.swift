@@ -27,14 +27,14 @@ struct NotificationsView: View {
     @Environment(Scheduler.self)
     private var scheduler
 
-    @State private var requestAuthorization = false
+    @State private var needsToRequestAuthorization = false
     @State private var viewState: ViewState = .idle
 
     var body: some View {
         NavigationStack {
             PendingNotificationsList()
                 .toolbar {
-                    if requestAuthorization {
+                    if needsToRequestAuthorization {
                         AsyncButton(state: $viewState) {
                             _ = try await requestNotificationAuthorization(options: [.alert, .sound, .badge])
                             await queryAuthorization()
@@ -53,7 +53,7 @@ struct NotificationsView: View {
 
     private func queryAuthorization() async {
         let status = await notificationSettings().authorizationStatus
-        requestAuthorization = status != .authorized && status != .denied
+        needsToRequestAuthorization = status != .authorized && status != .denied
         logger.debug("Notification authorization is now \(status.description)")
     }
 }

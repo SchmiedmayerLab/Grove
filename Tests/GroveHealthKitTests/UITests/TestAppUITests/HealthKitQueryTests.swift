@@ -211,7 +211,6 @@ final class HealthKitQueryTests: GroveHealthKitTests {
             bloodType: .oPositive
         ))
         
-//        app.delete(app: "TestApp")
         try launchAndHandleInitialStuff(app, resetEverything: true, askForAuthorization: false, deleteAllHealthData: false)
         
         XCTAssert(app.buttons["Deferred Authorization"].wait(for: \.isHittable, toEqual: true, timeout: 10))
