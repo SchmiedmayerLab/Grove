@@ -107,6 +107,9 @@ public struct HKCategoryTypeIdentifier: Hashable, RawRepresentable, Sendable {
     /// A category sample type for high heart rate events.
     public static let highHeartRateEvent = Self(rawValue: "HKCategoryTypeIdentifierHighHeartRateEvent")
 
+    /// A category sample type for hypertension events.
+    public static let hypertensionEvent = Self(rawValue: "HKCategoryTypeIdentifierHypertensionEvent")
+
     /// A category type that records hot flashes as a symptom.
     public static let hotFlashes = Self(rawValue: "HKCategoryTypeIdentifierHotFlashes")
 

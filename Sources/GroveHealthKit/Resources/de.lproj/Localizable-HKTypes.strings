@@ -38,6 +38,7 @@
 "HKCategoryTypeIdentifierHeadphoneAudioExposureEvent" = "Kopfhörermitteilungen";
 "HKCategoryTypeIdentifierHeartburn" = "Sodbrennen";
 "HKCategoryTypeIdentifierHighHeartRateEvent" = "Hohe Herzfrequenz-Mitteilungen";
+"HKCategoryTypeIdentifierHypertensionEvent" = "Hypertonie-Mitteilungen";
 "HKCategoryTypeIdentifierHotFlashes" = "Hitzewallungen";
 "HKCategoryTypeIdentifierInfrequentMenstrualCycles" = "Seltene Perioden";
 "HKCategoryTypeIdentifierIntermenstrualBleeding" = "Schmierblutung";
