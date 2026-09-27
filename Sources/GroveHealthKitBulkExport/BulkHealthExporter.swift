@@ -24,11 +24,19 @@ public final class BulkHealthExporter: Module, EnvironmentAccessible, @unchecked
     @ObservationIgnored @Dependency(HealthKit.self) private var healthKit
     @ObservationIgnored @Dependency(LocalStorage.self) private var localStorage
     
+    let checkpointStorageSetting: LocalStorageSetting
+
     /// All export sessions currently known to the Bulk Exporter.
     @MainActor public private(set) var sessions: [any BulkExportSession] = []
     
     /// Create a new Bulk Health Exporter
-    nonisolated public init() {}
+    nonisolated public init() {
+        checkpointStorageSetting = .default
+    }
+
+    nonisolated init(checkpointStorageSetting: LocalStorageSetting) {
+        self.checkpointStorageSetting = checkpointStorageSetting
+    }
     
     @MainActor
     func add(_ session: some BulkExportSession) throws {

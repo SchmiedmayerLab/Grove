@@ -8,7 +8,7 @@
 
 name: Deployment Floor
 
-# Compile-checks that the package still builds at its deployment floor (iOS 15 / macOS 12 / watchOS 8)
+# Compile-checks that the package still builds at the compatibility floors in Package.swift
 # for both a real device and a simulator. Every API newer than the floor is gated behind an
 # `@available(iOS 18, macOS 15, watchOS 11, *)` clause; this job is what proves none was missed. The
 # regular Tests workflow can't catch a missing annotation — it builds at the current OS wave (OS 26),
@@ -37,11 +37,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {platform: iOS, kind: device, name: iOS 15 (device)}
-          - {platform: iOS, kind: simulator, name: iOS 15 (simulator)}
-          - {platform: macOS, kind: native, name: macOS 12}
-          - {platform: watchOS, kind: device, name: watchOS 8 (device)}
-          - {platform: watchOS, kind: simulator, name: watchOS 8 (simulator)}
+          - {platform: iOS, kind: device, name: iOS floor (device)}
+          - {platform: iOS, kind: simulator, name: iOS floor (simulator)}
+          - {platform: macOS, kind: native, name: macOS floor}
+          - {platform: watchOS, kind: device, name: watchOS floor (device)}
+          - {platform: watchOS, kind: simulator, name: watchOS floor (simulator)}
     steps:
       - uses: actions/checkout@v7
       - name: Build ${{matrix.platform}} (${{matrix.kind}}) at the deployment floor
