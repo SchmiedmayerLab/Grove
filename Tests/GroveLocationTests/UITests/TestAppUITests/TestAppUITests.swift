@@ -11,22 +11,17 @@ import XCTestExtensions
 
 
 class TestAppUITests: XCTestCase {
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        
+    override func setUp() {
+        super.setUp()
         continueAfterFailure = false
-        
-        let app = XCUIApplication()
-        
-        #if !os(macOS)
-        app.resetAuthorizationStatus(for: .location)
-        #else
-        app.launch()
-        #endif
     }
     
     func testRequestPermissions() throws {
         let app = XCUIApplication()
+        #if !os(macOS)
+        app.resetAuthorizationStatus(for: .location)
+        #endif
+        app.launch()
         
         XCTAssert(app.staticTexts["Location not available"].waitForExistence(timeout: 3))
         
