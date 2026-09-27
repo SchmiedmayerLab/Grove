@@ -50,7 +50,9 @@ struct UITestsApp: App {
             let persistence: Scheduler.PersistenceConfiguration = .onDisk
             switch persistence {
             case .onDisk(let directory):
-                try! FileManager.default.removeItem(at: directory) // swiftlint:disable:this force_try
+                if FileManaged.default.itemExists(at: directory) {
+                    try! FileManager.default.removeItem(at: directory) // swiftlint:disable:this force_try
+                }
             case .inMemory, .testingContainer:
                 break
             }
