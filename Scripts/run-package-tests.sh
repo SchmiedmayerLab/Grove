@@ -43,10 +43,15 @@ swift --version
 # platform's build, so passing all of them to every invocation is safe.
 TESTING_FLOOR_DEPLOYMENT_TARGETS="IPHONEOS_DEPLOYMENT_TARGET=26.0 MACOSX_DEPLOYMENT_TARGET=26.0 WATCHOS_DEPLOYMENT_TARGET=26.0 TVOS_DEPLOYMENT_TARGET=26.0 XROS_DEPLOYMENT_TARGET=26.0"
 
+# Apple tests run on Apple Silicon Macs or simulators. Restrict host tools as well as test targets;
+# device architecture coverage, including watchOS arm64_32, remains in build-floor.py.
+TESTING_ARCHITECTURES="ARCHS=arm64"
+
 # The optional integrations (Textual, MLX, ResearchKit) are behind default-off package traits so that
 # an iOS-15 consumer's default graph stays lean. Tests exercise the FULL feature set, so enable all
 # traits for the test build (the manifest reads this env var; per-platform `.when(platforms:)`
 # conditions still keep watchOS-/macOS-incompatible deps out of those platforms' graphs).
+export GROVE_LOWERED_DEPLOYMENT_TARGETS=0
 export GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS=1
 
 # DocC catalogs are never needed to compile or run the tests. Excluding them from the test build
@@ -125,10 +130,10 @@ platforms_for() { case "$1" in
 
 dest() { case "$1" in
   iOS)          echo "platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5" ;;
-  iPadOS)       echo "platform=iOS Simulator,name=iPad Pro 13-inch (M4)" ;;
+  iPadOS)       echo "platform=iOS Simulator,name=iPad Pro 13-inch (M4),OS=26.5" ;;
   macOS)        echo "platform=macOS,arch=arm64" ;;
   macCatalyst)  echo "platform=macOS,arch=arm64,variant=Mac Catalyst" ;;
-  watchOS)      echo "platform=watchOS Simulator,name=Apple Watch Series 11 (46mm)" ;;
+  watchOS)      echo "platform=watchOS Simulator,name=Apple Watch Series 11 (46mm),OS=26.5" ;;
   visionOS)     echo "platform=visionOS Simulator,name=Apple Vision Pro" ;;
   tvOS)         echo "platform=tvOS Simulator,name=Apple TV 4K (3rd generation)" ;;
   *) echo "unknown platform: $1" >&2; exit 2 ;;
@@ -182,7 +187,7 @@ run() { # <package> <platform> [mode: "ui"]
       # Requires the `firebase` CLI (firebase-tools) on the runner — as the upstream CI also relied on.
       local root; root="$(pwd)"
       ( cd "$uidir" \
-        && firebase emulators:exec "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -parallel-testing-enabled NO -resultBundlePath '$root/$result' -derivedDataPath '$DERIVED_DATA_PATH' -skipMacroValidation -skipPackagePluginValidation $TESTING_FLOOR_DEPLOYMENT_TARGETS" ) \
+        && firebase emulators:exec "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -parallel-testing-enabled NO -resultBundlePath '$root/$result' -derivedDataPath '$DERIVED_DATA_PATH' -skipMacroValidation -skipPackagePluginValidation $TESTING_ARCHITECTURES $TESTING_FLOOR_DEPLOYMENT_TARGETS" ) \
       | beautify
       return
     fi
@@ -198,6 +203,7 @@ run() { # <package> <platform> [mode: "ui"]
       -skipPackagePluginValidation \
       -derivedDataPath "$DERIVED_DATA_PATH" \
       -packageCachePath "$PACKAGE_CACHE_PATH" \
+      "$TESTING_ARCHITECTURES" \
       $TESTING_FLOOR_DEPLOYMENT_TARGETS \
     | beautify
     return
@@ -255,6 +261,7 @@ run() { # <package> <platform> [mode: "ui"]
       -skipPackagePluginValidation \
       -derivedDataPath "$DERIVED_DATA_PATH" \
       -packageCachePath "$PACKAGE_CACHE_PATH" \
+      "$TESTING_ARCHITECTURES" \
       $TESTING_FLOOR_DEPLOYMENT_TARGETS \
     | beautify || rc=1
     if [ -d "$part_path" ]; then

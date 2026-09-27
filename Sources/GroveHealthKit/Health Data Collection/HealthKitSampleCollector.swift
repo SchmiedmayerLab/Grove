@@ -86,7 +86,7 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
         do {
             if deliverySetting.continueInBackground {
                 // set up a background query
-                let queryInvalidator = try await healthStore.startBackgroundDelivery(for: [sampleType.hkSampleType]) { [weak self] result in
+                let queryInvalidator = try await healthStore.startBackgroundDelivery(for: sampleType.hkSampleType) { [weak self] result in
                     guard let self, self.isActive else {
                         // if the sample collector has been turned off, we don't want to process these.
                         return
@@ -94,8 +94,7 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
                     await self.handleBackgroundDelivery(result, logger: logger)
                 }
                 guard isActive else {
-                    await queryInvalidator.invalidateAndWait()
-                    await healthStore.disableBackgroundDelivery(for: [sampleType.hkSampleType])
+                    await stopBackgroundDelivery(queryInvalidator)
                     return
                 }
                 queryVariant = .backgroundDelivery(queryInvalidator)
@@ -163,8 +162,7 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
             task.cancel()
             _ = await task.result
         case .backgroundDelivery(let invalidator):
-            await invalidator.invalidateAndWait()
-            await healthStore.disableBackgroundDelivery(for: [sampleType.hkSampleType])
+            await stopBackgroundDelivery(invalidator)
         }
         let backgroundRetryTask = exchange(&backgroundRetryTask, with: nil)
         backgroundRetryRequested = false
@@ -175,6 +173,25 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
         // exits would let its anchor compare/exchange restore the cursor after reset.
         await querySerialization.wait()
         querySerialization.signal()
+    }
+
+
+    @MainActor
+    private func stopBackgroundDelivery(_ invalidator: HKHealthStore.BackgroundObserverQueryInvalidator) async {
+        await invalidator.invalidateAndWait()
+        // Match the types enabled by startBackgroundDelivery: a logical sample type can register
+        // several underlying types, all of which need to release this collector's ownership.
+        let objectTypes = sampleType.hkSampleType.effectiveObjectTypesForAuthorization
+            .compactMap { $0 as? HKSampleType }
+        for objectType in objectTypes {
+            do {
+                try await healthStore.disableBackgroundDelivery(for: objectType)
+            } catch {
+                healthKit.logger.error(
+                    "Failed to disable background delivery for \(objectType.identifier); error type: \(String(reflecting: type(of: error)), privacy: .public)"
+                )
+            }
+        }
     }
 
 

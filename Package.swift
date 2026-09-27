@@ -17,17 +17,16 @@ import PackageDescription
 /// Toggle SwiftLint by setting this to `true`.
 let enableSwiftLint = false
 
-// Lowered (iOS 15 / macOS 12 / watchOS 8) deployment targets are OFF by default, so the default
-// package graph may depend on iOS-18+-only dependencies. The deployment-floor CI legs
-// (Scripts/build-floor.sh) opt in via this environment variable; the planned iOS-15 mirror repo
-// instead flips the default (and disables all traits).
-let isLoweredDeploymentTargetEnabled = Context.environment["GROVE_LOWERED_DEPLOYMENT_TARGETS"] == "1"
+// Lowered deployment targets (iOS 15 / macOS 12 / watchOS 9) are temporarily enabled for the study app,
+// with default traits disabled. Set GROVE_LOWERED_DEPLOYMENT_TARGETS=0 to use the standard configuration.
+// Regular tests use the standard configuration; Scripts/build-floor.sh checks the lowered targets.
+let isLoweredDeploymentTargetEnabled = Context.environment["GROVE_LOWERED_DEPLOYMENT_TARGETS"] != "0"
 
 // FHIRModels >= 0.9 cannot link for armv7k: its struct-based models exceed the 32-bit Mach-O
 // scattered-relocation limit, and the App Store rejects watchOS-8-target binaries that lack the
 // armv7k slice (ITMS-90733) — so no watchOS-8 consumer could ever ship the FHIR stack anyway.
 // In the lowered configuration the FHIRModels dependency (and, transitively, every target whose
-// closure embeds it) is therefore unavailable on watchOS; everything else keeps the watchOS 8 floor.
+// closure embeds it) is therefore unavailable on watchOS; everything else keeps the watchOS 9 floor.
 // The floor-build analyzer (Scripts/build-floor.sh) understands this convention: an *external*
 // product dependency carrying a platform-only condition marks its target as unsupported on the
 // excluded platforms.
@@ -171,7 +170,7 @@ var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/huggingface/swift-transformers.git", from: "1.0.0"),
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing.git", from: "1.19.2"),
     .package(url: "https://github.com/SchmiedmayerLab/ResearchKit.git", "3.1.4"..<"3.2.0"),
-    .package(url: "https://github.com/swiftlang/swift-syntax.git", "602.0.0"..<"604.0.0"),
+    .package(url: "https://github.com/swiftlang/swift-syntax.git", "603.0.0"..<"605.0.0"),
     .package(url: "https://github.com/dfed/swift-testing-expectation.git", .upToNextMinor(from: "0.1.4")),
     .package(url: "https://github.com/techprimate/TPPDF.git", from: "2.6.1"),
     .package(url: "https://github.com/SchmiedmayerLab/zstd.git", exact: "1.5.8-beta.1")
@@ -2032,6 +2031,13 @@ targets += [
     )
 ]
 #endif
+
+// Scripts/build-floor.sh selects the library targets supported by each platform. Expose them as one
+// CI-only product so Xcode can build their combined dependency graph in a single invocation.
+if let floorBuildTargets = Context.environment["GROVE_FLOOR_BUILD_TARGETS"], !floorBuildTargets.isEmpty {
+    precondition(isLoweredDeploymentTargetEnabled, "The deployment-floor product requires lowered deployment targets")
+    products.append(.library(name: "GroveDeploymentFloor", targets: floorBuildTargets.split(separator: ",").map(String.init)))
+}
 
 let package = Package(
     name: "Grove",

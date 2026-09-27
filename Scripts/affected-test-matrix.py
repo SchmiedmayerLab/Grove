@@ -20,18 +20,17 @@
 #                    ["unit", "ui"]. Optional; default ["ui"] (= today's behavior). Linux unit jobs
 #                    always run on GitHub-hosted ubuntu regardless (the self-hosted runner is macOS).
 #   extra_runner_labels = additional runner labels to require for this package's self-hosted jobs, on
-#                    top of the temporary base ["self-hosted", "macOS", "stanford"]. Optional; default []. Emitted per job as
-#                    `selfHostedLabels` for the workflow's `runs-on` (e.g. ["python3.11+"] pins the
-#                    jobs to a self-hosted runner with a new-enough Python).
+#                    top of the base ["self-hosted", "macOS"]. Optional; default []. Emitted per job as
+#                    `selfHostedLabels` for the workflow's `runs-on`.
 # The dir -> package map used for change detection is derived from each package's targets+tests.
 #
 # Usage:
 #   affected-test-matrix.py <changed-files.txt>     # one path per line; or the literal __ALL__
 #   git diff --name-only A B | affected-test-matrix.py
 # The workflow always supplies SwiftPM `dump-package` JSON for the head revision, and for the base
-# revision as well when Package.swift changed. A changed source or test file schedules the package
-# that owns its target plus every package that consumes that target, transitively, so a change in a
-# shared module runs exactly what builds on it. Without the head graph the owner alone is scheduled.
+# revision as well when Package.swift changed. A changed source or test file schedules its owning
+# package. Set INCLUDE_TRANSITIVE_CONSUMERS below to True to also schedule every package consuming
+# that target, transitively. Without the head graph the owner alone is scheduled in either mode.
 #
 # Only a manifest change the graph diff cannot classify runs the whole matrix; no lockfile is
 # tracked (Package.resolved is ignored). Changes to the test workflow, the shared actions,
@@ -40,8 +39,8 @@
 # exercises every job variant without repeating it for every package. An unknown script under
 # Scripts/ is an error until it is classified below, as a new target must be assigned to a package.
 # The workflow temporarily passes --ignore-manifest-and-ci-changes to suspend selection from manifest
-# and shared CI edits. Source/test dependency selection, explicit __ALL__ runs and the conformance job
-# an edit to the test workflow reaches remain enabled.
+# and shared CI edits. Source/test selection, explicit __ALL__ runs and FHIR conformance on
+# test-workflow edits remain enabled.
 #
 # Emits (to stdout, GITHUB_OUTPUT format):
 #   matrix={"include":[{"package":"GroveAccount","platform":"macOS","selfHosted":false,"selfHostedLabels":"[...]"}, ...]}  # unit
@@ -101,9 +100,15 @@ INFRASTRUCTURE_PATHS = {
 # These scripts have their own static-analysis or deployment-floor checks. Editing them cannot alter
 # a package's unit/UI behavior, so they should not fan out into the package test matrix.
 NON_TEST_SCRIPT_PATHS = {
+    "Scripts/APPLE15_RELEASES.md",
     "Scripts/affected-test-matrix.py",
+    "Scripts/apple15-release.py",
+    "Scripts/build-documentation.py",
+    # The deleted shell entry points still appear in diffs against pre-migration branches.
     "Scripts/build-documentation.sh",
+    "Scripts/build-floor.py",
     "Scripts/build-floor.sh",
+    "Scripts/build_support.py",
     "Scripts/check-documentation-targets.py",
     "Scripts/check-gyb-output.sh",
     "Scripts/ci-dryrun.sh",
@@ -141,6 +146,11 @@ FHIR_COMPONENT_PACKAGES = {
     "sensor": {"GroveSensorKit", "GroveSensorKitFHIR"},
 }
 ALL_FHIR_COMPONENTS = set(FHIR_COMPONENT_PACKAGES)
+
+# TEMPORARY: source/test edits run only their owning packages' unit and UI tests. Set True to
+# restore testing of all transitive consumers. Explicit full runs and manifest/infrastructure
+# selection retain their own rules; an unclassified source/test directory still runs everything.
+INCLUDE_TRANSITIVE_CONSUMERS = False
 
 # TEMPORARY: limit UNIT-test scheduling to these platforms (macCatalyst/visionOS/tvOS excluded for
 # now — remove from this tuple to restore). Linux runs on GitHub-hosted ubuntu.
@@ -557,7 +567,7 @@ def main():
         if len(parts) >= 2 and parts[0] in ("Sources", "Tests"):
             if parts[0] == "Sources" and any(part.endswith(".docc") for part in parts):
                 continue
-            packages = packages_consuming(parts[1], head_dump) if head_dump else None
+            packages = packages_consuming(parts[1], head_dump) if INCLUDE_TRANSITIVE_CONSUMERS and head_dump else None
             if packages is None:
                 owner = DIR2PKG.get(parts[1])
                 packages = {owner} if owner else None
@@ -586,11 +596,7 @@ def main():
         self_hosted = info.get("self-hosted-ci", ["ui"])
         # Self-hosted runner label set for this package: base labels + any package-specific extras,
         # emitted as a JSON string the workflow's `runs-on` reads via fromJson(matrix.selfHostedLabels).
-        # TEMPORARY: every Xcode test job resolves the shared package graph, including Google's Firebase
-        # binaries, even when its tested product does not use Firebase. Keep those downloads on Stanford
-        # runners until they work reliably on the other self-hosted machines. Manifest-only detection
-        # does not resolve dependencies and keeps its existing runner requirements.
-        self_hosted_labels = json.dumps(["self-hosted", "macOS", "stanford"] + list(info.get("extra_runner_labels", [])))
+        self_hosted_labels = json.dumps(["self-hosted", "macOS"] + list(info.get("extra_runner_labels", [])))
         for platform in info["platforms"]:
             if platform in CI_PLATFORMS:  # TEMPORARY unit-test platform limit (see CI_PLATFORMS above)
                 # Linux unit jobs always use GitHub-hosted ubuntu (the self-hosted runner is macOS).
