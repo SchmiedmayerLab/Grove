@@ -147,6 +147,7 @@ export GROVE_EXCLUDE_DOCC_CATALOGS=0
 export LLVM_PROFILE_FILE="${LLVM_PROFILE_FILE:-$DOC_OUTPUT_DIR/default-%p.profraw}"
 
 echo "Building DocC documentation for scheme '$DOC_SCHEME' with all default package traits enabled."
+# Documentation uses an Apple Silicon simulator; build its libraries and host tools for one architecture.
 if ! xcodebuild \
     -scheme "$DOC_SCHEME" \
     -destination "$DOC_DESTINATION" \
@@ -154,6 +155,7 @@ if ! xcodebuild \
     -skipPackageUpdates \
     -skipPackagePluginValidation \
     -skipMacroValidation \
+    ARCHS=arm64 \
     IPHONEOS_DEPLOYMENT_TARGET="$DOC_DEPLOYMENT_TARGET" \
     docbuild \
     2>&1 \

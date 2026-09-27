@@ -210,6 +210,8 @@ BUILD_ARGS=(build
   -configuration Debug
   -derivedDataPath "$DD"
   -skipMacroValidation -skipPackagePluginValidation
+  # Skip Intel host tools without restricting device architectures such as watchOS arm64_32.
+  EXCLUDED_ARCHS=x86_64
 )
 if [ "$KIND" = simulator ] && [ "$PLATFORM" != macOS ]; then
   # Intel simulators are outside this check's scope. Preserve device architectures, including

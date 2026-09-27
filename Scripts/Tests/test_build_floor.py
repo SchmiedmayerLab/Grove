@@ -169,6 +169,8 @@ class FloorBuildTests(unittest.TestCase):
                 self.assertEqual(args[args.index("-destination") + 1], destination)
                 architecture = [arg for arg in args if arg.startswith("ARCHS=")]
                 self.assertEqual(architecture, ["ARCHS=arm64"] if platform != "macOS" and kind == "simulator" else [])
+                excluded = [arg for arg in args if arg.startswith("EXCLUDED_ARCHS=")]
+                self.assertEqual(excluded, ["EXCLUDED_ARCHS=x86_64"])
                 selected = set(builds[0]["env"]["GROVE_FLOOR_BUILD_TARGETS"].split(","))
                 expected = self.modules(platform) - {"Base", "FHIR"}
                 self.assertEqual(selected, expected)
