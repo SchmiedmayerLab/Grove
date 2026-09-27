@@ -216,7 +216,11 @@ extension BulkExportSessionImpl {
         let popBatch = { @MainActor @Sendable (batch: ExportBatch, result: Result<Void, any Error>) in
             // Remove the original batch synchronously; its result is part of its hash.
             defer { self.currentBatches.remove(batch) }
-            self.descriptor.finishBatch(batch, result: result)
+            self.descriptor.finishBatch(
+                batch,
+                result: result,
+                cancellationWasRequested: self.pendingStateChangeRequest != nil
+            )
         }
         
         /// processes a single batch

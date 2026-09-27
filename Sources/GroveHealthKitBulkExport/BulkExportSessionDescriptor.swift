@@ -80,7 +80,11 @@ struct ExportSessionDescriptor: Codable {
     }
     
     /// Updates both batch lists together so persistence sees a complete transition.
-    mutating func finishBatch(_ originalBatch: ExportBatch, result: Result<Void, any Error>) {
+    mutating func finishBatch(
+        _ originalBatch: ExportBatch,
+        result: Result<Void, any Error>,
+        cancellationWasRequested: Bool
+    ) {
         guard let index = pendingBatches.firstIndex(of: originalBatch) else {
             preconditionFailure("Unable to find to-be-removed batch")
         }
@@ -90,8 +94,8 @@ struct ExportSessionDescriptor: Codable {
             batch.result = .success
             completedBatches.append(batch)
         case .failure(let error):
-            if error is CancellationError {
-                // Cancellation leaves the batch pending so it can be retried, rather than marking it failed.
+            if error is CancellationError && cancellationWasRequested {
+                // A requested pause or termination leaves canceled work pending for resumption.
                 batch.result = nil
                 pendingBatches.insert(batch, at: 0)
             } else {

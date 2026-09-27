@@ -151,7 +151,7 @@ struct BulkExporterAPITests {
         var descriptor = ExportSessionDescriptor(sessionId: sessionID, startDate: .absolute(.distantPast), endDate: .now)
         let batch = ExportBatch(sampleType: SampleType.stepCount, timeRange: Date(timeIntervalSince1970: 0)..<Date(timeIntervalSince1970: 1))
         descriptor.pendingBatches = [batch]
-        descriptor.finishBatch(batch, result: .success(()))
+        descriptor.finishBatch(batch, result: .success(()), cancellationWasRequested: false)
         try storage.store(descriptor, for: checkpointKey)
         let fail = Mutex(true)
         let writes = Mutex(0)

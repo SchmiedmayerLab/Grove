@@ -32,8 +32,8 @@ struct BulkExportPersistenceTests {
         var checkpoints: [ExportSessionDescriptor] = []
     }
 
-    @Test(arguments: Outcome.allCases)
-    func completedTransitionPreservesEveryBatch(_ outcome: Outcome) {
+    @Test(arguments: Outcome.allCases, [false, true])
+    func completedTransitionPreservesEveryBatch(_ outcome: Outcome, cancellationWasRequested: Bool) {
         let first = ExportBatch(sampleType: SampleType.stepCount, timeRange: Date(timeIntervalSince1970: 0)..<Date(timeIntervalSince1970: 100))
         let second = ExportBatch(sampleType: SampleType.stepCount, timeRange: first.timeRange.upperBound..<Date(timeIntervalSince1970: 200))
         var descriptor = ExportSessionDescriptor(sessionId: .init(UUID().uuidString), startDate: .absolute(first.timeRange.lowerBound), endDate: second.timeRange.upperBound)
@@ -44,26 +44,43 @@ struct BulkExportPersistenceTests {
         case .cancellation: .failure(CancellationError())
         }
         var recorder = CheckpointRecorder(descriptor: descriptor)
-        recorder.descriptor.finishBatch(first, result: result)
+        recorder.descriptor.finishBatch(first, result: result, cancellationWasRequested: cancellationWasRequested)
         #expect(recorder.checkpoints.count == 1)
         #expect(recorder.checkpoints.allSatisfy { $0.pendingBatches.count + $0.completedBatches.count == 2 })
         descriptor = recorder.descriptor
-        switch outcome {
-        case .success:
+        switch (outcome, cancellationWasRequested) {
+        case (.success, _):
             #expect(descriptor.completedBatches.count == 1)
             #expect(descriptor.completedBatches.first?.result == .success)
             #expect(descriptor.pendingBatches == [second])
-        case .failure:
+        case (.failure, _), (.cancellation, false):
             #expect(descriptor.completedBatches.isEmpty)
             #expect(descriptor.pendingBatches.last?.result?.isFailure == true)
             descriptor.unmarkAllFailedBatches()
             #expect(descriptor.pendingBatches == [second, first])
-        case .cancellation:
+        case (.cancellation, true):
             #expect(descriptor.completedBatches.isEmpty)
             #expect(descriptor.pendingBatches == [first, second])
         }
         #expect(descriptor.pendingBatches.count + descriptor.completedBatches.count == 2)
         #expect(Set((descriptor.pendingBatches + descriptor.completedBatches).map(\.timeRange)) == [first.timeRange, second.timeRange])
+    }
+
+    @Test
+    func independentCancellationCanBeRetried() {
+        let batch = ExportBatch(sampleType: SampleType.stepCount, timeRange: Date(timeIntervalSince1970: 0)..<Date(timeIntervalSince1970: 100))
+        var descriptor = ExportSessionDescriptor(sessionId: .init(UUID().uuidString), startDate: .absolute(batch.timeRange.lowerBound), endDate: batch.timeRange.upperBound)
+        descriptor.pendingBatches = [batch]
+        descriptor.finishBatch(batch, result: .failure(CancellationError()), cancellationWasRequested: false)
+        #expect(descriptor.pendingBatches.first?.result?.isFailure == true)
+        #expect(descriptor.completedBatches.isEmpty)
+
+        descriptor.unmarkAllFailedBatches()
+        #expect(descriptor.pendingBatches == [batch])
+        descriptor.finishBatch(batch, result: .success(()), cancellationWasRequested: false)
+        #expect(descriptor.pendingBatches.isEmpty)
+        #expect(descriptor.completedBatches.count == 1)
+        #expect(descriptor.completedBatches.first?.result == .success)
     }
 
     @Test
