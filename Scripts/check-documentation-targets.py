@@ -23,7 +23,12 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def library_products() -> list[str]:
     manifest = (ROOT / "Package.swift").read_text()
-    return re.findall(r'\.library\(name:\s*"([^"]+)"', manifest)
+    # This aggregate exists only when build-floor.sh opts in; consumers and documentation builds
+    # see the individual library products instead.
+    return [
+        name for name in re.findall(r'\.library\(name:\s*"([^"]+)"', manifest)
+        if name != "GroveDeploymentFloor"
+    ]
 
 
 def documentation_targets() -> list[str]:
