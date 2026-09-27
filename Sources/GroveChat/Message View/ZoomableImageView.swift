@@ -1,0 +1,154 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+#if os(iOS) || os(visionOS)
+import SwiftUI
+import UIKit
+
+
+/// A picture that opens fitted to the screen and zooms the way Photos does: pinch up to four times that, double
+/// tap between fitted and doubled, always centred.
+@available(iOS 18, visionOS 2, *)
+struct ZoomableImageView: UIViewRepresentable {
+    /// The representable is updated before the view has a size, so the fit has to follow layout.
+    final class ScrollView: UIScrollView {
+        var onLayout: (() -> Void)?
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            onLayout?()
+        }
+
+        override func safeAreaInsetsDidChange() {
+            super.safeAreaInsetsDidChange()
+            onLayout?()
+        }
+    }
+
+    final class Coordinator: NSObject, UIScrollViewDelegate {
+        var imageView: UIImageView?
+        var fitted = false
+        private var fittedSize = CGSize.zero
+        private var fittedInsets = UIEdgeInsets.zero
+        private var isFitting = false
+
+        /// The part of the view not under the bars: the picture opens fitted into this, and is centred in it, while
+        /// the view itself reaches under the bars so that they sit over the picture once it is zoomed.
+        private func safeBounds(of scrollView: UIScrollView) -> CGRect {
+            scrollView.bounds.inset(by: scrollView.safeAreaInsets)
+        }
+
+        /// Sizes the image to the scroll view and starts from the fitted scale; re-fits when the bounds change.
+        ///
+        /// The frame is only ever set at a zoom scale of 1: a zoomed scroll view scales its content view through its
+        /// transform, and a frame assigned underneath that transform inflates the bounds by the inverse scale, which
+        /// shows the picture at pixel size with no way to zoom back out. Assigning the zoom scale lays out again, so
+        /// the method also guards against re-entering itself.
+        func fit(_ scrollView: UIScrollView) {
+            let bounds = safeBounds(of: scrollView)
+            guard !isFitting, let imageView, let image = imageView.image, bounds.size != .zero, !bounds.isEmpty,
+                  !fitted || bounds.size != fittedSize || scrollView.safeAreaInsets != fittedInsets else {
+                return
+            }
+            isFitting = true
+            defer { isFitting = false }
+            scrollView.minimumZoomScale = 1
+            scrollView.maximumZoomScale = 1
+            scrollView.zoomScale = 1
+            imageView.frame = CGRect(origin: .zero, size: image.size)
+            scrollView.contentSize = image.size
+            let fittingScale = min(bounds.width / image.size.width, bounds.height / image.size.height)
+            scrollView.minimumZoomScale = fittingScale
+            scrollView.maximumZoomScale = fittingScale * ZoomableImageView.maximumZoomMultiplier
+            scrollView.zoomScale = fittingScale
+            center(scrollView)
+            fitted = true
+            // Scrolling and centering change bounds.origin without changing the available viewport.
+            fittedSize = bounds.size
+            fittedInsets = scrollView.safeAreaInsets
+        }
+
+        func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+            imageView
+        }
+
+        func scrollViewDidZoom(_ scrollView: UIScrollView) {
+            center(scrollView)
+        }
+
+        @objc
+        func toggleZoom(_ gesture: UITapGestureRecognizer) {
+            guard let scrollView = gesture.view as? UIScrollView else {
+                return
+            }
+            if scrollView.zoomScale > scrollView.minimumZoomScale {
+                scrollView.setZoomScale(scrollView.minimumZoomScale, animated: true)
+            } else {
+                let scale = scrollView.minimumZoomScale * 2
+                let point = gesture.location(in: imageView)
+                let size = CGSize(width: scrollView.bounds.width / scale, height: scrollView.bounds.height / scale)
+                let origin = CGPoint(x: point.x - size.width / 2, y: point.y - size.height / 2)
+                scrollView.zoom(to: CGRect(origin: origin, size: size), animated: true)
+            }
+        }
+
+        /// Keeps a picture smaller than the safe area in its middle rather than in the top-left corner.
+        private func center(_ scrollView: UIScrollView) {
+            let safe = safeBounds(of: scrollView)
+            let insets = scrollView.safeAreaInsets
+            let horizontal = max(0, (safe.width - scrollView.contentSize.width) / 2)
+            let vertical = max(0, (safe.height - scrollView.contentSize.height) / 2)
+            scrollView.contentInset = UIEdgeInsets(
+                top: insets.top + vertical,
+                left: insets.left + horizontal,
+                bottom: insets.bottom + vertical,
+                right: insets.right + horizontal
+            )
+        }
+    }
+
+    private static let maximumZoomMultiplier: CGFloat = 4
+
+    let image: UIImage
+
+    func makeUIView(context: Context) -> ScrollView {
+        let scrollView = ScrollView()
+        scrollView.delegate = context.coordinator
+        scrollView.onLayout = { [weak scrollView, coordinator = context.coordinator] in
+            if let scrollView {
+                coordinator.fit(scrollView)
+            }
+        }
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.bouncesZoom = true
+        let imageView = UIImageView(image: image)
+        imageView.contentMode = .scaleAspectFit
+        scrollView.addSubview(imageView)
+        context.coordinator.imageView = imageView
+        let doubleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.toggleZoom(_:)))
+        doubleTap.numberOfTapsRequired = 2
+        scrollView.addGestureRecognizer(doubleTap)
+        return scrollView
+    }
+
+    func updateUIView(_ scrollView: ScrollView, context: Context) {
+        let imageView = context.coordinator.imageView
+        if imageView?.image !== image {
+            imageView?.image = image
+            context.coordinator.fitted = false
+        }
+        context.coordinator.fit(scrollView)
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+}
+#endif

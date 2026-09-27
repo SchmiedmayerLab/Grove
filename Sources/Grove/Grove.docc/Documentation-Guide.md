@@ -70,7 +70,15 @@ The document MUST be configured to automatically load the appropriate image, e.g
 ```
 and using the [DocC Image naming schemes](https://developer.apple.com/documentation/docc/image#Provide-Image-Variants).
 
-User interface screenshots MUST include a device frame, e.g., using [ControlRoom](https://github.com/twostraws/ControlRoom) or other software solutions. The background of the images MUST be transparent to use the background color of the documentation document or README.
+User interface screenshots MUST include a device frame on a transparent background, so they take the background color of the documentation page or README.
+
+Screenshots are not taken by hand. Every UI test bundle that documents its target carries a `DocumentationScreenshots` test that walks the test app to each state worth showing and prints `CAPTURE <Name>` there; `Scripts/documentation-screenshots.sh` runs these tests in light and dark appearance, shoots the simulator through RocketSim on every marker, and installs the captures as `<Name>.png` and `<Name>~dark.png` in the target's DocC resources, reduced to a 256-color palette at full resolution. The walk skips itself in a regular test run; only the script sets `GROVE_DOCUMENTATION_SCREENSHOTS` for the test runner. Regenerate a target with
+
+```bash
+Scripts/documentation-screenshots.sh GroveChat
+```
+
+or all of them by passing no target. A test app shows its documentation content behind a `--documentation` launch argument, declared in the test with a `// documentation-screenshots: launch-arguments` line: realistic titles and content, no controls that only exist for testing. A capture that the umbrella page or another module uses too is copied there with a `// documentation-screenshots: copy` line, so one walk keeps every copy current. A view that only a snapshot test renders takes its picture from the test's reference image through a `// documentation-screenshots: snapshot <path> <Name> [<destination>]` line; the image lands as `<Name>.png` in the target's resources, or at the repo-relative destination, and has no dark variant.
 
 
 ### Landing Page

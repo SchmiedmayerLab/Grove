@@ -6,7 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+public import Foundation
+public import GeneratedOpenAIClient
 
 /// Represents the parameters of OpenAIs Realtime LLMs.
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -17,8 +18,27 @@ public struct LLMOpenAIRealtimeParameters: Sendable {
         case gpt4oRealtime = "gpt-4o-realtime-preview"
         case gpt4oRealtime_mini = "gpt-4o-mini-realtime-preview"
         case gptRealtime = "gpt-realtime"
+        case gptRealtimeMini = "gpt-realtime-mini"
+        case gptRealtime_2_1 = "gpt-realtime-2.1"
+        case gptRealtime_2_1_mini = "gpt-realtime-2.1-mini"
 
         // swiftlint:enable identifier_name
+    }
+
+    /// Who configures the session once the socket is open.
+    public enum SessionConfiguration: Sendable {
+        /// The session sends its own `session.update` from these parameters.
+        case client
+        /// The session was pinned when its credential was minted; nothing is sent, so the server's choice stands.
+        case server
+    }
+
+    /// The tool choice of the response requested after a tool call returned its output.
+    public enum FollowUpToolChoice: String, Sendable {
+        case auto
+        /// Lets the model answer from the tool output without calling again, which a session that forces a
+        /// tool on every turn needs to speak at all.
+        case none
     }
     
     public enum OpenAIVoice: String, Sendable {
@@ -38,6 +58,8 @@ public struct LLMOpenAIRealtimeParameters: Sendable {
         case shimmer
         /// Versatile and expressive
         case verse
+        case marin
+        case cedar
         
         public static let `default`: OpenAIVoice = .alloy
     }
@@ -63,6 +85,11 @@ public struct LLMOpenAIRealtimeParameters: Sendable {
     let transcriptionSettings: LLMRealtimeTranscriptionSettings?
     /// The voice to use for the assistant's audio output.
     let voice: OpenAIVoice?
+    let sessionConfiguration: SessionConfiguration
+    let followUpToolChoice: FollowUpToolChoice
+    let overwritingAuthToken: RemoteLLMInferenceAuthToken?
+    let overwritingServerUrl: URL?
+    let transcriptGracePeriod: Duration?
     
     /// Creates the ``LLMOpenAIRealtimeParameters``.
     ///
@@ -73,17 +100,34 @@ public struct LLMOpenAIRealtimeParameters: Sendable {
     ///                            Set to `nil` to disable automatic turn detection and require manual `endUserTurn()` calls.
     ///   - transcriptionSettings: Transcription settings to transcribe user audio input into text. If set, these automatically get appended to the LLMSession's `LLMContext`.
     ///   - voice: The voice to use for the assistant's audio output.
+    ///   - sessionConfiguration: Whether the session configures itself or was pinned when its credential was minted.
+    ///   - followUpToolChoice: The tool choice for the response requested after a tool call returned.
+    ///   - overwritingAuthToken: Separate token that overrides the one defined within the ``LLMOpenAIRealtimePlatform``,
+    ///                           for example an ephemeral client secret minted for this one session.
+    ///   - overwritingServerUrl: Separate endpoint that overrides the platform's, for example the one the secret was minted for.
+    ///   - transcriptGracePeriod: How long a tool call waits for the transcript of the turn it answers, so a tool can
+    ///                            read the participant's words from the context. `nil` runs the tool right away.
     public init(
         modelType: ModelType,
         systemPrompt: String? = Defaults.defaultSystemPrompt,
         turnDetectionSettings: LLMRealtimeTurnDetectionSettings? = Defaults.turnDetectionSettings,
         transcriptionSettings: LLMRealtimeTranscriptionSettings? = Defaults.transcriptionSettings,
-        voice: OpenAIVoice? = Defaults.voice
+        voice: OpenAIVoice? = Defaults.voice,
+        sessionConfiguration: SessionConfiguration = .client,
+        followUpToolChoice: FollowUpToolChoice = .auto,
+        overwritingAuthToken: RemoteLLMInferenceAuthToken? = nil,
+        overwritingServerUrl: URL? = nil,
+        transcriptGracePeriod: Duration? = nil
     ) {
         self.modelType = modelType.rawValue
         self.systemPrompt = systemPrompt
         self.turnDetectionSettings = turnDetectionSettings
         self.transcriptionSettings = transcriptionSettings
         self.voice = voice
+        self.sessionConfiguration = sessionConfiguration
+        self.followUpToolChoice = followUpToolChoice
+        self.overwritingAuthToken = overwritingAuthToken
+        self.overwritingServerUrl = overwritingServerUrl
+        self.transcriptGracePeriod = transcriptGracePeriod
     }
 }

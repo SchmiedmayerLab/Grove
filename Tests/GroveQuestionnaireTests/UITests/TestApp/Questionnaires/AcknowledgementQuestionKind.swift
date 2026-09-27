@@ -27,12 +27,14 @@ struct AcknowledgementQuestionKind: QuestionKindDefinition {
         response: Binding<QuestionnaireResponses.Response>
     ) -> some View {
         Text(config.disclaimerText)
+            .padding(.top, 10)
         Toggle(config.consentButtonTitle, isOn: Binding {
             response.value.boolValue.wrappedValue ?? false
         } set: { newValue in
             response.value.boolValue.wrappedValue = newValue
         })
         .bold()
+        .padding(.vertical, 10)
         .onChange(of: response.value.wrappedValue == .none, initial: true) { _, isUnanswered in
             if isUnanswered {
                 response.value.boolValue.wrappedValue = false

@@ -57,14 +57,6 @@ final class AnnotationHistoryController {
         finishHistoryAction()
     }
 
-    func removeAllActions() {
-        pendingChangeTask?.cancel()
-        pendingChangeTask = nil
-        drawingBeforePendingChange = nil
-        undoManager.removeAllActions()
-        refreshAvailability()
-    }
-
     func drawingDidChange(from previousDrawing: PKDrawing) {
         guard !isPerformingHistoryAction else {
             return

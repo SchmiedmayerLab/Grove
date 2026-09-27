@@ -36,6 +36,7 @@ extension TaskView {
                 } else {
                     TextField("", text: $response, prompt: Text("Your answer", bundle: .module))
                         .frame(minHeight: 44)
+                        .submitLabel(.done)
                 }
             }
             #if os(iOS)
@@ -44,7 +45,6 @@ extension TaskView {
             #endif
             .autocorrectionDisabled(config.disableAutocorrection)
             .accessibilityLabel(label)
-            .enableDismissalViaKeyboardAccessory()
             .padding(.vertical, 8)
         }
 

@@ -19,6 +19,8 @@ struct FilePicker: View {
     enum Item: Sendable {
         case file(URL)
         case photo(PhotosPickerItem)
+        /// A picture the camera took into the temporary directory, to be removed once it is copied.
+        case capture(URL)
     }
     
     private let enabledTypes: Set<UTType>
@@ -26,7 +28,9 @@ struct FilePicker: View {
     private let selectionHandler: @Sendable ([Item]) -> Void
     @State private var isShowingPhotosPicker = false
     @State private var isShowingFileImporter = false
+    #if canImport(UIKit) && !os(watchOS) && !os(visionOS)
     @State private var isShowingCameraSheet = false
+    #endif
     @State private var viewState: ViewState = .idle
     @State private var selectedPhotos: [PhotosPickerItem] = []
     
@@ -37,21 +41,11 @@ struct FilePicker: View {
         Menu {
             importMenuContents
         } label: {
-            HStack {
-                Image(systemName: "plus.circle.fill")
-                    .foregroundStyle(.green)
-                    .accessibilityHidden(true)
-                Text(menuTitle)
-                Spacer()
-                Image(systemName: "chevron.up.chevron.down")
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-            }
-            // No padding of its own: the row is one of the question's card, and an inset here
-            // stepped it in from everything above it.
-            .frame(minHeight: 44)
-            .contentShape(.rect)
+            AnswerPill(text: Text(menuTitle), isPlaceholder: true, symbol: "chevron.up.chevron.down")
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .trailing)
+                .contentShape(.rect)
         }
+        .buttonStyle(.plain)
         .accessibilityIdentifier("FilePickerButton")
         .viewStateAlert(state: $viewState)
         // We need all of these modifiers placed here at the top level, since the buttons that trigger them are in the Menu,
@@ -87,9 +81,19 @@ struct FilePicker: View {
                 viewState = .error(AnyLocalizedError(error: error))
             }
         }
-        .sheet(isPresented: $isShowingCameraSheet) {
-            Text("Not Yet Implemented", bundle: .module)
+        #if canImport(UIKit) && !os(watchOS) && !os(visionOS)
+        .fullScreenCover(isPresented: $isShowingCameraSheet) {
+            CameraPicker { result in
+                switch result {
+                case .success(let url):
+                    selectionHandler([.capture(url)])
+                case .failure(let error):
+                    viewState = .error(AnyLocalizedError(error: error))
+                }
+            }
+            .ignoresSafeArea()
         }
+        #endif
         .onChange(of: selectedPhotos) { _, newValue in
             guard !newValue.isEmpty else {
                 return
@@ -125,13 +129,18 @@ struct FilePicker: View {
     
     @ViewBuilder private var importMenuContents: some View {
         if shouldEnable(.image) || shouldEnable(.movie) {
-            takePhotoButton
+            #if canImport(UIKit) && !os(watchOS) && !os(visionOS)
+            if shouldEnable(.image), CameraPicker.isAvailable {
+                takePhotoButton
+            }
+            #endif
             selectPhotosButton
             Divider()
         }
         importFileButton
     }
     
+    #if canImport(UIKit) && !os(watchOS) && !os(visionOS)
     private var takePhotoButton: some View {
         Button {
             isShowingCameraSheet = true
@@ -139,6 +148,7 @@ struct FilePicker: View {
             Label(LocalizedStringResource("Take Photo", bundle: .module), systemImage: "camera")
         }
     }
+    #endif
     
     private var selectPhotosButton: some View {
         Button {

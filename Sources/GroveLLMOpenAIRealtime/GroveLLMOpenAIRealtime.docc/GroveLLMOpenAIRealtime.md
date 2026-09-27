@@ -31,7 +31,7 @@ You need to add the GroveLLM Swift package to
 
 The core components of the ``GroveLLMOpenAIRealtime`` target are the ``LLMOpenAIRealtimeSchema``, ``LLMOpenAIRealtimeSession`` as well as ``LLMOpenAIRealtimePlatform``. They use the OpenAI Realtime API to enable bidirectional voice conversations with GPT Realtime and similar models.
 
-> Important: To utilize the OpenAI Realtime API, an OpenAI API Key is required. Ensure that the OpenAI account associated with the key has access to the Realtime API models and enough credits to perform the inference.
+> Important: To utilize the OpenAI Realtime API, an OpenAI API Key is required, or an ephemeral client secret that a backend mints, passed as `overwritingAuthToken` when creating ``LLMOpenAIRealtimeParameters``. Ensure that the OpenAI account behind it has access to the Realtime API models and enough credits to perform the inference.
 
 > Tip: To collect the OpenAI API Key from the user, ``GroveLLMOpenAIRealtime`` leverages the `LLMOpenAIAPITokenOnboardingStep` view from `GroveLLMOpenAI` which can be used in the onboarding flow of the application.
 
@@ -105,6 +105,46 @@ struct LLMOpenAIRealtimeDemoView: View {
 }
 ```
 
+#### Server-Configured Sessions
+
+An app that must not hold a long-lived API key can have its backend mint an ephemeral client secret for each session, pinning the model, instructions, and tools at that point. The session then connects with that secret, to the endpoint the secret was minted for, and leaves the configuration alone:
+
+```swift
+let schema = LLMOpenAIRealtimeSchema(
+    parameters: .init(
+        modelType: .gptRealtimeMini,
+        sessionConfiguration: .server,
+        followUpToolChoice: .none,
+        overwritingAuthToken: .closure {
+            // Your own callable; obtain a fresh secret whenever the connection is opened.
+            try? await backend.mintRealtimeSession().clientSecret
+        },
+        overwritingServerUrl: backend.realtimeBaseUrl
+    )
+) {
+    ForwardingTool()
+}
+```
+
+``LLMOpenAIRealtimeParameters/SessionConfiguration/server`` skips the `session.update` the session would otherwise send, so the server's choice stands. ``LLMOpenAIRealtimeParameters/FollowUpToolChoice/none`` asks for the response after a tool result without tools, which a session whose server forces a tool on every turn needs in order to speak the result.
+
+The backend's `realtimeBaseUrl` must be the endpoint for which it mints each secret. The closure is reevaluated on connection setup, including a reconnect after an error; a constant ephemeral secret can expire before a later setup. Returning `nil` reports a missing-token setup error.
+
+With a `transcriptGracePeriod` set, a tool call waits up to that long for pending user transcripts, so a tool can read the participant's own words from ``LLMOpenAIRealtimeSession/context`` instead of the model's paraphrase in its arguments. This uses the transcription configuration confirmed by the server, including for server-configured sessions and manually committed audio turns. Transcription must be enabled on that server session; a timeout or transcription failure lets the tool proceed without a completed transcript. Without a grace period, tools run when the model completes the response containing their calls. All tool results from that response are submitted before requesting one follow-up response.
+
+``LLMOpenAIRealtimeSession/activity()`` reports when the participant starts and stops speaking and when the assistant finishes, so a client can drop audio it still holds when it is interrupted. ``LLMOpenAIRealtimeSession/interject(_:)`` has the assistant say something short outside the conversation, which bridges the wait for a slow tool: the model does not see it as part of the exchange, though what it said still shows up in ``LLMOpenAIRealtimeSession/context`` as an assistant line.
+
+``LLMOpenAIRealtimeSession/generate()`` returns only the text belonging to its requested response and any tool follow-ups. Automatic voice responses and interjections cannot finish that stream or contribute text to it; their output remains available through the session's audio stream and, when `injectIntoContext` is enabled, separate context messages. A generation finishes when its final response completes, and throws when that response is cancelled, fails, or is incomplete, including when no transcript was produced. The audio and activity streams continue to cover the whole session.
+
+For example, an app might provide a spoken update while a weather lookup is running:
+
+1. The app appends a weather question to the context and calls `generate()`.
+2. The model completes a response requesting a weather tool. The tool starts, while `generate()` remains open waiting for the answer.
+3. The app calls `interject("Tell the user you are still checking the weather.")`. This creates a separate response whose words reach the audio stream and local context. Its completion does not finish the pending `generate()` stream.
+4. The tool returns its result, and the session requests a follow-up response belonging to the original generation. `generate()` yields the weather answer and finishes when that response completes.
+
+This sequence needs response ownership even when the responses arrive one after another: one logical generation spans the tool request and its follow-up, with an unrelated interjection in between. Responses can also overlap when the server automatically responds to microphone input while an out-of-band interjection is running. Request metadata and server response IDs keep each generation's text separate; item IDs keep their context messages separate.
+
 #### Context Management
 
 The ``LLMOpenAIRealtimeSession`` maintains conversation history through its ``LLMOpenAIRealtimeSession/context`` property, but the way this context is populated differs based on your usage pattern.
@@ -123,6 +163,8 @@ One of the key features of ``GroveLLMOpenAIRealtime`` is bidirectional audio str
 **Sending User Audio**
 
 User audio can be streamed to the Realtime API using the ``LLMOpenAIRealtimeSession/appendUserAudio(_:)`` method. Audio must be provided as 16-bit PCM mono audio at 24 kHz sample rate.
+
+Start consuming ``LLMOpenAIRealtimeSession/listen()`` and enable microphone forwarding only after the session's ``LLMOpenAIRealtimeSession/state`` becomes ready. Calling `listen()` returns a stream before its asynchronous setup finishes. `appendUserAudio(_:)` sends on the existing connection and does not initialize or reconnect it; sending before setup or after cancellation fails.
 
 ```swift
 // Assuming you have audio data from a microphone

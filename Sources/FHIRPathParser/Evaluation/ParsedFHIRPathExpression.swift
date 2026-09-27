@@ -38,7 +38,8 @@ private let fhirPathParsingLock = NSLock()
 /// Retains the lexer and token stream alongside the parse tree: ANTLR tokens hold
 /// only weak references to their source stream and read their text lazily, so a
 /// bare tree would lose its token text once the parsing locals deallocate.
-public final class ParsedFHIRPathExpression {
+public final class ParsedFHIRPathExpression: @unchecked Sendable {
+    // Only read once parsed: ANTLR looks token text up on each ask and caches nothing on the tree.
     let tree: FHIRPathParser.ExpressionContext
     // periphery:ignore - strong lifetime anchor for ANTLR's weakly referenced token sources
     private let retainedSources: [AnyObject]
@@ -49,6 +50,7 @@ public final class ParsedFHIRPathExpression {
     }
 
     /// Evaluates the expression against the given context.
+    @available(iOS 18, macOS 15, watchOS 11, *)
     public func evaluate(context: FHIRPathEvaluationContext) throws -> [FHIRPathValue] {
         try FHIRPathEvaluator(context: context).evaluate(tree, focus: context.focus)
     }
@@ -56,6 +58,7 @@ public final class ParsedFHIRPathExpression {
     /// Evaluates the expression and applies FHIRPath singleton boolean conversion:
     /// ``FHIRPathBoolean/empty`` for empty, the value for a boolean singleton,
     /// ``FHIRPathBoolean/true`` for any other singleton.
+    @available(iOS 18, macOS 15, watchOS 11, *)
     public func evaluateBoolean(context: FHIRPathEvaluationContext) throws -> FHIRPathBoolean {
         try FHIRPathEvaluator.singletonBoolean(of: evaluate(context: context))
     }
@@ -91,6 +94,7 @@ extension FHIRPathExpression {
     /// (paths, comparisons, arithmetic, boolean logic, and the common collection,
     /// string, math, and aggregate functions, plus SDC's `weight()`); anything
     /// outside it throws rather than mis-evaluating.
+    @available(iOS 18, macOS 15, watchOS 11, *)
     public static func evaluate(expression: String, context: FHIRPathEvaluationContext) throws -> [FHIRPathValue] {
         try parse(expression).evaluate(context: context)
     }
@@ -98,6 +102,7 @@ extension FHIRPathExpression {
     /// Evaluates an expression and applies FHIRPath singleton boolean conversion:
     /// ``FHIRPathBoolean/empty`` for empty, the value for a boolean singleton,
     /// ``FHIRPathBoolean/true`` for any other singleton.
+    @available(iOS 18, macOS 15, watchOS 11, *)
     public static func evaluateBoolean(expression: String, context: FHIRPathEvaluationContext) throws -> FHIRPathBoolean {
         try parse(expression).evaluateBoolean(context: context)
     }

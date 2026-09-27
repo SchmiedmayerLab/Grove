@@ -15,6 +15,8 @@ public import SwiftUI
 
 
 /// Accessory Setup view displayed in a sheet.
+///
+/// ![A sheet asking to pair a discovered accessory.](Pairing)
 @available(iOS 18, macOS 15, watchOS 11, *)
 @available(macOS, unavailable)
 public struct AccessorySetupSheet<Collection: RandomAccessCollection, PairingHint: View>: View where Collection.Element == any PairableDevice {

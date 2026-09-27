@@ -302,6 +302,8 @@ extension XCUIElement {
             typeKey(XCUIKeyboardKey.rightArrow, modifierFlags: .command)
             #endif
         } else {
+            // A field can drop out of the hierarchy for a moment while a keyboard or a scroll animation settles.
+            XCTAssert(waitForExistence(timeout: 5.0), "Text field did not appear.")
             tap()
             #if os(visionOS)
             XCTAssert(app.visionOSKeyboard.wait(for: .runningForeground, timeout: 2.0))

@@ -12,34 +12,39 @@ import XCTGroveQuestionnaire
 
 /// What a page says about itself: what names it, what heads its content, and how far along it is.
 ///
-/// A short name (SDC `shortText`) names the navigation bar and nothing else does; everything the
-/// author wrote reaches the page, so no page can lose a name it was given.
+/// A short name (SDC `shortText`) names the page and nothing else does; everything the author
+/// wrote reaches the page, so no page can lose a name it was given. With the progress bar the navigation
+/// bar names the page; without it the name heads the content and rises into the bar as the page scrolls, so
+/// ``QuestionnaireSheetNavigator/isTitled(_:)`` reads it from either.
 final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
-    /// A group's short name names the bar, and the text it stands for still heads the questions.
+    /// A group's short name names the page, and the text it stands for still heads the questions.
     @MainActor
     func testAGroupsShortNameNamesTheBar() {
         startPageShapes(upTo: "morning-note")
 
-        XCTAssert(questionnaire.navigationBarShows("Mornings"))
+        XCTAssert(questionnaire.isTitled("Mornings"))
+        #if os(iOS)
+        XCTAssert(questionnaire.navigationBarShows("Page Titles"))
+        #endif
         XCTAssert(questionnaire.showsText("Everything you do before you leave the house"))
-        XCTAssertFalse(questionnaire.navigationBarShows("Everything you do before you leave the house"))
+        XCTAssertFalse(questionnaire.isTitled("Everything you do before you leave the house"))
         XCTAssertFalse(questionnaire.sectionIntro.exists)
     }
 
 
-    /// With no short name anywhere on the page, the instrument's own name is what the bar has.
+    /// With no short name anywhere on the page, the instrument's own name is what names it.
     @MainActor
     func testWithoutAShortNameTheInstrumentNamesTheBar() {
         startPageShapes(upTo: "evening-note")
 
-        XCTAssert(questionnaire.navigationBarShows("Page Titles"))
+        XCTAssert(questionnaire.isTitled("Page Titles"))
         XCTAssert(questionnaire.showsText("Evening wind-down"))
-        XCTAssertFalse(questionnaire.navigationBarShows("Evening wind-down"))
+        XCTAssertFalse(questionnaire.isTitled("Evening wind-down"))
     }
 
 
-    /// A name in the bar has to describe everything under it, so two groups head themselves
-    /// on the page and the section's short name takes the bar.
+    /// A page's name has to describe everything under it, so two groups head themselves
+    /// on the page and the section's short name names it.
     ///
     /// The section's own text is a prompt rather than a name, and a prompt stops meaning anything
     /// the moment a bar cuts it — it heads the content, in full.
@@ -47,12 +52,12 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
     func testEachGroupSharingAPageHeadsItself() {
         startPageShapes(upTo: "weekday-note")
 
-        XCTAssert(questionnaire.navigationBarShows("Your Week"))
+        XCTAssert(questionnaire.isTitled("Your Week"))
         XCTAssert(questionnaire.showsText("Weekdays"))
         XCTAssert(questionnaire.showsText("Weekends"))
         XCTAssert(questionnaire.sectionIntro.exists)
         XCTAssertEqual(questionnaire.sectionIntro.label, "How would you describe a normal week for you?")
-        XCTAssertFalse(questionnaire.navigationBarShows("How would you describe a normal week for you?"))
+        XCTAssertFalse(questionnaire.isTitled("How would you describe a normal week for you?"))
     }
 
 
@@ -66,17 +71,18 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
 
         XCTAssert(questionnaire.showsText("Daytime"))
         XCTAssert(questionnaire.showsText("Sleep"))
-        XCTAssert(questionnaire.navigationBarShows("Page Titles"))
+        XCTAssert(questionnaire.isTitled("Page Titles"))
     }
 
 
-    /// The one redundancy worth suppressing: a short name that is the title, word for word.
+    /// A short name that is the group's title, word for word: the bar names the page, and the page does not
+    /// say it again.
     @MainActor
     func testAShortNameIdenticalToTheTitleIsNotRepeatedOnThePage() {
         startPageShapes(upTo: "check-in-note")
 
-        XCTAssert(questionnaire.navigationBarShows("Check-In"))
-        XCTAssertFalse(questionnaire.showsText("Check-In"))
+        XCTAssert(questionnaire.isTitled("Check-In"))
+        XCTAssertEqual(questionnaire.visibleText.count { $0 == "Check-In" }, 0)
     }
 
 
@@ -85,7 +91,7 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
     func testAPageWithNothingNamedOnIt() {
         startPageShapes(upTo: "unnamed-note")
 
-        XCTAssert(questionnaire.navigationBarShows("Page Titles"))
+        XCTAssert(questionnaire.isTitled("Page Titles"))
         XCTAssertFalse(questionnaire.sectionIntro.exists)
     }
 
@@ -120,7 +126,7 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
     }
 
 
-    /// FHIR that authors no `shortText` names every bar after the instrument, and puts each
+    /// FHIR that authors no `shortText` names every page after the instrument, and puts each
     /// group's text on the page it heads.
     @MainActor
     func testFHIRWithoutShortTextKeepsTheInstrumentInTheBar() {
@@ -133,20 +139,20 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
 
         XCTAssert(questionnaire.sectionIntro.waitForExistence(timeout: 10))
         XCTAssertEqual(questionnaire.sectionIntro.label, "Let's talk about ice cream.")
-        XCTAssert(questionnaire.navigationBarShows("Form Example"))
+        XCTAssert(questionnaire.isTitled("Form Example"))
     }
 
 
     /// A group's text is as often the stem its questions hang off as it is a name, and the stem
-    /// has to stay on screen in full or the questions below it stop making sense.
+    /// has to stay on the page in full or the questions below it stop making sense.
     @MainActor
     func testALongGroupTextHeadsTheContentRatherThanTheBar() {
         launchAppAndStartFHIRExample("Generalized Anxiety Disorder - 7")
 
         XCTAssert(questionnaire.sectionIntro.waitForExistence(timeout: 10))
         XCTAssert(questionnaire.sectionIntro.label.hasPrefix("How often have you been bothered"))
-        XCTAssertFalse(questionnaire.navigationBarShows(questionnaire.sectionIntro.label))
-        XCTAssert(questionnaire.navigationBarShows("Generalized Anxiety Disorder - 7"))
+        XCTAssertFalse(questionnaire.isTitled(questionnaire.sectionIntro.label))
+        XCTAssert(questionnaire.isTitled("Generalized Anxiety Disorder - 7"))
     }
 
 
@@ -186,5 +192,44 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
             questionnaire.advance()
         }
         XCTAssert(questionnaire.question(linkId).waitUntilAsked())
+    }
+
+    /// The bar under the navigation bar counts questions and page turns alike: it grows with each answer,
+    /// questions an answer rules out leave the count, turning the page is a step, and the completion page has none.
+    @MainActor
+    func testTheProgressBarFillsAsTheQuestionsAreAnswered() throws {
+        launchAppAndStartExample("Sleep Check-In", in: .swiftDSL)
+        XCTAssert(questionnaire.question("sleep-trouble").waitUntilAsked())
+        XCTAssert(questionnaire.waitUntilProgress(0))
+
+        // One of nine possible questions and a page turn; the answer rules out the four about recent nights.
+        questionnaire.question("sleep-trouble").answer(false)
+        XCTAssert(questionnaire.waitUntilProgress(1 / 6))
+        questionnaire.question("slept-well").enterText("A dark room")
+        XCTAssert(questionnaire.waitUntilProgress(2 / 6))
+        questionnaire.advance()
+        XCTAssert(questionnaire.question("evening-drink").waitUntilAsked())
+        XCTAssert(questionnaire.waitUntilProgress(0.5))
+
+        questionnaire.question("evening-drink").select("Nothing")
+        XCTAssert(questionnaire.waitUntilProgress(0.8))
+        try questionnaire.question("screen-minutes").enterNumber(20)
+        XCTAssert(questionnaire.waitUntilProgress(1))
+        questionnaire.submit()
+        XCTAssert(questionnaire.waitUntilAtCompletionPage())
+        XCTAssert(questionnaire.progressBar.waitForNonExistence(timeout: 3))
+    }
+
+
+    /// A question that takes several answers says so under its title; one that takes a single answer says nothing.
+    @MainActor
+    func testAQuestionWithSeveralAnswersSaysSo() {
+        launchAppAndStartExample("Heart Check-In", in: .swiftDSL)
+        XCTAssert(questionnaire.question("symptoms").waitUntilAsked())
+
+        let hint = questionnaire.question("symptoms").element.staticTexts["SelectionHint"]
+        XCTAssert(hint.exists)
+        XCTAssertEqual(hint.label, "Select all that apply")
+        XCTAssertFalse(questionnaire.question("energy").element.staticTexts["SelectionHint"].exists)
     }
 }

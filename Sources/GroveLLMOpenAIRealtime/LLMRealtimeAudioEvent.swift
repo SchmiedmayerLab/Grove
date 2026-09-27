@@ -7,6 +7,7 @@
 //
 
 package import Foundation
+package import GeneratedOpenAIClient
 package import GroveLLMOpenAI
 
 
@@ -16,11 +17,23 @@ package enum LLMRealtimeAudioEvent: Sendable {
     case audioDone
     case userTranscriptDelta(TranscriptDelta)
     case userTranscriptDone(TranscriptDone)
-    case assistantTranscriptDelta(String)
-    case assistantTranscriptDone(String)
+    case userTranscriptFailed(TranscriptFailed)
+    case assistantTranscriptDelta(AssistantTranscriptDelta)
+    case assistantTranscriptDone(AssistantTranscriptDone)
     case speechStarted(SpeechStarted)
     case speechStopped(SpeechStopped)
-    case functionCallRequested(LLMOpenAIStreamResult.FunctionCall)
+    case userAudioCommitted(String)
+    case inputTranscriptionConfigured(Bool)
+    /// A locally initiated response request now holds the turn and is about to be sent.
+    case responseRequested(ResponseRequest)
+    case responseCreated(Response)
+    case responseDone(Response)
+    /// Registers an event belonging to a generation before the event is sent to the server.
+    case generationEventSent(generationId: String, eventId: String)
+    /// A locally initiated tool or follow-up failed before producing a server response.
+    case generationFailed(generationId: String, error: any Error)
+    /// The server refused one event; the session goes on.
+    case serverError(Components.Schemas.RealtimeServerEventError.errorPayload)
     
     
     public struct TranscriptDone: Sendable, Codable {
@@ -33,6 +46,14 @@ package enum LLMRealtimeAudioEvent: Sendable {
         public let itemId: String
     }
     
+    public struct TranscriptFailed: Sendable, Decodable {
+        enum CodingKeys: String, CodingKey {
+            case itemId = "item_id"
+        }
+
+        public let itemId: String
+    }
+
     public struct TranscriptDelta: Sendable, Codable {
         enum CodingKeys: String, CodingKey {
             case delta

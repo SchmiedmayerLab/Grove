@@ -36,19 +36,19 @@ extension XCUIApplication {
         genderIdentity: String? = nil,
         supplyDateOfBirth: Bool = false
     ) throws {
-        // we access through collectionViews as there is another E-Mail Address and Password field behind the signup sheet
-        XCTAssertTrue(collectionViews.textFields["E-Mail Address"].exists, "Couldn't locate E-Mail Address field")
-        try collectionViews.textFields["E-Mail Address"].enter(value: email)
+        // The setup page behind the sheet has fields of the same names, so everything is looked up inside the form.
+        XCTAssertTrue(signupForm.textFields["E-Mail Address"].exists, "Couldn't locate E-Mail Address field")
+        try signupForm.textFields["E-Mail Address"].enter(value: email)
 
-        XCTAssertTrue(collectionViews.secureTextFields["Password"].exists, "Couldn't locate Password field")
-        try collectionViews.secureTextFields["Password"].enter(value: password)
+        XCTAssertTrue(signupForm.secureTextFields["Password"].exists, "Couldn't locate Password field")
+        try signupForm.secureTextFields["Password"].enter(value: password)
 
         if let name {
             if let firstname = name.givenName {
-                try textFields["enter first name"].enter(value: firstname)
+                try firstNameField.enter(value: firstname)
             }
             if let lastname = name.familyName {
-                try textFields["enter last name"].enter(value: lastname)
+                try lastNameField.enter(value: lastname)
             }
 
 #if os(visionOS)
@@ -77,11 +77,11 @@ extension XCUIApplication {
         // swipeUp doesn't work on visionOS, so we improvise
 
         if staticTexts["Name"].waitForExistence(timeout: 2.0) {
-            XCTAssertTrue(staticTexts["Create a new Account"].exists)
-            staticTexts["Name"].press(forDuration: 0, thenDragTo: staticTexts["Create a new Account"].firstMatch)
+            XCTAssertTrue(staticTexts["Create a New Account"].exists)
+            staticTexts["Name"].press(forDuration: 0, thenDragTo: staticTexts["Create a New Account"].firstMatch)
         } else if staticTexts["Personal Details"].exists {
-            XCTAssertTrue(staticTexts["Create a new Account"].exists)
-            staticTexts["Personal Details"].press(forDuration: 0, thenDragTo: staticTexts["Create a new Account"].firstMatch)
+            XCTAssertTrue(staticTexts["Create a New Account"].exists)
+            staticTexts["Personal Details"].press(forDuration: 0, thenDragTo: staticTexts["Create a New Account"].firstMatch)
         } else {
             XCTFail("Could not scroll on visionOS")
         }
@@ -123,5 +123,26 @@ extension XCUIApplication {
             }
             #endif
         }
+    }
+}
+
+
+extension XCUIApplication {
+    /// The first-name field of the sign-up form and the name editors.
+    public var firstNameField: XCUIElement {
+        textFields["First Name"]
+    }
+
+    /// The last-name field of the sign-up form and the name editors.
+    public var lastNameField: XCUIElement {
+        textFields["Last Name"]
+    }
+}
+
+
+extension XCUIApplication {
+    /// The sign-up form's contents, distinct from the setup page that stays behind its sheet.
+    public var signupForm: XCUIElement {
+        otherElements["Sign-Up Form"]
     }
 }

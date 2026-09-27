@@ -14,25 +14,44 @@ Provides UI components for building chat-based applications.
 
 ## Overview
 
-The ``GroveChat`` module provides views that can be used to implement chat-based use cases, such as a message view or a voice input field.
+The ``GroveChat`` module provides the views of a conversation: the messages, the composer they are written in, and everything a message can carry.
 
 @Row {
     @Column {
-        @Image(source: "ChatView.png", alt: "Screenshot displaying the regular chat view.") {
-            A ``ChatView`` allows you to display a messages in a typical chat-like manner.
+        @Image(source: "Conversation", alt: "Screenshot displaying a conversation about a photographed lab report, with a picture the assistant drew of what lowers LDL cholesterol.") {
+            A ``ChatView`` lays the conversation out the way a messaging app does: Markdown, attached photos and files, and pictures the assistant draws, which grow out of a placeholder as they arrive.
         }
     }
     @Column {
-        @Image(source: "ChatView+TextInput.png", alt: "Screenshot displaying the text input chat view.") {
-            A ``ChatView`` enables the input of new messages via text.
+        @Image(source: "FollowUp", alt: "Screenshot displaying a passage of an answer quoted above the composer, ready for a follow-up question.") {
+            Selecting a passage of an answer offers to follow up on it; the quote sits above the composer and goes out with the next message.
         }
     }
     @Column {
-        @Image(source: "ChatView+VoiceInput.png", alt: "Screenshot displaying the voice input chat view.") {
-            A ``ChatView`` allows users to use their voice for input (speech-to-text).
+        @Image(source: "ImageViewer", alt: "Screenshot displaying the assistant's drawing full screen under a glass bar with a share button.") {
+            Any picture opens full screen, zooms, pages through the message's other pictures and shares as an image.
+        }
+    }
+    @Column {
+        @Image(source: "Composer", alt: "Screenshot displaying the chat view with the keyboard up and a message being typed.") {
+            Messages are typed into the composer, dictated into a recording pill that shows the voice as it is heard, or sent with photos and files attached.
         }
     }
 }
+
+@Row {
+    @Column {
+        @Image(source: "Queue", alt: "Screenshot displaying two messages queued above the composer while the assistant is still answering.") {
+            The composer stays open while an answer arrives: a message sent meanwhile waits in a stack above the field and goes once the answer is in.
+        }
+    }
+    @Column {
+        @Image(source: "QueuedMessages", alt: "Screenshot displaying the queued messages fanned out over the conversation, each with a grip to move it and a pencil to edit it.") {
+            The stack fans out over the conversation to reorder the waiting messages, take one back into the field, or swipe one away.
+        }
+    }
+}
+
 
 ## Setup
 
@@ -140,12 +159,34 @@ Tapping any image in the conversation — attached or generated — opens it ful
 the message's images, and offers the one on screen to the share sheet. A file opens in Quick Look, so every format
 the system can preview works without the chat knowing about any of them.
 
+### Pictures the Assistant Draws
+
+A generated picture arrives in two steps. While the model is still drawing, the message carries
+``ChatEntity/Content-swift.struct/Image/generating``, which the conversation shows as a card of moving dots; when the
+picture is there, the card grows to its size and dissolves into it. Sessions from the
+[GroveLLM](../../GroveLLM/GroveLLM.docc/GroveLLM.md) module manage this for you; a chat that produces its own
+messages appends the placeholder first and replaces it, under the same identifier, once the picture exists.
+
+### Following Up on a Passage
+
+Selecting text in an answer offers a follow-up on it. The passage is quoted above the composer and sent along with
+the next message, so a question can point at exactly the sentence it is about. The option is part of the message
+actions, which ``SwiftUICore/View/chatMessageActions(_:presentation:)`` chooses from; `.followUp` turns it off, or on by itself.
+
 ### Showing Where an Answer Came From
 
 A model that searches the web or reads a document reports what it drew on, and those sources arrive as
 ``ChatEntity/Citation``s on the message. The chat shows them as one quiet line under the answer rather than as
 links through the text; tapping it lists them, and a web source opens in a Safari view without leaving the
 conversation.
+
+@Row {
+    @Column {
+        @Image(source: "Citations", alt: "Screenshot showing an answer followed by the web pages and the file it drew on.") {
+            The sources of an answer sit under it, web pages and files alike, and open on a tap.
+        }
+    }
+}
 
 ```swift
 ChatEntity(
@@ -163,6 +204,14 @@ timer while the model works and as a "Thought for …" disclosure once it finish
 ``ChatEntity/Role-swift.enum/AssistantMessageKind-swift.enum/toolCall`` and
 ``ChatEntity/Role-swift.enum/AssistantMessageKind-swift.enum/toolResponse``.
 
+@Row {
+    @Column {
+        @Image(source: "ToolCall", alt: "Screenshot showing the assistant calling a tool to read health samples before answering.") {
+            A tool call and its result are folded into the conversation above the answer they led to.
+        }
+    }
+}
+
 Use ``MessagesView/MessagesVisibility`` to choose which of these the user sees:
 
 ```swift
@@ -172,8 +221,12 @@ MessagesView($chat, messagesVisibility: .init(hiddenMessages: .all, toolCalls: .
 ### Reporting What the Assistant Is Doing
 
 A ``ChatView`` shows a conversation; it does not run one. Tell it what is happening and it adapts: while an answer
-is in flight the composer will not send a second message, and the send button becomes a stop button when there is
-something to stop.
+is in flight a message sent from the composer is queued rather than sent, shown in a stack above the field and let
+go one per answer once the chat is free, and the send button gets a stop button beside it when there is something
+to stop. Tapping the stack fans the queue out over the conversation, where a message can be moved by its grip,
+taken back into the field with its pencil, or swiped away. Stop pauses the waiting messages until the participant
+chooses Resume Queued Messages. Pass `queuePaused: true` after a failure or an external cancellation to hold the
+queue too, keeping the error visible until the participant chooses what to do next.
 
 ```swift
 struct ConversationView: View {
@@ -183,7 +236,7 @@ struct ConversationView: View {
     var body: some View {
         ChatView($chat)
             .chatEmptyState("Ask About Your Medication", description: "Answers come from your care team's guidance.")
-            .chatGenerating(session.state == .generating) {
+            .chatGenerating(session.state == .generating, queuePaused: lastError != nil) {
                 session.cancel()
             }
             .chatError(lastError) {
@@ -218,7 +271,7 @@ the conversation away — with a retry next to it.
 
 ### Reporting state
 
-- ``SwiftUICore/View/chatGenerating(_:onCancel:)``
+- ``SwiftUICore/View/chatGenerating(_:queuePaused:onCancel:)``
 - ``SwiftUICore/View/chatError(_:retry:)``
 - ``SwiftUICore/View/chatEmptyState(_:description:systemImage:)``
 - ``SwiftUICore/View/chatEmptyState(_:)``

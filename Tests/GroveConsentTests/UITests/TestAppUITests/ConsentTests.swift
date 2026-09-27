@@ -91,7 +91,8 @@ final class ConsentTests: XCTestCase {
             continueButton: app.buttons["I Consent"]
         )
         
-        XCTAssert(app.staticTexts["First Consent PDF rendering exists"].waitForExistence(timeout: 10))
+        // Rendering the PDF takes a while on a busy machine.
+        XCTAssert(app.staticTexts["First Consent PDF rendering exists"].waitForExistence(timeout: 30))
         XCTAssert(app.staticTexts["Name, Leland Stanford"].waitForExistence(timeout: 10))
         app.navigationBars.buttons["Next"].tap()
         

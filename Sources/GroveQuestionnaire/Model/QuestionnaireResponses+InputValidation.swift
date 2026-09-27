@@ -16,19 +16,22 @@ extension QuestionnaireResponses {
         case ok
         /// The response provided for the task is invalid.
         case invalid(message: LocalizedStringResource)
+        /// The response is on its way but not there yet, such as "Other" chosen with nothing typed. Unlike an
+        /// invalid one, the page says so only once the participant tries to move on, as for a missing answer.
+        case incomplete(message: LocalizedStringResource)
         
         var isOk: Bool {
             switch self {
             case .ok:
                 true
-            case .invalid:
+            case .invalid, .incomplete:
                 false
             }
         }
         
         var isInvalid: Bool {
             switch self {
-            case .ok:
+            case .ok, .incomplete:
                 false
             case .invalid:
                 true
@@ -40,6 +43,11 @@ extension QuestionnaireResponses {
         /// - Important: Use this function when creating `invalid` results within the package, to ensure that the localization is picked up correctly.
         static func invalid(message: String.LocalizationValue, bundle: Bundle) -> Self {
             .invalid(message: LocalizedStringResource(message, bundle: bundle))
+        }
+
+        /// Creates a ``incomplete(message:)`` localized to the specified bundle.
+        static func incomplete(message: String.LocalizationValue, bundle: Bundle) -> Self {
+            .incomplete(message: LocalizedStringResource(message, bundle: bundle))
         }
     }
     
@@ -89,7 +97,7 @@ extension QuestionnaireResponses {
                     return .ok
                 }
                 guard !response.isEmpty else {
-                    return .invalid(message: "Missing response text for \"Other\" option", bundle: .module)
+                    return .incomplete(message: "Missing response text for \"Other\" option", bundle: .module)
                 }
                 return .ok
             } else {

@@ -15,7 +15,15 @@ Visualize Health data in your app
 
 ## Overview
 
-Use GroveHealthKitUI's ``HealthChart`` to visualize health data queried via [`GroveHealthKit`](../../GroveHealthKit/GroveHealthKit.docc/GroveHealthKit.md)
+Use GroveHealthKitUI's ``HealthChart`` to visualize health data queried via [`GroveHealthKit`](../../GroveHealthKit/GroveHealthKit.docc/GroveHealthKit.md).
+
+@Row(numberOfColumns: 4) {
+    @Column {
+        @Image(source: "HealthChart", alt: "A line chart of a day of heart rate and blood oxygen samples on the samples query page, one colored line per type with a legend below.") {
+            ``HealthChart`` draws every query it is given as its own line and redraws as the store changes.
+        }
+    }
+}
 
 ## Topics
 

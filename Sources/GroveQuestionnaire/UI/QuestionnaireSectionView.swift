@@ -14,7 +14,7 @@ import SwiftUI
 /// Displays a section of tasks within a questionnaire, as a single page on the navigation stack.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct QuestionnaireSectionView<Header: View>: View {
-    private enum Context {
+    enum Context {
         case regular(questionnaire: Questionnaire)
         case answerNestedQuestions(
             parentTask: Questionnaire.Task,
@@ -24,24 +24,26 @@ struct QuestionnaireSectionView<Header: View>: View {
 
         var allSections: [Questionnaire.Section] {
             switch self {
-            case .regular(let questionnaire):
-                questionnaire.sections
-            case .answerNestedQuestions(parentTask: _, selectedOptionTitle: _, let sections):
-                sections
+            case .regular(let questionnaire): questionnaire.sections
+            case .answerNestedQuestions(parentTask: _, selectedOptionTitle: _, let sections): sections
             }
         }
     }
+
+    /// The room between two cards. Half of it deepens the form's safe area, so a card scrolled to the top stops
+    /// halfway into the gap it shares with the one before rather than against the navigation bar.
+    private static var cardGap: CGFloat { 16 }
 
     @Environment(ManagedNavigationStack.Path.self) private var navigationPath
     @Environment(QuestionnaireResponses.self) private var responses
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let header: Header
-    private let context: Context
+    let context: Context
     private let completionStepConfig: CompletionStepConfig
-    private let questionProgressConfig: QuestionProgressConfig
+    private let progress: QuestionnaireProgress
     private let completionAction: CompletionAction
-    private let section: Questionnaire.Section
+    let section: Questionnaire.Section
     private let resultHandler: @MainActor (QuestionnaireSheet.Result) async throws -> Void
 
     @State private var indicateBlockingTasks = false
@@ -52,32 +54,18 @@ struct QuestionnaireSectionView<Header: View>: View {
     @AccessibilityFocusState private var focusedTask: Questionnaire.Task.ID?
 
     var body: some View {
-        @Bindable var responses = responses
         let runs = TaskRun.runs(of: renderedTasks)
-        let positions = questionPositions
+        // Without a name to head the page, an empty section would still hold its room above the cards; a header
+        // written for the page is taken to show something.
+        let showsTitleSection = !progress.contains(.bar) || Header.self != EmptyView.self
         ScrollViewReader { scrollViewProxy in
             Form {
-                header
-                // One card per question: two questions sharing a card read as one.
-                // FHIR questionnaire-hidden: hidden tasks carry values but are never rendered.
-                ForEach(runs) { run in
-                    let caption = TaskRun.Caption(
-                        intro: run.id == runs.first?.id ? introText : nil,
-                        groups: run.groupHeadings(otherThan: barTitle)
-                    )
-                    ForEach(run.tasks) { task in
-                        cardSection(
-                            for: task,
-                            response: $responses.responses[task.id],
-                            at: positions[task.id],
-                            headedBy: task.id == run.tasks[0].id ? caption : nil
-                        )
-                    }
+                if showsTitleSection {
+                    titleSection
                 }
-                // disallow mutating responses while an action is being performed
-                .disabled(viewState == .processing)
-
-                actionSection
+                cards(in: runs)
+                    // disallow mutating responses while an action is being performed
+                    .disabled(viewState == .processing)
             }
             // Conditional and follow-up questions come and go as answers change; letting SwiftUI
             // animate the rows themselves keeps the arrival visible without any state of our own.
@@ -91,8 +79,15 @@ struct QuestionnaireSectionView<Header: View>: View {
             #if os(iOS)
             // Questions sit closer together: the card edges already separate them, so the
             // form's default gap only pushes the page longer.
-            .listSectionSpacing(.compact)
+            .listSectionSpacing(Self.cardGap)
             #endif
+            .dismissesKeyboardLikeAForm()
+            // A content margin only pads the first card; a scroll aligns to the safe area. Inside the progress
+            // reporting, which keeps measuring the navigation bar's own edge for the line.
+            .safeAreaPadding(.top, Self.cardGap / 2)
+            .modifier(PageNaming(title: pageTitle, subtitle: pageSubtitle, inBar: progress.contains(.bar)))
+            .modifier(PageProgressReporting(fraction: pageFraction))
+            .floatingActions { primaryAction }
             .toolbar {
                 ToolbarItem(placement: QuestionnaireExitButton.placement) {
                     QuestionnaireExitButton(stakes: exitStakes, isProcessing: viewState == .processing) { outcome in
@@ -102,14 +97,6 @@ struct QuestionnaireSectionView<Header: View>: View {
             }
         }
         .viewStateAlert(state: $viewState)
-        .navigationTitle(titleConfig)
-        #if os(iOS)
-        // A large bar shows fewer characters than an inline one, which once made it the wrong
-        // choice. It is the right one now that the bar carries only names — a short name written
-        // for constrained space, or the instrument's own short title — and a name still says which
-        // page you are on when the bar abbreviates it. The text it might have cut is on the page.
-        .navigationBarTitleDisplayMode(.large)
-        #endif
         // disallow navigating around while an action is being performed;
         // SDC entryMode `sequential` forbids revisiting earlier answers entirely.
         .navigationBarBackButtonHidden(viewState == .processing || isSequentialEntry)
@@ -118,80 +105,18 @@ struct QuestionnaireSectionView<Header: View>: View {
         .interactiveDismissDisabled(responses.hasAnyResponses(in: context.allSections))
     }
 
-    /// The page's action, as the form's last row.
-    private var actionSection: some View {
-        SwiftUI.Section {
-            primaryAction
-                .formActionRow()
-        }
-    }
-
     private var isSequentialEntry: Bool {
-        switch context {
-        case .regular(let questionnaire):
-            questionnaire.metadata.entryMode == .sequential
-        case .answerNestedQuestions:
-            false
+        guard case .regular(let questionnaire) = context else {
+            return false
         }
-    }
-
-    /// The section's own text, which always reaches the page, or the short name standing in for
-    /// a text it was never given.
-    ///
-    /// The fallback matters on the one page where a sole group's short name takes the bar: the
-    /// section's own short name is then not in the bar either, and without this the name the
-    /// author wrote would appear nowhere.
-    private var introText: String? {
-        guard section.title.isEmpty else {
-            return section.title
-        }
-        guard let shortTitle = section.shortTitle, !shortTitle.isEmpty, shortTitle != barTitle else {
-            return nil
-        }
-        return shortTitle
-    }
-
-    /// The name in the navigation bar: the most specific short name the page was given, and the
-    /// instrument's own name where it was given none.
-    ///
-    /// Only an authored `shortText` names a bar. It was written for a display too narrow for the
-    /// text it stands for, so it is the one thing a bar can cut without losing anything — every
-    /// authored `text` reaches the page instead. A group lends its name only when it is the only
-    /// group on the page: a name in a bar has to describe everything under it, and with two
-    /// groups neither one does.
-    private var barTitle: String? {
-        guard case let .regular(questionnaire) = context else {
-            return nil
-        }
-        let shortNames = [soleVisibleGroup?.shortTitle, section.shortTitle].compactMap { $0 }
-        return shortNames.first { !$0.isEmpty } ?? questionnaire.metadata.title
-    }
-
-    private var titleConfig: ViewTitleConfig? {
-        guard case let .regular(questionnaire) = context, let barTitle else {
-            return nil
-        }
-        let instrumentName = questionnaire.metadata.title
-        return ViewTitleConfig(title: barTitle, subtitle: barTitle == instrumentName ? nil : instrumentName)
-    }
-
-    /// The group every rendered task belongs to, when they all share exactly one.
-    private var soleVisibleGroup: Questionnaire.Task.Group? {
-        var group: Questionnaire.Task.Group?
-        for task in renderedTasks {
-            guard let innermost = task.groupPath.last, innermost == (group ?? innermost) else {
-                return nil
-            }
-            group = innermost
-        }
-        return group
+        return questionnaire.metadata.entryMode == .sequential
     }
 
     /// The tasks this page shows, in order.
     ///
     /// Filtering here rather than inside each task is what lets an all-hidden group vanish
     /// along with its heading, instead of leaving a heading with nothing under it.
-    private var renderedTasks: [Questionnaire.Task] {
+    var renderedTasks: [Questionnaire.Task] {
         section.tasks.filter { responses.renders($0) }
     }
 
@@ -199,7 +124,7 @@ struct QuestionnaireSectionView<Header: View>: View {
         context: Context,
         section: Questionnaire.Section,
         completionStepConfig: CompletionStepConfig,
-        questionProgressConfig: QuestionProgressConfig,
+        progress: QuestionnaireProgress,
         completionAction: CompletionAction,
         resultHandler: @escaping @MainActor (QuestionnaireSheet.Result) async throws -> Void,
         header: Header
@@ -207,7 +132,7 @@ struct QuestionnaireSectionView<Header: View>: View {
         self.context = context
         self.section = section
         self.completionStepConfig = completionStepConfig
-        self.questionProgressConfig = questionProgressConfig
+        self.progress = progress
         self.completionAction = completionAction
         self.resultHandler = resultHandler
         self.header = header
@@ -217,7 +142,7 @@ struct QuestionnaireSectionView<Header: View>: View {
         questionnaire: Questionnaire,
         section: Questionnaire.Section,
         completionStepConfig: CompletionStepConfig,
-        questionProgressConfig: QuestionProgressConfig,
+        progress: QuestionnaireProgress,
         completionAction: CompletionAction,
         resultHandler: @escaping @MainActor (QuestionnaireSheet.Result) async throws -> Void,
         @ViewBuilder header: @MainActor () -> Header = { EmptyView() }
@@ -226,7 +151,7 @@ struct QuestionnaireSectionView<Header: View>: View {
             context: .regular(questionnaire: questionnaire),
             section: section,
             completionStepConfig: completionStepConfig,
-            questionProgressConfig: questionProgressConfig,
+            progress: progress,
             completionAction: completionAction,
             resultHandler: resultHandler,
             header: header()
@@ -240,7 +165,7 @@ struct QuestionnaireSectionView<Header: View>: View {
     /// - parameter tasks: The nested tasks.
     /// - parameter completionStepConfig: Controls if there should be a completion step once all nested questions have been completed, and what this step should look like.
     /// - parameter resultHandler: Called when the user taps the primary action after all nested questions have been answered.
-    /// - parameter header: An optional header view that is displayed at the top of the `Form`, above the first task.
+    /// - parameter header: An optional view shown under the page's title, above the first task.
     init(
         nestedQuestionsFor parentTask: Questionnaire.Task,
         selectedOptionTitle: String,
@@ -255,7 +180,7 @@ struct QuestionnaireSectionView<Header: View>: View {
             section: section,
             completionStepConfig: completionStepConfig,
             // A handful of follow-ups is not a journey worth counting through.
-            questionProgressConfig: .disable,
+            progress: [],
             // Nothing is submitted here; the participant is returning to the parent question.
             completionAction: .done,
             resultHandler: resultHandler,
@@ -275,6 +200,33 @@ struct QuestionnaireSectionView<Header: View>: View {
             scrollViewProxy.scrollTo(task, anchor: .top)
         }
         taskToRevisit = nil
+    }
+
+    /// What the run's first card is headed by: the section's own text on the first run, and the groups' names.
+    private func caption(for run: TaskRun, in runs: [TaskRun]) -> TaskRun.Caption {
+        TaskRun.Caption(
+            intro: run.id == runs.first?.id ? introText : nil,
+            groups: run.groupHeadings(otherThan: pageTitle)
+        )
+    }
+
+    /// One card per question: two questions sharing a card read as one.
+    ///
+    /// FHIR questionnaire-hidden: hidden tasks carry values but are never rendered.
+    private func cards(in runs: [TaskRun]) -> some View {
+        @Bindable var responses = responses
+        let positions = questionPositions
+        return ForEach(runs) { run in
+            let caption = caption(for: run, in: runs)
+            ForEach(run.tasks) { task in
+                cardSection(
+                    for: task,
+                    response: $responses.responses[task.id],
+                    at: positions[task.id],
+                    headedBy: task.id == run.tasks[0].id ? caption : nil
+                )
+            }
+        }
     }
 
     /// One question's card, under the caption the page opens above it.
@@ -311,6 +263,20 @@ struct QuestionnaireSectionView<Header: View>: View {
         }
     }
 
+    /// Why the question keeps the page from continuing, once the participant has tried to.
+    private func blockingMessage(for task: Questionnaire.Task) -> Text? {
+        guard indicateBlockingTasks else {
+            return nil
+        }
+        if responses.isMissingResponse(for: task) {
+            return Text("Answer this question to continue", bundle: .module)
+        }
+        if case .incomplete(let message) = responses.validateResponse(for: task) {
+            return Text(message)
+        }
+        return nil
+    }
+
     /// One question, as the sole row of its own card.
     private func card(
         for task: Questionnaire.Task,
@@ -320,20 +286,59 @@ struct QuestionnaireSectionView<Header: View>: View {
         TaskView(
             task: task,
             response: response,
-            position: position.map { QuestionPosition(index: $0.index, total: $0.total) }
-        ) {
-            if indicateBlockingTasks && responses.isMissingResponse(for: task) {
-                missingResponseMark
-            }
-        }
+            position: position.map { QuestionPosition(index: $0.index, total: $0.total) },
+            isBlocking: indicateBlockingTasks && responses.isBlockingCompletion(task),
+            message: blockingMessage(for: task)
+        )
         // FHIR item.readOnly: the value is displayed but not editable.
         .disabled(task.isReadOnly)
         .id(task.id)
         .accessibilityFocused($focusedTask, equals: task.id)
-        .blockingCardHighlight(indicateBlockingTasks && responses.isBlockingCompletion(task))
         .environment(\.scrollToNextTask) {
             taskToRevisit = section.nextEnabledTask(after: task, using: responses)?.id
         }
+    }
+}
+
+
+// MARK: Heading the Page
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension QuestionnaireSectionView {
+    /// The page's name and whatever introduces it, heading the cards at their width.
+    private var titleSection: some View {
+        SwiftUI.Section {
+        } header: {
+            VStack(alignment: .leading, spacing: 8) {
+                // With a progress bar the name lives in the navigation bar, where the bar hangs off it.
+                if !pageTitle.isEmpty && !progress.contains(.bar) {
+                    PageHeader(title: pageTitle, subtitle: pageSubtitle, subtitleRises: true, spacing: .compact)
+                }
+                header
+            }
+            // A header rather than a row: a row's rounded cell clips the first glyph of a title set into its corner.
+            // Pulled up out of the room the form leaves above its first section, to where a large navigation title
+            // sits, at the cards' outer edge, which is where a navigation title starts too.
+            .textCase(nil)
+            .foregroundStyle(.primary)
+            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: -4, trailing: 0))
+        }
+    }
+
+    /// The section's own text, which always reaches the page, or the short name standing in for
+    /// a text it was never given.
+    ///
+    /// The fallback matters on the one page where a sole group's short name takes the bar: the
+    /// section's own short name is then not in the bar either, and without this the name the
+    /// author wrote would appear nowhere.
+    private var introText: String? {
+        guard section.title.isEmpty else {
+            return section.title
+        }
+        guard let shortTitle = section.shortTitle, !shortTitle.isEmpty, shortTitle != pageTitle else {
+            return nil
+        }
+        return shortTitle
     }
 }
 
@@ -342,12 +347,8 @@ struct QuestionnaireSectionView<Header: View>: View {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireSectionView {
-    private var isLastSection: Bool {
-        responses.nextRenderedSection(after: section, in: context.allSections) == nil
-    }
-
     private var primaryActionTitle: LocalizedStringResource {
-        guard isLastSection else {
+        guard responses.nextRenderedSection(after: section, in: context.allSections) == nil else {
             return LocalizedStringResource("Continue", bundle: .module)
         }
         switch completionAction {
@@ -360,24 +361,20 @@ extension QuestionnaireSectionView {
         }
     }
 
-    private var missingResponseMark: some View {
-        QuestionMessage(Text("Answer this question to continue", bundle: .module))
-    }
-
-    /// Where a question sits in the run, when the questionnaire asks for it to be shown.
-    ///
-    /// It belongs above the question it counts rather than beside the action: at the foot of the
-    /// page it is out of sight until the end, and it reads as a total rather than a position.
+    /// Where a question sits in the run, when asked for; above the question, where it reads as a position.
     private var questionPositions: [Questionnaire.Task.ID: (index: Int, total: Int)] {
-        switch questionProgressConfig {
-        case .disable:
-            [:]
-        case .enable:
-            responses.questionPositions(in: context.allSections)
-        }
+        progress.contains(.questionNumbers) ? responses.questionPositions(in: context.allSections) : [:]
     }
 
-    /// The one prominent control on the page, its last row.
+    /// How far the run is, for the sheet's bar; a follow-up sheet does not report.
+    private var pageFraction: Double? {
+        guard case .regular = context, progress.contains(.bar) else {
+            return nil
+        }
+        return responses.progress(at: section, in: context.allSections).fraction
+    }
+
+    /// The one prominent control on the page, floating over the foot of it.
     ///
     /// It stays enabled and fully tinted even when the section is incomplete: a section can run
     /// several screens long, so the question that blocks it is usually off-screen, and a dimmed
@@ -388,9 +385,10 @@ extension QuestionnaireSectionView {
         } label: {
             Text(primaryActionTitle)
                 .bold()
-                .frame(maxWidth: .infinity, minHeight: 44)
+                .frame(maxWidth: .infinity)
         }
-        .buttonStyleGlassProminent()
+        .actionButtonStyle(.primary)
+        .controlSize(.large)
         .accessibilityIdentifier("PrimaryAction")
         .accessibilityValue(responses.isComplete(in: section)
             ? Text("Ready", bundle: .module)
@@ -409,12 +407,14 @@ extension QuestionnaireSectionView {
         let announcement = String(localized: "\(blockingTasks.count) questions still need an answer", bundle: .module)
         AccessibilityNotification.Announcement(announcement).post()
         focusedTask = problematicTask.id
-        // The marks resize every card the page has to travel past, and a list resizes a pass later
-        // than it is asked to: a scroll in between is carried out in that one frame, dropping the
-        // participant at the question rather than taking them there.
-        withAnimation(reduceMotion ? nil : SelectionFeedback.scroll) {
-            indicateBlockingTasks = true
-        } completion: {
+        // No transaction: the cards grow on their own, a frame at a time. The scroll waits for them: a scroll
+        // during the growth is carried out against the frames of that one moment.
+        let growing = !indicateBlockingTasks && !reduceMotion
+        indicateBlockingTasks = true
+        Task {
+            if growing {
+                try? await Task.sleep(for: .milliseconds(350))
+            }
             taskToRevisit = problematicTask.id
         }
     }
@@ -426,7 +426,7 @@ extension QuestionnaireSectionView {
                     context: context,
                     section: nextSection,
                     completionStepConfig: completionStepConfig,
-                    questionProgressConfig: questionProgressConfig,
+                    progress: progress,
                     completionAction: completionAction,
                     resultHandler: resultHandler,
                     header: header

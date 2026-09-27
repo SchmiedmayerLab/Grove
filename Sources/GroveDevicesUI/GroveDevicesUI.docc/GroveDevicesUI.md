@@ -14,22 +14,27 @@ SPDX-License-Identifier: MIT
 
 ## Overview
 
-GroveDevicesUI helps you to visualize Bluetooth device state and communicate interactions to the user.
+GroveDevicesUI provides the views to pair Bluetooth devices, manage them once paired, and confirm the measurements they send.
 
 @Row {
     @Column {
-        @Image(source: "PairedDevices", alt: "Screenshot showing paired devices in a grid layout. A sheet is presented in the foreground showing a nearby devices able to pair.") {
-            Display paired in a grid-layout devices using ``DevicesView``.
+        @Image(source: "PairedDevices", alt: "The Devices screen showing a paired weight scale and two blood pressure cuffs as tiles with their battery level.") {
+            ``DevicesView`` lists paired devices as tiles with their name and battery level.
         }
     }
     @Column {
-        @Image(source: "DeviceDetails", alt: "Displaying the device details of a paired device with information like Model number and battery percentage.") {
-            Display device details using ``DeviceDetailsView``.
+        @Image(source: "Pairing", alt: "The Pair Accessory sheet asking whether to pair a nearby blood pressure cuff with the app.") {
+            The ``AccessorySetupSheet`` asks to confirm pairing once a device is discovered nearby.
         }
     }
     @Column {
-        @Image(source: "MeasurementRecorded_BloodPressure", alt: "Showing a newly recorded blood pressure measurement.") {
-            Display recorded measurements using ``MeasurementsRecordedSheet``.
+        @Image(source: "DeviceDetails", alt: "The Device Details screen of a paired blood pressure cuff with its name, battery level, and a Forget This Device button.") {
+            ``DeviceDetailsView`` shows name, model, and battery, and lets the user rename or forget the device.
+        }
+    }
+    @Column {
+        @Image(source: "MeasurementRecorded", alt: "The Measurement Recorded sheet showing a blood pressure reading of 103/64 mmHg and 62 BPM with Save and Discard buttons.") {
+            The ``MeasurementsRecordedSheet`` lets the user save or discard a reading a device just sent.
         }
     }
 }
@@ -63,9 +68,7 @@ struct MyHomeView: View {
 ### Displaying Measurements
 
 When managing measurements using [`HealthMeasurements`](../../GroveDevices/GroveDevices.docc/GroveDevices.md),
-you can use the [`MeasurementsRecordedSheet`](GroveDevicesUI.md)
-to display pending measurements.
-Below is a short code example on how you would configure this view.
+present pending measurements with the ``MeasurementsRecordedSheet``.
 
 ```swift
 struct MyHomeView: View {

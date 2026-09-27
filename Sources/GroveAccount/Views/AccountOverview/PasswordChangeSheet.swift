@@ -46,6 +46,7 @@ struct PasswordChangeSheet: View {
                     .environment(\.accountViewType, .overview(mode: .new))
                     .environment(\.defaultErrorDescription, model.defaultErrorDescription)
             }
+                .softScrollEdge()
                 .viewStateAlert(state: $viewState)
                 .navigationTitle(Text("CHANGE_PASSWORD", bundle: .module))
 #if !os(macOS) && !os(tvOS)
@@ -85,6 +86,8 @@ struct PasswordChangeSheet: View {
                     .validate(input: repeatPassword, rules: passwordEqualityValidation(new: $newPassword))
                     .environment(\.validationConfiguration, .hideFailedValidationOnEmptySubmit)
             }
+                // Both fields share one row, so the row takes the tint for either of them, across the whole card.
+                .highlightsBlockingRow()
         } footer: {
             PasswordValidationRuleFooter(configuration: accountDetails.accountServiceConfiguration)
         }

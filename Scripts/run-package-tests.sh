@@ -124,10 +124,10 @@ platforms_for() { case "$1" in
 
 dest() { case "$1" in
   iOS)          echo "platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5" ;;
-  iPadOS)       echo "platform=iOS Simulator,name=iPad Pro 13-inch (M4)" ;;
+  iPadOS)       echo "platform=iOS Simulator,name=iPad Pro 13-inch (M4),OS=26.5" ;;
   macOS)        echo "platform=macOS,arch=arm64" ;;
   macCatalyst)  echo "platform=macOS,arch=arm64,variant=Mac Catalyst" ;;
-  watchOS)      echo "platform=watchOS Simulator,name=Apple Watch Series 11 (46mm)" ;;
+  watchOS)      echo "platform=watchOS Simulator,name=Apple Watch Series 11 (46mm),OS=26.5" ;;
   visionOS)     echo "platform=visionOS Simulator,name=Apple Vision Pro" ;;
   tvOS)         echo "platform=tvOS Simulator,name=Apple TV 4K (3rd generation)" ;;
   *) echo "unknown platform: $1" >&2; exit 2 ;;
@@ -211,9 +211,12 @@ run() { # <package> <platform> [mode: "ui"]
     # `linuxTargets` instead.
     local tts
     tts="$(test_targets_for "$1" "$2")"
+    # TEMPORARY: Swift 6.4's default Swift Build compiles transitive dependencies behind inactive
+    # platform conditions. Use the native backend until a released toolchain includes the fix.
+    # Removal tracked in https://github.com/SchmiedmayerLab/Grove/issues/105.
     for tt in $tts; do
-      echo "==> $1 on Linux: swift build --target $tt (compile-check)"
-      swift build --target "$tt"
+      echo "==> $1 on Linux: swift build --build-system native --target $tt (compile-check)"
+      swift build --build-system native --target "$tt"
     done
     return
   fi

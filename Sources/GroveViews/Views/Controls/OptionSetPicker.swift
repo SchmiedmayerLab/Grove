@@ -55,6 +55,8 @@ private struct ViewBasedOnVisibility<Unlabeled: View, Labeled: View>: View {
 
 /// Create a picker based on a `OptionSet` selection.
 ///
+/// ![An inline picker with two options, both checked.](OptionSetPicker)
+///
 /// If you have a type that both conforms to [`OptionSet`](https://developer.apple.com/documentation/swift/optionset)  and
 /// ``PickerValue`` you can use this Picker for your `selection` value.
 ///

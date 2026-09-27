@@ -7,15 +7,22 @@
 //
 
 
-/// Controls whether the ``QuestionnaireSheet`` tells the participant how far along they are.
-///
-/// The count is an estimate: conditions add and remove questions as answers change, so both
-/// the position and the total move while the questionnaire is being answered. Instruments
-/// short enough to take in at a glance read better without it, which is why it is off unless
-/// asked for.
+/// Whether the questionnaire numbers its questions.
+@available(
+    *,
+    deprecated,
+    message: "Pass a QuestionnaireProgress to the sheet instead: .enable is .questionNumbers, .disable keeps the bar off, no argument shows it."
+)
 public enum QuestionProgressConfig: Sendable {
     /// No progress is shown.
     case disable
-    /// A "Question X of Y" indicator is shown above the primary action.
+    /// A "Question X of Y" indicator is shown above every question.
     case enable
+
+    var progress: QuestionnaireProgress {
+        switch self {
+        case .disable: []
+        case .enable: .questionNumbers
+        }
+    }
 }

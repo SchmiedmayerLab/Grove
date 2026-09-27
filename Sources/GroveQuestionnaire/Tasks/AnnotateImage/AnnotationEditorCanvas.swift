@@ -14,7 +14,8 @@ import SwiftUI
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct AnnotationEditorCanvas: View {
     let image: UIImage
-    let selectedRegion: AnnotateImageConfig.Region?
+    let tool: any PKTool
+    let isDrawingEnabled: Bool
     @Binding var drawing: PKDrawing
     let contentInsets: UIEdgeInsets
     let history: AnnotationHistoryController
@@ -23,8 +24,8 @@ struct AnnotationEditorCanvas: View {
         ZoomableImageAnnotationView(
             image: image,
             drawing: $drawing,
-            tool: selectedRegion.map { AnnotationDrawingStyle.tool(for: $0, image: image) } ?? .init(.crayon),
-            isDrawingEnabled: selectedRegion != nil,
+            tool: tool,
+            isDrawingEnabled: isDrawingEnabled,
             contentInsets: contentInsets,
             history: history
         )

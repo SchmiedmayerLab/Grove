@@ -6,14 +6,17 @@
 // SPDX-License-Identifier: MIT
 //
 
+@_documentation(visibility: internal) @_exported public import GroveViews
 public import SwiftUI
 
 
 /// Present onboarding information step by step.
 ///
+/// ![An onboarding page listing four numbered steps.](SequentialSteps)
+///
 /// The `SequentialOnboardingView` provides a view to display information that is displayed step by step.
 ///
-/// - Tip: The ``OnboardingView`` provides an alternative to provide  information that is displayed all at once.
+/// - Tip: The ``OnboardingView`` shows information all at once instead.
 ///
 /// The following example demonstrates the usage of the ``SequentialOnboardingView``:
 /// ```swift
@@ -85,7 +88,7 @@ public struct SequentialOnboardingView<Header: View>: View {
     @_documentation(visibility: internal)
     public var body: some View {
         ScrollViewReader { proxy in
-            OnboardingView {
+            PageView {
                 header
             } content: {
                 ForEach(0..<steps.count, id: \.self) { index in
@@ -95,7 +98,7 @@ public struct SequentialOnboardingView<Header: View>: View {
                     }
                 }
             } footer: {
-                OnboardingActionsView {
+                PageActions {
                     actionButtonTitle
                 } action: {
                     if currentStepIndex < steps.count - 1 {
@@ -159,14 +162,7 @@ public struct SequentialOnboardingView<Header: View>: View {
                 .padding(.horizontal, 12)
                 .padding(.top, 4)
                 .padding(.bottom, 12)
-                .background {
-                    RoundedRectangle(cornerRadius: 16)
-                        #if !os(macOS)
-                        .fill(Color(.systemGroupedBackground))
-                        #else
-                        .fill(Color(.windowBackgroundColor))
-                        #endif
-                }
+                .background(.fill.quaternary, in: .rect(cornerRadius: 16, style: .continuous))
         }
     }
 }
@@ -174,8 +170,7 @@ public struct SequentialOnboardingView<Header: View>: View {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension SequentialOnboardingView {
-    /// Creates the default style of the `SequentialOnboardingView` that uses a combination of an ``OnboardingTitleView``
-    /// and ``OnboardingActionsView``.
+    /// Creates the default style of the `SequentialOnboardingView`, a `PageHeader` above the steps.
     ///
     /// - Parameters:
     ///   - title: The localized title.
@@ -189,17 +184,16 @@ extension SequentialOnboardingView {
         steps: [Step],
         actionText: LocalizedStringResource,
         action: @escaping @MainActor () async throws -> Void
-    ) where Header == OnboardingTitleView {
+    ) where Header == PageHeader {
         self.init(
-            header: OnboardingTitleView(title: title, subtitle: subtitle),
+            header: PageHeader(title: title, subtitle: subtitle),
             steps: steps,
             actionText: Text(actionText),
             action: action
         )
     }
     
-    /// Creates the default style of the `SequentialOnboardingView` that uses a combination of an ``OnboardingTitleView``
-    /// and ``OnboardingActionsView``.
+    /// Creates the default style of the `SequentialOnboardingView`, a `PageHeader` above the steps.
     ///
     /// - Parameters:
     ///   - title: The title without localization.
@@ -214,9 +208,9 @@ extension SequentialOnboardingView {
         steps: [Step],
         actionText: some StringProtocol,
         action: @escaping @MainActor () async throws -> Void
-    ) where Header == OnboardingTitleView {
+    ) where Header == PageHeader {
         self.init(
-            header: OnboardingTitleView(title: title, subtitle: subtitle),
+            header: PageHeader(title: title, subtitle: subtitle),
             steps: steps,
             actionText: Text(actionText),
             action: action

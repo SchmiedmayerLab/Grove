@@ -51,74 +51,65 @@ public struct PasswordResetView<SuccessView: View>: View {
 
 
     public var body: some View {
-        GeometryReader { proxy in
-            ScrollView(.vertical) {
-                VStack {
-                    if didReset {
-                        successView
-                    } else {
-                        resetPasswordForm
-                        Spacer()
-                    }
+        Group {
+            if didReset {
+                PageView {
+                    successView
                 }
-                .navigationTitle(Text("UP_RESET_PASSWORD", bundle: .module))
-                .toolbarTitleDisplayMode(.inline)
-                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
-                .disableDismissiveActions(isProcessing: state)
-                .receiveValidation(in: $validation)
-                .viewStateAlert(state: $state)
-                .toolbar {
-                    ToolbarItem(placement: didReset ? .confirmationAction : .cancellationAction) {
-                        if #available(iOS 26.0, macCatalyst 26.0, visionOS 26.0, macOS 26.0, watchOS 26.0, tvOS 26.0, *) {
-                            Button(role: didReset ? .confirm : .cancel) {
-                                dismiss()
-                            }
-                            .disabled(state == .processing)
-                        } else {
-                            Button {
-                                dismiss()
-                            } label: {
-                                Text(didReset ? "Done" : "Cancel", bundle: .module)
-                            }
-                            .disabled(state == .processing)
-                        }
+            } else {
+                PageView {
+                    PageHeader(
+                        title: String(localized: "UP_RESET_PASSWORD", bundle: .module),
+                        subtitle: String(localized: "UAP_PASSWORD_RESET_SUBTITLE \(userIdConfiguration.idType.localizedStringResource)", bundle: .module),
+                        image: Image(systemName: "person.badge.key") // swiftlint:disable:this accessibility_label_for_image
+                    )
+                } content: {
+                    userIdField
+                        .accountCardRow()
+                        .accountCard()
+                } footer: {
+                    AsyncButton(state: $state, action: submitRequestAction) {
+                        Text("UP_RESET_PASSWORD", bundle: .module)
+                            .bold()
+                            .frame(maxWidth: .infinity)
                     }
+                    .actionButtonStyle(.primary)
+                    .controlSize(.large)
+                }
+            }
+        }
+        .disableDismissiveActions(isProcessing: state)
+        .receiveValidation(in: $validation)
+        .viewStateAlert(state: $state)
+        .environment(\.defaultErrorDescription, .init("UAP_RESET_PASSWORD_FAILED_DEFAULT_ERROR", bundle: .atURL(from: .module)))
+        .toolbar {
+            ToolbarItem(placement: didReset ? .confirmationAction : .cancellationAction) {
+                if #available(iOS 26.0, macCatalyst 26.0, visionOS 26.0, macOS 26.0, watchOS 26.0, tvOS 26.0, *) {
+                    Button(role: didReset ? .confirm : .cancel) {
+                        dismiss()
+                    }
+                    .disabled(state == .processing)
+                } else {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Text(didReset ? "Done" : "Cancel", bundle: .module)
+                    }
+                    .disabled(state == .processing)
                 }
             }
         }
     }
 
-    @MainActor @ViewBuilder private var resetPasswordForm: some View {
-        VStack {
-            Text("UAP_PASSWORD_RESET_SUBTITLE \(userIdConfiguration.idType.localizedStringResource)", bundle: .module)
-                .padding()
-                .padding(.bottom, 30)
-
-            VerifiableTextField(userIdConfiguration.idType.localizedStringResource, text: $userId)
-                .validate(input: userId, rules: .nonEmpty)
-                .focused($isFocused)
-#if !os(tvOS) && !os(watchOS)
-                .textFieldStyle(.roundedBorder)
-#endif
-                .disableFieldAssistants()
-                .textContentType(userIdConfiguration.textContentType)
+    @MainActor private var userIdField: some View {
+        VerifiableTextField(userIdConfiguration.idType.localizedStringResource, text: $userId)
+            .validate(input: userId, rules: .nonEmpty)
+            .focused($isFocused)
+            .disableFieldAssistants()
+            .textContentType(userIdConfiguration.textContentType)
 #if !os(macOS) && !os(watchOS)
-                .keyboardType(userIdConfiguration.keyboardType)
+            .keyboardType(userIdConfiguration.keyboardType)
 #endif
-                .font(.title3)
-
-            Spacer()
-            AsyncButton(state: $state, action: submitRequestAction) {
-                Text("UP_RESET_PASSWORD", bundle: .module)
-                    .padding(8)
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyleGlassProminent()
-            .padding()
-        }
-        .padding()
-        .frame(maxWidth: ViewSizing.maxFrameWidth * 1.5) // landscape optimizations
-        .environment(\.defaultErrorDescription, .init("UAP_RESET_PASSWORD_FAILED_DEFAULT_ERROR", bundle: .atURL(from: .module)))
     }
 
     fileprivate init(

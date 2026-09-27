@@ -26,7 +26,7 @@ public import Foundation
 /// - ``init(arrayLiteral:)``
 ///
 /// ### Operations
-/// - ``append(systemMessage:to:)``
+/// - ``append(systemMessage:to:id:)``
 /// - ``append(userMessage:id:date:interactionId:)``
 /// - ``append(assistantOutputDelta:isComplete:interactionId:)``
 /// - ``markAssistantOutputCompleted()``
@@ -54,6 +54,8 @@ extension LLMContext: Codable {
     /// Decodes from the plain entity array the previous `LLMContext` typealias encoded to.
     public init(from decoder: any Decoder) throws {
         self.init(try [LLMContextEntity](from: decoder))
+        // Restoring a conversation cannot restore the network request that would finish these images.
+        storage.removeAll { $0._imageContent?.isGenerating == true }
     }
 
     /// Encodes as a plain entity array, matching the previous `LLMContext` typealias.
@@ -140,8 +142,13 @@ extension LLMContext {
     ///
     /// - parameter systemMessage: The actual prompt that should be added.
     /// - parameter position: Where the prompt should be placed within the context.
-    public mutating func append(systemMessage: some StringProtocol, to position: SystemMessageInsertDestination) {
-        let entity = LLMContextEntity(role: .system, content: systemMessage, complete: true)
+    /// - parameter id: Identifies the entity, so ``set(systemMessage:id:to:)`` can replace it later. A fresh one by default.
+    public mutating func append(
+        systemMessage: some StringProtocol,
+        to position: SystemMessageInsertDestination,
+        id: UUID = .init()
+    ) {
+        let entity = LLMContextEntity(id: id, role: .system, content: systemMessage, complete: true)
         switch position {
         case .leadingSystemMessages:
             // Only the uninterrupted run at the start counts — a system message injected mid-conversation
@@ -150,6 +157,29 @@ extension LLMContext {
         case .wholeContext:
             storage.append(entity)
         }
+    }
+
+    /// Records a system message under an identifier, replacing whatever was recorded under it before.
+    ///
+    /// Instructions that change as a conversation runs — what a caller wants the model to keep doing — belong
+    /// to one entity that is rewritten, not to a new one each time. Rewriting also leaves the entity count
+    /// alone, which is what tells a transport carrying server-side state that the conversation it already
+    /// submitted still holds.
+    ///
+    /// - Parameters:
+    ///   - systemMessage: The instruction to record.
+    ///   - id: Identifies the instruction, so a later call replaces it rather than adding another.
+    ///   - position: Where a first recording is placed.
+    public mutating func set(
+        systemMessage: some StringProtocol,
+        id: UUID,
+        to position: SystemMessageInsertDestination = .wholeContext
+    ) {
+        guard let index = firstIndex(where: { $0.id == id }) else {
+            append(systemMessage: systemMessage, to: position, id: id)
+            return
+        }
+        self[index].content = String(systemMessage)
     }
 
     /// Appends a new user message entity to the end of the context.
@@ -176,6 +206,25 @@ extension LLMContext {
         } else {
             storage.append(.init(role: .assistant, interactionId: interactionId, content: delta, complete: isComplete))
         }
+    }
+
+    /// Appends an image the assistant produced as a message of its own.
+    ///
+    /// Text the model writes before or after it keeps streaming into separate assistant entities, so the chat shows
+    /// the picture between the passages it belongs to.
+    package mutating func append(assistantImage image: LLMContextEntity._ImageContent, interactionId: LLMInteractionId? = nil) {
+        storage.append(.init(_role: .assistant, _imageContent: image, interactionId: interactionId))
+    }
+
+    /// Fills in the picture the assistant announced with ``append(assistantImage:interactionId:)`` and
+    /// ``LLMContextEntity/_ImageContent/generating``; appends it when nothing announced it.
+    package mutating func complete(assistantImage image: LLMContextEntity._ImageContent, interactionId: LLMInteractionId? = nil) {
+        guard let index = storage.lastIndex(where: { $0.interactionId == interactionId && $0._imageContent?.isGenerating == true }) else {
+            append(assistantImage: image, interactionId: interactionId)
+            return
+        }
+        let placeholder = storage[index]
+        storage[index] = .init(_role: .assistant, _imageContent: image, id: placeholder.id, date: placeholder.date, interactionId: interactionId)
     }
 
     /// Records where an assistant answer drew from.
@@ -205,6 +254,14 @@ extension LLMContext {
         if let last, last.role == .assistant, !last.complete {
             markCompleted(at: endIndex - 1)
         }
+    }
+
+    /// Finalizes a particular assistant message when multiple responses arrive interleaved.
+    package mutating func markAssistantOutputCompleted(id: UUID) {
+        guard let index = firstIndex(where: { $0.id == id && $0.role == .assistant && !$0.complete }) else {
+            return
+        }
+        markCompleted(at: index)
     }
 
     /// Finalizes the entity at `index`, stamping when its streaming ended.
@@ -290,5 +347,10 @@ extension LLMContext {
         if let last, last.role == .assistantThinking, !last.complete, last.interactionId == interactionId {
             storage.removeLast()
         }
+    }
+
+    /// Drops the pictures an interaction announced but never delivered.
+    package mutating func removeGeneratingImages(for interactionId: LLMInteractionId) {
+        storage.removeAll { $0.interactionId == interactionId && $0._imageContent?.isGenerating == true }
     }
 }

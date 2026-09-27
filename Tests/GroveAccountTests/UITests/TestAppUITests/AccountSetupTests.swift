@@ -30,25 +30,23 @@ final class AccountSetupTests: XCTestCase { // swiftlint:disable:this type_body_
 
         app.openAccountSetup()
 
-        // check fields are not valid
-        XCTAssertTrue(app.buttons["Login"].exists)
-        XCTAssertTrue(!app.buttons["Login"].isEnabled)
+        // The button never locks; tapping it with empty fields marks both of them instead.
+        let emptyMessage = "This field cannot be empty."
+        XCTAssertTrue(app.signInButton.exists)
+        XCTAssertTrue(app.signInButton.isEnabled)
+        XCTAssertFalse(app.staticTexts[emptyMessage].exists)
+        app.signInButton.tap()
+        XCTAssertTrue(app.staticTexts[emptyMessage].waitForExistence(timeout: 2.0))
+        XCTAssertEqual(app.staticTexts.matching(identifier: emptyMessage).count, 2)
 
         XCTAssertTrue(app.textFields["E-Mail Address"].exists)
         XCTAssertTrue(app.secureTextFields["Password"].exists)
         try app.textFields["E-Mail Address"].enter(value: "aa")
-        XCTAssertFalse(app.buttons["Login"].isEnabled)
+        XCTAssertTrue(app.staticTexts.matching(identifier: emptyMessage).firstMatch.waitForExistence(timeout: 2.0))
+        XCTAssertEqual(app.staticTexts.matching(identifier: emptyMessage).count, 1)
         try app.secureTextFields["Password"].enter(value: "bb")
-
-        XCTAssertTrue(app.buttons["Login"].waitForExistence(timeout: 2.0))
-        XCTAssertTrue(app.buttons["Login"].isEnabled)
-
-        // doing it in reverse order speeds up the input
-        try app.secureTextFields["Password"].delete(count: 2)
-        try app.textFields["E-Mail Address"].delete(count: 2)
-
-        XCTAssertTrue(app.buttons["Login"].waitForExistence(timeout: 2.0))
-        XCTAssertFalse(app.buttons["Login"].isEnabled)
+        XCTAssertTrue(app.staticTexts[emptyMessage].waitForNonExistence(timeout: 2.0))
+        XCTAssertTrue(app.signInButton.isEnabled)
     }
     
     
@@ -84,9 +82,9 @@ final class AccountSetupTests: XCTestCase { // swiftlint:disable:this type_body_
         try app.secureTextFields["Password"].enter(value: Defaults.password, options: .skipTextFieldSelection)
 
         // this takes us back to the home screen
-        XCTAssertTrue(app.buttons["Login"].waitForExistence(timeout: 0.5)) // might need time to to get enabled
-        XCTAssertTrue(app.buttons["Login"].isEnabled)
-        app.buttons["Login"].tap()
+        XCTAssertTrue(app.signInButton.waitForExistence(timeout: 0.5)) // might need time to to get enabled
+        XCTAssertTrue(app.signInButton.isEnabled)
+        app.signInButton.tap()
         app.dismissSavePasswordAlert(timeout: 7)
         
         // verify we are back at the start screen
@@ -117,7 +115,7 @@ final class AccountSetupTests: XCTestCase { // swiftlint:disable:this type_body_
         XCTAssertTrue(app.buttons["Logout"].waitForExistence(timeout: 1.0))
         app.buttons["Logout"].tap()
 
-        XCTAssertTrue(app.buttons["Login"].waitForExistence(timeout: 2.0))
+        XCTAssertTrue(app.signInButton.waitForExistence(timeout: 2.0))
     }
     
     
@@ -154,10 +152,10 @@ final class AccountSetupTests: XCTestCase { // swiftlint:disable:this type_body_
         XCTAssertTrue(app.navigationBars.staticTexts["Name"].waitForExistence(timeout: 2.0))
 
 
-        XCTAssertTrue(app.textFields["enter first name"].exists)
-        XCTAssertTrue(app.textFields["enter last name"].exists)
-        try app.textFields["enter first name"].enter(value: "Leland")
-        try app.textFields["enter last name"].enter(value: "Stanford")
+        XCTAssertTrue(app.firstNameField.exists)
+        XCTAssertTrue(app.lastNameField.exists)
+        try app.firstNameField.enter(value: "Leland")
+        try app.lastNameField.enter(value: "Stanford")
 
 
         app.navigationBars.buttons["Done"].tap()
@@ -175,8 +173,8 @@ final class AccountSetupTests: XCTestCase { // swiftlint:disable:this type_body_
         app.openAccountSetup()
         app.openSignup()
 
-        XCTAssertFalse(app.textFields["enter first name"].exists)
-        XCTAssertFalse(app.textFields["enter last name"].exists)
+        XCTAssertFalse(app.firstNameField.exists)
+        XCTAssertFalse(app.lastNameField.exists)
 
 #if !os(visionOS)
         let supplyDateOfBirth = true
@@ -196,8 +194,8 @@ final class AccountSetupTests: XCTestCase { // swiftlint:disable:this type_body_
         app.scrollUpInSignupForm()
 #endif
 
-        XCTAssertTrue(app.collectionViews.buttons["Signup"].waitForExistence(timeout: 1.0))
-        app.collectionViews.buttons["Signup"].tap()
+        XCTAssertTrue(app.signUpButton.waitForExistence(timeout: 1.0))
+        app.signUpButton.tap()
         app.dismissSavePasswordAlert(timeout: 7)
 
         // important: if the sheet isn't dismissed it may indicate that the completion closure of the AccountSetup view
@@ -219,7 +217,7 @@ final class AccountSetupTests: XCTestCase { // swiftlint:disable:this type_body_
 
         app.openAccountSetup()
 
-        XCTAssertTrue(app.buttons["Login"].exists)
+        XCTAssertTrue(app.signInButton.exists)
         XCTAssertTrue(app.staticTexts["or"].exists) // divider
         XCTAssertTrue(app.buttons["Sign in with Apple"].exists)
     }
@@ -271,18 +269,18 @@ final class AccountSetupTests: XCTestCase { // swiftlint:disable:this type_body_
 
         app.openAccountSetup()
 
-        XCTAssertTrue(app.staticTexts["Don't have an Account yet?"].exists)
+        XCTAssertTrue(app.createAccountLink.exists)
 
         app.openSignup()
 
         XCTAssertFalse(app.staticTexts["This field cannot be empty."].exists)
 
         // verify empty validation appearing
-        try app.collectionViews.textFields["E-Mail Address"].enter(value: "a", options: .disableKeyboardDismiss)
-        try app.collectionViews.textFields["E-Mail Address"].delete(count: 1, options: .skipTextFieldSelection)
+        try app.signupForm.textFields["E-Mail Address"].enter(value: "a", options: .disableKeyboardDismiss)
+        try app.signupForm.textFields["E-Mail Address"].delete(count: 1, options: .skipTextFieldSelection)
 
-        try app.collectionViews.secureTextFields["Password"].enter(value: "a", options: .disableKeyboardDismiss)
-        try app.collectionViews.secureTextFields["Password"].delete(count: 1, options: .skipTextFieldSelection)
+        try app.signupForm.secureTextFields["Password"].enter(value: "a", options: .disableKeyboardDismiss)
+        try app.signupForm.secureTextFields["Password"].delete(count: 1, options: .skipTextFieldSelection)
 
         XCTAssertTrue(app.staticTexts["This field cannot be empty."].waitForExistence(timeout: 2.0))
         XCTAssertEqual(app.staticTexts.matching(identifier: "This field cannot be empty.").count, 2)
@@ -295,22 +293,22 @@ final class AccountSetupTests: XCTestCase { // swiftlint:disable:this type_body_
         let password = "123456789"
 
         // enter email with validation
-        try app.collectionViews.textFields["E-Mail Address"].enter(value: String(email.dropLast(13)), options: .disableKeyboardDismiss)
+        try app.signupForm.textFields["E-Mail Address"].enter(value: String(email.dropLast(13)), options: .disableKeyboardDismiss)
         XCTAssertTrue(app.staticTexts["The provided email is invalid."].waitForExistence(timeout: 2.0))
-        try app.collectionViews.textFields["E-Mail Address"].enter(value: String(email.dropFirst(13)), options: .skipTextFieldSelection)
+        try app.signupForm.textFields["E-Mail Address"].enter(value: String(email.dropFirst(13)), options: .skipTextFieldSelection)
 
         // enter password with validation
-        try app.collectionViews.secureTextFields["Password"].enter(value: String(password.dropLast(5)), options: .disableKeyboardDismiss)
+        try app.signupForm.secureTextFields["Password"].enter(value: String(password.dropLast(5)), options: .disableKeyboardDismiss)
         XCTAssertTrue(app.staticTexts["Your password must be at least 8 characters long."].waitForExistence(timeout: 2.0))
-        try app.collectionViews.secureTextFields["Password"].enter(value: String(password.dropFirst(4)), options: .skipTextFieldSelection)
+        try app.signupForm.secureTextFields["Password"].enter(value: String(password.dropFirst(4)), options: .skipTextFieldSelection)
 
 #if os(visionOS)
         app.scrollUpInSignupForm()
 #endif
 
         // we access the signup button through the collectionView as there is another signup button behind the signup sheet.
-        XCTAssertTrue(app.collectionViews.buttons["Signup"].waitForExistence(timeout: 2.0))
-        app.collectionViews.buttons["Signup"].tap()
+        XCTAssertTrue(app.signUpButton.waitForExistence(timeout: 2.0))
+        app.signUpButton.tap()
         app.dismissSavePasswordAlert(timeout: 7)
 
         XCTAssertTrue(app.staticTexts[email].waitForExistence(timeout: 4.0))
@@ -341,16 +339,16 @@ final class AccountSetupTests: XCTestCase { // swiftlint:disable:this type_body_
         app.scrollUpInSignupForm()
 #endif
 
-        XCTAssertTrue(app.collectionViews.buttons["Signup"].exists)
-        XCTAssertFalse(app.collectionViews.buttons["Signup"].isEnabled)
+        XCTAssertTrue(app.signUpButton.exists)
+        XCTAssertTrue(app.signUpButton.isEnabled)
 
-        try app.textFields["enter first name"].enter(value: "a", options: .disableKeyboardDismiss)
-        try app.textFields["enter first name"].delete(count: 1, options: .skipTextFieldSelection)
+        try app.firstNameField.enter(value: "a", options: .disableKeyboardDismiss)
+        try app.firstNameField.delete(count: 1, options: .skipTextFieldSelection)
 
         XCTAssertTrue(app.staticTexts["This field cannot be empty."].waitForExistence(timeout: 1.0))
 
-        try app.textFields["enter last name"].enter(value: "a", options: .disableKeyboardDismiss)
-        try app.textFields["enter last name"].delete(count: 1, options: .skipTextFieldSelection)
+        try app.lastNameField.enter(value: "a", options: .disableKeyboardDismiss)
+        try app.lastNameField.delete(count: 1, options: .skipTextFieldSelection)
 
         XCTAssertEqual(app.staticTexts.matching(identifier: "This field cannot be empty.").count, 2)
     }
@@ -373,8 +371,8 @@ final class AccountSetupTests: XCTestCase { // swiftlint:disable:this type_body_
         app.scrollUpInSignupForm()
 #endif
 
-        XCTAssertTrue(app.collectionViews.buttons["Signup"].waitForExistence(timeout: 1.0))
-        app.collectionViews.buttons["Signup"].tap()
+        XCTAssertTrue(app.signUpButton.waitForExistence(timeout: 1.0))
+        app.signUpButton.tap()
 
         XCTAssertTrue(app.alerts["User Identifier is already taken"].waitForExistence(timeout: 10.0))
         app.alerts["User Identifier is already taken"].scrollViews.otherElements.buttons["OK"].tap()
@@ -415,8 +413,8 @@ final class AccountSetupTests: XCTestCase { // swiftlint:disable:this type_body_
         XCTAssertTrue(app.buttons["Add Date of Birth"].waitForExistence(timeout: 0.5)) // test requirement level
 #endif
 
-        XCTAssertTrue(app.collectionViews.buttons["Signup"].waitForExistence(timeout: 1.0))
-        app.collectionViews.buttons["Signup"].tap()
+        XCTAssertTrue(app.signUpButton.waitForExistence(timeout: 1.0))
+        app.signUpButton.tap()
         
         app.dismissSavePasswordAlert(timeout: 7)
 
@@ -465,9 +463,9 @@ final class AccountSetupTests: XCTestCase { // swiftlint:disable:this type_body_
             biography: "Hello Stanford"
         )
 
-        XCTAssertTrue(app.collectionViews.buttons["Signup"].waitForExistence(timeout: 1.0))
-        XCTAssertTrue(app.collectionViews.buttons["Signup"].isEnabled)
-        app.collectionViews.buttons["Signup"].tap()
+        XCTAssertTrue(app.signUpButton.waitForExistence(timeout: 1.0))
+        XCTAssertTrue(app.signUpButton.isEnabled)
+        app.signUpButton.tap()
         app.dismissSavePasswordAlert(timeout: 7)
 
         XCTAssertTrue(app.staticTexts["lelandstanford2@stanford.edu"].waitForExistence(timeout: 3.0))
@@ -504,14 +502,14 @@ final class AccountSetupTests: XCTestCase { // swiftlint:disable:this type_body_
 
         try app.fillSignupForm(email: email, password: "123456789", name: .init(givenName: "Leland"))
 
-        try app.textFields["enter first name"].delete(count: 6)
+        try app.firstNameField.delete(count: 6)
 
 #if os(visionOS)
         app.scrollUpInSignupForm()
 #endif
 
-        XCTAssertTrue(app.collectionViews.buttons["Signup"].waitForExistence(timeout: 1.0))
-        app.collectionViews.buttons["Signup"].tap()
+        XCTAssertTrue(app.signUpButton.waitForExistence(timeout: 1.0))
+        app.signUpButton.tap()
         XCTAssertTrue(app.staticTexts[email].waitForExistence(timeout: 3.0))
 
         app.openAccountOverview()

@@ -57,12 +57,12 @@ actor TestStandard: AccountNotifyConstraint, PhoneVerificationConstraint, Enviro
 
 
     @MainActor
-    func respondToEvent(_ event: GroveAccount.AccountNotifications.Event) async {
+    func handleAccountEvent(_ event: GroveAccount.AccountNotifications.Event) async {
         switch event {
-        case .deletingAccount:
+        case .willDelete:
             storage.deleteNotified = true
             storage.suppliedInitialDetails = false
-        case let .associatedAccount(details):
+        case .didAssociate(let details):
             if features.configurationType == .keysWithOptions {
                 guard let storageProvider else {
                     logger.error("The account storage provider was never injected!")
@@ -77,9 +77,9 @@ actor TestStandard: AccountNotifyConstraint, PhoneVerificationConstraint, Enviro
                     logger.error("Failed to updated initial account details: \(error)")
                 }
             }
-        case .disassociatingAccount:
+        case .didDisassociate:
             storage.suppliedInitialDetails = false
-        default:
+        case .detailsChanged, .willLogOut:
             break
         }
     }

@@ -337,8 +337,8 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         XCTAssertFalse(app.buttons["Done"].isEnabled)
 
         // edit name
-        XCTAssertTrue(app.textFields["enter last name"].exists)
-        try app.textFields["enter last name"].delete(count: 8)
+        XCTAssertTrue(app.lastNameField.exists)
+        try app.lastNameField.delete(count: 8)
         XCTAssertTrue(app.buttons["Done"].isEnabled)
         app.buttons["Done"].tap()
 
@@ -369,10 +369,10 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         XCTAssertTrue(app.navigationBars.buttons["Done"].waitForExistence(timeout: 2.0))
         XCTAssertFalse(app.navigationBars.buttons["Done"].isEnabled)
 
-        XCTAssertTrue(app.textFields["enter first name"].exists)
-        XCTAssertTrue(app.textFields["enter last name"].exists)
-        try app.textFields["enter first name"].enter(value: "Leland")
-        try app.textFields["enter last name"].enter(value: "Stanford")
+        XCTAssertTrue(app.firstNameField.exists)
+        XCTAssertTrue(app.lastNameField.exists)
+        try app.firstNameField.enter(value: "Leland")
+        try app.lastNameField.enter(value: "Stanford")
 
         app.navigationBars.buttons["Done"].tap()
 
@@ -400,17 +400,17 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         let warningLength = "Your password must be at least 8 characters long."
         XCTAssertTrue(app.staticTexts[warningLength].waitForExistence(timeout: 2.0)) // the section footer
 
-        XCTAssertTrue(app.secureTextFields["enter password"].exists)
-        XCTAssertTrue(app.secureTextFields["re-enter password"].exists)
+        XCTAssertTrue(app.secureTextFields["New Password"].exists)
+        XCTAssertTrue(app.secureTextFields["Repeat Password"].exists)
 
-        try app.secureTextFields["enter password"].enter(value: "12345", options: .disableKeyboardDismiss)
+        try app.secureTextFields["New Password"].enter(value: "12345", options: .disableKeyboardDismiss)
         XCTAssertTrue(app.staticTexts.matching(identifier: warningLength).firstMatch.waitForExistence(timeout: 2.0))
         XCTAssertEqual(app.staticTexts.matching(identifier: warningLength).count, 2) // additional red warning.
-        try app.secureTextFields["enter password"].enter(value: "6789", options: .skipTextFieldSelection)
+        try app.secureTextFields["New Password"].enter(value: "6789", options: .skipTextFieldSelection)
 
-        try app.secureTextFields["re-enter password"].enter(value: "12345", options: .disableKeyboardDismiss)
+        try app.secureTextFields["Repeat Password"].enter(value: "12345", options: .disableKeyboardDismiss)
         XCTAssertTrue(app.staticTexts["Passwords do not match."].waitForExistence(timeout: 2.0))
-        try app.secureTextFields["re-enter password"].enter(value: "6789", options: .skipTextFieldSelection)
+        try app.secureTextFields["Repeat Password"].enter(value: "6789", options: .skipTextFieldSelection)
 
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2.0))
         app.buttons["Done"].tap()

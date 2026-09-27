@@ -217,7 +217,7 @@ extension GroveQuestionnaire.Questionnaire {
                 if let linkId = item.linkId.value?.string, !seenIds.insert(linkId).inserted {
                     throw .other("Duplicate linkId '\(linkId)' in questionnaire.")
                 }
-                try collectVariables(of: item, scope: .items(item.linkIdsIncludingDescendants()))
+                try collectVariables(of: item, scope: .item(item.linkId.value?.string ?? "", covering: item.linkIdsIncludingDescendants()))
                 if SDCExpressionURLs.all.contains(where: { !item.extensions(for: $0).isEmpty }) {
                     usesExpressions = true
                 }
@@ -349,7 +349,8 @@ extension ModelsR4.QuestionnaireItem {
             // do we want to allow this? be a little more lenient here?
             throw .other("Empty top-level group!")
         }
-        let groupCondition = try GroveQuestionnaire.Questionnaire.Condition(self, using: context)
+        // A group gates its items with enableWhen or an SDC enableWhenExpression, like any item.
+        let groupCondition = try enabledCondition(using: context)
         let itemContext = ConversionContext(
             options: context.options,
             questionnaire: context.questionnaire,

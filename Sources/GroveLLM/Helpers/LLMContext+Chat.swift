@@ -194,9 +194,8 @@ extension LLMContextEntity {
     /// part that took a fresh identity each time would tell SwiftUI the message had been replaced on every token.
     private var chatContent: ChatEntity.Content {
         // Inline image payloads surface as data URLs, which the chat's image views load and decode lazily.
-        if let imageContent = _imageContent,
-           let url = URL(string: "data:\(imageContent.contentType);base64,\(imageContent.base64Image)") {
-            var parts = [ChatEntity.Content.Part(.image(.url(url)), entityID: id, index: 0)]
+        if let imageContent = _imageContent, let image = imageContent.chatImage {
+            var parts = [ChatEntity.Content.Part(.image(image), entityID: id, index: 0)]
             if !content.isEmpty {
                 parts.append(ChatEntity.Content.Part(.text(content), entityID: id, index: 1))
             }
@@ -254,6 +253,17 @@ extension LLMCitation {
         case .file(let name): .file(name: name)
         }
         return ChatEntity.Citation(title: title, source: chatSource, id: id)
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension LLMContextEntity._ImageContent {
+    fileprivate var chatImage: ChatEntity.Content.Image? {
+        if isGenerating {
+            return .generating
+        }
+        return URL(string: "data:\(contentType);base64,\(base64Image)").map { .url($0) }
     }
 }
 #endif

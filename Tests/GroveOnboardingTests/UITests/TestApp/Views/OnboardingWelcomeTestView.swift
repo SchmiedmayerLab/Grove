@@ -17,7 +17,7 @@ struct OnboardingWelcomeTestView: View {
     @Environment(ManagedNavigationStack.Path.self) private var path
     
     var body: some View {
-        OnboardingView(
+        PageView(
             title: "Welcome",
             subtitle: "Grove UI Tests",
             areas: [

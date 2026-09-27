@@ -99,6 +99,12 @@ struct SpeechTestView: View {
 }
 ```
 
+``SpeechRecognizer/start()`` asks for speech recognition and microphone access the first time and ends the stream with
+``SpeechRecognizerError/notAuthorized`` if either is refused; ask ahead of time with
+``SpeechRecognizer/requestAuthorization()`` to keep the prompts away from the moment of speaking. While recording,
+``SpeechRecognizer/level`` follows how loud the speaker is, for a meter to show that the microphone hears something.
+
 ## Topics
 
 - ``SpeechRecognizer``
+- ``SpeechRecognizerError``

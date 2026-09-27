@@ -26,22 +26,12 @@ public import SwiftUI
 /// }
 /// ```
 ///
-/// The view automatically adapts it layout based on the  `HorizontalAlignment` and the available space.
+/// The view adapts its layout to the `HorizontalAlignment` and the available space.
 ///
 /// @Row {
 ///     @Column {
-///         @Image(source: "Tile-Leading", alt: "A `SimpleTile` view with a `TileHeader` view with `leading` alignment.") {
-///             A `TileHeader` used with the ``SimpleTile`` view and `leading` alignment.
-///         }
-///     }
-///     @Column {
-///         @Image(source: "Tile-Center", alt: "A `SimpleTile` view with a `TileHeader` view with `center` alignment.") {
-///             A `TileHeader` used with the ``SimpleTile`` view and `center` alignment.
-///         }
-///     }
-///     @Column {
-///         @Image(source: "Tile-Trailing", alt: "A `SimpleTile` view with a `TileHeader` view with `center` alignment.") {
-///             A `TileHeader` used with the ``SimpleTile`` view and `trailing` alignment.
+///         @Image(source: "Tiles", alt: "Three tiles in a list, their headers aligned leading, center and trailing.") {
+///             A `TileHeader` in a ``SimpleTile`` with `leading`, `center` and `trailing` alignment.
 ///         }
 ///     }
 /// }

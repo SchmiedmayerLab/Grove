@@ -20,10 +20,8 @@ SPDX-License-Identifier = "MIT"
 path = [
     "Sources/FHIRPathParser/Generated/**",
     "Sources/FHIRQuestionnaires/Resources/**",
-    "Sources/GroveConsent/GroveConsent.docc/Resources/**",
-    "Sources/GroveLicense/GroveLicense.docc/Resources/**",
-    "Sources/GroveOnboarding/GroveOnboarding.docc/Resources/**",
     "Tests/GroveAccessGuardTests/__Snapshots__/**",
+    "Tests/GroveChatTests/__Snapshots__/**",
     "Tests/GroveConsentTests/Resources/**",
     "Tests/GroveConsentTests/__Snapshots__/**",
     "Tests/GroveConsentTests/UITests/TestApp/Resources/**",
@@ -36,12 +34,20 @@ path = [
 SPDX-FileCopyrightText = "2025 Stanford University and the project authors (see CONTRIBUTORS.md)"
 SPDX-License-Identifier = "MIT"
 
-# Upstream annotations dated 2026 (GroveQuestionnaire).
+# Upstream annotations dated 2026 (GroveQuestionnaire, GroveSpeechRecognizer).
 [[annotations]]
 path = [
+    "Sources/GroveSpeechRecognizer/Resources/**",
+    "Tests/GroveChatTests/UITests/TestApp/Resources/**",
     "Tests/GroveQuestionnaireTests/Resources/**",
     "Tests/GroveQuestionnaireTests/UITests/TestApp/Resources/**"
 ]
+SPDX-FileCopyrightText = "2026 Stanford University and the project authors (see CONTRIBUTORS.md)"
+SPDX-License-Identifier = "MIT"
+
+# Documentation images of every catalogue, regenerated in 2026 by Scripts/documentation-screenshots.sh.
+[[annotations]]
+path = ["Sources/*/*.docc/Resources/**"]
 SPDX-FileCopyrightText = "2026 Stanford University and the project authors (see CONTRIBUTORS.md)"
 SPDX-License-Identifier = "MIT"
 

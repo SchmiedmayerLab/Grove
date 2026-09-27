@@ -27,8 +27,8 @@ struct AnnotateImageSheet: View {
     @Binding var response: QuestionnaireResponses.ImageAnnotation
 
     @State private var selectedRegion: AnnotateImageConfig.Region?
+    @State private var isErasing = false
     @State private var history = AnnotationHistoryController()
-    @State private var isShowingResetAlert = false
     @State private var editorHeight = CGFloat.zero
     @State private var promptBottom = CGFloat.zero
     @State private var regionPickerTop = CGFloat.zero
@@ -38,7 +38,8 @@ struct AnnotateImageSheet: View {
             ZStack {
                 AnnotationEditorCanvas(
                     image: image,
-                    selectedRegion: selectedRegion,
+                    tool: tool,
+                    isDrawingEnabled: isErasing || selectedRegion != nil,
                     drawing: $response.drawing,
                     contentInsets: contentInsets,
                     history: history
@@ -51,7 +52,7 @@ struct AnnotateImageSheet: View {
                             of: { $0.frame(in: .named(Self.editorCoordinateSpace)).maxY }
                         ) { promptBottom = $0 }
                     Spacer(minLength: 0)
-                    AnnotationRegionPicker(regions: config.regions, selectedRegion: $selectedRegion)
+                    AnnotationRegionPicker(regions: config.regions, selectedRegion: $selectedRegion, isErasing: $isErasing)
                         .onGeometryChange(
                             for: CGFloat.self,
                             of: { $0.frame(in: .named(Self.editorCoordinateSpace)).minY }
@@ -73,6 +74,13 @@ struct AnnotateImageSheet: View {
         .onAppear(perform: selectOnlyRegion)
     }
 
+    private var tool: any PKTool {
+        if isErasing {
+            return AnnotationDrawingStyle.eraser(for: image)
+        }
+        return selectedRegion.map { AnnotationDrawingStyle.tool(for: $0, image: image) } ?? PKInkingTool(.crayon)
+    }
+
     private var contentInsets: UIEdgeInsets {
         UIEdgeInsets(
             top: promptBottom + Self.overlaySpacing,
@@ -91,26 +99,9 @@ struct AnnotateImageSheet: View {
                     Label(LocalizedStringResource("Close", bundle: .module), systemImage: "xmark")
                 }
             }
-        } else {
-            ToolbarItem(placement: .cancellationAction) {
-                Button(role: .destructive, action: showResetConfirmation) {
-                    Label(LocalizedStringResource("Remove", bundle: .module), systemImage: "trash")
-                }
-                .tint(.red)
-                .confirmationDialog(
-                    LocalizedStringResource("Remove Annotations", bundle: .module),
-                    isPresented: $isShowingResetAlert
-                ) {
-                    Button(role: .destructive, action: resetAnnotations) {
-                        Text("Remove", bundle: .module)
-                    }
-                } message: {
-                    Text("Do you want to remove all annotations?", bundle: .module)
-                }
-            }
         }
         if history.canUndo || history.canRedo {
-            if #available(iOS 26, macOS 26, *) {
+            if #available(iOS 26, macOS 26, *), response.drawing.isEmpty {
                 ToolbarSpacer(.fixed, placement: .cancellationAction)
             }
             ToolbarItemGroup(placement: .cancellationAction) {
@@ -144,15 +135,6 @@ struct AnnotateImageSheet: View {
         if selectedRegion == nil {
             selectedRegion = config.regions.first
         }
-    }
-
-    private func showResetConfirmation() {
-        isShowingResetAlert = true
-    }
-
-    private func resetAnnotations() {
-        response.drawing = .init()
-        history.removeAllActions()
     }
 }
 #endif

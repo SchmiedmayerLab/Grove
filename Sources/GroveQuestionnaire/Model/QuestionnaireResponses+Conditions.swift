@@ -81,6 +81,60 @@ extension QuestionnaireResponses {
     }
     
     
+    /// Whether the task's enablement can still change with answers not yet given.
+    ///
+    /// A condition over an unanswered question, or an expression with nothing to evaluate over, is
+    /// unsettled: the task may yet be asked. Everything else is settled, one way or the other.
+    func isEnablementSettled(for task: Questionnaire.Task) -> Bool {
+        isEnablementSettled(for: task, visited: [])
+    }
+
+    private func isEnablementSettled(for task: Questionnaire.Task, visited: Set<Questionnaire.Task.ID>) -> Bool {
+        guard !visited.contains(task.id) else {
+            return true
+        }
+        let visited = visited.union([task.id])
+        let config = TaskLookupConfig(limitToPreviousTasks: false, exposeParentScope: true)
+        return task.groupPath.allSatisfy { isSettled($0.condition, for: task, visited: visited, config: config) }
+            && isSettled(task.enabledCondition, for: task, visited: visited, config: config)
+    }
+
+    private func isSettled(
+        _ condition: Questionnaire.Condition,
+        for task: Questionnaire.Task,
+        visited: Set<Questionnaire.Task.ID>,
+        config: TaskLookupConfig
+    ) -> Bool {
+        func settled(_ inner: Questionnaire.Condition) -> Bool {
+            isSettled(inner, for: task, visited: visited, config: config)
+        }
+        func holds(_ inner: Questionnaire.Condition) -> Bool {
+            evaluate(inner, for: task, visited: visited, config: config)
+        }
+        switch condition {
+        case .not(let inner):
+            return settled(inner)
+        case .all(let inner):
+            // One settled miss decides it; otherwise every part has to be settled.
+            return inner.contains { settled($0) && !holds($0) } || inner.allSatisfy { settled($0) }
+        case .any(let inner):
+            return inner.contains { settled($0) && holds($0) } || inner.allSatisfy { settled($0) }
+        case .expression(let expression):
+            guard let engine = questionnaire.expressionEngine else {
+                return true
+            }
+            return (try? engine.evaluateBoolean(expression, scope: .item(task.id), in: self)) != .empty
+        case .hasResponse(let taskId), .isMissingResponse(let taskId), .responseValueComparison(let taskId, _, _):
+            guard let resolved = resolveTaskId(targetTaskId: taskId, currentTaskId: task.id, using: config) else {
+                return true
+            }
+            // An answer settles it, and so does the referenced question being ruled out for good.
+            return resolved.responses.hasResponse(for: resolved.task)
+                || (!resolved.responses.shouldEnable(task: resolved.task, visited: visited)
+                    && resolved.responses.isEnablementSettled(for: resolved.task, visited: visited))
+        }
+    }
+
     /// Looks up a ``Questionnaire/Task``, based on its id, in compliance with a ``TaskLookupConfig``.
     private func resolveTaskId( // swiftlint:disable:this cyclomatic_complexity
         targetTaskId: Questionnaire.Task.ID,

@@ -11,6 +11,8 @@ public import SwiftUI
 
 /// A view that guards the access to a view.
 ///
+/// ![A passcode prompt with a failed attempt.](EnterPasscode)
+///
 /// > Important: You will need to register the ``AccessGuard`` module in your Grove using the [`configuration`](../Grove/Grove.docc/Grove.md)
 /// in a [`GroveAppDelegate`](../Grove/Grove.docc/Grove.md) as detailed in the ``AccessGuard`` documentation.
 ///

@@ -18,13 +18,13 @@ The Access Guard module allows developers to guard a SwiftUI view with an access
 
 @Row {
     @Column {
-        @Image(source: "AccessGuarded", alt: "Screenshot showing access guarded to a SwiftUI view by an access code.") {
-            An ``AccessGuarded`` view guarding access to a SwiftUI view by an access code.
+        @Image(source: "SetPasscode", alt: "A screen titled Set Code with four empty circles above a numeric keypad.") {
+            ``SetAccessGuard`` walks the user through choosing a passcode and repeating it before the guard stores it in the keychain.
         }
     }
     @Column {
-        @Image(source: "AccessGuarded-Biometrics", alt: "Screenshot showing access guarded to a SwiftUI view by Face ID with an access code fallback.") {
-            An ``AccessGuarded`` view guarding access to a SwiftUI view by Face ID with an access code fallback.
+        @Image(source: "EnterPasscode", alt: "A screen titled Enter Passcode with four empty circles, a red capsule reading 1 Failed Attempt, and a numeric keypad.") {
+            A locked ``AccessGuarded`` view asks for the ``CodeAccessGuard``'s passcode and counts failed attempts.
         }
     }
 }

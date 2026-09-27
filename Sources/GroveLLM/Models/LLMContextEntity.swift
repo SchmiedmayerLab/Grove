@@ -97,8 +97,20 @@ public struct LLMContextEntity: Codable, Equatable, Hashable, Identifiable, Send
 
     /// - Important: This type is not stable and will be removed in an upcoming release.
     package struct _ImageContent: Codable, Hashable, Sendable { // swiftlint:disable:this type_name
+        /// A picture the assistant has started but not finished; the chat shows a placeholder in its place.
+        package static let generating = Self(contentType: "", base64Image: "")
+
         package let contentType: String
         package let base64Image: String
+
+        package var isGenerating: Bool {
+            base64Image.isEmpty
+        }
+
+        package init(contentType: String, base64Image: String) {
+            self.contentType = contentType
+            self.base64Image = base64Image
+        }
     }
 
     /// - Important: This type is not stable and will be removed in an upcoming release.
@@ -219,6 +231,24 @@ public struct LLMContextEntity: Codable, Equatable, Hashable, Identifiable, Send
             url: fileURL
         )
     }
+
+    package init(
+        _role: Role, // swiftlint:disable:this identifier_name
+        _imageContent: _ImageContent, // swiftlint:disable:this identifier_name
+        id: UUID = UUID(),
+        date: Date = .now,
+        interactionId: LLMInteractionId? = nil
+    ) {
+        self.id = id
+        self.date = date
+        self.role = _role
+        self.interactionId = interactionId
+        self.content = ""
+        self.complete = true
+        self.completionDate = date
+        self._imageContent = _imageContent
+        self._fileContent = nil
+    }
 }
 
 
@@ -247,6 +277,7 @@ extension LLMContextEntity {
             }
         }
     }
+
 
     /// - Important: This init is not stable and will be removed in an upcoming release.
     public init?(

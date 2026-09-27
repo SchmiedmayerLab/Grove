@@ -51,6 +51,9 @@ private struct ViewStateAlert: ViewModifier {
 
 extension View {
     /// Automatically displays an alert using the localized error descriptions based on a view's ``ViewState``.
+    ///
+    /// ![An alert presented from an error view state.](ViewState)
+    ///
     /// - Parameter state: The `Binding` indicating the current ``ViewState``
     public func viewStateAlert(state: Binding<ViewState>) -> some View {
         self

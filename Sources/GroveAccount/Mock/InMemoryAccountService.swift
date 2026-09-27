@@ -142,11 +142,6 @@ public final class InMemoryAccountService: AccountService {
 
     @Application(\.logger)
     private var logger
-    
-    @StandardActor private var standard: any Standard
-    private var notifyStandard: (any AccountNotifyConstraint)? {
-        standard as? any AccountNotifyConstraint
-    }
 
     @Dependency(Account.self)
     private var account
@@ -324,7 +319,7 @@ public final class InMemoryAccountService: AccountService {
         logger.debug("Logging out user")
         try await Task.sleep(for: .milliseconds(500))
         if let details = account.details {
-            await notifyStandard?.willLogOut(details)
+            try await notifications.reportEvent(.willLogOut(details))
         }
         account.removeUserDetails()
     }
@@ -343,7 +338,7 @@ public final class InMemoryAccountService: AccountService {
         }
 
         let notifications = notifications
-        try await notifications.reportEvent(.deletingAccount(details.accountId))
+        try await notifications.reportEvent(.willDelete(details.accountId))
 
         registeredUsers.removeValue(forKey: details.accountId.assumeUUID)
         userIdToAccountId.removeValue(forKey: details.userId)

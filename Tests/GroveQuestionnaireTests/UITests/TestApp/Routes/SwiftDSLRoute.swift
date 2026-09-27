@@ -12,12 +12,14 @@ import SwiftUI
 
 /// Questionnaires declared in Swift, where a question is a value the rest of the code can name.
 ///
-/// Both instruments carry the `@Instrument` macro, which checks at compile time that every
+/// The instruments carry the `@Instrument` macro, which checks at compile time that every
 /// declared question is placed exactly once and that no two share a linkId.
 struct SwiftDSLRoute: View {
     var body: some View {
         ExampleCatalog(route: .swiftDSL, groups: [
             ExampleGroup("Instruments", [
+                // Four question kinds on one page, the way the documentation opens.
+                Example(HeartCheckIn.questionnaire),
                 // Typed option sets, a group gated as a whole, and a score summed from option weights.
                 // The showcase instrument asks for a completion page; the rest take the default.
                 Example(.sleepCheckIn, completionStepConfig: .enable),

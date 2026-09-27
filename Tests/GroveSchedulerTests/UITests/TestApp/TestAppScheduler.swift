@@ -61,9 +61,11 @@ final class TestAppScheduler: Module {
             }
 
             let now = Date.now
-            // UI tests that need a wider window pass `-notificationLeadTime <seconds>` as a launch argument.
+            // UI tests that need a wider window pass `-notificationLeadTime <seconds>` as a launch argument; the
+            // documentation screenshots ask for a day that reads like one, with the measurement at eleven.
+            let documentation = ProcessInfo.processInfo.arguments.contains("--documentation")
             let leadTime = UserDefaults.standard.object(forKey: "notificationLeadTime") as? Double ?? 40
-            let time = notificationTestTime(for: now, adding: .seconds(leadTime))
+            let time = documentation ? NotificationTime(hour: 11, minute: 0, second: 0) : notificationTestTime(for: now, adding: .seconds(leadTime))
 
             try scheduler.createOrUpdateTask(
                 id: TaskIdentifier.testMeasurement,
@@ -81,7 +83,9 @@ final class TestAppScheduler: Module {
                 title: "Medication",
                 instructions: "Take your medication",
                 category: .medication,
-                schedule: .daily(hour: time.hour, minute: time.minute, second: time.second, startingAt: .nextWeek),
+                schedule: documentation
+                    ? .daily(hour: 8, minute: 0, startingAt: .today)
+                    : .daily(hour: time.hour, minute: time.minute, second: time.second, startingAt: .nextWeek),
                 scheduleNotifications: true // a daily task that starts next week requires event-level notification scheduling
             )
             
@@ -98,8 +102,8 @@ final class TestAppScheduler: Module {
             
             try scheduler.createOrUpdateTask(
                 id: "TESTTESTTEST",
-                title: "TESTTESTTEST",
-                instructions: "TESTTESTTEST",
+                title: "Check-In",
+                instructions: "Let us know how you are feeling today.",
                 category: .none,
                 schedule: .once(at: .today, duration: .tillEndOfDay),
                 completionPolicy: .sameDay,
@@ -112,9 +116,11 @@ final class TestAppScheduler: Module {
                 title: "Timed Walking Test",
                 instructions: "Walk for 6 minutes!",
                 category: .timedWalkingTest,
-                schedule: .daily(hour: 0, minute: 0, startingAt: .tomorrow),
+                schedule: documentation
+                    ? .daily(hour: 9, minute: 0, startingAt: .tomorrow)
+                    : .daily(hour: 0, minute: 0, startingAt: .tomorrow),
                 scheduleNotifications: true,
-                notificationTime: NotificationTime(hour: 0, minute: 5)
+                notificationTime: documentation ? NotificationTime(hour: 9, minute: 5) : NotificationTime(hour: 0, minute: 5)
             )
         } catch {
             logger.error("Failed to scheduled TestApp tasks: \(error)")

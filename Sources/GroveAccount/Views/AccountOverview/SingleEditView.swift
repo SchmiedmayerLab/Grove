@@ -44,6 +44,7 @@ struct SingleEditView<Key: AccountKey>: View {
                 .environment(\.accountViewType, .overview(mode: .existing))
                 .injectEnvironmentObjects(configuration: accountDetails.accountServiceConfiguration, model: model)
         }
+            .softScrollEdge()
             .navigationTitle(Text(Key.self == AccountKeys.userId ? accountDetails.userIdType.localizedStringResource : Key.name))
             .viewStateAlert(state: $viewState)
             .receiveValidation(in: $validation)

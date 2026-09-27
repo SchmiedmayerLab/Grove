@@ -47,38 +47,36 @@ private struct EntryView: DataEntryView {
     }
 
     var body: some View {
-        Grid(horizontalSpacing: 16) {
-            NameFieldRow(name: $name, for: \.givenName) {
-                Text("UAP_SIGNUP_GIVEN_NAME_TITLE", bundle: .module)
-            } label: {
-                Text("UAP_SIGNUP_GIVEN_NAME_PLACEHOLDER", bundle: .module)
-            }
-                .validate(input: name.givenName ?? "", rules: validationRule)
-                .receiveValidation(in: $givenNameValidation)
-                .focusOnTap() // ensure field receives focus when tapping on the description label
-
-            GridValidationStateFooter(givenNameValidation.allDisplayedValidationResults)
-
+        VStack(spacing: 0) {
+            nameRow(for: \.givenName, prompt: Text("UAP_SIGNUP_GIVEN_NAME_PLACEHOLDER", bundle: .module), validation: $givenNameValidation)
             Divider()
-                .gridCellUnsizedAxes(.horizontal)
-
-            NameFieldRow(name: $name, for: \.familyName) {
-                Text("UAP_SIGNUP_FAMILY_NAME_TITLE", bundle: .module)
-            } label: {
-                Text("UAP_SIGNUP_FAMILY_NAME_PLACEHOLDER", bundle: .module)
-            }
-                .validate(input: name.familyName ?? "", rules: validationRule)
-                .receiveValidation(in: $familyNameValidation)
-                .focusOnTap() // ensure field receives focus when tapping on the description label
-
-            GridValidationStateFooter(familyNameValidation.allDisplayedValidationResults)
+            nameRow(for: \.familyName, prompt: Text("UAP_SIGNUP_FAMILY_NAME_PLACEHOLDER", bundle: .module), validation: $familyNameValidation)
         }
+            .padding(.vertical, -12)
             .environment(\.validationConfiguration, .considerNoInputAsValid)
     }
 
 
     init(_ value: Binding<PersonNameComponents>) {
         self._name = value
+    }
+
+    /// A name row marks itself the way a ``VerifiableTextField`` does, so the card or form row around it takes the tint.
+    private func nameRow(
+        for component: WritableKeyPath<PersonNameComponents, String?>,
+        prompt: Text,
+        validation: ValidationState.Binding
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            NameTextField(name: $name, for: component, prompt: prompt) {
+                prompt
+            }
+                .validate(input: name[keyPath: component] ?? "", rules: validationRule)
+                .receiveValidation(in: validation)
+            ValidationResultsView(results: validation.wrappedValue.allDisplayedValidationResults)
+        }
+            .padding(.vertical, 12)
+            .reportsBlocking(validation.wrappedValue.isDisplayingValidationErrors)
     }
 }
 

@@ -8,11 +8,13 @@
 
 #if canImport(SwiftUI)
 import Grove
-import GroveOnboarding
+import GroveViews
 public import SwiftUI
 
 
 /// View to display an onboarding step for the user to select an OpenAI-like model.
+///
+/// ![An onboarding page with a model picker.](ModelStep)
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct LLMOpenAILikeModelOnboardingStep<PlatformDefinition: LLMOpenAILikePlatformDefinition>: View {
     private let primaryActionTitle: Text
@@ -23,13 +25,14 @@ public struct LLMOpenAILikeModelOnboardingStep<PlatformDefinition: LLMOpenAILike
     @State private var selection: PlatformDefinition.ModelType
     
     public var body: some View {
-        OnboardingView {
-            OnboardingTitleView(
+        PageView {
+            PageHeader(
                 title: LocalizedStringResource("\(PlatformDefinition.platformName) Model", bundle: .module),
                 subtitle: LocalizedStringResource(
                     "Select the \(PlatformDefinition.platformName) model that you want to use.\nEnsure that your API key has proper access to the model.",
                     bundle: .module
-                )
+                ),
+                image: Image(systemName: "cpu") // swiftlint:disable:this accessibility_label_for_image
             )
         } content: {
             Picker(
@@ -48,7 +51,7 @@ public struct LLMOpenAILikeModelOnboardingStep<PlatformDefinition: LLMOpenAILike
             #endif
             .accessibilityIdentifier("modelPicker")
         } footer: {
-            OnboardingActionsView(title: { primaryActionTitle }) {
+            PageActions(title: { primaryActionTitle }) {
                 action(selection)
             }
         }
