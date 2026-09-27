@@ -14,6 +14,7 @@ import pathlib
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 SCRIPT = pathlib.Path(__file__).parents[1] / "affected-test-matrix.py"
@@ -58,15 +59,20 @@ def package_dump(targets, products=None, dependencies=None, **values):
     }
 
 
-def run_selector(*changed_paths, extra_arguments=()):
+def run_selector(*changed_paths, extra_arguments=(), include_transitive_consumers=None):
     with tempfile.NamedTemporaryFile(mode="w") as changed_file:
         changed_file.write("\n".join(changed_paths) + "\n")
         changed_file.flush()
         original_argv = sys.argv
         sys.argv = [str(SCRIPT), changed_file.name, *extra_arguments]
         output = io.StringIO()
+        selection_mode = (
+            contextlib.nullcontext()
+            if include_transitive_consumers is None
+            else mock.patch.object(MODULE, "INCLUDE_TRANSITIVE_CONSUMERS", include_transitive_consumers)
+        )
         try:
-            with contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
+            with selection_mode, contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
                 MODULE.main()
         finally:
             sys.argv = original_argv
@@ -272,39 +278,89 @@ class UITestProjectsSelectionTests(unittest.TestCase):
 
 
 class SourceChangeSelectionTests(unittest.TestCase):
-    """A source change schedules its package and everything that builds on it."""
+    """The source selection toggle controls both unit and UI consumer jobs."""
 
-    def run_with_head(self, *changed_paths, head):
+    def run_with_head(self, *changed_paths, head, include_transitive_consumers=None):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as head_file:
             head_file.write(json.dumps(head))
             head_file.flush()
-            return run_selector(*changed_paths, extra_arguments=("--head-package-dump", head_file.name))
+            return run_selector(
+                *changed_paths,
+                extra_arguments=("--head-package-dump", head_file.name),
+                include_transitive_consumers=include_transitive_consumers,
+            )
 
-    def test_a_changed_target_schedules_its_consumers(self):
+    def test_source_changes_include_consumers_only_when_enabled(self):
         head = package_dump([
             target("GroveFoundation", path="Sources/GroveFoundation"),
             target("GroveChat", ["GroveFoundation"], path="Sources/GroveChat"),
             target("GroveLLM", ["GroveChat"], path="Sources/GroveLLM"),
-            target("GroveAccount", ["GroveFoundation"], path="Sources/GroveAccount"),
+            target("GroveHealthKitFHIR", ["GroveFoundation"], path="Sources/GroveHealthKitFHIR"),
+            target("GroveAccount", path="Sources/GroveAccount"),
         ])
-        result = self.run_with_head("Sources/GroveChat/ChatView.swift", head=head)
+        for enabled, expected in (
+            (False, {"GroveFoundation"}),
+            (True, {"GroveFoundation", "GroveChat", "GroveLLM", "GroveHealthKitFHIR"}),
+        ):
+            with self.subTest(include_transitive_consumers=enabled):
+                result = self.run_with_head(
+                    "Sources/GroveFoundation/LocalPreferences/LocalPreferenceKey.swift",
+                    head=head, include_transitive_consumers=enabled,
+                )
 
-        self.assertEqual(set(result["affected"].split(",")), {"GroveChat", "GroveLLM"})
+                self.assertEqual(set(result["affected"].split(",")), expected)
+                for matrix in ("matrix", "ui_matrix"):
+                    self.assertEqual({job["package"] for job in json.loads(result[matrix])["include"]}, expected)
+                self.assertEqual(result["has_fhir_conformance"], "true" if enabled else "false")
 
-    def test_a_shared_module_without_a_package_schedules_its_consumers(self):
+    def test_multiple_changed_source_and_test_targets_select_their_owners_when_consumers_are_disabled(self):
+        head = package_dump([
+            target("GroveLocalization", path="Sources/GroveLocalization"),
+            target("GroveFoundationTests", path="Tests/GroveFoundationTests"),
+            target("GroveAccountTests", path="Tests/GroveAccountTests"),
+            target("GroveLLMOpenAI", ["GroveLocalization"], path="Sources/GroveLLMOpenAI"),
+            target("GroveViews", ["GroveLocalization"], path="Sources/GroveViews"),
+        ])
+        result = self.run_with_head(
+            "Sources/GroveLocalization/Localization.swift",
+            "Tests/GroveFoundationTests/LocalPreferenceTests.swift",
+            "Tests/GroveAccountTests/AccountTests.swift",
+            "Sources/GroveLLMOpenAI/Client.swift",
+            head=head, include_transitive_consumers=False,
+        )
+
+        expected = {"GroveFoundation", "GroveAccount", "GroveLLM"}
+        self.assertEqual(set(result["affected"].split(",")), expected)
+        for matrix in ("matrix", "ui_matrix"):
+            self.assertEqual({job["package"] for job in json.loads(result[matrix])["include"]}, expected)
+
+    def test_a_shared_module_without_an_owner_uses_full_fallback_unless_consumers_are_enabled(self):
         head = package_dump([
             target("GroveLegacyIdentifiers", path="Sources/GroveLegacyIdentifiers"),
             target("GroveFoundation", ["GroveLegacyIdentifiers"], path="Sources/GroveFoundation"),
             target("GroveChat", ["GroveFoundation"], path="Sources/GroveChat"),
         ])
-        result = self.run_with_head("Sources/GroveLegacyIdentifiers/Identifiers.swift", head=head)
+        for enabled in (False, True):
+            with self.subTest(include_transitive_consumers=enabled):
+                result = self.run_with_head(
+                    "Sources/GroveLegacyIdentifiers/Identifiers.swift",
+                    head=head, include_transitive_consumers=enabled,
+                )
 
-        self.assertEqual(set(result["affected"].split(",")), {"GroveFoundation", "GroveChat"})
+                if enabled:
+                    expected = {"GroveFoundation", "GroveChat"}
+                    self.assertEqual(set(result["affected"].split(",")), expected)
+                    for matrix in ("matrix", "ui_matrix"):
+                        self.assertEqual({job["package"] for job in json.loads(result[matrix])["include"]}, expected)
+                else:
+                    self.assertEqual(result, run_selector("__ALL__"))
 
     def test_without_the_head_graph_only_the_owner_is_scheduled(self):
-        result = run_selector("Sources/GroveChat/ChatView.swift")
+        for enabled in (False, True):
+            with self.subTest(include_transitive_consumers=enabled):
+                result = run_selector("Sources/GroveChat/ChatView.swift", include_transitive_consumers=enabled)
 
-        self.assertEqual(result["affected"], "GroveChat")
+                self.assertEqual(result["affected"], "GroveChat")
 
 
 class IgnoredSharedChangeTests(unittest.TestCase):
@@ -328,7 +384,7 @@ class IgnoredSharedChangeTests(unittest.TestCase):
                 self.assertEqual(json.loads(result["ui_matrix"])["include"], [])
                 self.assertEqual(result["has_fhir_conformance"], "false")
 
-    def test_source_and_test_changes_keep_their_consumers_when_shared_changes_are_ignored(self):
+    def test_source_selection_toggle_applies_when_shared_changes_are_ignored(self):
         head = package_dump([
             target("GroveChat", path="Sources/GroveChat"),
             target("GroveLLM", ["GroveChat"], path="Sources/GroveLLM"),
@@ -338,29 +394,36 @@ class IgnoredSharedChangeTests(unittest.TestCase):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as head_file:
             head_file.write(json.dumps(head))
             head_file.flush()
-            for path, expected in (
-                ("Sources/GroveChat/ChatView.swift", {"GroveChat", "GroveLLM"}),
-                ("Tests/GroveAccountTests/AccountTests.swift", {"GroveAccount"}),
-            ):
-                with self.subTest(path=path):
-                    result = run_selector(
-                        "Package.swift", ".github/workflows/tests.yml", path,
-                        extra_arguments=(*self.ARGUMENTS, "--head-package-dump", head_file.name),
-                    )
-
-                    self.assertEqual(set(result["affected"].split(",")), expected)
-                    for matrix in ("matrix", "ui_matrix"):
-                        self.assertEqual(
-                            {job["package"] for job in json.loads(result[matrix])["include"]}, expected,
+            for enabled in (False, True):
+                for path, expected in (
+                    ("Sources/GroveChat/ChatView.swift", {"GroveChat", "GroveLLM"} if enabled else {"GroveChat"}),
+                    ("Tests/GroveAccountTests/AccountTests.swift", {"GroveAccount"}),
+                ):
+                    with self.subTest(path=path, include_transitive_consumers=enabled):
+                        result = run_selector(
+                            "Package.swift", ".github/workflows/tests.yml", path,
+                            extra_arguments=(*self.ARGUMENTS, "--head-package-dump", head_file.name),
+                            include_transitive_consumers=enabled,
                         )
+
+                        self.assertEqual(set(result["affected"].split(",")), expected)
+                        for matrix in ("matrix", "ui_matrix"):
+                            self.assertEqual(
+                                {job["package"] for job in json.loads(result[matrix])["include"]}, expected,
+                            )
 
     def test_explicit_full_run_overrides_ignored_shared_changes(self):
         expected = run_selector("__ALL__")
-        result = run_selector("__ALL__", "Package.swift", extra_arguments=self.ARGUMENTS)
+        for enabled in (False, True):
+            with self.subTest(include_transitive_consumers=enabled):
+                result = run_selector(
+                    "__ALL__", "Package.swift", extra_arguments=self.ARGUMENTS,
+                    include_transitive_consumers=enabled,
+                )
 
-        self.assertEqual(result, expected)
-        self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
-        self.assertEqual(result["has_fhir_conformance"], "true")
+                self.assertEqual(result, expected)
+                self.assertEqual(set(result["affected"].split(",")), set(MODULE.PKGS))
+                self.assertEqual(result["has_fhir_conformance"], "true")
 
     def test_package_configuration_changes_remain_package_specific(self):
         head = pathlib.Path(MODULE.ROOT, "packages.toml").read_text()
