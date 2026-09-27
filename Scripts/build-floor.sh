@@ -16,10 +16,10 @@
 # It builds — never tests, and never overrides the deployment target (that would defeat the check).
 # Package traits stay OFF so we exercise exactly the lean default graph an iOS-15 consumer receives.
 #
-# We build the *top-level* library products (those not depended on by another product); their
-# transitive closures compile every other library target's sources. Afterwards we assert that every
-# platform-supported module actually produced a .swiftmodule, so a stale dependency-graph analysis
-# surfaces as a hard coverage failure instead of silent under-coverage.
+# We build the *top-level* library products (those not depended on by another product) together in
+# one CI-only product; their transitive closures compile every other library target's sources.
+# Afterwards we assert that every platform-supported module actually produced a .swiftmodule, so a
+# stale dependency-graph analysis surfaces as a hard coverage failure instead of silent under-coverage.
 #
 # Usage:
 #   Scripts/build-floor.sh <iOS|macOS|watchOS> <device|simulator>   # macOS ignores the 2nd argument
@@ -42,17 +42,21 @@ esac
 # Make sure a lowered floor, not the current OS wave, is what we compile against.
 export GROVE_LOWERED_DEPLOYMENT_TARGETS=1
 unset GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS || true
-# Everything lives under the gitignored `.derivedData/` so a build leaves the checkout clean.
-mkdir -p .derivedData
-DD=".derivedData/floor-$PLATFORM-$KIND"
+# Analyze the normal products before adding the CI-only aggregate to the manifest.
+unset GROVE_FLOOR_BUILD_TARGETS || true
+# Fresh build output makes the module-coverage assertion independent of previous runs. Keep CI
+# output outside the checkout; local runs use the gitignored `.derivedData/` directory.
+DD_ROOT="${RUNNER_TEMP:-$PWD/.derivedData}"
+mkdir -p "$DD_ROOT"
+DD="$(mktemp -d "$DD_ROOT/floor-$PLATFORM-$KIND.XXXXXX")"
 
 # Resolve, for this platform, the top-level library products to build and the full set of supported
 # modules to assert coverage over. Platform support comes from packages.toml (the curated union CI
 # matrix); the dependency graph comes from the manifest dump.
-swift package dump-package > "$DD.dump.json" 2>/dev/null || swift package dump-package > "$DD.dump.json"
+swift package dump-package > "$DD/package.json" 2>/dev/null || swift package dump-package > "$DD/package.json"
 # The analysis is written to a file (rather than a heredoc inside $()) because bash 3.2 — the /bin/bash
 # on macOS runners — mis-parses a heredoc nested in command substitution.
-ANALYZER=".derivedData/floor-analyze.py"
+ANALYZER="$DD/analyze.py"
 cat > "$ANALYZER" <<'PY'
 import sys
 if sys.version_info < (3, 11):
@@ -142,7 +146,7 @@ toplevel = sorted(p for p in supported if not any(mt in depended for mt in libpr
 mods = sorted(mt for mt in sup_targets if mt not in unsupported)
 print(" ".join(toplevel) + "\t" + " ".join(mods))
 PY
-PYOUT="$(python3 "$ANALYZER" "$DD.dump.json" "$PLATFORM")"
+PYOUT="$(python3 "$ANALYZER" "$DD/package.json" "$PLATFORM")"
 IFS=$'\t' read -r TOPLEVEL SUPPORTED <<< "$PYOUT"
 
 IFS=' ' read -r -a TOP <<< "$TOPLEVEL"
@@ -168,7 +172,7 @@ beautify() {
   if [ -n "${GITHUB_ACTIONS:-}" ]; then xcbeautify --renderer github-actions; else xcbeautify; fi
 }
 
-FAILED=()
+BUILD_PRODUCTS=()
 SKIPPED=()
 for prod in "${TOP[@]}"; do
   if skipped "$prod"; then
@@ -176,22 +180,44 @@ for prod in "${TOP[@]}"; do
     SKIPPED+=("$prod")
     continue
   fi
-  echo "==> build $prod"
-  if ! xcodebuild build \
-      -scheme "$prod" \
-      -destination "$DEST" \
-      -configuration Debug \
-      -derivedDataPath "$DD" \
-      -skipMacroValidation -skipPackagePluginValidation \
-      2>&1 | beautify; then
-    FAILED+=("$prod")
-  fi
+  BUILD_PRODUCTS+=("$prod")
 done
+
+# A library product can contain multiple targets, including products whose target names differ
+# from their product names. Its generated scheme builds the same closures as the former loop.
+FLOOR_BUILD_TARGETS="$(python3 -c '
+import json, sys
+products = {p["name"]: p["targets"] for p in json.load(open(sys.argv[1]))["products"]}
+targets = sorted({target for name in sys.argv[2:] for target in products[name]})
+if not targets:
+    sys.exit("error: no deployment-floor targets selected")
+print(",".join(targets))
+' "$DD/package.json" "${BUILD_PRODUCTS[@]}")"
+export GROVE_FLOOR_BUILD_TARGETS="$FLOOR_BUILD_TARGETS"
+
+BUILD_ARGS=(build
+  -scheme GroveDeploymentFloor
+  -destination "$DEST"
+  -configuration Debug
+  -derivedDataPath "$DD"
+  -skipMacroValidation -skipPackagePluginValidation
+)
+if [ "$KIND" = simulator ] && [ "$PLATFORM" != macOS ]; then
+  # Intel simulators are outside this check's scope. Preserve device architectures, including
+  # watchOS's 32-bit slice, while checking simulator-only source branches on Apple Silicon.
+  BUILD_ARGS+=(ARCHS=arm64)
+fi
+
+echo "==> build ${#BUILD_PRODUCTS[@]} products together: ${BUILD_PRODUCTS[*]}"
+FAILED=0
+if ! xcodebuild "${BUILD_ARGS[@]}" 2>&1 | beautify; then
+  FAILED=1
+fi
 
 # Coverage assertion: every platform-supported module must have produced a .swiftmodule. This catches
 # any under-coverage from the top-level analysis (a module no top-level product actually pulled in).
 # Skip-listed products (and any module reachable only through them) are excluded from the expectation.
-BUILT="$(find "$DD/Build" -type d -name '*.swiftmodule' 2>/dev/null | sed 's#.*/##; s#\.swiftmodule$##' | sort -u)"
+BUILT="$(find "$DD/Build" -type d -name '*.swiftmodule' 2>/dev/null | sed 's#.*/##; s#\.swiftmodule$##' | sort -u || true)"
 MISSING=()
 for m in "${MODS[@]}"; do
   skipped "$m" && continue
@@ -204,13 +230,13 @@ echo "built modules: $(wc -l <<< "$BUILT" | tr -d ' ')   expected-supported: ${#
 if [ "${#SKIPPED[@]}" -ne 0 ]; then
   echo "skipped (pre-existing $PLATFORM limitations): ${SKIPPED[*]}"
 fi
-if [ "${#FAILED[@]}" -ne 0 ]; then
-  echo "::error::floor build FAILED for: ${FAILED[*]}"
+if [ "$FAILED" -ne 0 ]; then
+  echo "::error::floor build FAILED for $PLATFORM ($KIND)"
 fi
 if [ "${#MISSING[@]}" -ne 0 ]; then
   echo "::error::coverage gap — supported modules never built: ${MISSING[*]}"
 fi
-if [ "${#FAILED[@]}" -ne 0 ] || [ "${#MISSING[@]}" -ne 0 ]; then
+if [ "$FAILED" -ne 0 ] || [ "${#MISSING[@]}" -ne 0 ]; then
   exit 1
 fi
 echo "OK — all ${#MODS[@]} $PLATFORM modules compile at the deployment floor."
