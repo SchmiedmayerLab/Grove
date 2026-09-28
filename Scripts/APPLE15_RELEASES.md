@@ -27,14 +27,14 @@ The generated commit and tag are unsigned; no additional secrets or identity var
 Allow the workflow to create `*-apple15*` tags under the repository's tag rules.
 If another workflow publishes the original GitHub release, it must use a GitHub App token or PAT: events created with `GITHUB_TOKEN` [do not start release workflows](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow).
 
-Regular releases should enable the lowered configuration only when `GROVE_LOWERED_DEPLOYMENT_TARGETS` is `"1"`.
-The script also accepts the current temporary lowered default without changing its tree; restore the regular default when the study moves from its branch dependency to a compatibility tag.
+Regular releases use the standard deployment targets by default; the lowered configuration is opt-in via `GROVE_LOWERED_DEPLOYMENT_TARGETS=1`.
+The compatibility commit flips only that default, so the tag resolves to the lowered targets without the variable.
 Other manifest formats and version-specific manifests fail for manual review.
 
 ## Validation and Recovery
 
 Before publication, all five deployment-floor builds must pass: iOS device/simulator, macOS, and watchOS device/simulator.
-The workflow separately checks that the manifest defaults to iOS 15, macOS 12 and watchOS 9 with no enabled default traits.
+The workflow separately checks that the manifest defaults to iOS 15, macOS 12 and watchOS 8 with no enabled default traits.
 The existing floor script's product exclusions still apply; these builds do not establish runtime compatibility on older devices.
 Run the regular release validation and downstream study tests before publishing the original release.
 
