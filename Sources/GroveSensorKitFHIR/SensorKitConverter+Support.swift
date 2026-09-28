@@ -182,8 +182,10 @@ extension SensorKitConverter {
             fraction -= 1
         }
         let wholeDate = Date(timeIntervalSince1970: TimeInterval(wholeSeconds))
+        // A named zone would be re-resolved from the wall clock on encoding, shifting the repeated DST hour.
+        let offsetZone = timeZone.fixedOffset(at: wholeDate)
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
+        calendar.timeZone = offsetZone
         let components = calendar.dateComponents(
             [.year, .month, .day, .hour, .minute, .second],
             from: wholeDate
@@ -203,7 +205,7 @@ extension SensorKitConverter {
                 minute: minute,
                 second: Decimal(second) + fraction
             ),
-            timezone: timeZone
+            timezone: offsetZone
         )
     }
 

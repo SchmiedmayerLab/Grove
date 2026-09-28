@@ -122,6 +122,28 @@ struct GroveSensorKitFHIRConverterTests {
         #expect(effective.start?.value?.description == "2026-08-17T16:30:00-07:00")
     }
 
+    /// Each period starts in the first occurrence of the repeated fall-back hour and ends in the second one.
+    @Test("Effective bounds in the repeated DST hour keep their instants", arguments: [
+        ("America/Los_Angeles", "2025-11-02T08:55:00Z", "2025-11-02T09:05:00Z", "2025-11-02T01:05:00-08:00"),
+        ("Europe/Berlin", "2025-10-26T00:55:00Z", "2025-10-26T01:30:00Z", "2025-10-26T02:30:00+01:00")
+    ])
+    func repeatedHourBoundsKeepTheirInstants(_ zoneName: String, _ startText: String, _ endText: String, _ endLexical: String) throws {
+        let zone = try #require(TimeZone(identifier: zoneName))
+        let start = try #require(ISO8601DateFormatter().date(from: startText))
+        let end = try #require(ISO8601DateFormatter().date(from: endText))
+        let periods = try [
+            SensorKitConverter.period(start: start, end: end, timeZone: zone),
+            SensorConverter.period(start: start, end: end, sourceTimeZone: zone)
+        ]
+        for period in periods {
+            let decoded = try JSONDecoder().decode(Period.self, from: JSONEncoder().encode(period))
+            #expect(try #require(decoded.start?.value).asNSDate() == start)
+            #expect(try #require(decoded.end?.value).asNSDate() == end)
+            #expect(decoded.end?.value?.description == endLexical)
+        }
+        #expect(try SensorKitConverter.exactInstant(end, timeZone: zone).asNSDate() == end)
+    }
+
     @Test
     func rotationRateBuildsExactStructuredGraph() throws {
         let record = SensorKitRotationRateRecord(
