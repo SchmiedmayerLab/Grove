@@ -27,6 +27,9 @@ public enum ObservationExtractionError: Error, Equatable, Sendable {
     case sourceIsNotTheSubject
     case contradictoryExtractionMarking(linkID: String)
     case itemCodeMissing(linkID: String)
+    /// A marked item the instrument declares `required` has no answer, or its answer carries no value.
+    ///
+    /// An unanswered optional item is not a refusal: it states no reading, so it extracts nothing.
     case answerMissing(linkID: String)
     /// A repeating item carried several answers; projecting one of them would lose the rest.
     case multipleAnswers(linkID: String)
@@ -37,13 +40,16 @@ public enum ObservationExtractionError: Error, Equatable, Sendable {
     /// instant; stating that instant as the effective time would invent a duration the answer never gave.
     case measurementRequiresEffectivePeriod(linkID: String, measurement: String)
     case componentNotInMeasurement(linkID: String, code: String)
+    /// The measurement needs every declared component, and one is missing: the instrument marks no
+    /// item for it, or the response answers some of the panel's components but not this one.
     case componentIncomplete(measurement: String, missing: String)
     case unsupportedAnswer(linkID: String)
     case unsupportedRelationship(linkID: String, relationship: String)
     case answerNotInMeasurement(linkID: String, code: String)
     case incompleteWriterContext
     case writerContextMissing
-    /// The instrument marks nothing for extraction, so there is no exchange event to state.
+    /// The instrument marks nothing for extraction, or the response answers none of the marked
+    /// items, so there is no exchange event to state.
     case noExtractableMeasurements
 }
 
@@ -76,6 +82,12 @@ struct ExtractedMeasurement {
 /// The walk is driven entirely by what the instrument declares: `observationExtract` markings,
 /// `item.code`, unit declarations, and `definitionExtractValue` bindings. Nothing is inferred
 /// from answer shapes alone, so an unmarked item never projects.
+///
+/// A marked item the participant left unanswered states no reading and extracts nothing, unless the
+/// instrument declares it `required`: a completed response answers every enabled required item, so
+/// a missing answer there is a defect and refuses. A panel is all-or-nothing: no component answered
+/// extracts nothing, some answered refuses, because the panel's profile requires every component
+/// and dropping the answered ones would silently discard what the participant stated.
 struct QuestionnaireObservationExtractor {
     let questionnaire: ModelsR4.Questionnaire
     let response: ModelsR4.QuestionnaireResponse
@@ -130,7 +142,9 @@ struct QuestionnaireObservationExtractor {
         let marking = try item.extractionMarking()
         switch marking {
         case .standalone, .independent:
-            extracted.append(try measurement(for: item, answers: answers, linkID: linkID))
+            if let measurement = try measurement(for: item, answers: answers, linkID: linkID) {
+                extracted.append(measurement)
+            }
         case .member, .derived:
             // SDC links these to a parent Observation; emitting them unlinked would misstate
             // the relationship, so they refuse until the linkage is implemented.
@@ -151,11 +165,12 @@ struct QuestionnaireObservationExtractor {
         }
     }
 
+    /// The item's measurement, or nil when the participant left an optional item unanswered.
     private func measurement(
         for item: ModelsR4.QuestionnaireItem,
         answers: ModelsR4.QuestionnaireResponseItem?,
         linkID: String
-    ) throws -> ExtractedMeasurement {
+    ) throws -> ExtractedMeasurement? {
         guard let coding = item.code?.first,
               let system = coding.system?.value?.url.absoluteString,
               let code = coding.code?.value?.string else {
@@ -167,14 +182,19 @@ struct QuestionnaireObservationExtractor {
         guard contract.effective != .period else {
             throw ObservationExtractionError.measurementRequiresEffectivePeriod(linkID: linkID, measurement: contract.id)
         }
-        let value: ExtractedValue
+        let value: ExtractedValue?
         if contract.components.isEmpty {
-            guard let answers else {
-                throw ObservationExtractionError.answerMissing(linkID: linkID)
-            }
             value = try scalarValue(for: item, answers: answers, contract: contract, linkID: linkID)
         } else {
             value = try componentValue(for: item, answers: answers, contract: contract)
+        }
+        guard let value else {
+            // An optional item left unanswered states no reading; a required one leaves the
+            // completed response non-conformant, so it refuses instead of vanishing.
+            guard item.required?.value?.bool != true else {
+                throw ObservationExtractionError.answerMissing(linkID: linkID)
+            }
+            return nil
         }
         return ExtractedMeasurement(
             contract: contract,
@@ -185,38 +205,20 @@ struct QuestionnaireObservationExtractor {
 
     // MARK: Values
 
+    /// The item's value, or nil when it has no answer.
     private func scalarValue(
         for item: ModelsR4.QuestionnaireItem,
-        answers: ModelsR4.QuestionnaireResponseItem,
+        answers: ModelsR4.QuestionnaireResponseItem?,
         contract: MeasurementContract,
         linkID: String
-    ) throws -> ExtractedValue {
-        guard let answer = try Self.singleAnswer(of: answers, linkID: linkID) else {
-            throw ObservationExtractionError.answerMissing(linkID: linkID)
+    ) throws -> ExtractedValue? {
+        guard let answer = try answers.flatMap({ try Self.singleAnswer(of: $0, linkID: linkID) }) else {
+            return nil
+        }
+        if let quantity = try numericQuantity(answer, item: item, declared: contract.quantity, linkID: linkID) {
+            return .quantity(quantity)
         }
         switch answer.value {
-        case .quantity(let quantity):
-            return .quantity(try validated(quantity, against: contract.quantity, linkID: linkID))
-        case .integer(let integer):
-            guard let value = integer.value?.integer else {
-                throw ObservationExtractionError.answerMissing(linkID: linkID)
-            }
-            return .quantity(try fixedUnitQuantity(
-                decimal: Decimal(value),
-                item: item,
-                contract: contract,
-                linkID: linkID
-            ))
-        case .decimal(let decimal):
-            guard let value = decimal.value?.decimal else {
-                throw ObservationExtractionError.answerMissing(linkID: linkID)
-            }
-            return .quantity(try fixedUnitQuantity(
-                decimal: value,
-                item: item,
-                contract: contract,
-                linkID: linkID
-            ))
         case .coding(let coding):
             return try codedValue(coding, contract: contract, linkID: linkID)
         case .boolean(let flag):
@@ -246,12 +248,14 @@ struct QuestionnaireObservationExtractor {
         return .codeableConcept(CodeableConcept(coding: [coding]))
     }
 
+    /// The panel's components, or nil when none of them is answered.
     private func componentValue(
         for item: ModelsR4.QuestionnaireItem,
         answers: ModelsR4.QuestionnaireResponseItem?,
         contract: MeasurementContract
-    ) throws -> ExtractedValue {
+    ) throws -> ExtractedValue? {
         var components: [ExtractedValue.Component] = []
+        var unanswered: Set<String> = []
         for child in item.item ?? [] {
             guard try child.extractionMarking() == .component else {
                 continue
@@ -265,23 +269,29 @@ struct QuestionnaireObservationExtractor {
                 throw ObservationExtractionError.componentNotInMeasurement(linkID: childLinkID, code: code)
             }
             let answered = responseItem(linkID: childLinkID, in: answers?.item ?? [])
-            guard let answer = try answered.flatMap({ try Self.singleAnswer(of: $0, linkID: childLinkID) }),
-                  case .quantity(let quantity) = answer.value else {
-                throw ObservationExtractionError.answerMissing(linkID: childLinkID)
+            guard let answer = try answered.flatMap({ try Self.singleAnswer(of: $0, linkID: childLinkID) }) else {
+                unanswered.insert(component.code)
+                continue
+            }
+            guard let quantity = try numericQuantity(answer, item: child, declared: component.quantity, linkID: childLinkID) else {
+                throw ObservationExtractionError.unsupportedAnswer(linkID: childLinkID)
             }
             components.append(ExtractedValue.Component(
                 code: CodingContract(system: component.system, code: component.code),
-                value: try validated(quantity, against: component.quantity, linkID: childLinkID)
+                value: quantity
             ))
         }
-        // The measurement's own completeness rule: every declared component or nothing.
+        // The measurement's own completeness rule: every declared component or nothing. A panel
+        // left entirely unanswered states no reading, but only if the instrument marks every component.
         for declared in contract.components where !components.contains(where: { $0.code.code == declared.code }) {
-            throw ObservationExtractionError.componentIncomplete(
-                measurement: contract.id,
-                missing: declared.code
-            )
+            guard components.isEmpty, unanswered.contains(declared.code) else {
+                throw ObservationExtractionError.componentIncomplete(
+                    measurement: contract.id,
+                    missing: declared.code
+                )
+            }
         }
-        return .components(components)
+        return components.isEmpty ? nil : .components(components)
     }
 
     private func validated(
@@ -307,10 +317,38 @@ struct QuestionnaireObservationExtractor {
         return normalized
     }
 
+    /// The answer as a quantity in the declared unit, or nil when the answer is not numeric.
+    ///
+    /// A quantity answer carries its own unit; an integer or decimal answer takes the item's one
+    /// fixed `questionnaire-unit`. This holds for a standalone item and a panel component alike.
+    private func numericQuantity(
+        _ answer: QuestionnaireResponseItemAnswer,
+        item: ModelsR4.QuestionnaireItem,
+        declared: QuantityContract?,
+        linkID: String
+    ) throws -> Quantity? {
+        switch answer.value {
+        case .quantity(let quantity):
+            return try validated(quantity, against: declared, linkID: linkID)
+        case .integer(let integer):
+            guard let value = integer.value?.integer else {
+                throw ObservationExtractionError.answerMissing(linkID: linkID)
+            }
+            return try fixedUnitQuantity(decimal: Decimal(value), item: item, declared: declared, linkID: linkID)
+        case .decimal(let decimal):
+            guard let value = decimal.value?.decimal else {
+                throw ObservationExtractionError.answerMissing(linkID: linkID)
+            }
+            return try fixedUnitQuantity(decimal: value, item: item, declared: declared, linkID: linkID)
+        default:
+            return nil
+        }
+    }
+
     private func fixedUnitQuantity(
         decimal: Decimal,
         item: ModelsR4.QuestionnaireItem,
-        contract: MeasurementContract,
+        declared: QuantityContract?,
         linkID: String
     ) throws -> Quantity {
         guard let unit = item.fixedUnit,
@@ -324,7 +362,7 @@ struct QuestionnaireObservationExtractor {
             unit: unit.display?.value?.string.asFHIRStringPrimitive() ?? code.asFHIRStringPrimitive(),
             value: FHIRPrimitive(FHIRDecimal(decimal))
         )
-        return try validated(quantity, against: contract.quantity, linkID: linkID)
+        return try validated(quantity, against: declared, linkID: linkID)
     }
 
 

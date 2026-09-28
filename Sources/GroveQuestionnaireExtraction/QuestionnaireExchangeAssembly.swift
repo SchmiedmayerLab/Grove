@@ -61,7 +61,10 @@ public struct QuestionnaireExtractionContext: Sendable {
 public enum QuestionnaireExchangeProjection {
     static let adapterID = "questionnaire"
 
-    /// Extracts every marked measurement and returns the exchange bundle carrying them.
+    /// Extracts every answered marked measurement and returns the exchange bundle carrying them.
+    ///
+    /// A marked item or panel the participant left unanswered extracts nothing unless the instrument
+    /// declares it `required`; a panel answered only in part refuses.
     public static func exchangeGraph(
         questionnaire: ModelsR4.Questionnaire,
         response: ModelsR4.QuestionnaireResponse,
@@ -71,8 +74,8 @@ public enum QuestionnaireExchangeProjection {
             questionnaire: questionnaire,
             response: response
         ).extract()
-        // An exchange event must carry at least one source output; an unmarked instrument
-        // refuses here, before any identity is minted.
+        // An exchange event must carry at least one source output; an unmarked instrument, or a
+        // response answering none of its marked items, refuses here, before any identity is minted.
         guard !extracted.isEmpty else {
             throw ObservationExtractionError.noExtractableMeasurements
         }

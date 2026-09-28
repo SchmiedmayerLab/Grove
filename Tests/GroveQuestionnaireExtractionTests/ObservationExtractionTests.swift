@@ -153,6 +153,48 @@ struct ObservationExtractionTests {
         return (questionnaire, response)
     }
 
+    private static func observations(in graph: ExchangeGraph) -> [Observation] {
+        graph.bundle.entry?.compactMap { entry -> Observation? in
+            guard case .observation(let observation)? = entry.resource else {
+                return nil
+            }
+            return observation
+        } ?? []
+    }
+
+    /// The Home Vitals response without the named items, as a form filler leaves questions the
+    /// participant skipped; a group left with no answered child is omitted with them.
+    private static func response(skipping linkIDs: Set<String>) throws -> ModelsR4.QuestionnaireResponse {
+        func answered(_ items: [QuestionnaireResponseItem]) -> [QuestionnaireResponseItem] {
+            items.compactMap { item -> QuestionnaireResponseItem? in
+                guard let linkID = item.linkId.value?.string, !linkIDs.contains(linkID) else {
+                    return nil
+                }
+                guard let children = item.item else {
+                    return item
+                }
+                let remaining = answered(children)
+                guard !remaining.isEmpty else {
+                    return nil
+                }
+                var kept = item
+                kept.item = remaining
+                return kept
+            }
+        }
+        var response = try fixture("HomeVitals_response", as: ModelsR4.QuestionnaireResponse.self)
+        response.item = answered(response.item ?? [])
+        return response
+    }
+
+    /// The Home Vitals instrument with the named top-level item declared `required`.
+    private static func questionnaire(requiring linkID: String) throws -> ModelsR4.Questionnaire {
+        var questionnaire = try fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self)
+        let index = try #require(questionnaire.item?.firstIndex { $0.linkId.value?.string == linkID })
+        questionnaire.item?[index].required = FHIRPrimitive(FHIRBool(true))
+        return questionnaire
+    }
+
     // MARK: The Guide's Worked Example
 
     @Test("The Home Vitals pair extracts its two documented Observations")
@@ -509,6 +551,133 @@ struct ObservationExtractionTests {
             try QuestionnaireExchangeProjection.exchangeGraph(
                 questionnaire: questionnaire,
                 response: response,
+                context: try Self.context()
+            )
+        }
+    }
+
+    @Test("A panel of integer answers takes the unit its questionnaire-unit fixes")
+    func integerComponentsTakeTheFixedUnit() throws {
+        var questionnaire = try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self)
+        let panelIndex = try #require(questionnaire.item?.firstIndex { $0.linkId.value?.string == "blood-pressure" })
+        let fixedUnit = Extension(
+            url: FHIRPrimitive(FHIRURI(stringLiteral: ExtractionCanonical.questionnaireUnit)),
+            value: .coding(Coding(
+                code: "mm[Hg]".asFHIRStringPrimitive(),
+                display: "mm[Hg]".asFHIRStringPrimitive(),
+                system: FHIRPrimitive(FHIRURI(stringLiteral: "http://unitsofmeasure.org"))
+            ))
+        )
+        let components = questionnaire.item?[panelIndex].item?.map { child in
+            var child = child
+            child.type = FHIRPrimitive(.integer)
+            child.extension = (child.extension ?? []).filter {
+                $0.url.value?.url.absoluteString == ExtractionCanonical.observationExtract
+            } + [fixedUnit]
+            return child
+        }
+        questionnaire.item?[panelIndex].item = components
+        var response = try Self.fixture("HomeVitals_response", as: ModelsR4.QuestionnaireResponse.self)
+        let answeredIndex = try #require(response.item?.firstIndex { $0.linkId.value?.string == "blood-pressure" })
+        let readings: [(linkID: String, value: Int32)] = [("systolic", 118), ("diastolic", 76)]
+        response.item?[answeredIndex].item = readings.map { reading in
+            var item = QuestionnaireResponseItem(linkId: reading.linkID.asFHIRStringPrimitive())
+            item.answer = [QuestionnaireResponseItemAnswer(value: .integer(FHIRPrimitive(FHIRInteger(reading.value))))]
+            return item
+        }
+        let graph = try QuestionnaireExchangeProjection.exchangeGraph(
+            questionnaire: questionnaire,
+            response: response,
+            context: try Self.context()
+        )
+        let panel = try Self.observation(Self.observations(in: graph), code: "85354-9")
+        var byCode: [String: Quantity] = [:]
+        for component in panel.component ?? [] {
+            if let code = component.code.coding?.first?.code?.value?.string,
+               case .quantity(let quantity)? = component.value {
+                byCode[code] = quantity
+            }
+        }
+        #expect(byCode["8480-6"]?.value?.value?.decimal == 118)
+        #expect(byCode["8462-4"]?.value?.value?.decimal == 76)
+        #expect(byCode["8480-6"]?.code?.value?.string == "mm[Hg]")
+        #expect(byCode["8462-4"]?.code?.value?.string == "mm[Hg]")
+    }
+
+    // MARK: Unanswered Items
+
+    @Test("A skipped optional panel leaves the answered measurement to extract")
+    func skippedPanelLeavesTheAnsweredMeasurement() throws {
+        let graph = try QuestionnaireExchangeProjection.exchangeGraph(
+            questionnaire: try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self),
+            response: try Self.response(skipping: ["systolic", "diastolic"]),
+            context: try Self.context()
+        )
+        let observations = Self.observations(in: graph)
+        #expect(observations.count == 1)
+        #expect(observations.first?.code.coding?.first?.code?.value?.string == "29463-7")
+    }
+
+    @Test("A skipped optional measurement leaves the answered panel to extract")
+    func skippedMeasurementLeavesTheAnsweredPanel() throws {
+        // The item stays in the response with no answer: a skip reads the same either way.
+        var response = try Self.fixture("HomeVitals_response", as: ModelsR4.QuestionnaireResponse.self)
+        let weightIndex = try #require(response.item?.firstIndex { $0.linkId.value?.string == "body-weight" })
+        response.item?[weightIndex].answer = nil
+        let graph = try QuestionnaireExchangeProjection.exchangeGraph(
+            questionnaire: try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self),
+            response: response,
+            context: try Self.context()
+        )
+        let observations = Self.observations(in: graph)
+        #expect(observations.count == 1)
+        let panel = try Self.observation(observations, code: "85354-9")
+        #expect(panel.component?.count == 2)
+    }
+
+    @Test("A response answering no marked item extracts nothing and states no event")
+    func unansweredResponseExtractsNothing() throws {
+        let questionnaire = try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self)
+        let response = try Self.response(skipping: ["body-weight", "systolic", "diastolic"])
+        let extracted = try QuestionnaireObservationExtractor(questionnaire: questionnaire, response: response).extract()
+        #expect(extracted.isEmpty)
+        #expect(throws: ObservationExtractionError.noExtractableMeasurements) {
+            try QuestionnaireExchangeProjection.exchangeGraph(
+                questionnaire: questionnaire,
+                response: response,
+                context: try Self.context()
+            )
+        }
+    }
+
+    @Test("A required measurement left unanswered refuses")
+    func requiredUnansweredMeasurementRefuses() throws {
+        #expect(throws: ObservationExtractionError.answerMissing(linkID: "body-weight")) {
+            try QuestionnaireExchangeProjection.exchangeGraph(
+                questionnaire: try Self.questionnaire(requiring: "body-weight"),
+                response: try Self.response(skipping: ["body-weight"]),
+                context: try Self.context()
+            )
+        }
+    }
+
+    @Test("A required panel left unanswered refuses")
+    func requiredUnansweredPanelRefuses() throws {
+        #expect(throws: ObservationExtractionError.answerMissing(linkID: "blood-pressure")) {
+            try QuestionnaireExchangeProjection.exchangeGraph(
+                questionnaire: try Self.questionnaire(requiring: "blood-pressure"),
+                response: try Self.response(skipping: ["systolic", "diastolic"]),
+                context: try Self.context()
+            )
+        }
+    }
+
+    @Test("A panel answered only in part refuses rather than dropping the answered reading")
+    func partiallyAnsweredPanelRefuses() throws {
+        #expect(throws: ObservationExtractionError.componentIncomplete(measurement: "blood-pressure", missing: "8462-4")) {
+            try QuestionnaireExchangeProjection.exchangeGraph(
+                questionnaire: try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self),
+                response: try Self.response(skipping: ["diastolic"]),
                 context: try Self.context()
             )
         }
