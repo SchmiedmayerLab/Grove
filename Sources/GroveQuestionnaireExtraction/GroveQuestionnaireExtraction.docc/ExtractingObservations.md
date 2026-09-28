@@ -41,7 +41,7 @@ A standalone measurement is an item marked `observationExtract = true` that carr
 ```
 
 The item's code selects the Grove measurement contract, and the contract then judges the answer: units must match the contract's UCUM unit, coded results must come from the measurement's admitted set, and a panel answered only in part refuses.
-A marked item or panel the participant left unanswered states no reading and extracts nothing, unless the instrument declares it `required`, in which case the missing answer refuses.
+A marked item or panel the participant left unanswered states no reading and extracts nothing, even when the instrument declares it `required`: a disabled required item is legitimately absent, and enforcing required answers is the pair validator's job, not extraction's.
 Nothing is inferred from answer shapes alone, so adding extraction to an instrument is a content change, not an app change.
 
 ## Projecting the pair

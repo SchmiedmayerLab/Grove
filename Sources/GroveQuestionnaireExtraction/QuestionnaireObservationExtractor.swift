@@ -27,9 +27,9 @@ public enum ObservationExtractionError: Error, Equatable, Sendable {
     case sourceIsNotTheSubject
     case contradictoryExtractionMarking(linkID: String)
     case itemCodeMissing(linkID: String)
-    /// A marked item the instrument declares `required` has no answer, or its answer carries no value.
+    /// A marked item's answer carries no value.
     ///
-    /// An unanswered optional item is not a refusal: it states no reading, so it extracts nothing.
+    /// An unanswered item is not a refusal: it states no reading, so it extracts nothing.
     case answerMissing(linkID: String)
     /// A repeating item carried several answers; projecting one of them would lose the rest.
     case multipleAnswers(linkID: String)
@@ -83,9 +83,9 @@ struct ExtractedMeasurement {
 /// `item.code`, unit declarations, and `definitionExtractValue` bindings. Nothing is inferred
 /// from answer shapes alone, so an unmarked item never projects.
 ///
-/// A marked item the participant left unanswered states no reading and extracts nothing, unless the
-/// instrument declares it `required`: a completed response answers every enabled required item, so
-/// a missing answer there is a defect and refuses. A panel is all-or-nothing: no component answered
+/// A marked item the participant left unanswered states no reading and extracts nothing, even when the
+/// instrument declares it `required`: a required item can be legitimately absent while `enableWhen`
+/// disables it, and enforcing required answers is the pair validator's job. A panel is all-or-nothing: no component answered
 /// extracts nothing, some answered refuses, because the panel's profile requires every component
 /// and dropping the answered ones would silently discard what the participant stated.
 struct QuestionnaireObservationExtractor {
@@ -189,11 +189,8 @@ struct QuestionnaireObservationExtractor {
             value = try componentValue(for: item, answers: answers, contract: contract)
         }
         guard let value else {
-            // An optional item left unanswered states no reading; a required one leaves the
-            // completed response non-conformant, so it refuses instead of vanishing.
-            guard item.required?.value?.bool != true else {
-                throw ObservationExtractionError.answerMissing(linkID: linkID)
-            }
+            // An unanswered item states no reading. Whether it had to be answered depends on
+            // enablement, which only the pair validator evaluates, so extraction never refuses here.
             return nil
         }
         return ExtractedMeasurement(

@@ -650,26 +650,18 @@ struct ObservationExtractionTests {
         }
     }
 
-    @Test("A required measurement left unanswered refuses")
-    func requiredUnansweredMeasurementRefuses() throws {
-        #expect(throws: ObservationExtractionError.answerMissing(linkID: "body-weight")) {
-            try QuestionnaireExchangeProjection.exchangeGraph(
-                questionnaire: try Self.questionnaire(requiring: "body-weight"),
-                response: try Self.response(skipping: ["body-weight"]),
-                context: try Self.context()
-            )
-        }
-    }
-
-    @Test("A required panel left unanswered refuses")
-    func requiredUnansweredPanelRefuses() throws {
-        #expect(throws: ObservationExtractionError.answerMissing(linkID: "blood-pressure")) {
-            try QuestionnaireExchangeProjection.exchangeGraph(
-                questionnaire: try Self.questionnaire(requiring: "blood-pressure"),
-                response: try Self.response(skipping: ["systolic", "diastolic"]),
-                context: try Self.context()
-            )
-        }
+    @Test("A required measurement left unanswered extracts nothing and keeps the others")
+    func requiredUnansweredMeasurementExtractsNothing() throws {
+        // `required` binds only while the item is enabled, which extraction cannot evaluate; the pair
+        // validator enforces it. Refusing here would drop every other reading of the response.
+        let graph = try QuestionnaireExchangeProjection.exchangeGraph(
+            questionnaire: try Self.questionnaire(requiring: "body-weight"),
+            response: try Self.response(skipping: ["body-weight"]),
+            context: try Self.context()
+        )
+        let observations = Self.observations(in: graph)
+        #expect(observations.count == 1)
+        _ = try Self.observation(observations, code: "85354-9")
     }
 
     @Test("A panel answered only in part refuses rather than dropping the answered reading")
