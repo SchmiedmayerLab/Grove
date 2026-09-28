@@ -43,6 +43,10 @@ extension HealthKitConverter {
     ) throws -> Quantity {
         let quantitySample = try quantitySample(sample)
         let hours = quantitySample.endDate.timeIntervalSince(quantitySample.startDate) / 3_600
+        // The effective Period admits a zero-width interval; a per-hour rate over one is undefined.
+        guard hours > 0 else {
+            throw HealthKitValueFailure.effectivePeriodInvalid
+        }
         return try fhirQuantity(
             value: quantitySample.quantity.doubleValue(for: .count()) / hours,
             contract: quantityContract(contract)
