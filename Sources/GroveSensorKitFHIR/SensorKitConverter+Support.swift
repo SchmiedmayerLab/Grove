@@ -18,10 +18,25 @@ import ModelsR4
 
 extension SensorKitConverter {
     struct ValidatedECG {
+        /// The instant of the first voltage sample, where the SampledData series and the effective Period start.
+        let firstSampleDate: Date
         let periodMilliseconds: Decimal
+        /// The final sample's offset from `firstSampleDate`.
         let lastOffsetSeconds: Decimal
         let data: String
     }
+
+    /// The largest disagreement between a batch's reported offset and its frequency-derived instant
+    /// that still counts as the same instant.
+    ///
+    /// `Date` stores seconds since 2001 as a `Double`, whose resolution from 2018 through 2069
+    /// (2^29 to 2^31 s) is 2^-23 to 2^-22 s, about 0.12 to 0.24 µs. A batch offset relative to the
+    /// first batch is the difference of two such stored dates, so a perfectly uniform recording can
+    /// miss the exact multiple of the period by about one ulp, plus any rounding in how the provider
+    /// derived its chunk dates. One microsecond absorbs several ulps of that representation noise while
+    /// staying about three orders of magnitude below one sample period (1.953 ms at 512 Hz), so a
+    /// missing, extra, or shifted sample is still rejected.
+    static let ecgTimingToleranceSeconds = Decimal(1) / 1_000_000
 
     static func catalogEntry(sourceToken: String) throws -> SensorKitCatalogEntry {
         guard let entry = SensorKitCatalog.current.entry(sourceToken: sourceToken) else {
@@ -120,10 +135,13 @@ extension SensorKitConverter {
                 record.frequencyHertz
             )
         }
-        guard !record.batches.isEmpty else {
+        guard let firstBatch = record.batches.first else {
             throw SensorKitRecordError.emptySamples
         }
         let periodSeconds = periodMilliseconds / 1_000
+        // `startDate` can be the session's `.begin` marker, which SensorKit dates separately from the first
+        // voltage chunk, so the uniform series is measured from the first batch rather than from it.
+        let firstOffset = try decimal(firstBatch.offsetSeconds, field: "batchOffset", index: 0)
         var values: [String] = []
         var sampleCount = 0
         for (batchIndex, batch) in record.batches.enumerated() {
@@ -132,7 +150,7 @@ extension SensorKitConverter {
                 throw SensorKitRecordError.invalidECGBatch(index: batchIndex)
             }
             let expectedOffset = Decimal(sampleCount) * periodSeconds
-            guard offset == expectedOffset else {
+            guard (offset - firstOffset - expectedOffset).magnitude <= ecgTimingToleranceSeconds else {
                 throw SensorKitRecordError.nonUniformTiming(index: sampleCount)
             }
             for voltage in batch.millivolts {
@@ -149,10 +167,13 @@ extension SensorKitConverter {
         }
         let lastOffset = Decimal(sampleCount - 1) * periodSeconds
         let duration = try decimal(record.durationSeconds, field: "duration", index: nil)
-        guard duration == lastOffset else {
+        guard (duration - firstOffset - lastOffset).magnitude <= ecgTimingToleranceSeconds else {
             throw SensorKitRecordError.inconsistentECGDuration
         }
         return ValidatedECG(
+            // For a record built from a `SensorKitECGSession`, re-adding the offset recovers the first
+            // chunk's own `Date` exactly, because that offset is the exact difference of two stored dates.
+            firstSampleDate: record.startDate.addingTimeInterval(firstBatch.offsetSeconds),
             periodMilliseconds: periodMilliseconds,
             lastOffsetSeconds: lastOffset,
             data: values.joined(separator: " ")
