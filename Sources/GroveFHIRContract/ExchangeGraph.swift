@@ -58,12 +58,19 @@ public struct ExchangeGraph: Sendable {
 
     /// Re-validates stored or received JSON before it is trusted again.
     ///
-    /// Serialized checks run first, because decoding through `Foundation.URL` could otherwise
-    /// normalize an identity system or collapse a prohibited resource type before the model sees it.
+    /// Serialized checks run first, because Foundation keeps only one of duplicate members and
+    /// decoding through `Foundation.URL` could normalize an identity system or collapse a
+    /// prohibited resource type before the model sees it.
     public init(
         kind: ExchangeGraphKind,
         jsonData: Data
     ) throws(ExchangeGraphError) {
+        do {
+            var scanner = StrictJSONScanner(jsonData)
+            try scanner.validate()
+        } catch {
+            throw .invalidEntries("Serialized event is not strict JSON")
+        }
         try Self.validateSerializedEntryPolicy(kind: kind, data: jsonData)
         do {
             try ExchangeIdentity.validateSerializedIdentifierSystems(in: jsonData)

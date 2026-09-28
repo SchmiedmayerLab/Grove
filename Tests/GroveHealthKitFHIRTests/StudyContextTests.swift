@@ -24,17 +24,23 @@ struct StudyContextTests {
     private static let enrollments = [StudyEnrollment.test("a"), StudyEnrollment.test("b")]
     private static let studyContextRule = "mobile-support.study-context"
 
+    private static let sample = HKQuantitySample(
+        type: HKQuantityType(.heartRate),
+        quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 72),
+        start: ExchangeEventContext.testInstant,
+        end: ExchangeEventContext.testInstant,
+        metadata: [HKMetadataKeyTimeZone: "America/Los_Angeles"]
+    )
+
+    private static func conversion(
+        subject: Subject = .testPatient,
+        studies: [StudyEnrollment] = enrollments
+    ) throws -> HealthKitConversionSet {
+        try HealthKitConverter().convert(sample, context: HealthKitConversionContext(subject: subject, studies: studies))
+    }
+
     private static func graph(subject: Subject = .testPatient) throws -> ExchangeGraph {
-        let context = HealthKitConversionContext(subject: subject, studies: enrollments)
-        let start = ExchangeEventContext.testInstant
-        let sample = HKQuantitySample(
-            type: HKQuantityType(.heartRate),
-            quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 72),
-            start: start,
-            end: start,
-            metadata: [HKMetadataKeyTimeZone: "America/Los_Angeles"]
-        )
-        return try HealthKitConverter().convert(sample, context: context).primary.graph
+        try conversion(subject: subject).primary.graph
     }
 
     private static func bundleObject(_ graph: ExchangeGraph) throws -> [String: Any] {
@@ -97,6 +103,64 @@ struct StudyContextTests {
             #expect((subject["individual"] as? [String: Any])?["reference"] as? String == patientURL)
         }
         #expect(try Self.revalidate(graph) { $0 } == nil)
+    }
+
+    @Test("Study relevance leaves the measurement and its identities unchanged", arguments: [0, 1, 2])
+    func studyRelevancePreservesTheMeasurement(studyCount: Int) throws {
+        let baseline = try Self.conversion(studies: [])
+        let conversion = try Self.conversion(studies: (0..<studyCount).map { StudyEnrollment.test("study-\($0)") })
+        let studies = conversion.observation.extension?.filter { $0.url == Canonicals.researchStudy } ?? []
+        #expect(studies.count == studyCount)
+        #expect(conversion.observation.extension?.contains { $0.url == Canonicals.instantiatesCanonical } != true)
+        #expect(conversion.observation.value == baseline.observation.value)
+        #expect(conversion.observation.effective == baseline.observation.effective)
+        #expect(conversion.graphIdentifiers == baseline.graphIdentifiers)
+        #expect(conversion.provenance == baseline.provenance)
+        #expect(conversion.bundle.identifier == baseline.bundle.identifier)
+        let fullURLs = Set(conversion.bundle.entry?.compactMap(\.fullUrl) ?? [])
+        let baselineURLs = Set(baseline.bundle.entry?.compactMap(\.fullUrl) ?? [])
+        #expect(baselineURLs.isSubset(of: fullURLs))
+        #expect(try Self.revalidate(conversion.primary.graph) { $0 } == nil)
+    }
+
+    @Test("Each enrollment keeps its own exact protocol revision")
+    func enrollmentsKeepTheirOwnProtocolRevision() throws {
+        let enrollments = try [("a", "2"), ("b", "4")].map { study, version in
+            try StudyEnrollment(
+                study: .test(.researchStudy, study),
+                protocolURL: FHIRPrimitive(Canonical(stringLiteral: "https://study.example.org/PlanDefinition/\(study)")),
+                protocolVersion: version,
+                enrollment: .test(.researchSubject, "enrollment-\(study)")
+            )
+        }
+        let entries = try #require(try Self.bundleObject(Self.conversion(studies: enrollments).primary.graph)["entry"] as? Entries)
+        let plansByURL = Dictionary(uniqueKeysWithValues: entries.compactMap { entry -> (String, [String: Any])? in
+            guard let resource = entry["resource"] as? [String: Any], resource["resourceType"] as? String == "PlanDefinition",
+                  let fullURL = entry["fullUrl"] as? String else {
+                return nil
+            }
+            return (fullURL, resource)
+        })
+        let revisions = Self.resources(entries, ofType: "ResearchStudy").compactMap { study -> String? in
+            guard let reference = (study["protocol"] as? [[String: Any]])?.first?["reference"] as? String,
+                  let plan = plansByURL[reference] else {
+                return nil
+            }
+            return "\(plan["url"] as? String ?? "")|\(plan["version"] as? String ?? "")"
+        }
+        #expect(revisions == [
+            "https://study.example.org/PlanDefinition/a|2",
+            "https://study.example.org/PlanDefinition/b|4"
+        ])
+    }
+
+    @Test("A retry of the persisted context rebuilds the same event, study context included")
+    func retryPreservesTheStudyContext() throws {
+        let original = try Self.graph()
+        let retry = try Self.graph()
+        #expect(original.eventIdentifier == retry.eventIdentifier)
+        #expect(original.isSemanticallyEqual(to: retry))
+        #expect(!original.isSemanticallyEqual(to: try Self.conversion(studies: [.test("a")]).primary.graph))
     }
 
     @Test("A study without its ResearchSubject is refused")

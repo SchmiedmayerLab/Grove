@@ -231,6 +231,7 @@ extension ModelsR4.Questionnaire {
 
 extension ModelsR4.Extension {
     /// The abbreviated title constrained displays fall back to (SDC `shortText`).
+    @available(iOS 18, macOS 15, watchOS 11, *)
     static func shortText(_ shortTitle: GroveQuestionnaire.Questionnaire.LocalizedText) -> Extension {
         Extension(
             url: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-shortText",

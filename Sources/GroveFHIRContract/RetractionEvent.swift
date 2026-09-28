@@ -104,11 +104,39 @@ public enum RetractionTargetError: Error, Equatable, Sendable {
 }
 
 
+/// When the source retracted a record, as precisely as the producer knows it.
+public enum RetractionOccurrence: Hashable, Sendable {
+    /// The source's own deletion time, or the time the producer detected the deletion.
+    case instant(Date)
+    /// Bounds on a deletion time the source does not state: after `start` when known, and no later than `end`.
+    case period(start: Date?, end: Date)
+
+    fileprivate func occurredX() throws(RetractionEventError) -> Provenance.OccurredX {
+        if case let .period(start?, end) = self, start > end {
+            throw .invalidOccurrencePeriod
+        }
+        do {
+            switch self {
+            case .instant(let date):
+                return .dateTime(FHIRPrimitive(try DateTime(utc: date)))
+            case let .period(start, end):
+                return .period(Period(
+                    end: FHIRPrimitive(try DateTime(utc: end)),
+                    start: try start.map { FHIRPrimitive(try DateTime(utc: $0)) }
+                ))
+            }
+        } catch {
+            throw .invalidInstant
+        }
+    }
+}
+
+
 /// A validated lifecycle assertion that names prior graph nodes without copying them.
 ///
 /// The converting application is the assembler, referenced logically through its event-scoped
-/// snapshot identity; the retraction occurred when the source deleted the record and was recorded
-/// at the context's conversion instant.
+/// snapshot identity; `occurred` states the source's deletion time or the bounds the producer
+/// knows, and the assertion is recorded at the context's conversion instant.
 public struct RetractionEvent: Sendable {
     public let graph: ExchangeGraph
 
@@ -116,7 +144,7 @@ public struct RetractionEvent: Sendable {
         targets: [RetractionTarget],
         context: ExchangeEventContext,
         sourceRecord: RoledIdentifier,
-        retractedAt: Date
+        occurred: RetractionOccurrence
     ) throws(RetractionEventError) {
         guard !targets.isEmpty else {
             throw .emptyTargets
@@ -141,10 +169,9 @@ public struct RetractionEvent: Sendable {
         } catch {
             throw .opaqueIdentity(error)
         }
-        let occurred: DateTime
+        let occurredX = try occurred.occurredX()
         let recorded: Instant
         do {
-            occurred = try DateTime(utc: retractedAt)
             recorded = try Instant(utc: context.conversionInstant)
         } catch {
             throw .invalidInstant
@@ -171,7 +198,7 @@ public struct RetractionEvent: Sendable {
                 what: Reference(identifier: sourceRecord.fhirIdentifier)
             )],
             meta: Meta(profile: [GroveLifecycleContract.retractionProvenanceProfile]),
-            occurred: .dateTime(FHIRPrimitive(occurred)),
+            occurred: occurredX,
             recorded: FHIRPrimitive(recorded),
             target: targets.map(\.reference)
         )
@@ -212,6 +239,8 @@ public enum RetractionEventError: Error, Equatable, Sendable {
     /// A native record identifier reuses one of the deployment's Grove identity systems.
     case reservedIdentifierSystem
     case invalidInstant
+    /// A retraction period starts after it ends.
+    case invalidOccurrencePeriod
     case opaqueIdentity(OpaqueIdentityError)
     case exchangeIdentity(ExchangeIdentityError)
     case exchangeGraph(ExchangeGraphError)
