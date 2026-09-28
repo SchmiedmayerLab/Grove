@@ -295,6 +295,18 @@ struct HealthKitECGEvidenceValidatorTests {
             end: Date(timeIntervalSince1970: 1_787_148_612)
         )
     }
+
+    @Test(arguments: [
+        ("America/Los_Angeles", "2025-11-02T09:05:00Z"),
+        ("Europe/Berlin", "2025-10-26T01:30:00Z")
+    ])
+    func ecgTimestampsInTheRepeatedDSTHourKeepTheirInstant(_ zoneName: String, _ instantText: String) throws {
+        let zone = try #require(TimeZone(identifier: zoneName))
+        let instant = try #require(ISO8601DateFormatter().date(from: instantText))
+        let dateTime = try HealthKitConverter.exactHealthKitDateTime(instant, offsetSeconds: 0.25, timeZone: zone)
+        let decoded = try JSONDecoder().decode(DateTime.self, from: JSONEncoder().encode(dateTime))
+        #expect(try decoded.asNSDate() == instant.addingTimeInterval(0.25))
+    }
 }
 
 #endif

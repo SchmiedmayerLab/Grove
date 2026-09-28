@@ -78,7 +78,7 @@ def prepare(source_tag, source_sha):
 
 def validate_defaults(dump):
     platforms = {item["platformName"]: item["version"] for item in dump["platforms"]}
-    for name, version in {"ios": "15.0", "macos": "12.0", "watchos": "9.0"}.items():
+    for name, version in {"ios": "15.0", "macos": "12.0", "watchos": "8.0"}.items():
         if platforms.get(name) != version:
             raise ValueError(f"Unexpected {name} floor: {platforms.get(name)!r}")
     defaults = [trait for trait in dump["traits"] if trait["name"] == "default"]

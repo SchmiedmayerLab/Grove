@@ -14,11 +14,11 @@ extension Observation {
     /// Sets the `Observation`'s effective date.
     public mutating func setEffective(startDate: Date, endDate: Date, timeZone: TimeZone) throws {
         // Preserve each endpoint's offset through the repeated DST hour.
-        let startZone = TimeZone(secondsFromGMT: timeZone.secondsFromGMT(for: startDate)) ?? timeZone
+        let startZone = timeZone.fixedOffset(at: startDate)
         if startDate == endDate {
             effective = .dateTime(FHIRPrimitive(try DateTime(date: startDate, timeZone: startZone)))
         } else {
-            let endZone = TimeZone(secondsFromGMT: timeZone.secondsFromGMT(for: endDate)) ?? timeZone
+            let endZone = timeZone.fixedOffset(at: endDate)
             effective = .period(Period(
                 end: FHIRPrimitive(try DateTime(date: endDate, timeZone: endZone)),
                 start: FHIRPrimitive(try DateTime(date: startDate, timeZone: startZone))
@@ -28,6 +28,6 @@ extension Observation {
     
     /// Sets the `Observation`'s issued date.
     public mutating func setIssued(on date: Date) throws {
-        issued = FHIRPrimitive(try Instant(date: date))
+        issued = FHIRPrimitive(try Instant(date: date, timeZone: TimeZone.current.fixedOffset(at: date)))
     }
 }
