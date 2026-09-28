@@ -130,8 +130,10 @@ extension HealthKitConverter {
         }
 
         let wholeSecondDate = Date(timeIntervalSince1970: TimeInterval(wholeSeconds))
+        // A named zone would be serialized with the first occurrence's offset in a repeated DST hour.
+        let offsetZone = timeZone.fixedOffset(at: wholeSecondDate)
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
+        calendar.timeZone = offsetZone
         let components = calendar.dateComponents(
             [.year, .month, .day, .hour, .minute, .second],
             from: wholeSecondDate
@@ -151,7 +153,7 @@ extension HealthKitConverter {
                 minute: minute,
                 second: Decimal(second) + fractionalSecond
             ),
-            timezone: timeZone
+            timezone: offsetZone
         )
     }
 }

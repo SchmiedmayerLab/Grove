@@ -28,6 +28,6 @@ extension Observation {
     
     /// Sets the `Observation`'s issued date.
     public mutating func setIssued(on date: Date) throws {
-        issued = FHIRPrimitive(try Instant(date: date))
+        issued = FHIRPrimitive(try Instant(date: date, timeZone: TimeZone.current.fixedOffset(at: date)))
     }
 }
