@@ -173,6 +173,14 @@ struct QueryAnchor: Hashable, Codable, Sendable {
     func reset() -> Self {
         Self(timestamp: .distantPast, resetGeneration: resetGeneration &+ 1)
     }
+
+    /// Abandons the pending batch but keeps the committed cursor, under a new reset generation.
+    ///
+    /// The abandoned range is fetched again, and the new generation gives its records fresh
+    /// acquisition coordinates, so no identity minted for the abandoned delivery is reused.
+    func discardingPendingBatch() -> Self {
+        Self(timestamp: timestamp, resetGeneration: resetGeneration &+ 1)
+    }
     
     func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -228,17 +236,35 @@ public final class ManagedQueryAnchor: Sendable {
     }
 
     /// Atomically resets the cursor while invalidating every acknowledgement issued beforehand.
-    /// A delivered batch must be durably resolved first; reset never discards its retry boundary.
+    ///
+    /// A pending batch is abandoned along with the cursor: the new reset generation guarantees that
+    /// none of its acquisition coordinates is ever reused.
     func reset() throws {
+        try transition { $0.reset() }
+    }
+
+    /// Abandons a pending batch that can no longer be resolved, for example after
+    /// ``SensorKit/QueryAnchorAcknowledgementError/pendingBatchMismatch``.
+    ///
+    /// The committed cursor is kept, so the abandoned range is fetched again; the reset generation
+    /// advances, so records fetched afterwards never reuse an identity minted for the abandoned
+    /// delivery. Does nothing when no batch is pending.
+    func discardPendingBatch() throws {
+        try transition { $0.pendingBatch == nil ? nil : $0.discardingPendingBatch() }
+    }
+
+    /// Atomically replaces the persisted anchor with `next(current)`, retrying on concurrent updates.
+    /// `next` returning `nil` leaves the anchor unchanged.
+    private func transition(_ next: (QueryAnchor) -> QueryAnchor?) throws {
         while true {
             let current = try value
-            guard current.pendingBatch == nil else {
-                throw SensorKit.QueryAnchorAcknowledgementError.unresolvedPendingBatch
+            guard let desired = next(current) else {
+                return
             }
             guard !current.resetGeneration.addingReportingOverflow(1).overflow else {
                 throw SensorKit.QueryAnchorAcknowledgementError.exhaustedResetGeneration
             }
-            guard try update(from: current, to: current.reset()) else {
+            guard try update(from: current, to: desired) else {
                 continue
             }
             return
