@@ -29,12 +29,13 @@ import HealthKit
 /// Ids are stable: an id names one input for as long as the corpus exists. A regeneration may add vectors (each
 /// inside its family, so later lines move) but never drops an id or restates its input; `ContentCorpusChanges`
 /// enforces both. Inputs derived from what the rewrite regenerates are frozen here: the unit spellings are listed,
-/// and the body-mass-index vectors keep the inputs they were recorded with. M1 (generator G3) generates a BMI
-/// contract; `contracts` and the reverse projections skip a generated `body-mass-index`, so
-/// `quantity/HKQuantityTypeIdentifierBodyMassIndex/...` keep their fallback unit and value and `reverse/body-mass-index`
-/// keeps its literal Observation. Should G3 add the contract to `MeasurementCatalog.all` or
-/// `HealthKitMeasurementCatalog.all`, `reverse/body-mass-index` stops being refused (an output change M1 has to
-/// enumerate or avoid) and `ContentInvariantTests.quantityUnitsAreCompatible` counts 108 unit-bound rows, not 107.
+/// and the body-mass-index vectors keep the inputs they were recorded with. Generator G3 (M1) generates the BMI
+/// contract as `HealthKitContract.bodyMassIndex`, which neither `MeasurementCatalog.all` nor
+/// `HealthKitMeasurementCatalog.all` lists; `contracts` and the reverse projections skip a `body-mass-index` a catalog
+/// might list, so `quantity/HKQuantityTypeIdentifierBodyMassIndex/...` keep their fallback unit and value and
+/// `reverse/body-mass-index` keeps its literal Observation. A catalog listing it would also make
+/// `reverse/body-mass-index` stop being refused (an output change to enumerate) and
+/// `ContentInvariantTests.quantityUnitsAreCompatible` count 108 unit-bound rows, not 107.
 enum ContentCorpusGrid {
     /// 2026-08-17T22:30:00Z, 15:30 in Los Angeles: when every vector's record starts unless it states otherwise.
     static let start = GoldenFixtures.sampleStart.timeIntervalSince1970
@@ -64,8 +65,8 @@ enum ContentCorpusGrid {
         "L/min": "mL/min", "%": "count"
     ]
 
-    /// Every generated measurement contract by id, the first catalog winning, as everywhere else; a generated
-    /// body-mass-index contract is skipped, so the BMI vectors keep the inputs they were recorded with.
+    /// Every generated measurement contract by id, the first catalog winning, as everywhere else; a body-mass-index
+    /// contract a catalog might list is skipped, so the BMI vectors keep the inputs they were recorded with.
     static let contracts: [String: MeasurementContract] = Dictionary(
         (MeasurementCatalog.all + HealthKitMeasurementCatalog.all).filter { $0.id != bodyMassIndexID }.map { ($0.id, $0) }
     ) { first, _ in first }

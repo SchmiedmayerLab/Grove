@@ -441,6 +441,8 @@ public struct MeasurementContract: Sendable {
     public let method: MethodContract?
     public let methodChoice: [String]
     public let effective: MeasurementEffective
+    /// The Observation category the catalog fixes for the measurement, if it fixes one.
+    package let category: CodingContract?
 }
 
 
@@ -458,7 +460,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let basalBodyTemperature = MeasurementContract(
@@ -473,7 +476,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let basalEnergy = MeasurementContract(
@@ -488,7 +492,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let bloodGlucoseUnspecifiedSpecimen = MeasurementContract(
@@ -503,7 +508,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let bloodPressure = MeasurementContract(
@@ -521,7 +527,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", code: "vital-signs", display: "Vital Signs")
     )
 
     public static let bodyFatPercentage = MeasurementContract(
@@ -536,7 +543,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let bodyHeight = MeasurementContract(
@@ -551,7 +559,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", code: "vital-signs", display: "Vital Signs")
     )
 
     public static let bodyTemperature = MeasurementContract(
@@ -566,7 +575,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", code: "vital-signs", display: "Vital Signs")
     )
 
     public static let bodyWaterMass = MeasurementContract(
@@ -581,7 +591,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let bodyWeight = MeasurementContract(
@@ -596,7 +607,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", code: "vital-signs", display: "Vital Signs")
     )
 
     public static let boneMass = MeasurementContract(
@@ -611,7 +623,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let cervicalMucusQuality = MeasurementContract(
@@ -636,7 +649,8 @@ public enum MeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let cyclingCadence = MeasurementContract(
@@ -651,7 +665,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let deepSleepDuration = MeasurementContract(
@@ -666,7 +681,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: MethodContract(code: "session-total", display: "Session total"),
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryBiotin = MeasurementContract(
@@ -681,7 +697,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryCaffeine = MeasurementContract(
@@ -696,7 +713,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryCalcium = MeasurementContract(
@@ -711,7 +729,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryCarbohydrates = MeasurementContract(
@@ -726,7 +745,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryChloride = MeasurementContract(
@@ -741,7 +761,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryCholesterol = MeasurementContract(
@@ -756,7 +777,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryChromium = MeasurementContract(
@@ -771,7 +793,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryCopper = MeasurementContract(
@@ -786,7 +809,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryEnergy = MeasurementContract(
@@ -801,7 +825,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryFatMonounsaturated = MeasurementContract(
@@ -816,7 +841,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryFatPolyunsaturated = MeasurementContract(
@@ -831,7 +857,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryFatSaturated = MeasurementContract(
@@ -846,7 +873,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryFatTotal = MeasurementContract(
@@ -861,7 +889,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryFiber = MeasurementContract(
@@ -876,7 +905,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryFolate = MeasurementContract(
@@ -891,7 +921,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryIodine = MeasurementContract(
@@ -906,7 +937,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryIron = MeasurementContract(
@@ -921,7 +953,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryMagnesium = MeasurementContract(
@@ -936,7 +969,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryManganese = MeasurementContract(
@@ -951,7 +985,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryMolybdenum = MeasurementContract(
@@ -966,7 +1001,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryNiacin = MeasurementContract(
@@ -981,7 +1017,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryPantothenicAcid = MeasurementContract(
@@ -996,7 +1033,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryPhosphorus = MeasurementContract(
@@ -1011,7 +1049,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryPotassium = MeasurementContract(
@@ -1026,7 +1065,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryProtein = MeasurementContract(
@@ -1041,7 +1081,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryRiboflavin = MeasurementContract(
@@ -1056,7 +1097,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietarySelenium = MeasurementContract(
@@ -1071,7 +1113,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietarySodium = MeasurementContract(
@@ -1086,7 +1129,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietarySugar = MeasurementContract(
@@ -1101,7 +1145,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryThiamin = MeasurementContract(
@@ -1116,7 +1161,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryVitaminA = MeasurementContract(
@@ -1131,7 +1177,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryVitaminB12 = MeasurementContract(
@@ -1146,7 +1193,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryVitaminB6 = MeasurementContract(
@@ -1161,7 +1209,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryVitaminC = MeasurementContract(
@@ -1176,7 +1225,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryVitaminD = MeasurementContract(
@@ -1191,7 +1241,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryVitaminE = MeasurementContract(
@@ -1206,7 +1257,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryVitaminK = MeasurementContract(
@@ -1221,7 +1273,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let dietaryZinc = MeasurementContract(
@@ -1236,7 +1289,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let distance = MeasurementContract(
@@ -1251,7 +1305,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let electrodermalActivity = MeasurementContract(
@@ -1266,7 +1321,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let flightsClimbed = MeasurementContract(
@@ -1281,7 +1337,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let fluidIntake = MeasurementContract(
@@ -1296,7 +1353,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let heartRate = MeasurementContract(
@@ -1311,7 +1369,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTimeOrPeriod
+        effective: .dateTimeOrPeriod,
+        category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", code: "vital-signs", display: "Vital Signs")
     )
 
     public static let heartRateVariabilityRmssd = MeasurementContract(
@@ -1326,7 +1385,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let heartRateVariabilitySdnn = MeasurementContract(
@@ -1341,7 +1401,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let intermenstrualBleeding = MeasurementContract(
@@ -1358,7 +1419,8 @@ public enum MeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let leanBodyMass = MeasurementContract(
@@ -1373,7 +1435,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let lightSleepDuration = MeasurementContract(
@@ -1388,7 +1451,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: MethodContract(code: "session-total", display: "Session total"),
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let menstruationFlow = MeasurementContract(
@@ -1411,7 +1475,8 @@ public enum MeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let mindfulnessSession = MeasurementContract(
@@ -1426,7 +1491,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let ovulationTestResult = MeasurementContract(
@@ -1446,7 +1512,8 @@ public enum MeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let oxygenSaturation = MeasurementContract(
@@ -1461,7 +1528,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", code: "vital-signs", display: "Vital Signs")
     )
 
     public static let oxygenSaturationDailyAverage = MeasurementContract(
@@ -1476,7 +1544,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: MethodContract(code: "daily-mean", display: "Daily mean"),
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let power = MeasurementContract(
@@ -1491,7 +1560,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let remSleepDuration = MeasurementContract(
@@ -1506,7 +1576,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: MethodContract(code: "session-total", display: "Session total"),
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let respiratoryRate = MeasurementContract(
@@ -1521,7 +1592,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", code: "vital-signs", display: "Vital Signs")
     )
 
     public static let respiratoryRateAverage = MeasurementContract(
@@ -1536,7 +1608,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: ["daily-mean", "session-mean"],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let restingHeartRate = MeasurementContract(
@@ -1553,7 +1626,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", code: "vital-signs", display: "Vital Signs")
     )
 
     public static let sexualActivity = MeasurementContract(
@@ -1572,7 +1646,8 @@ public enum MeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let skinTemperature = MeasurementContract(
@@ -1587,7 +1662,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let sleepAwakeDuration = MeasurementContract(
@@ -1602,7 +1678,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: MethodContract(code: "session-total", display: "Session total"),
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let sleepDuration = MeasurementContract(
@@ -1617,7 +1694,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let sleepHeartRate = MeasurementContract(
@@ -1632,7 +1710,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: ["session-mean", "session-minimum"],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let sleepStage = MeasurementContract(
@@ -1647,7 +1726,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let speed = MeasurementContract(
@@ -1662,7 +1742,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let stepCount = MeasurementContract(
@@ -1677,7 +1758,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let vo2Max = MeasurementContract(
@@ -1692,7 +1774,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let wheelchairPushCount = MeasurementContract(
@@ -1707,7 +1790,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let workout = MeasurementContract(
@@ -1735,7 +1819,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let workoutSegment = MeasurementContract(
@@ -1756,7 +1841,8 @@ public enum MeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let all: [MeasurementContract] = [
@@ -1862,7 +1948,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let appleMoveTime = MeasurementContract(
@@ -1877,7 +1964,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let appleStandHour = MeasurementContract(
@@ -1895,7 +1983,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let appleStandTime = MeasurementContract(
@@ -1910,7 +1999,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let atrialFibrillationBurden = MeasurementContract(
@@ -1925,7 +2015,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: MethodContract(code: "percentage-of-time", display: "Percentage of time"),
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let audiogramPanel = MeasurementContract(
@@ -1963,7 +2054,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let biologicalSex = MeasurementContract(
@@ -1982,7 +2074,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let bladderIncontinence = MeasurementContract(
@@ -1997,7 +2090,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let bleedingAfterPregnancy = MeasurementContract(
@@ -2018,7 +2112,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let bleedingDuringPregnancy = MeasurementContract(
@@ -2039,7 +2134,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let bloodAlcoholContent = MeasurementContract(
@@ -2054,7 +2150,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let bloodType = MeasurementContract(
@@ -2078,7 +2175,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let contraceptiveUse = MeasurementContract(
@@ -2101,7 +2199,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let cyclingFunctionalThresholdPower = MeasurementContract(
@@ -2116,7 +2215,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let dateOfBirth = MeasurementContract(
@@ -2131,7 +2231,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let environmentalAudioExposure = MeasurementContract(
@@ -2146,7 +2247,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let environmentalAudioExposureNotification = MeasurementContract(
@@ -2163,7 +2265,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let environmentalSoundReduction = MeasurementContract(
@@ -2178,7 +2281,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let fitzpatrickSkinType = MeasurementContract(
@@ -2200,7 +2304,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let foodCorrelation = MeasurementContract(
@@ -2215,7 +2320,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let forcedExpiratoryVolume1 = MeasurementContract(
@@ -2230,7 +2336,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let forcedVitalCapacity = MeasurementContract(
@@ -2245,7 +2352,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let gad7Assessment = MeasurementContract(
@@ -2260,7 +2368,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let handwashingSession = MeasurementContract(
@@ -2275,7 +2384,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let headphoneAudioExposure = MeasurementContract(
@@ -2290,7 +2400,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let headphoneAudioExposureNotification = MeasurementContract(
@@ -2307,7 +2418,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let heartRateRecoveryOneMinute = MeasurementContract(
@@ -2322,7 +2434,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let highHeartRateNotification = MeasurementContract(
@@ -2341,7 +2454,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let hypertensionNotification = MeasurementContract(
@@ -2358,7 +2472,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let infrequentMenstrualCycles = MeasurementContract(
@@ -2376,7 +2491,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let inhalerUsage = MeasurementContract(
@@ -2391,7 +2507,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let insulinDelivery = MeasurementContract(
@@ -2406,7 +2523,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let irregularHeartRhythmNotification = MeasurementContract(
@@ -2423,7 +2541,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let irregularMenstrualCycles = MeasurementContract(
@@ -2441,7 +2560,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let lactationStatus = MeasurementContract(
@@ -2458,7 +2578,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let lowCardioFitnessNotification = MeasurementContract(
@@ -2477,7 +2598,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let lowHeartRateNotification = MeasurementContract(
@@ -2496,7 +2618,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let numberOfAlcoholicBeverages = MeasurementContract(
@@ -2511,7 +2634,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let numberOfTimesFallen = MeasurementContract(
@@ -2526,7 +2650,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let peakExpiratoryFlowRate = MeasurementContract(
@@ -2541,7 +2666,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let peripheralPerfusionIndex = MeasurementContract(
@@ -2556,7 +2682,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let persistentIntermenstrualBleeding = MeasurementContract(
@@ -2574,7 +2701,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let phq9Assessment = MeasurementContract(
@@ -2589,7 +2717,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let physicalEffort = MeasurementContract(
@@ -2604,7 +2733,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let pregnancyStatus = MeasurementContract(
@@ -2621,7 +2751,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let pregnancyTestResult = MeasurementContract(
@@ -2640,7 +2771,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let progesteroneTestResult = MeasurementContract(
@@ -2659,7 +2791,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let prolongedMenstrualPeriods = MeasurementContract(
@@ -2677,7 +2810,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let runningGroundContactTime = MeasurementContract(
@@ -2692,7 +2826,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let runningStrideLength = MeasurementContract(
@@ -2707,7 +2842,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let runningVerticalOscillation = MeasurementContract(
@@ -2722,7 +2858,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let sixMinuteWalkTestDistance = MeasurementContract(
@@ -2737,7 +2874,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: MethodContract(code: "rolling-mean", display: "Rolling mean"),
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let sleepApneaNotification = MeasurementContract(
@@ -2754,7 +2892,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let sleepingBreathingDisturbances = MeasurementContract(
@@ -2769,7 +2908,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: MethodContract(code: "session-rate", display: "Session rate"),
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let stairAscentSpeed = MeasurementContract(
@@ -2784,7 +2924,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let stairDescentSpeed = MeasurementContract(
@@ -2799,7 +2940,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let stateOfMind = MeasurementContract(
@@ -2819,7 +2961,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let swimmingStrokeCount = MeasurementContract(
@@ -2834,7 +2977,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomAbdominalCramps = MeasurementContract(
@@ -2849,7 +2993,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomAcne = MeasurementContract(
@@ -2864,7 +3009,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomAppetiteChanges = MeasurementContract(
@@ -2884,7 +3030,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomBloating = MeasurementContract(
@@ -2899,7 +3046,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomBreastPain = MeasurementContract(
@@ -2914,7 +3062,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomChestTightnessOrPain = MeasurementContract(
@@ -2929,7 +3078,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomChills = MeasurementContract(
@@ -2944,7 +3094,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomConstipation = MeasurementContract(
@@ -2959,7 +3110,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomCoughing = MeasurementContract(
@@ -2974,7 +3126,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomDiarrhea = MeasurementContract(
@@ -2989,7 +3142,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomDizziness = MeasurementContract(
@@ -3004,7 +3158,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomDrySkin = MeasurementContract(
@@ -3019,7 +3174,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomFainting = MeasurementContract(
@@ -3034,7 +3190,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomFatigue = MeasurementContract(
@@ -3049,7 +3206,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomFever = MeasurementContract(
@@ -3064,7 +3222,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomGeneralizedBodyAche = MeasurementContract(
@@ -3079,7 +3238,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomHairLoss = MeasurementContract(
@@ -3094,7 +3254,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomHeadache = MeasurementContract(
@@ -3109,7 +3270,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomHeartburn = MeasurementContract(
@@ -3124,7 +3286,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomHotFlashes = MeasurementContract(
@@ -3139,7 +3302,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomLossOfSmell = MeasurementContract(
@@ -3154,7 +3318,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomLossOfTaste = MeasurementContract(
@@ -3169,7 +3334,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomLowerBackPain = MeasurementContract(
@@ -3184,7 +3350,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomMemoryLapse = MeasurementContract(
@@ -3199,7 +3366,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomMoodChanges = MeasurementContract(
@@ -3214,7 +3382,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomNausea = MeasurementContract(
@@ -3229,7 +3398,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomNightSweats = MeasurementContract(
@@ -3244,7 +3414,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomPelvicPain = MeasurementContract(
@@ -3259,7 +3430,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomRapidPoundingOrFlutteringHeartbeat = MeasurementContract(
@@ -3274,7 +3446,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomRunnyNose = MeasurementContract(
@@ -3289,7 +3462,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomShortnessOfBreath = MeasurementContract(
@@ -3304,7 +3478,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomSinusCongestion = MeasurementContract(
@@ -3319,7 +3494,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomSkippedHeartbeat = MeasurementContract(
@@ -3334,7 +3510,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomSleepChanges = MeasurementContract(
@@ -3349,7 +3526,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomSoreThroat = MeasurementContract(
@@ -3364,7 +3542,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomVomiting = MeasurementContract(
@@ -3379,7 +3558,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let symptomWheezing = MeasurementContract(
@@ -3394,7 +3574,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let timeInDaylight = MeasurementContract(
@@ -3409,7 +3590,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let toothbrushingSession = MeasurementContract(
@@ -3424,7 +3606,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let underwaterDepth = MeasurementContract(
@@ -3439,7 +3622,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let uvExposure = MeasurementContract(
@@ -3454,7 +3638,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let vaginalDryness = MeasurementContract(
@@ -3469,7 +3654,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let waistCircumference = MeasurementContract(
@@ -3484,7 +3670,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let walkingAsymmetry = MeasurementContract(
@@ -3499,7 +3686,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let walkingDoubleSupport = MeasurementContract(
@@ -3514,7 +3702,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let walkingHeartRateAverage = MeasurementContract(
@@ -3529,7 +3718,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: MethodContract(code: "daily-mean", display: "Daily mean"),
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let walkingSpeed = MeasurementContract(
@@ -3544,7 +3734,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let walkingSteadiness = MeasurementContract(
@@ -3559,7 +3750,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: MethodContract(code: "rolling-mean", display: "Rolling mean"),
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let walkingSteadinessNotification = MeasurementContract(
@@ -3579,7 +3771,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let walkingStepLength = MeasurementContract(
@@ -3594,7 +3787,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let waterTemperature = MeasurementContract(
@@ -3609,7 +3803,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let wheelchairUse = MeasurementContract(
@@ -3627,7 +3822,8 @@ public enum HealthKitMeasurementCatalog {
         ],
         method: nil,
         methodChoice: [],
-        effective: .dateTime
+        effective: .dateTime,
+        category: nil
     )
 
     public static let workoutEffortScore = MeasurementContract(
@@ -3642,7 +3838,8 @@ public enum HealthKitMeasurementCatalog {
         resultCodes: [],
         method: nil,
         methodChoice: [],
-        effective: .period
+        effective: .period,
+        category: nil
     )
 
     public static let all: [MeasurementContract] = [
@@ -3809,6 +4006,24 @@ public enum HealthKitContract {
         "http://hl7.org/fhir/StructureDefinition/bmi",
         Profile.healthkitObservation,
     ]
+
+    /// Body-mass index, which HealthKit claims through the standard R4 BMI profile, generated from
+    /// healthkit-adapter.json standardAdapterClaims; no measurement catalog lists it.
+    package static let bodyMassIndex = MeasurementContract(
+        id: "body-mass-index",
+        profile: "http://hl7.org/fhir/StructureDefinition/bmi",
+        code: CodingContract(system: "http://loinc.org", code: "39156-5"),
+        requiredCodings: [],
+        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "kg/m2", unit: "kg/m2", valueDomain: nil),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime,
+        category: nil
+    )
 
     public static let rows: [HealthKitContractRow] = [
         HealthKitContractRow(
@@ -5555,6 +5770,77 @@ public enum HealthKitContract {
             implementationStatus: .supported,
             requirement: nil
         ),
+    ]
+}
+
+
+/// One closed source-value mapping of an adapter claim: the code each admitted source value maps to.
+package struct ClosedValueMappingContract: Hashable, Sendable {
+    /// The CodeSystem of every mapped code.
+    package let system: String
+    /// Each admitted source value's code, keyed by the source value as the catalog spells it.
+    package let codes: [String: String]
+}
+
+
+/// The HealthKit electrocardiogram claim, generated from healthkit-adapter.json sensorAdapterClaims.
+package enum HealthKitElectrocardiogramClaim {
+    /// The waveform Observation's output role and discriminator.
+    package static let outputRole = "electrocardiogram"
+    package static let outputDiscriminator = "single"
+    /// The average-heart-rate Observation's output role, discriminator and exact direct profiles.
+    package static let averageHeartRateOutputRole = "average-heart-rate"
+    package static let averageHeartRateOutputDiscriminator = "single"
+    package static let averageHeartRateProfiles: [FHIRPrimitive<Canonical>] = [
+        Profile.groveMobileHeartRate,
+        Profile.healthkitEcgAverageHeartRateObservation,
+    ]
+    /// The measurement whose code and quantity the average heart rate states.
+    package static let averageHeartRateMeasurement = MeasurementCatalog.heartRate
+    /// The lead coding of the waveform component.
+    package static let leadCode = CodingContract(system: "urn:iso:std:iso:11073:10101", code: "131329", display: "MDC_ECG_ELEC_POTL_I")
+    /// The unit of the waveform's voltages.
+    package static let voltageQuantity = QuantityContract(system: "http://unitsofmeasure.org", code: "mV", unit: "mV", valueDomain: nil)
+    /// HKElectrocardiogram.classification to Observation.interpretation.
+    package static let classification = ClosedValueMappingContract(
+        system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-ecg-classification",
+        codes: [
+            "notSet": "notSet",
+            "sinusRhythm": "sinusRhythm",
+            "atrialFibrillation": "atrialFibrillation",
+            "inconclusiveLowHeartRate": "inconclusiveLowHeartRate",
+            "inconclusiveHighHeartRate": "inconclusiveHighHeartRate",
+            "inconclusivePoorReading": "inconclusivePoorReading",
+            "inconclusiveOther": "inconclusiveOther",
+            "unrecognized": "unrecognized",
+        ]
+    )
+    /// HKElectrocardiogram.symptomsStatus to healthkit-ecg-symptoms-status.valueCode.
+    package static let symptomsStatus = ClosedValueMappingContract(
+        system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-ecg-symptoms-status",
+        codes: [
+            "notSet": "notSet",
+            "none": "none",
+            "present": "present",
+        ]
+    )
+    /// HKMetadataKeyAppleECGAlgorithmVersion to Observation.method.
+    package static let algorithmVersion = ClosedValueMappingContract(
+        system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-ecg-algorithm-version",
+        codes: [
+            "1": "version1",
+            "2": "version2",
+        ]
+    )
+    /// The symptom source types an ECG references through Observation.hasMember, in catalog order.
+    package static let correlatedSymptomSourceTypeIdentifiers: [String] = [
+        "HKCategoryTypeIdentifierRapidPoundingOrFlutteringHeartbeat",
+        "HKCategoryTypeIdentifierSkippedHeartbeat",
+        "HKCategoryTypeIdentifierFatigue",
+        "HKCategoryTypeIdentifierShortnessOfBreath",
+        "HKCategoryTypeIdentifierChestTightnessOrPain",
+        "HKCategoryTypeIdentifierFainting",
+        "HKCategoryTypeIdentifierDizziness",
     ]
 }
 

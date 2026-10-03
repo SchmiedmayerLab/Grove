@@ -19,6 +19,23 @@ assert SPEC and SPEC.loader
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
+UCUM = "http://unitsofmeasure.org"
+VITAL_SIGNS = {
+    "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+    "code": "vital-signs",
+    "display": "Vital Signs",
+}
+HEART_RATE = {
+    "id": "heart-rate",
+    "profile": "grove-mobile-heart-rate",
+    "code": {"system": "http://loinc.org", "code": "8867-4"},
+    "category": VITAL_SIGNS,
+    "quantity": {"system": UCUM, "code": "/min", "unit": "beats/minute"},
+    "effective": "dateTime-or-Period",
+}
+BMI_PROFILE = "http://hl7.org/fhir/StructureDefinition/bmi"
+HEALTHKIT_OBSERVATION = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-observation"
+
 
 class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
     def catalogs(self) -> dict[str, dict]:
@@ -31,7 +48,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                     {
                         "source": "mobile",
                         "canonical": "https://grovealliance.org/fhir/mobile",
-                        "profiles": ["grove-mobile-exchange-bundle"],
+                        "profiles": ["grove-mobile-exchange-bundle", "grove-mobile-heart-rate"],
                     },
                     {
                         "source": "healthkit",
@@ -40,6 +57,8 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                             "healthkit-application-device",
                             "healthkit-conversion-provenance",
                             "healthkit-ecg-observation",
+                            "healthkit-ecg-average-heart-rate-observation",
+                            "healthkit-observation",
                         ],
                     },
                 ],
@@ -47,7 +66,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
             "measurement-catalog.json": {
                 **base,
                 "statusVocabulary": ["supported", "deferred"],
-                "measurements": [],
+                "measurements": [HEART_RATE],
             },
             "profile-claims.json": {
                 **base,
@@ -61,6 +80,9 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                         "https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-ecg-observation"
                     ],
                     "forbiddenExplicitProfiles": [],
+                    "standardAdapterClaims": [
+                        {"semanticProfile": BMI_PROFILE, "adapterProfile": HEALTHKIT_OBSERVATION},
+                    ],
                 },
                 "healthKitSingleProfileObservationClaims": {
                     "profiles": [],
@@ -268,6 +290,15 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                     "scalarQuantityDecimal": "shortest-round-trip",
                     "sensorAndEcgTiming": "excluded",
                 },
+                "standardAdapterClaims": {
+                    "body-mass-index": {
+                        "claimMode": "exactly-standard-plus-adapter",
+                        "profiles": [BMI_PROFILE, HEALTHKIT_OBSERVATION],
+                        "code": {"system": "http://loinc.org", "code": "39156-5"},
+                        "quantity": {"system": UCUM, "code": "kg/m2", "unit": "kg/m2"},
+                        "effective": "dateTime",
+                    }
+                },
                 "sensorAdapterClaims": {
                     "electrocardiogram": {
                         "sourceTypeIdentifier": "HKDataTypeIdentifierElectrocardiogram",
@@ -277,13 +308,78 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                             "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
                             "healthkit-ecg-observation",
                         ],
+                        "outputs": [
+                            {
+                                "outputRole": "electrocardiogram",
+                                "outputDiscriminator": "single",
+                                "profiles": [
+                                    "https://grovealliance.org/fhir/sensor/StructureDefinition/"
+                                    "grove-sensor-ecg-observation",
+                                    "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                                    "healthkit-ecg-observation",
+                                ],
+                            },
+                            {
+                                "outputRole": "average-heart-rate",
+                                "outputDiscriminator": "single",
+                                "profiles": [
+                                    "https://grovealliance.org/fhir/mobile/StructureDefinition/"
+                                    "grove-mobile-heart-rate",
+                                    "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                                    "healthkit-ecg-average-heart-rate-observation",
+                                ],
+                                "code": {"system": "http://loinc.org", "code": "8867-4", "display": "Heart rate"},
+                                "quantity": {"system": UCUM, "code": "/min", "unit": "beats/minute"},
+                            },
+                        ],
+                        "leadCode": {
+                            "system": "urn:iso:std:iso:11073:10101",
+                            "code": "131329",
+                            "display": "MDC_ECG_ELEC_POTL_I",
+                        },
+                        "quantity": {"system": UCUM, "code": "mV", "unit": "mV"},
+                        "closedValueMappings": {
+                            "symptomsStatus": {
+                                "sourceField": "HKElectrocardiogram.symptomsStatus",
+                                "r4Element": "healthkit-ecg-symptoms-status.valueCode",
+                                "system": (
+                                    "https://grovealliance.org/fhir/healthkit/CodeSystem/"
+                                    "healthkit-ecg-symptoms-status"
+                                ),
+                                "values": [
+                                    {"sourceValue": "none", "code": "none"},
+                                    {"sourceValue": "present", "code": "present"},
+                                ],
+                            },
+                            "algorithmVersion": {
+                                "sourceField": "HKMetadataKeyAppleECGAlgorithmVersion",
+                                "r4Element": "Observation.method",
+                                "system": (
+                                    "https://grovealliance.org/fhir/healthkit/CodeSystem/"
+                                    "healthkit-ecg-algorithm-version"
+                                ),
+                                "values": [{"sourceValue": "1", "code": "version1"}],
+                            },
+                        },
                         "correlatedSymptomEvidence": {
                             "url": "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
-                            "healthkit-ecg-correlated-symptom"
+                            "healthkit-ecg-correlated-symptom",
+                            "sourceTypes": ["HKCategoryTypeIdentifierFatigue"],
                         },
                     }
                 },
                 "rows": [
+                    {
+                        "sourceTypeIdentifier": "HKCategoryTypeIdentifierFatigue",
+                        "title": "Fatigue",
+                        "status": "supported",
+                        "measurementIDs": ["symptom-fatigue"],
+                        "profiles": [
+                            "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                            "healthkit-symptom-fatigue"
+                        ],
+                        "requirement": None,
+                    },
                     {
                         "sourceTypeIdentifier": "HKDataTypeIdentifierElectrocardiogram",
                         "title": "ECG",
@@ -448,6 +544,12 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
             },
         }
 
+    def electrocardiogram_row(self, catalogs: dict[str, dict]) -> dict:
+        return next(
+            row for row in catalogs["healthkit-adapter.json"]["rows"]
+            if row["sourceTypeIdentifier"] == "HKDataTypeIdentifierElectrocardiogram"
+        )
+
     def generate(self, catalogs: dict[str, dict]) -> str:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -597,20 +699,19 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
 
     def test_rejects_unpaired_multi_measurement_healthkit_row(self):
         catalogs = self.catalogs()
-        catalogs["healthkit-adapter.json"]["rows"][0]["measurementIDs"] = ["one", "two", "three"]
+        self.electrocardiogram_row(catalogs)["measurementIDs"] = ["one", "two", "three"]
 
         with self.assertRaisesRegex(ValueError, "one profile per measurement"):
             self.generate(catalogs)
 
     def test_generates_paired_multi_measurement_healthkit_row(self):
         catalogs = self.catalogs()
-        catalogs["healthkit-adapter.json"]["rows"][0]["measurementIDs"] = ["one", "two"]
+        self.electrocardiogram_row(catalogs)["measurementIDs"] = ["one", "two"]
 
         self.assertIn('measurementIDs: ["one", "two"],', self.generate(catalogs))
 
     def test_splits_measurement_catalog_by_owner(self):
         catalogs = self.catalogs()
-        catalogs["package-graph.json"]["packages"][0]["profiles"].append("grove-mobile-heart-rate")
         catalogs["package-graph.json"]["packages"][1]["profiles"].append("healthkit-symptom-headache")
         catalogs["measurement-catalog.json"]["measurements"] = [
             {
@@ -618,7 +719,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                 "profile": "grove-mobile-heart-rate",
                 "code": {"system": "http://loinc.org", "code": "8867-4"},
                 "quantity": {
-                    "system": "u",
+                    "system": UCUM,
                     "code": "/min",
                     "unit": "beats/minute",
                     "valueDomain": {
@@ -668,7 +769,6 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
 
     def test_preserves_effective_datetime_or_period_choice(self):
         catalogs = self.catalogs()
-        catalogs["package-graph.json"]["packages"][0]["profiles"].append("grove-mobile-heart-rate")
         catalogs["measurement-catalog.json"]["measurements"] = [
             {
                 "id": "heart-rate",
@@ -685,14 +785,14 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
 
     def test_provider_owned_semantics_require_their_exact_envelope(self):
         catalogs = self.catalogs()
-        catalogs["measurement-catalog.json"]["measurements"] = [{
+        catalogs["measurement-catalog.json"]["measurements"].append({
             "id": "oura-readiness-score",
             "owner": "oura",
             "profile": "oura-readiness-score",
             "code": {"system": "https://example.org/provider", "code": "readiness"},
             "quantity": None,
             "effective": "Period",
-        }]
+        })
 
         generated = self.generate(catalogs)
 
@@ -708,7 +808,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         catalogs["package-graph.json"]["packages"][0]["profiles"].append(
             "grove-mobile-resting-heart-rate"
         )
-        catalogs["measurement-catalog.json"]["measurements"] = [{
+        catalogs["measurement-catalog.json"]["measurements"].append({
             "id": "resting-heart-rate",
             "profile": "grove-mobile-resting-heart-rate",
             "code": {"system": "http://loinc.org", "code": "40443-4"},
@@ -724,7 +824,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                 "unit": "beats/minute",
             },
             "effective": "dateTime",
-        }]
+        })
 
         generated = self.generate(catalogs)
 
@@ -736,7 +836,6 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
 
     def test_rejects_unknown_effective_choice(self):
         catalogs = self.catalogs()
-        catalogs["package-graph.json"]["packages"][0]["profiles"].append("grove-mobile-heart-rate")
         catalogs["measurement-catalog.json"]["measurements"] = [
             {
                 "id": "heart-rate",
@@ -747,6 +846,158 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
             }
         ]
         with self.assertRaisesRegex(ValueError, "unsupported effective choice"):
+            self.generate(catalogs)
+
+    def test_generates_the_category_a_measurement_fixes_as_package_state(self):
+        catalogs = self.catalogs()
+        catalogs["package-graph.json"]["packages"][0]["profiles"].append("grove-mobile-step-count")
+        catalogs["measurement-catalog.json"]["measurements"].append({
+            "id": "step-count",
+            "profile": "grove-mobile-step-count",
+            "code": {"system": "http://loinc.org", "code": "55423-8"},
+            "quantity": None,
+            "effective": "Period",
+        })
+
+        generated = self.generate(catalogs)
+
+        self.assertIn("    package let category: CodingContract?\n}", generated)
+        self.assertIn(
+            '        effective: .dateTimeOrPeriod,\n'
+            '        category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", '
+            'code: "vital-signs", display: "Vital Signs")\n    )',
+            generated,
+        )
+        self.assertIn("        effective: .period,\n        category: nil\n    )", generated)
+
+    def test_generates_the_body_mass_index_contract_from_its_standard_claim(self):
+        generated = self.generate(self.catalogs())
+
+        self.assertIn(
+            "    package static let bodyMassIndex = MeasurementContract(\n"
+            '        id: "body-mass-index",\n'
+            '        profile: "http://hl7.org/fhir/StructureDefinition/bmi",\n'
+            '        code: CodingContract(system: "http://loinc.org", code: "39156-5"),\n'
+            "        requiredCodings: [],\n"
+            '        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "kg/m2", unit: "kg/m2", '
+            "valueDomain: nil),\n"
+            "        components: [],\n"
+            "        resultCodeSystem: nil,\n"
+            "        allowedValues: [],\n"
+            "        resultCodes: [],\n"
+            "        method: nil,\n"
+            "        methodChoice: [],\n"
+            "        effective: .dateTime,\n"
+            "        category: nil\n"
+            "    )\n",
+            generated,
+        )
+        self.assertLess(generated.index("public enum HealthKitContract {"), generated.index("let bodyMassIndex ="))
+        self.assertNotIn("        bodyMassIndex,", generated)
+
+    def test_rejects_a_body_mass_index_claim_its_row_does_not_state(self):
+        catalogs = self.catalogs()
+        catalogs["healthkit-adapter.json"]["standardAdapterClaims"]["body-mass-index"]["profiles"].reverse()
+
+        with self.assertRaisesRegex(ValueError, "registered standard-plus-adapter claim"):
+            self.generate(catalogs)
+
+        catalogs = self.catalogs()
+        catalogs["profile-claims.json"]["observationAdapterClaim"]["standardAdapterClaims"] = []
+
+        with self.assertRaisesRegex(ValueError, "registered standard-plus-adapter claim"):
+            self.generate(catalogs)
+
+    def test_rejects_a_catalog_measurement_named_body_mass_index(self):
+        catalogs = self.catalogs()
+        catalogs["measurement-catalog.json"]["measurements"].append(
+            {**HEART_RATE, "id": "body-mass-index", "category": None}
+        )
+
+        with self.assertRaisesRegex(ValueError, "not a catalog measurement"):
+            self.generate(catalogs)
+
+    def test_generates_the_electrocardiogram_claim_as_package_constants(self):
+        generated = self.generate(self.catalogs())
+
+        self.assertIn("package enum HealthKitElectrocardiogramClaim {", generated)
+        self.assertIn('    package static let outputRole = "electrocardiogram"', generated)
+        self.assertIn('    package static let outputDiscriminator = "single"', generated)
+        self.assertIn('    package static let averageHeartRateOutputRole = "average-heart-rate"', generated)
+        self.assertIn('    package static let averageHeartRateOutputDiscriminator = "single"', generated)
+        self.assertIn(
+            "    package static let averageHeartRateProfiles: [FHIRPrimitive<Canonical>] = [\n"
+            "        Profile.groveMobileHeartRate,\n"
+            "        Profile.healthkitEcgAverageHeartRateObservation,\n"
+            "    ]",
+            generated,
+        )
+        self.assertIn("    package static let averageHeartRateMeasurement = MeasurementCatalog.heartRate", generated)
+        self.assertIn(
+            '    package static let leadCode = CodingContract(system: "urn:iso:std:iso:11073:10101", '
+            'code: "131329", display: "MDC_ECG_ELEC_POTL_I")',
+            generated,
+        )
+        self.assertIn(
+            '    package static let voltageQuantity = QuantityContract(system: "http://unitsofmeasure.org", '
+            'code: "mV", unit: "mV", valueDomain: nil)',
+            generated,
+        )
+        self.assertIn(
+            "    /// HKMetadataKeyAppleECGAlgorithmVersion to Observation.method.\n"
+            "    package static let algorithmVersion = ClosedValueMappingContract(\n"
+            '        system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-ecg-algorithm-version",\n'
+            "        codes: [\n"
+            '            "1": "version1",\n'
+            "        ]\n"
+            "    )",
+            generated,
+        )
+        self.assertIn("    package static let symptomsStatus = ClosedValueMappingContract(", generated)
+        self.assertIn(
+            "    package static let correlatedSymptomSourceTypeIdentifiers: [String] = [\n"
+            '        "HKCategoryTypeIdentifierFatigue",\n'
+            "    ]",
+            generated,
+        )
+        self.assertIn("package struct ClosedValueMappingContract: Hashable, Sendable {", generated)
+        self.assertNotIn("public static let averageHeartRate", generated)
+
+    def test_rejects_an_average_heart_rate_that_restates_its_measurement_differently(self):
+        catalogs = self.catalogs()
+        claim = catalogs["healthkit-adapter.json"]["sensorAdapterClaims"]["electrocardiogram"]
+        claim["outputs"][1]["quantity"]["code"] = "/s"
+
+        with self.assertRaisesRegex(ValueError, "code and quantity of its measurement"):
+            self.generate(catalogs)
+
+        catalogs = self.catalogs()
+        catalogs["measurement-catalog.json"]["measurements"] = []
+
+        with self.assertRaisesRegex(ValueError, "code and quantity of its measurement"):
+            self.generate(catalogs)
+
+    def test_rejects_an_electrocardiogram_claim_without_exactly_one_child_output(self):
+        catalogs = self.catalogs()
+        claim = catalogs["healthkit-adapter.json"]["sensorAdapterClaims"]["electrocardiogram"]
+        claim["outputs"].pop()
+
+        with self.assertRaisesRegex(ValueError, "one average-heart-rate output"):
+            self.generate(catalogs)
+
+    def test_rejects_ambiguous_electrocardiogram_value_mappings_and_symptoms(self):
+        catalogs = self.catalogs()
+        claim = catalogs["healthkit-adapter.json"]["sensorAdapterClaims"]["electrocardiogram"]
+        claim["closedValueMappings"]["algorithmVersion"]["values"].append({"sourceValue": "1", "code": "version2"})
+
+        with self.assertRaisesRegex(ValueError, "map each source value once"):
+            self.generate(catalogs)
+
+        catalogs = self.catalogs()
+        claim = catalogs["healthkit-adapter.json"]["sensorAdapterClaims"]["electrocardiogram"]
+        claim["correlatedSymptomEvidence"]["sourceTypes"].append("HKCategoryTypeIdentifierDizziness")
+
+        with self.assertRaisesRegex(ValueError, "distinct inventory rows"):
             self.generate(catalogs)
 
 

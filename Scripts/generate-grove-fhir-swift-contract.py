@@ -14,6 +14,7 @@ import argparse
 import json
 import re
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 
@@ -291,33 +292,29 @@ def quantity_contract_expression(quantity: dict) -> str:
     )
 
 
-def measurement_lines(measurement: dict) -> list[str]:
-    lines = [
-        f"    public static let {swift_name(measurement['id'])} = MeasurementContract(",
-        f"        id: {swift_string(measurement['id'])},",
-        f"        profile: Profile.{swift_name(measurement['profile'])},",
-    ]
-    code = measurement["code"]
-    display = f", display: {swift_string(code['display'])}" if code.get("display") else ""
-    lines.append(
-        "        code: CodingContract("
-        f"system: {swift_string(code['system'])}, "
-        f"code: {swift_string(code['code'])}{display}),"
+def coding_contract_expression(coding: dict) -> str:
+    display = f", display: {swift_string(coding['display'])}" if coding.get("display") else ""
+    return (
+        "CodingContract("
+        f"system: {swift_string(coding['system'])}, "
+        f"code: {swift_string(coding['code'])}{display})"
     )
+
+
+def measurement_lines(measurement: dict, access: str = "public", profile: str | None = None) -> list[str]:
+    """`profile` renders the measurement's profile; by default the generated `Profile` member it names."""
+    rendered_profile = profile or f"Profile.{swift_name(measurement['profile'])}"
+    lines = [
+        f"    {access} static let {swift_name(measurement['id'])} = MeasurementContract(",
+        f"        id: {swift_string(measurement['id'])},",
+        f"        profile: {rendered_profile},",
+        f"        code: {coding_contract_expression(measurement['code'])},",
+    ]
     required_codings = measurement.get("requiredCodings", [])
     if required_codings:
         lines.append("        requiredCodings: [")
         for required_coding in required_codings:
-            required_display = (
-                f", display: {swift_string(required_coding['display'])}"
-                if required_coding.get("display")
-                else ""
-            )
-            lines.append(
-                "            CodingContract("
-                f"system: {swift_string(required_coding['system'])}, "
-                f"code: {swift_string(required_coding['code'])}{required_display}),"
-            )
+            lines.append(f"            {coding_contract_expression(required_coding)},")
         lines.append("        ],")
     else:
         lines.append("        requiredCodings: [],")
@@ -399,8 +396,107 @@ def measurement_lines(measurement: dict) -> list[str]:
             f"measurement {measurement['id']!r} has unsupported effective choice "
             f"{measurement['effective']!r}"
         )
-    lines.append(f"        effective: .{effective}")
+    lines.append(f"        effective: .{effective},")
+    category = measurement.get("category")
+    lines.append(f"        category: {coding_contract_expression(category) if category else 'nil'}")
     lines.extend(["    )", ""])
+    return lines
+
+
+def electrocardiogram_claim_lines(
+    ecg_claim: dict,
+    measurement_members: dict[str, tuple[str, dict]],
+    source_type_identifiers: set[str],
+    profile_reference: Callable[[str], str],
+) -> list[str]:
+    """The ECG claim's outputs, lead, voltage unit, value mappings and symptom types, all `package`.
+
+    The average heart rate states the code and quantity of the measurement its first profile claims, so the
+    claim names that measurement instead of restating them.
+    """
+    primaries = [output for output in ecg_claim["outputs"] if output["profiles"] == ecg_claim["profiles"]]
+    children = [output for output in ecg_claim["outputs"] if output["profiles"] != ecg_claim["profiles"]]
+    if len(primaries) != 1 or len(children) != 1:
+        raise ValueError("HealthKit ECG claim must declare one waveform output and one average-heart-rate output")
+    primary, child = primaries[0], children[0]
+    if primary["outputRole"] == child["outputRole"]:
+        raise ValueError("HealthKit ECG outputs must have distinct roles")
+    member, measurement = measurement_members.get(child["profiles"][0], (None, None))
+    if (
+        measurement is None
+        or (measurement["code"]["system"], measurement["code"]["code"])
+        != (child["code"]["system"], child["code"]["code"])
+        or any((measurement.get("quantity") or {}).get(key) != value for key, value in child["quantity"].items())
+    ):
+        raise ValueError("HealthKit ECG average heart rate must state the code and quantity of its measurement")
+    mappings = ecg_claim["closedValueMappings"]
+    for name, mapping in mappings.items():
+        source_values = [value["sourceValue"] for value in mapping["values"]]
+        if (
+            not re.fullmatch(r"[a-z][A-Za-z0-9]*", name)
+            or not source_values
+            or len(source_values) != len(set(source_values))
+        ):
+            raise ValueError(
+                f"HealthKit ECG {name!r} mapping must be named in camel case and map each source value once"
+            )
+    symptom_types = ecg_claim["correlatedSymptomEvidence"]["sourceTypes"]
+    if (
+        not symptom_types
+        or len(symptom_types) != len(set(symptom_types))
+        or not set(symptom_types) <= source_type_identifiers
+    ):
+        raise ValueError("HealthKit ECG symptom source types must be distinct inventory rows")
+    lines = [
+        "/// One closed source-value mapping of an adapter claim: the code each admitted source value maps to.",
+        "package struct ClosedValueMappingContract: Hashable, Sendable {",
+        "    /// The CodeSystem of every mapped code.",
+        "    package let system: String",
+        "    /// Each admitted source value's code, keyed by the source value as the catalog spells it.",
+        "    package let codes: [String: String]",
+        "}",
+        "",
+        "",
+        "/// The HealthKit electrocardiogram claim, generated from healthkit-adapter.json sensorAdapterClaims.",
+        "package enum HealthKitElectrocardiogramClaim {",
+        "    /// The waveform Observation's output role and discriminator.",
+        f"    package static let outputRole = {swift_string(primary['outputRole'])}",
+        f"    package static let outputDiscriminator = {swift_string(primary['outputDiscriminator'])}",
+        "    /// The average-heart-rate Observation's output role, discriminator and exact direct profiles.",
+        f"    package static let averageHeartRateOutputRole = {swift_string(child['outputRole'])}",
+        f"    package static let averageHeartRateOutputDiscriminator = {swift_string(child['outputDiscriminator'])}",
+        "    package static let averageHeartRateProfiles: [FHIRPrimitive<Canonical>] = [",
+        *(f"        {profile_reference(profile)}," for profile in child["profiles"]),
+        "    ]",
+        "    /// The measurement whose code and quantity the average heart rate states.",
+        f"    package static let averageHeartRateMeasurement = {member}",
+        "    /// The lead coding of the waveform component.",
+        f"    package static let leadCode = {coding_contract_expression(ecg_claim['leadCode'])}",
+        "    /// The unit of the waveform's voltages.",
+        f"    package static let voltageQuantity = {quantity_contract_expression(ecg_claim['quantity'])}",
+    ]
+    for name, mapping in mappings.items():
+        lines.extend([
+            f"    /// {mapping['sourceField']} to {mapping['r4Element']}.",
+            f"    package static let {name} = ClosedValueMappingContract(",
+            f"        system: {swift_string(mapping['system'])},",
+            "        codes: [",
+            *(
+                f"            {swift_string(value['sourceValue'])}: {swift_string(value['code'])},"
+                for value in mapping["values"]
+            ),
+            "        ]",
+            "    )",
+        ])
+    lines.extend([
+        "    /// The symptom source types an ECG references through Observation.hasMember, in catalog order.",
+        "    package static let correlatedSymptomSourceTypeIdentifiers: [String] = [",
+        *(f"        {swift_string(identifier)}," for identifier in symptom_types),
+        "    ]",
+        "}",
+        "",
+        "",
+    ])
     return lines
 
 
@@ -697,6 +793,8 @@ def generate(catalog_directory: Path) -> str:
         "    public let method: MethodContract?",
         "    public let methodChoice: [String]",
         "    public let effective: MeasurementEffective",
+        "    /// The Observation category the catalog fixes for the measurement, if it fixes one.",
+        "    package let category: CodingContract?",
         "}",
         "",
         "",
@@ -714,6 +812,8 @@ def generate(catalog_directory: Path) -> str:
             [m for m in measurements if m.get("owner") == "healthkit"],
         ),
     ]
+    # Profile canonical -> (generated member, measurement), so a claim that reuses a measurement names it.
+    measurement_members: dict[str, tuple[str, dict]] = {}
     for catalog_name, documentation, owned_measurements in owner_catalogs:
         lines.extend([
             f"/// {documentation}",
@@ -721,6 +821,11 @@ def generate(catalog_directory: Path) -> str:
         ])
         for measurement in owned_measurements:
             lines.extend(measurement_lines(measurement))
+            canonical = (
+                f"https://grovealliance.org/fhir/{measurement.get('owner', 'mobile')}"
+                f"/StructureDefinition/{measurement['profile']}"
+            )
+            measurement_members[canonical] = (f"{catalog_name}.{swift_name(measurement['id'])}", measurement)
         lines.append("    public static let all: [MeasurementContract] = [")
         for measurement in owned_measurements:
             lines.append(f"        {swift_name(measurement['id'])},")
@@ -805,6 +910,19 @@ def generate(catalog_directory: Path) -> str:
     body_mass_index_profiles = body_mass_index_rows[0]["profiles"]
     if len(body_mass_index_profiles) != profile_claims["observationAdapterClaim"]["cardinality"]:
         raise ValueError("HealthKit body-mass-index row has the wrong direct profile cardinality")
+    body_mass_index_claim = healthkit_catalog["standardAdapterClaims"]["body-mass-index"]
+    if (
+        body_mass_index_claim["claimMode"] != "exactly-standard-plus-adapter"
+        or body_mass_index_claim["profiles"] != body_mass_index_profiles
+        or not any(
+            claim["semanticProfile"] == body_mass_index_profiles[0]
+            and claim["adapterProfile"] == body_mass_index_profiles[1]
+            for claim in profile_claims["observationAdapterClaim"].get("standardAdapterClaims", [])
+        )
+    ):
+        raise ValueError("HealthKit body-mass-index claim must be its row's registered standard-plus-adapter claim")
+    if any(measurement["id"] == "body-mass-index" for measurement in measurements):
+        raise ValueError("body-mass-index is a standard adapter claim, not a catalog measurement")
     lines.extend([
         "    public static let catalogVersion = "
         f"{swift_string(healthkit_catalog['version'])}",
@@ -855,8 +973,15 @@ def generate(catalog_directory: Path) -> str:
     lines.extend([
         "    ]",
         "",
-        "    public static let rows: [HealthKitContractRow] = [",
+        "    /// Body-mass index, which HealthKit claims through the standard R4 BMI profile, generated from",
+        "    /// healthkit-adapter.json standardAdapterClaims; no measurement catalog lists it.",
     ])
+    lines.extend(measurement_lines(
+        {"id": "body-mass-index", **body_mass_index_claim},
+        access="package",
+        profile=profile_reference(body_mass_index_profiles[0]),
+    ))
+    lines.append("    public static let rows: [HealthKitContractRow] = [")
     healthkit_rows = healthkit_catalog["rows"]
     identifiers = [row["sourceTypeIdentifier"] for row in healthkit_rows]
     if identifiers != sorted(identifiers):
@@ -898,6 +1023,14 @@ def generate(catalog_directory: Path) -> str:
         "}",
         "",
         "",
+    ])
+    lines.extend(electrocardiogram_claim_lines(
+        ecg_claim,
+        measurement_members=measurement_members,
+        source_type_identifiers=set(identifiers),
+        profile_reference=profile_reference,
+    ))
+    lines.extend([
         "/// One closed direct `meta.profile` mode and the Grove identifier roles it requires.",
         "public struct DirectProfileClaim: Sendable {",
         "    public let profiles: [FHIRPrimitive<Canonical>]",

@@ -118,8 +118,8 @@ struct ContentInvariantTests {
             let type = try #require(HKObjectType.quantityType(forIdentifier: HKQuantityTypeIdentifier(rawValue: row.sourceTypeIdentifier)))
             #expect(type.is(compatibleWith: unit), "\(row.sourceTypeIdentifier) cannot be read in \(unit.unitString)")
         }
-        // The 108 unit-read quantity rows, less body-mass index, whose contract no generated catalog carries yet. M1
-        // (generator G3) generates it; should it join a catalog's `all`, this count becomes 108 (see ContentCorpusGrid).
+        // The 108 unit-read quantity rows, less body-mass index: its generated contract is `HealthKitContract.bodyMassIndex`,
+        // which no catalog's `all` lists; should one list it, this count becomes 108 (see ContentCorpusGrid).
         #expect(bound.count == 107, "\(bound.count) quantity rows convert through a unit binding")
         for binding in HealthKitCatalog.unitBindings {
             let byCode = try #require(HealthKitCatalog.unit(forUCUMCode: binding.ucumCode))
