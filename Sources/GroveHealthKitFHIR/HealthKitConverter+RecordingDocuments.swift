@@ -86,27 +86,35 @@ extension HealthKitConverter {
     /// ```swift
     /// let conversion = try HealthKitConverter().convert(record, context: context)
     /// ```
+    @available(*, deprecated, message: "Use HealthKitFHIRExporter; removed with the exporter rework's final cleanup.")
     public func convert(
         _ record: HealthKitHeartbeatSeriesRecord,
         context: HealthKitConversionContext
     ) throws(HealthKitConversionError) -> HealthKitConversionSet {
         do {
-            return try Self.assembleDocumentGraph(
-                for: record.series,
-                evidence: HealthKitRecordingEvidence(
-                    outputRole: "native-recording",
-                    format: .beatIntervalSeries,
-                    title: "Heartbeat series beat intervals",
-                    payload: try Self.beatIntervalPayload(
-                        seriesStart: record.series.startDate,
-                        heartbeats: record.heartbeats
-                    )
-                ),
-                context: context
-            )
+            return try Self.convertHeartbeatSeries(record, context: context)
         } catch {
             throw HealthKitConversionError(conversionFailure: error, source: .heartbeatSeries)
         }
+    }
+
+    static func convertHeartbeatSeries(
+        _ record: HealthKitHeartbeatSeriesRecord,
+        context: HealthKitConversionContext
+    ) throws -> HealthKitConversionSet {
+        try assembleDocumentGraph(
+            for: record.series,
+            evidence: HealthKitRecordingEvidence(
+                outputRole: "native-recording",
+                format: .beatIntervalSeries,
+                title: "Heartbeat series beat intervals",
+                payload: try beatIntervalPayload(
+                    seriesStart: record.series.startDate,
+                    heartbeats: record.heartbeats
+                )
+            ),
+            context: context
+        )
     }
 
     /// Converts a workout route into the recording document that carries its track.
@@ -114,30 +122,35 @@ extension HealthKitConverter {
     /// - Returns: The route's graph, or `nil` under `RouteDisclosurePolicy.omit`, the default.
     ///   Omitting the route drops an addition rather than rejecting anything: the workout the
     ///   route belongs to converts on its own.
+    @available(*, deprecated, message: "Use HealthKitFHIRExporter; removed with the exporter rework's final cleanup.")
     public func convert(
         _ record: HealthKitWorkoutRouteRecord,
         context: HealthKitConversionContext
     ) throws(HealthKitConversionError) -> HealthKitConversionSet? {
         do {
-            guard let payload = try Self.locationTrackPayload(
-                record.locations,
-                context: context
-            ) else {
-                return nil
-            }
-            return try Self.assembleDocumentGraph(
-                for: record.route,
-                evidence: HealthKitRecordingEvidence(
-                    outputRole: "native-recording",
-                    format: .locationTrackSamples,
-                    title: "Workout route locations",
-                    payload: payload
-                ),
-                context: context
-            )
+            return try Self.convertWorkoutRoute(record, context: context)
         } catch {
             throw HealthKitConversionError(conversionFailure: error, source: .workoutRoute)
         }
+    }
+
+    static func convertWorkoutRoute(
+        _ record: HealthKitWorkoutRouteRecord,
+        context: HealthKitConversionContext
+    ) throws -> HealthKitConversionSet? {
+        guard let payload = try locationTrackPayload(record.locations, context: context) else {
+            return nil
+        }
+        return try assembleDocumentGraph(
+            for: record.route,
+            evidence: HealthKitRecordingEvidence(
+                outputRole: "native-recording",
+                format: .locationTrackSamples,
+                title: "Workout route locations",
+                payload: payload
+            ),
+            context: context
+        )
     }
 
     static func beatIntervalPayload(

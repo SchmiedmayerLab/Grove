@@ -24,6 +24,7 @@ extension HealthKitConverter {
     /// The source release is mapped from `HKFHIRVersion.fhirRelease` to the attachment's versioned
     /// FHIR JSON media type. Grove validates only that the bytes contain one FHIR resource envelope;
     /// it never converts, re-encodes, or claims conformance over the provider's resource.
+    @available(*, deprecated, message: "Use HealthKitFHIRExporter; removed with the exporter rework's final cleanup.")
     public func convert(
         _ record: HKClinicalRecord,
         context: HealthKitConversionContext
@@ -97,6 +98,7 @@ extension HealthKitConverter {
     /// - Note: `HKCDADocumentSample.document` is populated only for a sample returned by an
     ///   `HKDocumentQuery` that asked for document data, so a sample from any other query fails
     ///   closed rather than converting to an empty payload.
+    @available(*, deprecated, message: "Use HealthKitFHIRExporter; removed with the exporter rework's final cleanup.")
     public func convert(
         _ sample: HKCDADocumentSample,
         context: HealthKitConversionContext

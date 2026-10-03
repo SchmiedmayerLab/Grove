@@ -121,7 +121,10 @@ extension HealthKitConverter {
             context: context
         )
         let converter = try converterSnapshots(context: context)
-        let recordingDevice = try Self.recordingDevice(for: sample.device, context: context)
+        var recordingDevice = try Self.recordingDevice(for: sample.device, context: context)
+        if context.options.writer == .device, recordingDevice.device == nil {
+            recordingDevice = try Self.recordingDevice(fromSource: sample.sourceRevision, context: context)
+        }
         let writer = try Self.writer(
             for: sample.sourceRevision,
             classification: context.options.writer,

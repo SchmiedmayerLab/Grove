@@ -21,9 +21,11 @@ import ModelsR4
 /// authorize data access, synchronize anchors, persist resources, or upload anything.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct HealthKitConverter: Sendable {
+    @available(*, deprecated, message: "Use HealthKitFHIRExporter; removed with the exporter rework's final cleanup.")
     public init() {}
 
     /// Converts one sample only when the closed catalog admits its exact published contract.
+    @available(*, deprecated, message: "Use HealthKitFHIRExporter; removed with the exporter rework's final cleanup.")
     public func convert(
         _ sample: HKSample,
         context: HealthKitConversionContext
@@ -39,6 +41,7 @@ public struct HealthKitConverter: Sendable {
     ///
     /// A record whose context the caller could not supply fails with the caller's own error and
     /// never becomes a conversion refusal.
+    @available(*, deprecated, message: "Use HealthKitFHIRExporter; removed with the exporter rework's final cleanup.")
     public func convert<E: Error>(
         _ samples: some Sequence<HKSample>,
         context: (HKSample) throws(E) -> HealthKitConversionContext
@@ -73,6 +76,9 @@ public struct HealthKitConverter: Sendable {
 extension HealthKitConverter {
     /// The closed adapter token every HealthKit identity preimage carries.
     static let adapterID = "healthkit"
+    /// The bundle-identifier prefix of HealthKit's per-device sources: the watch or phone that recorded a
+    /// sample itself, as `com.apple.health.<device UUID>`.
+    static let appleDeviceSourcePrefix = "com.apple.health."
 
     static func convertSample(
         _ sample: HKSample,

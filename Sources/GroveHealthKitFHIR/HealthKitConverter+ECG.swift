@@ -24,6 +24,7 @@ extension HealthKitConverter {
     /// ECG's event context for a symptom would collapse two source-record revisions into one
     /// event, while omitting symptom conversions would leave identifier-only `hasMember`
     /// references dangling.
+    @available(*, deprecated, message: "Use HealthKitFHIRExporter; removed with the exporter rework's final cleanup.")
     public func convert(
         _ record: HealthKitECGRecord,
         context: HealthKitConversionContext,

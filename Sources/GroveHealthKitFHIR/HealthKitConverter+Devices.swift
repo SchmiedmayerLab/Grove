@@ -138,26 +138,54 @@ extension HealthKitConverter {
                 warning: .recordingDeviceOmitted(deviceName: healthKitDevice.name?.nonBlank)
             )
         }
+        return try recordingDeviceSnapshot(recorder: recorder, healthKitDevice: healthKitDevice, context: context)
+    }
+
+    /// The physical unit an Apple per-device source stands for, when the sample carries no `HKDevice`
+    /// with a stable token: the source's per-device bundle identifier is that token. Any other source
+    /// yields nothing, exactly as before; its manufacturer and model are not known.
+    static func recordingDevice(
+        fromSource revision: HKSourceRevision,
+        context: HealthKitConversionContext
+    ) throws -> ResolvedRecordingDevice {
+        let bundleIdentifier = revision.source.bundleIdentifier
+        guard bundleIdentifier.hasPrefix(appleDeviceSourcePrefix),
+              let recorder = try? RecordingDevice(
+                  stableUnitToken: bundleIdentifier,
+                  name: revision.source.name.nonBlank,
+                  manufacturer: "Apple Inc.",
+                  modelNumber: revision.productType?.nonBlank
+              ) else {
+            return ResolvedRecordingDevice(device: nil, warning: nil)
+        }
+        return try recordingDeviceSnapshot(recorder: recorder, healthKitDevice: nil, context: context)
+    }
+
+    private static func recordingDeviceSnapshot(
+        recorder: RecordingDevice,
+        healthKitDevice: HKDevice?,
+        context: HealthKitConversionContext
+    ) throws -> ResolvedRecordingDevice {
         var device = Device()
         device.meta = Meta(profile: [Profile.groveRecordingDevice])
         device.status = FHIRPrimitive(.active)
         device.id = context.repositoryID(.recordingDevice)?.primitive
-        if let name = recorder.name ?? healthKitDevice.name?.nonBlank {
+        if let name = recorder.name ?? healthKitDevice?.name?.nonBlank {
             device.deviceName = [DeviceDeviceName(
                 name: name.asFHIRStringPrimitive(),
                 type: FHIRPrimitive(.userFriendlyName)
             )]
         }
-        device.manufacturer = (recorder.manufacturer ?? healthKitDevice.manufacturer?.nonBlank)?.asFHIRStringPrimitive()
-        device.modelNumber = (recorder.modelNumber ?? healthKitDevice.model?.nonBlank)?.asFHIRStringPrimitive()
+        device.manufacturer = (recorder.manufacturer ?? healthKitDevice?.manufacturer?.nonBlank)?.asFHIRStringPrimitive()
+        device.modelNumber = (recorder.modelNumber ?? healthKitDevice?.model?.nonBlank)?.asFHIRStringPrimitive()
         var versions: [DeviceVersion] = []
-        versions.appendVersion(healthKitDevice.hardwareVersion, code: "531974", display: "MDC_ID_PROD_SPEC_HW")
-        versions.appendVersion(healthKitDevice.firmwareVersion, code: "531976", display: "MDC_ID_PROD_SPEC_FW")
-        versions.appendVersion(healthKitDevice.softwareVersion, code: "531975", display: "MDC_ID_PROD_SPEC_SW")
+        versions.appendVersion(healthKitDevice?.hardwareVersion, code: "531974", display: "MDC_ID_PROD_SPEC_HW")
+        versions.appendVersion(healthKitDevice?.firmwareVersion, code: "531976", display: "MDC_ID_PROD_SPEC_FW")
+        versions.appendVersion(healthKitDevice?.softwareVersion, code: "531975", display: "MDC_ID_PROD_SPEC_SW")
         device.version = versions.isEmpty ? nil : versions
 
         if context.options.udiDisclosure == .authorizedUDI,
-           let udi = healthKitDevice.udiDeviceIdentifier?.nonBlank {
+           let udi = healthKitDevice?.udiDeviceIdentifier?.nonBlank {
             device.udiCarrier = [DeviceUdiCarrier(deviceIdentifier: udi.asFHIRStringPrimitive())]
         }
         let stableIdentity = try context.identityScope.recordingDevice(
@@ -188,6 +216,8 @@ extension HealthKitConverter {
         case .device:
             // The graph envelope reuses its recording Device as the writer. A second Device keyed
             // from application, model, or record identifiers would falsely claim a physical unit.
+            return nil
+        case .omit:
             return nil
         }
     }

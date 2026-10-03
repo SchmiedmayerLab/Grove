@@ -37,6 +37,8 @@ public enum HealthKitWriter: Hashable, Sendable {
     /// evidence exists. Without that evidence, the Device author is omitted rather than inferred
     /// from model, product, application, or record identifiers.
     case device
+    /// The caller has not classified the source; no writer is stated and the Provenance names no author.
+    case omit
 }
 
 #endif

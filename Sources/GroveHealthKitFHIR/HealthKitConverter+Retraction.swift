@@ -41,7 +41,7 @@ extension HealthKitConverter {
     /// repository scope and native-identifier disclosure as the record's conversion. The source
     /// record and every target are recomputed from `record`, so nothing from that conversion needs
     /// to be kept.
-    public func retraction(
+    static func retraction(
         for record: HealthKitSourceRecord,
         context: HealthKitConversionContext,
         occurred: RetractionOccurrence
@@ -66,17 +66,17 @@ extension HealthKitConverter {
     /// type: the same identity scope and the same output roles yield the same identifiers. The
     /// sample's UUID rides along as each target's native record identifier exactly when the
     /// context's native-identifier disclosure authorizes it on the addition path.
-    public func retractionTargets(
+    static func retractionTargets(
         for record: HealthKitSourceRecord,
         context: HealthKitConversionContext
     ) throws(HealthKitConversionError) -> [RetractionTarget] {
-        try Self.validate(context: context)
+        try validate(context: context)
         let outputs = HealthKitCatalog.outputs(for: record.type)
         guard !outputs.isEmpty else {
             throw Self.unconvertibleSampleError(for: record.type)
         }
         let nativeRecordIdentifier = context.options.nativeIdentifierDisclosure.nativeRecordIdentifier(
-            for: Self.nativeRecordID(of: record)
+            for: nativeRecordID(of: record)
         )
         let sourceRecord = try Self.sourceRecord(for: record, context: context)
         var targets: [RetractionTarget] = []
@@ -99,6 +99,29 @@ extension HealthKitConverter {
             }
         }
         return targets
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitConverter {
+    /// The complete retraction of a deleted record, as its own exchange event.
+    @available(*, deprecated, message: "Use HealthKitFHIRExporter.retract; removed with the exporter rework's final cleanup.")
+    public func retraction(
+        for record: HealthKitSourceRecord,
+        context: HealthKitConversionContext,
+        occurred: RetractionOccurrence
+    ) throws(HealthKitConversionError) -> RetractionEvent {
+        try Self.retraction(for: record, context: context, occurred: occurred)
+    }
+
+    /// The logical targets a deletion retracts, named from the catalog alone.
+    @available(*, deprecated, message: "Use HealthKitFHIRExporter.retract; removed with the exporter rework's final cleanup.")
+    public func retractionTargets(
+        for record: HealthKitSourceRecord,
+        context: HealthKitConversionContext
+    ) throws(HealthKitConversionError) -> [RetractionTarget] {
+        try Self.retractionTargets(for: record, context: context)
     }
 }
 
