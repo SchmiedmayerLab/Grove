@@ -179,10 +179,7 @@ struct ConversionThroughputBenchmark {
             let type = try #require(HealthKitSourceType(sample))
             let output = try #require(HealthKitCatalog.primaryOutput(for: type))
             let binding = try #require(HealthKitCatalog.binding(for: sample))
-            let envelope = try HealthKitConverter.graphEnvelope(
-                for: sample, context: context, outputRole: output.role, outputDiscriminator: output.discriminator
-            )
-            let observation = try HealthKitConverter.observation(for: sample, binding: binding, graphContext: envelope.graphContext)
+            let observation = try HealthKitConverter.observation(for: sample, binding: binding)
             let profiles = ExchangeGraph.canonicalStrings(observation.meta?.profile ?? [])
             let admitted = Set(ExchangeGraph.canonicalStrings(
                 ProfileClaims.adapterProvenanceTargetProfiles[HealthKitContract.conversionProvenanceProfile.value!.url.absoluteString] ?? []
@@ -190,9 +187,9 @@ struct ConversionThroughputBenchmark {
             print("BENCH diagnose withEvents=\(withEvents) type=\(type.rawValue) role=\(output.role)/\(output.discriminator) "
                 + "primaryProfiles=\(profiles) admittedCount=\(admitted.count) primaryAdmitted=\(!admitted.isDisjoint(with: profiles))")
             let workout = try #require(sample as? HKWorkout)
-            let segments = try HealthKitConverter.workoutSegments(workout, envelope: envelope)
-            for segment in segments.prefix(1) {
-                let segmentProfiles = ExchangeGraph.canonicalStrings(segment.observation.meta?.profile ?? [])
+            let segments = try HealthKitConverter.workoutSegments(workout)
+            for case .observation(let segment) in segments.prefix(1).map(\.resource) {
+                let segmentProfiles = ExchangeGraph.canonicalStrings(segment.meta?.profile ?? [])
                 print("BENCH diagnose segments=\(segments.count) segmentProfiles=\(segmentProfiles) "
                     + "segmentAdmitted=\(!admitted.isDisjoint(with: segmentProfiles))")
             }
@@ -394,27 +391,18 @@ struct ConversionThroughputBenchmark {
         run.report.line("scenario=\(run.name) phase=JSONDecoder-decode-bundle \(run.rate(decodeSeconds))")
     }
 
-    /// Construction pieces: identities + device snapshots + study context, then the clinical content alone.
+    /// Construction pieces: the source facts (devices, writer, identifiers), then the clinical content alone.
     private func measureConstruction(_ run: ScenarioRun) throws {
-        var envelopes: [HealthKitConverter.GraphEnvelope] = []
-        envelopes.reserveCapacity(run.count)
-        let type = HealthKitSourceType(run.samples[0])!
-        let output = HealthKitCatalog.primaryOutput(for: type)!
-        let envelopeSeconds = try Stopwatch.seconds {
+        let factsSeconds = try Stopwatch.seconds {
             for index in 0..<run.count {
-                envelopes.append(try HealthKitConverter.graphEnvelope(
-                    for: run.samples[index],
-                    context: run.contexts[index],
-                    outputRole: output.role,
-                    outputDiscriminator: output.discriminator
-                ))
+                _ = try HealthKitAssembly.SourceFacts(run.samples[index], options: run.contexts[index].options)
             }
         }
-        run.report.line("scenario=\(run.name) phase=graph-envelope(identities+devices+study) \(run.rate(envelopeSeconds))")
+        run.report.line("scenario=\(run.name) phase=source-facts(devices+writer+identifiers) \(run.rate(factsSeconds))")
         let binding = HealthKitCatalog.binding(for: run.samples[0])!
         let observationSeconds = try Stopwatch.seconds {
             for index in 0..<run.count {
-                _ = try HealthKitConverter.observation(for: run.samples[index], binding: binding, graphContext: envelopes[index].graphContext)
+                _ = try HealthKitConverter.observation(for: run.samples[index], binding: binding)
             }
         }
         run.report.line("scenario=\(run.name) phase=observation-content \(run.rate(observationSeconds))")

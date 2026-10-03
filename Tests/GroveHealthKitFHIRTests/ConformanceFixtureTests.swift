@@ -437,22 +437,17 @@ struct ConformanceFixtureTests {
             72,
             effective: .dateTime("2026-08-20T08:20:00-07:00")
         )
-        let ecgConversion = try HealthKitConverter.assembleGraph(
+        let ecgPrimary = ExchangeOutputDraft(
+            role: "electrocardiogram",
+            resource: .observation(try HealthKitConverter.ecgObservation(input: ecgInput))
+        )
+        let ecgOutputs = [ecgPrimary] + [try HealthKitConverter.ecgAverageHeartRateChild(input: ecgInput)].compactMap(\.self)
+        let ecgConversion = HealthKitConversionSet(primary: try HealthKitAssembly(context: ecgContext.event).graph(
             for: ecgEnvelopeSource,
-            context: ecgContext,
-            outputRole: "electrocardiogram",
-            childBuilder: { envelope in
-                guard let companion = try HealthKitConverter.ecgAverageHeartRateChild(
-                    input: ecgInput,
-                    envelope: envelope
-                ) else {
-                    return []
-                }
-                return [companion]
-            }
-        ) { graphContext in
-            try HealthKitConverter.ecgObservation(input: ecgInput, graphContext: graphContext)
-        }
+            type: .heartRate,
+            outputs: ecgOutputs,
+            request: .init(context: ecgContext)
+        ))
         let ecgObservation = ecgConversion.observation
         let ecgStudies = ecgObservation.extension?.filter { $0.url == Canonicals.researchStudy } ?? []
         #expect(ecgStudies.map(\.value) == quantityStudies.map(\.value))

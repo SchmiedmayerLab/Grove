@@ -92,29 +92,11 @@ extension HealthKitConverter {
         context: HealthKitConversionContext
     ) throws(HealthKitConversionError) -> HealthKitConversionSet {
         do {
-            return try Self.convertHeartbeatSeries(record, context: context)
+            try Self.validate(context: context)
+            return try HealthKitAssembly(context: context.event).convertHeartbeatSeries(record, request: .init(context: context))
         } catch {
             throw HealthKitConversionError(conversionFailure: error, source: .heartbeatSeries)
         }
-    }
-
-    static func convertHeartbeatSeries(
-        _ record: HealthKitHeartbeatSeriesRecord,
-        context: HealthKitConversionContext
-    ) throws -> HealthKitConversionSet {
-        try assembleDocumentGraph(
-            for: record.series,
-            evidence: HealthKitRecordingEvidence(
-                outputRole: "native-recording",
-                format: .beatIntervalSeries,
-                title: "Heartbeat series beat intervals",
-                payload: try beatIntervalPayload(
-                    seriesStart: record.series.startDate,
-                    heartbeats: record.heartbeats
-                )
-            ),
-            context: context
-        )
     }
 
     /// Converts a workout route into the recording document that carries its track.
@@ -128,29 +110,11 @@ extension HealthKitConverter {
         context: HealthKitConversionContext
     ) throws(HealthKitConversionError) -> HealthKitConversionSet? {
         do {
-            return try Self.convertWorkoutRoute(record, context: context)
+            try Self.validate(context: context)
+            return try HealthKitAssembly(context: context.event).convertWorkoutRoute(record, request: .init(context: context))
         } catch {
             throw HealthKitConversionError(conversionFailure: error, source: .workoutRoute)
         }
-    }
-
-    static func convertWorkoutRoute(
-        _ record: HealthKitWorkoutRouteRecord,
-        context: HealthKitConversionContext
-    ) throws -> HealthKitConversionSet? {
-        guard let payload = try locationTrackPayload(record.locations, context: context) else {
-            return nil
-        }
-        return try assembleDocumentGraph(
-            for: record.route,
-            evidence: HealthKitRecordingEvidence(
-                outputRole: "native-recording",
-                format: .locationTrackSamples,
-                title: "Workout route locations",
-                payload: payload
-            ),
-            context: context
-        )
     }
 
     static func beatIntervalPayload(
@@ -173,14 +137,8 @@ extension HealthKitConverter {
         return writer.data()
     }
 
-    /// The route's track, or `nil` when the deployment has not authorized disclosing one.
-    static func locationTrackPayload(
-        _ locations: [CLLocation],
-        context: HealthKitConversionContext
-    ) throws -> Data? {
-        guard context.options.routeDisclosure == .authorized else {
-            return nil
-        }
+    /// The route's track in the registry's `location-track-samples` column schema.
+    static func locationTrackPayload(_ locations: [CLLocation]) throws -> Data {
         guard !locations.isEmpty else {
             throw HealthKitValueFailure.emptyRecordingSeries
         }
@@ -202,61 +160,9 @@ extension HealthKitConverter {
         return writer.data()
     }
 
-    static func assembleDocumentGraph(
-        for sample: HKSample,
-        evidence: HealthKitRecordingEvidence,
-        context: HealthKitConversionContext
-    ) throws -> HealthKitConversionSet {
-        try validate(context: context)
-        let envelope = try graphEnvelope(
-            for: sample,
-            context: context,
-            outputRole: evidence.outputRole,
-            outputDiscriminator: "single"
-        )
-        let artifactIdentity = try envelope.sourceRecord.artifact(formatCode: evidence.format.rawValue, partIndex: 0)
-        let document = try recordingDocument(
-            for: sample,
-            evidence: evidence,
-            envelope: envelope,
-            context: context,
-            artifactIdentity: artifactIdentity
-        )
-        var provenance = try Self.provenance(
-            sourceIdentifier: envelope.sourceRecord.identifier.fhirIdentifier,
-            targetURL: envelope.primaryURL,
-            converterURL: envelope.converterURL,
-            writerURL: envelope.writerURL,
-            recordedAt: context.conversionInstant
-        )
-        provenance.id = context.repositoryID(.provenance)?.primitive
-
-        let graph = try exchangeBundle(
-            envelope: envelope,
-            primary: ResourceProxy(with: document),
-            provenance: provenance,
-            context: context
-        )
-        return HealthKitConversionSet(
-            primary: HealthKitConversion(
-                source: envelope.source,
-                identifiers: identifiers(envelope: envelope, context: context, sourceArtifact: artifactIdentity),
-                graph: graph,
-                warnings: envelope.warnings
-            )
-        )
-    }
-
-    private static func recordingDocument(
-        for sample: HKSample,
-        evidence: HealthKitRecordingEvidence,
-        envelope: GraphEnvelope,
-        context: HealthKitConversionContext,
-        artifactIdentity: RoledIdentifier
-    ) throws -> DocumentReference {
-        let sourceTypeIdentifier = sample.sampleType.identifier
-        var authors = envelope.recordingDeviceURL.map { [Reference(reference: $0.asFHIRStringPrimitive())] } ?? []
-        authors.append(Reference(reference: envelope.converterURL.asFHIRStringPrimitive()))
+    /// The DocumentReference content of one recording document; the envelope adds identities,
+    /// subject, authors, date and study context.
+    static func recordingDocument(evidence: HealthKitRecordingEvidence, sourceTypeIdentifier: String) throws -> DocumentReference {
         let typeCoding = if let clinicalRecordTypeCode = evidence.clinicalRecordTypeCode {
             Coding(
                 code: clinicalRecordTypeCode.asFHIRStringPrimitive(),
@@ -269,7 +175,6 @@ extension HealthKitConverter {
             )
         }
         var document = DocumentReference(
-            author: authors,
             content: [DocumentReferenceContent(
                 attachment: try attachment(evidence),
                 format: Coding(
@@ -277,22 +182,11 @@ extension HealthKitConverter {
                     system: HealthKitRecordingDocumentContract.formatCodeSystem
                 )
             )],
-            context: envelope.studyContext.studyReferences.isEmpty
-                ? nil
-                : DocumentReferenceContext(related: envelope.studyContext.studyReferences),
-            date: FHIRPrimitive(try Instant(utc: context.conversionInstant)),
-            identifier: [
-                envelope.sourceRecord.identifier.fhirIdentifier,
-                envelope.primary.fhirIdentifier,
-                artifactIdentity.fhirIdentifier
-            ] + nativeIdentifiers(for: sample, policy: context.options.nativeIdentifierDisclosure),
             meta: Meta(profile: evidence.profiles),
             status: FHIRPrimitive(.current),
-            subject: envelope.graphContext.subject,
             type: CodeableConcept(coding: [typeCoding])
         )
         applySourceTypeLineage(sourceTypeIdentifier, to: &document)
-        document.id = context.repositoryID(.primaryOutput)?.primitive
         return document
     }
 

@@ -28,7 +28,7 @@ enum GoldenCaseError: Error {
 extension GoldenCase {
     /// Sequences 60-79: graphs whose source has no public initializer, built on stored-sample fixtures.
     ///
-    /// The ECG goes through `HealthKitConverter.convertECG(_:evidence:symptoms:context:symptomContexts:)`, the
+    /// The ECG goes through `HealthKitAssembly.convertECG(_:evidence:symptoms:request:symptomRequests:)`, the
     /// internal seam below the public entry point, because the evidence an `HKElectrocardiogram` reports lives in
     /// private storage the fixtures do not write; the envelope sample is a real `HKElectrocardiogram` nonetheless.
     static let documents: [GoldenCase] = [

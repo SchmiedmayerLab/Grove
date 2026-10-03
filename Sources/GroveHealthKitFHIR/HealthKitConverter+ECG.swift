@@ -31,7 +31,15 @@ extension HealthKitConverter {
         symptomContexts: [HealthKitConversionContext]
     ) throws(HealthKitConversionError) -> HealthKitConversionSet {
         do {
-            return try Self.convertECG(record, context: context, symptomContexts: symptomContexts)
+            try Self.validate(context: context)
+            for symptomContext in symptomContexts {
+                try Self.validateSymptomConversionContext(symptomContext, expectedContext: context)
+            }
+            return try HealthKitAssembly(context: context.event).convertECG(
+                record,
+                request: .init(context: context),
+                symptomRequests: symptomContexts.map { .init(context: $0) }
+            )
         } catch {
             throw HealthKitConversionError(conversionFailure: error, source: .electrocardiogram)
         }
@@ -41,12 +49,24 @@ extension HealthKitConverter {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitConverter {
+    /// A companion belongs to the same subject, repository scope and identity scope as the ECG.
+    static func validateSymptomConversionContext(
+        _ symptomContext: HealthKitConversionContext,
+        expectedContext: HealthKitConversionContext
+    ) throws {
+        guard symptomContext.event.subject == expectedContext.event.subject,
+              symptomContext.repositoryScope == expectedContext.repositoryScope,
+              symptomContext.identityScope.systems == expectedContext.identityScope.systems,
+              symptomContext.identityScope.keyID == expectedContext.identityScope.keyID,
+              symptomContext.identityScope.epoch == expectedContext.identityScope.epoch else {
+            throw HealthKitConversionError.ecgEvidence(.mismatchedSymptomContext)
+        }
+    }
+
     static func averageHeartRateObservation(
         value: Double,
-        identity: RoledIdentifier,
         effective: Period,
-        input: HealthKitECGObservationInput,
-        envelope: GraphEnvelope
+        input: HealthKitECGObservationInput
     ) throws -> Observation {
         var observation = Observation(
             code: CodeableConcept(coding: [
@@ -72,25 +92,12 @@ extension HealthKitConverter {
             Profile.groveMobileHeartRate,
             Profile.healthkitEcgAverageHeartRateObservation
         ])
-        observation.identifier = [
-            envelope.sourceRecord.identifier.fhirIdentifier,
-            identity.fhirIdentifier
-        ]
-        observation.subject = envelope.graphContext.subject
         observation.effective = .period(effective)
         observation.value = .quantity(try decimalQuantity(
             value,
             code: "/min",
             display: "beats/minute"
         ))
-        observation.derivedFrom = [
-            Reference(reference: envelope.primaryURL.asFHIRStringPrimitive())
-        ]
-        applyGraphContext(
-            to: &observation,
-            graphContext: envelope.graphContext,
-            wasUserEntered: input.source.wasUserEntered
-        )
         return observation
     }
 

@@ -30,25 +30,11 @@ extension HealthKitConverter {
         context: HealthKitConversionContext
     ) throws(HealthKitConversionError) -> HealthKitConversionSet {
         do {
-            return try Self.convertClinicalRecord(record, context: context)
+            try Self.validate(context: context)
+            return try HealthKitAssembly(context: context.event).convertClinicalRecord(record, request: .init(context: context))
         } catch {
             throw HealthKitConversionError(conversionFailure: error, source: HealthKitSourceType(record))
         }
-    }
-
-    static func convertClinicalRecord(
-        _ record: HKClinicalRecord,
-        context: HealthKitConversionContext
-    ) throws -> HealthKitConversionSet {
-        guard let fhirResource = record.fhirResource else {
-            throw HealthKitConversionError.clinicalRecord(.empty)
-        }
-        let evidence = try clinicalRecordingEvidence(
-            data: fhirResource.data,
-            release: fhirResource.fhirVersion.fhirRelease,
-            sourceTypeIdentifier: record.sampleType.identifier
-        )
-        return try assembleDocumentGraph(for: record, evidence: evidence, context: context)
     }
 
     static func clinicalRecordingEvidence(
@@ -104,32 +90,11 @@ extension HealthKitConverter {
         context: HealthKitConversionContext
     ) throws(HealthKitConversionError) -> HealthKitConversionSet {
         do {
-            return try Self.convertClinicalDocument(sample, context: context)
+            try Self.validate(context: context)
+            return try HealthKitAssembly(context: context.event).convertClinicalDocument(sample, request: .init(context: context))
         } catch {
             throw HealthKitConversionError(conversionFailure: error, source: .cda)
         }
-    }
-
-    static func convertClinicalDocument(
-        _ sample: HKCDADocumentSample,
-        context: HealthKitConversionContext
-    ) throws -> HealthKitConversionSet {
-        guard let document = sample.document,
-              let data = document.documentData,
-              !data.isEmpty else {
-            throw HealthKitConversionError.clinicalRecord(.empty)
-        }
-        let title = document.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return try assembleDocumentGraph(
-            for: sample,
-            evidence: HealthKitRecordingEvidence(
-                outputRole: "clinical-record",
-                format: .clinicalDocument,
-                title: title.isEmpty ? "Clinical document" : title,
-                payload: data
-            ),
-            context: context
-        )
     }
 
     private static func clinicalRecordTypeCode(

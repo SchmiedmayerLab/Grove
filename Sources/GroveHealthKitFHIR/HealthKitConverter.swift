@@ -31,7 +31,8 @@ public struct HealthKitConverter: Sendable {
         context: HealthKitConversionContext
     ) throws(HealthKitConversionError) -> HealthKitConversionSet {
         do {
-            return try Self.convertSample(sample, context: context)
+            try Self.validate(context: context)
+            return try HealthKitAssembly(context: context.event).convert(sample, request: .init(context: context))
         } catch {
             throw HealthKitConversionError(conversionFailure: error, source: HealthKitSourceType(sample))
         }
@@ -79,53 +80,6 @@ extension HealthKitConverter {
     /// The bundle-identifier prefix of HealthKit's per-device sources: the watch or phone that recorded a
     /// sample itself, as `com.apple.health.<device UUID>`.
     static let appleDeviceSourcePrefix = "com.apple.health."
-
-    static func convertSample(
-        _ sample: HKSample,
-        context: HealthKitConversionContext
-    ) throws -> HealthKitConversionSet {
-        try validate(context: context)
-        guard let type = HealthKitSourceType(sample) else {
-            throw HealthKitConversionError.unregisteredSourceType(sample.sampleType.identifier)
-        }
-        if sample is HKElectrocardiogram {
-            throw HealthKitConversionError.ecgEvidence(.evidenceRequired)
-        }
-        #if !os(watchOS)
-        if let record = sample as? HKClinicalRecord {
-            return try convertClinicalRecord(record, context: context)
-        }
-        if let document = sample as? HKCDADocumentSample {
-            return try convertClinicalDocument(document, context: context)
-        }
-        #endif
-        guard let binding = HealthKitCatalog.binding(for: sample),
-              let output = HealthKitCatalog.primaryOutput(for: type) else {
-            throw unconvertibleSampleError(for: type)
-        }
-        return try assembleGraph(
-            for: sample,
-            context: context,
-            outputRole: output.role,
-            outputDiscriminator: output.discriminator,
-            childBuilder: (sample as? HKWorkout).map(workoutChildBuilder(for:))
-        ) { graphContext in
-            try observation(for: sample, binding: binding, graphContext: graphContext)
-        }
-    }
-
-    /// A workout's segments hang off its session totals as `hasMember` children.
-    private static func workoutChildBuilder(for workout: HKWorkout) -> (GraphEnvelope) throws -> [GraphChildOutput] {
-        { envelope in
-            try workoutSegments(workout, envelope: envelope).map { segment in
-                GraphChildOutput(
-                    identity: segment.identity,
-                    observation: segment.observation,
-                    primaryRelationship: .hasMember
-                )
-            }
-        }
-    }
 
     /// The catalog-driven reason a sample without a binding fails closed.
     static func unconvertibleSampleError(for type: HealthKitSourceType) -> HealthKitConversionError {

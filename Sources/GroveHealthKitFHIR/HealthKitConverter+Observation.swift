@@ -41,10 +41,10 @@ extension HealthKitConverter {
         MeasurementCatalog.mindfulnessSession.id
     ]
 
+    /// The Observation content of one catalog-bound sample; the envelope adds identities and links.
     static func observation(
         for sample: HKSample,
-        binding: HealthKitFHIRBinding,
-        graphContext: HealthKitGraphContext
+        binding: HealthKitFHIRBinding
     ) throws -> Observation {
         let contract = binding.contract
         let primaryCoding = Coding(
@@ -65,7 +65,6 @@ extension HealthKitConverter {
         )
         applySourceTypeLineage(sample.sampleType.identifier, to: &observation)
         observation.meta = Meta(profile: contract.profiles)
-        observation.subject = graphContext.subject
         // HealthKit has no per-object availability time. Conversion time belongs on Provenance.
         observation.category = category(for: contract.id).map { [CodeableConcept(coding: [$0])] }
         observation.method = contract.method.map { method in
@@ -82,11 +81,6 @@ extension HealthKitConverter {
         try applyHeartRateMotionContext(to: &observation, sample: sample)
         try applyInsulinDeliveryReason(to: &observation, sample: sample)
         try applyMenstrualCycleStart(to: &observation, sample: sample, contract: contract)
-        applyGraphContext(
-            to: &observation,
-            graphContext: graphContext,
-            wasUserEntered: (sample.metadata?[HKMetadataKeyWasUserEntered] as? Bool) == true
-        )
         return observation
     }
 

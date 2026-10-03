@@ -6,10 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-// Segment construction stays contiguous so interval, identity, and reference ordering are auditable.
-// swiftlint:disable function_body_length function_parameter_count
-
 #if canImport(HealthKit)
+
 import Foundation
 import GroveFHIRContract
 import HealthKit
@@ -24,13 +22,9 @@ extension HealthKitConverter {
     /// per-activity intervals that describe a multi-sport session. Converting only the totals turns a
     /// triathlon into a single Observation, so each is emitted as its own segment linked from the
     /// session through `hasMember`.
-    static func workoutSegments(
-        _ workout: HKWorkout,
-        envelope: GraphEnvelope
-    ) throws -> [(identity: RoledIdentifier, observation: Observation)] {
-        let sourceRecord = envelope.sourceRecord.identifier
+    static func workoutSegments(_ workout: HKWorkout) throws -> [ExchangeOutputDraft] {
         let sourceTimeZone = try sourceTimeZone(metadata: workout.metadata ?? [:])
-        var segments: [(identity: RoledIdentifier, observation: Observation)] = []
+        var segments: [ExchangeOutputDraft] = []
         var eventOccurrences: [String: Int] = [:]
         for event in workout.workoutEvents ?? [] {
             let coordinate = try segmentCoordinate(
@@ -39,10 +33,9 @@ extension HealthKitConverter {
             )
             let occurrence = eventOccurrences[coordinate, default: 0]
             eventOccurrences[coordinate] = occurrence + 1
-            let identity = try envelope.sourceRecord.output(role: "workout-segment", discriminator: "\(coordinate):\(occurrence)")
-            segments.append((
-                identity: identity,
-                observation: try segmentObservation(
+            segments.append(segment(
+                discriminator: "\(coordinate):\(occurrence)",
+                observation: segmentObservation(
                     value: segmentValue(for: event.type),
                     effective: try effectivePeriod(
                         start: event.dateInterval.start,
@@ -50,10 +43,7 @@ extension HealthKitConverter {
                         sourceTimeZone: sourceTimeZone
                     ),
                     components: [],
-                    sourceTypeIdentifier: workout.sampleType.identifier,
-                    subject: envelope.graphContext.subject,
-                    sourceRecord: sourceRecord,
-                    output: identity
+                    sourceTypeIdentifier: workout.sampleType.identifier
                 )
             ))
         }
@@ -70,17 +60,13 @@ extension HealthKitConverter {
             )
             let occurrence = activityOccurrences[coordinate, default: 0]
             activityOccurrences[coordinate] = occurrence + 1
-            let identity = try envelope.sourceRecord.output(role: "workout-segment", discriminator: "\(coordinate):\(occurrence)")
-            segments.append((
-                identity: identity,
-                observation: try segmentObservation(
+            segments.append(segment(
+                discriminator: "\(coordinate):\(occurrence)",
+                observation: segmentObservation(
                     value: try workoutValue(activityType: activity.workoutConfiguration.activityType),
                     effective: try effectivePeriod(start: activity.startDate, end: end, sourceTimeZone: sourceTimeZone),
                     components: try activityComponents(activity),
-                    sourceTypeIdentifier: workout.sampleType.identifier,
-                    subject: envelope.graphContext.subject,
-                    sourceRecord: sourceRecord,
-                    output: identity
+                    sourceTypeIdentifier: workout.sampleType.identifier
                 )
             ))
         }
@@ -99,15 +85,23 @@ extension HealthKitConverter {
         return "\(kind):\(String(groveFHIRPlainDecimal: start)):\(String(groveFHIRPlainDecimal: end))"
     }
 
+    /// A segment hangs off the session as a `hasMember` child and states only its subject.
+    private static func segment(discriminator: String, observation: Observation) -> ExchangeOutputDraft {
+        ExchangeOutputDraft(
+            role: "workout-segment",
+            discriminator: discriminator,
+            resource: .observation(observation),
+            links: [.subject],
+            memberOfPrimary: true
+        )
+    }
+
     private static func segmentObservation(
         value: CodeableConcept,
         effective: Period,
         components: [ObservationComponent],
-        sourceTypeIdentifier: String,
-        subject: Reference,
-        sourceRecord: RoledIdentifier,
-        output: RoledIdentifier
-    ) throws -> Observation {
+        sourceTypeIdentifier: String
+    ) -> Observation {
         var observation = Observation(
             code: CodeableConcept(coding: [
                 Coding(
@@ -119,8 +113,6 @@ extension HealthKitConverter {
         )
         applySourceTypeLineage(sourceTypeIdentifier, to: &observation)
         observation.meta = Meta(profile: [Profile.groveMobileWorkoutSegment])
-        observation.identifier = [sourceRecord.fhirIdentifier, output.fhirIdentifier]
-        observation.subject = subject
         observation.effective = .period(effective)
         observation.value = .codeableConcept(value)
         observation.component = components.isEmpty ? nil : components

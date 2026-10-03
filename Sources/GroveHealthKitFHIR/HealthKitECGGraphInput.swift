@@ -14,16 +14,6 @@ import HealthKit
 import ModelsR4
 
 
-/// The graph surroundings every output of one event states.
-struct HealthKitGraphContext: Sendable {
-    let subject: Reference
-    let recordingDeviceURL: String?
-    /// The application that mediated the measurement, when the converter role names one.
-    let gatewayURL: String?
-    let studyReferences: [Reference]
-}
-
-
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct HealthKitECGEvidence: Sendable {
     let source: HealthKitECGSourceEvidence

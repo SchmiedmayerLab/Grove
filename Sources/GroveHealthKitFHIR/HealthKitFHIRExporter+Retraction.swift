@@ -48,24 +48,14 @@ extension HealthKitFHIRExporter {
         reservation: ExchangeEventReservation,
         producerInstance: UUID
     ) throws -> ExchangeGraph {
-        let event = ExchangeEventContext(
-            subject: producer.subject,
+        let request = HealthKitAssembly.Request(
             event: try ExchangeEventIdentifier(
                 system: producer.identityScope.systems.event,
                 producerInstance: producerInstance,
                 sequence: reservation.sequence
             ),
-            identityScope: producer.identityScope,
-            repositoryScope: repositoryScope,
-            application: producer.application,
-            host: producer.host,
-            conversionInstant: reservation.instant,
-            converterRole: .assembler,
-            studies: producer.studies,
-            repositoryIDs: try legacyRepositoryIDs(for: deletion.uuid)
-        )
-        let context = HealthKitConversionContext(
-            event: event,
+            instant: reservation.instant,
+            repositoryIDs: try legacyRepositoryIDs(for: deletion.uuid),
             options: HealthKitConversionOptions(nativeIdentifierDisclosure: options.nativeIdentifier)
         )
         let record = HealthKitSourceRecord(uuid: deletion.uuid, type: deletion.sourceType)
@@ -75,7 +65,7 @@ extension HealthKitFHIRExporter {
             start: deletion.deletedAfter.flatMap { $0 <= deletion.detectedAt ? $0 : nil },
             end: deletion.detectedAt
         )
-        return try HealthKitConverter.retraction(for: record, context: context, occurred: occurred).graph
+        return try assembly.retraction(of: record, request: request, occurred: occurred).graph
     }
 }
 

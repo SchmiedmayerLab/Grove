@@ -32,6 +32,7 @@ public final class HealthKitFHIRExporter: Sendable {
     /// The business identifier naming this installation's HealthKit store; it enters every source identity.
     public let repositoryScope: BusinessIdentifier
     public let options: Options
+    let assembly: HealthKitAssembly
 
     public init(
         producer: ExchangeProducer,
@@ -45,6 +46,15 @@ public final class HealthKitFHIRExporter: Sendable {
         self.producer = producer
         self.repositoryScope = repositoryScope
         self.options = options
+        self.assembly = HealthKitAssembly(envelope: ExchangeEnvelope(
+            adapter: HealthKitAssembly.adapter,
+            identityScope: producer.identityScope,
+            subject: producer.subject,
+            repositoryScope: repositoryScope,
+            application: producer.application,
+            host: producer.host,
+            studies: producer.studies
+        ))
     }
 
     /// Converts samples in input order, calling `receive` once per produced graph or refusal as soon as
@@ -133,26 +143,20 @@ extension HealthKitFHIRExporter {
         reservations: [ExchangeEventReservation],
         producerInstance: UUID
     ) throws -> HealthKitConversionSet? {
-        let context = try conversionContext(for: record.sample, reservation: reservations[0], producerInstance: producerInstance)
+        let request = try request(for: record.sample, reservation: reservations[0], producerInstance: producerInstance)
         switch record {
         case .sample(let sample):
-            return try HealthKitConverter.convertSample(sample, context: context)
+            return try assembly.convert(sample, request: request)
         case let .electrocardiogram(ecg, voltages, symptoms):
-            let symptomContexts = try zip(symptoms, reservations.dropFirst()).map { symptom, reservation in
-                try conversionContext(for: symptom, reservation: reservation, producerInstance: producerInstance)
+            let symptomRequests = try zip(symptoms, reservations.dropFirst()).map { symptom, reservation in
+                try self.request(for: symptom, reservation: reservation, producerInstance: producerInstance)
             }
             let ecgRecord = HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: voltages, correlatedSymptoms: symptoms)
-            return try HealthKitConverter.convertECG(ecgRecord, context: context, symptomContexts: symptomContexts)
+            return try assembly.convertECG(ecgRecord, request: request, symptomRequests: symptomRequests)
         case let .heartbeatSeries(series, beats):
-            return try HealthKitConverter.convertHeartbeatSeries(
-                HealthKitHeartbeatSeriesRecord(series: series, heartbeats: beats),
-                context: context
-            )
+            return try assembly.convertHeartbeatSeries(HealthKitHeartbeatSeriesRecord(series: series, heartbeats: beats), request: request)
         case let .workoutRoute(route, locations):
-            return try HealthKitConverter.convertWorkoutRoute(
-                HealthKitWorkoutRouteRecord(route: route, locations: locations),
-                context: context
-            )
+            return try assembly.convertWorkoutRoute(HealthKitWorkoutRouteRecord(route: route, locations: locations), request: request)
         }
     }
 
@@ -187,37 +191,30 @@ extension HealthKitFHIRExporter.Plan {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter {
-    /// The per-event conversion inputs, in the shape the conversion pipeline still takes.
-    func conversionContext(
+    /// One record's event and the policies the options resolve for its source.
+    func request(
         for sample: HKSample,
         reservation: ExchangeEventReservation,
         producerInstance: UUID
-    ) throws -> HealthKitConversionContext {
+    ) throws -> HealthKitAssembly.Request {
         let source = sample.sourceRevision.source
-        let event = ExchangeEventContext(
-            subject: producer.subject,
+        return HealthKitAssembly.Request(
             event: try ExchangeEventIdentifier(
                 system: producer.identityScope.systems.event,
                 producerInstance: producerInstance,
                 sequence: reservation.sequence
             ),
-            identityScope: producer.identityScope,
-            repositoryScope: repositoryScope,
-            application: producer.application,
-            host: producer.host,
-            conversionInstant: reservation.instant,
+            instant: reservation.instant,
             converterRole: options.role.converterRole(for: source, application: producer.application),
-            studies: producer.studies,
-            repositoryIDs: try legacyRepositoryIDs(for: sample.uuid)
+            repositoryIDs: try legacyRepositoryIDs(for: sample.uuid),
+            options: HealthKitConversionOptions(
+                writer: options.writer.classification(of: source),
+                recordingDevice: options.recordingDevice.resolver,
+                udiDisclosure: options.udi == .authorized ? .authorizedUDI : .omit,
+                routeDisclosure: options.route == .authorized ? .authorized : .omit,
+                nativeIdentifierDisclosure: options.nativeIdentifier
+            )
         )
-        let conversionOptions = HealthKitConversionOptions(
-            writer: options.writer.classification(of: source),
-            recordingDevice: options.recordingDevice.resolver,
-            udiDisclosure: options.udi == .authorized ? .authorizedUDI : .omit,
-            routeDisclosure: options.route == .authorized ? .authorized : .omit,
-            nativeIdentifierDisclosure: options.nativeIdentifier
-        )
-        return HealthKitConversionContext(event: event, options: conversionOptions)
     }
 
     func legacyRepositoryIDs(for uuid: UUID) throws -> [ExchangeGraphNode: RepositoryID] {
