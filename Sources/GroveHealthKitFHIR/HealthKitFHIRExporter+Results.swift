@@ -73,8 +73,9 @@ extension HealthKitFHIRExporter {
         public enum Outcome: Sendable {
             /// The validated graph; store or upload ``ExchangeGraph/json`` verbatim.
             case graph(ExchangeGraph)
-            /// The record was refused with a registered diagnostic; nothing was emitted and the export continued.
-            case refused(ProducerDiagnostic)
+            /// The record was refused; nothing was emitted and the export continued. Refusals are
+            /// deterministic, so an exact redelivery refuses identically.
+            case refused(HealthKitConversionError)
             /// A deletion of a source type that never emits outputs.
             case nothingToRetract
         }

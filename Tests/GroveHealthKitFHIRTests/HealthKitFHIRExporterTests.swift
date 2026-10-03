@@ -16,6 +16,21 @@ import ModelsR4
 import Testing
 
 
+/// Counts the ledger writes a sequencer makes.
+private final class CountingStorage: ExchangeEventSequencer.Storage, @unchecked Sendable {
+    private let lock = NSLock()
+    private var data: Data?
+    private(set) var updates = 0
+
+    func update<R>(_ body: (inout Data?) throws -> R) throws -> R {
+        lock.lock()
+        defer { lock.unlock() }
+        updates += 1
+        return try body(&data)
+    }
+}
+
+
 /// The exporter is a facade over the conversion the goldens pin: its graphs are byte-identical to the old
 /// entry point's under the same event, and it adds the event bookkeeping and policies the entry point left
 /// to the caller.
@@ -123,11 +138,11 @@ struct HealthKitFHIRExporterTests {
         let heartRate = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(5))
         let (exports, _) = try Self.collect(exporter, [ecg, heartRate])
         try #require(exports.count == 2)
-        guard case .refused(let diagnostic) = exports[0].outcome else {
+        guard case .refused(let reason) = exports[0].outcome else {
             Issue.record("expected a refusal, got \(exports[0].outcome)")
             return
         }
-        #expect(diagnostic == HealthKitConversionError.ecgEvidence(.evidenceRequired).diagnostic)
+        #expect(reason == .ecgEvidence(.evidenceRequired))
         #expect(exports[0].graph == nil)
         #expect(exports[1].graph?.event.value.hasSuffix(":2") == true)
         // The refused ECG's reservation was released, so the next export of it takes a fresh sequence.
@@ -251,6 +266,34 @@ struct HealthKitFHIRExporterTests {
         #expect(afterRelease[0].graph?.event.value.hasSuffix(":3") == true)
     }
 
+    @Test("Deletions of types without outputs touch no ledger; a skewed lower bound is dropped, Bundle.id follows the legacy policy")
+    func retractionBoundsAndLedger() throws {
+        let storage = CountingStorage()
+        let exporter = try Self.exporter({ $0.legacyBundleID = .healthKitUUID }, sequencer: ExchangeEventSequencer(storage: storage))
+        let detectedAt = GoldenFixtures.conversionInstant
+        var exports: [HealthKitFHIRExporter.Export] = []
+        _ = try exporter.retract(
+            [HealthKitFHIRExporter.Deletion(uuid: GoldenFixtures.uuid(20), sourceType: .bloodPressureSystolic, deletedAfter: nil, detectedAt: detectedAt)],
+            at: detectedAt
+        ) { exports.append($0) }
+        #expect(storage.updates == 0)
+        _ = try exporter.export([HKSample](), at: detectedAt) { exports.append($0) }
+        #expect(storage.updates == 0)
+        _ = try exporter.retract(
+            [HealthKitFHIRExporter.Deletion(uuid: GoldenFixtures.uuid(21), sourceType: .heartRate, deletedAfter: detectedAt + 60, detectedAt: detectedAt)],
+            at: detectedAt
+        ) { exports.append($0) }
+        let bundle = try #require(exports.last?.graph?.bundle)
+        #expect(bundle.id?.value?.string == GoldenFixtures.uuid(21).uuidString)
+        let provenance = try #require(bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
+        guard case .period(let period)? = provenance.occurred else {
+            Issue.record("expected a period")
+            return
+        }
+        #expect(period.start == nil)
+        #expect(period.end != nil)
+    }
+
     @Test("An export shares one receipt; an error in the receiver ends the call with the reservations kept")
     func receiverErrorsPropagate() throws {
         struct Stop: Error {}
@@ -263,5 +306,6 @@ struct HealthKitFHIRExporterTests {
         #expect(again[0].graph?.event.value.hasSuffix(":1") == true)
     }
 }
+
 
 #endif

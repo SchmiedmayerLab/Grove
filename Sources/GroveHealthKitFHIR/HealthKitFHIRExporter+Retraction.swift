@@ -25,8 +25,8 @@ extension HealthKitFHIRExporter {
     ) throws -> Receipt {
         let retractable = deletions.filter { !HealthKitCatalog.outputs(for: $0.sourceType).isEmpty }
         let keys = retractable.map(ExchangeEventKey.retraction)
-        let reservations = try producer.sequencer.reserve(keys, at: instant)
-        let producerInstance = try producer.sequencer.producerInstance
+        let reservations = keys.isEmpty ? [] : try producer.sequencer.reserve(keys, at: instant)
+        let producerInstance = keys.isEmpty ? UUID() : try producer.sequencer.producerInstance
         for deletion in deletions where HealthKitCatalog.outputs(for: deletion.sourceType).isEmpty {
             try receive(Export(source: deletion.source, outcome: .nothingToRetract, warnings: []))
         }
@@ -36,7 +36,7 @@ extension HealthKitFHIRExporter {
                 outcome = .graph(try retraction(of: deletion, reservation: reservation, producerInstance: producerInstance))
             } catch {
                 producer.sequencer.releaseIgnoringErrors([ExchangeEventKey.retraction(deletion)])
-                outcome = .refused(HealthKitConversionError(conversionFailure: error, source: deletion.sourceType).diagnostic)
+                outcome = .refused(HealthKitConversionError(conversionFailure: error, source: deletion.sourceType))
             }
             try receive(Export(source: deletion.source, outcome: outcome, warnings: []))
         }
@@ -62,15 +62,17 @@ extension HealthKitFHIRExporter {
             conversionInstant: reservation.instant,
             converterRole: .assembler,
             studies: producer.studies,
-            repositoryIDs: [:]
+            repositoryIDs: try legacyRepositoryIDs(for: deletion.uuid)
         )
         let context = HealthKitConversionContext(
             event: event,
             options: HealthKitConversionOptions(nativeIdentifierDisclosure: options.nativeIdentifier)
         )
         let record = HealthKitSourceRecord(uuid: deletion.uuid, type: deletion.sourceType)
+        // A backwards clock adjustment can put the earlier query after the detection; keep the known
+        // upper bound rather than stating an invalid period.
         let occurred = RetractionOccurrence.period(
-            start: deletion.deletedAfter.map { min($0, deletion.detectedAt) },
+            start: deletion.deletedAfter.flatMap { $0 <= deletion.detectedAt ? $0 : nil },
             end: deletion.detectedAt
         )
         return try HealthKitConverter.retraction(for: record, context: context, occurred: occurred).graph

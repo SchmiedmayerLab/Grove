@@ -66,8 +66,9 @@ public final class HealthKitFHIRExporter: Sendable {
     ) throws -> Receipt {
         let plans = records.map(Plan.init)
         let keys = plans.flatMap(\.keys)
-        let reservations = try producer.sequencer.reserve(keys, at: instant)
-        let producerInstance = try producer.sequencer.producerInstance
+        // Nothing reserved means the ledger is never touched; refusals alone need no producer instance.
+        let reservations = keys.isEmpty ? [] : try producer.sequencer.reserve(keys, at: instant)
+        let producerInstance = keys.isEmpty ? UUID() : try producer.sequencer.producerInstance
         var offset = 0
         for plan in plans {
             let reserved = Array(reservations[offset..<(offset + plan.keys.count)])
@@ -87,7 +88,7 @@ extension HealthKitFHIRExporter {
     struct Plan {
         let record: Record
         let keys: [ExchangeEventKey]
-        let refusal: ProducerDiagnostic?
+        let refusal: HealthKitConversionError?
 
         var source: Export.Source {
             Export.Source(uuid: record.sample.uuid, typeIdentifier: record.sample.sampleType.identifier)
@@ -110,7 +111,7 @@ extension HealthKitFHIRExporter {
         } catch {
             let failure = HealthKitConversionError(conversionFailure: error, source: plan.source.sourceType)
             producer.sequencer.releaseIgnoringErrors(plan.keys)
-            try receive(Export(source: plan.source, outcome: .refused(failure.diagnostic), warnings: []))
+            try receive(Export(source: plan.source, outcome: .refused(failure), warnings: []))
             return
         }
         guard let set else {
@@ -179,9 +180,7 @@ extension HealthKitFHIRExporter.Plan {
             keys += symptoms.compactMap(ExchangeEventKey.active)
         }
         self.keys = keys
-        self.refusal = keys.isEmpty
-            ? HealthKitConversionError.unregisteredSourceType(record.sample.sampleType.identifier).diagnostic
-            : nil
+        self.refusal = keys.isEmpty ? .unregisteredSourceType(record.sample.sampleType.identifier) : nil
     }
 }
 
