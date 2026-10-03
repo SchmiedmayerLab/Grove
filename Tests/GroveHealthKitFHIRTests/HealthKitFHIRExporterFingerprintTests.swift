@@ -13,6 +13,7 @@ import Foundation
 @testable import GroveFHIRContract
 @testable import GroveHealthKitFHIR
 import HealthKit
+import ModelsR4
 import Testing
 
 
@@ -66,49 +67,81 @@ struct HealthKitFHIRExporterFingerprintTests {
         ]
     }
 
-    @Test("G3: every option, the subject, the repository and identity scopes and each output revision version the event")
+    /// The base context first, then every perturbation of an option, the subject, a scope or an output revision.
     @available(*, deprecated, message: "Names the transitional legacy Bundle.id case")
-    func everyContextInputVersionsTheEvent() throws {
-        let sequencer = ExchangeEventSequencer.inMemory()
-        let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(1), device: GoldenFixtures.watch, writer: GoldenFixtures.foreignWriter)
+    private static func contexts(sequencer: ExchangeEventSequencer) throws -> [(String, HealthKitFHIRExporter)] {
         let base = try Fixtures.producer(sequencer: sequencer)
-        var exporters: [(String, HealthKitFHIRExporter)] = try Self.optionPerturbations().map { name, configure in
+        let systems = Fixtures.base.identityScope.systems
+        let pseudonym = Fixtures.base.subject.identifier
+        var patient = Patient()
+        patient.gender = FHIRPrimitive(AdministrativeGender.female)
+        func scope(keyID: String = "test", epoch: UInt64 = 1, key: SymmetricKey = Self.key) throws -> OpaqueIdentityScope {
+            try OpaqueIdentityScope(systems: systems, keyID: keyID, epoch: EventSequence(epoch), key: key)
+        }
+        var contexts: [(String, HealthKitFHIRExporter)] = [("base", try Fixtures.exporter(base))]
+        contexts += try Self.optionPerturbations().map { name, configure in
             (name, try Fixtures.exporter(base, configure))
         }
-        let systems = Fixtures.base.identityScope.systems
-        exporters += [
+        contexts += [
             ("subject", try Fixtures.exporter(try Fixtures.producer(subject: .logical(.test(.patient, "other")), sequencer: sequencer))),
-            ("bundled subject", try Fixtures.exporter(try Fixtures.producer(subject: .bundled(.test(.patient, "example"), .init()), sequencer: sequencer))),
+            ("bundled subject", try Fixtures.exporter(try Fixtures.producer(subject: .bundled(pseudonym, Patient()), sequencer: sequencer))),
+            ("bundled Patient content", try Fixtures.exporter(try Fixtures.producer(subject: .bundled(pseudonym, patient), sequencer: sequencer))),
             ("repository scope", try Fixtures.exporter(base, repositoryScope: .test(.device, "secondary"))),
-            ("epoch", try Fixtures.exporter(try Fixtures.producer(
-                identityScope: OpaqueIdentityScope(systems: systems, keyID: "test", epoch: EventSequence(2), key: Self.key),
-                sequencer: sequencer
-            ))),
-            ("key", try Fixtures.exporter(try Fixtures.producer(
-                identityScope: OpaqueIdentityScope(systems: systems, keyID: "test", epoch: EventSequence(1), key: SymmetricKey(data: Data(repeating: 7, count: 32))),
-                sequencer: sequencer
-            ))),
+            ("epoch", try Fixtures.exporter(try Fixtures.producer(identityScope: scope(epoch: 2), sequencer: sequencer))),
+            ("key", try Fixtures.exporter(try Fixtures.producer(identityScope: scope(key: SymmetricKey(data: Data(repeating: 7, count: 32))), sequencer: sequencer))),
+            ("key id", try Fixtures.exporter(try Fixtures.producer(identityScope: scope(keyID: "other"), sequencer: sequencer))),
             ("assembler revision", try Fixtures.exporter(base, revisions: .init(assembler: ExchangeGraphAssembler.outputRevision + 1, healthKit: HealthKitAssembly.outputRevision))),
             ("adapter revision", try Fixtures.exporter(base, revisions: .init(assembler: ExchangeGraphAssembler.outputRevision, healthKit: HealthKitAssembly.outputRevision + 1)))
         ]
-        let (original, _) = try Fixtures.collect(try Fixtures.exporter(base), samples: [sample])
-        let (unchanged, _) = try Fixtures.collect(try Fixtures.exporter(base), samples: [sample])
-        #expect(unchanged[0].event == original[0].event, "an equal context reuses the reservation")
-        var sequences = [try #require(original[0].sequence)]
-        for (name, exporter) in exporters {
-            let (exports, _) = try Fixtures.collect(exporter, samples: [sample])
-            let sequence = try #require(exports[0].sequence, "\(name): \(exports[0].outcome)")
-            #expect(!sequences.contains(sequence), "\(name) reused an event")
-            sequences.append(sequence)
-        }
+        return contexts
     }
 
-    @Test("G3b: the fingerprint covers every stored option")
+    @Test("G3: the base context and every perturbation of an option, the subject, a scope or an output revision fingerprint pairwise apart")
+    @available(*, deprecated, message: "Names the transitional legacy Bundle.id case")
+    func everyContextInputVersionsTheEvent() throws {
+        let contexts = try Self.contexts(sequencer: .inMemory())
+        let key = ExchangeEventKey.active(type: .heartRate, uuid: GoldenFixtures.uuid(1))
+        let fingerprints = contexts.map { name, exporter in (name, exporter.context.request(for: key).fingerprint) }
+        for (index, (name, fingerprint)) in fingerprints.enumerated() {
+            for (earlier, earlierFingerprint) in fingerprints[..<index] where earlierFingerprint == fingerprint {
+                Issue.record("\(name) shares its fingerprint with \(earlier)")
+            }
+        }
+        #expect(Set(fingerprints.map(\.1)).count == contexts.count)
+    }
+
+    @Test("G3: an export reserves under its context's fingerprint; an equal context reuses the event and another does not")
+    @available(*, deprecated, message: "Names the transitional legacy Bundle.id case")
+    func exportsReserveUnderTheirContextFingerprint() throws {
+        let storage = ExchangeEventSequencer.InMemoryStorage()
+        let contexts = try Self.contexts(sequencer: ExchangeEventSequencer(storage: storage))
+        let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(1), device: GoldenFixtures.watch, writer: GoldenFixtures.foreignWriter)
+        let key = try #require(ExchangeEventKey.active(sample))
+        let (original, _) = try Fixtures.collect(contexts[0].1, samples: [sample])
+        let stored = try #require(try storage.transaction { try $0.read(LedgerKey.event(key)) })
+        #expect(try EventEntry(decoding: stored, key: LedgerKey.event(key)).fingerprint == contexts[0].1.context.request(for: key).fingerprint)
+        let (unchanged, _) = try Fixtures.collect(try Fixtures.exporter(try Fixtures.producer(sequencer: ExchangeEventSequencer(storage: storage))), samples: [sample])
+        #expect(unchanged[0].event == original[0].event, "an equal context reuses the reservation")
+        let (changed, _) = try Fixtures.collect(contexts[1].1, samples: [sample])
+        #expect(changed[0].event != original[0].event, "\(contexts[1].0) reused an event")
+    }
+
+    @Test("G3b: the fingerprint covers every stored option, each under its own name and with its own value")
+    @available(*, deprecated, message: "Names the transitional legacy Bundle.id case")
     func fingerprintCoversEveryOption() {
-        let options = HealthKitFHIRExporter.Options()
-        let stored = Mirror(reflecting: options).children.compactMap(\.label)
-        #expect(!stored.isEmpty)
-        #expect(options.fingerprintParts.map(\.property) == stored)
+        let configurations = [HealthKitFHIRExporter.Options()] + Self.optionPerturbations().map { _, configure in
+            var options = HealthKitFHIRExporter.Options()
+            configure(&options)
+            return options
+        }
+        for options in configurations {
+            let stored = Mirror(reflecting: options).children.map { child in
+                (property: child.label ?? "", parts: (child.value as? any ExchangeContextFingerprinted)?.fingerprintParts ?? [])
+            }
+            #expect(!stored.isEmpty)
+            #expect(options.fingerprintParts.map(\.property) == stored.map(\.property))
+            #expect(options.fingerprintParts.map(\.parts) == stored.map(\.parts), "\(stored.map(\.property))")
+        }
     }
 
     @Test("The ledger fingerprint of an identity scope is keyed and reveals nothing about the key")
