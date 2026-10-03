@@ -39,7 +39,8 @@ extension ExchangeGraph {
     private static let roleSystem = Canonicals.identifierRoleCodeSystemValue
 
     static func validateGovernedReferenceTargets(
-        entries: [BundleEntry]
+        entries: [BundleEntry],
+        document: ValidationDocument
     ) throws(ExchangeGraphError) {
         var resourceTypesByFullURL: [String: String] = [:]
         for entry in entries {
@@ -49,9 +50,9 @@ extension ExchangeGraph {
             }
         }
         let context = ReferenceResolutionContext(bundleResourceTypes: resourceTypesByFullURL)
-        for entry in entries {
+        for (index, entry) in entries.enumerated() {
             try validateGovernedReferences(in: entry.resource, context: context)
-            try validateGovernedExtensions(in: entry.resource, context: context)
+            try validateGovernedExtensions(in: entry.resource, entryIndex: index, document: document, context: context)
         }
     }
 
@@ -257,14 +258,17 @@ extension ExchangeGraph {
 
     static func validateGovernedExtensions(
         in resource: ResourceProxy?,
+        entryIndex: Int,
+        document: ValidationDocument,
         context: ReferenceResolutionContext
     ) throws(ExchangeGraphError) {
-        guard let resource else {
+        guard resource != nil else {
             return
         }
         do {
-            let data = try JSONEncoder().encode(resource)
-            let object = try JSONSerialization.jsonObject(with: data)
+            guard let object = try document.resourceObject(at: entryIndex) else {
+                return
+            }
             try validateGovernedExtensions(in: object, context: context)
         } catch let error as ExchangeGraphError {
             throw error

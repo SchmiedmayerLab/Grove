@@ -9,16 +9,15 @@
 public import Foundation
 
 
-public enum ApplicationDeviceError: Error, Equatable, Sendable {
-    case blankName
-    case invalidBundleIdentifier(String)
-    case blankVersion
-    case blankBuild
-}
-
-
 /// The converting application, as the immutable application Device snapshot states it.
 public struct ApplicationDevice: Hashable, Sendable {
+    public enum InitError: Error, Equatable, Sendable {
+        case blankName
+        case invalidBundleIdentifier(String)
+        case blankVersion
+        case blankBuild
+    }
+
     public let name: String
     public let bundleIdentifier: String
     /// The marketing version alone; the build that produced the resource is ``build``.
@@ -36,7 +35,7 @@ public struct ApplicationDevice: Hashable, Sendable {
         bundleIdentifier: String,
         version: String,
         build: String? = nil
-    ) throws(ApplicationDeviceError) {
+    ) throws(InitError) {
         guard !name.isBlank else {
             throw .blankName
         }
@@ -59,7 +58,7 @@ public struct ApplicationDevice: Hashable, Sendable {
     ///
     /// A host without a bundle identifier, such as a bare test runner, has no application identity
     /// to state and fails here rather than inside a conversion.
-    public init(bundle: Foundation.Bundle) throws(ApplicationDeviceError) {
+    public init(bundle: Foundation.Bundle) throws(InitError) {
         let info = bundle.infoDictionary ?? [:]
         let identifier = bundle.bundleIdentifier ?? ""
         try self.init(
@@ -76,12 +75,5 @@ public struct ApplicationDevice: Hashable, Sendable {
             return false
         }
         return value.utf8.allSatisfy { $0.isASCIIAlphaNumeric || $0 == 0x2D || $0 == 0x2E }
-    }
-}
-
-
-extension String {
-    var isBlank: Bool {
-        trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }

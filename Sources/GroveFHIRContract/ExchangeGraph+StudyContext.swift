@@ -30,9 +30,9 @@ extension ExchangeGraph {
 
     /// A bundled study context is complete: every ResearchStudy names its exact-revision PlanDefinition,
     /// exactly one ResearchSubject links the graph's subject to it, and each entry sits under its own role.
-    static func validateStudyContext(entries: [BundleEntry]) throws(ExchangeGraphError) {
+    static func validateStudyContext(entries: [BundleEntry], document: ValidationDocument) throws(ExchangeGraphError) {
         var nodes: [String: StudyNode] = [:]
-        for entry in entries {
+        for (index, entry) in entries.enumerated() {
             guard let role = studyContextRole(of: entry) else {
                 continue
             }
@@ -41,7 +41,7 @@ extension ExchangeGraph {
                   resource.resourceType == role.resourceType else {
                 throw .ruleViolation(.mobileSupportStudyContext)
             }
-            nodes[fullURL] = StudyNode(role: role, object: try jsonObject(of: resource))
+            nodes[fullURL] = StudyNode(role: role, object: try jsonObject(at: index, document: document))
         }
         let studies = nodes.filter { $0.value.role == .researchStudy }
         let plans = nodes.filter { $0.value.role == .planDefinition }
@@ -56,7 +56,7 @@ extension ExchangeGraph {
                 throw .ruleViolation(.mobileSupportStudyContext)
             }
         }
-        let subject = try outputSubject(in: entries)
+        let subject = try outputSubject(in: entries, document: document)
         var enrolled: Set<String> = []
         for researchSubject in nodes.values where researchSubject.role == .researchSubject {
             guard let studyURL = (researchSubject.object["study"] as? [String: Any])?["reference"] as? String,
@@ -86,13 +86,16 @@ extension ExchangeGraph {
     }
 
     /// What the first output states as its subject, the reference every ResearchSubject must repeat.
-    private static func outputSubject(in entries: [BundleEntry]) throws(ExchangeGraphError) -> Data? {
-        for entry in entries {
+    private static func outputSubject(
+        in entries: [BundleEntry],
+        document: ValidationDocument
+    ) throws(ExchangeGraphError) -> Data? {
+        for (index, entry) in entries.enumerated() {
             guard let resource = entry.resource,
                   ExchangeContract.activeOutputResourceTypes.contains(resource.resourceType) else {
                 continue
             }
-            guard let subject = try jsonObject(of: resource)["subject"] as? [String: Any] else {
+            guard let subject = try jsonObject(at: index, document: document)["subject"] as? [String: Any] else {
                 return nil
             }
             return try canonicalJSON(subject)
@@ -100,9 +103,9 @@ extension ExchangeGraph {
         return nil
     }
 
-    private static func jsonObject(of resource: ResourceProxy) throws(ExchangeGraphError) -> [String: Any] {
+    private static func jsonObject(at index: Int, document: ValidationDocument) throws(ExchangeGraphError) -> [String: Any] {
         do {
-            return try JSONSerialization.jsonObject(with: try JSONEncoder().encode(resource)) as? [String: Any] ?? [:]
+            return try document.resourceObject(at: index) as? [String: Any] ?? [:]
         } catch {
             throw .invalidEntries(String(reflecting: type(of: error)))
         }

@@ -17,14 +17,15 @@ import ModelsR4
 
 extension ExchangeGraph {
     static func validateActiveProfileClaims(
-        entries: [BundleEntry]
+        entries: [BundleEntry],
+        document: ValidationDocument
     ) throws(ExchangeGraphError) {
         var activeProvenance: Provenance?
         for (index, entry) in entries.enumerated() {
             guard let resource = entry.resource else {
                 throw .invalidEntries("Bundle entry has no resource")
             }
-            if let provenance = try validateActiveProfileClaim(resource, entryIndex: index) {
+            if let provenance = try validateActiveProfileClaim(resource, entryIndex: index, document: document) {
                 activeProvenance = provenance
             }
         }
@@ -36,7 +37,8 @@ extension ExchangeGraph {
 
     private static func validateActiveProfileClaim(
         _ resource: ResourceProxy,
-        entryIndex: Int
+        entryIndex: Int,
+        document validationDocument: ValidationDocument
     ) throws(ExchangeGraphError) -> Provenance? {
         switch resource {
         case .observation(let observation):
@@ -49,7 +51,8 @@ extension ExchangeGraph {
                 rule: .mobileOutputDocumentProfile
             )
             try validateIdentifierRoles(
-                in: resource,
+                atEntry: entryIndex,
+                document: validationDocument,
                 claim: claim,
                 additionallyAllowed: [.writerRecord],
                 rule: .sensorRecordingDocumentIdentityAndContent
@@ -66,7 +69,12 @@ extension ExchangeGraph {
                 modes: ProfileClaims.deviceProfileModes,
                 rule: .mobileSupportDeviceProfile
             )
-            try validateIdentifierRoles(in: resource, claim: claim, rule: .mobileDeviceRecordingDeviceDualIdentity)
+            try validateIdentifierRoles(
+                atEntry: entryIndex,
+                document: validationDocument,
+                claim: claim,
+                rule: .mobileDeviceRecordingDeviceDualIdentity
+            )
         case .questionnaireResponse(let response):
             _ = try validateDirectProfileClaim(
                 profiles: response.meta?.profile ?? [],
@@ -77,7 +85,7 @@ extension ExchangeGraph {
             try validateActiveProvenanceProfile(provenance)
             return provenance
         default:
-            try validateAdapterOnlyOutputProfile(resource)
+            try validateAdapterOnlyOutputProfile(resource, entryIndex: entryIndex, document: validationDocument)
         }
         return nil
     }
@@ -141,13 +149,14 @@ extension ExchangeGraph {
     }
 
     static func validateIdentifierRoles(
-        in resource: ResourceProxy,
+        atEntry index: Int,
+        document: ValidationDocument,
         claim: DirectProfileClaim,
         additionallyAllowed: Set<GroveIdentifierRole> = [],
         rule: ExchangeGraphRule
     ) throws(ExchangeGraphError) {
         do {
-            let identifiers = try ExchangeIdentity.typedResourceIdentifiers(in: resource)
+            let identifiers = try document.typedResourceIdentifiers(at: index)
             let roles = identifiers.map(\.role)
             guard Set(identifiers).count == identifiers.count else {
                 throw ExchangeGraphError.ruleViolation(rule)

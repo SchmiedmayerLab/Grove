@@ -20,24 +20,24 @@ import Testing
 struct HealthKitFHIRApplicationIdentityTests {
     @Test("A bundle-less host has no application identity to state")
     func bundleLessHostIsRejected() {
-        #expect(throws: ApplicationDeviceError.invalidBundleIdentifier("")) {
+        #expect(throws: ApplicationDevice.InitError.invalidBundleIdentifier("")) {
             try ApplicationDevice(name: "Runner", bundleIdentifier: "", version: "1.0")
         }
     }
 
     @Test("A bundle identifier is the exact Apple product token, not arbitrary text")
     func malformedBundleIdentifierIsRejected() {
-        #expect(throws: ApplicationDeviceError.invalidBundleIdentifier("org.example. bad-id")) {
+        #expect(throws: ApplicationDevice.InitError.invalidBundleIdentifier("org.example. bad-id")) {
             try ApplicationDevice(name: "Runner", bundleIdentifier: "org.example. bad-id", version: "1.0")
         }
     }
 
     @Test("Blank application and host facts are refused where the deployment configures them")
     func blankFactsAreRefusedAtConstruction() {
-        #expect(throws: ApplicationDeviceError.blankName) {
+        #expect(throws: ApplicationDevice.InitError.blankName) {
             try ApplicationDevice(name: " ", bundleIdentifier: "org.example.app", version: "1.0")
         }
-        #expect(throws: ApplicationDeviceError.blankVersion) {
+        #expect(throws: ApplicationDevice.InitError.blankVersion) {
             try ApplicationDevice(name: "Runner", bundleIdentifier: "org.example.app", version: "")
         }
         #expect(throws: HostDeviceError.blankOperatingSystemVersion) {

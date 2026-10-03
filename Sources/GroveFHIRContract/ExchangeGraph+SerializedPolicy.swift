@@ -13,9 +13,9 @@ import ModelsR4
 extension ExchangeGraph {
     static func validateSerializedEntryPolicy(
         kind: ExchangeGraphKind,
-        data: Data
+        json: Result<Any, any Error>
     ) throws(ExchangeGraphError) {
-        let root = try serializedBundleObject(data)
+        let root = try serializedBundleObject(json)
         let activeTypes = ExchangeContract.activeOutputResourceTypes
             .union(ExchangeContract.activeSupportingResourceTypes)
             .union([ExchangeContract.activeLifecycleResourceType])
@@ -32,10 +32,10 @@ extension ExchangeGraph {
         }
     }
 
-    private static func serializedBundleObject(_ data: Data) throws(ExchangeGraphError) -> [String: Any] {
+    private static func serializedBundleObject(_ json: Result<Any, any Error>) throws(ExchangeGraphError) -> [String: Any] {
         let root: [String: Any]
         do {
-            guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            guard let object = try json.get() as? [String: Any] else {
                 throw ExchangeGraphError.invalidEntries("Bundle is not a JSON object")
             }
             root = object

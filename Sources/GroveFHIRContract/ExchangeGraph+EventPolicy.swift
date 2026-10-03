@@ -42,12 +42,13 @@ extension ExchangeGraph {
 
     static func validateEntryResourcePolicy(
         kind: ExchangeGraphKind,
-        entries: [BundleEntry]
+        entries: [BundleEntry],
+        document: ValidationDocument
     ) throws(ExchangeGraphError) {
         let activeTypes = ExchangeContract.activeOutputResourceTypes
             .union(ExchangeContract.activeSupportingResourceTypes)
             .union([ExchangeContract.activeLifecycleResourceType])
-        for entry in entries {
+        for (index, entry) in entries.enumerated() {
             guard let resource = entry.resource else {
                 throw .invalidEntries("Bundle entry has no resource")
             }
@@ -63,8 +64,7 @@ extension ExchangeGraph {
                 }
             }
             do {
-                let data = try JSONEncoder().encode(resource)
-                guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                guard let object = try document.resourceObject(at: index) as? [String: Any]
                 else {
                     throw ExchangeGraphError.invalidEntries("Bundle entry resource is not an object")
                 }
@@ -132,22 +132,22 @@ extension ExchangeGraph {
         }
     }
 
-    static func validateActive(entries: [BundleEntry]) throws(ExchangeGraphError) {
-        try validateActiveProfileClaims(entries: entries)
+    static func validateActive(entries: [BundleEntry], document: ValidationDocument) throws(ExchangeGraphError) {
+        try validateActiveProfileClaims(entries: entries, document: document)
         let provenance = try validatedActiveProvenance(entries: entries)
         guard hasExactLifecycleCoding(provenance, kind: .active) else {
             throw .ruleViolation(.mobileExchangeLifecycleCoding)
         }
-        let outputs = try validateActiveEntries(entries)
-        try validateRecordingDocuments(entries, sourceDerivedOutputCount: outputs.resourceTypesByURL.count)
-        try validateSourceMarkers(entries: entries)
+        let outputs = try validateActiveEntries(entries, document: document)
+        try validateRecordingDocuments(entries, sourceDerivedOutputCount: outputs.resourceTypesByURL.count, document: document)
+        try validateSourceMarkers(entries: entries, document: document)
         try validateActiveTargets(provenance, resourceTypesByURL: outputs.resourceTypesByURL)
         let sourceEntity = try exactSourceEntity(in: provenance)
         guard outputs.sourceRecords.contains(sourceEntity) else {
             throw .ruleViolation(.mobileExchangeTransformProvenance)
         }
-        try validateStudyContext(entries: entries)
-        try validateSupportingConnectivity(entries: entries)
+        try validateStudyContext(entries: entries, document: document)
+        try validateSupportingConnectivity(entries: entries, document: document)
     }
 
     private static func validatedActiveProvenance(
@@ -170,12 +170,12 @@ extension ExchangeGraph {
     }
 
     private static func validateActiveEntries(
-        _ entries: [BundleEntry]
+        _ entries: [BundleEntry], document: ValidationDocument
     ) throws(ExchangeGraphError) -> ActiveOutputSummary {
         var summary = ActiveOutputSummary()
         do {
-            for entry in entries {
-                if let output = try validatedActiveOutput(from: entry) {
+            for (index, entry) in entries.enumerated() {
+                if let output = try validatedActiveOutput(from: entry, at: index, document: document) {
                     summary.append(output)
                 }
             }
@@ -194,12 +194,12 @@ extension ExchangeGraph {
     }
 
     private static func validatedActiveOutput(
-        from entry: BundleEntry
+        from entry: BundleEntry, at index: Int, document: ValidationDocument
     ) throws -> ActiveOutput? {
         guard let key = try entryKey(entry) else {
             throw ExchangeIdentityError.missingIdentifierSystem
         }
-        let identifiers = try ExchangeIdentity.typedResourceIdentifiers(in: entry.resource)
+        let identifiers = try document.typedResourceIdentifiers(at: index)
         guard Set(identifiers).count == identifiers.count else {
             throw ExchangeIdentityError.duplicateEntryIdentifier(key.identifier)
         }
@@ -243,16 +243,15 @@ extension ExchangeGraph {
     }
 
     private static func validateRecordingDocuments(
-        _ entries: [BundleEntry],
-        sourceDerivedOutputCount: Int
+        _ entries: [BundleEntry], sourceDerivedOutputCount: Int, document validationDocument: ValidationDocument
     ) throws(ExchangeGraphError) {
-        for entry in entries {
+        for (index, entry) in entries.enumerated() {
             guard case .documentReference(let document)? = entry.resource else {
                 continue
             }
             let typed: [RoledIdentifier]
             do {
-                typed = try ExchangeIdentity.typedResourceIdentifiers(in: entry.resource)
+                typed = try validationDocument.typedResourceIdentifiers(at: index)
             } catch {
                 throw .ruleViolation(.sensorRecordingDocumentIdentityAndContent)
             }
@@ -282,16 +281,16 @@ extension ExchangeGraph {
     }
 
     /// An adapter's source marker belongs on that adapter's outputs alone, once each.
-    private static func validateSourceMarkers(entries: [BundleEntry]) throws(ExchangeGraphError) {
+    private static func validateSourceMarkers(entries: [BundleEntry], document: ValidationDocument) throws(ExchangeGraphError) {
         let marker = HealthKitContract.sourceTypeExtension.value?.url.absoluteString
         let adapterRoot = "\(Canonicals.root)/healthkit/"
-        for entry in entries {
+        for (index, entry) in entries.enumerated() {
             guard let resource = entry.resource, isActiveOutput(resource) else {
                 continue
             }
             let extensions: [[String: Any]]
             do {
-                let object = try JSONSerialization.jsonObject(with: try JSONEncoder().encode(resource)) as? [String: Any]
+                let object = try document.resourceObject(at: index) as? [String: Any]
                 extensions = object?["extension"] as? [[String: Any]] ?? []
             } catch {
                 throw .invalidEntries(String(reflecting: type(of: error)))
@@ -373,9 +372,9 @@ extension ExchangeGraph {
         }
     }
 
-    static func validateRetraction(entries: [BundleEntry]) throws(ExchangeGraphError) {
-        for entry in entries {
-            try validateRetractionEntry(entry)
+    static func validateRetraction(entries: [BundleEntry], document: ValidationDocument) throws(ExchangeGraphError) {
+        for (index, entry) in entries.enumerated() {
+            try validateRetractionEntry(entry, at: index, document: document)
         }
         let provenance = try validatedRetractionProvenance(entries: entries)
         guard !isTransformOnlyLifecycle(provenance) else {
@@ -392,7 +391,7 @@ extension ExchangeGraph {
     }
 
     private static func validateRetractionEntry(
-        _ entry: BundleEntry
+        _ entry: BundleEntry, at index: Int, document: ValidationDocument
     ) throws(ExchangeGraphError) {
         guard let resource = entry.resource else {
             throw .invalidEntries("Bundle entry has no resource")
@@ -406,11 +405,11 @@ extension ExchangeGraph {
                 modes: ProfileClaims.deviceProfileModes,
                 rule: .mobileSupportDeviceProfile
             )
-            try validateIdentifierRoles(in: resource, claim: claim, rule: .mobileDeviceRecordingDeviceDualIdentity)
+            try validateIdentifierRoles(atEntry: index, document: document, claim: claim, rule: .mobileDeviceRecordingDeviceDualIdentity)
             guard let key = try? entryKey(entry) else {
                 throw .ruleViolation(.mobileDeviceRecordingDeviceDualIdentity)
             }
-            let identifiers = (try? ExchangeIdentity.typedResourceIdentifiers(in: resource)) ?? []
+            let identifiers = (try? document.typedResourceIdentifiers(at: index)) ?? []
             try validateDeviceIdentity(device, entryKey: key, identifiers: identifiers)
         default:
             throw .ruleViolation(.mobileRetractionNoClinicalCopy)

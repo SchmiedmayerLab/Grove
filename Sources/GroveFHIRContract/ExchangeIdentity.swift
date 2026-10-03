@@ -94,9 +94,9 @@ package enum ExchangeIdentity {
     ///
     /// The check walks nested identifier-only References and Provenance entities as well as
     /// top-level resource and entry identifiers. Untyped and non-Grove identifiers remain open.
-    static func validateIdentifierSystemRoles(in bundle: ModelsR4.Bundle) throws {
-        let data = try JSONEncoder().encode(bundle)
-        let json = try JSONSerialization.jsonObject(with: data)
+    ///
+    /// - Parameter json: The parsed JSON of the whole Bundle.
+    static func validateIdentifierSystemRoles(inBundleJSON json: Any) throws {
         var roleBySystem: [String: GroveIdentifierRole] = [:]
         try walkJSONObjects(json) { object in
             guard let type = object["type"] as? [String: Any],
@@ -150,7 +150,11 @@ package enum ExchangeIdentity {
     /// stored bytes are checked before model decoding can accept a noncanonical identity in
     /// normalized form.
     package static func validateSerializedIdentifierSystems(in data: Data) throws {
-        let json = try JSONSerialization.jsonObject(with: data)
+        try validateSerializedIdentifierSystems(inJSON: JSONSerialization.jsonObject(with: data))
+    }
+
+    /// ``validateSerializedIdentifierSystems(in:)`` over JSON already parsed from the stored bytes.
+    static func validateSerializedIdentifierSystems(inJSON json: Any) throws {
         try walkJSONObjects(json) { object in
             guard let type = object["type"] as? [String: Any],
                   let codings = type["coding"] as? [[String: Any]],
@@ -178,38 +182,5 @@ package enum ExchangeIdentity {
             return false
         }
         return true
-    }
-}
-
-
-extension ExchangeIdentity {
-    /// Returns the identifiers whose `Identifier.type` carries a Grove identifier role.
-    ///
-    /// A malformed Grove-typed identifier fails closed. Untyped business identifiers are not part
-    /// of the exchange identity graph and are intentionally omitted.
-    static func typedResourceIdentifiers(
-        in resource: ResourceProxy?
-    ) throws -> [RoledIdentifier] {
-        guard let resource else {
-            return []
-        }
-        let data = try JSONEncoder().encode(resource)
-        guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let rawIdentifiers = object["identifier"] as? [[String: Any]] else {
-            return []
-        }
-        var identifiers: [RoledIdentifier] = []
-        for rawIdentifier in rawIdentifiers {
-            let data = try JSONSerialization.data(withJSONObject: rawIdentifier)
-            let identifier = try JSONDecoder().decode(Identifier.self, from: data)
-            let carriesGroveRole = identifier.type?.coding?.contains {
-                $0.system?.value?.url.absoluteString == Canonicals.identifierRoleCodeSystemValue
-            } == true
-            guard carriesGroveRole else {
-                continue
-            }
-            identifiers.append(try RoledIdentifier(identifier))
-        }
-        return identifiers
     }
 }

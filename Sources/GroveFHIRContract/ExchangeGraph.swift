@@ -43,17 +43,24 @@ public struct ExchangeGraph: Sendable {
         eventIdentifier: ExchangeEventIdentifier,
         bundle: ModelsR4.Bundle
     ) throws(ExchangeGraphError) {
-        let jsonData: Data
-        do {
-            jsonData = try JSONEncoder().encode(bundle)
-        } catch {
-            throw .invalidEntries(String(reflecting: type(of: error)))
+        self.jsonData = try Self.drainingTemporaries { () throws(ExchangeGraphError) in
+            let jsonData: Data
+            do {
+                jsonData = try JSONEncoder().encode(bundle)
+            } catch {
+                throw .invalidEntries(String(reflecting: type(of: error)))
+            }
+            try Self.validate(
+                kind: kind,
+                eventIdentifier: eventIdentifier,
+                bundle: bundle,
+                document: ValidationDocument(bundle: bundle, jsonData: jsonData)
+            )
+            return jsonData
         }
-        try Self.validate(kind: kind, eventIdentifier: eventIdentifier, bundle: bundle)
         self.kind = kind
         self.eventIdentifier = eventIdentifier
         self.bundle = bundle
-        self.jsonData = jsonData
     }
 
     /// Re-validates stored or received JSON before it is trusted again.
@@ -65,15 +72,27 @@ public struct ExchangeGraph: Sendable {
         kind: ExchangeGraphKind,
         jsonData: Data
     ) throws(ExchangeGraphError) {
+        (self.eventIdentifier, self.bundle) = try Self.drainingTemporaries { () throws(ExchangeGraphError) in
+            try Self.decodeValidated(kind: kind, jsonData: jsonData)
+        }
+        self.kind = kind
+        self.jsonData = jsonData
+    }
+
+    private static func decodeValidated(
+        kind: ExchangeGraphKind,
+        jsonData: Data
+    ) throws(ExchangeGraphError) -> (ExchangeEventIdentifier, ModelsR4.Bundle) {
         do {
             var scanner = StrictJSONScanner(jsonData)
             try scanner.validate()
         } catch {
             throw .invalidEntries("Serialized event is not strict JSON")
         }
-        try Self.validateSerializedEntryPolicy(kind: kind, data: jsonData)
+        let serialized = Result<Any, any Error> { try JSONSerialization.jsonObject(with: jsonData) }
+        try Self.validateSerializedEntryPolicy(kind: kind, json: serialized)
         do {
-            try ExchangeIdentity.validateSerializedIdentifierSystems(in: jsonData)
+            try ExchangeIdentity.validateSerializedIdentifierSystems(inJSON: serialized.get())
         } catch {
             throw .ruleViolation(.mobileExchangeOpaqueResourceIdentity)
         }
@@ -92,25 +111,47 @@ public struct ExchangeGraph: Sendable {
         } catch {
             throw .ruleViolation(.mobileExchangeEventIdentity)
         }
-        try Self.validate(kind: kind, eventIdentifier: eventIdentifier, bundle: decodedBundle)
-        self.kind = kind
-        self.eventIdentifier = eventIdentifier
-        self.bundle = decodedBundle
-        self.jsonData = jsonData
+        // The model checks read the decoded model's own encoding, not the stored bytes: those may still
+        // carry members the model does not keep, and the checks decide over what the graph will hold.
+        try Self.validate(
+            kind: kind,
+            eventIdentifier: eventIdentifier,
+            bundle: decodedBundle,
+            document: ValidationDocument(bundle: decodedBundle, jsonData: nil)
+        )
+        return (eventIdentifier, decodedBundle)
+    }
+
+    /// Runs `body` in its own autorelease pool where there is one, so the Foundation temporaries of
+    /// encoding, parsing and validating one graph are released with that graph rather than with the
+    /// caller's pool, which a batch conversion may not drain until thousands of graphs later.
+    private static func drainingTemporaries<T>(
+        _ body: () throws(ExchangeGraphError) -> T
+    ) throws(ExchangeGraphError) -> T {
+        #if canImport(ObjectiveC)
+        // `autoreleasepool` rethrows untyped errors, so the typed error crosses it inside a Result.
+        let result = autoreleasepool {
+            Result<T, ExchangeGraphError> { () throws(ExchangeGraphError) in try body() }
+        }
+        return try result.get()
+        #else
+        return try body()
+        #endif
     }
 
     private static func validate(
         kind: ExchangeGraphKind,
         eventIdentifier: ExchangeEventIdentifier,
-        bundle: ModelsR4.Bundle
+        bundle: ModelsR4.Bundle,
+        document: ValidationDocument
     ) throws(ExchangeGraphError) {
         try validateHeader(bundle, eventIdentifier: eventIdentifier)
         let entries = try validatedEntries(bundle, kind: kind)
-        try validateEntryResourcePolicy(kind: kind, entries: entries)
+        try validateEntryResourcePolicy(kind: kind, entries: entries, document: document)
         try validateEntryNodeDigests(entries: entries, eventIdentifier: eventIdentifier)
-        try validateEntryIdentities(in: bundle, entries: entries)
-        try validateGovernedReferenceTargets(entries: entries)
-        try validateLifecycle(kind: kind, entries: entries)
+        try validateEntryIdentities(entries: entries, document: document)
+        try validateGovernedReferenceTargets(entries: entries, document: document)
+        try validateLifecycle(kind: kind, entries: entries, document: document)
     }
 
     private static func validateHeader(
@@ -165,29 +206,30 @@ public struct ExchangeGraph: Sendable {
     }
 
     private static func validateEntryIdentities(
-        in bundle: ModelsR4.Bundle,
-        entries: [BundleEntry]
+        entries: [BundleEntry],
+        document: ValidationDocument
     ) throws(ExchangeGraphError) {
-        try validateResourceIdentifiers(entries: entries)
+        try validateResourceIdentifiers(entries: entries, document: document)
         do {
-            try ExchangeIdentity.validateIdentifierSystemRoles(in: bundle)
+            try ExchangeIdentity.validateIdentifierSystemRoles(inBundleJSON: document.bundleObject())
         } catch let error as ExchangeIdentityError {
             throw .ruleViolation(Self.rule(for: error))
         } catch {
             throw .invalidEntries(String(reflecting: type(of: error)))
         }
-        try validateEntryKeys(entries: entries)
+        try validateEntryKeys(entries: entries, document: document)
     }
 
     private static func validateLifecycle(
         kind: ExchangeGraphKind,
-        entries: [BundleEntry]
+        entries: [BundleEntry],
+        document: ValidationDocument
     ) throws(ExchangeGraphError) {
         switch kind {
         case .active:
-            try Self.validateActive(entries: entries)
+            try Self.validateActive(entries: entries, document: document)
         case .retraction:
-            try Self.validateRetraction(entries: entries)
+            try Self.validateRetraction(entries: entries, document: document)
         }
     }
 
