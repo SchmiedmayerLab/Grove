@@ -38,7 +38,7 @@ extension HealthKitConverter {
             return try HealthKitAssembly(context: context.event).convertECG(
                 record,
                 request: .init(context: context),
-                symptomRequests: symptomContexts.map { .init(context: $0) }
+                symptomRequests: .positional(symptomContexts.map { .init(context: $0) })
             )
         } catch {
             throw HealthKitConversionError(conversionFailure: error, source: .electrocardiogram)

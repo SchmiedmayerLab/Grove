@@ -15,11 +15,12 @@ public import HealthKit
 
 /// Turns HealthKit samples into exchange graphs for one deployment, participant and installation.
 ///
-/// Configure it once and keep it for as long as its ``ExchangeProducer`` is valid; it is safe to share
-/// across tasks. Every export mints the events itself through the producer's sequencer, so an exact
-/// redelivery before ``Receipt/release()`` reproduces the same events, and a sample that cannot be
-/// converted is reported as a refusal instead of ending the call. The exporter never queries HealthKit:
-/// companion data such as ECG voltages arrives through ``Record``.
+/// Configure it once and keep it for as long as its `ExchangeProducer` is valid; it is safe to share
+/// across tasks. Every export mints the events itself through the producer's sequencer, in one ledger
+/// transaction per call, so an exact redelivery before ``Receipt/release()`` reproduces the same events
+/// byte for byte, even when the application, the host or the studies changed in between. A sample that
+/// cannot be converted is reported as a refusal instead of ending the call. The exporter never queries
+/// HealthKit: companion data such as ECG voltages arrives through ``Record``.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public final class HealthKitFHIRExporter: Sendable {
     /// Why an exporter could not be configured.
@@ -33,11 +34,23 @@ public final class HealthKitFHIRExporter: Sendable {
     public let repositoryScope: BusinessIdentifier
     public let options: Options
     let assembly: HealthKitAssembly
+    /// What shapes every graph beside the frozen facts; it fingerprints each request.
+    let context: ExportContext
 
-    public init(
+    public convenience init(
         producer: ExchangeProducer,
         repositoryScope: BusinessIdentifier,
         options: Options = Options()
+    ) throws(ConfigurationError) {
+        try self.init(producer: producer, repositoryScope: repositoryScope, options: options, outputRevisions: .current)
+    }
+
+    /// An exporter that fingerprints its requests under `outputRevisions`; tests vary them.
+    init(
+        producer: ExchangeProducer,
+        repositoryScope: BusinessIdentifier,
+        options: Options,
+        outputRevisions: OutputRevisions
     ) throws(ConfigurationError) {
         if case .authorized(let system, _) = options.nativeIdentifier,
            producer.identityScope.systems.all.contains(system) {
@@ -51,15 +64,14 @@ public final class HealthKitFHIRExporter: Sendable {
             identityScope: producer.identityScope,
             subject: producer.subject,
             repositoryScope: repositoryScope,
-            application: producer.application,
-            host: producer.host,
-            studies: producer.studies
+            facts: producer.facts
         ))
+        self.context = ExportContext(producer: producer, repositoryScope: repositoryScope, options: options, revisions: outputRevisions)
     }
 
     /// Converts samples in input order, calling `receive` once per produced graph or refusal as soon as
     /// it is ready. Only the sequencer's storage and `receive` itself can end the call early; their
-    /// errors are rethrown unchanged.
+    /// errors are rethrown unchanged, and the reservations stay for the redelivery.
     public func export<Samples: Collection>(
         _ samples: Samples,
         at instant: Date = .now,
@@ -74,59 +86,111 @@ public final class HealthKitFHIRExporter: Sendable {
         at instant: Date = .now,
         receive: (Export) throws -> Void
     ) throws -> Receipt {
-        let plans = records.map(Plan.init)
-        let keys = plans.flatMap(\.keys)
-        // Nothing reserved means the ledger is never touched; refusals alone need no producer instance.
-        let reservations = keys.isEmpty ? [] : try producer.sequencer.reserve(keys, at: instant)
-        let producerInstance = keys.isEmpty ? UUID() : try producer.sequencer.producerInstance
-        var offset = 0
+        try export(inputs: records.map(Input.record), at: instant, receive: receive)
+    }
+
+    /// One reserve transaction for every event the inputs need, then each input's delivery in order.
+    func export(inputs: [Input], at instant: Date, receive: (Export) throws -> Void) throws -> Receipt {
+        let plans = inputs.map { Plan($0, context: context) }
+        let requests = Set(plans.flatMap(\.requests))
+        // Nothing reserved means the ledger is never touched; refusals alone need no event.
+        let reserved = requests.isEmpty ? [:] : try producer.sequencer.reserve(requests, at: instant, facts: producer.facts)
+        // Created before any delivery: when a delivery throws, the receipt is dropped and its holds lapse.
+        let receipt = Receipt(sequencer: producer.sequencer, held: reserved.values.map(\.handle), forgetting: [])
         for plan in plans {
-            let reserved = Array(reservations[offset..<(offset + plan.keys.count)])
-            offset += plan.keys.count
             try autoreleasepool {
-                try deliver(plan, reservations: reserved, producerInstance: producerInstance, receive: receive)
+                try deliver(plan, reserved: reserved, receive: receive)
             }
         }
-        return Receipt(keys: keys, sequencer: producer.sequencer)
+        return receipt
     }
 }
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter {
-    /// One record and the event keys it needs: one for itself, one per ECG symptom.
+    /// What one delivery converts: a record, or, below the public API, an ECG whose evidence is already validated.
+    enum Input {
+        case record(Record)
+        /// An ECG with prebuilt evidence: the seam tests use, as `HKElectrocardiogram.VoltageMeasurement`
+        /// cannot be constructed with values outside HealthKit.
+        case electrocardiogramEvidence(HKSample, evidence: HealthKitECGEvidence, symptoms: [HKCategorySample])
+
+        var sample: HKSample {
+            switch self {
+            case .record(let record): record.sample
+            case .electrocardiogramEvidence(let ecg, _, _): ecg
+            }
+        }
+
+        /// The correlated symptoms, each its own event.
+        var symptoms: [HKCategorySample] {
+            switch self {
+            case .record(.electrocardiogram(_, _, let symptoms)), .electrocardiogramEvidence(_, _, let symptoms): symptoms
+            case .record: []
+            }
+        }
+
+        /// What the record's event key does not version but its graph embeds: an ECG references its
+        /// symptoms' output identifiers, so their set enters the fingerprint.
+        var recordParts: [String] {
+            switch self {
+            case .record(.electrocardiogram), .electrocardiogramEvidence:
+                symptoms.map { $0.uuid.uuidString.lowercased() }.sorted()
+            case .record:
+                []
+            }
+        }
+    }
+
+    /// One input and the requests it needs: one for its record, one per registered ECG symptom.
     struct Plan {
-        let record: Record
-        let keys: [ExchangeEventKey]
-        let refusal: HealthKitConversionError?
+        let input: Input
+        let primary: ExchangeEventRequest?
+        /// One entry per correlated symptom, in the record's order; `nil` for a symptom of an unregistered type.
+        let symptoms: [ExchangeEventRequest?]
+
+        var requests: [ExchangeEventRequest] {
+            [primary].compactMap(\.self) + symptoms.compactMap(\.self)
+        }
 
         var source: Export.Source {
-            Export.Source(uuid: record.sample.uuid, typeIdentifier: record.sample.sampleType.identifier)
+            Export.Source(uuid: input.sample.uuid, typeIdentifier: input.sample.sampleType.identifier)
+        }
+
+        init(_ input: Input, context: ExportContext) {
+            let primary = ExchangeEventKey.active(input.sample).map { context.request(for: $0, recordParts: input.recordParts) }
+            self.input = input
+            self.primary = primary
+            // A record that is refused outright reserves nothing for its symptoms either.
+            self.symptoms = primary == nil ? [] : input.symptoms.map { symptom in
+                ExchangeEventKey.active(symptom).map { context.request(for: $0) }
+            }
         }
     }
 
     private func deliver(
         _ plan: Plan,
-        reservations: [ExchangeEventReservation],
-        producerInstance: UUID,
+        reserved: [ExchangeEventRequest: ExchangeEventReservation],
         receive: (Export) throws -> Void
     ) throws {
-        if let refusal = plan.refusal {
+        guard let primary = plan.primary else {
+            let refusal = HealthKitConversionError.unregisteredSourceType(plan.input.sample.sampleType.identifier)
             try receive(Export(source: plan.source, outcome: .refused(refusal), warnings: []))
             return
         }
+        // A refusal keeps its reservations held: they are released with the receipt, never mid-call, so a
+        // standalone export of the same record in this call keeps its event.
         let set: HealthKitConversionSet?
         do {
-            set = try convert(plan.record, reservations: reservations, producerInstance: producerInstance)
+            set = try convert(plan, primary: reservation(for: primary, in: reserved), reserved: reserved)
         } catch {
             let failure = HealthKitConversionError(conversionFailure: error, source: plan.source.sourceType)
-            producer.sequencer.releaseIgnoringErrors(plan.keys)
             try receive(Export(source: plan.source, outcome: .refused(failure), warnings: []))
             return
         }
         guard let set else {
             // A policy chose to emit nothing (an unauthorized route); that is not a refusal and never warns.
-            producer.sequencer.releaseIgnoringErrors(plan.keys)
             return
         }
         for conversion in set.all {
@@ -138,26 +202,56 @@ extension HealthKitFHIRExporter {
         }
     }
 
-    private func convert(
-        _ record: Record,
-        reservations: [ExchangeEventReservation],
-        producerInstance: UUID
-    ) throws -> HealthKitConversionSet? {
-        let request = try request(for: record.sample, reservation: reservations[0], producerInstance: producerInstance)
-        switch record {
-        case .sample(let sample):
-            return try assembly.convert(sample, request: request)
-        case let .electrocardiogram(ecg, voltages, symptoms):
-            let symptomRequests = try zip(symptoms, reservations.dropFirst()).map { symptom, reservation in
-                try self.request(for: symptom, reservation: reservation, producerInstance: producerInstance)
-            }
-            let ecgRecord = HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: voltages, correlatedSymptoms: symptoms)
-            return try assembly.convertECG(ecgRecord, request: request, symptomRequests: symptomRequests)
-        case let .heartbeatSeries(series, beats):
-            return try assembly.convertHeartbeatSeries(HealthKitHeartbeatSeriesRecord(series: series, heartbeats: beats), request: request)
-        case let .workoutRoute(route, locations):
-            return try assembly.convertWorkoutRoute(HealthKitWorkoutRouteRecord(route: route, locations: locations), request: request)
+    private func reservation(
+        for request: ExchangeEventRequest,
+        in reserved: [ExchangeEventRequest: ExchangeEventReservation]
+    ) -> ExchangeEventReservation {
+        guard let reservation = reserved[request] else {
+            preconditionFailure("Every planned request is reserved in the same call.")
         }
+        return reservation
+    }
+
+    private func convert(
+        _ plan: Plan,
+        primary: ExchangeEventReservation,
+        reserved: [ExchangeEventRequest: ExchangeEventReservation]
+    ) throws -> HealthKitConversionSet? {
+        let request = try request(for: plan.input.sample, reservation: primary)
+        switch plan.input {
+        case .record(.sample(let sample)):
+            return try assembly.convert(sample, request: request)
+        case let .record(.electrocardiogram(ecg, voltages, symptoms)):
+            let ecgRecord = HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: voltages, correlatedSymptoms: symptoms)
+            return try assembly.convertECG(ecgRecord, request: request, symptomRequests: symptomRequests(plan, reserved: reserved))
+        case let .record(.heartbeatSeries(series, beats)):
+            return try assembly.convertHeartbeatSeries(HealthKitHeartbeatSeriesRecord(series: series, heartbeats: beats), request: request)
+        case let .record(.workoutRoute(route, locations)):
+            return try assembly.convertWorkoutRoute(HealthKitWorkoutRouteRecord(route: route, locations: locations), request: request)
+        case let .electrocardiogramEvidence(ecg, evidence, symptoms):
+            return try assembly.convertECG(
+                ecg,
+                evidence: evidence,
+                symptoms: symptoms,
+                request: request,
+                symptomRequests: symptomRequests(plan, reserved: reserved)
+            )
+        }
+    }
+
+    /// Each registered symptom's request under its own reservation, looked up by its request, never by position.
+    private func symptomRequests(
+        _ plan: Plan,
+        reserved: [ExchangeEventRequest: ExchangeEventReservation]
+    ) throws -> HealthKitAssembly.SymptomRequests {
+        var requests: [UUID: HealthKitAssembly.Request] = [:]
+        for (symptom, planned) in zip(plan.input.symptoms, plan.symptoms) {
+            guard let planned, requests[symptom.uuid] == nil else {
+                continue
+            }
+            requests[symptom.uuid] = try request(for: symptom, reservation: reservation(for: planned, in: reserved))
+        }
+        return .keyed(requests)
     }
 
     /// An omission a policy chose is never reported.
@@ -173,39 +267,20 @@ extension HealthKitFHIRExporter {
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
-extension HealthKitFHIRExporter.Plan {
-    init(_ record: HealthKitFHIRExporter.Record) {
-        self.record = record
-        var keys: [ExchangeEventKey] = []
-        if let key = ExchangeEventKey.active(record.sample) {
-            keys.append(key)
-        }
-        if case .electrocardiogram(_, _, let symptoms) = record {
-            keys += symptoms.compactMap(ExchangeEventKey.active)
-        }
-        self.keys = keys
-        self.refusal = keys.isEmpty ? .unregisteredSourceType(record.sample.sampleType.identifier) : nil
-    }
-}
-
-
-@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter {
-    /// One record's event and the policies the options resolve for its source.
-    func request(
-        for sample: HKSample,
-        reservation: ExchangeEventReservation,
-        producerInstance: UUID
-    ) throws -> HealthKitAssembly.Request {
+    /// One record's event, the facts frozen with it, and the policies the options resolve for its source.
+    func request(for sample: HKSample, reservation: ExchangeEventReservation) throws -> HealthKitAssembly.Request {
         let source = sample.sourceRevision.source
         return HealthKitAssembly.Request(
             event: try ExchangeEventIdentifier(
                 system: producer.identityScope.systems.event,
-                producerInstance: producerInstance,
+                producerInstance: reservation.producerInstance,
                 sequence: reservation.sequence
             ),
             instant: reservation.instant,
-            converterRole: options.role.converterRole(for: sample.sourceRevision, application: producer.application),
+            facts: reservation.facts,
+            // The gateway role compares the sample's revision with the build the event froze.
+            converterRole: options.role.converterRole(for: sample.sourceRevision, application: reservation.facts.application),
             repositoryIDs: try legacyRepositoryIDs(for: sample.uuid),
             options: HealthKitConversionOptions(
                 writer: options.writer.classification(of: source),
@@ -232,13 +307,15 @@ extension HealthKitFHIRExporter {
 extension ExchangeEventKey {
     /// The active-event key of a HealthKit sample: its source type and UUID, nothing else.
     static func active(_ sample: HKSample) -> ExchangeEventKey? {
-        guard let type = HealthKitSourceType(sample) else {
-            return nil
-        }
-        return ExchangeEventKey(
+        HealthKitSourceType(sample).map { active(type: $0, uuid: sample.uuid) }
+    }
+
+    /// The active-event key of the record of `type` with `uuid`.
+    static func active(type: HealthKitSourceType, uuid: UUID) -> ExchangeEventKey {
+        ExchangeEventKey(
             kind: .active,
             adapterID: HealthKitConverter.adapterID,
-            sourceRecord: "\(type.rawValue)|\(sample.uuid.uuidString.lowercased())"
+            sourceRecord: "\(type.rawValue)|\(uuid.uuidString.lowercased())"
         )
     }
 }

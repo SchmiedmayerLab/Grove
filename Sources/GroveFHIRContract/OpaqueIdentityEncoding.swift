@@ -29,7 +29,8 @@ public enum LengthFramedUTF8 {
 
 
 extension Data {
-    var base64URLEncodedStringWithoutPadding: String {
+    /// The bytes in base64url (RFC 4648 §5) without padding.
+    package var base64URLEncodedStringWithoutPadding: String {
         base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")

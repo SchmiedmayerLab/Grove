@@ -57,6 +57,11 @@ package struct ExchangeGraphAssembler: Sendable {
         var resource: ExchangeOutputDraft.Resource
     }
 
+    /// The revision of the graphs this assembler builds. Bump it whenever the bytes it emits can change for
+    /// equal inputs: it enters every exporter's context fingerprint, so an event reserved under an older
+    /// revision is never redelivered under the same identifier with different bytes.
+    package static let outputRevision: UInt = 1
+
     package let envelope: ExchangeEnvelope
 
     package init(envelope: ExchangeEnvelope) {

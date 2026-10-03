@@ -841,6 +841,7 @@ var targets: [Target] = [
         name: "GroveFHIRTests",
         dependencies: [
             .target(name: "GroveFHIR"),
+            .target(name: "GroveFHIRContract"),
             "GroveHealthKitFHIR"
         ],
         exclude: testTargetExcludes("GroveFHIRTests", additional: ["UITests"]),

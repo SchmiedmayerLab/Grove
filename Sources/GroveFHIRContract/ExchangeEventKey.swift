@@ -14,33 +14,41 @@ import Crypto
 package import Foundation
 
 
-/// What a key holds while it is reserved: the event's sequence and the instant it was reserved at.
-package struct ExchangeEventReservation: Hashable, Codable, Sendable {
-    private enum CodingKeys: String, CodingKey {
-        case sequence
-        case instantMilliseconds
+/// One event an exporter needs: its key, and the digest of every input that shapes its graph but is not
+/// rebuilt from the frozen facts. Equal requests share one reservation; a stored reservation is reused only
+/// for a request with the same fingerprint, so an event identifier never carries different content.
+package struct ExchangeEventRequest: Hashable, Sendable {
+    package let key: ExchangeEventKey
+    /// SHA-256, base64url without padding; opaque to the sequencer.
+    package let fingerprint: String
+
+    package init(key: ExchangeEventKey, fingerprint: String) {
+        self.key = key
+        self.fingerprint = fingerprint
+    }
+}
+
+
+/// What an event is minted and rebuilt from: its producer instance and sequence, its instant, and the
+/// facts it was minted under, all read in the same transaction.
+package struct ExchangeEventReservation: Hashable, Sendable {
+    /// Identifies this exact reservation, so a release never removes a successor's. Unique across ledgers,
+    /// as every ledger mints its own producer instance.
+    package struct Handle: Hashable, Sendable {
+        let key: ExchangeEventKey
+        let instance: UUID
+        let sequence: UInt64
     }
 
+    package let handle: Handle
     package let sequence: EventSequence
-    /// The caller's instant at reservation, at millisecond precision, the same on every return of the key.
+    /// The instant of the first reservation, at millisecond precision, the same on every return of the key.
     package let instant: Date
+    /// Always decoded from the ledger's stored facts entry.
+    package let facts: ExchangeEventFacts
 
-    init(_ stored: ExchangeEventSequencer.State.Reservation) {
-        self.sequence = EventSequence(stored.sequence)
-        self.instant = ExchangeInstant.date(millisecondsSinceEpoch: stored.instantMilliseconds)
-    }
-
-    package init(from decoder: any Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.sequence = try EventSequence(container.decode(String.self, forKey: .sequence))
-        self.instant = ExchangeInstant.date(millisecondsSinceEpoch: try container.decode(Int64.self, forKey: .instantMilliseconds))
-    }
-
-    package func encode(to encoder: any Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(sequence.rawValue, forKey: .sequence)
-        try container.encode(ExchangeInstant.millisecondsSinceEpoch(instant), forKey: .instantMilliseconds)
-    }
+    /// The producer instance the sequence was handed out under.
+    package var producerInstance: UUID { handle.instance }
 }
 
 

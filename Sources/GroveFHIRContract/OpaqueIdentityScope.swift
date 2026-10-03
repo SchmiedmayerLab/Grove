@@ -32,6 +32,22 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
         "OpaqueIdentityScope(keyID: \(keyID), epoch: \(epoch.rawValue))"
     }
 
+    /// Distinguishes the identity scopes one exchange ledger may serve, without revealing the key.
+    ///
+    /// HMAC-SHA-256 under the scope's key, base64url without padding, over the length-framed label
+    /// `org.grovealliance.grove.ledger-context.v0`, the key id, the epoch and every derived system, in
+    /// their fixed order. A different key, key id, epoch or system yields a different value.
+    package var ledgerFingerprint: String {
+        let parts = ["org.grovealliance.grove.ledger-context.v0", keyID, epoch.rawValue] + systems.all.map(\.rawValue)
+        let framed: Data
+        do {
+            framed = try LengthFramedUTF8.encode(parts)
+        } catch {
+            preconditionFailure("A validated identity-scope part exceeds the framing limit: \(error)")
+        }
+        return Data(HMAC<SHA256>.authenticationCode(for: framed, using: key)).base64URLEncodedStringWithoutPadding
+    }
+
     /// Creates one identity scope.
     ///
     /// Keys shorter than 256 bits are rejected. `keyID` is wire-visible and therefore restricted

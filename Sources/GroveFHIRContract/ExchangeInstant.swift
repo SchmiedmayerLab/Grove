@@ -67,7 +67,7 @@ package enum ExchangeInstant {
     /// Milliseconds since 1970-01-01T00:00:00Z, rounded half to even from the instant's own binary64 value.
     ///
     /// A non-finite or out-of-range instant saturates; its lexeme then names no FHIR-representable year.
-    static func millisecondsSinceEpoch(_ date: Date) -> Int64 {
+    package static func millisecondsSinceEpoch(_ date: Date) -> Int64 {
         let scaled = (date.timeIntervalSinceReferenceDate * 1000).rounded(.toNearestOrEven)
         let sinceReference = Int64(exactly: scaled) ?? (scaled < 0 ? .min : .max)
         let (sum, overflow) = sinceReference.addingReportingOverflow(referenceEpochMilliseconds)

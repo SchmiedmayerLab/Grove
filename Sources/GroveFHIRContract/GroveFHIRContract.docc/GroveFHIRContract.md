@@ -51,7 +51,7 @@ Persist the key id and the epoch beside the key; rotating either changes every s
 Every export is an exchange event, and every event is immutable.
 An ``ExchangeEventIdentifier`` is your producer instance UUID plus a monotonic ``EventSequence``.
 A retry resends the same bytes under the same identifier; a new revision of the record gets a new sequence.
-Persist the producer instance once and the next sequence before you emit.
+An ``ExchangeProducer``'s ``ExchangeEventSequencer`` mints both and keeps them, with what each event states, in a ledger your app stores; <doc:ExchangeLedgerStorage> says what that storage must guarantee.
 
 ### The repository scope
 
@@ -78,26 +78,24 @@ let identityScope = try OpaqueIdentityScope(systems: systems, keyID: keyID, epoc
 let application = try ApplicationDevice(bundle: .main)
 ```
 
-Per export, reserve the next sequence and create the context, using every default.
-`producerInstance` is the UUID persisted with the installation and `nextSequence` the counter you durably advanced first.
+Then build the producer over the ledger your app stores, and rebuild it when the participant, the studies or the application change.
+`ledgerStorage` conforms to ``ExchangeEventSequencer/Storage``.
 
 ```swift
-let event = try ExchangeEventIdentifier(system: systems.event, producerInstance: producerInstance, sequence: nextSequence)
-let context = ExchangeEventContext(
-    subject: .logical(participant),
-    event: event,
+let producer = try ExchangeProducer(
     identityScope: identityScope,
-    repositoryScope: repositoryScope,
-    application: application
+    subject: .logical(participant),
+    application: application,
+    sequencer: ExchangeEventSequencer(storage: ledgerStorage)
 )
 ```
 
-The adapter for your source turns the context and one record into an ``ExchangeGraph``; encode its Bundle and hand it to your uploader.
+The exporter for your source mints each event through the producer and turns one record into an ``ExchangeGraph``.
+Store and upload its ``ExchangeGraph/json`` verbatim, never a re-encoding of its Bundle, and release the exporter's receipt only once those bytes and your source cursor are durably committed.
 Before you trust bytes you stored or received, re-validate them.
 
 ```swift
-let bytes = try JSONEncoder().encode(graph.bundle)
-let restored = try ExchangeGraph(kind: .active, jsonData: bytes)
+let restored = try ExchangeGraph(validating: storedBytes, kind: .active)
 precondition(restored.isSemanticallyEqual(to: graph))
 ```
 
@@ -105,12 +103,11 @@ What to persist, and why:
 
 | Value | Why |
 | --- | --- |
-| The event sequence, before emitting | A reused sequence under different content is a conflict the receiver cannot resolve. |
+| The ledger | It numbers every event and freezes what each one states until the receipt is released; a reused sequence under different content is a conflict the receiver cannot resolve. |
 | The key id and epoch, beside the key | They select the systems every identity is minted under. |
-| The producer instance id | It is half of every event identifier. |
 
-> Important: Never reuse an event sequence for different content, and never change the key or the epoch without deriving new systems.
-> Both break the promise that one identifier means one thing.
+> Important: Never restore the ledger from a backup or copy it to another installation, and never change the key or the epoch without deriving new systems.
+> Each breaks the promise that one identifier means one thing.
 
 ## Beyond the minimum
 
@@ -180,6 +177,12 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 - ``ExchangeEventIdentifier``
 - ``EntryNodeKey``
 - ``RepositoryID``
+
+### The producer and its ledger
+
+- ``ExchangeProducer``
+- ``ExchangeEventSequencer``
+- <doc:ExchangeLedgerStorage>
 
 ### The event
 

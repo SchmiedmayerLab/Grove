@@ -18,9 +18,17 @@ import ModelsR4
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitAssembly {
+    /// The requests of an ECG's correlated symptoms.
+    enum SymptomRequests {
+        /// One request per symptom, in the record's order: the context API's shape.
+        case positional([Request])
+        /// Each symptom's request under its sample's UUID: the exporter's shape, paired by event key.
+        case keyed([UUID: Request])
+    }
+
     /// Converts an already-fetched ECG and every correlated symptom as independently exchangeable
-    /// source events: one request per symptom, in the record's order.
-    func convertECG(_ record: HealthKitECGRecord, request: Request, symptomRequests: [Request]) throws -> HealthKitConversionSet {
+    /// source events, each symptom under its own request.
+    func convertECG(_ record: HealthKitECGRecord, request: Request, symptomRequests: SymptomRequests) throws -> HealthKitConversionSet {
         let source = try HealthKitConverter.ecgSourceEvidence(record.electrocardiogram)
         return try convertECG(
             record.electrocardiogram,
@@ -37,7 +45,7 @@ extension HealthKitAssembly {
         evidence: HealthKitECGEvidence,
         symptoms: [HKCategorySample],
         request: Request,
-        symptomRequests: [Request]
+        symptomRequests: SymptomRequests
     ) throws -> HealthKitConversionSet {
         let companions = try symptomConversions(symptoms, source: evidence.source, symptomRequests: symptomRequests)
         let input = HealthKitECGObservationInput(
@@ -69,22 +77,29 @@ extension HealthKitAssembly {
     private func symptomConversions(
         _ correlatedSymptoms: [HKCategorySample],
         source: HealthKitECGSourceEvidence,
-        symptomRequests: [Request]
+        symptomRequests: SymptomRequests
     ) throws -> [HealthKitConversion] {
-        guard symptomRequests.count == correlatedSymptoms.count else {
-            throw HealthKitConversionError.ecgEvidence(.symptomContextCountMismatch(
-                symptoms: correlatedSymptoms.count,
-                contexts: symptomRequests.count
-            ))
+        let requestsBySample: [UUID: Request]
+        switch symptomRequests {
+        case .positional(let requests):
+            guard requests.count == correlatedSymptoms.count else {
+                throw HealthKitConversionError.ecgEvidence(.symptomContextCountMismatch(
+                    symptoms: correlatedSymptoms.count,
+                    contexts: requests.count
+                ))
+            }
+            requestsBySample = Dictionary(zip(correlatedSymptoms.map(\.uuid), requests), uniquingKeysWith: { first, _ in first })
+        case .keyed(let requests):
+            requestsBySample = requests
         }
-        let requestsBySample = Dictionary(
-            zip(correlatedSymptoms.map(\.uuid), symptomRequests),
-            uniquingKeysWith: { first, _ in first }
-        )
+        // Validation comes first, so an unsupported or duplicated symptom is refused as such.
         let symptoms = try HealthKitConverter.validatedSymptomSamples(correlatedSymptoms, status: source.symptomsStatus)
         return try symptoms.map { symptom in
             guard let request = requestsBySample[symptom.uuid] else {
-                throw HealthKitConversionError.ecgEvidence(.duplicateSymptomSource(symptom.uuid))
+                throw HealthKitConversionError.ecgEvidence(.symptomContextCountMismatch(
+                    symptoms: correlatedSymptoms.count,
+                    contexts: requestsBySample.count
+                ))
             }
             return try convert(symptom, request: request).primary
         }

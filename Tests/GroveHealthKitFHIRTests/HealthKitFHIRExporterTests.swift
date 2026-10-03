@@ -16,21 +16,6 @@ import ModelsR4
 import Testing
 
 
-/// Counts the ledger writes a sequencer makes.
-private final class CountingStorage: ExchangeEventSequencer.Storage, @unchecked Sendable {
-    private let lock = NSLock()
-    private var data: Data?
-    private(set) var updates = 0
-
-    func update<R>(_ body: (inout Data?) throws -> R) throws -> R {
-        lock.lock()
-        defer { lock.unlock() }
-        updates += 1
-        return try body(&data)
-    }
-}
-
-
 /// The exporter is a facade over the conversion the goldens pin: its graphs are byte-identical to the old
 /// entry point's under the same event, and it adds the event bookkeeping and policies the entry point left
 /// to the caller.
@@ -54,11 +39,10 @@ struct HealthKitFHIRExporterTests {
         return try HealthKitFHIRExporter(producer: producer, repositoryScope: base.repositoryScope, options: options)
     }
 
-    /// The old entry point's graph for `sample` under the exporter's own producer instance and `sequence`.
+    /// The old entry point's graph for `sample` under `event`, the one the exporter minted for it.
     private static func reference(
         _ sample: HKSample,
-        exporter: HealthKitFHIRExporter,
-        sequence: UInt64,
+        event: ExchangeEventIdentifier?,
         instant: Date,
         _ configure: (inout HealthKitConversionOptions) -> Void = { _ in }
     ) throws -> HealthKitConversion {
@@ -67,11 +51,7 @@ struct HealthKitFHIRExporterTests {
         let context = HealthKitConversionContext(
             event: ExchangeEventContext(
                 subject: base.subject,
-                event: try ExchangeEventIdentifier(
-                    system: base.identityScope.systems.event,
-                    producerInstance: try exporter.producer.sequencer.producerInstance,
-                    sequence: EventSequence(sequence)
-                ),
+                event: try #require(event),
                 identityScope: base.identityScope,
                 repositoryScope: base.repositoryScope,
                 application: base.application,
@@ -93,6 +73,11 @@ struct HealthKitFHIRExporterTests {
         return (exports, receipt)
     }
 
+    /// The sequences a call minted, in the order the exports name them.
+    private static func sequences(_ exports: [HealthKitFHIRExporter.Export]) -> [String] {
+        exports.compactMap(\.sequence)
+    }
+
     @Test("Graphs equal the old entry point's under the same event, with the same warnings")
     func graphsEqualReference() throws {
         let exporter = try Self.exporter()
@@ -101,8 +86,8 @@ struct HealthKitFHIRExporterTests {
         let (exports, _) = try Self.collect(exporter, [withDevice, withoutToken])
         try #require(exports.count == 2)
         let instant = GoldenFixtures.conversionInstant
-        let first = try Self.reference(withDevice, exporter: exporter, sequence: 1, instant: instant)
-        let second = try Self.reference(withoutToken, exporter: exporter, sequence: 2, instant: instant)
+        let first = try Self.reference(withDevice, event: exports[0].event, instant: instant)
+        let second = try Self.reference(withoutToken, event: exports[1].event, instant: instant)
         #expect(exports[0].graph?.json == first.graph.json)
         #expect(exports[1].graph?.json == second.graph.json)
         #expect(exports[0].source == HealthKitFHIRExporter.Export.Source(uuid: GoldenFixtures.uuid(1), typeIdentifier: HKQuantityTypeIdentifier.heartRate.rawValue))
@@ -110,8 +95,9 @@ struct HealthKitFHIRExporterTests {
         #expect(exports[0].warnings.isEmpty)
         #expect(exports[1].warnings == second.warnings.map(\.diagnostic))
         #expect(exports[1].warnings.contains(ExchangeGraphRule.mobileOmissionRecordingDevice.diagnostic))
-        #expect(exports[0].graph?.event.value == "e0:\(try exporter.producer.sequencer.producerInstance.uuidString.lowercased()):1")
-        #expect(exports[1].graph?.event.value.hasSuffix(":2") == true)
+        // New events number consecutively in the sorted order of their requests, under one producer instance.
+        #expect(Set(Self.sequences(exports)) == ["1", "2"])
+        #expect(exports[0].event?.producerInstance == exports[1].event?.producerInstance)
     }
 
     @Test("A redelivery before release reproduces the same bytes; after release it is a new event")
@@ -123,20 +109,21 @@ struct HealthKitFHIRExporterTests {
         #expect(first[0].graph?.json == again[0].graph?.json)
         receipt.release()
         let (afterRelease, _) = try Self.collect(exporter, [sample])
-        #expect(afterRelease[0].graph?.event.value.hasSuffix(":2") == true)
+        #expect(afterRelease[0].sequence == "2")
         #expect(afterRelease[0].graph?.json != first[0].graph?.json)
     }
 
-    @Test("An unconvertible record is refused in place, releases its reservation, and the export continues")
+    @Test("An unconvertible record is refused in place, holds its reservation until the receipt is released, and the export continues")
     func refusalsDoNotEndTheExport() throws {
-        let exporter = try Self.exporter()
+        let storage = LedgerCountingStorage()
+        let exporter = try Self.exporter(sequencer: ExchangeEventSequencer(storage: storage))
         let ecg = try StoredSampleFixtures.seriesSample(
             HKElectrocardiogram.self,
             sampleType: HKObjectType.electrocardiogramType(),
             shape: GoldenCase.seriesShape(uuid: 4, duration: 30)
         )
         let heartRate = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(5))
-        let (exports, _) = try Self.collect(exporter, [ecg, heartRate])
+        let (exports, receipt) = try Self.collect(exporter, [ecg, heartRate])
         try #require(exports.count == 2)
         guard case .refused(let reason) = exports[0].outcome else {
             Issue.record("expected a refusal, got \(exports[0].outcome)")
@@ -144,15 +131,20 @@ struct HealthKitFHIRExporterTests {
         }
         #expect(reason == .ecgEvidence(.evidenceRequired))
         #expect(exports[0].graph == nil)
-        #expect(exports[1].graph?.event.value.hasSuffix(":2") == true)
-        // The refused ECG's reservation was released, so the next export of it takes a fresh sequence.
-        let (retry, _) = try Self.collect(exporter, [ecg])
+        #expect(["1", "2"].contains(exports[1].sequence ?? ""))
+        // Nothing is released mid-call: the refused ECG keeps its reservation until the receipt is released.
+        let ecgKey = try #require(ExchangeEventKey.active(ecg))
+        #expect(try storage.holdsReservation(for: ecgKey))
+        let (retry, retryReceipt) = try Self.collect(exporter, [ecg])
         guard case .refused = retry[0].outcome else {
             Issue.record("expected a refusal")
             return
         }
         let (next, _) = try Self.collect(exporter, [try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(6))])
-        #expect(next[0].graph?.event.value.hasSuffix(":4") == true)
+        #expect(next[0].sequence == "3", "the refused ECG's redelivery reused its reservation")
+        receipt.release()
+        retryReceipt.release()
+        #expect(try !storage.holdsReservation(for: ecgKey))
     }
 
     @Test("Under the automatic writer policy an Apple per-device source is the recording Device that authored the sample")
@@ -181,7 +173,7 @@ struct HealthKitFHIRExporterTests {
         #expect(author?.who.reference?.value?.string == recorderURL)
         #expect(exports[0].warnings.isEmpty)
         // The application source converts exactly as the old entry point's default (`.application`) did.
-        let reference = try Self.reference(fromApp, exporter: exporter, sequence: 2, instant: GoldenFixtures.conversionInstant)
+        let reference = try Self.reference(fromApp, event: exports[1].event, instant: GoldenFixtures.conversionInstant)
         #expect(exports[1].graph?.json == reference.graph.json)
     }
 
@@ -205,7 +197,7 @@ struct HealthKitFHIRExporterTests {
         #expect(bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first?.entity?.first?.agent == nil)
         let observation = try #require(bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) }.first)
         #expect(observation.identifier?.contains { $0.system?.value?.url.absoluteString == GoldenFixtures.nativeIdentifierSystem.rawValue } == true)
-        let reference = try Self.reference(sample, exporter: exporter, sequence: 1, instant: GoldenFixtures.conversionInstant) { options in
+        let reference = try Self.reference(sample, event: exports[0].event, instant: GoldenFixtures.conversionInstant) { options in
             options.writer = .omit
             options.udiDisclosure = .authorizedUDI
             options.nativeIdentifierDisclosure = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
@@ -242,11 +234,11 @@ struct HealthKitFHIRExporterTests {
             return
         }
         #expect(exports.map(\.source.uuid) == [GoldenFixtures.uuid(10), GoldenFixtures.uuid(11), GoldenFixtures.uuid(12)])
-        let producerInstance = try exporter.producer.sequencer.producerInstance
-        for (export, sequence, deletion) in [(exports[0], UInt64(1), deletions[0]), (exports[2], 2, deletions[2])] {
+        #expect(Set(Self.sequences(exports)) == ["1", "2"])
+        for (export, deletion) in [(exports[0], deletions[0]), (exports[2], deletions[2])] {
             let context = HealthKitConversionContext(event: ExchangeEventContext(
                 subject: Self.base.subject,
-                event: try ExchangeEventIdentifier(system: Self.base.identityScope.systems.event, producerInstance: producerInstance, sequence: EventSequence(sequence)),
+                event: try #require(export.event),
                 identityScope: Self.base.identityScope,
                 repositoryScope: Self.base.repositoryScope,
                 application: Self.base.application,
@@ -262,12 +254,12 @@ struct HealthKitFHIRExporterTests {
         }
         receipt.release()
         let (afterRelease, _) = try Self.collect(exporter, [try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(13))])
-        #expect(afterRelease[0].graph?.event.value.hasSuffix(":3") == true)
+        #expect(afterRelease[0].sequence == "3")
     }
 
     @Test("Deletions of types without outputs touch no ledger; a skewed lower bound is dropped, Bundle.id follows the legacy policy")
     func retractionBoundsAndLedger() throws {
-        let storage = CountingStorage()
+        let storage = LedgerCountingStorage()
         let exporter = try Self.exporter({ $0.legacyBundleID = .healthKitUUID }, sequencer: ExchangeEventSequencer(storage: storage))
         let detectedAt = GoldenFixtures.conversionInstant
         var exports: [HealthKitFHIRExporter.Export] = []
@@ -275,9 +267,9 @@ struct HealthKitFHIRExporterTests {
             [HealthKitFHIRExporter.Deletion(uuid: GoldenFixtures.uuid(20), sourceType: .bloodPressureSystolic, deletedAfter: nil, detectedAt: detectedAt)],
             at: detectedAt
         ) { exports.append($0) }
-        #expect(storage.updates == 0)
+        #expect(storage.take().transactions == 0)
         _ = try exporter.export([HKSample](), at: detectedAt) { exports.append($0) }
-        #expect(storage.updates == 0)
+        #expect(storage.take().transactions == 0)
         _ = try exporter.retract(
             [HealthKitFHIRExporter.Deletion(uuid: GoldenFixtures.uuid(21), sourceType: .heartRate, deletedAfter: detectedAt + 60, detectedAt: detectedAt)],
             at: detectedAt
@@ -302,7 +294,7 @@ struct HealthKitFHIRExporterTests {
             try exporter.export([sample]) { _ in throw Stop() }
         }
         let (again, _) = try Self.collect(exporter, [sample])
-        #expect(again[0].graph?.event.value.hasSuffix(":1") == true)
+        #expect(again[0].sequence == "1")
     }
 }
 

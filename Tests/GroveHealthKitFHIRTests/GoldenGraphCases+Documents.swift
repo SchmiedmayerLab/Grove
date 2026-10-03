@@ -184,6 +184,27 @@ extension GoldenCase {
     ///
     /// The symptom's own event takes `sequence + 100`, the only second sequence any case states.
     static func electrocardiogram(uuid ordinal: UInt8, sequence: UInt64, symptom: UUID?) throws -> HealthKitConversionSet {
+        let (ecg, evidence) = try electrocardiogramEvidence(uuid: ordinal, symptomsPresent: symptom != nil)
+        var symptoms: [HKCategorySample] = []
+        var symptomContexts: [HealthKitConversionContext] = []
+        if let symptom {
+            symptoms = [try Self.symptom(uuid: symptom)]
+            symptomContexts = [try GoldenFixtures.context(sequence: sequence + 100)]
+        }
+        return try HealthKitConverter.convertECG(
+            ecg,
+            evidence: evidence,
+            symptoms: symptoms,
+            context: GoldenFixtures.context(sequence: sequence),
+            symptomContexts: symptomContexts
+        )
+    }
+
+    /// The sinus-rhythm ECG sample and the validated evidence its voltages would yield, with symptoms present or none.
+    static func electrocardiogramEvidence(
+        uuid ordinal: UInt8,
+        symptomsPresent: Bool
+    ) throws -> (sample: HKElectrocardiogram, evidence: HealthKitECGEvidence) {
         let ecg = try StoredSampleFixtures.seriesSample(
             HKElectrocardiogram.self,
             sampleType: HKObjectType.electrocardiogramType(),
@@ -198,7 +219,7 @@ extension GoldenCase {
             endDate: GoldenFixtures.sampleStart.addingTimeInterval(30),
             timeZone: timeZone,
             classification: .sinusRhythm,
-            symptomsStatus: symptom == nil ? .none : .present,
+            symptomsStatus: symptomsPresent ? .present : .none,
             numberOfVoltageMeasurements: 4,
             averageHeartRate: 72,
             samplingFrequency: 500,
@@ -215,27 +236,24 @@ extension GoldenCase {
                 HealthKitECGVoltagePoint(timeSinceSampleStart: 0.256, millivolts: 0)
             ]
         )
-        var symptoms: [HKCategorySample] = []
-        var symptomContexts: [HealthKitConversionContext] = []
-        if let symptom {
-            let sample = HKCategorySample(
-                type: HKCategoryType(.chestTightnessOrPain),
-                value: HKCategoryValueSeverity.mild.rawValue,
-                start: GoldenFixtures.sampleStart,
-                end: GoldenFixtures.sampleStart.addingTimeInterval(30),
-                device: GoldenFixtures.watch,
-                metadata: GoldenFixtures.timeZoneMetadata
-            )
-            symptoms = [try StoredSampleFixtures.stored(sample, uuid: symptom, writer: GoldenFixtures.foreignWriter)]
-            symptomContexts = [try GoldenFixtures.context(sequence: sequence + 100)]
-        }
-        return try HealthKitConverter.convertECG(
-            ecg,
-            evidence: HealthKitECGEvidence(source: source, waveform: waveform),
-            symptoms: symptoms,
-            context: GoldenFixtures.context(sequence: sequence),
-            symptomContexts: symptomContexts
+        return (ecg, HealthKitECGEvidence(source: source, waveform: waveform))
+    }
+
+    /// A symptom recorded by the watch and written by the foreign application; by default mild chest tightness.
+    static func symptom(
+        uuid: UUID,
+        type: HKCategoryTypeIdentifier = .chestTightnessOrPain,
+        value: Int = HKCategoryValueSeverity.mild.rawValue
+    ) throws -> HKCategorySample {
+        let sample = HKCategorySample(
+            type: HKCategoryType(type),
+            value: value,
+            start: GoldenFixtures.sampleStart,
+            end: GoldenFixtures.sampleStart.addingTimeInterval(30),
+            device: GoldenFixtures.watch,
+            metadata: GoldenFixtures.timeZoneMetadata
         )
+        return try StoredSampleFixtures.stored(sample, uuid: uuid, writer: GoldenFixtures.foreignWriter)
     }
 
     /// A series recorded by the watch, written by the foreign application.

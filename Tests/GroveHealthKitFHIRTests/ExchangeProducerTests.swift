@@ -133,7 +133,7 @@ struct ExchangeProducerTests {
         #expect(producer.host == host)
         #expect(producer.studies == studies)
         #expect(producer.sequencer === sequencer)
-        #expect(try producer.sequencer.producerInstance == sequencer.producerInstance)
+        #expect(producer.facts == ExchangeEventFacts(application: application, host: host, studies: studies))
     }
 
     @Test("The host and the studies default to the current host and no enrollment")

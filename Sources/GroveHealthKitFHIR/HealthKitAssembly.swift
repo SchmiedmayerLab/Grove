@@ -20,10 +20,13 @@ import ModelsR4
 /// its writer and recording device, and hands the draft to the shared ``ExchangeGraphAssembler``.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct HealthKitAssembly: Sendable {
-    /// What one record's conversion needs beyond the envelope: its event, and the policies in force.
+    /// What one record's conversion needs beyond the envelope's scope: its event, the facts frozen with it,
+    /// and the policies in force.
     struct Request: Sendable {
         let event: ExchangeEventIdentifier
         let instant: Date
+        /// The application, host and studies the event states, as its reservation froze them.
+        let facts: ExchangeEventFacts
         let converterRole: ConverterRole
         let repositoryIDs: [ExchangeGraphNode: RepositoryID]
         let options: HealthKitConversionOptions
@@ -31,12 +34,14 @@ struct HealthKitAssembly: Sendable {
         init(
             event: ExchangeEventIdentifier,
             instant: Date,
+            facts: ExchangeEventFacts,
             converterRole: ConverterRole = .assembler,
             repositoryIDs: [ExchangeGraphNode: RepositoryID] = [:],
             options: HealthKitConversionOptions = .default
         ) {
             self.event = event
             self.instant = instant
+            self.facts = facts
             self.converterRole = converterRole
             self.repositoryIDs = repositoryIDs
             self.options = options
@@ -46,12 +51,18 @@ struct HealthKitAssembly: Sendable {
             self.init(
                 event: context.event.event,
                 instant: context.event.conversionInstant,
+                facts: ExchangeEventFacts(context.event),
                 converterRole: context.event.converterRole,
                 repositoryIDs: context.event.repositoryIDs,
                 options: context.options
             )
         }
     }
+
+    /// The revision of the graphs this adapter's assembly builds. Bump it whenever the bytes it emits can
+    /// change for equal inputs: it enters every exporter's context fingerprint, so an event reserved under an
+    /// older revision is never redelivered under the same identifier with different bytes.
+    static let outputRevision: UInt = 1
 
     static let adapter = ExchangeAdapterContract(
         adapterID: "healthkit",
@@ -69,12 +80,11 @@ struct HealthKitAssembly: Sendable {
         )
     }
 
-    let assembler: ExchangeGraphAssembler
-
-    var envelope: ExchangeEnvelope { assembler.envelope }
+    /// The producer's scope; each graph takes its own request's facts.
+    let envelope: ExchangeEnvelope
 
     init(envelope: ExchangeEnvelope) {
-        self.assembler = ExchangeGraphAssembler(envelope: envelope)
+        self.envelope = envelope
     }
 
     init(context: ExchangeEventContext) {
@@ -83,9 +93,7 @@ struct HealthKitAssembly: Sendable {
             identityScope: context.identityScope,
             subject: context.subject,
             repositoryScope: context.repositoryScope,
-            application: context.application,
-            host: context.host,
-            studies: context.studies
+            facts: ExchangeEventFacts(context)
         ))
     }
 
@@ -146,7 +154,7 @@ struct HealthKitAssembly: Sendable {
             converterRole: request.converterRole,
             repositoryIDs: request.repositoryIDs
         )
-        let assembled = try assembler.assemble(draft)
+        let assembled = try ExchangeGraphAssembler(envelope: envelope.with(request.facts)).assemble(draft)
         return HealthKitConversion(
             source: source,
             identifiers: assembled.identifiers,
@@ -189,20 +197,28 @@ extension HealthKitAssembly {
         return version == build && revision.source.bundleIdentifier == application.bundleIdentifier
     }
 
-    /// The event context a retraction or a bundled study context is minted from.
+    /// The event context a retraction or a bundled study context is minted from, under the request's facts.
     func eventContext(for request: Request) -> ExchangeEventContext {
         ExchangeEventContext(
             subject: envelope.subject,
             event: request.event,
             identityScope: envelope.identityScope,
             repositoryScope: envelope.repositoryScope,
-            application: envelope.application,
-            host: envelope.host,
+            application: request.facts.application,
+            host: request.facts.host,
             conversionInstant: request.instant,
             converterRole: request.converterRole,
-            studies: envelope.studies,
+            studies: request.facts.studies,
             repositoryIDs: request.repositoryIDs
         )
+    }
+}
+
+
+extension ExchangeEventFacts {
+    /// The facts an explicit event context states.
+    init(_ context: ExchangeEventContext) {
+        self.init(application: context.application, host: context.host, studies: context.studies)
     }
 }
 

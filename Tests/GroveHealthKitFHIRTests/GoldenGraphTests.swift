@@ -22,7 +22,7 @@ import Testing
 /// `TEST_RUNNER_GROVE_GOLDEN_OUTPUT_DIR`) names a directory the suite writes every case into, and the files are
 /// copied into `Resources/Goldens/` afterwards. Writing into the checkout while Xcode runs the tests makes it
 /// re-resolve the package graph mid-run.
-private enum GoldenStore {
+enum GoldenStore {
     struct MissingGolden: Error, CustomStringConvertible {
         let name: String
 

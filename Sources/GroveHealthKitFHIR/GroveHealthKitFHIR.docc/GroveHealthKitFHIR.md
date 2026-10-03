@@ -63,8 +63,8 @@ Use a system your deployment owns and a token you persist once per installation,
 The conversion Provenance names the application that assembled the graph, so a receiver knows who to trust and which version wrote it.
 `ApplicationDevice(bundle:)` reads it from your bundle.
 
-> Note: The host defaults to `HostDevice.current()` and the conversion instant to now.
-> Pass both explicitly when you replay a persisted event, so the retry rebuilds the same bytes.
+> Note: The host defaults to `HostDevice.current()` and the event instant to now.
+> The exporter freezes the instant, the application, the host and the studies with each event, so a redelivery before the receipt is released rebuilds the same bytes, even after an update.
 
 ## Assemble it
 
@@ -77,38 +77,45 @@ let identityScope = try OpaqueIdentityScope(systems: systems, keyID: keyID, epoc
 let application = try ApplicationDevice(bundle: .main)
 ```
 
-Per export, reserve the next sequence and create the context, using every default.
-`producerInstance` is the UUID persisted with the installation, `nextSequence` the counter you durably advanced first, and `installationToken` the token that names this HealthKit store.
+Build the producer and the exporter once per configuration, and rebuild both when the participant, the studies or the application change.
+`ledgerStorage` is your app's ledger, conforming to `ExchangeEventSequencer.Storage` (`GroveFHIRContract` documents the contract it must meet), and `installationToken` the token that names this HealthKit store.
 
 ```swift
-let event = try ExchangeEventIdentifier(system: systems.event, producerInstance: producerInstance, sequence: nextSequence)
-let context = HealthKitConversionContext(event: ExchangeEventContext(
-    subject: .logical(participant),
-    event: event,
+let producer = try ExchangeProducer(
     identityScope: identityScope,
-    repositoryScope: try BusinessIdentifier(system: "https://study.example.org/fhir/NamingSystem/healthkit-store", value: installationToken),
-    application: application
-))
+    subject: .logical(participant),
+    application: application,
+    sequencer: ExchangeEventSequencer(storage: ledgerStorage)
+)
+let exporter = try HealthKitFHIRExporter(
+    producer: producer,
+    repositoryScope: try BusinessIdentifier(system: "https://study.example.org/fhir/NamingSystem/healthkit-store", value: installationToken)
+)
 ```
 
-Convert one sample and hand the Bundle to your uploader.
+Export a batch and store each graph's bytes verbatim.
+Release the receipt only once the stored graphs and the HealthKit anchor are durably committed; until then an exact redelivery reproduces the same events, byte for byte.
 
 ```swift
-let conversion = try HealthKitConverter().convert(sample, context: context)
-try upload(JSONEncoder().encode(conversion.primary.bundle))
+let receipt = try exporter.export(samples) { export in
+    if let graph = export.graph {
+        try stage(graph.json)
+    }
+}
+try commitAnchor()
+receipt.release()
 ```
 
 What to persist, and why:
 
 | Value | Why |
 | --- | --- |
-| The event sequence, before emitting | A reused sequence under different content is a conflict the receiver cannot resolve. |
+| The ledger storage | It numbers every event and freezes what each one states until the receipt is released. Never restore it from a backup or copy it to another installation. |
 | The key id and epoch, beside the key | They select the systems every identity is minted under. |
-| The producer instance id | It is half of every event identifier. |
 | The installation token | It is the repository scope of every identity this store mints. |
 
-> Important: Never reuse an event sequence for different content, and never change the key or the epoch without deriving new systems.
-> Both break the promise that one identifier means one thing.
+> Important: Never change the key or the epoch without deriving new systems.
+> It breaks the promise that one identifier means one thing.
 
 ## Beyond the minimum
 
@@ -202,6 +209,11 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapt
 
 - <doc:ConfiguringAConversion>
 - <doc:TheConversionGraph>
+
+### Exporting
+
+- ``HealthKitFHIRExporter``
+- ``HealthKitFHIRExporter/Receipt``
 
 ### Conversion
 

@@ -10,7 +10,8 @@
 ///
 /// Immutable; rebuild it when any input changes. The inputs every event shares are checked once
 /// here, so a deployment fault is reported where the producer is configured rather than inside a
-/// conversion, and the sequencer numbers every event the producer emits under one producer instance.
+/// conversion. The sequencer numbers every event the producer emits and freezes the application,
+/// host and studies each one states, so a redelivery after a rebuild reproduces the same bytes.
 public final class ExchangeProducer: Sendable {
     /// A configuration the producer refuses, as every event built under it would be refused.
     public enum ConfigurationError: Error, Equatable, Sendable {
@@ -39,7 +40,7 @@ public final class ExchangeProducer: Sendable {
     public let host: HostDevice
     /// The participant's known enrollments, each study once.
     public let studies: [StudyEnrollment]
-    /// Where the producer's events take their sequences from.
+    /// The ledger the producer's events take their sequences and frozen facts from.
     public let sequencer: ExchangeEventSequencer
 
     /// Creates the producer of one installation.

@@ -34,33 +34,45 @@ package struct ExchangeAdapterContract: Sendable {
 }
 
 
-/// Everything about one producer and one source repository that is the same for every event:
-/// resolved once, shared by every graph the assembler builds for them.
+/// What one graph states about its producer and source repository beside the record itself.
+///
+/// The scope half (adapter, identity scope, subject, repository scope) is the same for every event a
+/// producer emits; the facts (application, host, studies) are each event's own, frozen at its reservation,
+/// and ``with(_:)`` swaps them in per event.
 package struct ExchangeEnvelope: Sendable {
     package let adapter: ExchangeAdapterContract
     package let identityScope: OpaqueIdentityScope
     package let subject: Subject
     package let repositoryScope: BusinessIdentifier
-    package let application: ApplicationDevice
-    package let host: HostDevice
-    package let studies: [StudyEnrollment]
+    package let facts: ExchangeEventFacts
+
+    package var application: ApplicationDevice { facts.application }
+    package var host: HostDevice { facts.host }
+    package var studies: [StudyEnrollment] { facts.studies }
 
     package init(
         adapter: ExchangeAdapterContract,
         identityScope: OpaqueIdentityScope,
         subject: Subject,
         repositoryScope: BusinessIdentifier,
-        application: ApplicationDevice,
-        host: HostDevice,
-        studies: [StudyEnrollment]
+        facts: ExchangeEventFacts
     ) {
         self.adapter = adapter
         self.identityScope = identityScope
         self.subject = subject
         self.repositoryScope = repositoryScope
-        self.application = application
-        self.host = host
-        self.studies = studies
+        self.facts = facts
+    }
+
+    /// The same scope under one event's facts.
+    package func with(_ facts: ExchangeEventFacts) -> ExchangeEnvelope {
+        ExchangeEnvelope(
+            adapter: adapter,
+            identityScope: identityScope,
+            subject: subject,
+            repositoryScope: repositoryScope,
+            facts: facts
+        )
     }
 
     /// The source-record identity of one native record in this repository.
