@@ -1,0 +1,2650 @@
+{
+  "blood-pressure-correlation" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:7c02d4b0-6930-54ba-abdc-b13fddf9d455",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:vLdiWMfbEdPYj0ZhB2yGpzKc4LWgjn8AKpfulR4al70",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:HJhsGCU0HGa7Aqd5tovsAlqoRUbEanhnWhyg2YvlLYs"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:d2cd468b-2987-5199-b4c0-48c5eec53859",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:CQ0jODSC-bNYoRR0_AHtgC4Q_JizgYcUY_y9hjljmog",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:8f81e542-3dfd-5054-b22f-d53c0823a33a",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:7-32qRTb-NQabioMS2xoogyed9aSAajDlWKB6A3KbQk"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:d0c7ce86-5213-531a-ad32-cb529f53e124",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:67Lhzk6u228PXAzIdweio4NGJJD3oTKloIqbVqUReKw",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:523d31e8-ce2e-5977-8f14-426a81e6ca23",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "body-mass-user-entered" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+          "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-recording-method"
+        ],
+        "fullUrl" : "urn:uuid:fb2b9e67-66d9-59c7-ad40-ea775fe3b868",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:9CgPOpef1tVsmk6EJLj4bHDFqZjlSP3_YFNbUf3ytO0",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:F6fP40xYTCErdBIkNK4EIX6TSvP-dAfEc6HiM5eL0zI"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:73f08f07-d15f-56d8-9e05-2284b4257115",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:bfAm_8-MNzij0e97hfE7pzZS1j6jMFvxhdqjxzJ4J8A"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:60480b75-8e2f-5965-8304-cbc631ebf103",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:JuZ6_LIOGPqBp4ARA79_zsVhTPr1T7_1_9I13pImZlE",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:b1cc275d-98bd-599c-8ed3-1199de610a33",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "bundled-patient-subject" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:650fea1f-8ed4-5da7-9ae4-5818aa9b9723",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:kZgmCleuRbCorIFh8TYwlJKZ0G7xxJjPPILaB_ofGXI",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:bTcTOBWHOO59CuWRcxRiszcArYdSNMtMRRDeYq0ofYI"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:d4ed1c3e-f2d8-5934-8b30-f763563944d5",
+        "identifiers" : [
+          "-|https://grovealliance.org/fhir/testing/identifiers/patient|example"
+        ],
+        "resourceType" : "Patient"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:ca0e3e67-0999-5780-84db-8d7124905621",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:obS6ZZln0e8HpGaJGSLbhDju94K0R1XKF-Gzbvjo_wI",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:4dae8507-5cc2-5c70-97cf-e1fe97528ec6",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:R68gsXOmise6Dzaom-ZmFVQ0qVflQmxfCRI7OL4G_KI"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:179aa15e-38a6-520d-9db2-6f53180ce523",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:V8y_3IHBJVsf5HzFrCfRBGyrYLvN-eCGxV0iqOnBt5c",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:27bc90ae-3192-5159-990d-4764c5569192",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:7zKG772wpnhNjRFdQUlSF2bgzCLS0psSYI8jDlCBDmI"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:dafff25f-7b2a-50f1-8062-35eaaa6d3c23",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:NEec450y0sraR7xbqWgH3yVUfbenpZd3_EXE6szNmrM",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.example.writer"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:be2a33d7-8e5f-5fa9-9a3d-b5a0ee9a747c",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "clinical-document" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:522e0b85-6287-5760-9cdb-8cbe87ee4011",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:1KLEBhU35GE7bcLZ8_vWmici5Op3CrzR_No7MGJvD4o",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:keBDoyNksAXgYsWVUD4BFLHyipaDAc9Ycnhbv0SQXTY",
+          "source-artifact|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-artifact/test/1|v0:test:1:GqFmAyiQxxDL7NfpD2FTjh-dDA8oHplVEJad0faE69Y"
+        ],
+        "resourceType" : "DocumentReference"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:450fe019-fd6b-5b19-b07c-37ca7e7ffde8",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:CQjW7k2FMuRv7NCI2j0QYDu_wzuNn3VwjikNsSHBUc8"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:5cc49e86-4d50-5d36-8c05-1f2401721cd0",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:Jb69oEAStFO5k0ZHlgVZ7QgOQfL-fKyMvP0WcEp2jek",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:17062a17-1106-5adb-9c5e-f2d9e93ce341",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "electrocardiogram" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-ecg-symptoms-status",
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-ecg-source-period"
+        ],
+        "fullUrl" : "urn:uuid:71eb02d9-992e-50b1-b859-4988b669ea26",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:hIzISl6FuqMWdHZcjP-B2_ksukup6BnRgGqsPPiVe6g",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:oUFZxFHM9ZPeflL9v9vdkmv-K_UDjOb_bH0DeVFFY-k"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:ef688b88-8189-5ca7-aaca-951235dc4daf",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:hIzISl6FuqMWdHZcjP-B2_ksukup6BnRgGqsPPiVe6g",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:ayjux3kQuPNZ8LpeJo_AS0R2Z_mfSJjlyS2kQBrtfPI"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:74b08d9e-cbc8-50d1-9680-4c3f9286f1f3",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:9EW_T3EzD9L34WmvN-K2Dy28CU_HykiShypagj0B3rs",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:1319dc48-a2ee-572f-b3b4-3b5fe7104a85",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:WWpRG50Fmgy4qqc6KCNlXGGxAgh6M-XyMRWOZ4rs6Gc"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:fd6347b4-6143-5ace-b626-ce0e1e0e57fe",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:VDIX5JqXoM-Le5Rs8unycEU6vlLw3FS4A2ENFt-2y80",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:659ba41a-b773-5177-9923-8a596c45de30",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:CqlhnFqMlGAci4vaQkCBgBeUJF9aA3J1bjjEXCs6pNE"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:ac9e967e-1606-58e5-8a33-72e6f7e602af",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:ZhPvEZjeAyTc7gzk7uluiB_0SIAc29eOtaofueV0kCs",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.example.writer"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:68e0a782-d8a1-5e27-aaa9-b0c272c89904",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "electrocardiogram-symptom-companion" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:4f80da53-e7aa-5bb5-b3b6-f7c857d6a562",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:HZJlYgBiY4WzfqtgcMLKxZqzvSOU_R6MA0SzsEMQaqc",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:JMuXnGeBq7p_tQuIWauSJ__Y2BZk3e8klW8tV6TU-t4"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:66083dcb-56e4-5d41-bf87-ab0232e14a45",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:bdrO0Z5G0evQXWD7Z9o75aMzBVv06xTBr-7X5oCWkkI",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:957b2550-1d36-57ef-a729-adb23cbbdf6d",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:UEL4cLZZ2F65r2sT74r9y5dQLTe88TTy5V_Q8Od7T5w"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:87b995e3-4383-5c86-958a-6cac67c2b805",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:8IIPpVa6RgGzsLLFmOJsCgVkalyzllLnX09IZzPiXtM",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:342152e5-0fa1-578f-ae92-0d3bc245ea35",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:ev4pSJxtJxgCn6I6NDCdnbGMIjNZ8UeRnKZ37mpcoiI"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:7cdf03d0-e248-5b92-901d-299e17845605",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:SsFGcQUFXzymFU5DlqvKSv5JIcmRgG5ElFKAzjodj_8",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.example.writer"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:43f1180e-d7c0-5797-9e48-0c4313172870",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "electrocardiogram-with-symptom" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-ecg-symptoms-status",
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-ecg-source-period"
+        ],
+        "fullUrl" : "urn:uuid:0786bc40-f9fe-59ec-b7a2-9d26bb724885",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:-sxIw2zn3pl-JMISV5kprDK_i02tIT0Ct69amwTw6qg",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:aUWZCMJyOEYVCVaXUSSdpkIn1drfk6ajkMCLpT6mtBs"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:e6dcf13b-2eb2-5ba1-912d-cf8e9b8bf45b",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:-sxIw2zn3pl-JMISV5kprDK_i02tIT0Ct69amwTw6qg",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:U8O093yT3aixzE4WxrTS8T-opQPH8CkYgWelojPulPg"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:09445bfa-2f2d-5729-87e3-276e1710ac51",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:TZMowVmB-5la9zz95eOceigG1lda9_5sQC9wrGPHLEU",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:17155fd0-ad6a-52c4-a946-4468106caffa",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:N-ePkunWLS3fcvs9rDd5uh5ltmoRt7EmotuxWRTo7vA"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:219bc452-900a-5a4d-8777-ecbfc1f6a85f",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:BYBvIKW5wu4S6evy4SPZQOFB37YD2y8s3Hcg6E6_KE0",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:08844702-36cb-57ff-b249-2b1b843fb79f",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:s8buBEyG4yRzKd2hA02jUKfwT2IN5N5psYD2moM7mb4"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:965a804c-2f33-5fe0-ae1e-a4a328007269",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:7oVlArgLSpX9m-sICbkampE5_6rdy4EpAz-xyYWON1o",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.example.writer"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:8a8b3433-b274-5da2-8db1-7c0d4004f7ec",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "gateway-application-role" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+          "http://hl7.org/fhir/StructureDefinition/observation-gatewayDevice"
+        ],
+        "fullUrl" : "urn:uuid:a88e060e-ec7c-5ec0-8b0e-6b7356e7fa9e",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:JBRlTi02jeW9eRSv9XELCh4dhoYzM9dKYgs7qjnt0_g",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:qDMUHRvr7xVoEjlMqF4oQpjiXZPTRmaawKpTmh0hxZM"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:04f063a3-bc62-545f-a0b8-11df9af133d2",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:WDBinr5w7PcvcaRoBNjWHPRhjGyOqM4yC41LwfI3Z24",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:269b221d-c646-53f1-aa9d-915c11263c4e",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:n2EmlS9mA64HvuKSRZvPQ_DLqUHhITDmpPeSxuo31Qc"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:86793a3d-e936-5a9e-8221-13afab7db244",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:qQviYoSoPxQMtwJNPGZ5o7kjf2fl3QdHBcnPIshRxho",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:3ec42d04-7eae-5c23-82c4-e94e197f0689",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:o2qpZsBSsRdBi4QW3djT5K4Nx6B0i87AIAloYcV7kBQ",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|com.example.cuff"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:48aeeb20-6643-5b41-b3a3-44093a548f15",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:08kGbsvdtUqZumirucowZS9ePH45abfoM5O4nNX7rkk"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:480efa67-eb12-5f15-92ba-fbc30cf24d40",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:J9lvvDAXkS_dbdj52mxPi9OlB8TwcLXwadZ2GWu6m4Q",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.example.writer"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:134073a9-d5de-5dd9-abaf-6b7bb226f0a5",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "gateway-role" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+          "http://hl7.org/fhir/StructureDefinition/observation-gatewayDevice"
+        ],
+        "fullUrl" : "urn:uuid:dbafa993-ba4f-51e0-ad7d-d796ddd5ef67",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:McX70VJJ-8FCgv1530lWhJkyrzUfPpP0aF8zkUnT1j8",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:y0zwisf7fEMxJ5H1xFk6erxnBpS828ph8teZOqYhPZA"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:ec2cb5c9-19da-5d18-bb0e-85d60b7ddb81",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:9ySy4ypKV6MKykXXkoertO-a3k5upQix_qDPvkaZea0",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:e35a840b-f0fc-5a54-bf90-8fee85372598",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:15QiZ156dS5FCTIE4qwxG8XTq4xdjEkbTo4YplOsQWo"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:4a209379-2c63-56e3-9767-a3c44f6b3b90",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:pU1MJcL1Jj23OM_Lj2WfKnbPCczTrVqlBeup_rEzjas",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:1f896505-6996-55e4-8231-8412a4c864a8",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:gL3lSNl7EYteXp70F6laHYwj023D9L4lpXWNgHKH-ds"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:1fb8e303-b58a-5107-ac2d-9ddced20bb00",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:qYBO4DwuNe0zTKt3vV2rd6GhfJZ_a6meCVdUGWQ8Aqo",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.example.writer"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:ded34666-95a9-5629-9a8a-a646a65d7949",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "heart-rate-device-without-unit-token" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:7a259769-1a74-5890-9a8e-23bfd25b9ec2",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:bPp6yNIw-P0yHmagH5lycYA4UrqiKUpUuNEpILTibp4",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:mqKBBlGQyKkNm_nQgCH3Gpyvvaea9nCO_EBIECecs40"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:ee821cbc-1292-5eb4-928b-40d31ca63779",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:IODV7uCVRUy8uwuwRj6vAt8ztpJqRxcifZkh1u8JvlQ"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:54dc5efd-613f-5b6b-b465-8d4f0ef2852d",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:Pa_emYvici83-idni_3JyQswXeUjZXEFuMOMTy4KPRg",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:c909f4f7-0a9b-5ceb-b215-26c878688fde",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+      "mobile-omission.recording-device(Apple Watch)"
+    ]
+  },
+  "heart-rate-interval" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:1e5229cf-7fd0-5b3e-b863-30715d61c524",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:4rxRgRPFMWMMdZjfm_6SU_15FbhtTaNWNdObFGoYFRg",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:alpiL3HSFzX615rQp5kgWJ1b3AnK4IeBNVo7QLA_yNU"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:c66db3b2-ae1f-5cc1-88ba-1c864c2367eb",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:t4bJSfVWvCGBHpnbCG2wbiVs5f1fJVa01BCH6IufXoQ"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:0cf2a54e-f04e-5f26-a122-c294493a0923",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:CsxkUTODH696XsMQgxN64nOFEeUxwN0xvHAEZfw0vKs",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:bc374b4f-e99a-5487-9194-f15e081f6cb4",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "heart-rate-minimal" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:43a60a20-f034-5ad7-9f00-f65aac29503c",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:QxmbFs_KgP8IGB0zSPXhCdpTD6t0M14cf7yY-d_SnD8",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:tfWplyF8loEu85zzoEd3najBmp1FgU9xJGD9Pka_-3E"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:a11ff194-13a8-5786-8fca-9848678e78d6",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:7CHu7jAo4aD4P_YJAGl7D2HoTu7jnFRqNgfxWygnOQ8"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:66d6c515-f557-52a5-bcaf-fe94b965f94b",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:2yoi5jK0yGmK7znYdA-VNwyn13nwyTvg63St3ZoMMMk",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:fd512c31-6e2a-5d5c-aab5-59631ebfb8d0",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+      "mobile-omission.source-offset@Observation.effectiveDateTime"
+    ]
+  },
+  "heart-rate-motion-context" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:5b585439-a9f5-5e29-b7ff-a546e0635440",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:UhqDpMunyA3OXTgy0e8OBXov4_RG9AXVMh4HAlwurJ8",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:3pyNyAsRSdh8eIJW6Mpn_15dioT3PgGTjhyKX-ZvTLY"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:3228e4b0-e429-538c-af60-19d75dccc91b",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:lslI_JP2D6DtsNS62crvUo9_6oQ9u3ZmarhkLaxZv_E",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:73016128-8749-5e45-8f7e-4233ad7127e9",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:3r_XEkPAZh4LnB8I-To3JqqbQ4i61xk0SxZdISsn7bA"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:42665bc4-47cb-5662-ba20-1bd901bb3d5f",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:2-2QazrhiBc7l7nA-KUw6kuhhKZfGEg1yZFJESCi2YQ",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:4d099c8a-ad19-5a18-92e2-2072fe51f68d",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "heart-rate-no-time-zone" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:1ac05d36-060f-53df-97fb-6ca1ab8de654",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:0zvvrYgO_mi1B22durhuNzGRxVIW9uAPUGtiTBFnv-A",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:vCDqSflQHgz7jeLSR_7WHPevQwOvW9qnXvckGUYvOaY"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:df68da13-4433-597b-896a-176c093317d2",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:I8UY96JTgqqF6G5NWXYYsND2CXyksyvVFbVsKrlNRWM",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:a8957587-88ce-5387-a9ba-0c1622bba019",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:hCY4NQI_y6em5f_c43aPg6ECZrQDhxDQiqnoaqLOwWg"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:7bff30cd-6c10-54f7-805d-2150d3ac9918",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:wDQFeU4CY30y5RpPKQiQUK8_RQKJcUTVKYSfYN4eqhs",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:91cd3248-28d0-5bca-9c86-b48306285c0a",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+      "mobile-omission.source-offset@Observation.effectiveDateTime"
+    ]
+  },
+  "heart-rate-recording-device" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:6ce106db-c3e7-594f-8687-ab19bf2675b6",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:JFAIjt2Ir1Tf0wu6Xx4ZszaDG0SAP2-NqCXKCM5HVY0",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:3wO9C7SmhNLOOZgffPpC6pIu26L0vD3shgAFI9kS6To"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:71e2da36-119b-5cf4-be1d-0e67a02fb6b7",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:B6XeXLL-VmnoUgxJ0YIai5QKNbptYLlffp_CSMmUa0I",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:56f9ca1f-1f3c-5943-bdfb-b5679bc11aa2",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:sVL5imAUtEv8qkZ5y14b-DAePRaI8_AMMlxR1rfUxEI"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:da9a946d-cf2e-5f80-9f53-c00eacd6bf6d",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:j9B5fK3LDpZaCHzQoUHSuKOaAaHQ-ZjC_KXMe6gcakI",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:88777b9b-be93-5d90-a27d-823b23543bf7",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "heart-rate-study" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+          "http://hl7.org/fhir/StructureDefinition/workflow-researchStudy"
+        ],
+        "fullUrl" : "urn:uuid:4336f7f4-3650-5a6d-9f98-394e2545f9b7",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:v1GmcePBvnFaDej_47daIYdo0ocOVGqxgmBNuoK8oR0",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:9AcCZ7kciJyqy-mbjXSvTnM0QVKPlBya3mZDyiJpyVs"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:cf0cc8ee-e261-5412-bebb-4b27d6906e72",
+        "identifiers" : [
+          "-|https://grovealliance.org/fhir/testing/identifiers/researchstudy|study-a"
+        ],
+        "resourceType" : "ResearchStudy"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:f3fa28b4-22ec-53ee-b6ab-f652b502f278",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "PlanDefinition"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:fd465684-e608-5933-bdf3-b42b183943cb",
+        "identifiers" : [
+          "-|https://grovealliance.org/fhir/testing/identifiers/researchsubject|enrollment-study-a"
+        ],
+        "resourceType" : "ResearchSubject"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:7ae4f6db-bd17-5949-9eb4-b0c6271023b0",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:kNJjLhZhj68v9q-BdykucZb6Wyo7k0WDeSAfuRdYxUk"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:0a198ca0-f3ab-58c0-9fb4-90f84261bcc9",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:5tCTZ0031RQubXS4aMy0Da4_GfwUXlOrH5vbOfb1sUs",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:480c6348-7ae6-545c-b048-1041f1e18607",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "heartbeat-series" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:1628b7cd-7e64-5b1d-9318-de22a56a938c",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:2k0tuZSOvNmO-Sba43w3uUkdUrfF1yb46WU0ZXNL7sw",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:3pO4DxCljd8pc9tNwzRisHLlIAucD_p24zsWHiYObLI",
+          "source-artifact|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-artifact/test/1|v0:test:1:0m696r-5hPLWnq6y0mjPQ3UXXMj39DkqI0cXJQxSS6Q"
+        ],
+        "resourceType" : "DocumentReference"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:61196f1c-10d4-56f5-8096-cb4c72f9b8ff",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:S-28g42BNOx3dfVHaeYjmh1HvdwjwAa1BcT_IGnBekI",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:d92b490d-2a2b-551f-b17a-d6b66396b109",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:2EDaYUDR-dDUwtxTee763paCaDWqKSP8MboszwuQrVs"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:a459949b-1d5b-57b5-96fa-16f81714298c",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:GhSmTTVkJf9pdJIvV5sSn0lepGBfCQO-hA0HgQ5_zgI",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:35f19e6b-6e60-5b6c-b203-d4ac0dce18aa",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:Gm4hRTUp_vyKqlJoLR1QaMBMYnADSoLLNT26d8KscYA"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:f72582bb-3a7c-5255-808c-cdba39fd1a84",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:fKbOYBSJFXz6oCcdT3U15J88O4mc-9SuexoDJ5mI6Wc",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.example.writer"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:788d39f2-4d35-55e3-a603-c312e815acc7",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "insulin-delivery-bolus" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:ad4e084a-827a-5932-a483-d147c721c333",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:PzIlGWciVIW4OHEiu8JrU-mh3ZGK00TQuM9Wkym6v8M",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:TpBGu0U76ckj1qt_PEhc4Y4e3yL-XWR3LSHRUjGCaoY"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:3782a788-c4f8-585d-b1fd-9d30db778ec0",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:w7hAe7eU9F2Pza8KNvJ_tKl0CUu0qjHwtsURgcCsjws"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:ec647088-2030-550f-847f-dcf99307952f",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:qupt7iGRe28OC6Jupya0EqDtFtrnt5OguqDm_apV6Zc",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:87f3b34a-18d9-5ed8-a367-6b05b0812c9c",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "native-identifier-disclosure" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:a3f78dc4-67e7-561a-a4b8-0238dfe912b9",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:DOmu1Geffa33EKF3i27jlvr65e2inMwxS3Pe-pT2WSc",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:KoUX5V4z_JdDxLoeOGW6Eafx0ddWi_LxZpYonBlqkAk",
+          "-|https://study.example.org/fhir/NamingSystem/healthkit-store|3a7e5c10-0000-4000-8000-000000000028"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:c539f699-f154-5ead-8bc3-ba4525469797",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:VEwF9D7eejNY_33KeNLiwpSRgNpN8FlyJ9L8StvEqi4",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:d07b38c0-a05c-5e19-8f92-6cd763581b41",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:WO4IFlfT469FR97zUB8CsMPAQbSVxbH2rxbozB__wuk"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:f0c2b236-bdae-5da3-bd65-832cfb6a858d",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:T2_bfXjbfI6JRcEb_FRD0PZb19zel8PG8pS3bMWy25E",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:51571f65-d367-5848-9557-f958f42357bc",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:6_cJPfzFz0pYAYN9M-RGyPz5Gcabdpjvh7xr3Q2anfM"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:647ca0a1-1154-58d5-bb7c-a880387bbbcb",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:c8W0vHmQMLvMGY5CqBiah9DLz-rT454GqeZqtuLJrbU",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.example.writer"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:8917710a-f76d-56c6-b18f-77f41a55f2c3",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "repository-ids-on-every-node" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:bedd22e2-64c2-52eb-ad12-4fcd8b2f7116",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:QzF2mgRu5BLZ1u7h-O0-xttOmmOYiqgiZWnPoFh6aSo",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:dFzIvPfelFY7OsDcfM18IY5G1nJgn02BNIHXScSWKsQ"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:8068aec8-be51-54d9-af86-bda3b55b2da9",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:eB8Gf-LhSAaBL_oxV6y1Zodqv3uXKnvm67j60gXtEVg",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:3870e66b-7993-5249-b08d-a8ee4ab511e1",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:uYtmRqrnSdKKb0_BQdY5Bai87GbCUpRwjurAtvoOA-8"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:2d1d232a-dce0-5234-9f70-e6f1f57a06d2",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:N0D78V87eBkedJrHAL-1npBxK_OQ7ycRrVYu0-FcfMM",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:6835b79a-e720-5d06-8df2-376fc5675c58",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:dG1NzkNlb5umEYXyrGnJZ9ModYp454veeMqiqWJOAPc"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:676da85f-7976-593f-8308-df804c106a16",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:s_Cee-Bm1PdPanXpAhVVnuPXTAgty-n1BHE5QPmtoVQ",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.example.writer"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:f9387192-08d6-56d5-929b-57821c1a17b0",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "retraction-blood-pressure" : {
+    "entries" : [
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:1318eae2-f07f-5a89-9f6f-7c47c4d86b1d",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "retraction-electrocardiogram" : {
+    "entries" : [
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:6e5c97f9-3973-5275-a373-3bca6fb6f35c",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "retraction-heart-rate" : {
+    "entries" : [
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:40c1b779-554a-5f23-8dde-da13be158027",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "retraction-heart-rate-native-identifier" : {
+    "entries" : [
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:71fd3b0b-83cb-563d-9ab0-07f72410950b",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "sleep-analysis" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:b43d8154-effd-5996-b315-586eb5a39db3",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:zQKLnUUphK7g0a-sk45NT24jTx6o8QTbVhn8bRIo2XU",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:lKQTH6tKEWNaqQSgZvJePTwfGjO25t_9hpHjRVFFzCA"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:cea9def4-5bda-5d36-b41b-5bf3fbd5d6a0",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:gATgLvx899A7IxhUbWhlN8OUpTJj52a_KECMQj1skas",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:ce11774b-2935-5496-b436-476ffdf38238",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:31JVNmZIfD2Xpfq35NE2izl6k0ECexdC0alDLfc07Ws"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:56783614-946d-5967-b7c2-fc86470e730c",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:q4IDLT3D_h_mhcUMkD7HtvfDQL4DZSC54mYxjy-Q5n4",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:a16d704d-e1c7-5f2a-9566-0f5f2b29eefc",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "state-of-mind" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:f41c9c0c-4ade-5b30-9656-09ce3ce27cea",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:C31kj23cYeA6jPmlnmu7KniMnbewbD_yFCmczcnLOcU",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:10h795d6HZT3S4lfr1xQRkSSDDA8eC7FK8lrLZFyc84"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:99895048-f019-5e85-b351-90e3d78f8f5e",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:sdm-RvKwIE_gB3UWLsneUpPOXGhC9LgEKid_NCgO0bE"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:101d5877-ed8b-5129-ad8c-57a9562a47a5",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:tiEL4szorVEGCSEj-uxHK2XsnifbaJlUUKS2nGfCxF0",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:13546d51-ce74-5d3a-82e5-6a3ec9c287f2",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "step-count-period" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:0804d4b2-7569-5d86-a5ef-1da17a18c1ed",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:4dMwMpklfWvKOf615qiAmiIimIWIgvdjV2Wwwb8Sq2E",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:xoxfahmH97Ots54SkXpqBfHIQ-mROzWmEf83C-dPTik"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:eaa7e9c1-0c6c-5aad-9d5f-32b19a1b9417",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:4R7sis4gnIDMQKlyDYQ2E0EyGDLPh_QT6NCPVVtCuAw",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:4bc45344-330f-55e7-ba02-f4a87e38325d",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:VQfhWVUHYt0z7xXkA5RdGcwhHxTFVXMJMOExVf82Ru0"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:4f69efd2-67ad-53bd-8aea-0f809b71762d",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:GEB_CddWTYjrCywzQ_ZwqisfzqdSnZMJVI91TLt18SU",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:46e8aad6-e065-5339-a6c6-f70d26faaab3",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "sync-identity" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+          "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-writer-record-version"
+        ],
+        "fullUrl" : "urn:uuid:ecd979c9-a1e9-5edd-9297-4427ce7cad0f",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:4EmSopRc4c2piC9KH89pHBhpscDgWQNEMkApbHjjAss",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:azF0ncySV5bRvA76UbzfsmmFaHRAGNfWcAVougYu2wA",
+          "writer-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/writer-record/test/1|v0:test:1:vIfSIjXEDH2sYfmrl7Plzyh6_3t3FdXKG5O2EZe5vpQ"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:cd6d3a8d-da87-5612-ad8e-5b9b8bc3e083",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:R-HGqWARhWVYjX48QOw5kt_qeeHZLBKyzQ92CVzqkVY",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:0ecd8aec-0c4d-5980-9372-be968590aa04",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:KSh_1crRW1a7pld1ylhDhES7P7TG0VTo1gzyj37IMsw"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:576bda00-70ad-5e9e-91bf-9d1b4c70e27c",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:kHh6_2L6Ifqc1CeVvKx_sAk5YlSXNQUR47z9MAfx4UI",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:0147f49c-85e9-5f59-ac96-9aa59ab5a95a",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:fmH9C1ZPJvtfOrfpjdru2Qag-bhpbuknhG6nPeLFOC0"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:465dbaa1-25db-5cca-b00d-a481c25b1f47",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:9ecnWu7d62NEgUZI2ZDVAND_pemYjzWIDIC_7NSoKEg",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.example.writer"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:067096fc-beae-5a55-8ed0-ebd16943d4a4",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "two-study-enrollments" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+          "http://hl7.org/fhir/StructureDefinition/workflow-researchStudy",
+          "http://hl7.org/fhir/StructureDefinition/workflow-researchStudy"
+        ],
+        "fullUrl" : "urn:uuid:fe81d51a-ee50-598d-9277-94eb6e72b2dc",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:EAfzgJ2XyqdxxpB1iP4fwZ76uvn04nSi6ulC-6pDCRQ",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:Pws2ERj3mLDY6x4GiBfTWfBLmWaZ9cv91TGd-D_bBA0"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:7b2c0ec4-d0b3-5cfc-a2de-4e0ea28ed384",
+        "identifiers" : [
+          "-|https://grovealliance.org/fhir/testing/identifiers/researchstudy|study-a"
+        ],
+        "resourceType" : "ResearchStudy"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:c0794986-de9b-5f29-be1f-d6c199f9822e",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "PlanDefinition"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:4f631875-e1cf-5bd6-8e73-b6d4d5cb495a",
+        "identifiers" : [
+          "-|https://grovealliance.org/fhir/testing/identifiers/researchsubject|enrollment-study-a"
+        ],
+        "resourceType" : "ResearchSubject"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:807c5593-dee9-5419-8996-1dd9362ccf36",
+        "identifiers" : [
+          "-|https://grovealliance.org/fhir/testing/identifiers/researchstudy|study-b"
+        ],
+        "resourceType" : "ResearchStudy"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:c3e91801-e451-5aff-80be-28cb606280f2",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "PlanDefinition"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:0e290d26-099d-5ce1-a20a-0f3baed516d7",
+        "identifiers" : [
+          "-|https://grovealliance.org/fhir/testing/identifiers/researchsubject|enrollment-study-b"
+        ],
+        "resourceType" : "ResearchSubject"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:281d53ee-64e5-5cf2-a11f-d0f564e84024",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:Nk8KPrH5Dn1BdMa9zp3Be-FuVfrFujF2V7Z15hhPf5E",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:4d8c8a3d-38bc-5cab-9083-ac8951f95ce7",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:5a15JwxquZ7nNljeGLJERTsbmE09kj22ZJiIRZuiALo"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:5fc579bd-75b8-5947-a611-1fc56e947a6f",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:a0MXEWJBc-SmkdL1zkFDeEI97rtGeGgCFFJafT_Nr0E",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:2a8208fd-d3b8-5a36-8e6c-fe64275ae3da",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:sCbUtg1XzO_e542E4iGvl-7azN_HrA-xeJY-_lKT4mU"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:e34dda89-a30e-5394-b8ee-b0595e1dd7c7",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:0eQT9MSgmDUzAt5YAOtzBtq0j7yF5fxtUi1dn7uOCSs",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.example.writer"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:056345d7-1620-5265-8d21-48f208bb6912",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "udi-disclosure" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:e8f523b7-7621-51bc-989d-4f04a99ea342",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:KFrqQIWZ1vzA1E4nHWZK8scz5uBD45F7lgTTBvPopGk",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:OCn1ioiCza7pDKX0-wPk59s8vQP21_azMHwH1B7dp_8"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:bee8ea48-fb80-53cc-b38d-ddcc8d69c100",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:itFQYQtkBrdGnRBZsPkMkMRzUy1n0tu-HMDxJCixkwQ",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:d4d80f52-376f-59c3-b242-3dd7866b2615",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:_1KrMsSoa7w9ai_qWPtrne3RbZzKgGIxY-sFdW_OJZI"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:9f739129-65e9-5336-82d6-e43c24c8fe1b",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:3j4dl-rVT_GT7QkM0v5Dn8B8Rb5joZY7ly0-uFWow9o",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:590dd017-f9f1-5627-abdc-b1f47959e10e",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:dsehRkerbhq5Zpa3OMFFW-A4luy7TMC5YMDHAuSpjmQ"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:4f6c6282-7153-5005-8765-7a6ad1ac2428",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:Xco8n8XZVuOnolvaApgk2zQXo6uD_kN4mInjVU4YArw",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.example.writer"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:72e479ff-2837-5a91-b3ca-206efadd6c57",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "workout-route" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:e2805cbe-fbd0-5906-a03c-9b2ab1409bc0",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:BXZhB-YbBLS8z00PfVyZ59S4HQZEaTrjemwVNwo0cEE",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:yqEjmAJYDXhs3IVPiRN7AyTHy5vj3W8s0hXYnY-mw7k",
+          "source-artifact|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-artifact/test/1|v0:test:1:xQYRW8dFjjHC1ngz7sgpqn83gnGiw7wXcHAHwdynsIU"
+        ],
+        "resourceType" : "DocumentReference"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:67ee594f-5491-5c52-b199-eb7fb534436c",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:sopJ7r7cGsB8SNRwgrDDfVIxQdh4Yi0qsGv_-ewUKhw",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:81a02ecd-3890-5159-9e08-a92d1ff34063",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:keGqikaVp1KtP-VTXpXOgfrMY3JhLPacllBRGwnm0XA"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:7df29fa2-86f9-5ea8-a447-48cda6aae354",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:SBfJSawsIM7ABTa02UUwQX4uz0AfvVzCOluHfM5zcm0",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:18fba38a-2ee6-5140-80f2-d84f938266b4",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:s6mSUHde0SIpXeVJUkt29HnsauT6t_jVKVJw-KRRbK0"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:d21d9031-3216-5431-b57f-1b2afa147c46",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:cipjXhgIzQYdg8Q3ubLkiAipoA0S6MXNH1ydOvAju78",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.example.writer"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:e961aa09-3fec-59b1-aab9-bb89371fb1d5",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "writer-blank-name-with-sync-identity" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+          "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-writer-record-version"
+        ],
+        "fullUrl" : "urn:uuid:4144d1e7-84d9-5f2b-a350-43608cf12bc7",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:SCRk4OXXsW9n_6oPuSi5S5a6zV81Hfny2vUBe8XTKt0",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:oei9-WTo3ZQOm6GXsGzyba5wfb8WXJ5EVOnfhLGpSCU",
+          "writer-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/writer-record/test/1|v0:test:1:vIfSIjXEDH2sYfmrl7Plzyh6_3t3FdXKG5O2EZe5vpQ"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:d956312f-4c23-50db-bc14-90e022e6d814",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:1XDSeObjR4wlja2kFFTrRkw6CjO32UYij_6RBdfOQbI",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:712f7b9b-943e-5588-b83b-1c5af97b4595",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:l4j_qZ5lQY0AmQsSnbkwKRVsnLJVZRnLdCwNqyQD1sA"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:5b5d1798-36d7-57b0-adb4-7a6a686629ca",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:W53r-MeL3d96IfkBs_sLWCZSjxsSTg37XRyYv-W1c44",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:80e3273c-3d80-5579-81d1-8e3a68996d21",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "writer-device-classification" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:1f546d61-156c-5bf0-80d4-95941c18de10",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:81UrlZhjo86nQB0UCszGzlJj2_LcPZVTZ_vC9OUQg3w",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:mFNEqBFhJaRsanQgDqFYN3IQM_vyL46YEvVV1uWOyw8"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:4d25df34-97c0-5441-a4e4-74e7de79ed10",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:KOTseOdrwvtSgbaOq5n_Uytq3S3yzISvXl3KuiKTqFc",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:695eb08b-1ea0-57d4-ba75-ef39692fb400",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:uTK8EAl121dqWmzpnRKwr2aIjkjsxLoOMGHTbDWuxe8"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:bdd116c3-04dd-5a9e-83c8-047e61d5efbc",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:YhDFNeOk54-8CpHFrvZQ58vSLNo5h_95dRECs3Iv05g",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:85f263ec-1ec6-58b5-887b-39cb81f5c339",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "writer-device-classification-without-recording-device" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:a86c10b2-c5d4-5e32-b20a-acf1f3d92c1b",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:KvwGqiFmJzXnyA32l_7VSMr9nQsORddnye-BgiPFpg0",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:YU4KNVWRqlp9mfF8E5Hpl-8cZ_v8_2XLdpuWi3I7vtg"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:f44a6514-7428-56e9-83e4-5c7ca029fe50",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:u9JvTYLnr4RT7IvVJoJgb76cGDJ-tfwIHsqeaQrBSBE"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:cc6451d0-7738-56a2-8df2-ab4cbdc8d4a6",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:-CyTyjpnePQUmb6-iYUJ-SQLUuAbAHLvYKiaBYtxpwg",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:31bc8e36-6ffe-5852-8126-3c045cfee93a",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "writer-foreign-application" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:a95889d1-0d54-516b-a6a9-a52b2bb1809f",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:AJz4f8aqK4pJ400P46nAgpmEFAIsR2Ysx4Q2mjQi_vo",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:pqCLAAGFRwSLHZRIbv_m2xU_YzPozJNYZbzOJe4paZI"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:0d697d80-71e1-5ba7-a59c-41877b725984",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:nRttzmH0-qkfZHsgJN7-w0HnszZ1o6dXmcMq1nirLxo",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:caa54c64-62e2-5f87-8a52-d461ce1e3265",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:R8jE6x3KkPw3WilQx6hegDC7fpB79JyXiIxA2ymK6t0"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:acec87ec-7a33-5a2e-8eb0-ba6e5c2da101",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:m8Bs7JWk3X2B-rQkZWnNXymQNjLxPLYM0j_6n_lhCG4",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:6dda8ddb-7e62-5220-b3be-1bda46fc5607",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:HA3QVfGVZkJ_eAJqmDQrBdEo-IavSPptqY5CoENRS-k"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:4b4f451f-5741-5465-9043-2565a381e500",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:MuXiWtyyfMnkHkYaZ_QJitDcMiXEFWtxTLwxVJcyYIQ",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.example.writer"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:ed4de8c5-4bf5-5b2f-b948-5592de94fe86",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "writer-host-equals-converter-host" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:5599a011-2c26-59bb-a95c-40de982c2253",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:XmujUDtBGLEON9ZBNR4qUb1jXIXyx_J8pugN6uU1dvo",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:N1bsPg5Tpt9wBEW0ki5-9c1RxomFVnpucNSIymcJKFQ"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:9274a9b9-9a8b-5efc-af2d-304e81d0b30e",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:5GB6sZS_7W5Cgk-hDHObBDOz89ZpPK6EkdTRyahQK1o",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:43810cf8-8b6e-51f8-853b-664c10277672",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:w3TNXrnA2C6WOf_hwvPqROcYiOlEqWVdnCx1uQrEGcc"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:64a0a45c-e646-56fe-9e28-1b3c15a5ffeb",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:VmrsaBJYNbc7lxK9uRsEZEblajKYCiXbzGxNr90XCSY",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:a7bdd03c-01d1-5fa1-b065-2b5de07354d1",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:L-7r74u94S5VQCgUyZqLO8yPIUvCmcsNpTlwDPgkPpI",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.example.writer"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:99b14254-dd46-5ebd-9052-73e667e3b3fc",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "writer-self-build-equals-revision" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:92465a78-7a3f-5726-b1d7-ee1018ef2f3e",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:4zOLoSjizi6BxZ461XZTg0Pr2wtZNXXm5c7SEudypKY",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:H7yUNVraO2BUJOM7_QY4twfGRocBMc5GOJLwytTksFU"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:f7ccb2bb-0bff-5730-bd5d-48e573cf3d89",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:XMmeXu7fRyMFrccTwdG0A5d_kJlKHeLCvXAr_Dws_WE",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:85fe11f2-bc5b-5b0f-abe3-5908657e664b",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:DWkZy6qN7lDWGCWE9njA9MDWwL9msiQziGy4cqGqM9s"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:94382637-b141-5b78-9506-125b8fa7cd3d",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:YwtHrVoKW5NfFHYkdhvQcEwiPXKdBnVv-aPn1f27dQY",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:854722cb-9bca-5eb9-af52-e2c354f18ef8",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:6mgRqjetEQP6M-CXoG17XC93bgw47v5zuZIurjpzziQ"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:d2533d04-4857-5137-9ef6-f3b3b3437eec",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:_ZBfe7GNZUCKegUJ1CKITz5rpxGaOeSHeXQQ6wurRE8",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:4031c305-e90a-56fa-87c3-286b4612aaa8",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "writer-self-older-build" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:45e6f1e8-2b41-5524-9794-097e83de95f2",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:EoaAO9mXym31Kh5UIGSlE-QHb5JwLtXWVZ9ufV2JhrQ",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:s4xlxhafc7RsPl_wQ-b96kSjFg2rXZuCIG3Hbw2Ew_o"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:1e4f60d6-f4a3-54ce-a5f9-235bf0c932f7",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:AuzFJ5dzw_Eea3WwhGBPaljG9MmXkooCE6UTFnJa6O0",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:f9b5d32c-fb8f-52dd-a414-35abda9d39db",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:FjfcSkiI7TKf0tpVXF45anjKiUaIuLOhHuMMXD27T6w"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:43352af1-c8d5-5a6d-9982-3192be805f9f",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:jMhsNHOkjaC9W-H2TWIJOJm1mTt6jf__smVZEM9xWhE",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:09c85600-150d-54d4-91d1-fdf5ca024fe6",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:Ab2HWd0MFBIc2-14EWGLAoWaIoGf55n-NPD_X3JdvNQ"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:98fa6785-6ecf-5477-81e8-43671d56b65c",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:sCSyThEwHrA-QNutyWoT8IvqvObAfx9iVgwMMjwgBlw",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:2cf28482-aa74-5f3e-9642-94909fbf9b82",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "writer-self-token-identical" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:6a599798-b1c3-5d65-bd14-8afd4d896374",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:UtyKmuNmZRtWC6Cb1iDLm9WSCg6brTP-ItN7sd1HhBE",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:vdd9BSjfFviTjyD8wkjFrlxpgvGd0nHijXDFBU4aEVI"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:f98c822b-f8b0-563c-a61d-16342d6d3e43",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:YQJIbbB8nuB0-RPnkaOOBSVaBuHjGSfhNNc4uwOODSc",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:417e9464-bb22-56ae-8bc4-58910aed36ce",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:duxmSr3Uxe-v-wJgeIcbhR64QQ7n3jy0TUBxvljFuaE"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:9f7774ef-99d1-57a1-8d3f-3d62a9055a0c",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:ETsCwd__V6NpQJf6VOxp0GvIf0JmozLFJ8URnCefuk8",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:4153f2f4-6bcb-5340-b209-f375de0c4a76",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
+  "writer-without-version" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:e2dff379-9ae2-59e9-8ef6-57d88010ca64",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:pu9X9aITPkaZSwzXq0rNXketNBHLqnK_XJaLomKFdWs",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:71A8Gf5aQhQ_33O72ULGDB1iiEJi-ds1MChFYa6UtZE"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:673eb625-bb2a-5a9f-8be4-671921b101a8",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:45Uc_1_gwHsuABUimsyG1CL6Q_MEbWP1FAubfEtm6j8",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:bbba67f6-f6eb-5258-9f0b-9b89e14e786b",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:BtKDCQ-8uHZTri3NWIuleHdsbXZY6cyoialzqVtyubM"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:1fa02907-e6d9-58c2-9f33-a839357070ba",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:xrE6K8oKqbR1QnI3GZOJVDEyFiwiWhMkrQDLlbVFyu0",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:70151851-1494-57d5-a18e-9c62a5f04d94",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:3ntQLUR90EZUNsD1WNW60LY9c_USs_Z3DD47ED6vTZk"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:1eef1284-4494-52d0-b506-99f73e87783a",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:bVGe5u0L2gfNRE-aE7WuRImncvimhcHXi6DoTHn9-CA",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.example.writer"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:e9e34d14-0317-5207-81ad-9abae89e4c8b",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  }
+}

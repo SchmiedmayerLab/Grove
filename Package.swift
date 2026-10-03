@@ -385,6 +385,9 @@ var targets: [Target] = [
             .target(name: "GroveHealthKitFHIR")
         ],
         exclude: testTargetExcludes("GroveHealthKitFHIRTests", additional: ["UITests"]),
+        resources: [
+            .process("Resources")
+        ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
