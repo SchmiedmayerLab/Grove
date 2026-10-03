@@ -96,8 +96,9 @@ extension HealthKitFHIRExporter {
     /// Call ``release()`` once every produced graph is durably stored AND the source cursor (HealthKit anchor,
     /// bulk-export checkpoint) is committed. Until then an exact redelivery of the same records reproduces the
     /// same events, byte for byte. Releasing is idempotent, also across copies of this reference, and makes
-    /// one ledger transaction at most: none when nothing was reserved, or while another call in this process
-    /// still holds the same events.
+    /// one ledger transaction at most. An export's receipt makes none when nothing was reserved, or while
+    /// another call in this process still holds the same events. A retraction's receipt makes one whenever it
+    /// names a deletion, as it also forgets each deleted record's active reservation.
     ///
     /// A receipt dropped unreleased (the call threw, or its commit action was discarded) leaves its
     /// reservations for the redelivery. When another call in this process released the same event, the last

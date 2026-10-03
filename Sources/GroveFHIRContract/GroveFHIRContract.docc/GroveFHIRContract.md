@@ -52,6 +52,7 @@ Every export is an exchange event, and every event is immutable.
 An ``ExchangeEventIdentifier`` is your producer instance UUID plus a monotonic ``EventSequence``.
 A retry resends the same bytes under the same identifier; a new revision of the record gets a new sequence.
 An ``ExchangeProducer``'s ``ExchangeEventSequencer`` mints both and keeps them, with what each event states, in a ledger your app stores; <doc:ExchangeLedgerStorage> says what that storage must guarantee.
+An adapter that converts under an ``ExchangeEventContext`` you build yourself, such as `GroveSensorKitFHIR`, does not use the ledger: persist the producer instance once and durably advance the next sequence before you emit.
 
 ### The repository scope
 
@@ -104,6 +105,7 @@ What to persist, and why:
 | Value | Why |
 | --- | --- |
 | The ledger | It numbers every event and freezes what each one states until the receipt is released; a reused sequence under different content is a conflict the receiver cannot resolve. |
+| The producer instance and the next sequence, for an adapter that takes an ``ExchangeEventContext`` | The ledger does not number those events; advance the sequence durably before you emit, and never reuse one for different content. |
 | The key id and epoch, beside the key | They select the systems every identity is minted under. |
 
 > Important: Never restore the ledger from a backup or copy it to another installation, and never change the key or the epoch without deriving new systems.

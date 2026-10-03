@@ -55,14 +55,16 @@ What Grove promises a storage in return:
 | --- | --- | --- | --- | --- | --- |
 | In memory (``ExchangeEventSequencer/InMemoryStorage``) | Writes are buffered and applied when the body returns. | The storage lives as long as its process; exiting loses every entry, which C4 allows. | One lock per transaction. | It cannot be restored or copied. | Values are stored as given. |
 | One file, rewritten atomically | Mutate a copy, write a temporary file in the same directory, rename it over the original. | `F_FULLFSYNC` on the temporary file before the rename, then `fsync` the directory. | A process lock plus `flock` on a sibling lock file that is never replaced. | Exclude the directory from backup; never sync it. | A binary property list `[String: Data]`. |
-| Keychain (small or pruned ledgers) | The whole map is one item, replaced in one call. | The keychain commits before the call returns. | A process lock, plus a lock file for app extensions sharing the item. | A this-device-only, non-synchronizable item, guarded by a token also kept in a non-backed-up file; a missing or differing token presents an empty map. | A binary property list `[String: Data]`. |
+| Keychain (small or pruned ledgers) | The whole map is one item, replaced in one call. | The keychain commits the item before the call returns; that the commit survives power loss is Apple's guarantee, not verified here. | A process lock, plus a lock file for app extensions sharing the item. | A this-device-only, non-synchronizable item, guarded by a token also kept in a non-backed-up file; a missing or differing token presents an empty map. | A binary property list `[String: Data]`. |
 | Core Data | A private context per transaction and one save, discarded on a throw. | Fully synchronous commits with a device-cache flush. | One process lock; an error merge policy fails a conflicting save, and the body runs again. | Exclude the store from backup; no CloudKit mirroring. | A string key with a uniqueness constraint and a binary value. |
 | SQL database | One transaction per call over a relation with a unique key and a binary value. | The engine's fully durable commit, including the device-cache flush. | Serializable isolation, or a transaction that takes the write lock first. | Exclude the database from backup; never restore it from replicas or snapshots. | A key column with binary collation and a binary value column. |
 
 ## Cost and retention
 
 An export or retraction is one transaction that touches only the entries of its own event keys, the `producer` entry and each distinct facts entry once; a reservation that is reused writes nothing.
-Releasing a receipt is at most one more transaction, and none when it reserved nothing.
+Releasing a receipt is at most one more transaction.
+An export's receipt runs none when it reserved nothing, or when another call in the process still holds its events.
+A retraction's receipt runs one whenever it names a deletion, even of a type with nothing to retract, because it also forgets each deleted record's active reservation.
 Backends that store entries individually (in memory, Core Data, SQL) therefore cost what a call touches, whatever the ledger's size.
 The single-file and keychain backends rewrite the whole map on every transaction and suit small ledgers, or ledgers you prune.
 
@@ -76,6 +78,7 @@ The entries hold no per-call state.
 Live calls are tracked in process memory: when the last call in the process that holds an event finishes and any of them released it, the event's reservation is removed, and otherwise it stays for the redelivery.
 A reserve registers its keys before its transaction, and the removing transaction checks them, so a release never removes a reservation that a call on the same storage object in the same process is about to reuse; this relies on the storage running one process's transactions one at a time, as every backend above does.
 A release only ever removes the exact reservation its call made, never a successor's or one from before a reset.
+The one exception is a retraction's receipt: on release it forgets each deleted record's active reservation, whatever that reservation is, because no export will release it once the record is gone.
 Holds do not span processes; when two live processes share one storage, a release in one can remove a reservation the other still holds, and the other's redelivery then becomes a new event, a duplicate and never a reuse.
 
 ## Topics
