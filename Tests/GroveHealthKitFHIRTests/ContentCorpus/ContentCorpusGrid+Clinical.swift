@@ -6,17 +6,24 @@
 // SPDX-License-Identifier: MIT
 //
 
-#if canImport(HealthKit) && !os(watchOS)
+#if canImport(HealthKit)
 
 import Foundation
 import GroveFHIRContract
 import HealthKit
 
 
-/// CDA documents and clinical records, which watchOS does not have.
+/// CDA documents and clinical records. The vectors are data on every platform; watchOS, which has neither,
+/// skips them when it rebuilds the records.
 extension ContentCorpusGrid {
     /// A provider's R4 resource, carried byte for byte.
     static let clinicalResource = #"{"resourceType":"Observation","id":"r4"}"#
+
+    /// CDA documents and clinical records: every type and admitted release, refused releases and payloads,
+    /// missing payloads, bytes kept as delivered, and every link.
+    static var clinicalDocuments: [ContentCorpusVector] {
+        cdaDocuments + clinicalRecords
+    }
 
     /// The goldens' CDA document, then a blank and a padded title, an empty document and none at all, and every link.
     static var cdaDocuments: [ContentCorpusVector] {
@@ -41,7 +48,7 @@ extension ContentCorpusGrid {
     /// Every clinical type in R4, then DSTU2, an unknown release, payloads the guides refuse, a missing resource,
     /// bytes kept with their whitespace, every link, and which refusal comes first.
     static var clinicalRecords: [ContentCorpusVector] {
-        let labResult = HKClinicalTypeIdentifier.labResultRecord.rawValue
+        let labResult = "HKClinicalTypeIdentifierLabResultRecord"
         func record(_ label: String, type: String = labResult, version: String = "4.0.1", resource: String? = clinicalResource) -> ContentCorpusVector {
             convert("clinical/\(label)", ContentCorpusSource(.clinicalRecord(type: type, fhirVersion: version, resource: resource), end: start))
         }
@@ -56,6 +63,7 @@ extension ContentCorpusGrid {
             record("unknown-release", version: "3.0.1"),
             record("undecodable/duplicate-member", resource: duplicateMember),
             record("undecodable/lowercase-type", resource: #"{"resourceType":"observation"}"#),
+            // The payload starts with a byte order mark (U+FEFF), which the corpus prints escaped.
             record("undecodable/byte-order-mark", resource: "\u{FEFF}" + clinicalResource),
             record("undecodable/array", resource: "[]"),
             record("no-resource", resource: nil),

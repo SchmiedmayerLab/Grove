@@ -120,7 +120,7 @@ struct HealthKitFHIRExporterTests {
         let ecg = try StoredSampleFixtures.seriesSample(
             HKElectrocardiogram.self,
             sampleType: HKObjectType.electrocardiogramType(),
-            shape: GoldenCase.seriesShape(uuid: 4, duration: 30)
+            facts: GoldenCase.seriesFacts(uuid: 4, duration: 30)
         )
         let heartRate = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(5))
         let (exports, receipt) = try Self.collect(exporter, [ecg, heartRate])

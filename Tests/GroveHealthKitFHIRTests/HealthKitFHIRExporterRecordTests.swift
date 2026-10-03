@@ -87,7 +87,7 @@ struct HealthKitFHIRExporterRecordTests {
         let series = try StoredSampleFixtures.seriesSample(
             HKHeartbeatSeriesSample.self,
             sampleType: HKSeriesType.heartbeat(),
-            shape: GoldenCase.seriesShape(uuid: 0xE2, duration: 2)
+            facts: GoldenCase.seriesFacts(uuid: 0xE2, duration: 2)
         )
         let (exports, _) = try Self.exports([.heartbeatSeries(series, beats: Self.beats)], exporter)
         try #require(exports.count == 1)
@@ -106,7 +106,7 @@ struct HealthKitFHIRExporterRecordTests {
         let route = try StoredSampleFixtures.seriesSample(
             HKWorkoutRoute.self,
             sampleType: HKSeriesType.workoutRoute(),
-            shape: GoldenCase.seriesShape(uuid: 0xE3, duration: 1)
+            facts: GoldenCase.seriesFacts(uuid: 0xE3, duration: 1)
         )
         let (exports, _) = try Self.exports([.workoutRoute(route, locations: GoldenCase.routeLocations)], exporter)
         try #require(exports.count == 1)
@@ -125,7 +125,7 @@ struct HealthKitFHIRExporterRecordTests {
         let route = try StoredSampleFixtures.seriesSample(
             HKWorkoutRoute.self,
             sampleType: HKSeriesType.workoutRoute(),
-            shape: GoldenCase.seriesShape(uuid: 0xE4, duration: 1)
+            facts: GoldenCase.seriesFacts(uuid: 0xE4, duration: 1)
         )
         let heartRate = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xE5))
         let (exports, receipt) = try Self.exports([.workoutRoute(route, locations: GoldenCase.routeLocations), .sample(heartRate)], exporter)

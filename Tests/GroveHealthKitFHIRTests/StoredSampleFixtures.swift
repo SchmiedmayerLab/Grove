@@ -13,66 +13,21 @@ import HealthKit
 import ObjectiveC
 
 
-/// TEST-ONLY. An `HKElectrocardiogram` that states its whole reading itself.
-///
-/// HealthKit keeps an ECG's voltage count and sampling frequency in a C++ reading key-value coding cannot reach,
-/// and derives its classification from a private enumeration, so a stored ECG answers those five properties
-/// from the reading `StoredSampleFixtures.electrocardiogram(shape:reading:)` attaches. Every other fact lives
-/// where HealthKit keeps it.
-final class StoredElectrocardiogram: HKElectrocardiogram, @unchecked Sendable {
-    /// What an ECG reports about its recording.
-    struct Reading: Sendable {
-        var classification: HKElectrocardiogram.Classification
-        var symptomsStatus: HKElectrocardiogram.SymptomsStatus
-        var numberOfVoltageMeasurements: Int
-        var averageHeartRate: HKQuantity?
-        var samplingFrequency: HKQuantity?
-    }
-
-    /// The reading, as an object the runtime can associate with the instance.
-    private final class Statement: NSObject {
-        let reading: Reading
-
-        init(_ reading: Reading) {
-            self.reading = reading
-        }
-    }
-
-    /// The association key; only its address matters.
-    nonisolated(unsafe) private static var readingKey: UInt8 = 0
-
-    override var classification: Classification { reading.classification }
-    override var symptomsStatus: SymptomsStatus { reading.symptomsStatus }
-    override var numberOfVoltageMeasurements: Int { reading.numberOfVoltageMeasurements }
-    override var averageHeartRate: HKQuantity? { reading.averageHeartRate }
-    override var samplingFrequency: HKQuantity? { reading.samplingFrequency }
-
-    private var reading: Reading {
-        guard let statement = objc_getAssociatedObject(self, &Self.readingKey) as? Statement else {
-            preconditionFailure("A stored ECG states its reading when it is built")
-        }
-        return statement.reading
-    }
-
-    /// Attaches the reading every overridden property answers from.
-    func state(_ reading: Reading) {
-        objc_setAssociatedObject(self, &Self.readingKey, Statement(reading), .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-    }
-}
-
-
 /// TEST-ONLY. Builds HealthKit samples the way the store hands them back: with a chosen UUID, an
-/// attributable `HKSourceRevision`, and (for the series classes HealthKit offers no synthetic
-/// initializer for) chosen dates, device and metadata. The content corpus also restates facts
-/// HealthKit refuses when it creates a sample, and states ECG readings and voltages.
+/// attributable `HKSourceRevision`, and (for the classes HealthKit offers no synthetic initializer for, or
+/// for facts it refuses at creation) chosen dates, device, metadata and payload.
 ///
 /// HealthKit's public factories mint a fresh UUID and attribute every sample to the running
 /// process, so no test can otherwise pin a graph whose identities derive from the UUID, or one that
 /// carries writer and writer-host Device entries. The helper writes HealthKit's private ivars
 /// through key-value coding (`_UUID`, `_sourceRevision`, ...); such a sample behaves like a fetched
-/// one, including through an `NSKeyedArchiver` round trip. `StoredSampleFixturesTests` fails, and
-/// never skips, the moment HealthKit stops honoring a key, so a silent regression into
-/// process-attributed samples cannot hide behind green goldens.
+/// one, including through an `NSKeyedArchiver` round trip.
+///
+/// Only this type touches private storage, and only the ivars its key table declares for each class:
+/// ``instance(of:stating:)``, ``restate(_:with:)`` and ``read(_:of:)`` refuse any other key, and
+/// `StoredSampleFixturesTests` fails, and never skips, the moment HealthKit stops declaring one, so a silent
+/// regression into process-attributed samples cannot hide behind green goldens. The per-class builders the
+/// content corpus uses live in `StoredSampleFixtures+Corpus.swift`.
 ///
 /// Nothing here may be used outside the test target.
 enum StoredSampleFixtures {
@@ -82,37 +37,47 @@ enum StoredSampleFixtures {
         /// sample built in-process reports when nothing attributes it.
         static let unattributed = Writer(name: "", bundleIdentifier: "", version: nil, productType: nil)
 
+        /// The source's display name.
         var name: String
+        /// The source's bundle identifier.
         var bundleIdentifier: String
+        /// The revision's version, as the writing application stated it.
         var version: String?
+        /// The model of the device the writer ran on.
         var productType: String?
+        /// The operating system the writer ran on.
         var operatingSystemVersion = OperatingSystemVersion(majorVersion: 26, minorVersion: 1, patchVersion: 0)
     }
 
-    /// The facts of a sample whose class has no public initializer (`HKHeartbeatSeriesSample`,
-    /// `HKElectrocardiogram`, `HKWorkoutRoute`).
-    struct SeriesShape: Sendable {
+    /// Every fact a stored sample states besides its payload: its UUID, interval, device, metadata and writer.
+    ///
+    /// ``seriesSample(_:sampleType:facts:)`` builds a bare sample carrying exactly these facts, and
+    /// ``restated(_:facts:)`` states them on a built sample in place of what its initializer stated.
+    struct SampleFacts: Sendable {
+        /// The UUID the store gave the sample.
         var uuid: UUID
+        /// When the sample starts.
         var start: Date
+        /// When the sample ends; any instant, also one before `start`.
         var end: Date
+        /// The device the sample names.
         var device: HKDevice?
+        /// The metadata the sample carries, nil for none.
         var metadata: [String: any Sendable]?  // swiftlint:disable:this discouraged_optional_collection
+        /// The source revision the sample is attributed to.
         var writer: Writer
     }
 
-    #if !os(watchOS)
-    /// The FHIR resource a provider issued, as an `HKClinicalRecord` carries it.
-    struct ClinicalResource {
-        var version: HKFHIRVersion
-        var type: HKFHIRResourceType
-        var identifier: String
-        var data: Data
-    }
-    #endif
-
+    /// HealthKit no longer keeps a fact where the fixtures put it.
     enum FixtureError: Error, CustomStringConvertible {
+        /// HealthKit refused to allocate a bare instance of the class.
         case classNotConstructible(String)
+        /// The class no longer declares, or reads back, the private key.
         case keyNotHonored(key: String, class: String)
+        /// A fixture asked for a key the key table does not declare for the class.
+        case keyNotDeclared(key: String, class: String)
+        /// The unit does not measure the quantity type, so HealthKit would raise instead of converting.
+        case incompatibleUnit(unit: String, type: String)
 
         var description: String {
             switch self {
@@ -120,21 +85,48 @@ enum StoredSampleFixtures {
                 "HealthKit refused to allocate a bare \(name); the stored-sample fixtures need a new strategy"
             case let .keyNotHonored(key, name):
                 "\(name) no longer reads back the value written to '\(key)'; the stored-sample fixtures need a new strategy"
+            case let .keyNotDeclared(key, name):
+                "the stored-sample fixtures declare no private key '\(key)' for \(name); add it to the key table first"
+            case let .incompatibleUnit(unit, type):
+                "\(unit) does not measure \(type)"
             }
         }
     }
 
-    private static let objectKeys = ["UUID", "sourceRevision", "device", "metadata"]
-    private static let sampleKeys = ["sampleType", "startTimestamp", "endTimestamp"]
+    /// Every private ivar the fixtures write or read, by the HealthKit class that declares it (without the leading
+    /// underscore); a key is honored on that class and its subclasses, and nowhere else.
+    private static let privateKeys: [(className: String, keys: [String])] = {
+        var table: [(className: String, keys: [String])] = [
+            ("HKObject", ["UUID", "sourceRevision", "device", "metadata"]),
+            ("HKSample", ["sampleType", "startTimestamp", "endTimestamp"]),
+            ("HKSource", ["name", "bundleIdentifier"]),
+            ("HKQuantitySample", ["quantity", "count"]),
+            ("HKCategorySample", ["value"]),
+            ("HKCorrelation", ["objects"]),
+            ("HKWorkout", ["workoutActivityType", "duration", "primaryActivity"]),
+            ("HKWorkoutActivity", ["statisticsPerType"]),
+            ("HKStatistics", ["dataType", "sumQuantity", "averageQuantity", "minimumQuantity", "maximumQuantity"]),
+            ("HKStateOfMind", ["kind", "valence", "labels", "associations"]),
+            ("HKScoredAssessment", ["score"]),
+            ("HKElectrocardiogramVoltageMeasurement", ["timeSinceSampleStart", "leadIVoltage"])
+        ]
+        #if !os(watchOS)
+        table += [
+            ("HKCDADocumentSample", ["document"]),
+            ("HKCDADocument", ["internalDocumentData", "title"]),
+            ("HKClinicalRecord", ["FHIRResource"]),
+            ("HKFHIRResource", ["data", "FHIRVersion"])
+        ]
+        #endif
+        return table
+    }()
 
     /// An `HKSource` naming the writing application; HealthKit itself only ever vends one for the running process.
     static func source(name: String, bundleIdentifier: String) throws -> HKSource {
-        let source = try allocate(HKSource.self)
-        try write(name, to: "name", of: source)
-        try write(bundleIdentifier, to: "bundleIdentifier", of: source)
-        return unsafeDowncast(source, to: HKSource.self)
+        try instance(of: HKSource.self, stating: ["name": name, "bundleIdentifier": bundleIdentifier])
     }
 
+    /// The source revision a stored sample attributed to `writer` carries.
     static func sourceRevision(_ writer: Writer) throws -> HKSourceRevision {
         HKSourceRevision(
             source: try source(name: writer.name, bundleIdentifier: writer.bundleIdentifier),
@@ -162,136 +154,97 @@ enum StoredSampleFixtures {
     /// `sample` carrying exactly `metadata`, written past HealthKit's initializer, which raises an Objective-C exception
     /// for a value it refuses (a half sync pair, a negative or textual sync version) instead of returning one.
     static func withMetadata<Sample: HKSample>(_ sample: Sample, _ metadata: [String: Any]) throws -> Sample {
-        try write(metadata as NSDictionary, to: "metadata", of: sample)
+        try restate(sample, with: ["metadata": metadata as NSDictionary])
         guard (sample.metadata ?? [:]).keys.sorted() == metadata.keys.sorted() else {
             throw FixtureError.keyNotHonored(key: "metadata", class: String(describing: type(of: sample)))
         }
         return sample
     }
 
-    /// A bare instance of a sample class without a public initializer, carrying exactly `shape`.
-    static func seriesSample<Sample: HKSample>(_ type: Sample.Type, sampleType: HKSampleType, shape: SeriesShape) throws -> Sample {
-        let object = try allocate(type)
-        try write(sampleType, to: "sampleType", of: object)
-        let sample = try restated(unsafeDowncast(object, to: type), shape: shape)
+    /// A bare instance of a sample class without a public initializer, carrying exactly `facts`.
+    static func seriesSample<Sample: HKSample>(_ type: Sample.Type, sampleType: HKSampleType, facts: SampleFacts) throws -> Sample {
+        let sample = try restated(try instance(of: type, stating: ["sampleType": sampleType]), facts: facts)
         guard sample.sampleType == sampleType else {
             throw FixtureError.keyNotHonored(key: "sampleType", class: String(describing: type))
         }
         return sample
     }
 
-    /// `sample` carrying exactly `shape`'s facts in place of the ones its initializer stated.
+    /// `sample` carrying exactly `facts` in place of the ones its initializer stated.
     ///
     /// HealthKit validates a sample only when it creates one, so a fact it refuses there (a reversed interval,
     /// a metadata value of the wrong type, an instant after 4000) can be stated only afterwards, as here.
-    static func restated<Sample: HKSample>(_ sample: Sample, shape: SeriesShape) throws -> Sample {
-        try write(NSNumber(value: shape.start.timeIntervalSinceReferenceDate), to: "startTimestamp", of: sample)
-        try write(NSNumber(value: shape.end.timeIntervalSinceReferenceDate), to: "endTimestamp", of: sample)
-        try write(shape.device, to: "device", of: sample)
-        try write(shape.metadata, to: "metadata", of: sample)
-        let stored = try stored(sample, uuid: shape.uuid, writer: shape.writer)
+    static func restated<Sample: HKSample>(_ sample: Sample, facts: SampleFacts) throws -> Sample {
+        try write(NSNumber(value: facts.start.timeIntervalSinceReferenceDate), to: "startTimestamp", of: sample)
+        try write(NSNumber(value: facts.end.timeIntervalSinceReferenceDate), to: "endTimestamp", of: sample)
+        try write(facts.device, to: "device", of: sample)
+        try write(facts.metadata, to: "metadata", of: sample)
+        let stored = try stored(sample, uuid: facts.uuid, writer: facts.writer)
         let name = String(describing: type(of: sample))
-        guard stored.startDate == shape.start, stored.endDate == shape.end else {
+        guard stored.startDate == facts.start, stored.endDate == facts.end else {
             throw FixtureError.keyNotHonored(key: "startTimestamp/endTimestamp", class: name)
         }
-        guard stored.device == shape.device, (stored.metadata ?? [:]).keys.sorted() == (shape.metadata ?? [:]).keys.sorted() else {
+        guard stored.device == facts.device, (stored.metadata ?? [:]).keys.sorted() == (facts.metadata ?? [:]).keys.sorted() else {
             throw FixtureError.keyNotHonored(key: "device/metadata", class: name)
         }
         return stored
     }
 
-    /// An ECG carrying exactly `shape` and stating `reading` as HealthKit would report it.
-    static func electrocardiogram(shape: SeriesShape, reading: StoredElectrocardiogram.Reading) throws -> HKElectrocardiogram {
-        let ecg = try seriesSample(StoredElectrocardiogram.self, sampleType: HKObjectType.electrocardiogramType(), shape: shape)
-        ecg.state(reading)
-        return ecg
-    }
-
-    /// One voltage of an ECG's lead, or a measurement that states no lead voltage at all.
-    static func voltageMeasurement(offset: TimeInterval, millivolts: Double?) throws -> HKElectrocardiogram.VoltageMeasurement {
-        let object = try allocate(HKElectrocardiogram.VoltageMeasurement.self)
-        try write(NSNumber(value: offset), to: "timeSinceSampleStart", of: object)
-        try write(millivolts.map { HKQuantity(unit: .voltUnit(with: .milli), doubleValue: $0) }, to: "leadIVoltage", of: object)
-        let measurement = unsafeDowncast(object, to: HKElectrocardiogram.VoltageMeasurement.self)
-        guard measurement.timeSinceSampleStart.bitPattern == offset.bitPattern,
-              (measurement.quantity(for: .appleWatchSimilarToLeadI) == nil) == (millivolts == nil) else {
-            throw FixtureError.keyNotHonored(key: "timeSinceSampleStart/leadIVoltage", class: "HKElectrocardiogram.VoltageMeasurement")
-        }
-        return measurement
-    }
-
-    /// An `HKElectrocardiogram` reading `shape`'s facts, its classification, symptoms status and average heart rate.
-    /// Its voltages are HealthKit's private storage and stay unset, so it reports no measurement count and no sampling
-    /// frequency. HealthKit keeps the classification under a private numbering: `reading` names that number and the
-    /// public classification it must read back as, and the fixture fails unless every value reads back.
-    static func electrocardiogram(
-        shape: SeriesShape,
-        reading: (privateClassification: Int, classification: HKElectrocardiogram.Classification),
-        symptomsStatus: HKElectrocardiogram.SymptomsStatus,
-        averageHeartRate: HKQuantity
-    ) throws -> HKElectrocardiogram {
-        let ecg = try seriesSample(HKElectrocardiogram.self, sampleType: HKObjectType.electrocardiogramType(), shape: shape)
-        try write(NSNumber(value: reading.privateClassification), to: "privateClassification", of: ecg)
-        try write(NSNumber(value: symptomsStatus.rawValue), to: "symptomsStatus", of: ecg)
-        try write(averageHeartRate, to: "averageHeartRate", of: ecg)
-        guard ecg.classification == reading.classification,
-              ecg.symptomsStatus == symptomsStatus,
-              ecg.averageHeartRate == averageHeartRate else {
-            throw FixtureError.keyNotHonored(key: "privateClassification/symptomsStatus/averageHeartRate", class: String(describing: HKElectrocardiogram.self))
-        }
-        return ecg
-    }
-
-    #if !os(watchOS)
-    /// An `HKClinicalRecord` carrying `resource` as the provider's FHIR resource, the way a fetched record carries it;
-    /// HealthKit offers no initializer for either class. Fails unless the record reads every value back.
-    static func clinicalRecord(
-        _ type: HKClinicalTypeIdentifier,
-        shape: SeriesShape,
-        displayName: String,
-        resource: ClinicalResource
-    ) throws -> HKClinicalRecord {
-        let fhirResource = try allocate(HKFHIRResource.self)
-        try write(resource.version, to: "FHIRVersion", of: fhirResource)
-        try write(resource.type.rawValue, to: "resourceType", of: fhirResource)
-        try write(resource.identifier, to: "identifier", of: fhirResource)
-        try write(resource.data, to: "data", of: fhirResource)
-        let record = try seriesSample(HKClinicalRecord.self, sampleType: HKClinicalType(type), shape: shape)
-        try write(displayName, to: "displayName", of: record)
-        try write(fhirResource, to: "FHIRResource", of: record)
-        guard record.displayName == displayName,
-              record.fhirResource?.data == resource.data,
-              record.fhirResource?.resourceType == resource.type,
-              record.fhirResource?.fhirVersion.fhirRelease == resource.version.fhirRelease else {
-            throw FixtureError.keyNotHonored(key: "displayName/FHIRResource", class: String(describing: HKClinicalRecord.self))
-        }
-        return record
-    }
-    #endif
-
-    /// Whether every private ivar the fixtures write still exists, checked before a single value is written.
+    /// Whether every class in the key table still exists and still declares every key, checked before a single
+    /// value is written.
     static func privateStorageIsPresent() -> Bool {
-        (objectKeys.allSatisfy { class_getInstanceVariable(HKObject.self, "_\($0)") != nil })
-            && (sampleKeys.allSatisfy { class_getInstanceVariable(HKSample.self, "_\($0)") != nil })
-            && ["name", "bundleIdentifier"].allSatisfy { class_getInstanceVariable(HKSource.self, "_\($0)") != nil }
+        privateKeys.allSatisfy { className, keys in
+            guard let declaring = NSClassFromString(className) else {
+                return false
+            }
+            return keys.allSatisfy { class_getInstanceVariable(declaring, "_\($0)") != nil }
+        }
     }
 
-    /// A bare instance of `type`, none of whose initializers ran.
-    static func allocate(_ type: AnyClass) throws -> NSObject {
+    /// A bare instance of `type`, none of whose initializers ran, carrying `facts` in its private storage.
+    static func instance<Object: NSObject>(of type: Object.Type, stating facts: KeyValuePairs<String, Any?>) throws -> Object {
         guard let object = class_createInstance(type, 0) as? NSObject else {
             throw FixtureError.classNotConstructible(String(describing: type))
         }
-        return object
+        try restate(object, with: facts)
+        return unsafeDowncast(object, to: type)
     }
 
-    /// Writes one private ivar through key-value coding, failing when the class no longer has it.
-    static func write(_ value: Any?, to key: String, of object: NSObject) throws {
-        guard class_getInstanceVariable(type(of: object), "_\(key)") != nil else {
-            throw FixtureError.keyNotHonored(key: key, class: String(describing: type(of: object)))
+    /// States `facts` in `object`'s private storage, each under a key the key table declares for its class.
+    static func restate(_ object: NSObject, with facts: KeyValuePairs<String, Any?>) throws {
+        for (key, value) in facts {
+            try write(value, to: key, of: object)
         }
+    }
+
+    /// One private ivar's value, read through key-value coding only while the class still declares the key, so a
+    /// HealthKit that dropped it fails with ``FixtureError/keyNotHonored(key:class:)`` instead of raising.
+    static func read(_ key: String, of object: NSObject) throws -> Any? {
+        try requireDeclared(key, on: object)
+        return object.value(forKey: key)
+    }
+
+    /// Writes one private ivar through key-value coding, failing when the key table or the class lacks it.
+    private static func write(_ value: Any?, to key: String, of object: NSObject) throws {
+        try requireDeclared(key, on: object)
         object.setValue(value, forKey: key)
     }
 
+    /// Fails unless the key table declares `key` for a class `object` is a kind of, and the class still has it.
+    private static func requireDeclared(_ key: String, on object: NSObject) throws {
+        let name = String(describing: type(of: object))
+        let declared = privateKeys.contains { className, keys in
+            keys.contains(key) && NSClassFromString(className).map { object.isKind(of: $0) } == true
+        }
+        guard declared else {
+            throw FixtureError.keyNotDeclared(key: key, class: name)
+        }
+        guard class_getInstanceVariable(type(of: object), "_\(key)") != nil else {
+            throw FixtureError.keyNotHonored(key: key, class: name)
+        }
+    }
+
+    /// Fails unless `sample` reports the UUID and, when given, the writer that were written.
     private static func verify(_ sample: HKSample, uuid: UUID, writer: Writer?) throws {
         let name = String(describing: type(of: sample))
         guard sample.uuid == uuid else {

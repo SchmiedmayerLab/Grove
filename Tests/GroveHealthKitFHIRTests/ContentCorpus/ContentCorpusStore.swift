@@ -16,44 +16,61 @@ import Foundation
 ///
 /// The corpus is `Resources/ContentCorpus/content-corpus.jsonl`: one line per vector, an object with the vector's
 /// `id`, its `input` and its `output`, printed compactly with members sorted and output number lexemes kept. It is
-/// regenerated exactly like the goldens, OUTSIDE the checkout: with `GROVE_GOLDEN_OUTPUT_DIR` set (under
-/// `xcodebuild`, `TEST_RUNNER_GROVE_GOLDEN_OUTPUT_DIR`), the suite writes `content-corpus.jsonl` there, to be
-/// copied in afterwards, and only in a commit whose diff is exactly the enumerated change of one fix.
+/// regenerated OUTSIDE the checkout:
+/// with `GROVE_CONTENT_CORPUS_OUTPUT_DIR` set (under `xcodebuild`, `TEST_RUNNER_GROVE_CONTENT_CORPUS_OUTPUT_DIR`),
+/// the suite writes `content-corpus.jsonl` and `content-corpus.changes.txt` there, to be copied in (the corpus
+/// only) afterwards, and only in a commit whose diff is exactly the enumerated change of one fix.
 enum ContentCorpusStore {
-    /// One checked-in line: its key, its input, and the output it pins.
+    /// One checked-in line: its key, its input, the output it pins, and its bytes as checked in.
     struct Line {
+        /// The vector's key.
         let id: String
+        /// The vector's input.
         let input: ContentCorpusInput
+        /// The output the line pins.
         let output: LosslessJSONValue
-    }
+        /// The line's bytes, without the newline.
+        let bytes: Data
 
-    struct MalformedLine: Error, CustomStringConvertible {
-        let number: Int
-
-        var description: String {
-            "content-corpus.jsonl line \(number) is not an object with an id, an input and an output"
+        /// The vector the line states.
+        var vector: ContentCorpusVector {
+            ContentCorpusVector(id: id, input: input)
         }
     }
 
-    struct MissingCorpus: Error, CustomStringConvertible {
+    /// A line that is not an object with an id, an input this schema reads, and an output.
+    struct MalformedLine: Error, CustomStringConvertible {
+        /// The one-based line number.
+        let number: Int
+        /// What could not be read.
+        let reason: String
+
         var description: String {
-            "No content-corpus.jsonl is checked in; regenerate with GROVE_GOLDEN_OUTPUT_DIR and copy it into Resources/ContentCorpus"
+            "content-corpus.jsonl line \(number) is not an object with an id, an input and an output: \(reason)"
         }
     }
 
     /// What a line states besides its output; read by Foundation, which keeps every string exactly.
     private struct Key: Decodable {
+        /// The line's key.
         let id: String
+        /// The line's input.
         let input: ContentCorpusInput
     }
 
+    /// The corpus's place in the bundle and its regeneration directory.
+    static let resources = CheckedInResources.contentCorpus
+    /// The corpus's file name.
     static let name = "content-corpus"
+    /// The corpus's file extension.
     static let fileExtension = "jsonl"
+    /// The change report a regeneration writes beside the corpus.
+    static let changesFile = "content-corpus.changes.txt"
 
-    static let outputDirectory: URL? = ProcessInfo.processInfo.environment["GROVE_GOLDEN_OUTPUT_DIR"]
-        .flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: $0, isDirectory: true) }
-
-    static var isGenerating: Bool { outputDirectory != nil }
+    /// Whether this run regenerates the corpus instead of verifying it.
+    static var isGenerating: Bool {
+        resources.isGenerating
+    }
 
     /// Sorted members, unescaped slashes, and non-finite inputs as strings, since JSON has no literal for them.
     private static var encoder: JSONEncoder {
@@ -63,6 +80,7 @@ enum ContentCorpusStore {
         return encoder
     }
 
+    /// The decoder matching ``encoder``.
     private static var decoder: JSONDecoder {
         let decoder = JSONDecoder()
         decoder.nonConformingFloatDecodingStrategy = .convertFromString(positiveInfinity: "Infinity", negativeInfinity: "-Infinity", nan: "NaN")
@@ -71,30 +89,28 @@ enum ContentCorpusStore {
 
     /// The checked-in corpus, whichever way the build system laid the resources out.
     static func checkedIn() throws -> Data {
-        guard let url = Bundle.module.url(forResource: name, withExtension: fileExtension, subdirectory: "ContentCorpus")
-            ?? Bundle.module.url(forResource: name, withExtension: fileExtension) else {
-            throw MissingCorpus()
-        }
-        return try Data(contentsOf: url)
+        try resources.data(named: name, withExtension: fileExtension)
+    }
+
+    /// The lines of `data` with their one-based numbers, without the newlines.
+    static func rawLines(_ data: Data) -> [(number: Int, bytes: Data)] {
+        data.split(separator: UInt8(ascii: "\n"), omittingEmptySubsequences: true).enumerated().map { ($0 + 1, Data($1)) }
     }
 
     /// Reads the lines of `data` whose zero-based number leaves `shard.index` modulo `shard.count`, one at a time,
     /// so the corpus is never held as parsed tokens all at once.
     static func forEachLine(in data: Data, shard: (index: Int, count: Int) = (0, 1), _ body: (Line) throws -> Void) throws {
-        for (number, slice) in data.split(separator: UInt8(ascii: "\n"), omittingEmptySubsequences: true).enumerated()
-            where number % shard.count == shard.index {
+        for (number, bytes) in rawLines(data) where (number - 1) % shard.count == shard.index {
             try autoreleasepool {
-                try body(try line(Data(slice), number: number + 1))
+                try body(try line(bytes, number: number))
             }
         }
     }
 
     /// Every line's id and input, in order, leaving the outputs unread.
     static func vectors(in data: Data) throws -> [ContentCorpusVector] {
-        try data.split(separator: UInt8(ascii: "\n"), omittingEmptySubsequences: true).enumerated().map { number, slice in
-            guard let key = try? decoder.decode(Key.self, from: Data(slice)) else {
-                throw MalformedLine(number: number + 1)
-            }
+        try rawLines(data).map { number, bytes in
+            let key = try key(bytes, number: number)
             return ContentCorpusVector(id: key.id, input: key.input)
         }
     }
@@ -106,83 +122,38 @@ enum ContentCorpusStore {
 
     /// The line a vector and its output print as.
     static func line(_ vector: ContentCorpusVector, output: LosslessJSONValue) throws -> String {
-        let id = String(decoding: try encoder.encode(vector.id), as: UTF8.self)
-        let input = try inputText(vector.input)
-        return #"{"id":\#(id),"input":\#(input),"output":\#(output.canonicalText)}"#
+        let id = LosslessJSONValue.string(vector.id).canonicalText
+        return #"{"id":\#(id),"input":\#(try inputText(vector.input)),"output":\#(output.canonicalText)}"#
     }
 
-    /// Writes the regenerated corpus into the output directory.
-    static func write(_ lines: [String]) throws {
-        guard let directory = outputDirectory else {
-            return
+    /// Writes the regenerated corpus and its change report into the regeneration directory.
+    static func write(_ lines: [String], changes: ContentCorpusChanges) throws {
+        try resources.write(Data(lines.map { $0 + "\n" }.joined().utf8), toFile: "\(name).\(fileExtension)")
+        try resources.write(Data(changes.report.utf8), toFile: changesFile)
+    }
+
+    /// The id and input of line `number`.
+    private static func key(_ bytes: Data, number: Int) throws -> Key {
+        do {
+            return try decoder.decode(Key.self, from: bytes)
+        } catch {
+            throw MalformedLine(number: number, reason: String(describing: error))
         }
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let text = lines.map { $0 + "\n" }.joined()
-        try Data(text.utf8).write(to: directory.appendingPathComponent("\(name).\(fileExtension)"))
     }
 
-    private static func line(_ data: Data, number: Int) throws -> Line {
-        guard let key = try? decoder.decode(Key.self, from: data),
-              let output = (try? LosslessJSONValue(parsing: data))?["output"] else {
-            throw MalformedLine(number: number)
+    /// Line `number` read whole.
+    private static func line(_ bytes: Data, number: Int) throws -> Line {
+        let key = try key(bytes, number: number)
+        let tokens: LosslessJSONValue
+        do {
+            tokens = try LosslessJSONValue(parsing: bytes)
+        } catch {
+            throw MalformedLine(number: number, reason: String(describing: error))
         }
-        return Line(id: key.id, input: key.input, output: output)
-    }
-}
-
-
-extension LosslessJSONValue {
-    /// Compact JSON with members sorted by key and every number lexeme kept as read: two values print alike exactly
-    /// when their tokens are equal, so a corpus line diffs by content.
-    var canonicalText: String {
-        var text = ""
-        append(to: &text)
-        return text
-    }
-
-    private static func append(_ string: String, to text: inout String) {
-        text.append("\"")
-        for scalar in string.unicodeScalars {
-            switch scalar {
-            case "\"": text.append("\\\"")
-            case "\\": text.append("\\\\")
-            case "\n": text.append("\\n")
-            case "\r": text.append("\\r")
-            case "\t": text.append("\\t")
-            case _ where scalar.value < 0x20: text.append(String(format: "\\u%04x", scalar.value))
-            default: text.unicodeScalars.append(scalar)
-            }
+        guard let output = tokens["output"] else {
+            throw MalformedLine(number: number, reason: "no output")
         }
-        text.append("\"")
-    }
-
-    private func append(to text: inout String) {
-        switch self {
-        case .object(let members):
-            text.append("{")
-            for (index, key) in members.keys.sorted().enumerated() {
-                text.append(index == 0 ? "" : ",")
-                Self.append(key, to: &text)
-                text.append(":")
-                members[key]?.append(to: &text)
-            }
-            text.append("}")
-        case .array(let elements):
-            text.append("[")
-            for (index, element) in elements.enumerated() {
-                text.append(index == 0 ? "" : ",")
-                element.append(to: &text)
-            }
-            text.append("]")
-        case .string(let string):
-            Self.append(string, to: &text)
-        case .number(let lexeme):
-            text.append(lexeme)
-        case .boolean(let flag):
-            text.append(flag ? "true" : "false")
-        case .null:
-            text.append("null")
-        }
+        return Line(id: key.id, input: key.input, output: output, bytes: bytes)
     }
 }
 

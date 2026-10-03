@@ -23,7 +23,7 @@ struct StoredSampleFixturesTests {
     private static let uuid = GoldenFixtures.uuid(0xF0)
     private static let writer = GoldenFixtures.foreignWriter
 
-    private static func expectStored(_ sample: HKSample, sourceLocation: SourceLocation = #_sourceLocation) throws {
+    private static func expectStored(_ sample: HKSample, uuid: UUID = uuid, sourceLocation: SourceLocation = #_sourceLocation) throws {
         #expect(sample.uuid == uuid, sourceLocation: sourceLocation)
         let revision = sample.sourceRevision
         #expect(revision.source.name == writer.name, sourceLocation: sourceLocation)
@@ -44,6 +44,94 @@ struct StoredSampleFixturesTests {
     @Test("HealthKit still has the private storage the fixtures write")
     func privateStorageIsPresent() {
         #expect(StoredSampleFixtures.privateStorageIsPresent())
+    }
+
+    @Test("A key the key table does not declare for a class is refused before anything is written")
+    func undeclaredKeysAreRefused() throws {
+        let sample = try GoldenFixtures.heartRate(uuid: Self.uuid)
+        #expect(throws: StoredSampleFixtures.FixtureError.self) {
+            try StoredSampleFixtures.restate(sample, with: ["value": NSNumber(value: 1)])
+        }
+        #expect(throws: StoredSampleFixtures.FixtureError.self) {
+            try StoredSampleFixtures.read("freezeState", of: sample)
+        }
+        #expect(sample.quantity.doubleValue(for: GoldenFixtures.beatsPerMinute) == 72)
+    }
+
+    @Test("A restated sample states facts HealthKit refuses at creation: a reversed interval, mistyped metadata, a far-future instant")
+    func restatedSamplesStateRefusedFacts() throws {
+        var facts = GoldenCase.seriesFacts(uuid: 0xF1, duration: 30)
+        facts.end = facts.start.addingTimeInterval(-30)
+        facts.metadata = [HKMetadataKeyTimeZone: 42, HKMetadataKeyWasUserEntered: "yes"]
+        let reversed = try StoredSampleFixtures.restated(try GoldenFixtures.heartRate(uuid: Self.uuid), facts: facts)
+        #expect(reversed.uuid == GoldenFixtures.uuid(0xF1))
+        #expect(reversed.endDate < reversed.startDate)
+        #expect(reversed.metadata?[HKMetadataKeyTimeZone] as? Int == 42)
+        #expect(reversed.metadata?[HKMetadataKeyWasUserEntered] as? String == "yes")
+        try Self.expectStored(reversed, uuid: GoldenFixtures.uuid(0xF1))
+        facts.start = Date(timeIntervalSince1970: 253_402_300_800)
+        facts.end = facts.start
+        let farFuture = try StoredSampleFixtures.restated(try GoldenFixtures.heartRate(uuid: Self.uuid), facts: facts)
+        #expect(farFuture.startDate.timeIntervalSince1970 == 253_402_300_800)
+    }
+
+    @Test("A stored ECG states its whole reading, and its voltages state their offsets and leads")
+    func electrocardiogramsStateTheirReading() throws {
+        let reading = StoredElectrocardiogram.Reading(
+            classification: try #require(HKElectrocardiogram.Classification(rawValue: 99)),
+            symptomsStatus: .present,
+            numberOfVoltageMeasurements: 3,
+            averageHeartRate: HKQuantity(unit: GoldenFixtures.beatsPerMinute, doubleValue: 72.5),
+            samplingFrequency: nil
+        )
+        let ecg = try StoredSampleFixtures.electrocardiogram(facts: GoldenCase.seriesFacts(uuid: 0xF2, duration: 30), reading: reading)
+        #expect(ecg.classification.rawValue == 99)
+        #expect(ecg.symptomsStatus == .present)
+        #expect(ecg.numberOfVoltageMeasurements == 3)
+        #expect(ecg.averageHeartRate?.doubleValue(for: GoldenFixtures.beatsPerMinute) == 72.5)
+        #expect(ecg.samplingFrequency == nil)
+        try Self.expectStored(ecg, uuid: GoldenFixtures.uuid(0xF2))
+        #expect(HealthKitSourceType(ecg) == .electrocardiogram)
+
+        let voltage = try StoredSampleFixtures.voltageMeasurement(offset: 0.252, millivolts: -0.125)
+        #expect(voltage.timeSinceSampleStart == 0.252)
+        #expect(voltage.quantity(for: .appleWatchSimilarToLeadI)?.doubleValue(for: .voltUnit(with: .milli)) == -0.125)
+        let leadless = try StoredSampleFixtures.voltageMeasurement(offset: .nan, millivolts: nil)
+        #expect(leadless.timeSinceSampleStart.isNaN)
+        #expect(leadless.quantity(for: .appleWatchSimilarToLeadI) == nil)
+    }
+
+    @Test("Each corpus builder states a payload HealthKit refuses at creation, and the sample's facts")
+    func corpusBuildersStateTheirPayloads() throws {
+        let facts = GoldenCase.seriesFacts(uuid: 0xF3, duration: 60)
+        let steps = try StoredSampleFixtures.quantitySample(HKQuantityType(.stepCount), value: -1, unit: .count(), facts: facts)
+        #expect(steps.quantity.doubleValue(for: .count()) == -1)
+        #expect(steps is HKCumulativeQuantitySample)
+        let sleep = try StoredSampleFixtures.categorySample(HKCategoryType(.sleepAnalysis), value: 99, facts: facts)
+        #expect(sleep.value == 99)
+        let systolic = try StoredSampleFixtures.quantitySample(HKQuantityType(.bloodPressureSystolic), value: 120, unit: .millimeterOfMercury(), facts: facts)
+        let pressure = try StoredSampleFixtures.correlation(HKCorrelationType(.bloodPressure), objects: [systolic], facts: facts)
+        #expect(pressure.objects.map(\.sampleType) == [HKQuantityType(.bloodPressureSystolic)])
+        let distance = StoredSampleFixtures.WorkoutStatistic(
+            type: HKQuantityType(.distanceWalkingRunning), unit: .meterUnit(with: .kilo), sum: 10.5, average: nil, minimum: nil, maximum: nil
+        )
+        let workout = try StoredSampleFixtures.workout(activity: 9_999, duration: .nan, statistics: [distance], facts: facts)
+        #expect(workout.workoutActivityType.rawValue == 9_999)
+        #expect(workout.duration.isNaN)
+        let meters = try #require(workout.statistics(for: HKQuantityType(.distanceWalkingRunning))?.sumQuantity()?.doubleValue(for: .meter()))
+        #expect(abs(meters - 10_500) < 1e-6)
+        let reflection = try StoredSampleFixtures.stateOfMind(kind: 99, valence: 0.25, labels: [999], associations: [], facts: facts)
+        #expect(reflection.kind.rawValue == 99)
+        #expect(reflection.labels.map(\.rawValue) == [999])
+        let assessment = try #require(try StoredSampleFixtures.scoredAssessment(.GAD7, score: 99, facts: facts))
+        #expect(assessment.score == 99)
+        for sample in [steps, sleep, pressure, workout, reflection, assessment] as [HKSample] {
+            try Self.expectStored(sample, uuid: GoldenFixtures.uuid(0xF3))
+            #expect(sample.endDate == facts.end)
+        }
+        #expect(throws: StoredSampleFixtures.FixtureError.self) {
+            try StoredSampleFixtures.quantitySample(HKQuantityType(.stepCount), value: 1, unit: .meter(), facts: facts)
+        }
     }
 
     @Test("A sample from a public initializer takes the chosen UUID and writer, and keeps them through an archive")
@@ -69,17 +157,17 @@ struct StoredSampleFixturesTests {
         #expect(workout.workoutEvents?.count == 12)
     }
 
-    @Test("A series class without a public initializer takes every fact of its shape, and keeps them through an archive")
+    @Test("A series class without a public initializer takes every one of its facts, and keeps them through an archive")
     func seriesSamplesAreConstructible() throws {
-        let shape = GoldenCase.seriesShape(uuid: 0xF0, duration: 30)
-        let series = try StoredSampleFixtures.seriesSample(HKHeartbeatSeriesSample.self, sampleType: HKSeriesType.heartbeat(), shape: shape)
-        let ecg = try StoredSampleFixtures.seriesSample(HKElectrocardiogram.self, sampleType: HKObjectType.electrocardiogramType(), shape: shape)
-        let route = try StoredSampleFixtures.seriesSample(HKWorkoutRoute.self, sampleType: HKSeriesType.workoutRoute(), shape: shape)
+        let facts = GoldenCase.seriesFacts(uuid: 0xF0, duration: 30)
+        let series = try StoredSampleFixtures.seriesSample(HKHeartbeatSeriesSample.self, sampleType: HKSeriesType.heartbeat(), facts: facts)
+        let ecg = try StoredSampleFixtures.seriesSample(HKElectrocardiogram.self, sampleType: HKObjectType.electrocardiogramType(), facts: facts)
+        let route = try StoredSampleFixtures.seriesSample(HKWorkoutRoute.self, sampleType: HKSeriesType.workoutRoute(), facts: facts)
         for sample in [series, ecg, route] as [HKSample] {
             try Self.expectStored(sample)
-            #expect(sample.startDate == shape.start)
-            #expect(sample.endDate == shape.end)
-            #expect(sample.device == shape.device)
+            #expect(sample.startDate == facts.start)
+            #expect(sample.endDate == facts.end)
+            #expect(sample.device == facts.device)
             #expect(sample.metadata?[HKMetadataKeyTimeZone] as? String == GoldenFixtures.timeZone)
         }
         #expect(series.sampleType == HKSeriesType.heartbeat())
@@ -91,7 +179,7 @@ struct StoredSampleFixturesTests {
 
         let restored = try Self.archived(series, as: HKHeartbeatSeriesSample.self)
         try Self.expectStored(restored)
-        #expect(restored.startDate == shape.start)
+        #expect(restored.startDate == facts.start)
         #expect(restored.sampleType == HKSeriesType.heartbeat())
     }
 

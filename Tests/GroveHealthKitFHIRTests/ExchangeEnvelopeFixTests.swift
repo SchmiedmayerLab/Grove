@@ -55,7 +55,7 @@ struct ExchangeEnvelopeFixTests {
         let series = try StoredSampleFixtures.seriesSample(
             HKHeartbeatSeriesSample.self,
             sampleType: HKSeriesType.heartbeat(),
-            shape: GoldenCase.seriesShape(uuid: ordinal, duration: 2)
+            facts: GoldenCase.seriesFacts(uuid: ordinal, duration: 2)
         )
         return HealthKitHeartbeatSeriesRecord(series: series, heartbeats: [
             HealthKitHeartbeat(timeSinceSeriesStart: 0, precededByGap: false),
@@ -110,9 +110,9 @@ struct ExchangeEnvelopeFixTests {
             [HKMetadataKeyTimeZone: GoldenFixtures.timeZone, HKMetadataKeySyncIdentifier: "series-1", HKMetadataKeySyncVersion: 1.5]
         ]
         for metadata in malformed {
-            var shape = GoldenCase.seriesShape(uuid: 89, duration: 2)
-            shape.metadata = metadata
-            let series = try StoredSampleFixtures.seriesSample(HKHeartbeatSeriesSample.self, sampleType: HKSeriesType.heartbeat(), shape: shape)
+            var facts = GoldenCase.seriesFacts(uuid: 89, duration: 2)
+            facts.metadata = metadata
+            let series = try StoredSampleFixtures.seriesSample(HKHeartbeatSeriesSample.self, sampleType: HKSeriesType.heartbeat(), facts: facts)
             let record = HealthKitHeartbeatSeriesRecord(series: series, heartbeats: [HealthKitHeartbeat(timeSinceSeriesStart: 0, precededByGap: false)])
             #expect(throws: HealthKitConversionError.invalidValue(.heartbeatSeries, .invalidMetadataValue(.syncVersion))) {
                 try HealthKitConverter().convert(record, context: HealthKitConversionContext())

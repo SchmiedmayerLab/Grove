@@ -16,8 +16,9 @@ import ModelsR4
 
 
 /// Renders the public catalog surface the content layer publishes: inventory rows with their outputs and field
-/// dispositions, the unit bindings and both unit lookups, and the reverse projection of Observations.
+/// dispositions, the unit bindings, both unit lookups, and the reverse projection of Observations.
 enum ContentCorpusCatalog {
+    /// The tokens one catalog projection renders as.
     static func projection(_ projection: ContentCorpusProjection) throws -> LosslessJSONValue {
         switch projection {
         case .entry(let type):
@@ -31,12 +32,12 @@ enum ContentCorpusCatalog {
                 ])
             })
         case .unitSpellings(let spellings):
-            .object(Dictionary(spellings.map { spelling in
+            .object(Dictionary(uniqueKeysWithValues: spellings.map { spelling in
                 (spelling, LosslessJSONValue.object([
                     "ucumCode": unitText(HealthKitCatalog.unit(forUCUMCode: spelling)),
                     "unitSpelling": unitText(HealthKitCatalog.unit(forUnitSpelling: spelling))
                 ]))
-            }) { first, _ in first })
+            }))
         case .reverse(let observation):
             ContentCorpusRecorder.reverse(try JSONDecoder().decode(Observation.self, from: Data(observation.utf8)))
         }
@@ -67,10 +68,12 @@ enum ContentCorpusCatalog {
         ])
     }
 
+    /// A unit as its unit string, or null when the lookup found none.
     private static func unitText(_ unit: HKUnit?) -> LosslessJSONValue {
         unit.map { .string($0.unitString) } ?? .null
     }
 
+    /// A canonical as `url|version`, or its url alone.
     private static func canonicalText(_ canonical: FHIRPrimitive<Canonical>) -> String {
         guard let value = canonical.value else {
             return ""

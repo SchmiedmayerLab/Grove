@@ -8,31 +8,34 @@
 
 #if canImport(HealthKit)
 
-import CoreLocation
 import Foundation
 @testable import GroveHealthKitFHIR
 import HealthKit
 
 
-/// Rebuilds a corpus vector's records the way HealthKit hands them back, through `StoredSampleFixtures`.
-///
-/// Each sample starts from its class's public initializer with values HealthKit admits, or as a bare instance
-/// where the class has none or would refuse the vector, and is then restated with the vector's exact facts.
+/// Rebuilds a corpus vector's records the way HealthKit hands them back: it reads the vector's data into HealthKit
+/// types and lets `StoredSampleFixtures`, the only code that touches HealthKit's private storage, build them.
 enum ContentCorpusSamples {
+    /// Why a vector's record cannot be rebuilt here.
     enum RebuildError: Error, CustomStringConvertible {
+        /// This HealthKit does not know the type identifier.
         case unknownType(String)
+        /// This HealthKit has no class of that name.
         case unknownClass(String)
-        case incompatibleUnit(type: String, unit: String)
-        case notHonored(String)
+        /// HealthKit would trap on the fact, so no sample can state it.
+        case unstatable(String)
+        /// The record converts through its own entry point, not as a plain sample.
         case notASample
+        /// This platform has no such record; the vector is verified on the others.
+        case unavailableHere(String)
 
         var description: String {
             switch self {
             case .unknownType(let type): "this HealthKit does not know \(type)"
             case .unknownClass(let name): "this HealthKit has no class \(name)"
-            case let .incompatibleUnit(type, unit): "\(unit) does not measure \(type)"
-            case .notHonored(let fact): "HealthKit no longer reads back the \(fact) the corpus writes"
+            case .unstatable(let fact): "HealthKit traps on \(fact), so no sample states it"
             case .notASample: "the record converts through its own entry point"
+            case .unavailableHere(let type): "this platform has no \(type)"
             }
         }
     }
@@ -51,8 +54,8 @@ enum ContentCorpusSamples {
     ]
 
     /// Every fact of `source` except its payload, under `uuid`.
-    static func shape(_ source: ContentCorpusSource, uuid: UUID = uuid) -> StoredSampleFixtures.SeriesShape {
-        StoredSampleFixtures.SeriesShape(
+    static func facts(_ source: ContentCorpusSource, uuid: UUID = uuid) -> StoredSampleFixtures.SampleFacts {
+        StoredSampleFixtures.SampleFacts(
             uuid: uuid,
             start: Date(timeIntervalSince1970: source.start),
             end: Date(timeIntervalSince1970: source.end),
@@ -64,123 +67,132 @@ enum ContentCorpusSamples {
 
     /// The sample a vector feeds the plain sample entry point.
     static func sample(_ source: ContentCorpusSource) throws -> HKSample {
-        let shape = shape(source)
+        let facts = facts(source)
         switch source.record {
         case let .quantity(type, value, unit):
-            return try quantity(type: type, value: value, unit: unit, shape: shape)
+            return try quantity(type: type, value: value, unit: unit, facts: facts)
         case let .category(type, value):
-            return try category(type: type, value: value, shape: shape)
+            return try StoredSampleFixtures.categorySample(try categoryType(type), value: value, facts: facts)
         case let .correlation(type, members):
-            return try correlation(type: type, members: members, shape: shape)
-        case let .bare(type, sampleClass):
-            return try bare(type: type, sampleClass: sampleClass, shape: shape)
+            return try correlation(type: type, members: members, facts: facts)
         case .workout, .stateOfMind, .assessment:
-            return try reflection(source.record, shape: shape)
+            return try initializedSample(source.record, facts: facts)
+        case let .bare(type, sampleClass):
+            return try bare(type: type, sampleClass: sampleClass, facts: facts)
         case .cdaDocument, .clinicalRecord:
-            return try ContentCorpusClinicalSamples.sample(source.record, shape: shape)
+            return try clinicalSample(source.record, facts: facts)
         case .electrocardiogram, .heartbeatSeries, .workoutRoute:
             throw RebuildError.notASample
         }
     }
 
-    /// A quantity sample of any value over any interval: HealthKit validates both per type at creation, so the
-    /// sample is a bare instance of the class its initializer would have chosen.
-    static func quantity(type: String, value: Double, unit: String, shape: StoredSampleFixtures.SeriesShape) throws -> HKQuantitySample {
+    /// A quantity sample stating `value` in `unit`.
+    static func quantity(type: String, value: Double, unit: String, facts: StoredSampleFixtures.SampleFacts) throws -> HKQuantitySample {
+        try StoredSampleFixtures.quantitySample(try quantityType(type), value: value, unit: HKUnit(from: unit), facts: facts)
+    }
+
+    /// The quantity type an identifier names.
+    static func quantityType(_ type: String) throws -> HKQuantityType {
         guard let quantityType = HKObjectType.quantityType(forIdentifier: HKQuantityTypeIdentifier(rawValue: type)) else {
             throw RebuildError.unknownType(type)
         }
-        let healthKitUnit = HKUnit(from: unit)
-        guard quantityType.is(compatibleWith: healthKitUnit) else {
-            throw RebuildError.incompatibleUnit(type: type, unit: unit)
-        }
-        let sampleClass: HKQuantitySample.Type = quantityType.aggregationStyle == .cumulative
-            ? HKCumulativeQuantitySample.self
-            : HKDiscreteQuantitySample.self
-        let sample = try StoredSampleFixtures.seriesSample(sampleClass, sampleType: quantityType, shape: shape)
-        try StoredSampleFixtures.write(HKQuantity(unit: healthKitUnit, doubleValue: value), to: "quantity", of: sample)
-        try StoredSampleFixtures.write(NSNumber(value: 1), to: "count", of: sample)
-        let stated = sample.quantity.doubleValue(for: healthKitUnit)
-        guard stated == value || (stated.isNaN && value.isNaN) else {
-            throw RebuildError.notHonored("quantity")
-        }
-        return sample
+        return quantityType
     }
 
-    /// A category sample with any raw value: HealthKit refuses an unadmitted one at creation, so the sample is bare.
-    static func category(type: String, value: Int, shape: StoredSampleFixtures.SeriesShape) throws -> HKCategorySample {
+    /// The category type an identifier names.
+    static func categoryType(_ type: String) throws -> HKCategoryType {
         guard let categoryType = HKObjectType.categoryType(forIdentifier: HKCategoryTypeIdentifier(rawValue: type)) else {
             throw RebuildError.unknownType(type)
         }
-        let sample = try StoredSampleFixtures.seriesSample(HKCategorySample.self, sampleType: categoryType, shape: shape)
-        try StoredSampleFixtures.write(NSNumber(value: value), to: "value", of: sample)
-        guard sample.value == value else {
-            throw RebuildError.notHonored("category value")
-        }
-        return sample
+        return categoryType
     }
 
-    /// A correlation with exactly `members`, which HealthKit's initializer would refuse unless it is one valid pair.
+    /// A correlation of exactly `members`, each stating its own metadata, attributed to no writer and no device.
     private static func correlation(
         type: String,
         members: [ContentCorpusMember],
-        shape: StoredSampleFixtures.SeriesShape
+        facts: StoredSampleFixtures.SampleFacts
     ) throws -> HKCorrelation {
-        let identifier = HKCorrelationTypeIdentifier(rawValue: type)
-        guard let correlationType = HKObjectType.correlationType(forIdentifier: identifier) else {
+        guard let correlationType = HKObjectType.correlationType(forIdentifier: HKCorrelationTypeIdentifier(rawValue: type)) else {
             throw RebuildError.unknownType(type)
         }
-        let correlation = HKCorrelation(
-            type: correlationType,
-            start: GoldenFixtures.sampleStart,
-            end: GoldenFixtures.sampleStart,
-            objects: try placeholders(for: identifier)
-        )
-        let objects = NSMutableDictionary()
-        for (index, member) in members.enumerated() {
-            var memberShape = shape
-            memberShape.uuid = GoldenFixtures.uuid(0xD0 + UInt8(index))
-            memberShape.device = nil
-            memberShape.metadata = member.metadata.isEmpty ? nil : member.metadata.mapValues(\.value)
-            memberShape.writer = .unattributed
-            let sample = try quantity(type: member.type, value: member.value, unit: member.unit, shape: memberShape)
-            let group = objects[sample.sampleType] as? NSMutableSet ?? NSMutableSet()
-            group.add(sample)
-            objects[sample.sampleType] = group
+        let objects = try members.enumerated().map { index, member in
+            var memberFacts = facts
+            memberFacts.uuid = GoldenFixtures.uuid(0xD0 + UInt8(index))
+            memberFacts.device = nil
+            memberFacts.metadata = member.metadata.isEmpty ? nil : member.metadata.mapValues(\.value)
+            memberFacts.writer = .unattributed
+            return try quantity(type: member.type, value: member.value, unit: member.unit, facts: memberFacts)
         }
-        try StoredSampleFixtures.write(objects, to: "objects", of: correlation)
-        guard correlation.objects.count == members.count else {
-            throw RebuildError.notHonored("correlation objects")
-        }
-        return try StoredSampleFixtures.restated(correlation, shape: shape)
+        return try StoredSampleFixtures.correlation(correlationType, objects: objects, facts: facts)
     }
 
-    /// Objects the correlation's initializer admits: a blood-pressure pair, or one food entry. They carry no writer,
-    /// the only attribution the initializer accepts for its objects, and are replaced by the vector's members.
-    private static func placeholders(for identifier: HKCorrelationTypeIdentifier) throws -> Set<HKSample> {
-        let pressure = HKUnit.millimeterOfMercury()
-        let objects: [(HKQuantityTypeIdentifier, HKQuantity)] = identifier == .bloodPressure
-            ? [(.bloodPressureSystolic, HKQuantity(unit: pressure, doubleValue: 120)), (.bloodPressureDiastolic, HKQuantity(unit: pressure, doubleValue: 80))]
-            : [(.dietaryEnergyConsumed, HKQuantity(unit: .kilocalorie(), doubleValue: 1))]
-        return Set(try objects.enumerated().map { index, object in
-            let sample = HKQuantitySample(
-                type: HKQuantityType(object.0),
-                quantity: object.1,
-                start: GoldenFixtures.sampleStart,
-                end: GoldenFixtures.sampleStart
-            )
-            return try StoredSampleFixtures.stored(sample, uuid: GoldenFixtures.uuid(0xCE + UInt8(index)))
-        })
+    /// A workout, State of Mind or scored assessment: built through its initializer, which validates the payload,
+    /// then restated with the vector's exact payload and facts.
+    private static func initializedSample(_ record: ContentCorpusRecord, facts: StoredSampleFixtures.SampleFacts) throws -> HKSample {
+        switch record {
+        case let .workout(activity, duration, statistics):
+            let statistics = try statistics.map { statistic in
+                StoredSampleFixtures.WorkoutStatistic(
+                    type: try quantityType(statistic.type),
+                    unit: HKUnit(from: statistic.unit),
+                    sum: statistic.sum,
+                    average: statistic.average,
+                    minimum: statistic.minimum,
+                    maximum: statistic.maximum
+                )
+            }
+            return try StoredSampleFixtures.workout(activity: activity, duration: duration, statistics: statistics, facts: facts)
+        case let .stateOfMind(kind, valence, labels, associations):
+            // HealthKit classifies the valence when it is read and traps outside -1...1, so no vector states one.
+            guard (-1...1).contains(valence) else {
+                throw RebuildError.unstatable("valence \(valence)")
+            }
+            return try StoredSampleFixtures.stateOfMind(kind: kind, valence: valence, labels: labels, associations: associations, facts: facts)
+        case let .assessment(type, score):
+            let identifier = HKScoredAssessmentTypeIdentifier(rawValue: type)
+            guard let assessment = try StoredSampleFixtures.scoredAssessment(identifier, score: score, facts: facts) else {
+                throw RebuildError.unknownType(type)
+            }
+            return assessment
+        default:
+            throw RebuildError.notASample
+        }
     }
 
     /// A bare instance of a class the corpus feeds the plain entry point without a payload.
-    private static func bare(type: String, sampleClass: String, shape: StoredSampleFixtures.SeriesShape) throws -> HKSample {
+    private static func bare(type: String, sampleClass: String, facts: StoredSampleFixtures.SampleFacts) throws -> HKSample {
         guard let sampleType = bareSampleTypes[type] else {
             throw RebuildError.unknownType(type)
         }
         guard let healthKitClass = NSClassFromString(sampleClass) as? HKSample.Type else {
             throw RebuildError.unknownClass(sampleClass)
         }
-        return try StoredSampleFixtures.seriesSample(healthKitClass, sampleType: sampleType, shape: shape)
+        return try StoredSampleFixtures.seriesSample(healthKitClass, sampleType: sampleType, facts: facts)
+    }
+
+    /// A CDA document or clinical record, which watchOS does not have.
+    private static func clinicalSample(_ record: ContentCorpusRecord, facts: StoredSampleFixtures.SampleFacts) throws -> HKSample {
+        #if os(watchOS)
+        throw RebuildError.unavailableHere(record.sourceTypeIdentifier)
+        #else
+        switch record {
+        case let .cdaDocument(title, document):
+            return try StoredSampleFixtures.cdaDocument(title: title, document: document.map { Data($0.utf8) }, facts: facts)
+        case let .clinicalRecord(type, fhirVersion, resource):
+            guard let clinicalType = HKObjectType.clinicalType(forIdentifier: HKClinicalTypeIdentifier(rawValue: type)) else {
+                throw RebuildError.unknownType(type)
+            }
+            return try StoredSampleFixtures.clinicalRecord(
+                clinicalType,
+                fhirVersion: try HKFHIRVersion(fromVersionString: fhirVersion),
+                resource: resource.map { Data($0.utf8) },
+                facts: facts
+            )
+        default:
+            throw RebuildError.notASample
+        }
+        #endif
     }
 }
 

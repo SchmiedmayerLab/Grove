@@ -119,7 +119,7 @@ struct HealthKitECGEvidenceValidatorTests {
     @Test("An ECG's source evidence states the sample's own classification, symptoms, rate, algorithm and zone")
     func sourceEvidenceReadsTheSample() throws {
         let start = GoldenFixtures.sampleStart
-        let shape = StoredSampleFixtures.SeriesShape(
+        let facts = StoredSampleFixtures.SampleFacts(
             uuid: GoldenFixtures.uuid(0xC0),
             start: start,
             end: start.addingTimeInterval(30),
@@ -127,12 +127,13 @@ struct HealthKitECGEvidenceValidatorTests {
             metadata: [HKMetadataKeyTimeZone: GoldenFixtures.timeZone, HKMetadataKeyAppleECGAlgorithmVersion: HKAppleECGAlgorithmVersion.version2.rawValue],
             writer: GoldenFixtures.foreignWriter
         )
-        let ecg = try StoredSampleFixtures.electrocardiogram(
-            shape: shape,
-            reading: (privateClassification: 4, classification: .atrialFibrillation),
+        let ecg = try StoredSampleFixtures.electrocardiogram(facts: facts, reading: StoredElectrocardiogram.Reading(
+            classification: .atrialFibrillation,
             symptomsStatus: .present,
-            averageHeartRate: HKQuantity(unit: GoldenFixtures.beatsPerMinute, doubleValue: 112)
-        )
+            numberOfVoltageMeasurements: 0,
+            averageHeartRate: HKQuantity(unit: GoldenFixtures.beatsPerMinute, doubleValue: 112),
+            samplingFrequency: nil
+        ))
         let evidence = try HealthKitConverter.ecgSourceEvidence(ecg)
         #expect(evidence.sourceTypeIdentifier == HealthKitContract.electrocardiogramSourceTypeIdentifier)
         #expect(evidence.startDate == start)
@@ -142,7 +143,7 @@ struct HealthKitECGEvidenceValidatorTests {
         #expect(evidence.symptomsStatus == .present)
         #expect(evidence.averageHeartRate == 112)
         #expect(evidence.algorithmVersion == HKAppleECGAlgorithmVersion.version2.rawValue)
-        // Unset voltages report no measurements and no sampling frequency.
+        // A reading without voltages reports no measurements and no sampling frequency.
         #expect(evidence.numberOfVoltageMeasurements == 0)
         #expect(evidence.samplingFrequency == nil)
     }
@@ -188,7 +189,7 @@ struct HealthKitECGEvidenceValidatorTests {
         let ecg = try StoredSampleFixtures.seriesSample(
             HKElectrocardiogram.self,
             sampleType: HKObjectType.electrocardiogramType(),
-            shape: StoredSampleFixtures.SeriesShape(
+            facts: StoredSampleFixtures.SampleFacts(
                 uuid: GoldenFixtures.uuid(0xC2),
                 start: start,
                 end: start.addingTimeInterval(30),

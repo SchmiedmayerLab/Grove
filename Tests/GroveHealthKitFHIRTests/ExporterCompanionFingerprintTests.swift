@@ -90,7 +90,7 @@ struct ExporterCompanionFingerprintTests {
         let series = try StoredSampleFixtures.seriesSample(
             HKHeartbeatSeriesSample.self,
             sampleType: HKSeriesType.heartbeat(),
-            shape: GoldenCase.seriesShape(uuid: 0xF0, duration: 2)
+            facts: GoldenCase.seriesFacts(uuid: 0xF0, duration: 2)
         )
         var changedBeats = Self.beats
         changedBeats[1] = HealthKitHeartbeat(timeSinceSeriesStart: 0.85, precededByGap: false)
@@ -106,7 +106,7 @@ struct ExporterCompanionFingerprintTests {
         let route = try StoredSampleFixtures.seriesSample(
             HKWorkoutRoute.self,
             sampleType: HKSeriesType.workoutRoute(),
-            shape: GoldenCase.seriesShape(uuid: 0xF1, duration: 1)
+            facts: GoldenCase.seriesFacts(uuid: 0xF1, duration: 1)
         )
         var changedLocations = GoldenCase.routeLocations
         let moved = changedLocations[1]

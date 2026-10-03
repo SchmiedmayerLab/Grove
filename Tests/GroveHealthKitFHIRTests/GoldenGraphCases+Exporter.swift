@@ -102,10 +102,10 @@ enum ExporterGolden {
     /// A lab result the provider issued in `version`, carried byte for byte.
     static func clinicalRecord(uuid ordinal: UInt8, version: HKFHIRVersion, payload: String) throws -> HKClinicalRecord {
         try StoredSampleFixtures.clinicalRecord(
-            .labResultRecord,
-            shape: GoldenCase.seriesShape(uuid: ordinal, duration: 0),
-            displayName: "Hemoglobin A1c",
-            resource: StoredSampleFixtures.ClinicalResource(version: version, type: .observation, identifier: "a1c", data: Data(payload.utf8))
+            HKClinicalType(.labResultRecord),
+            fhirVersion: version,
+            resource: Data(payload.utf8),
+            facts: GoldenCase.seriesFacts(uuid: ordinal, duration: 0)
         )
     }
     #endif

@@ -14,17 +14,17 @@ import Foundation
 import HealthKit
 
 
-/// Clinical documents, retractions, the catalog projections and reverse projections.
+/// Retractions, the catalog projections and reverse projections.
 extension ContentCorpusGrid {
-    /// CDA documents and clinical records: every type and admitted release, refused releases and payloads,
-    /// missing payloads, bytes kept as delivered, and every link. watchOS has neither.
-    static var clinicalDocuments: [ContentCorpusVector] {
-        #if os(watchOS)
-        []
-        #else
-        cdaDocuments + clinicalRecords
-        #endif
-    }
+    /// The spellings both unit lookups are asked for: every UCUM code and display unit the bindings used when the
+    /// corpus was recorded, and spellings they do not use. Frozen, since the bindings are what the rewrite rewires;
+    /// `catalog/unit-bindings` pins the bindings themselves.
+    static let unitSpellings = [
+        "", "%", "/h", "/min", "Cel", "IU", "L", "L/min", "UV index", "W", "[iU]", "beats/minute", "breaths/minute", "cm", "dB(SPL)",
+        "dB[SPL]", "drinks", "falls", "flights", "g", "kcal", "kcal/(kg.h)", "kcal/kg/h", "kg", "kg/m2", "m", "m/s", "mL", "mL/kg/min",
+        "mg", "mg/dL", "min", "mmHg", "mm[Hg]", "ms", "not-a-unit", "puffs", "pushes", "revolutions/minute", "score", "steps", "strokes",
+        "uS", "ug", "{drinks}", "{falls}", "{flights}", "{puff}", "{pushes}", "{score}", "{steps}", "{strokes}", "{uvindex}"
+    ]
 
     /// The deletion of a record of every inventory row.
     static var retractions: [ContentCorpusVector] {
@@ -34,28 +34,29 @@ extension ContentCorpusGrid {
     }
 
     /// Every inventory row with its outputs and field dispositions, the unit bindings, and both unit lookups for
-    /// every spelling the bindings use plus spellings they do not.
+    /// every spelling.
     static var catalog: [ContentCorpusVector] {
         let entries = HealthKitContract.rows.map { row in
             ContentCorpusVector(id: "catalog/entry/\(row.sourceTypeIdentifier)", input: .catalog(projection: .entry(type: row.sourceTypeIdentifier)))
         }
-        let spellings = Set(HealthKitCatalog.unitBindings.flatMap { [$0.ucumCode, $0.displayUnit] })
-            .union(["", "%", "/h", "Cel", "kg", "kg/m2", "mmHg", "mm[Hg]", "beats/minute", "not-a-unit"])
-            .sorted()
         return entries + [
             ContentCorpusVector(id: "catalog/unit-bindings", input: .catalog(projection: .unitBindings)),
-            ContentCorpusVector(id: "catalog/unit-spellings", input: .catalog(projection: .unitSpellings(spellings: spellings)))
+            ContentCorpusVector(id: "catalog/unit-spellings", input: .catalog(projection: .unitSpellings(spellings: unitSpellings)))
         ]
     }
 
     /// A minimal Observation of every generated measurement and of body-mass index, and the edges of the
     /// reverse projection: Period and missing effective times, missing and mismatched values, manual entry,
     /// zones, a pre-1582 date, sync identity and amendment, and blood-pressure components.
+    ///
+    /// Body-mass index keeps the literal Observation it was recorded with, whether or not a catalog generates its
+    /// contract, and every other measurement appears once, the first catalog winning.
     static var reverseProjections: [ContentCorpusVector] {
-        var observations = (MeasurementCatalog.all + HealthKitMeasurementCatalog.all).map { contract in
-            (contract.id, minimalObservation(contract))
+        var seen: Set<String> = [bodyMassIndexID]
+        var observations = (MeasurementCatalog.all + HealthKitMeasurementCatalog.all).compactMap { contract in
+            seen.insert(contract.id).inserted ? (contract.id, minimalObservation(contract)) : nil
         }
-        observations.append(("body-mass-index", observation(code: ("http://loinc.org", "39156-5"), quantity: quantity("kg/m2", unit: "kg/m2", value: 1))))
+        observations.append((bodyMassIndexID, observation(code: ("http://loinc.org", "39156-5"), quantity: quantity("kg/m2", unit: "kg/m2", value: 1))))
         let projected = observations.map { id, resource in
             ContentCorpusVector(id: "reverse/\(id)", input: .catalog(projection: .reverse(observation: json(resource))))
         }
@@ -133,6 +134,7 @@ extension ContentCorpusGrid {
         return NSDecimalNumber(decimal: rounded).doubleValue
     }
 
+    /// A final Observation of `code` at the base instant in Los Angeles, stating `quantity`.
     static func observation(code: (system: String, code: String), quantity: [String: Any]) -> [String: Any] {
         [
             "resourceType": "Observation",
@@ -143,6 +145,7 @@ extension ContentCorpusGrid {
         ]
     }
 
+    /// A `valueQuantity` of `value` in UCUM `code`, displayed as `unit`.
     static func quantity(_ code: String, unit: String, value: Double, system: String = "http://unitsofmeasure.org") -> [String: Any] {
         ["system": system, "code": code, "unit": unit, "value": value]
     }

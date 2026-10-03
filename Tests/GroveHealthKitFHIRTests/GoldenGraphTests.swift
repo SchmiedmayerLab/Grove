@@ -20,25 +20,14 @@ import Testing
 ///
 /// Goldens are regenerated OUTSIDE the checkout: `GROVE_GOLDEN_OUTPUT_DIR` (under `xcodebuild`, pass it as
 /// `TEST_RUNNER_GROVE_GOLDEN_OUTPUT_DIR`) names a directory the suite writes every case into, and the files are
-/// copied into `Resources/Goldens/` afterwards. Writing into the checkout while Xcode runs the tests makes it
-/// re-resolve the package graph mid-run. A regeneration run compares nothing, so it fails on purpose: it can
-/// never be mistaken for a green golden run.
+/// copied into `Resources/Goldens/` afterwards (see ``CheckedInResources``). The content corpus has its own
+/// variable, so regenerating the goldens leaves it verified. A regeneration run compares nothing, so it fails on
+/// purpose: it can never be mistaken for a green golden run.
 enum GoldenStore {
-    struct MissingGolden: Error, CustomStringConvertible {
-        let name: String
-
-        var description: String {
-            "No golden '\(name).json' is checked in; regenerate with GROVE_GOLDEN_OUTPUT_DIR and copy it into Resources/Goldens"
-        }
-    }
-
-    static let subdirectory = "Goldens"
+    /// The file pinning every case's outline.
     static let outlinesName = "outlines"
-
-    static let outputDirectory: URL? = ProcessInfo.processInfo.environment["GROVE_GOLDEN_OUTPUT_DIR"]
-        .flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: $0, isDirectory: true) }
-
-    static var isGenerating: Bool { outputDirectory != nil }
+    /// The goldens' place in the bundle and their regeneration directory.
+    static let resources = CheckedInResources.goldens
 
     /// Sorted members and no escaped slashes, so a regenerated golden diffs by content; the comparison reads tokens, not text.
     static var encoder: JSONEncoder {
@@ -47,23 +36,12 @@ enum GoldenStore {
         return encoder
     }
 
-    /// Every checked-in golden's name, whichever way the build system laid the resources out: `.process` flattens the
-    /// subdirectory, and a lookup under a subdirectory that is not there answers an empty array, not nil.
-    static var checkedInNames: Set<String> {
-        let urls = [subdirectory, nil]
-            .compactMap { Bundle.module.urls(forResourcesWithExtension: "json", subdirectory: $0) }
-            .first { !$0.isEmpty } ?? []
-        return Set(urls.map { $0.deletingPathExtension().lastPathComponent })
-    }
-
+    /// One checked-in golden's bytes.
     static func data(named name: String) throws -> Data {
-        guard let url = Bundle.module.url(forResource: name, withExtension: "json", subdirectory: subdirectory)
-            ?? Bundle.module.url(forResource: name, withExtension: "json") else {
-            throw MissingGolden(name: name)
-        }
-        return try Data(contentsOf: url)
+        try resources.data(named: name, withExtension: "json")
     }
 
+    /// Every case's pinned outline, by case name.
     static func outlines() throws -> [String: GoldenOutline] {
         try JSONDecoder().decode([String: GoldenOutline].self, from: data(named: outlinesName))
     }
@@ -105,50 +83,6 @@ struct GoldenOutline: Codable, Equatable {
 }
 
 
-/// Names the first path where two token trees differ.
-enum TokenDiff {
-    /// The first path where two token trees differ, or nil when they are equal.
-    static func firstDifference(expected: LosslessJSONValue, actual: LosslessJSONValue, at path: String = "$") -> String? {
-        switch (expected, actual) {
-        case let (.object(lhs), .object(rhs)):
-            for key in Set(lhs.keys).union(rhs.keys).sorted() {
-                guard let left = lhs[key] else {
-                    return "\(path).\(key): golden has no such member, actual is \(rhs[key].map(describe) ?? "")"
-                }
-                guard let right = rhs[key] else {
-                    return "\(path).\(key): missing, golden has \(describe(left))"
-                }
-                if let difference = firstDifference(expected: left, actual: right, at: "\(path).\(key)") {
-                    return difference
-                }
-            }
-            // Every value matched under a dictionary lookup, which finds canonically equivalent names alike.
-            return expected == actual ? nil : "\(path): a member name differs in its Unicode scalars"
-        case let (.array(lhs), .array(rhs)):
-            for (index, pair) in zip(lhs, rhs).enumerated() {
-                if let difference = firstDifference(expected: pair.0, actual: pair.1, at: "\(path)[\(index)]") {
-                    return difference
-                }
-            }
-            return lhs.count == rhs.count ? nil : "\(path): golden has \(lhs.count) elements, actual has \(rhs.count)"
-        default:
-            return expected == actual ? nil : "\(path): golden \(describe(expected)), actual \(describe(actual))"
-        }
-    }
-
-    private static func describe(_ value: LosslessJSONValue) -> String {
-        switch value {
-        case .object(let members): "object(\(members.count) members)"
-        case .array(let elements): "array(\(elements.count))"
-        case .string(let text): "\"" + text.unicodeScalars.map { $0.isASCII ? String($0) : "\\u{\(String($0.value, radix: 16))}" }.joined() + "\""
-        case .number(let lexeme): lexeme
-        case .boolean(let flag): "\(flag)"
-        case .null: "null"
-        }
-    }
-}
-
-
 /// Pins the converter's current wire output, token for token, so the refactor can be proven identical.
 ///
 /// Each case converts fixed inputs through the OLD API and compares the graph's stored JSON (`ExchangeGraph.json`,
@@ -156,7 +90,7 @@ enum TokenDiff {
 /// and decimal lexemes are not. A failure names the first differing path.
 @Suite
 struct GoldenGraphTests {
-    @Test(.enabled(if: !GoldenStore.isGenerating), arguments: GoldenCase.all)
+    @Test(.enabled(if: !GoldenStore.resources.isGenerating), arguments: GoldenCase.all)
     func matchesCheckedInGolden(_ goldenCase: GoldenCase) throws {
         let output = try goldenCase.output()
         let actual = try LosslessJSONValue(parsing: output.graph.json)
@@ -184,7 +118,7 @@ struct GoldenGraphTests {
     @Test
     func everyCheckedInGoldenBelongsToACase() throws {
         let cases = Set(GoldenCase.all.map(\.name))
-        let checkedIn = GoldenStore.checkedInNames
+        let checkedIn = GoldenStore.resources.names(withExtension: "json")
         #expect(checkedIn.isSuperset(of: cases), "cases without a golden: \(cases.subtracting(checkedIn).sorted())")
         let strays = checkedIn.subtracting(cases).subtracting([GoldenStore.outlinesName]).subtracting(GoldenCase.unavailableHere)
         #expect(strays.isEmpty, "goldens without a case: \(strays.sorted())")
@@ -215,13 +149,10 @@ struct GoldenGraphTests {
             let event = graph.eventIdentifier.identifier.value
             #expect(events.updateValue(goldenCase.name, forKey: event) == nil, "\(goldenCase.name) shares its event with \(events[event] ?? "")")
 
-            if let directory = GoldenStore.outputDirectory {
-                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-                try sorted.write(to: directory.appendingPathComponent("\(goldenCase.name).json"))
-            }
+            try GoldenStore.resources.write(sorted, toFile: "\(goldenCase.name).json")
         }
-        if let directory = GoldenStore.outputDirectory {
-            try GoldenStore.encoder.encode(outlines).write(to: directory.appendingPathComponent("\(GoldenStore.outlinesName).json"))
+        try GoldenStore.resources.write(GoldenStore.encoder.encode(outlines), toFile: "\(GoldenStore.outlinesName).json")
+        if let directory = GoldenStore.resources.outputDirectory {
             Issue.record("Regenerated \(outlines.count) goldens into \(directory.path) and compared none: copy them into Resources/Goldens and rerun")
         }
     }
@@ -310,7 +241,11 @@ struct GoldenGraphTests {
         let renamed = try tokens(#"{"entry":[{"fullUrl":"a","resource":{"valueX":72}}],"timestamp":"t"}"#)
         #expect(TokenDiff.firstDifference(expected: golden, actual: reordered) == nil)
         #expect(TokenDiff.firstDifference(expected: golden, actual: lexeme) == "$.entry[0].resource.value: golden 72, actual 72.0")
-        #expect(TokenDiff.firstDifference(expected: golden, actual: longer) == "$.entry: golden has 1 elements, actual has 2")
+        #expect(TokenDiff.firstDifference(expected: golden, actual: longer) == "$.entry[1]: golden has no such member, actual is object(1 members)")
+        #expect(TokenDiff.differences(expected: golden, actual: renamed).map(\.change) == [
+            "$.entry[0].resource.value: 72 -> (absent)",
+            "$.entry[0].resource.valueX: (absent) -> 72"
+        ])
         #expect(TokenDiff.firstDifference(expected: golden, actual: renamed) == "$.entry[0].resource.value: missing, golden has 72")
         #expect(GoldenOutline(golden, warnings: []) == GoldenOutline(reordered, warnings: []))
         #expect(GoldenOutline(golden, warnings: []) != GoldenOutline(longer, warnings: []))
@@ -337,30 +272,6 @@ struct GoldenGraphTests {
         #expect(try tokens(#"{"name":"x"}"#) != marked)
         #expect(try tokens(#"{"name":"\uFEFFx"}"#) == marked)
         #expect(try tokens(#"["\#u{FEFF}a","\n\#u{FEFF}b"]"#) == .array([.string("\u{FEFF}a"), .string("\n\u{FEFF}b")]))
-    }
-}
-
-
-extension LosslessJSONValue {
-    var elements: [LosslessJSONValue]? { // swiftlint:disable:this discouraged_optional_collection
-        guard case .array(let elements) = self else {
-            return nil
-        }
-        return elements
-    }
-
-    var text: String? {
-        guard case .string(let text) = self else {
-            return nil
-        }
-        return text
-    }
-
-    subscript(member: String) -> LosslessJSONValue? {
-        guard case .object(let members) = self else {
-            return nil
-        }
-        return members[member]
     }
 }
 

@@ -8,7 +8,6 @@
 
 #if canImport(HealthKit)
 
-import CoreLocation
 import Foundation
 import GroveFHIRContract
 @testable import GroveHealthKitFHIR
@@ -27,9 +26,12 @@ enum GoldenCaseError: Error {
 extension GoldenCase {
     /// Sequences 60-79: graphs whose source has no public initializer, built on stored-sample fixtures.
     ///
-    /// The ECG goes through `HealthKitAssembly.convertECG(_:evidence:symptoms:request:symptomRequests:)`, the
-    /// internal seam below the public entry point, because the evidence an `HKElectrocardiogram` reports lives in
-    /// private storage the fixtures do not write; the envelope sample is a real `HKElectrocardiogram` nonetheless.
+    /// The ECG goes through `HealthKitConverter.convertECG(_:evidence:symptoms:context:symptomContexts:)`, the
+    /// internal seam that takes the ECG's evidence as given; the envelope sample is a real `HKElectrocardiogram`
+    /// nonetheless. These goldens predate `StoredSampleFixtures.electrocardiogram(facts:reading:)`, which states a
+    /// whole reading, so the content corpus converts its ECGs through the public record entry point instead. Both
+    /// state the same reading (`ContentCorpusGrid.electrocardiogramReading`), as the series and route state the
+    /// corpus's beats and fixes.
     static let documents: [GoldenCase] = [
         GoldenCase("electrocardiogram", sequence: 60) { sequence in
             try GoldenOutput(primaryOf: electrocardiogram(uuid: 60, sequence: sequence, symptom: nil))
@@ -48,20 +50,16 @@ extension GoldenCase {
             let series = try StoredSampleFixtures.seriesSample(
                 HKHeartbeatSeriesSample.self,
                 sampleType: HKSeriesType.heartbeat(),
-                shape: seriesShape(uuid: 62, duration: 2)
+                facts: seriesFacts(uuid: 62, duration: 2)
             )
-            let record = HealthKitHeartbeatSeriesRecord(series: series, heartbeats: [
-                HealthKitHeartbeat(timeSinceSeriesStart: 0, precededByGap: false),
-                HealthKitHeartbeat(timeSinceSeriesStart: 0.84, precededByGap: false),
-                HealthKitHeartbeat(timeSinceSeriesStart: 1.71, precededByGap: true)
-            ])
+            let record = HealthKitHeartbeatSeriesRecord(series: series, heartbeats: ContentCorpusGrid.heartbeats.map(\.heartbeat))
             return try GoldenOutput(primaryOf: HealthKitConverter().convert(record, context: GoldenFixtures.context(sequence: sequence)))
         },
         GoldenCase("workout-route", sequence: 63) { sequence in
             let route = try StoredSampleFixtures.seriesSample(
                 HKWorkoutRoute.self,
                 sampleType: HKSeriesType.workoutRoute(),
-                shape: seriesShape(uuid: 63, duration: 1)
+                facts: seriesFacts(uuid: 63, duration: 1)
             )
             var inputs = GoldenFixtures.Inputs()
             inputs.options.routeDisclosure = .authorized
@@ -131,31 +129,8 @@ extension GoldenCase {
     ]
     #endif
 
-    /// Two fixes one second apart; the second one reports no vertical accuracy, course or speed.
-    static let routeLocations = [
-        CLLocation(
-            coordinate: CLLocationCoordinate2D(latitude: 37.4275, longitude: -122.1697),
-            altitude: 30.5,
-            horizontalAccuracy: 5,
-            verticalAccuracy: 3,
-            course: 91.5,
-            courseAccuracy: 10,
-            speed: 2.25,
-            speedAccuracy: 0.5,
-            timestamp: GoldenFixtures.sampleStart
-        ),
-        CLLocation(
-            coordinate: CLLocationCoordinate2D(latitude: 37.4276, longitude: -122.1698),
-            altitude: 0,
-            horizontalAccuracy: 65,
-            verticalAccuracy: -1,
-            course: -1,
-            courseAccuracy: -1,
-            speed: -1,
-            speedAccuracy: -1,
-            timestamp: GoldenFixtures.sampleStart.addingTimeInterval(1)
-        )
-    ]
+    /// The corpus's two fixes one second apart; the second one reports no vertical accuracy, course or speed.
+    static let routeLocations = ContentCorpusGrid.routeLocations.map { $0.location(after: GoldenFixtures.sampleStart) }
 
     static let clinicalDocumentXML = """
         <?xml version="1.0" encoding="UTF-8"?>
@@ -205,12 +180,13 @@ extension GoldenCase {
     static func electrocardiogramEvidence(
         uuid ordinal: UInt8,
         symptomsPresent: Bool,
-        averageHeartRate: Double? = 72,
+        averageHeartRate: Double? = ContentCorpusGrid.electrocardiogramReading.averageHeartRate,
         timeZoned: Bool = true
     ) throws -> (sample: HKElectrocardiogram, evidence: HealthKitECGEvidence) {
-        var shape = seriesShape(uuid: ordinal, duration: 30)
-        shape.metadata = timeZoned ? shape.metadata : [:]
-        let ecg = try StoredSampleFixtures.seriesSample(HKElectrocardiogram.self, sampleType: HKObjectType.electrocardiogramType(), shape: shape)
+        var facts = seriesFacts(uuid: ordinal, duration: 30)
+        facts.metadata = timeZoned ? facts.metadata : [:]
+        let ecg = try StoredSampleFixtures.seriesSample(HKElectrocardiogram.self, sampleType: HKObjectType.electrocardiogramType(), facts: facts)
+        let reading = ContentCorpusGrid.electrocardiogramReading
         let source = HealthKitECGSourceEvidence(
             sourceTypeIdentifier: HealthKitContract.electrocardiogramSourceTypeIdentifier,
             startDate: GoldenFixtures.sampleStart,
@@ -218,20 +194,15 @@ extension GoldenCase {
             timeZone: try HealthKitConverter.healthKitTimeZone(for: ecg),
             classification: .sinusRhythm,
             symptomsStatus: symptomsPresent ? .present : .none,
-            numberOfVoltageMeasurements: 4,
+            numberOfVoltageMeasurements: reading.reportedCount,
             averageHeartRate: averageHeartRate,
-            samplingFrequency: 500,
+            samplingFrequency: reading.samplingFrequency,
             algorithmVersion: HKAppleECGAlgorithmVersion.version2.rawValue
         )
         let waveform = try HealthKitECGEvidenceValidator.validateWaveform(
             reportedCount: source.numberOfVoltageMeasurements,
             samplingFrequencyHertz: source.samplingFrequency,
-            points: [
-                HealthKitECGVoltagePoint(timeSinceSampleStart: 0.250, millivolts: 0.125),
-                HealthKitECGVoltagePoint(timeSinceSampleStart: 0.252, millivolts: 0.250),
-                HealthKitECGVoltagePoint(timeSinceSampleStart: 0.254, millivolts: -0.125),
-                HealthKitECGVoltagePoint(timeSinceSampleStart: 0.256, millivolts: 0)
-            ]
+            points: reading.voltages.map { HealthKitECGVoltagePoint(timeSinceSampleStart: $0.offset, millivolts: $0.millivolts ?? .nan) }
         )
         return (ecg, HealthKitECGEvidence(source: source, waveform: waveform))
     }
@@ -254,8 +225,8 @@ extension GoldenCase {
     }
 
     /// A series recorded by the watch, written by the foreign application.
-    static func seriesShape(uuid ordinal: UInt8, duration: TimeInterval) -> StoredSampleFixtures.SeriesShape {
-        StoredSampleFixtures.SeriesShape(
+    static func seriesFacts(uuid ordinal: UInt8, duration: TimeInterval) -> StoredSampleFixtures.SampleFacts {
+        StoredSampleFixtures.SampleFacts(
             uuid: GoldenFixtures.uuid(ordinal),
             start: GoldenFixtures.sampleStart,
             end: GoldenFixtures.sampleStart.addingTimeInterval(duration),

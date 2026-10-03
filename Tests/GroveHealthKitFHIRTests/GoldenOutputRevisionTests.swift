@@ -106,7 +106,7 @@ struct GoldenOutputRevisionTests {
     func everyGoldenHasARow() {
         let rows = Set(Self.table.map(\.name))
         #expect(rows.count == Self.table.count, "a golden is named twice")
-        let checkedIn = GoldenStore.checkedInNames
+        let checkedIn = GoldenStore.resources.names(withExtension: "json")
         #expect(checkedIn.subtracting(rows).isEmpty, "goldens without a revision row: \(checkedIn.subtracting(rows).sorted())")
         let stale = rows.subtracting(checkedIn).subtracting(GoldenCase.unavailableHere)
         #expect(stale.isEmpty, "rows without a golden: \(stale.sorted())")

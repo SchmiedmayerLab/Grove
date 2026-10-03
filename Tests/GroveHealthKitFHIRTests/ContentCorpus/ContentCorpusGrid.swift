@@ -14,15 +14,25 @@ import GroveFHIRContract
 import HealthKit
 
 
-/// Every content-corpus vector, generated from the public catalog alone: the input coverage of the step-7 oracle
-/// (synthesis section 16, O2), in a fixed order, each under a stable id.
+/// Every content-corpus vector, generated from the public catalog and the generated contracts: the input coverage
+/// of the step-7 oracle (synthesis section 16, O2), in a fixed order, each under a stable id. The grid is the same
+/// on every platform; a platform without a record type skips its vectors when it rebuilds them.
 ///
 /// Families: every quantity type over a value sweep (and every percent type over fractions), every category type
 /// over raw values -1 through 8, effective-time edges for each effective kind, blood-pressure member variants,
 /// every workout activity raw with and without statistics, State of Mind permutations, scored assessments, each
 /// metadata key valid, wrongly typed and absent, ECG evidence edges, every recording and clinical document
-/// builder, multi-fault precedence, retraction targets, and the catalog projections. Vectors are appended, never
-/// renumbered: an id names the same input for as long as the corpus exists.
+/// builder, multi-fault precedence, retraction targets, and the catalog projections.
+///
+/// Ids are stable: an id names one input for as long as the corpus exists. A regeneration may add vectors (each
+/// inside its family, so later lines move) but never drops an id or restates its input; `ContentCorpusChanges`
+/// enforces both. Inputs derived from what the rewrite regenerates are frozen here: the unit spellings are listed,
+/// and the body-mass-index vectors keep the inputs they were recorded with. M1 (generator G3) generates a BMI
+/// contract; `contracts` and the reverse projections skip a generated `body-mass-index`, so
+/// `quantity/HKQuantityTypeIdentifierBodyMassIndex/...` keep their fallback unit and value and `reverse/body-mass-index`
+/// keeps its literal Observation. Should G3 add the contract to `MeasurementCatalog.all` or
+/// `HealthKitMeasurementCatalog.all`, `reverse/body-mass-index` stops being refused (an output change M1 has to
+/// enumerate or avoid) and `ContentInvariantTests.quantityUnitsAreCompatible` counts 108 unit-bound rows, not 107.
 enum ContentCorpusGrid {
     /// 2026-08-17T22:30:00Z, 15:30 in Los Angeles: when every vector's record starts unless it states otherwise.
     static let start = GoldenFixtures.sampleStart.timeIntervalSince1970
@@ -42,10 +52,14 @@ enum ContentCorpusGrid {
         .gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci)), .literUnit(with: .milli).unitDivided(by: .minute())
     ]
 
-    /// Every generated measurement contract by id; the first catalog wins, as everywhere else.
+    /// Every generated measurement contract by id, the first catalog winning, as everywhere else; a generated
+    /// body-mass-index contract is skipped, so the BMI vectors keep the inputs they were recorded with.
     static let contracts: [String: MeasurementContract] = Dictionary(
-        (MeasurementCatalog.all + HealthKitMeasurementCatalog.all).map { ($0.id, $0) }
+        (MeasurementCatalog.all + HealthKitMeasurementCatalog.all).filter { $0.id != bodyMassIndexID }.map { ($0.id, $0) }
     ) { first, _ in first }
+
+    /// The measurement id of body-mass index, whose contract no generated catalog carried when the corpus was recorded.
+    static let bodyMassIndexID = "body-mass-index"
 
     /// Every vector, in corpus order.
     static var vectors: [ContentCorpusVector] {
@@ -142,6 +156,7 @@ enum ContentCorpusGrid {
         ("year-1", -62_135_596_800), ("year-0", -62_135_596_801)
     ]
 
+    /// The vector converting `source`, under `id`.
     static func convert(_ id: String, _ source: ContentCorpusSource) -> ContentCorpusVector {
         ContentCorpusVector(id: id, input: .convert(source: source))
     }

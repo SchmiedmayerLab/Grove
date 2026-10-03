@@ -17,16 +17,17 @@ import Testing
 
 /// Invariant checks over one conversion, shared by the corpus pass so no vector converts twice.
 enum ContentCorpusInvariants {
-    /// Every output a conversion emitted that its source type's catalog outputs do not name, and a primary output
-    /// that is not the catalog's first: identity enters only through the catalog's (role, discriminator) pairs.
-    static func uncatalogedOutputs(of outcome: ContentCorpusRecorder.Outcome) throws -> [String] {
+    /// Every output a conversion of `source` emitted that its source type's catalog outputs do not name, and a
+    /// primary output that is not the catalog's first: identity enters only through the catalog's (role,
+    /// discriminator) pairs, minted under the context the vector converted under.
+    static func uncatalogedOutputs(of outcome: ContentCorpusRecorder.Outcome, source: ContentCorpusSource) throws -> [String] {
         guard case .converted(let set) = outcome else {
             return []
         }
-        let context = try GoldenFixtures.context(sequence: ContentCorpusRecorder.sequence)
+        let context = try ContentCorpusRecorder.context(for: source)
         return try set.all.flatMap { conversion -> [String] in
             let record = try context.identityScope.sourceRecord(
-                adapterID: "healthkit",
+                adapterID: HealthKitConverter.adapterID,
                 sourceType: conversion.source.type.rawValue,
                 repositoryScope: context.event.repositoryScope,
                 nativeRecordID: conversion.source.uuid.uuidString.lowercased()
@@ -67,13 +68,19 @@ struct ContentInvariantTests {
     private static let notSampleTypes: Set<String> = Set(ContentCorpusGrid.rows(prefix: "HKCharacteristicTypeIdentifier").map(\.sourceTypeIdentifier))
         .union(["HKDataTypeUserAnnotatedMedicationConcept"])
 
+    /// Every generated measurement contract by id, the first catalog winning; unlike the corpus grid's, it follows
+    /// the catalogs wherever they go.
+    private static let contracts: [String: MeasurementContract] = Dictionary(
+        (MeasurementCatalog.all + HealthKitMeasurementCatalog.all).map { ($0.id, $0) }
+    ) { first, _ in first }
+
     /// Quantity rows that convert in a published unit binding: each one's unit measures its type.
     private static var boundQuantityRows: [(row: HealthKitContractRow, unit: HKUnit)] {
         ContentCorpusGrid.rows(prefix: "HKQuantityTypeIdentifier").compactMap { row in
             guard row.implementationStatus == .supported,
                   let type = HealthKitSourceType(rawValue: row.sourceTypeIdentifier),
                   !HealthKitCatalog.outputs(for: type).isEmpty,
-                  let code = ContentCorpusGrid.contract(row)?.quantity?.code,
+                  let code = row.measurementIDs.first.flatMap({ contracts[$0] })?.quantity?.code,
                   let unit = HealthKitCatalog.unit(forUCUMCode: code) else {
                 return nil
             }
@@ -111,7 +118,8 @@ struct ContentInvariantTests {
             let type = try #require(HKObjectType.quantityType(forIdentifier: HKQuantityTypeIdentifier(rawValue: row.sourceTypeIdentifier)))
             #expect(type.is(compatibleWith: unit), "\(row.sourceTypeIdentifier) cannot be read in \(unit.unitString)")
         }
-        // The 108 unit-read quantity rows, less body-mass index, whose contract no generated catalog carries yet.
+        // The 108 unit-read quantity rows, less body-mass index, whose contract no generated catalog carries yet. M1
+        // (generator G3) generates it; should it join a catalog's `all`, this count becomes 108 (see ContentCorpusGrid).
         #expect(bound.count == 107, "\(bound.count) quantity rows convert through a unit binding")
         for binding in HealthKitCatalog.unitBindings {
             let byCode = try #require(HealthKitCatalog.unit(forUCUMCode: binding.ucumCode))
@@ -150,12 +158,7 @@ struct ContentInvariantTests {
             }
             return source.record.sourceTypeIdentifier
         })
-        let rows = Set(HealthKitContract.rows.map(\.sourceTypeIdentifier)).subtracting(Self.notSampleTypes)
-        #if os(watchOS)
-        let missing = rows.subtracting(converted).filter { !$0.hasPrefix("HKClinicalTypeIdentifier") && $0 != "HKDocumentTypeIdentifierCDA" }
-        #else
-        let missing = rows.subtracting(converted)
-        #endif
+        let missing = Set(HealthKitContract.rows.map(\.sourceTypeIdentifier)).subtracting(Self.notSampleTypes).subtracting(converted)
         #expect(missing.isEmpty, "rows without a conversion vector: \(missing.sorted())")
     }
 }
