@@ -58,10 +58,10 @@ extension ContentCorpusGrid {
     /// reverse projection: Period and missing effective times, missing and mismatched values, manual entry,
     /// zones, a pre-1582 date, sync identity and amendment, and blood-pressure components.
     ///
-    /// Body-mass index keeps the literal Observation it was recorded with, whether or not a catalog generates its
-    /// contract, and every other measurement appears once, the first catalog winning.
+    /// Body-mass index, which no catalog lists, keeps the literal Observation it was recorded with, and every other
+    /// measurement appears once, the first catalog winning.
     static var reverseProjections: [ContentCorpusVector] {
-        var seen: Set<String> = [bodyMassIndexID]
+        var seen: Set<String> = []
         var observations = (MeasurementCatalog.all + HealthKitMeasurementCatalog.all).compactMap { contract in
             seen.insert(contract.id).inserted ? (contract.id, minimalObservation(contract)) : nil
         }

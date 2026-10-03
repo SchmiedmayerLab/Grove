@@ -30,12 +30,10 @@ import HealthKit
 /// inside its family, so later lines move) but never drops an id or restates its input; `ContentCorpusChanges`
 /// enforces both. Inputs derived from what the rewrite regenerates are frozen here: the unit spellings are listed,
 /// and the body-mass-index vectors keep the inputs they were recorded with. Generator G3 (M1) generates the BMI
-/// contract as `HealthKitContract.bodyMassIndex`, which neither `MeasurementCatalog.all` nor
-/// `HealthKitMeasurementCatalog.all` lists; `contracts` and the reverse projections skip a `body-mass-index` a catalog
-/// might list, so `quantity/HKQuantityTypeIdentifierBodyMassIndex/...` keep their fallback unit and value and
-/// `reverse/body-mass-index` keeps its literal Observation. A catalog listing it would also make
-/// `reverse/body-mass-index` stop being refused (an output change to enumerate) and
-/// `ContentInvariantTests.quantityUnitsAreCompatible` count 108 unit-bound rows, not 107.
+/// contract as `HealthKitContract.bodyMassIndex` and refuses a catalog measurement named `body-mass-index`, so
+/// neither `MeasurementCatalog.all` nor `HealthKitMeasurementCatalog.all` lists it:
+/// `quantity/HKQuantityTypeIdentifierBodyMassIndex/...` keep their fallback unit and value, and
+/// `reverse/body-mass-index` keeps its literal Observation.
 enum ContentCorpusGrid {
     /// 2026-08-17T22:30:00Z, 15:30 in Los Angeles: when every vector's record starts unless it states otherwise.
     static let start = GoldenFixtures.sampleStart.timeIntervalSince1970
@@ -65,13 +63,12 @@ enum ContentCorpusGrid {
         "L/min": "mL/min", "%": "count"
     ]
 
-    /// Every generated measurement contract by id, the first catalog winning, as everywhere else; a body-mass-index
-    /// contract a catalog might list is skipped, so the BMI vectors keep the inputs they were recorded with.
+    /// Every generated measurement contract by id, the first catalog winning, as everywhere else.
     static let contracts: [String: MeasurementContract] = Dictionary(
-        (MeasurementCatalog.all + HealthKitMeasurementCatalog.all).filter { $0.id != bodyMassIndexID }.map { ($0.id, $0) }
+        (MeasurementCatalog.all + HealthKitMeasurementCatalog.all).map { ($0.id, $0) }
     ) { first, _ in first }
 
-    /// The measurement id of body-mass index, whose contract no generated catalog carried when the corpus was recorded.
+    /// The measurement id of body-mass index, whose contract no generated catalog lists.
     static let bodyMassIndexID = "body-mass-index"
 
     /// Every vector, in corpus order.
