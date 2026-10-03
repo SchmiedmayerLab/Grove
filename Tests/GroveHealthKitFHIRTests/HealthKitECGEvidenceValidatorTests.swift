@@ -409,7 +409,7 @@ struct HealthKitECGEvidenceValidatorTests {
     func ecgTimestampsInTheRepeatedDSTHourKeepTheirInstant(_ zoneName: String, _ instantText: String) throws {
         let zone = try #require(TimeZone(identifier: zoneName))
         let instant = try #require(ISO8601DateFormatter().date(from: instantText))
-        let dateTime = try HealthKitConverter.exactHealthKitDateTime(instant, offsetSeconds: 0.25, timeZone: zone)
+        let dateTime = try HealthKitEffectiveTime.exactDateTime(instant, offset: 0.25, zone: zone)
         let decoded = try JSONDecoder().decode(DateTime.self, from: JSONEncoder().encode(dateTime))
         #expect(try decoded.asNSDate() == instant.addingTimeInterval(0.25))
     }

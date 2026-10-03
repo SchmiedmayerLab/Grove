@@ -165,15 +165,15 @@ extension HealthKitConverter {
         case .dateTime, .dateTimeOrPeriod:
             // Scalar HealthKit samples stay point-in-time even when the shared profile also admits
             // a Period for a separately modeled aggregate such as ECG average heart rate.
-            observation.effective = .dateTime(try effectiveDateTime(sample.startDate, sourceTimeZone: sourceTimeZone))
+            observation.effective = .dateTime(try HealthKitEffectiveTime.dateTime(sample.startDate, zone: sourceTimeZone))
         case .period:
             guard admitsEffectivePeriod(start: sample.startDate, end: sample.endDate, contract: contract) else {
                 throw HealthKitValueFailure.effectivePeriodInvalid
             }
-            observation.effective = .period(try effectivePeriod(
+            observation.effective = .period(try HealthKitEffectiveTime.period(
                 start: sample.startDate,
                 end: sample.endDate,
-                sourceTimeZone: sourceTimeZone
+                zone: sourceTimeZone
             ))
         }
     }
@@ -186,26 +186,6 @@ extension HealthKitConverter {
     /// non-zero Period.
     static func admitsEffectivePeriod(start: Date, end: Date, contract: HealthKitFHIRObservationContract) -> Bool {
         end > start || (end == start && !nonZeroPeriodMeasurements.contains(contract.id))
-    }
-
-    /// An effective instant in the source's own time zone, which also travels as the `timezone`
-    /// extension, or in UTC when the source names none.
-    static func effectiveDateTime(_ date: Date, sourceTimeZone: TimeZone?) throws -> FHIRPrimitive<DateTime> {
-        var dateTime = FHIRPrimitive(try HealthKitMobileCanonicalization.effectiveDateTime(date, timeZone: sourceTimeZone ?? .utc))
-        if let sourceTimeZone {
-            dateTime.append(
-                extension: Extension(url: Canonicals.timezone, value: .code(sourceTimeZone.identifier.asFHIRStringPrimitive())),
-                behaviour: .replace
-            )
-        }
-        return dateTime
-    }
-
-    static func effectivePeriod(start: Date, end: Date, sourceTimeZone: TimeZone?) throws -> Period {
-        Period(
-            end: try effectiveDateTime(end, sourceTimeZone: sourceTimeZone),
-            start: try effectiveDateTime(start, sourceTimeZone: sourceTimeZone)
-        )
     }
 
     private static func measurementDisplay(_ contract: HealthKitFHIRObservationContract) -> String {

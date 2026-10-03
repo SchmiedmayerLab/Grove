@@ -46,9 +46,9 @@ enum EffectiveRule: Hashable, Sendable {
 /// They keep the source zone's offset at the unrounded instant, print `.mmm` untrimmed, and write a
 /// zero offset as `Z`. ECG timing instead keeps exact Decimal seconds (``exactDateTime(_:offset:zone:)``).
 ///
-/// Local times outside 1582-10-15 through 9999 take Foundation's Gregorian calendar, which switches to
-/// the Julian calendar before the 1582 reform and clamps far-future years, so those instants keep the
-/// bytes they have always had.
+/// Dates are proleptic Gregorian, as ISO 8601 and FHIR define them, also before the 1582 reform where
+/// Foundation's Gregorian calendar switches to Julian dates. A local year outside 0001 through 9999 has
+/// no FHIR date-time and is refused.
 @available(iOS 18, macOS 15, watchOS 11, *)
 enum HealthKitEffectiveTime {
     /// Wall-clock fields of one local second.
@@ -61,9 +61,8 @@ enum HealthKitEffectiveTime {
         let second: Int
     }
 
-    /// Local seconds since 1970 from 1582-10-15T00:00 through 9999-12-31T23:59:59, where Foundation's
-    /// Gregorian calendar is proleptic Gregorian and `civil_from_days` agrees with it.
-    private static let arithmeticWindow: Swift.Range<Int64> = -12_219_292_800 ..< 253_402_300_800
+    /// The years a FHIR date-time can state.
+    private static let statableYears: ClosedRange<Int> = 1...9_999
 
     /// The widest UTC offset Foundation represents, ±18 hours.
     private static let maximumOffsetSeconds = 64_800
@@ -117,7 +116,7 @@ enum HealthKitEffectiveTime {
         let wholeSecondDate = Date(timeIntervalSince1970: TimeInterval(wholeSeconds))
         let fixedZone = zone.fixedOffset(at: wholeSecondDate)
         let fixedOffset = fixedZone.secondsFromGMT(for: wholeSecondDate)
-        guard let civil = civilTime(seconds: wholeSeconds, offset: fixedOffset, zone: fixedZone),
+        guard let civil = civilTime(seconds: wholeSeconds, offset: fixedOffset),
               let month = UInt8(exactly: civil.month),
               let day = UInt8(exactly: civil.day),
               let hour = UInt8(exactly: civil.hour),
@@ -133,7 +132,7 @@ enum HealthKitEffectiveTime {
 
     /// The Mobile lexeme `YYYY-MM-DDThh:mm:ss[.mmm](Z|±hh:mm)`, or `nil` when the instant has none:
     /// non-finite, beyond Int64 milliseconds, an offset that is not whole minutes within ±18 h, or a
-    /// local year outside 0…9999.
+    /// local year outside 1…9999.
     private static func mobileLexeme(_ date: Date, zone: TimeZone?) -> String? {
         guard let milliseconds = Int64(exactly: (date.timeIntervalSince1970 * 1_000).rounded(.toNearestOrEven)) else {
             return nil
@@ -143,7 +142,7 @@ enum HealthKitEffectiveTime {
             return nil
         }
         let (wholeSeconds, millisecond) = ExchangeInstant.floorDivide(milliseconds, by: 1_000)
-        guard let civil = civilTime(seconds: wholeSeconds, offset: offset), (0...9_999).contains(civil.year) else {
+        guard let civil = civilTime(seconds: wholeSeconds, offset: offset) else {
             return nil
         }
         var lexeme = ExchangeInstant.padded(Int64(civil.year), width: 4)
@@ -164,39 +163,26 @@ enum HealthKitEffectiveTime {
         ExchangeInstant.padded(Int64(value), width: 2)
     }
 
-    /// The wall-clock fields of a UTC second count at `offset` seconds from UTC; `zone`, when given, is the
-    /// zone stating that offset, else the fixed-offset zone of `offset`.
-    private static func civilTime(seconds: Int64, offset: Int, zone: TimeZone? = nil) -> CivilTime? {
+    /// The proleptic Gregorian wall-clock fields of a UTC second count at `offset` seconds from UTC, or
+    /// `nil` when the local year is not statable.
+    private static func civilTime(seconds: Int64, offset: Int) -> CivilTime? {
         let (local, overflow) = seconds.addingReportingOverflow(Int64(offset))
-        guard !overflow, arithmeticWindow.contains(local) else {
-            return (zone ?? TimeZone(secondsFromGMT: offset)).flatMap { foundationCivilTime(seconds: seconds, zone: $0) }
+        guard !overflow else {
+            return nil
         }
         let (days, secondOfDay) = ExchangeInstant.floorDivide(local, by: 86_400)
         let date = ExchangeInstant.civilDate(fromDays: days)
+        guard let year = Int(exactly: date.year), statableYears.contains(year) else {
+            return nil
+        }
         return CivilTime(
-            year: Int(date.year),
+            year: year,
             month: Int(date.month),
             day: Int(date.day),
             hour: Int(secondOfDay / 3_600),
             minute: Int(secondOfDay / 60 % 60),
             second: Int(secondOfDay % 60)
         )
-    }
-
-    /// The fields Foundation's Gregorian calendar states for a UTC second count in `zone`, including its Julian
-    /// dates before the reform, its era-relative years before year 1 and its clamp of far-future instants.
-    private static func foundationCivilTime(seconds: Int64, zone: TimeZone) -> CivilTime? {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = zone
-        let parts = calendar.dateComponents(
-            [.year, .month, .day, .hour, .minute, .second],
-            from: Date(timeIntervalSince1970: TimeInterval(seconds))
-        )
-        guard let year = parts.year, let month = parts.month, let day = parts.day,
-              let hour = parts.hour, let minute = parts.minute, let second = parts.second else {
-            return nil
-        }
-        return CivilTime(year: year, month: month, day: day, hour: hour, minute: minute, second: second)
     }
 }
 

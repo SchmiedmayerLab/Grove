@@ -36,13 +36,9 @@ struct HealthKitFHIRMobileCanonicalizationTests {
         ]
     )
     func effectiveInstant(testCase: InstantCase) throws {
-        let utc = try #require(TimeZone(secondsFromGMT: 0))
-        let result = try HealthKitMobileCanonicalization.effectiveDateTime(
-            Date(timeIntervalSince1970: testCase.source),
-            timeZone: utc
-        )
+        let result = try HealthKitEffectiveTime.dateTime(Date(timeIntervalSince1970: testCase.source), zone: nil)
 
-        #expect(result.description == testCase.expected)
+        #expect(result.value?.description == testCase.expected)
     }
 
     @Test("Mobile effective instants preserve the source offset and exactly emit .251")
@@ -50,12 +46,9 @@ struct HealthKitFHIRMobileCanonicalizationTests {
         let source = Date(timeIntervalSince1970: 1_787_148_600.251)
         let sourceTimeZone = try #require(TimeZone(secondsFromGMT: -7 * 60 * 60))
 
-        let result = try HealthKitMobileCanonicalization.effectiveDateTime(
-            source,
-            timeZone: sourceTimeZone
-        )
+        let result = try HealthKitEffectiveTime.dateTime(source, zone: sourceTimeZone)
 
-        #expect(result.description == "2026-08-19T07:10:00.251-07:00")
+        #expect(result.value?.description == "2026-08-19T07:10:00.251-07:00")
     }
 
     @Test("Scalar quantities use the shortest round-trip decimal representation")
@@ -67,7 +60,6 @@ struct HealthKitFHIRMobileCanonicalizationTests {
 
     @Test("Non-finite effective instants and quantities fail closed")
     func nonFiniteValues() throws {
-        let utc = try #require(TimeZone(secondsFromGMT: 0))
         #expect(throws: HealthKitValueFailure.shapeInvalid) {
             try HealthKitMobileCanonicalization.scalarDecimal(.infinity)
         }
@@ -75,10 +67,7 @@ struct HealthKitFHIRMobileCanonicalizationTests {
             try HealthKitMobileCanonicalization.scalarDecimal(.nan)
         }
         #expect(throws: HealthKitValueFailure.shapeInvalid) {
-            try HealthKitMobileCanonicalization.effectiveDateTime(
-                Date(timeIntervalSince1970: .infinity),
-                timeZone: utc
-            )
+            try HealthKitEffectiveTime.dateTime(Date(timeIntervalSince1970: .infinity), zone: nil)
         }
     }
 }

@@ -15,8 +15,8 @@ import ModelsR4
 import Testing
 
 
-/// The civil-arithmetic effective-time kernel against the `Calendar`-based builders it replaces (oracle O5),
-/// plus the behaviour each of them must keep.
+/// The civil-arithmetic effective-time kernel against Foundation's Gregorian calendar where that calendar is
+/// proleptic, its proleptic dates before the 1582 reform, and the behaviour each builder keeps.
 @Suite
 struct HealthKitEffectiveTimeTests {
     /// SplitMix64, so a failing sweep replays exactly.
@@ -32,7 +32,8 @@ struct HealthKitEffectiveTimeTests {
         }
     }
 
-    /// Seeded instants per zone. `TEST_RUNNER_GROVE_EFFECTIVE_TIME_SWEEP=1000000` runs the full O5 sweep.
+    /// Seeded instants per zone; `TEST_RUNNER_GROVE_EFFECTIVE_TIME_SWEEP=1000000` runs a million. They are drawn and
+    /// checked one at a time, each in its own pool, so a large sweep does not grow the heap concurrent suites measure.
     private static let sweepCount = ProcessInfo.processInfo.environment["GROVE_EFFECTIVE_TIME_SWEEP"].flatMap { Int($0) } ?? 3_000
 
     /// Named zones with odd, LMT, non-hour and DST offsets, plus both ±18 h extremes.
@@ -57,6 +58,10 @@ struct HealthKitEffectiveTimeTests {
         return (instants + aroundReform.map { $0 - 12_219_292_800 }).map { Date(timeIntervalSince1970: $0) } + [.distantPast, .distantFuture]
     }()
 
+    /// Local seconds since 1970 from 1582-10-15T00:00 through 9999-12-31T23:59:59: the only local times at which
+    /// Foundation's Gregorian calendar is proleptic Gregorian, so the only ones it can check the kernel at.
+    private static let foundationWindow: Swift.Range<Int64> = -12_219_292_800 ..< 253_402_300_800
+
     /// A third each: years −90 through 10200, the decades around the 1582 reform, and 1970 through 2039;
     /// a ±0.5 ms jitter puts exact and near half-millisecond ties in every range.
     private static func sweepInstant(_ generator: inout SeededGenerator) -> Date {
@@ -70,34 +75,66 @@ struct HealthKitEffectiveTimeTests {
         return Date(timeIntervalSince1970: Double(milliseconds) / 1_000 + jitter)
     }
 
-    /// `nil` when both builders print the same date-time and extension, or throw the same failure.
-    private static func mobileMismatch(_ date: Date, zone: TimeZone?) -> String? {
-        let legacy = Result { try HealthKitConverter.effectiveDateTime(date, sourceTimeZone: zone) }
-        let kernel = Result { () throws(HealthKitValueFailure) in try HealthKitEffectiveTime.dateTime(date, zone: zone) }
-        switch (legacy, kernel) {
-        case let (.success(lhs), .success(rhs)) where lhs == rhs && lhs.value?.description == rhs.value?.description:
-            return nil
-        case let (.failure(lhs), .failure(rhs)) where lhs as? HealthKitValueFailure == rhs:
-            return nil
-        default:
-            return "\(date.timeIntervalSince1970) \(zone?.identifier ?? "none"): \(legacy) != \(kernel)"
+    /// Foundation's `[year, month, day, hour, minute, second, offset]` for a whole UTC second at a fixed offset,
+    /// or none when the local time lies outside ``foundationWindow``.
+    private static func foundationFields(seconds: Int64, offset: Int) -> [Int] {
+        guard foundationWindow.contains(seconds + Int64(offset)), let zone = TimeZone(secondsFromGMT: offset) else {
+            return []
         }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        let parts = calendar.dateComponents(
+            [.year, .month, .day, .hour, .minute, .second],
+            from: Date(timeIntervalSince1970: TimeInterval(seconds))
+        )
+        return [parts.year, parts.month, parts.day, parts.hour, parts.minute, parts.second].compactMap(\.self) + [offset]
     }
 
-    /// `nil` when both ECG builders yield the same date-time and lexeme, or throw the same error.
-    private static func ecgMismatch(_ date: Date, offset: Decimal, zone: TimeZone) -> String? {
-        let legacy = Result { try HealthKitConverter.exactHealthKitDateTime(date, offsetSeconds: offset, timeZone: zone) }
-        let kernel = Result { () throws(HealthKitConversionError) in
-            try HealthKitEffectiveTime.exactDateTime(date, offset: offset, zone: zone)
+    /// The same fields of a built date-time, its seconds truncated to the whole second, or none without one.
+    private static func fields(_ dateTime: DateTime?) -> [Int] {
+        guard let dateTime, let time = dateTime.time, let zone = dateTime.timeZone else {
+            return []
         }
-        switch (legacy, kernel) {
-        case let (.success(lhs), .success(rhs)) where lhs == rhs && lhs.description == rhs.description:
+        // `NSDecimalNumber.intValue` misreads long mantissas, so the seconds are rounded as a Decimal first.
+        var second = time.second
+        var wholeSecond = Decimal()
+        NSDecimalRound(&wholeSecond, &second, 0, .down)
+        let date = dateTime.date
+        return [date.year, Int(date.month ?? 0), Int(date.day ?? 0), Int(time.hour), Int(time.minute)]
+            + [NSDecimalNumber(decimal: wholeSecond).intValue, zone.secondsFromGMT()]
+    }
+
+    /// `nil` when a Mobile instant whose local time Foundation can check has Foundation's fields; refusals, among
+    /// them offsets beyond the ±14 h a FHIR date-time states, and pre-reform dates are pinned separately.
+    private static func mobileMismatch(_ date: Date, zone: TimeZone?) -> String? {
+        let offset = zone?.secondsFromGMT(for: date) ?? 0
+        guard let milliseconds = Int64(exactly: (date.timeIntervalSince1970 * 1_000).rounded(.toNearestOrEven)),
+              offset.isMultiple(of: 60),
+              abs(offset) <= 50_400 else {
             return nil
-        case let (.failure(lhs), .failure(rhs)) where lhs as? HealthKitConversionError == rhs:
-            return nil
-        default:
-            return "\(date.timeIntervalSince1970)+\(offset) \(zone.identifier): \(legacy) != \(kernel)"
         }
+        let expected = foundationFields(seconds: ExchangeInstant.floorDivide(milliseconds, by: 1_000).quotient, offset: offset)
+        guard !expected.isEmpty else {
+            return nil
+        }
+        let actual = fields((try? HealthKitEffectiveTime.dateTime(date, zone: zone))?.value)
+        return actual == expected ? nil : "\(date.timeIntervalSince1970) \(zone?.identifier ?? "none"): \(actual) != \(expected)"
+    }
+
+    /// `nil` when an ECG instant a whole number of seconds after `date` has Foundation's fields at the zone's
+    /// fixed offset, wherever Foundation can check it.
+    private static func ecgMismatch(_ date: Date, offset: Int, zone: TimeZone) -> String? {
+        guard let since1970 = Int64(exactly: date.timeIntervalSince1970.rounded(.down)) else {
+            return nil
+        }
+        let wholeSeconds = since1970 + Int64(offset)
+        let zoneOffset = zone.secondsFromGMT(for: Date(timeIntervalSince1970: TimeInterval(wholeSeconds)))
+        let expected = foundationFields(seconds: wholeSeconds, offset: zoneOffset)
+        guard !expected.isEmpty else {
+            return nil
+        }
+        let actual = fields(try? HealthKitEffectiveTime.exactDateTime(date, offset: Decimal(offset), zone: zone))
+        return actual == expected ? nil : "\(date.timeIntervalSince1970)+\(offset) \(zone.identifier): \(actual) != \(expected)"
     }
 
     @Test("Every sweep zone resolves")
@@ -106,13 +143,14 @@ struct HealthKitEffectiveTimeTests {
         #expect(Self.namedZones.count == 12)
     }
 
-    @Test("Mobile instants equal the Calendar builder's over the seeded sweep and the edge list")
+    @Test("Mobile instants have Foundation's fields over the seeded sweep and the edge list")
     func mobileSweep() {
         var generator = SeededGenerator(state: 0x4D32_4D6F_6269_6C65)
         var mismatches: [String] = []
         for zone in Self.zones {
-            for date in Self.edges + (0..<Self.sweepCount).map({ _ in Self.sweepInstant(&generator) }) {
-                if let mismatch = Self.mobileMismatch(date, zone: zone) {
+            for index in 0..<(Self.edges.count + Self.sweepCount) {
+                let date = index < Self.edges.count ? Self.edges[index] : Self.sweepInstant(&generator)
+                if let mismatch = autoreleasepool(invoking: { Self.mobileMismatch(date, zone: zone) }) {
                     mismatches.append(mismatch)
                 }
             }
@@ -120,14 +158,15 @@ struct HealthKitEffectiveTimeTests {
         #expect(mismatches.isEmpty, "\(mismatches.count) mismatches: \(mismatches.prefix(20))")
     }
 
-    @Test("ECG instants equal the Calendar builder's over the seeded sweep and the edge list")
+    @Test("ECG instants have Foundation's fields over the seeded sweep and the edge list")
     func ecgSweep() {
         var generator = SeededGenerator(state: 0x4D32_4543_4721_2121)
         var mismatches: [String] = []
         for zone in Self.zones {
-            for date in Self.edges + (0..<Self.sweepCount).map({ _ in Self.sweepInstant(&generator) }) {
-                let offset = Decimal(Int.random(in: 0...20_480, using: &generator)) / 512
-                if let mismatch = Self.ecgMismatch(date, offset: offset, zone: zone ?? .gmt) {
+            for index in 0..<(Self.edges.count + Self.sweepCount) {
+                let date = index < Self.edges.count ? Self.edges[index] : Self.sweepInstant(&generator)
+                let offset = Int.random(in: 0...40, using: &generator)
+                if let mismatch = autoreleasepool(invoking: { Self.ecgMismatch(date, offset: offset, zone: zone ?? .gmt) }) {
                     mismatches.append(mismatch)
                 }
             }
@@ -169,7 +208,7 @@ struct HealthKitEffectiveTimeTests {
         let kiritimati = try #require(TimeZone(identifier: "Pacific/Kiritimati"))
         let refused: [(TimeInterval, TimeZone?)] = [
             (.infinity, nil), (.nan, nil), (1e21, nil), (1_787_148_600, seconds),
-            (253_402_300_799.9995, nil), (253_402_290_000, kiritimati)
+            (253_402_300_799.9995, nil), (253_402_290_000, kiritimati), (1_787_148_600, TimeZone(secondsFromGMT: 64_800))
         ]
         for (since1970, zone) in refused {
             #expect(throws: HealthKitValueFailure.shapeInvalid) {
@@ -178,13 +217,26 @@ struct HealthKitEffectiveTimeTests {
         }
     }
 
-    /// Foundation's Gregorian calendar is Julian before 1582-10-15; owner decision D2 moves these to proleptic dates.
-    @Test("Local times before the 1582 reform keep Foundation's Julian dates")
-    func preReformDatesStayJulian() throws {
+    /// Foundation's Gregorian calendar is Julian before 1582-10-15 and counts years by era; FHIR dates are proleptic
+    /// Gregorian from 0001 (owner decision D2).
+    @Test("Local times before the 1582 reform take proleptic Gregorian dates, and year 0 is refused")
+    func preReformDatesAreProleptic() throws {
+        let mobile: [(TimeInterval, String)] = [
+            (-12_219_292_801, "1582-10-14T23:59:59Z"), (-12_219_292_800, "1582-10-15T00:00:00Z"),
+            (-14_831_769_600, "1500-01-01T00:00:00Z"), (-62_135_596_800, "0001-01-01T00:00:00Z")
+        ]
+        for (since1970, expected) in mobile {
+            #expect(try HealthKitEffectiveTime.dateTime(Date(timeIntervalSince1970: since1970), zone: nil).value?.description == expected)
+        }
         let lastJulianSecond = Date(timeIntervalSince1970: -12_219_292_801)
-        #expect(try HealthKitEffectiveTime.dateTime(lastJulianSecond, zone: nil).value?.description == "1582-10-04T23:59:59Z")
-        let reform = Date(timeIntervalSince1970: -12_219_292_800)
-        #expect(try HealthKitEffectiveTime.dateTime(reform, zone: nil).value?.description == "1582-10-15T00:00:00Z")
+        #expect(try HealthKitEffectiveTime.exactDateTime(lastJulianSecond, offset: 0.25, zone: .gmt).description == "1582-10-14T23:59:59.25Z")
+        let yearZero = Date(timeIntervalSince1970: -62_135_596_801)
+        #expect(throws: HealthKitValueFailure.shapeInvalid) {
+            try HealthKitEffectiveTime.dateTime(yearZero, zone: nil)
+        }
+        #expect(throws: HealthKitConversionError.ecgEvidence(.invalidSourcePeriod)) {
+            try HealthKitEffectiveTime.exactDateTime(yearZero, offset: 0, zone: .gmt)
+        }
     }
 
     @Test("An instant rule takes the start; an interval rule takes start and end and refuses what no Period states")

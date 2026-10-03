@@ -175,14 +175,8 @@ extension HealthKitConverter {
             Extension(
                 url: Canonicals.healthKitECGSourcePeriodExtension,
                 value: .period(Period(
-                    end: FHIRPrimitive(try exactHealthKitDateTime(
-                        source.endDate,
-                        timeZone: source.timeZone
-                    )),
-                    start: FHIRPrimitive(try exactHealthKitDateTime(
-                        source.startDate,
-                        timeZone: source.timeZone
-                    ))
+                    end: FHIRPrimitive(try HealthKitEffectiveTime.exactDateTime(source.endDate, offset: 0, zone: source.timeZone)),
+                    start: FHIRPrimitive(try HealthKitEffectiveTime.exactDateTime(source.startDate, offset: 0, zone: source.timeZone))
                 ))
             )
         ]
@@ -197,15 +191,15 @@ extension HealthKitConverter {
             throw HealthKitConversionError.ecgEvidence(.invalidSourcePeriod)
         }
         return Period(
-            end: FHIRPrimitive(try exactHealthKitDateTime(
+            end: FHIRPrimitive(try HealthKitEffectiveTime.exactDateTime(
                 source.startDate,
-                offsetSeconds: waveform.lastOffsetSeconds,
-                timeZone: timeZone
+                offset: waveform.lastOffsetSeconds,
+                zone: timeZone
             )),
-            start: FHIRPrimitive(try exactHealthKitDateTime(
+            start: FHIRPrimitive(try HealthKitEffectiveTime.exactDateTime(
                 source.startDate,
-                offsetSeconds: waveform.firstOffsetSeconds,
-                timeZone: timeZone
+                offset: waveform.firstOffsetSeconds,
+                zone: timeZone
             ))
         )
     }

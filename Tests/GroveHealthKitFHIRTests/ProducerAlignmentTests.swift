@@ -233,7 +233,7 @@ struct EffectiveTimeZoneTests {
     @Test("A stated zone gives every bound its offset and the timezone extension")
     func statedZone() throws {
         let zone = try #require(TimeZone(identifier: "America/Los_Angeles"))
-        let period = try HealthKitConverter.effectivePeriod(start: Self.start, end: Self.end, sourceTimeZone: zone)
+        let period = try HealthKitEffectiveTime.period(start: Self.start, end: Self.end, zone: zone)
         #expect(period.start?.value?.description == "2026-08-17T16:30:00-07:00")
         #expect(period.end?.value?.description == "2026-08-17T16:40:00-07:00")
         for bound in [period.start, period.end] {
@@ -271,11 +271,11 @@ struct EffectiveTimeZoneTests {
 
     @Test("Without a stated zone every bound is in UTC and carries no timezone extension")
     func unstatedZone() throws {
-        let period = try HealthKitConverter.effectivePeriod(start: Self.start, end: Self.end, sourceTimeZone: nil)
+        let period = try HealthKitEffectiveTime.period(start: Self.start, end: Self.end, zone: nil)
         #expect(period.start?.value?.description == "2026-08-17T23:30:00Z")
         #expect(period.end?.value?.description == "2026-08-17T23:40:00Z")
         #expect(period.start?.extension == nil && period.end?.extension == nil)
-        #expect(try HealthKitConverter.effectiveDateTime(Self.start, sourceTimeZone: nil).value?.description == "2026-08-17T23:30:00Z")
+        #expect(try HealthKitEffectiveTime.dateTime(Self.start, zone: nil).value?.description == "2026-08-17T23:30:00Z")
     }
 }
 
