@@ -15,6 +15,7 @@ import HealthKit
 
 /// Each metadata key valid, wrongly typed and absent, keys a path does not read, and multi-fault precedence.
 extension ContentCorpusGrid {
+    /// A 72 bpm heart rate, the record every metadata family varies unless it needs another.
     static let heartRateRecord = ContentCorpusRecord.quantity(type: heartRate, value: 72, unit: "count/min")
 
     /// Every metadata family, in corpus order.
@@ -194,9 +195,23 @@ extension ContentCorpusGrid {
         ]
         var deviceOmission = ContentCorpusSource(nanHeartRate)
         deviceOmission.device = .watchWithoutUnitToken
-        return (cases + [("value-before-device-omission", deviceOmission)]).map { label, source in
+        return (cases + [("value-before-device-omission", deviceOmission)] + distinctlyRenderedPrecedence).map { label, source in
             convert("precedence/\(label)", source)
         }
+    }
+
+    /// Fault pairs whose faults render differently, so the output names the one checked first: a year-10000
+    /// instant (no FHIR date-time) before a category value and before a metadata component, and an unknown zone
+    /// before the year-10000 instant of an assessment, which has no value a fault could sit in.
+    static var distinctlyRenderedPrecedence: [(String, ContentCorpusSource)] {
+        let yearTenThousand = 253_402_300_800.0
+        let activity = ContentCorpusRecord.category(type: HKCategoryTypeIdentifier.sexualActivity.rawValue, value: 1)
+        let assessment = ContentCorpusRecord.assessment(type: HKScoredAssessmentTypeIdentifier.GAD7.rawValue, score: 6)
+        return [
+            ("effective-year-10000-before-category-value", ContentCorpusSource(activity, start: yearTenThousand, metadata: [:])),
+            ("effective-year-10000-before-motion-context", ContentCorpusSource(heartRateRecord, start: yearTenThousand, metadata: [HKMetadataKeyHeartRateMotionContext: .integer(3)])),
+            ("zone-before-assessment-effective", ContentCorpusSource(assessment, start: yearTenThousand, metadata: [HKMetadataKeyTimeZone: .string("Not/A-Time-Zone")]))
+        ]
     }
 
     /// How long a record of the row lasts; a record of another kind is an instant.

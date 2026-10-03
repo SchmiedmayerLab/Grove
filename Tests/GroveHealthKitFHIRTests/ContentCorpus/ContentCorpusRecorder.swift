@@ -8,6 +8,7 @@
 
 #if canImport(HealthKit)
 
+import CryptoKit
 import Foundation
 @testable import GroveFHIRContract
 @testable import GroveHealthKitFHIR
@@ -17,9 +18,10 @@ import ModelsR4
 
 /// Runs one corpus vector through the converter's public entry points and renders what came out as JSON tokens.
 ///
-/// A conversion renders, per graph, the output resources exactly as the wire carries them and the warnings in
-/// order; a refusal renders as its registry code, location and Swift error, and a policy omission as such. The rest
-/// of the envelope (Provenance, Devices) stays out: the goldens pin it.
+/// A conversion renders, per graph, the output resources exactly as the wire carries them, the envelope around
+/// them (each entry's resource type, each Provenance target, and a digest of the Bundle's own members and every
+/// entry that is not an output), and the warnings in order. A refusal renders as its registry code, location and
+/// Swift error, and a policy omission as such.
 ///
 /// Port points for the cleanup step: every conversion and retraction here goes through the deprecated
 /// `HealthKitConverter` facade (each call is marked `Port point`). When the facade is deleted they move to
@@ -45,8 +47,10 @@ enum ContentCorpusRecorder {
     static func output(for input: ContentCorpusInput) throws -> LosslessJSONValue {
         switch input {
         case .convert(let source): try render(try outcome(of: source))
-        case .retract(let type): try retraction(of: type)
+        case .roundTrip(let source): try roundTrip(source)
+        case let .retract(type, disclosure): try retraction(of: type, disclosure: disclosure)
         case .catalog(let projection): try ContentCorpusCatalog.projection(projection)
+        case .reverse(let observation): reverse(try observation.decoded(as: Observation.self))
         }
     }
 
@@ -115,12 +119,13 @@ enum ContentCorpusRecorder {
         return .object(["refused": refusal])
     }
 
-    /// One graph's output resources as its wire bytes state them, and its warnings as rendered.
+    /// One graph's output resources as its wire bytes state them, its envelope, and its warnings as rendered.
     static func graph(_ graph: ExchangeGraph, warnings: [String]) throws -> LosslessJSONValue {
         let bundle = try LosslessJSONValue(parsing: graph.json)
         let entries = bundle["entry"]?.elements ?? []
         return .object([
             "outputs": .array(entries.compactMap { $0["resource"] }.filter(isOutput)),
+            "envelope": envelope(of: bundle, entries: entries),
             "warnings": .array(warnings.map(LosslessJSONValue.string))
         ])
     }
@@ -128,6 +133,33 @@ enum ContentCorpusRecorder {
     /// Whether a resource is one the content layer produces.
     private static func isOutput(_ resource: LosslessJSONValue) -> Bool {
         outputResourceTypes.contains(resource["resourceType"]?.text ?? "")
+    }
+
+    /// The graph around its outputs: every entry's resource type in Bundle order, every Provenance target as the
+    /// index of the entry it names, and a SHA-256 digest of the Bundle's own members and every entry that is not
+    /// an output, so a change to a Device, the Provenance or the Bundle shows here even where no golden pins it.
+    private static func envelope(of bundle: LosslessJSONValue, entries: [LosslessJSONValue]) -> LosslessJSONValue {
+        let fullURLs = entries.map { $0["fullUrl"]?.text ?? "" }
+        let targets = entries.compactMap { $0["resource"] }
+            .filter { $0["resourceType"]?.text == ResourceType.provenance.rawValue }
+            .flatMap { $0["target"]?.elements ?? [] }
+            .map { target -> LosslessJSONValue in
+                guard let reference = target["reference"]?.text, let index = fullURLs.firstIndex(of: reference) else {
+                    return target
+                }
+                return .number(String(index))
+            }
+        var head: [String: LosslessJSONValue] = [:]
+        if case .object(let members) = bundle {
+            head = members.filter { $0.key != "entry" }
+        }
+        let others = entries.filter { !isOutput($0["resource"] ?? .null) }
+        let digested = LosslessJSONValue.object(["bundle": .object(head), "entries": .array(others)]).canonicalText
+        return .object([
+            "entries": .array(entries.map { .string($0["resource"]?["resourceType"]?.text ?? "") }),
+            "provenanceTargets": .array(targets),
+            "digest": .string(SHA256.hash(data: Data(digested.utf8)).map { String(format: "%02x", $0) }.joined())
+        ])
     }
 
     /// The outcome of one conversion that either produces a set or refuses.

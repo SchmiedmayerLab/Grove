@@ -18,11 +18,13 @@ import HealthKit
 /// of the step-7 oracle (synthesis section 16, O2), in a fixed order, each under a stable id. The grid is the same
 /// on every platform; a platform without a record type skips its vectors when it rebuilds them.
 ///
-/// Families: every quantity type over a value sweep (and every percent type over fractions), every category type
-/// over raw values -1 through 8, effective-time edges for each effective kind, blood-pressure member variants,
-/// every workout activity raw with and without statistics, State of Mind permutations, scored assessments, each
-/// metadata key valid, wrongly typed and absent, ECG evidence edges, every recording and clinical document
-/// builder, multi-fault precedence, retraction targets, and the catalog projections.
+/// Families: every quantity type over a value sweep (every percent type also over fractions, insulin delivery also
+/// with its required reason, every unit-bound type also in another unit), every category type over raw values -1
+/// through 8, effective-time edges for each effective kind, blood-pressure member variants, every workout activity
+/// raw with and without statistics, State of Mind permutations, scored assessments, each metadata key valid,
+/// wrongly typed and absent, ECG evidence and time edges, every recording and clinical document builder,
+/// multi-fault precedence, retraction targets, the catalog projections, reverse projections, and round trips of
+/// converted heart-rate and body-mass Observations.
 ///
 /// Ids are stable: an id names one input for as long as the corpus exists. A regeneration may add vectors (each
 /// inside its family, so later lines move) but never drops an id or restates its input; `ContentCorpusChanges`
@@ -52,6 +54,16 @@ enum ContentCorpusGrid {
         .gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci)), .literUnit(with: .milli).unitDivided(by: .minute())
     ]
 
+    /// Another unit of the same dimension for each bound unit, by the bound unit's string, so the reading converts.
+    /// A bound unit without one (count, IU, dB SPL, the effort score) has no such vector. No alternate is a molar
+    /// unit: its unit string prints the molar mass rounded, so the corpus could not restate it exactly.
+    static let alternateUnits: [String: String] = [
+        "kg": "lb", "g": "oz", "mg": "g", "mcg": "mg", "m": "ft", "cm": "in", "m/s": "km/hr", "count/min": "count/s",
+        "min": "hr", "ms": "s", "degC": "degF", "kcal": "kJ", "W": "kW", "L": "mL", "mL": "fl_oz_us",
+        "mg/dL": "g/L", "mcS": "S", "mL/min·kg": "L/min·kg", "kcal/hr·kg": "kJ/hr·kg",
+        "L/min": "mL/min", "%": "count"
+    ]
+
     /// Every generated measurement contract by id, the first catalog winning, as everywhere else; a generated
     /// body-mass-index contract is skipped, so the BMI vectors keep the inputs they were recorded with.
     static let contracts: [String: MeasurementContract] = Dictionary(
@@ -65,9 +77,11 @@ enum ContentCorpusGrid {
     static var vectors: [ContentCorpusVector] {
         quantities + categories + times + correlations + workouts + statesOfMind + assessments + bareRows
             + metadata + precedence + electrocardiograms + recordings + clinicalDocuments + retractions + catalog + reverseProjections
+            + roundTrips
     }
 
-    /// The vectors of every quantity row: a value the contract admits, the sweep, and for a percent type the fractions.
+    /// The vectors of every quantity row: a value the contract admits, the sweep, a percent type's fractions, insulin
+    /// delivery's sweep again with the reason it requires, and the admitted value in another unit.
     static var quantities: [ContentCorpusVector] {
         rows(prefix: "HKQuantityTypeIdentifier").flatMap { row -> [ContentCorpusVector] in
             let identifier = HKQuantityTypeIdentifier(rawValue: row.sourceTypeIdentifier)
@@ -76,15 +90,22 @@ enum ContentCorpusGrid {
                 return []
             }
             let isPercent = measurement?.quantity?.code == "%"
-            let values = [("row", isPercent ? 0.25 : representative(measurement))]
-                + sweep.map { (String($0), $0) }
-                + (isPercent ? fractions.map { ("fraction-\($0)", $0) } : [])
-            return values.map { label, value in
-                convert(
-                    "quantity/\(row.sourceTypeIdentifier)/\(label)",
-                    ContentCorpusSource(.quantity(type: row.sourceTypeIdentifier, value: value, unit: unit.unitString), end: start + span(measurement))
-                )
+            let admitted = isPercent ? 0.25 : representative(measurement)
+            let values = [("row", admitted)] + sweep.map { (String($0), $0) } + (isPercent ? fractions.map { ("fraction-\($0)", $0) } : [])
+            func vector(_ label: String, _ value: Double, unit: HKUnit, metadata: [String: ContentCorpusMetadataValue] = zone) -> ContentCorpusVector {
+                let record = ContentCorpusRecord.quantity(type: row.sourceTypeIdentifier, value: value, unit: unit.unitString)
+                return convert("quantity/\(row.sourceTypeIdentifier)/\(label)", ContentCorpusSource(record, end: start + span(measurement), metadata: metadata))
             }
+            var vectors = values.map { vector($0, $1, unit: unit) }
+            if identifier == .insulinDelivery {
+                let basal = zone.merging([HKMetadataKeyInsulinDeliveryReason: .integer(HKInsulinDeliveryReason.basal.rawValue)]) { $1 }
+                vectors += values.map { vector("basal/\($0)", $1, unit: unit, metadata: basal) }
+            }
+            if let alternate = alternateUnit(type, bound: unit, contract: measurement) {
+                let converted = HKQuantity(unit: unit, doubleValue: admitted).doubleValue(for: alternate)
+                vectors.append(vector("alternate-unit", converted, unit: alternate))
+            }
+            return vectors
         }
     }
 
@@ -106,55 +127,6 @@ enum ContentCorpusGrid {
             }
         }
     }
-
-    /// Effective-time edges for a dateTime, a dateTime-or-Period, a Period and a non-zero Period measurement.
-    static var times: [ContentCorpusVector] {
-        let records: [ContentCorpusRecord] = [
-            .quantity(type: HKQuantityTypeIdentifier.bodyMass.rawValue, value: 70, unit: "kg"),
-            .quantity(type: HKQuantityTypeIdentifier.heartRate.rawValue, value: 72, unit: "count/min"),
-            .quantity(type: HKQuantityTypeIdentifier.dietaryEnergyConsumed.rawValue, value: 650, unit: "kcal"),
-            .quantity(type: HKQuantityTypeIdentifier.stepCount.rawValue, value: 120, unit: "count")
-        ]
-        return records.flatMap { record -> [ContentCorpusVector] in
-            guard case .quantity(let type, _, _) = record else {
-                return []
-            }
-            let duration = span(HealthKitContract.rows.first { $0.sourceTypeIdentifier == type }.flatMap(contract))
-            let intervals = [("equal", 0.0), ("interval-45s", 45), ("reversed-45s", -45)].map { label, offset in
-                convert("time/\(type)/\(label)", ContentCorpusSource(record, end: start + offset))
-            }
-            let zones = timeZones.map { label, metadata in
-                convert("time/\(type)/zone-\(label)", ContentCorpusSource(record, end: start + 45, metadata: metadata))
-            }
-            let edges = instants.flatMap { label, instant in
-                [("none", [:]), ("los-angeles", zone)].map { zoneLabel, metadata in
-                    convert("time/\(type)/\(label)/\(zoneLabel)", ContentCorpusSource(record, start: instant, end: instant + duration, metadata: metadata))
-                }
-            }
-            return intervals + zones + edges
-        }
-    }
-
-    /// No zone, an unknown name, a number, and named zones with odd, half-hour and quarter-hour offsets.
-    static let timeZones: [(String, [String: ContentCorpusMetadataValue])] = [
-        ("none", [:]),
-        ("invalid", [HKMetadataKeyTimeZone: .string("Not/A-Time-Zone")]),
-        ("wrong-type", [HKMetadataKeyTimeZone: .integer(42)]),
-        ("los-angeles", [HKMetadataKeyTimeZone: .string("America/Los_Angeles")]),
-        ("kolkata", [HKMetadataKeyTimeZone: .string("Asia/Kolkata")]),
-        ("kathmandu", [HKMetadataKeyTimeZone: .string("Asia/Kathmandu")]),
-        ("st-johns", [HKMetadataKeyTimeZone: .string("America/St_Johns")]),
-        ("utc", [HKMetadataKeyTimeZone: .string("UTC")])
-    ]
-
-    /// Both occurrences of Los Angeles's repeated 2026 hour, its local mean time in 1800 (a non-minute offset),
-    /// a .250 fraction, exact half-millisecond ties, the year 9999/10000 and year 1/0 boundaries, and 1500.
-    static let instants: [(String, Double)] = [
-        ("repeated-hour-first", 1_793_521_800), ("repeated-hour-second", 1_793_525_400), ("lmt-1800", -5_364_662_400),
-        ("fraction-250", 1_787_148_600.25), ("tie-even", 1_787_148_600.0625), ("tie-odd", 1_787_148_600.1875),
-        ("year-9999", 253_402_300_799), ("year-10000", 253_402_300_800), ("pre-reform-1500", -14_831_769_600),
-        ("year-1", -62_135_596_800), ("year-0", -62_135_596_801)
-    ]
 
     /// The vector converting `source`, under `id`.
     static func convert(_ id: String, _ source: ContentCorpusSource) -> ContentCorpusVector {
@@ -185,6 +157,16 @@ enum ContentCorpusGrid {
             return unit
         }
         return fallbackUnits.first { type.is(compatibleWith: $0) }
+    }
+
+    /// Another unit measuring `type` than the one its contract binds, when it binds one and ``alternateUnits``
+    /// names another of its dimension.
+    static func alternateUnit(_ type: HKQuantityType, bound: HKUnit, contract: MeasurementContract?) -> HKUnit? {
+        guard let code = contract?.quantity?.code, code == "%" || HealthKitCatalog.unit(forUCUMCode: code) == bound,
+              let alternate = alternateUnits[bound.unitString].map(HKUnit.init(from:)), type.is(compatibleWith: alternate) else {
+            return nil
+        }
+        return alternate
     }
 
     /// A value the contract's domain admits, so every row has one vector that converts if anything does.

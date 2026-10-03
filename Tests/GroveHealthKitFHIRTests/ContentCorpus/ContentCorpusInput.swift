@@ -61,6 +61,65 @@ enum ContentCorpusMetadataValue: Codable, Sendable {
 }
 
 
+/// A JSON document stated inside an input, such as the Observation a reverse projection reads: nested as JSON, not
+/// escaped into a string, with every number kept as the exact decimal its lexeme states.
+indirect enum ContentCorpusJSON: Codable, Sendable {
+    /// An object, its members by key.
+    case object([String: ContentCorpusJSON])
+    /// An array, in order.
+    case array([ContentCorpusJSON])
+    /// A string.
+    case string(String)
+    /// A number, as the exact decimal its lexeme states.
+    case number(Decimal)
+    /// `true` or `false`.
+    case boolean(Bool)
+    /// `null`.
+    case null
+
+    /// The document Foundation's JSON serialization prints for `object`, read back exactly.
+    init(serializing object: Any) throws {
+        let data = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys, .withoutEscapingSlashes])
+        self = try JSONDecoder().decode(Self.self, from: data)
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        // Each kind is tried in turn; a mismatch is the expected answer for every kind but one.
+        if container.decodeNil() {
+            self = .null
+        } else if let flag = try? container.decode(Bool.self) {
+            self = .boolean(flag)
+        } else if let number = try? container.decode(Decimal.self) {
+            self = .number(number)
+        } else if let text = try? container.decode(String.self) {
+            self = .string(text)
+        } else if let elements = try? container.decode([Self].self) {
+            self = .array(elements)
+        } else {
+            self = .object(try container.decode([String: Self].self))
+        }
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .object(let members): try container.encode(members)
+        case .array(let elements): try container.encode(elements)
+        case .string(let text): try container.encode(text)
+        case .number(let number): try container.encode(number)
+        case .boolean(let flag): try container.encode(flag)
+        case .null: try container.encodeNil()
+        }
+    }
+
+    /// The document decoded as `Value`, from the bytes JSON encoding prints for it.
+    func decoded<Value: Decodable>(as type: Value.Type) throws -> Value {
+        try JSONDecoder().decode(type, from: JSONEncoder().encode(self))
+    }
+}
+
+
 /// One member of a correlation: its quantity type, value in `unit`, and the metadata it states itself.
 struct ContentCorpusMember: Codable, Sendable {
     /// The member's quantity type identifier.
@@ -237,6 +296,13 @@ struct ContentCorpusSource: Codable, Sendable {
 }
 
 
+/// A disclosure policy a retraction is named under.
+enum ContentCorpusDisclosure: String, Codable, Sendable {
+    /// The store's UUID travels as each target's native record identifier, under `GoldenFixtures.nativeIdentifierSystem`.
+    case nativeIdentifier
+}
+
+
 /// One part of the public catalog surface.
 enum ContentCorpusProjection: Codable, Sendable {
     /// A source type's inventory row, outputs and field dispositions.
@@ -245,8 +311,6 @@ enum ContentCorpusProjection: Codable, Sendable {
     case unitBindings
     /// Both unit lookups for each spelling.
     case unitSpellings(spellings: [String])
-    /// The sample an Observation, given as its JSON, projects back to.
-    case reverse(observation: String)
 }
 
 
@@ -264,10 +328,15 @@ struct ContentCorpusVector: Sendable {
 enum ContentCorpusInput: Codable, Sendable {
     /// Convert one source record.
     case convert(source: ContentCorpusSource)
-    /// Name the outputs a deletion of a record of this type retracts.
-    case retract(type: String)
+    /// Convert one source record, then project every Observation of its graphs, read from the wire bytes, back to
+    /// the HealthKit sample it describes.
+    case roundTrip(source: ContentCorpusSource)
+    /// Name the outputs a deletion of a record of this type retracts, under the default policies or `disclosure`.
+    case retract(type: String, disclosure: ContentCorpusDisclosure? = nil)
     /// Project one part of the public catalog.
     case catalog(projection: ContentCorpusProjection)
+    /// Project one Observation back to the HealthKit sample it describes.
+    case reverse(observation: ContentCorpusJSON)
 }
 
 #endif

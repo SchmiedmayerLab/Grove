@@ -16,7 +16,7 @@ import ModelsR4
 
 
 /// Renders the public catalog surface the content layer publishes: inventory rows with their outputs and field
-/// dispositions, the unit bindings, both unit lookups, and the reverse projection of Observations.
+/// dispositions, the unit bindings, and both unit lookups.
 enum ContentCorpusCatalog {
     /// The tokens one catalog projection renders as.
     static func projection(_ projection: ContentCorpusProjection) throws -> LosslessJSONValue {
@@ -38,8 +38,6 @@ enum ContentCorpusCatalog {
                     "unitSpelling": unitText(HealthKitCatalog.unit(forUnitSpelling: spelling))
                 ]))
             }))
-        case .reverse(let observation):
-            ContentCorpusRecorder.reverse(try JSONDecoder().decode(Observation.self, from: Data(observation.utf8)))
         }
     }
 

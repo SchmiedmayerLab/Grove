@@ -13,7 +13,7 @@ import GroveFHIRContract
 import HealthKit
 
 
-/// ECG evidence edges and every recording and clinical document builder.
+/// ECG evidence, precedence and time edges, heartbeat series and workout routes.
 extension ContentCorpusGrid {
     /// The conformance fixtures' sinus-rhythm reading: four voltages 2 ms apart at 500 Hz, 72 bpm, no symptoms.
     static let electrocardiogramReading = ContentCorpusElectrocardiogram(
@@ -74,6 +74,76 @@ extension ContentCorpusGrid {
             + waveformEdges
             + symptomRelationships
         return readings.map { label, reading in electrocardiogram(label, reading) } + electrocardiogramFacts
+            + electrocardiogramPrecedence + electrocardiogramTimes
+    }
+
+    /// Two faults at once for every pair of adjacent checks of an ECG conversion (zone, lead presence, count,
+    /// offsets, period, sampling frequency, finite voltages, symptom contexts, symptom validation and status,
+    /// source period, classification, algorithm version, average heart rate): which one is reported pins their order.
+    static var electrocardiogramPrecedence: [ContentCorpusVector] {
+        let present = HKElectrocardiogram.SymptomsStatus.present.rawValue
+        let chest = ContentCorpusElectrocardiogram.Symptom(type: HKCategoryTypeIdentifier.chestTightnessOrPain.rawValue, value: 2, ordinal: 0xE1)
+        let headache = ContentCorpusElectrocardiogram.Symptom(type: HKCategoryTypeIdentifier.headache.rawValue, value: 2, ordinal: 0xE1)
+        let versionThree = zone.merging([HKMetadataKeyAppleECGAlgorithmVersion: .integer(3)]) { $1 }
+        func source(
+            _ reading: ContentCorpusElectrocardiogram,
+            metadata: [String: ContentCorpusMetadataValue] = electrocardiogramMetadata,
+            reversed: Bool = false
+        ) -> ContentCorpusSource {
+            var source = electrocardiogramSource(reading)
+            source.metadata = metadata
+            source.end = reversed ? start - 30 : source.end
+            return source
+        }
+        let missingLead = reading { $0.voltages[2].millivolts = nil }
+        let nanVoltage = reading { $0.voltages[1].millivolts = .nan }
+        let nonUniform = reading { $0.voltages[2].offset = 0.255 }
+        let pairs: [(String, ContentCorpusSource)] = [
+            ("zone-before-missing-lead", source(missingLead, metadata: electrocardiogramMetadata.merging([HKMetadataKeyTimeZone: .string("Not/A-Time-Zone")]) { $1 })),
+            ("missing-lead-before-count", source(reading(missingLead) { $0.reportedCount = 3 })),
+            ("count-before-offsets", source(reading(reading { $0.reportedCount = 3 }) { $0.voltages[0].offset = -0.002 })),
+            ("offsets-before-period", source(reading(nonUniform) { $0.voltages[3].offset = -1 })),
+            ("period-before-frequency", source(reading(nonUniform) { $0.samplingFrequency = 250 })),
+            ("frequency-before-voltages", source(reading(nanVoltage) { $0.samplingFrequency = 250 })),
+            ("voltages-before-symptom-contexts", source(reading(symptoms(present, [chest])) { reading in
+                reading.voltages[1].millivolts = .nan
+                reading.symptomContexts = 0
+            })),
+            ("symptom-contexts-before-symptom-validation", source(reading(symptoms(present, [headache])) { $0.symptomContexts = 0 })),
+            ("symptom-validation-before-source-period", source(symptoms(present, [headache]), reversed: true)),
+            ("symptoms-status-before-source-period", source(reading { $0.symptomsStatus = 99 }, reversed: true)),
+            ("symptoms-status-before-classification", source(reading(reading { $0.symptomsStatus = 99 }) { $0.classification = 99 })),
+            ("classification-before-algorithm-version", source(reading { $0.classification = 99 }, metadata: versionThree)),
+            ("algorithm-version-before-average-heart-rate", source(reading { $0.averageHeartRate = .nan }, metadata: versionThree))
+        ]
+        return pairs.map { label, source in
+            convert("electrocardiogram/precedence/\(label)", source)
+        }
+    }
+
+    /// The base ECG at instants its exact timing has to carry: a start a quarter second before a minute, so the
+    /// first voltage falls into the next one; a local year past 9999; 1500 in Los Angeles (local mean time) and in
+    /// UTC; and both occurrences of Los Angeles's repeated 2026 hour.
+    static var electrocardiogramTimes: [ContentCorpusVector] {
+        func at(_ instant: Double, metadata: [String: ContentCorpusMetadataValue] = electrocardiogramMetadata) -> ContentCorpusSource {
+            var source = electrocardiogramSource(electrocardiogramReading)
+            source.start = instant
+            source.end = instant + 30
+            source.metadata = metadata
+            return source
+        }
+        let utc: [String: ContentCorpusMetadataValue] = [HKMetadataKeyTimeZone: .string("UTC"), HKMetadataKeyAppleECGAlgorithmVersion: .integer(2)]
+        let instants: [(String, ContentCorpusSource)] = [
+            ("start-carries-into-minute", at(1_787_005_859.75)),
+            ("year-10000", at(253_402_329_600)),
+            ("pre-reform-1500", at(-14_831_769_600)),
+            ("pre-reform-1500/utc", at(-14_831_769_600, metadata: utc)),
+            ("repeated-hour-first", at(1_793_521_800)),
+            ("repeated-hour-second", at(1_793_525_400))
+        ]
+        return instants.map { label, source in
+            convert("electrocardiogram/time/\(label)", source)
+        }
     }
 
     /// Correlated symptoms: one, several sorted by type and UUID, refused types and duplicates, a status that
@@ -226,10 +296,12 @@ extension ContentCorpusGrid {
         }
     }
 
+    /// A 30-second ECG at the base instant stating `reading`, with the zone and algorithm version a watch states.
     static func electrocardiogramSource(_ reading: ContentCorpusElectrocardiogram) -> ContentCorpusSource {
         ContentCorpusSource(.electrocardiogram(reading: reading), end: start + 30, metadata: electrocardiogramMetadata)
     }
 
+    /// The vector converting the base ECG with `reading`, under `electrocardiogram/<label>`.
     static func electrocardiogram(_ label: String, _ reading: ContentCorpusElectrocardiogram) -> ContentCorpusVector {
         convert("electrocardiogram/\(label)", electrocardiogramSource(reading))
     }

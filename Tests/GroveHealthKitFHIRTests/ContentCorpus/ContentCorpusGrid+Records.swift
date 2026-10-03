@@ -98,7 +98,8 @@ extension ContentCorpusGrid {
         return sweep + statistics + durations + [convert("workout/reversed", reversed), convert("workout/user-entered", userEntered)]
     }
 
-    /// Each workout statistic alone, all of them, partial heart-rate readings, and readings no contract admits.
+    /// Each workout statistic alone, all of them, partial heart-rate readings, readings no contract admits, and a
+    /// distance and an energy stated in another unit than the one the converter reads.
     static var workoutStatistics: [(String, [ContentCorpusStatistic])] {
         func statistic(_ type: HKQuantityTypeIdentifier, _ unit: String, sum: Double? = nil, average: Double? = nil) -> ContentCorpusStatistic {
             ContentCorpusStatistic(type: type.rawValue, unit: unit, sum: sum, average: average)
@@ -121,7 +122,8 @@ extension ContentCorpusGrid {
             ("heart-rate-nan-average", [heart(average: .nan, minimum: 95, maximum: 171)]),
             ("energy-nan", [statistic(.activeEnergyBurned, "kcal", sum: .nan)]), ("energy-zero", [statistic(.activeEnergyBurned, "kcal", sum: 0)]),
             ("distance-negative", [statistic(.distanceWalkingRunning, "m", sum: -1)]), ("steps-fractional", [statistic(.stepCount, "count", sum: 1.5)]),
-            ("energy-average-only", [statistic(.activeEnergyBurned, "kcal", average: 320)])
+            ("energy-average-only", [statistic(.activeEnergyBurned, "kcal", average: 320)]),
+            ("distance-km", [statistic(.distanceWalkingRunning, "km", sum: 10.5)]), ("energy-kj", [statistic(.activeEnergyBurned, "kJ", sum: 2_677.76)])
         ]
     }
 
@@ -182,7 +184,9 @@ extension ContentCorpusGrid {
         }
     }
 
+    /// The blood-pressure correlation type identifier.
     static let bloodPressure = HKCorrelationTypeIdentifier.bloodPressure.rawValue
+    /// The heart-rate quantity type identifier.
     static let heartRate = HKQuantityTypeIdentifier.heartRate.rawValue
 
     /// A one-hour workout of `activity` with `statistics`.

@@ -26,10 +26,19 @@ extension ContentCorpusGrid {
         "uS", "ug", "{drinks}", "{falls}", "{flights}", "{puff}", "{pushes}", "{score}", "{steps}", "{strokes}", "{uvindex}"
     ]
 
-    /// The deletion of a record of every inventory row.
+    /// The rows whose deletion is also named with the store's UUID disclosed: one per kind of target set (a single
+    /// Observation, a panel, a session, an ECG with its derived child, a recording document, a clinical record).
+    static let disclosedRetractions = [
+        HKQuantityTypeIdentifier.heartRate.rawValue, HKCorrelationTypeIdentifier.bloodPressure.rawValue, HKWorkoutTypeIdentifier,
+        HKObjectType.electrocardiogramType().identifier, HKDataTypeIdentifierHeartbeatSeries, "HKClinicalTypeIdentifierLabResultRecord"
+    ]
+
+    /// The deletion of a record of every inventory row, then of a few rows with the native identifier disclosed.
     static var retractions: [ContentCorpusVector] {
         HealthKitContract.rows.map { row in
             ContentCorpusVector(id: "retraction/\(row.sourceTypeIdentifier)", input: .retract(type: row.sourceTypeIdentifier))
+        } + disclosedRetractions.map { type in
+            ContentCorpusVector(id: "retraction/native-identifier/\(type)", input: .retract(type: type, disclosure: .nativeIdentifier))
         }
     }
 
@@ -58,10 +67,10 @@ extension ContentCorpusGrid {
         }
         observations.append((bodyMassIndexID, observation(code: ("http://loinc.org", "39156-5"), quantity: quantity("kg/m2", unit: "kg/m2", value: 1))))
         let projected = observations.map { id, resource in
-            ContentCorpusVector(id: "reverse/\(id)", input: .catalog(projection: .reverse(observation: json(resource))))
+            ContentCorpusVector(id: "reverse/\(id)", input: .reverse(observation: json(resource)))
         }
         return projected + reverseEdges.map { label, resource in
-            ContentCorpusVector(id: "reverse/edge/\(label)", input: .catalog(projection: .reverse(observation: json(resource))))
+            ContentCorpusVector(id: "reverse/edge/\(label)", input: .reverse(observation: json(resource)))
         }
     }
 
@@ -165,12 +174,12 @@ extension ContentCorpusGrid {
         return resource
     }
 
-    /// The resource as compact JSON with sorted members.
-    static func json(_ resource: [String: Any]) -> String {
-        guard let data = try? JSONSerialization.data(withJSONObject: resource, options: [.sortedKeys, .withoutEscapingSlashes]) else {
+    /// The resource as the nested JSON an input states.
+    static func json(_ resource: [String: Any]) -> ContentCorpusJSON {
+        guard let json = try? ContentCorpusJSON(serializing: resource) else {
             preconditionFailure("every corpus Observation is valid JSON")
         }
-        return String(decoding: data, as: UTF8.self)
+        return json
     }
 }
 

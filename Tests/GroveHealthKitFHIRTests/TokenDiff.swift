@@ -144,12 +144,27 @@ extension LosslessJSONValue {
         return text
     }
 
-    /// Compact JSON with members sorted by key and every number lexeme kept as read: two values print alike exactly
-    /// when their tokens are equal and their strings hold the same scalars, so a corpus line diffs by content.
+    /// Compact JSON with members sorted by key, number lexemes kept as read, and every invisible scalar escaped:
+    /// two values print alike exactly when their tokens are equal and their strings hold the same scalars, so a
+    /// corpus line diffs by content.
     var canonicalText: String {
         var text = ""
         append(to: &text)
         return text
+    }
+
+    /// Whether a scalar prints as an escape: controls, and format and separator characters (a byte order mark,
+    /// U+2028) a reader would not see in the file.
+    static func isEscaped(_ scalar: Unicode.Scalar) -> Bool {
+        switch scalar.properties.generalCategory {
+        case .control, .format, .lineSeparator, .paragraphSeparator: true
+        default: false
+        }
+    }
+
+    /// `\uXXXX` for each UTF-16 code unit of `scalar`.
+    static func escape(_ scalar: Unicode.Scalar) -> String {
+        String(scalar).utf16.map { String(format: "\\u%04x", $0) }.joined()
     }
 
     /// Appends `string` as a JSON string literal.
@@ -162,7 +177,7 @@ extension LosslessJSONValue {
             case "\n": text.append("\\n")
             case "\r": text.append("\\r")
             case "\t": text.append("\\t")
-            case _ where scalar.value < 0x20: text.append(String(format: "\\u%04x", scalar.value))
+            case _ where isEscaped(scalar): text.append(escape(scalar))
             default: text.unicodeScalars.append(scalar)
             }
         }

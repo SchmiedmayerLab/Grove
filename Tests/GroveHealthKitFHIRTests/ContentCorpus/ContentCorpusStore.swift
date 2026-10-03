@@ -15,8 +15,8 @@ import Foundation
 /// Where the content corpus lives, how its lines read and print, and where a regeneration writes.
 ///
 /// The corpus is `Resources/ContentCorpus/content-corpus.jsonl`: one line per vector, an object with the vector's
-/// `id`, its `input` and its `output`, printed compactly with members sorted and output number lexemes kept. It is
-/// regenerated OUTSIDE the checkout:
+/// `id`, its `input` and its `output`, printed compactly with members sorted, output number lexemes kept, and
+/// every invisible scalar (a byte order mark, a line separator) escaped. It is regenerated OUTSIDE the checkout:
 /// with `GROVE_CONTENT_CORPUS_OUTPUT_DIR` set (under `xcodebuild`, `TEST_RUNNER_GROVE_CONTENT_CORPUS_OUTPUT_DIR`),
 /// the suite writes `content-corpus.jsonl` and `content-corpus.changes.txt` there, to be copied in (the corpus
 /// only) afterwards, and only in a commit whose diff is exactly the enumerated change of one fix.
@@ -117,7 +117,16 @@ enum ContentCorpusStore {
 
     /// The input as the corpus prints it; two inputs compare by this text, so a NaN equals itself.
     static func inputText(_ input: ContentCorpusInput) throws -> String {
-        String(decoding: try encoder.encode(input), as: UTF8.self)
+        var text = ""
+        for scalar in String(decoding: try encoder.encode(input), as: UTF8.self).unicodeScalars {
+            // JSONEncoder leaves format characters raw; inside a string the escape states the same scalar.
+            if LosslessJSONValue.isEscaped(scalar) {
+                text += LosslessJSONValue.escape(scalar)
+            } else {
+                text.unicodeScalars.append(scalar)
+            }
+        }
+        return text
     }
 
     /// The line a vector and its output print as.
