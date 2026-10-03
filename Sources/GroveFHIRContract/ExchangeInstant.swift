@@ -27,8 +27,12 @@ package enum ExchangeInstant {
     /// `Date` counts from 2001-01-01T00:00:00Z; the wire counts from 1970.
     private static let referenceEpochMilliseconds: Int64 = 978_307_200_000
 
+    /// 0001-01-01T00:00:00Z through 9999-12-31T23:59:59.999Z in milliseconds since 1970: every instant a FHIR
+    /// instant or dateTime can state.
+    static let statableMilliseconds: ClosedRange<Int64> = -62_135_596_800_000...253_402_300_799_999
+
     /// 0001-01-01T00:00:00Z, the earliest instant a FHIR instant or dateTime can state.
-    static let earliestStatable = date(millisecondsSinceEpoch: -62_135_596_800_000)
+    static let earliestStatable = date(millisecondsSinceEpoch: statableMilliseconds.lowerBound)
 
     /// The instant as a FHIR `instant` lexeme in UTC.
     package static func utcLexeme(_ date: Date) -> String {

@@ -90,6 +90,7 @@ struct EventEntry: Equatable {
         let payload = try LedgerEntryCoding.decode(Payload.self, from: value, key: key)
         guard let instance = LedgerEntryCoding.instance(payload.instance),
               let sequence = LedgerEntryCoding.positiveInteger(payload.sequence),
+              ExchangeInstant.statableMilliseconds.contains(payload.instant),
               ExchangeIdentity.isUnpaddedBase64URLDigest(payload.facts) else {
             throw ExchangeEventSequencer.LedgerError.corruptEntry(key: key)
         }

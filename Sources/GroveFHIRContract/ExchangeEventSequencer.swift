@@ -59,7 +59,8 @@ public final class ExchangeEventSequencer: Sendable {
         /// The entry was written by a later layout; it is refused rather than misread.
         case unsupportedEntryVersion(key: String, version: Int)
         /// The entry is malformed, out of range, or inconsistent with the ledger, such as a reservation
-        /// at or above the counter of its own producer instance, or one naming facts the ledger lacks.
+        /// at or above the counter of its own producer instance, one at an instant no FHIR instant can
+        /// state, or one naming facts the ledger lacks.
         case corruptEntry(key: String)
     }
 
@@ -142,13 +143,20 @@ extension ExchangeEventSequencer {
     /// a new producer instance. A sequence is never handed out twice. Each returned reservation is held
     /// for the caller until ``finish(_:released:forgetting:)``. Exporters reach it through
     /// `ExchangeProducer.reserve(_:at:)`, which passes the facts the producer prepared once.
+    ///
+    /// An `instant` no FHIR instant can state (before year 1 or after year 9999) throws
+    /// `ExchangeIdentityError.invalidInstant` before the ledger is touched, as the ledger would refuse to read
+    /// it back.
     func reserve(
         _ requests: some Collection<ExchangeEventRequest>,
         at instant: Date,
         facts current: PreparedFacts
     ) throws -> [ExchangeEventRequest: ExchangeEventReservation] {
-        let ordered = Set(requests).sorted { ($0.key.rawValue, $0.fingerprint) < ($1.key.rawValue, $1.fingerprint) }
         let instantMilliseconds = ExchangeInstant.millisecondsSinceEpoch(instant)
+        guard ExchangeInstant.statableMilliseconds.contains(instantMilliseconds) else {
+            throw ExchangeIdentityError.invalidInstant
+        }
+        let ordered = Set(requests).sorted { ($0.key.rawValue, $0.fingerprint) < ($1.key.rawValue, $1.fingerprint) }
         let reserved = try storage.transaction { transaction in
             var reserving = ReserveCall(transaction: transaction, current: current, instantMilliseconds: instantMilliseconds)
             return try reserving.reserve(ordered)

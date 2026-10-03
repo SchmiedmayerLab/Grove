@@ -69,8 +69,15 @@ public final class HealthKitFHIRExporter: Sendable {
     }
 
     /// Converts samples in input order, calling `receive` once per produced graph or refusal as soon as
-    /// it is ready. Only the sequencer's storage and `receive` itself can end the call early; their
-    /// errors are rethrown unchanged, and the reservations stay for the redelivery.
+    /// it is ready.
+    ///
+    /// A record that cannot be converted is refused in place; only these end the call:
+    /// - an `instant` no FHIR instant can state (before year 1 or after year 9999) throws
+    ///   `ExchangeIdentityError.invalidInstant` before the ledger is touched;
+    /// - the producer's ledger throws `ExchangeEventSequencer.LedgerError` when a stored entry is corrupt or
+    ///   from a later layout, and `ExchangeEventSequencer.reset()` always recovers;
+    /// - errors of the ledger's storage and of `receive` are rethrown unchanged, and the reservations made
+    ///   stay for the redelivery.
     public func export<Samples: Collection>(
         _ samples: Samples,
         at instant: Date = .now,

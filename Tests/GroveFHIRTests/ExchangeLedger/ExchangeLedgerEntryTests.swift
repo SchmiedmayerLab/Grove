@@ -25,6 +25,9 @@ struct CorruptLedger: Sendable, CustomTestStringConvertible {
             event: #"{"facts":"<digest>","fingerprint":"x","instance":"\#(ExchangeLedgerEntryTests.instance)","instant":1,"sequence":"1"}"#
         ),
         CorruptLedger(name: "later version", event: ExchangeLedgerEntryTests.event(version: 2)),
+        CorruptLedger(name: "instant after year 9999", event: ExchangeLedgerEntryTests.event(instant: 253_402_300_800_000)),
+        CorruptLedger(name: "instant before year 1", event: ExchangeLedgerEntryTests.event(instant: -62_135_596_800_001)),
+        CorruptLedger(name: "largest instant", event: ExchangeLedgerEntryTests.event(instant: .max)),
         CorruptLedger(
             name: "counter zero",
             event: ExchangeLedgerEntryTests.event(),
@@ -67,8 +70,13 @@ struct ExchangeLedgerEntryTests {
         return storage
     }
 
-    fileprivate static func event(instance: String = Self.instance, sequence: String = "5", version: Int = 1) -> String {
-        #"{"facts":"<digest>","fingerprint":"context-a","instance":"\#(instance)","instant":1791023400251,"sequence":"\#(sequence)","v":\#(version)}"#
+    fileprivate static func event(
+        instance: String = Self.instance,
+        sequence: String = "5",
+        instant: Int64 = LedgerFixtures.instantMilliseconds,
+        version: Int = 1
+    ) -> String {
+        #"{"facts":"<digest>","fingerprint":"context-a","instance":"\#(instance)","instant":\#(instant),"sequence":"\#(sequence)","v":\#(version)}"#
     }
 
     @Test("G18: facts with several studies, a versioned canonical and absent host fields decode to themselves")
@@ -181,6 +189,28 @@ struct ExchangeLedgerEntryTests {
         #expect(throws: ExchangeEventSequencer.LedgerError.corruptEntry(key: eventKey)) {
             try Fixtures.sequencer(try Self.seededLedger(event: "[]")).forgetReservations(madeBefore: Fixtures.instant)
         }
+    }
+
+    @Test("G14: stored instants at the bounds of what FHIR can state are valid", arguments: [-62_135_596_800_000, 253_402_300_799_999] as [Int64])
+    func instantsAtTheBoundsAreValid(_ milliseconds: Int64) throws {
+        let storage = try Self.seededLedger(event: Self.event(instant: milliseconds))
+        let request = Fixtures.request("a")
+        let reservation = try #require(try Fixtures.sequencer(storage).reserve([request], at: Fixtures.instant, facts: Fixtures.facts())[request])
+        #expect(reservation.sequence.rawValue == "5")
+        #expect(ExchangeInstant.millisecondsSinceEpoch(reservation.instant) == milliseconds)
+    }
+
+    @Test("An instant FHIR cannot state is refused before the ledger is touched", arguments: [
+        Date(timeIntervalSince1970: 253_402_300_800),
+        Date(timeIntervalSince1970: -62_135_596_800.001),
+        Date(timeIntervalSinceReferenceDate: .infinity)
+    ])
+    func unstatableInstantsAreRefused(_ instant: Date) throws {
+        let storage = CountingStorage()
+        #expect(throws: ExchangeIdentityError.invalidInstant) {
+            try Fixtures.sequencer(storage).reserve([Fixtures.request("a")], at: instant, facts: Fixtures.facts())
+        }
+        #expect(storage.takeCounts().transactions == 0)
     }
 
     @Test("A reservation under a retired instance stays valid; an overflowing counter mints a new instance")

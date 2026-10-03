@@ -21,8 +21,9 @@ extension HealthKitFHIRExporter {
     ///
     /// Every retraction event is reserved in one ledger transaction. Two deletions of one record with
     /// different bounds are two events. Releasing the receipt also forgets each deleted record's active
-    /// reservation, which no export will release once the record is gone. Errors from the sequencer's
-    /// storage and from `receive` end the call.
+    /// reservation, which no export will release once the record is gone. The call ends early for the
+    /// same reasons as ``export(_:at:receive:)``: an unstatable `instant`, a `LedgerError` (recovered by
+    /// `ExchangeEventSequencer.reset()`), and errors of the ledger's storage or of `receive`.
     public func retract(
         _ deletions: some Collection<Deletion>,
         at instant: Date = .now,
