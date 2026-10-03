@@ -20,10 +20,14 @@ package import ModelsR4
 /// fraction zeros are dropped, and a whole second carries no fraction: `2026-10-03T10:30:00Z`, `…:00.5Z`,
 /// `…:00.251Z`.
 package enum ExchangeInstant {
-    private struct CivilDate {
-        let year: Int64
-        let month: Int64
-        let day: Int64
+    /// A proleptic Gregorian calendar date.
+    package struct CivilDate: Equatable, Sendable {
+        /// The astronomical year: 0 is 1 BC.
+        package let year: Int64
+        /// The month, 1 through 12.
+        package let month: Int64
+        /// The day of the month, 1 through 31.
+        package let day: Int64
     }
 
     /// `Date` counts from 2001-01-01T00:00:00Z; the wire counts from 1970.
@@ -90,7 +94,8 @@ package enum ExchangeInstant {
         return Date(timeIntervalSinceReferenceDate: Double(overflow ? .min : sinceReference) / 1000)
     }
 
-    private static func floorDivide(_ value: Int64, by divisor: Int64) -> (quotient: Int64, remainder: Int64) {
+    /// Division rounding toward negative infinity, so the remainder is never negative for a positive divisor.
+    package static func floorDivide(_ value: Int64, by divisor: Int64) -> (quotient: Int64, remainder: Int64) {
         var quotient = value / divisor
         var remainder = value % divisor
         if remainder < 0 {
@@ -101,7 +106,7 @@ package enum ExchangeInstant {
     }
 
     /// Days since 1970-01-01 to a proleptic Gregorian date (Howard Hinnant's `civil_from_days`).
-    private static func civilDate(fromDays days: Int64) -> CivilDate {
+    package static func civilDate(fromDays days: Int64) -> CivilDate {
         let shifted = days + 719_468
         let era = (shifted >= 0 ? shifted : shifted - 146_096) / 146_097
         let dayOfEra = shifted - era * 146_097
@@ -114,7 +119,7 @@ package enum ExchangeInstant {
     }
 
     /// ASCII decimal digits, zero-padded to `width`; `String(_:)` never consults the locale.
-    private static func padded(_ value: Int64, width: Int) -> String {
+    package static func padded(_ value: Int64, width: Int) -> String {
         let digits = String(value.magnitude)
         let zeros = String(repeating: "0", count: max(0, width - digits.count))
         return (value < 0 ? "-" : "") + zeros + digits

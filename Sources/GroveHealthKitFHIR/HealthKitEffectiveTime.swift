@@ -1,0 +1,203 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+#if canImport(HealthKit)
+
+import FHIRModelsExtensions
+import Foundation
+import GroveFHIRContract
+import ModelsR4
+
+
+/// How a measurement's effective time is drawn from a HealthKit sample's start and end.
+@available(iOS 18, macOS 15, watchOS 11, *)
+enum EffectiveRule: Hashable, Sendable {
+    /// `effectiveDateTime` at the sample's start.
+    case instant
+    /// `effectivePeriod` from start to end; a reversed interval never qualifies, and a zero-width one
+    /// qualifies only when the measurement does not require a non-zero Period. FHIR `per-1` admits
+    /// `start == end`, so a point-in-time source keeps its instant as an equal-endpoint Period.
+    case interval(nonZero: Bool)
+
+    /// The effective value for a sample spanning `start` to `end` in the source's `zone`.
+    func value(start: Date, end: Date, zone: TimeZone?) throws(HealthKitValueFailure) -> Observation.EffectiveX {
+        switch self {
+        case .instant:
+            return .dateTime(try HealthKitEffectiveTime.dateTime(start, zone: zone))
+        case let .interval(nonZero):
+            guard end > start || (end == start && !nonZero) else {
+                throw .effectivePeriodInvalid
+            }
+            return .period(try HealthKitEffectiveTime.period(start: start, end: end, zone: zone))
+        }
+    }
+}
+
+
+/// FHIR date-times for HealthKit instants, built from integer civil arithmetic instead of a `Calendar`.
+///
+/// Mobile effective instants round to the millisecond, ties to even, counted from 1970 — never through
+/// ``ExchangeInstant``, whose milliseconds count from `Date`'s 2001 reference and so round other ties.
+/// They keep the source zone's offset at the unrounded instant, print `.mmm` untrimmed, and write a
+/// zero offset as `Z`. ECG timing instead keeps exact Decimal seconds (``exactDateTime(_:offset:zone:)``).
+///
+/// Local times outside 1582-10-15 through 9999 take Foundation's Gregorian calendar, which switches to
+/// the Julian calendar before the 1582 reform and clamps far-future years, so those instants keep the
+/// bytes they have always had.
+@available(iOS 18, macOS 15, watchOS 11, *)
+enum HealthKitEffectiveTime {
+    /// Wall-clock fields of one local second.
+    private struct CivilTime {
+        let year: Int
+        let month: Int
+        let day: Int
+        let hour: Int
+        let minute: Int
+        let second: Int
+    }
+
+    /// Local seconds since 1970 from 1582-10-15T00:00 through 9999-12-31T23:59:59, where Foundation's
+    /// Gregorian calendar is proleptic Gregorian and `civil_from_days` agrees with it.
+    private static let arithmeticWindow: Swift.Range<Int64> = -12_219_292_800 ..< 253_402_300_800
+
+    /// The widest UTC offset Foundation represents, ±18 hours.
+    private static let maximumOffsetSeconds = 64_800
+
+    /// An effective instant in the source's own zone, which also travels as the `timezone` extension,
+    /// or in UTC when the source names none.
+    static func dateTime(_ date: Date, zone: TimeZone?) throws(HealthKitValueFailure) -> FHIRPrimitive<DateTime> {
+        guard let lexeme = mobileLexeme(date, zone: zone), let dateTime = try? DateTime(lexeme) else {
+            throw .shapeInvalid
+        }
+        guard let zone else {
+            return FHIRPrimitive(dateTime)
+        }
+        return FHIRPrimitive(
+            dateTime,
+            extension: [Extension(url: Canonicals.timezone, value: .code(zone.identifier.asFHIRStringPrimitive()))]
+        )
+    }
+
+    /// An effective Period in the source's zone; the end is built first, as its failures take precedence.
+    static func period(start: Date, end: Date, zone: TimeZone?) throws(HealthKitValueFailure) -> Period {
+        let end = try dateTime(end, zone: zone)
+        return Period(end: end, start: try dateTime(start, zone: zone))
+    }
+
+    /// An ECG instant: `date` plus an exact Decimal offset, at the zone's fixed offset for that second.
+    ///
+    /// The seconds stay exact Decimals — adding the offset through `Date` would round a second time and can
+    /// break SampledData's period arithmetic — and print trimmed (`00.25`). No `timezone` extension is
+    /// added; a fixed-offset zone keeps the second occurrence of a repeated DST hour from printing as the first.
+    static func exactDateTime(_ date: Date, offset: Decimal, zone: TimeZone) throws(HealthKitConversionError) -> DateTime {
+        let epochSeconds = date.timeIntervalSince1970
+        guard epochSeconds.isFinite,
+              let epochDecimal = Decimal(string: String(epochSeconds), locale: .posix) else {
+            throw .ecgEvidence(.invalidSourcePeriod)
+        }
+        let target = epochDecimal + offset
+        // The floor is taken in binary64 and corrected by one second; Int64's floor has no predecessor to correct to.
+        guard var wholeSeconds = Int64(exactly: NSDecimalNumber(decimal: target).doubleValue.rounded(.down)),
+              wholeSeconds != .min else {
+            throw .ecgEvidence(.invalidSourcePeriod)
+        }
+        var fraction = target - Decimal(wholeSeconds)
+        if fraction < 0 {
+            wholeSeconds -= 1
+            fraction += 1
+        } else if fraction >= 1 {
+            wholeSeconds += 1
+            fraction -= 1
+        }
+        let wholeSecondDate = Date(timeIntervalSince1970: TimeInterval(wholeSeconds))
+        let fixedZone = zone.fixedOffset(at: wholeSecondDate)
+        let fixedOffset = fixedZone.secondsFromGMT(for: wholeSecondDate)
+        guard let civil = civilTime(seconds: wholeSeconds, offset: fixedOffset, zone: fixedZone),
+              let month = UInt8(exactly: civil.month),
+              let day = UInt8(exactly: civil.day),
+              let hour = UInt8(exactly: civil.hour),
+              let minute = UInt8(exactly: civil.minute) else {
+            throw .ecgEvidence(.invalidSourcePeriod)
+        }
+        return DateTime(
+            date: FHIRDate(year: civil.year, month: month, day: day),
+            time: FHIRTime(hour: hour, minute: minute, second: Decimal(civil.second) + fraction),
+            timezone: fixedZone
+        )
+    }
+
+    /// The Mobile lexeme `YYYY-MM-DDThh:mm:ss[.mmm](Z|±hh:mm)`, or `nil` when the instant has none:
+    /// non-finite, beyond Int64 milliseconds, an offset that is not whole minutes within ±18 h, or a
+    /// local year outside 0…9999.
+    private static func mobileLexeme(_ date: Date, zone: TimeZone?) -> String? {
+        guard let milliseconds = Int64(exactly: (date.timeIntervalSince1970 * 1_000).rounded(.toNearestOrEven)) else {
+            return nil
+        }
+        let offset = zone?.secondsFromGMT(for: date) ?? 0
+        guard offset.isMultiple(of: 60), abs(offset) <= maximumOffsetSeconds else {
+            return nil
+        }
+        let (wholeSeconds, millisecond) = ExchangeInstant.floorDivide(milliseconds, by: 1_000)
+        guard let civil = civilTime(seconds: wholeSeconds, offset: offset), (0...9_999).contains(civil.year) else {
+            return nil
+        }
+        var lexeme = ExchangeInstant.padded(Int64(civil.year), width: 4)
+        lexeme += "-" + twoDigits(civil.month) + "-" + twoDigits(civil.day)
+        lexeme += "T" + twoDigits(civil.hour) + ":" + twoDigits(civil.minute) + ":" + twoDigits(civil.second)
+        if millisecond != 0 {
+            lexeme += "." + ExchangeInstant.padded(millisecond, width: 3)
+        }
+        guard offset != 0 else {
+            return lexeme + "Z"
+        }
+        let magnitude = Int(offset.magnitude)
+        return lexeme + (offset < 0 ? "-" : "+") + twoDigits(magnitude / 3_600) + ":" + twoDigits(magnitude % 3_600 / 60)
+    }
+
+    /// A field of at most two digits, zero-padded to two.
+    private static func twoDigits(_ value: Int) -> String {
+        ExchangeInstant.padded(Int64(value), width: 2)
+    }
+
+    /// The wall-clock fields of a UTC second count at `offset` seconds from UTC; `zone`, when given, is the
+    /// zone stating that offset, else the fixed-offset zone of `offset`.
+    private static func civilTime(seconds: Int64, offset: Int, zone: TimeZone? = nil) -> CivilTime? {
+        let (local, overflow) = seconds.addingReportingOverflow(Int64(offset))
+        guard !overflow, arithmeticWindow.contains(local) else {
+            return (zone ?? TimeZone(secondsFromGMT: offset)).flatMap { foundationCivilTime(seconds: seconds, zone: $0) }
+        }
+        let (days, secondOfDay) = ExchangeInstant.floorDivide(local, by: 86_400)
+        let date = ExchangeInstant.civilDate(fromDays: days)
+        return CivilTime(
+            year: Int(date.year),
+            month: Int(date.month),
+            day: Int(date.day),
+            hour: Int(secondOfDay / 3_600),
+            minute: Int(secondOfDay / 60 % 60),
+            second: Int(secondOfDay % 60)
+        )
+    }
+
+    /// The fields Foundation's Gregorian calendar states for a UTC second count in `zone`, including its Julian
+    /// dates before the reform, its era-relative years before year 1 and its clamp of far-future instants.
+    private static func foundationCivilTime(seconds: Int64, zone: TimeZone) -> CivilTime? {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        let parts = calendar.dateComponents(
+            [.year, .month, .day, .hour, .minute, .second],
+            from: Date(timeIntervalSince1970: TimeInterval(seconds))
+        )
+        guard let year = parts.year, let month = parts.month, let day = parts.day,
+              let hour = parts.hour, let minute = parts.minute, let second = parts.second else {
+            return nil
+        }
+        return CivilTime(year: year, month: month, day: day, hour: hour, minute: minute, second: second)
+    }
+}
+
+#endif

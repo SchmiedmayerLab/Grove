@@ -34,13 +34,16 @@ public struct GroveFHIRDecimal: Hashable, Sendable {
         // Decimal-to-Double conversion is inexact for ordinary values such as 36.52 and would
         // refuse them.
         let lexical = String(groveFHIRPlainDecimal: value)
-        guard let decimal = Decimal(
-            string: lexical,
-            locale: Locale(identifier: "en_US_POSIX")
-        ), Double(lexical) == value else {
+        guard let decimal = Decimal(string: lexical, locale: .posix), Double(lexical) == value else {
             throw .outsideFHIRDecimalDomain(lexical)
         }
         self.lexical = lexical
         self.decimal = decimal
     }
+}
+
+
+extension Locale {
+    /// The fixed `en_US_POSIX` locale, built once, for reading and writing machine-readable numbers.
+    package static let posix = Locale(identifier: "en_US_POSIX")
 }
