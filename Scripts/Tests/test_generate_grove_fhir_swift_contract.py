@@ -6,6 +6,7 @@
 #
 # SPDX-License-Identifier: MIT
 
+import copy
 import importlib.util
 import json
 import tempfile
@@ -61,12 +62,14 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                             "healthkit-observation",
                         ],
                     },
+                    {"source": "health-connect", "canonical": "https://grovealliance.org/fhir/health-connect", "profiles": []},
+                    {"source": "oura", "canonical": "https://grovealliance.org/fhir/oura", "profiles": []},
                 ],
             },
             "measurement-catalog.json": {
                 **base,
                 "statusVocabulary": ["supported", "deferred"],
-                "measurements": [HEART_RATE],
+                "measurements": [copy.deepcopy(HEART_RATE)],
             },
             "profile-claims.json": {
                 **base,
@@ -332,6 +335,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                                 "quantity": {"system": UCUM, "code": "/min", "unit": "beats/minute"},
                             },
                         ],
+                        "sourceLead": "HKElectrocardiogram.Lead.appleWatchSimilarToLeadI",
                         "leadCode": {
                             "system": "urn:iso:std:iso:11073:10101",
                             "code": "131329",
@@ -339,6 +343,18 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                         },
                         "quantity": {"system": UCUM, "code": "mV", "unit": "mV"},
                         "closedValueMappings": {
+                            "classification": {
+                                "sourceField": "HKElectrocardiogram.classification",
+                                "r4Element": "Observation.interpretation",
+                                "system": (
+                                    "https://grovealliance.org/fhir/healthkit/CodeSystem/"
+                                    "healthkit-ecg-classification"
+                                ),
+                                "values": [
+                                    {"sourceValue": "notSet", "code": "notSet"},
+                                    {"sourceValue": "sinusRhythm", "code": "sinusRhythm"},
+                                ],
+                            },
                             "symptomsStatus": {
                                 "sourceField": "HKElectrocardiogram.symptomsStatus",
                                 "r4Element": "healthkit-ecg-symptoms-status.valueCode",
@@ -562,7 +578,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
             root = Path(directory)
             for name, value in catalogs.items():
                 (root / name).write_text(json.dumps(value), encoding="utf-8")
-            return MODULE.generate_healthkit_source_types(root)
+            return MODULE.generate_healthkit(root)
 
     def test_generates_every_registered_rule_with_its_reason_and_severity(self):
         generated = self.generate(self.catalogs())
@@ -917,88 +933,201 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not a catalog measurement"):
             self.generate(catalogs)
 
-    def test_generates_the_electrocardiogram_claim_as_package_constants(self):
-        generated = self.generate(self.catalogs())
+    def test_places_each_measurement_profile_under_its_owners_package(self):
+        catalogs = self.catalogs()
+        catalogs["package-graph.json"]["packages"][0]["canonical"] = "https://example.org/fhir/mobile"
+        heart_rate = "https://example.org/fhir/mobile/StructureDefinition/grove-mobile-heart-rate"
+        claim = catalogs["healthkit-adapter.json"]["sensorAdapterClaims"]["electrocardiogram"]
+        claim["outputs"][1]["profiles"][0] = heart_rate
 
-        self.assertIn("package enum HealthKitElectrocardiogramClaim {", generated)
-        self.assertIn('    package static let outputRole = "electrocardiogram"', generated)
-        self.assertIn('    package static let outputDiscriminator = "single"', generated)
-        self.assertIn('    package static let averageHeartRateOutputRole = "average-heart-rate"', generated)
-        self.assertIn('    package static let averageHeartRateOutputDiscriminator = "single"', generated)
+        self.assertIn("    static let averageHeartRateMeasurement = MeasurementCatalog.heartRate", self.generate_healthkit(catalogs))
+
+        catalogs["measurement-catalog.json"]["measurements"].append({**HEART_RATE, "id": "pulse"})
+
+        with self.assertRaisesRegex(ValueError, f"measurements 'heart-rate' and 'pulse' both claim {heart_rate}"):
+            self.generate_healthkit(catalogs)
+
+        catalogs = self.catalogs()
+        catalogs["measurement-catalog.json"]["measurements"][0]["owner"] = "fitbit"
+
+        with self.assertRaisesRegex(ValueError, "'heart-rate' is owned by 'fitbit', which no package declares"):
+            self.generate(catalogs)
+
+    def test_generates_the_electrocardiogram_claim_typed_against_healthkit(self):
+        generated = self.generate_healthkit(self.catalogs())
+
+        self.assertIn("import GroveFHIRContract\npublic import HealthKit\nimport ModelsR4\n", generated)
+        self.assertIn("@available(iOS 18, macOS 15, watchOS 11, *)\nenum HealthKitElectrocardiogramClaim {", generated)
         self.assertIn(
-            "    package static let averageHeartRateProfiles: [FHIRPrimitive<Canonical>] = [\n"
-            "        Profile.groveMobileHeartRate,\n"
-            "        Profile.healthkitEcgAverageHeartRateObservation,\n"
-            "    ]",
+            "    static let waveform = Output(\n"
+            '        role: "electrocardiogram",\n'
+            '        discriminator: "single",\n'
+            "        profiles: HealthKitContract.electrocardiogramProfiles\n"
+            "    )",
             generated,
         )
-        self.assertIn("    package static let averageHeartRateMeasurement = MeasurementCatalog.heartRate", generated)
         self.assertIn(
-            '    package static let leadCode = CodingContract(system: "urn:iso:std:iso:11073:10101", '
+            "    static let averageHeartRate = Output(\n"
+            '        role: "average-heart-rate",\n'
+            '        discriminator: "single",\n'
+            "        profiles: [Profile.groveMobileHeartRate, Profile.healthkitEcgAverageHeartRateObservation]\n"
+            "    )",
+            generated,
+        )
+        self.assertIn(
+            '    static let averageHeartRateCode = CodingContract(system: "http://loinc.org", code: "8867-4", '
+            'display: "Heart rate")',
+            generated,
+        )
+        self.assertIn("    static let averageHeartRateMeasurement = MeasurementCatalog.heartRate", generated)
+        self.assertIn("    static let sourceLead = HKElectrocardiogram.Lead.appleWatchSimilarToLeadI", generated)
+        self.assertIn(
+            '    static let leadCode = CodingContract(system: "urn:iso:std:iso:11073:10101", '
             'code: "131329", display: "MDC_ECG_ELEC_POTL_I")',
             generated,
         )
         self.assertIn(
-            '    package static let voltageQuantity = QuantityContract(system: "http://unitsofmeasure.org", '
+            '    static let voltageQuantity = QuantityContract(system: "http://unitsofmeasure.org", '
             'code: "mV", unit: "mV", valueDomain: nil)',
             generated,
         )
         self.assertIn(
-            "    /// HKMetadataKeyAppleECGAlgorithmVersion to Observation.method.\n"
-            "    package static let algorithmVersion = ClosedValueMappingContract(\n"
-            '        system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-ecg-algorithm-version",\n'
-            "        codes: [\n"
-            '            "1": "version1",\n'
-            "        ]\n"
-            "    )",
-            generated,
-        )
-        self.assertIn("    package static let symptomsStatus = ClosedValueMappingContract(", generated)
-        self.assertIn(
-            "    package static let correlatedSymptomSourceTypeIdentifiers: [String] = [\n"
-            '        "HKCategoryTypeIdentifierFatigue",\n'
+            '    static let classificationSystem = "https://grovealliance.org/fhir/healthkit/CodeSystem/'
+            'healthkit-ecg-classification"\n'
+            "    /// The Observation.interpretation code of each HKElectrocardiogram.classification the guide admits.\n"
+            "    static let classificationCodes: [HKElectrocardiogram.Classification: String] = [\n"
+            '        HKElectrocardiogram.Classification.notSet: "notSet",\n'
+            '        HKElectrocardiogram.Classification.sinusRhythm: "sinusRhythm",\n'
             "    ]",
             generated,
         )
-        self.assertIn("package struct ClosedValueMappingContract: Hashable, Sendable {", generated)
-        self.assertNotIn("public static let averageHeartRate", generated)
+        self.assertIn(
+            "    static let symptomsStatusCodes: [HKElectrocardiogram.SymptomsStatus: String] = [\n"
+            '        HKElectrocardiogram.SymptomsStatus.none: "none",\n'
+            '        HKElectrocardiogram.SymptomsStatus.present: "present",\n'
+            "    ]",
+            generated,
+        )
+        self.assertIn(
+            '    static let algorithmVersionSystem = "https://grovealliance.org/fhir/healthkit/CodeSystem/'
+            'healthkit-ecg-algorithm-version"\n'
+            "    /// The Observation.method code of each HKMetadataKeyAppleECGAlgorithmVersion the guide admits.\n"
+            "    static let algorithmVersionCodes: [Int: String] = [\n"
+            '        1: "version1",\n'
+            "    ]",
+            generated,
+        )
+        self.assertIn(
+            "    static let correlatedSymptomSourceTypes: Set<HealthKitSourceType> = [\n"
+            "        .fatigue,\n"
+            "    ]\n"
+            "}\n"
+            "\n"
+            "#endif\n",
+            generated,
+        )
+        self.assertNotIn("package ", generated)
+        # The platform-neutral contract keeps only the public ECG profiles the waveform output names.
+        contract = self.generate(self.catalogs())
+        self.assertNotIn("HealthKitElectrocardiogramClaim", contract)
+        self.assertNotIn("ClosedValueMappingContract", contract)
+
+    def electrocardiogram_claim(self, catalogs: dict[str, dict]) -> dict:
+        return catalogs["healthkit-adapter.json"]["sensorAdapterClaims"]["electrocardiogram"]
+
+    def assert_refuses_electrocardiogram_claim(self, change, message: str) -> None:
+        catalogs = self.catalogs()
+        change(self.electrocardiogram_claim(catalogs))
+
+        with self.assertRaisesRegex(ValueError, message):
+            self.generate_healthkit(catalogs)
+
+    def test_rejects_electrocardiogram_outputs_other_than_waveform_and_average_heart_rate(self):
+        def rename(role: str):
+            return lambda claim: claim["outputs"][1].update(outputRole=role)
+
+        self.assert_refuses_electrocardiogram_claim(lambda claim: claim["outputs"].pop(), r"declares no \['average-heart-rate'\]")
+        self.assert_refuses_electrocardiogram_claim(rename("electrocardiogram"), "'electrocardiogram' is declared twice")
+        self.assert_refuses_electrocardiogram_claim(rename("pulse"), "output role 'pulse' is not one of")
+        self.assert_refuses_electrocardiogram_claim(
+            lambda claim: claim["outputs"][0]["profiles"].pop(), "waveform output must claim exactly"
+        )
 
     def test_rejects_an_average_heart_rate_that_restates_its_measurement_differently(self):
-        catalogs = self.catalogs()
-        claim = catalogs["healthkit-adapter.json"]["sensorAdapterClaims"]["electrocardiogram"]
-        claim["outputs"][1]["quantity"]["code"] = "/s"
+        average_heart_rate = "average heart rate"
+        self.assert_refuses_electrocardiogram_claim(
+            lambda claim: claim["outputs"][1]["quantity"].update(code="/s"), f"{average_heart_rate} quantity"
+        )
+        self.assert_refuses_electrocardiogram_claim(
+            lambda claim: claim["outputs"][1]["quantity"].pop("unit"), f"{average_heart_rate} quantity"
+        )
+        self.assert_refuses_electrocardiogram_claim(
+            lambda claim: claim["outputs"][1]["quantity"].update(valueDomain={}), f"{average_heart_rate} quantity"
+        )
+        self.assert_refuses_electrocardiogram_claim(
+            lambda claim: claim["outputs"][1].update(quantity={}), f"{average_heart_rate} quantity {{}}"
+        )
+        self.assert_refuses_electrocardiogram_claim(
+            lambda claim: claim["outputs"][1].pop("quantity"), f"{average_heart_rate} quantity None"
+        )
+        self.assert_refuses_electrocardiogram_claim(
+            lambda claim: claim["outputs"][1]["code"].update(code="8893-0"), f"{average_heart_rate} code"
+        )
 
-        with self.assertRaisesRegex(ValueError, "code and quantity of its measurement"):
-            self.generate(catalogs)
+        catalogs = self.catalogs()
+        catalogs["measurement-catalog.json"]["measurements"][0]["code"]["display"] = "Pulse"
+
+        with self.assertRaisesRegex(ValueError, f"{average_heart_rate} code"):
+            self.generate_healthkit(catalogs)
 
         catalogs = self.catalogs()
         catalogs["measurement-catalog.json"]["measurements"] = []
 
-        with self.assertRaisesRegex(ValueError, "code and quantity of its measurement"):
-            self.generate(catalogs)
+        with self.assertRaisesRegex(ValueError, "profile '.*grove-mobile-heart-rate' is no generated measurement's"):
+            self.generate_healthkit(catalogs)
 
-    def test_rejects_an_electrocardiogram_claim_without_exactly_one_child_output(self):
-        catalogs = self.catalogs()
-        claim = catalogs["healthkit-adapter.json"]["sensorAdapterClaims"]["electrocardiogram"]
-        claim["outputs"].pop()
+    def test_rejects_electrocardiogram_value_mappings_it_cannot_type(self):
+        def mapping(name: str, **change):
+            return lambda claim: claim["closedValueMappings"][name].update(**change)
 
-        with self.assertRaisesRegex(ValueError, "one average-heart-rate output"):
-            self.generate(catalogs)
+        def value(name: str, **change):
+            return lambda claim: claim["closedValueMappings"][name]["values"][0].update(**change)
 
-    def test_rejects_ambiguous_electrocardiogram_value_mappings_and_symptoms(self):
-        catalogs = self.catalogs()
-        claim = catalogs["healthkit-adapter.json"]["sensorAdapterClaims"]["electrocardiogram"]
-        claim["closedValueMappings"]["algorithmVersion"]["values"].append({"sourceValue": "1", "code": "version2"})
+        self.assert_refuses_electrocardiogram_claim(
+            lambda claim: claim["closedValueMappings"].pop("classification"), "mappings .* are not exactly"
+        )
+        self.assert_refuses_electrocardiogram_claim(
+            lambda claim: claim["closedValueMappings"].update(default={}), r"mappings \['algorithmVersion', .*'default'"
+        )
+        self.assert_refuses_electrocardiogram_claim(mapping("symptomsStatus", values=[]), "map at least one source value")
+        self.assert_refuses_electrocardiogram_claim(
+            lambda claim: claim["closedValueMappings"]["algorithmVersion"]["values"].append(
+                {"sourceValue": "1", "code": "version2"}
+            ),
+            "'algorithmVersion' mapping maps source value '1' twice",
+        )
+        self.assert_refuses_electrocardiogram_claim(value("algorithmVersion", sourceValue="01"), "'01' is not a canonical")
+        self.assert_refuses_electrocardiogram_claim(value("algorithmVersion", sourceValue=1), "string source value")
+        self.assert_refuses_electrocardiogram_claim(value("classification", code=None), "to a string code")
+        self.assert_refuses_electrocardiogram_claim(
+            value("classification", sourceValue="default"), "'default' cannot name a HKElectrocardiogram.Classification"
+        )
+        self.assert_refuses_electrocardiogram_claim(value("symptomsStatus", sourceValue="not-set"), "'not-set' cannot name")
+        self.assert_refuses_electrocardiogram_claim(
+            lambda claim: claim.update(sourceLead="HKElectrocardiogram.Lead.default"), "source lead"
+        )
+        self.assert_refuses_electrocardiogram_claim(lambda claim: claim.pop("sourceLead"), "source lead None")
 
-        with self.assertRaisesRegex(ValueError, "map each source value once"):
-            self.generate(catalogs)
+    def test_rejects_electrocardiogram_symptom_types_that_are_not_distinct_inventory_rows(self):
+        def symptoms(source_types: list):
+            return lambda claim: claim["correlatedSymptomEvidence"].update(sourceTypes=source_types)
 
-        catalogs = self.catalogs()
-        claim = catalogs["healthkit-adapter.json"]["sensorAdapterClaims"]["electrocardiogram"]
-        claim["correlatedSymptomEvidence"]["sourceTypes"].append("HKCategoryTypeIdentifierDizziness")
-
-        with self.assertRaisesRegex(ValueError, "distinct inventory rows"):
-            self.generate(catalogs)
+        fatigue = "HKCategoryTypeIdentifierFatigue"
+        self.assert_refuses_electrocardiogram_claim(symptoms([]), "admits no correlated symptom")
+        self.assert_refuses_electrocardiogram_claim(symptoms([fatigue, fatigue]), f"'{fatigue}' is listed twice")
+        self.assert_refuses_electrocardiogram_claim(
+            symptoms([fatigue, "HKCategoryTypeIdentifierDizziness"]), "'HKCategoryTypeIdentifierDizziness' is not an"
+        )
 
 
 if __name__ == "__main__":
