@@ -121,7 +121,7 @@ package struct ExchangeGraphAssembler: Sendable {
             entry: entries,
             identifier: draft.event.identifier.fhirIdentifier,
             meta: Meta(profile: [Profile.groveMobileExchangeBundle]),
-            timestamp: FHIRPrimitive(try Instant(utc: draft.instant)),
+            timestamp: FHIRPrimitive(try ExchangeInstant.fhirInstant(draft.instant)),
             type: FHIRPrimitive(.collection)
         )
         bundle.id = draft.repositoryIDs[.bundle]?.primitive
@@ -154,7 +154,7 @@ extension ExchangeGraphAssembler {
         value: .coding(Coding(code: "manual-entry", display: "Manual entry", system: Canonicals.recordingMethodCodeSystem))
     )
 
-    /// Every output with its identities and links applied; in-graph members are linked from the primary.
+    /// Every output with its identities and links applied; a derived child names the primary it derives from.
     private func decoratedOutputs(of draft: ExchangeGraphDraft, surroundings: Surroundings) throws -> [DecoratedOutput] {
         var outputs: [DecoratedOutput] = []
         for (index, output) in draft.outputs.enumerated() {
@@ -166,11 +166,6 @@ extension ExchangeGraphAssembler {
                 observation.derivedFrom = [Reference(reference: primaryURL.asFHIRStringPrimitive())]
                 outputs[index].resource = .observation(observation)
             }
-        }
-        let memberURLs = zip(draft.outputs, outputs).filter { $0.0.memberOfPrimary }.map(\.1.url)
-        if !memberURLs.isEmpty, case .observation(var observation) = outputs[0].resource {
-            observation.hasMember = (observation.hasMember ?? []) + memberURLs.map { Reference(reference: $0.asFHIRStringPrimitive()) }
-            outputs[0].resource = .observation(observation)
         }
         return outputs
     }
@@ -209,7 +204,7 @@ extension ExchangeGraphAssembler {
         case .document(var document):
             document.id = repositoryID
             document.identifier = identifiers
-            document.date = FHIRPrimitive(try Instant(utc: draft.instant))
+            document.date = FHIRPrimitive(try ExchangeInstant.fhirInstant(draft.instant))
             decorate(&document, links: output.links, surroundings: surroundings)
             resource = .document(document)
         }
@@ -299,8 +294,8 @@ extension ExchangeGraphAssembler {
             )],
             entity: [entity],
             meta: Meta(profile: [envelope.adapter.provenanceProfile]),
-            occurred: .dateTime(FHIRPrimitive(try DateTime(utc: recordedAt))),
-            recorded: FHIRPrimitive(try Instant(utc: recordedAt)),
+            occurred: .dateTime(FHIRPrimitive(try ExchangeInstant.fhirDateTime(recordedAt))),
+            recorded: FHIRPrimitive(try ExchangeInstant.fhirInstant(recordedAt)),
             target: targetURLs.map { Reference(reference: $0.asFHIRStringPrimitive()) }
         )
     }

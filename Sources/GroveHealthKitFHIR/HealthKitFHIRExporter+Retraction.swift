@@ -15,22 +15,23 @@ import HealthKit
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter {
-    /// Retracts deleted records in input order, one retraction event per deletion whose source type
-    /// ever emits outputs. Targets are recomputed from the catalog, so nothing from the original
-    /// export needs to be kept. Errors from the sequencer's storage and from `receive` end the call.
+    /// Retracts deleted records in input order, one retraction event per deletion that names outputs this
+    /// exporter can have emitted; every other deletion is reported as ``Export/Outcome/nothingToRetract``.
+    /// Targets are recomputed from the catalog, so nothing from the original export needs to be kept.
+    /// Errors from the sequencer's storage and from `receive` end the call.
     public func retract(
         _ deletions: some Collection<Deletion>,
         at instant: Date = .now,
         receive: (Export) throws -> Void
     ) throws -> Receipt {
-        let retractable = deletions.filter { !HealthKitCatalog.outputs(for: $0.sourceType).isEmpty }
-        let keys = retractable.map(ExchangeEventKey.retraction)
-        let reservations = keys.isEmpty ? [] : try producer.sequencer.reserve(keys, at: instant)
+        let keys = deletions.filter(isRetractable).map(ExchangeEventKey.retraction)
+        var reservations = (keys.isEmpty ? [] : try producer.sequencer.reserve(keys, at: instant)).makeIterator()
         let producerInstance = keys.isEmpty ? UUID() : try producer.sequencer.producerInstance
-        for deletion in deletions where HealthKitCatalog.outputs(for: deletion.sourceType).isEmpty {
-            try receive(Export(source: deletion.source, outcome: .nothingToRetract, warnings: []))
-        }
-        for (deletion, reservation) in zip(retractable, reservations) {
+        for deletion in deletions {
+            guard isRetractable(deletion), let reservation = reservations.next() else {
+                try receive(Export(source: deletion.source, outcome: .nothingToRetract, warnings: []))
+                continue
+            }
             let outcome: Export.Outcome
             do {
                 outcome = .graph(try retraction(of: deletion, reservation: reservation, producerInstance: producerInstance))
@@ -41,6 +42,16 @@ extension HealthKitFHIRExporter {
             try receive(Export(source: deletion.source, outcome: outcome, warnings: []))
         }
         return Receipt(keys: keys, sequencer: producer.sequencer)
+    }
+
+    /// Whether a deletion names outputs this exporter can have emitted. A type without outputs never emitted any,
+    /// and a workout route is exported only under ``Options/route`` `.authorized`: retracting an undisclosed route
+    /// would name a node that never existed and disclose that the route did.
+    private func isRetractable(_ deletion: Deletion) -> Bool {
+        guard !HealthKitCatalog.outputs(for: deletion.sourceType).isEmpty else {
+            return false
+        }
+        return deletion.sourceType != .workoutRoute || options.route == .authorized
     }
 
     private func retraction(

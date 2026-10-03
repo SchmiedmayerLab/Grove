@@ -105,8 +105,9 @@ extension HealthKitFHIRExporter {
     public enum RolePolicy: Hashable, Sendable {
         /// The application assembled graphs from records it did not mediate.
         case assembler
-        /// Samples this application wrote itself (the source bundle identifier equals the application's)
-        /// are stated as mediated by it; every other sample is merely assembled.
+        /// Samples this application wrote itself in the build it runs (the source bundle identifier equals the
+        /// application's and the revision's version equals its build) are stated as mediated by it; every other
+        /// sample is merely assembled.
         case gatewayForOwnWrites
         /// The converting application mediated every measurement.
         case gateway
@@ -114,12 +115,12 @@ extension HealthKitFHIRExporter {
         case gatewayApplication(ApplicationDevice)
 
         /// The role for one sample under this policy.
-        func converterRole(for source: HKSource, application: ApplicationDevice) -> ConverterRole {
+        func converterRole(for revision: HKSourceRevision, application: ApplicationDevice) -> ConverterRole {
             switch self {
             case .assembler:
                 .assembler
             case .gatewayForOwnWrites:
-                source.bundleIdentifier == application.bundleIdentifier ? .gateway : .assembler
+                HealthKitAssembly.isSameBuild(revision, as: application) ? .gateway : .assembler
             case .gateway:
                 .gateway
             case .gatewayApplication(let gateway):

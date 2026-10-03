@@ -104,11 +104,12 @@ public enum RetractionTargetError: Error, Equatable, Sendable {
 }
 
 
-/// When the source retracted a record, as precisely as the producer knows it.
+/// When the source retracted a record, as precisely as the producer knows it, stated in UTC at millisecond precision.
 public enum RetractionOccurrence: Hashable, Sendable {
     /// The source's own deletion time, or the time the producer detected the deletion.
     case instant(Date)
     /// Bounds on a deletion time the source does not state: after `start` when known, and no later than `end`.
+    /// A start before 0001-01-01T00:00:00Z is stated as that instant.
     case period(start: Date?, end: Date)
 
     fileprivate func occurredX() throws(RetractionEventError) -> Provenance.OccurredX {
@@ -118,11 +119,11 @@ public enum RetractionOccurrence: Hashable, Sendable {
         do {
             switch self {
             case .instant(let date):
-                return .dateTime(FHIRPrimitive(try DateTime(utc: date)))
+                return .dateTime(FHIRPrimitive(try ExchangeInstant.fhirDateTime(date)))
             case let .period(start, end):
                 return .period(Period(
-                    end: FHIRPrimitive(try DateTime(utc: end)),
-                    start: try start.map { FHIRPrimitive(try DateTime(utc: $0)) }
+                    end: FHIRPrimitive(try ExchangeInstant.fhirDateTime(end)),
+                    start: try start.map { FHIRPrimitive(try ExchangeInstant.fhirDateTime(max($0, ExchangeInstant.earliestStatable))) }
                 ))
             }
         } catch {
@@ -172,7 +173,7 @@ public struct RetractionEvent: Sendable {
         let occurredX = try occurred.occurredX()
         let recorded: Instant
         do {
-            recorded = try Instant(utc: context.conversionInstant)
+            recorded = try ExchangeInstant.fhirInstant(context.conversionInstant)
         } catch {
             throw .invalidInstant
         }

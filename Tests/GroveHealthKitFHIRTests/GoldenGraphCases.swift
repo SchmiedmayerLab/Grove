@@ -111,6 +111,12 @@ extension GoldenCase {
                 GoldenFixtures.quantity(.bodyMass, HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: 71.3), uuid: GoldenFixtures.uuid(13), metadata: metadata),
                 sequence: sequence
             )
+        },
+        GoldenCase("workout-session", sequence: 14) { sequence in
+            try GoldenFixtures.convert(
+                StoredSampleFixtures.stored(try GoldenFixtures.workout(withEvents: true), uuid: GoldenFixtures.uuid(14)),
+                sequence: sequence
+            )
         }
     ]
 

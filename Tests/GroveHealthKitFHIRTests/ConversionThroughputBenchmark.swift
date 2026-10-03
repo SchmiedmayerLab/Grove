@@ -186,13 +186,6 @@ struct ConversionThroughputBenchmark {
             ))
             print("BENCH diagnose withEvents=\(withEvents) type=\(type.rawValue) role=\(output.role)/\(output.discriminator) "
                 + "primaryProfiles=\(profiles) admittedCount=\(admitted.count) primaryAdmitted=\(!admitted.isDisjoint(with: profiles))")
-            let workout = try #require(sample as? HKWorkout)
-            let segments = try HealthKitConverter.workoutSegments(workout)
-            for case .observation(let segment) in segments.prefix(1).map(\.resource) {
-                let segmentProfiles = ExchangeGraph.canonicalStrings(segment.meta?.profile ?? [])
-                print("BENCH diagnose segments=\(segments.count) segmentProfiles=\(segmentProfiles) "
-                    + "segmentAdmitted=\(!admitted.isDisjoint(with: segmentProfiles))")
-            }
             do {
                 _ = try HealthKitConverter().convert(sample, context: context)
                 print("BENCH diagnose withEvents=\(withEvents) convert=OK")

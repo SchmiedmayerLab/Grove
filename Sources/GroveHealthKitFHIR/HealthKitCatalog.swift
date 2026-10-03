@@ -146,8 +146,7 @@ public enum HealthKitCatalog {
     /// Every output the converter mints for one source type, in the order the graph emits them.
     ///
     /// A caller holding only a source type — a deletion, whose sample is already gone — names
-    /// the exact outputs an addition minted. Workout segments are absent: their discriminators come
-    /// from the deleted sample's own events.
+    /// the exact outputs an addition minted.
     public static func outputs(for type: HealthKitSourceType) -> [HealthKitOutput] {
         switch type {
         case .electrocardiogram:
@@ -176,10 +175,9 @@ public enum HealthKitCatalog {
             guard let binding = binding(forSourceTypeIdentifier: type.rawValue) else {
                 return []
             }
-            // A workout's session totals share their source record with the segments hanging off it.
             let output = HealthKitOutput(
                 role: binding.contract.id,
-                discriminator: type == .workout ? "session" : "single",
+                discriminator: "single",
                 resourceType: .observation,
                 retractionRole: .primaryOutput
             )

@@ -236,15 +236,14 @@ struct HealthKitFHIRExporterTests {
         var exports: [HealthKitFHIRExporter.Export] = []
         let receipt = try exporter.retract(deletions, at: detectedAt) { exports.append($0) }
         try #require(exports.count == 3)
-        guard case .nothingToRetract = exports[0].outcome else {
-            Issue.record("a systolic component never emitted outputs; expected nothingToRetract, got \(exports[0].outcome)")
+        // Outcomes arrive in input order; the systolic component never emitted outputs.
+        guard case .nothingToRetract = exports[1].outcome else {
+            Issue.record("a systolic component never emitted outputs; expected nothingToRetract, got \(exports[1].outcome)")
             return
         }
-        #expect(exports[0].source.uuid == GoldenFixtures.uuid(11))
-        #expect(exports[1].source.uuid == GoldenFixtures.uuid(10))
-        #expect(exports[2].source.uuid == GoldenFixtures.uuid(12))
+        #expect(exports.map(\.source.uuid) == [GoldenFixtures.uuid(10), GoldenFixtures.uuid(11), GoldenFixtures.uuid(12)])
         let producerInstance = try exporter.producer.sequencer.producerInstance
-        for (export, sequence, deletion) in [(exports[1], UInt64(1), deletions[0]), (exports[2], 2, deletions[2])] {
+        for (export, sequence, deletion) in [(exports[0], UInt64(1), deletions[0]), (exports[2], 2, deletions[2])] {
             let context = HealthKitConversionContext(event: ExchangeEventContext(
                 subject: Self.base.subject,
                 event: try ExchangeEventIdentifier(system: Self.base.identityScope.systems.event, producerInstance: producerInstance, sequence: EventSequence(sequence)),

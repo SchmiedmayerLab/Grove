@@ -114,11 +114,9 @@ struct HealthKitAssembly: Sendable {
             discriminator: output.discriminator,
             resource: .observation(try HealthKitConverter.observation(for: sample, binding: binding))
         )
-        var outputs = [primary]
-        if let workout = sample as? HKWorkout {
-            outputs += try HealthKitConverter.workoutSegments(workout)
-        }
-        return HealthKitConversionSet(primary: try graph(for: sample, type: type, outputs: outputs, request: request))
+        // A workout exports its session alone: the pinned guide defines no HealthKit segment output, and a
+        // deletion could not name segments it never saw (healthkit-adapter.json workout row).
+        return HealthKitConversionSet(primary: try graph(for: sample, type: type, outputs: [primary], request: request))
     }
 
     /// One source record's graph: the outputs under the sample's envelope, with what the graph does not carry.
@@ -132,8 +130,12 @@ struct HealthKitAssembly: Sendable {
         let facts = try SourceFacts(sample, options: request.options)
         var outputs = outputs
         outputs[0].clearIdentifiers = facts.nativeIdentifiers
-        outputs[0].writerRecord = facts.writerRecord
         outputs[0].wasUserEntered = facts.wasUserEntered
+        // A writer-record identity travels only with its version, and only an Observation carries the version
+        // extension; a document states neither, though the pair is still validated.
+        if case .observation = outputs[0].resource {
+            outputs[0].writerRecord = facts.writerRecord
+        }
         let draft = ExchangeGraphDraft(
             event: request.event,
             instant: request.instant,
@@ -177,6 +179,16 @@ struct HealthKitAssembly: Sendable {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitAssembly {
+    /// Whether `revision` names `application` in the build it states: the same bundle identifier, and an
+    /// `HKSourceRevision.version` (HealthKit copies the source's `CFBundleVersion`) equal to `application.build`.
+    /// An application that states no build, or a revision without a version, never matches.
+    static func isSameBuild(_ revision: HKSourceRevision, as application: ApplicationDevice) -> Bool {
+        guard let build = application.build, let version = revision.version?.nonBlank else {
+            return false
+        }
+        return version == build && revision.source.bundleIdentifier == application.bundleIdentifier
+    }
+
     /// The event context a retraction or a bundled study context is minted from.
     func eventContext(for request: Request) -> ExchangeEventContext {
         ExchangeEventContext(

@@ -105,6 +105,13 @@ extension GoldenCase {
                 context: GoldenFixtures.context(sequence: sequence),
                 occurred: .period(start: nil, end: GoldenFixtures.conversionInstant)
             ))
+        },
+        GoldenCase("retraction-workout", sequence: 84) { sequence in
+            GoldenOutput(try HealthKitConverter().retraction(
+                for: HealthKitSourceRecord(uuid: GoldenFixtures.uuid(84), type: .workout),
+                context: GoldenFixtures.context(sequence: sequence),
+                occurred: .instant(GoldenFixtures.conversionInstant)
+            ))
         }
     ]
 

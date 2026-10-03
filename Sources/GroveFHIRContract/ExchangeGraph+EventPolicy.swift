@@ -148,6 +148,7 @@ extension ExchangeGraph {
         }
         try validateStudyContext(entries: entries, document: document)
         try validateSupportingConnectivity(entries: entries, document: document)
+        try validateAdapterProvenanceGraph(provenance, sourceEntity: sourceEntity, entries: entries, document: document)
     }
 
     private static func validatedActiveProvenance(

@@ -62,7 +62,7 @@ extension HealthKitCatalog {
         case .workout:
             fields.merge([
                 "workoutActivityType": .carried, "duration": .carried, "statistics": .carried,
-                "workoutEvents": .carried, "workoutActivities": .carried
+                "workoutEvents": .withheld, "workoutActivities": .withheld
             ]) { _, new in new }
         case .bloodPressure:
             fields["objects"] = .carried

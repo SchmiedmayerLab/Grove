@@ -86,6 +86,9 @@ public struct ExchangeGraph: Sendable {
 
     /// Re-validates stored or received JSON before it is trusted again, and keeps exactly those bytes as ``json``.
     ///
+    /// It applies every structural rule a built graph passes, including that each adapter output has exactly one conversion
+    /// Provenance of its adapter; StructureDefinition and terminology conformance is the conformance lane's to prove.
+    ///
     /// Serialized checks run first, because Foundation keeps only one of duplicate members and
     /// decoding through `Foundation.URL` could normalize an identity system or collapse a
     /// prohibited resource type before the model sees it.

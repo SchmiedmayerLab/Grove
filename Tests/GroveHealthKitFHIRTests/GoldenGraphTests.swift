@@ -219,18 +219,20 @@ struct GoldenGraphTests {
         }
     }
 
-    /// The old converter refuses every `HKWorkout`: its segment children claim a profile the Provenance contract does
-    /// not admit. Pinned as the refusal it is, so the rework's workout output is a deliberate change, not a silent one.
+    /// A workout exports its session alone, events or not: one Observation, no members, one Provenance target.
+    /// (The old converter refused every workout: its segment children claimed a profile the Provenance contract
+    /// does not admit.)
     @Test(arguments: [false, true])
-    func workoutsAreRefused(withEvents: Bool) throws {
+    func workoutsExportTheSessionAlone(withEvents: Bool) throws {
         let workout = try StoredSampleFixtures.stored(try GoldenFixtures.workout(withEvents: withEvents), uuid: GoldenFixtures.uuid(0xA0))
         let context = try GoldenFixtures.context(sequence: 200)
-        let error = #expect(throws: HealthKitConversionError.self) {
-            try HealthKitConverter().convert(workout, context: context)
-        }
-        let diagnostic = try #require(error?.diagnostic)
-        #expect(diagnostic.code == "mobile-exchange.adapter-provenance-graph")
-        #expect(diagnostic.location == "Provenance.entity")
+        let conversion = try HealthKitConverter().convert(workout, context: context)
+        let observations = conversion.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
+        #expect(observations.count == 1)
+        #expect(observations.first?.hasMember == nil)
+        #expect(conversion.primary.identifiers.childOutputs.isEmpty)
+        let provenance = try #require(conversion.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
+        #expect(provenance.target.count == 1)
     }
 
     /// A writer whose bundle identifier is not one is a refusal; a writer with a blank name is merely no writer

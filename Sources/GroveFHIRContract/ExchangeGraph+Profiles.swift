@@ -16,6 +16,15 @@ import ModelsR4
 
 
 extension ExchangeGraph {
+    /// Every adapter conversion claim in the pinned catalog's `adapterConversionProvenanceClaims` order, with the adapter
+    /// output profiles its Provenance governs. The generator lists the source-neutral profile first, which has no targets.
+    static let adapterConversionClaims: [(provenanceProfile: String, outputProfiles: Set<String>)] =
+        canonicalStrings(ProfileClaims.activeProvenanceProfiles).compactMap { profile in
+            ProfileClaims.adapterProvenanceTargetProfiles[profile].map {
+                (provenanceProfile: profile, outputProfiles: Set(canonicalStrings($0)))
+            }
+        }
+
     static func validateActiveProfileClaims(
         entries: [BundleEntry],
         document: ValidationDocument
@@ -31,7 +40,6 @@ extension ExchangeGraph {
         }
         if let activeProvenance {
             try validateDataOriginAgent(activeProvenance)
-            try validateAdapterProvenanceTargets(activeProvenance, entries: entries)
         }
     }
 
@@ -219,32 +227,76 @@ extension ExchangeGraph {
         }
     }
 
-    static func validateAdapterProvenanceTargets(
+    /// `mobile-exchange.adapter-provenance-graph` as the pinned kit decides it (graphs.py). Per adapter claim, in catalog
+    /// order, the entries claiming one of its output profiles are grouped by their one source-record identity. Each group
+    /// needs the event's Provenance to claim that adapter's conversion profile (else `Bundle.entry`) and to target exactly
+    /// the group (else `Provenance.target`); an adapter Provenance without a group fails at `Provenance.entity`.
+    ///
+    /// Runs last, where the kit runs it (exchange_bundle.py:521): the sole Provenance, the source marker, the targets and
+    /// the source entity are already valid, so one set comparison stands for the kit's per-target branches. A port of the
+    /// kit's checks at :518-520 goes before this call; a port of its checks at :614-776 goes after it.
+    static func validateAdapterProvenanceGraph(
         _ provenance: Provenance,
-        entries: [BundleEntry]
+        sourceEntity: RoledIdentifier,
+        entries: [BundleEntry],
+        document: ValidationDocument
     ) throws(ExchangeGraphError) {
-        guard let provenanceProfile = canonicalStrings(provenance.meta?.profile ?? []).first,
-              let admittedProfiles = ProfileClaims.adapterProvenanceTargetProfiles[provenanceProfile]
-        else {
-            return
-        }
-        let admitted = Set(canonicalStrings(admittedProfiles))
-        let resourcePairs: [(String, ResourceProxy)] = entries.compactMap { entry in
-            guard let fullURL = entry.fullUrl?.value?.url.absoluteString,
-                  let resource = entry.resource else {
-                return nil
+        var profiles: [Set<String>] = []
+        var governed: Set<String> = []
+        for (index, entry) in entries.enumerated() {
+            profiles.append(try directProfiles(at: index, document: document))
+            if case .provenance? = entry.resource {
+                governed = profiles[index]
             }
-            return (fullURL, resource)
         }
-        let resourcesByFullURL = [String: ResourceProxy](
-            uniqueKeysWithValues: resourcePairs
-        )
-        for target in provenance.target {
-            guard let reference = target.reference?.value?.string,
-                  let resource = resourcesByFullURL[reference],
-                  !admitted.isDisjoint(with: Set(resourceProfiles(resource))) else {
+        let targets = Set(provenance.target.compactMap { $0.reference?.value?.string })
+        for claim in adapterConversionClaims {
+            let governs = governed.contains(claim.provenanceProfile)
+            let groups = try adapterOutputGroups(claim.outputProfiles, profiles: profiles, entries: entries, document: document)
+            for group in groups {
+                guard governs, group.source == sourceEntity else {
+                    throw diagnostic(.mobileExchangeAdapterProvenanceGraph, location: "Bundle.entry")
+                }
+                guard targets == group.fullURLs else {
+                    throw diagnostic(.mobileExchangeAdapterProvenanceGraph, location: "Provenance.target")
+                }
+            }
+            if governs, !groups.contains(where: { $0.source == sourceEntity }) {
                 throw diagnostic(.mobileExchangeAdapterProvenanceGraph, location: "Provenance.entity")
             }
+        }
+    }
+
+    /// The entries claiming any of `outputProfiles`, grouped by their one typed source-record identity, in entry order.
+    private static func adapterOutputGroups(
+        _ outputProfiles: Set<String>,
+        profiles: [Set<String>],
+        entries: [BundleEntry],
+        document: ValidationDocument
+    ) throws(ExchangeGraphError) -> [(source: RoledIdentifier, fullURLs: Set<String>)] {
+        var groups: [(source: RoledIdentifier, fullURLs: Set<String>)] = []
+        for (index, entry) in entries.enumerated() where !profiles[index].isDisjoint(with: outputProfiles) {
+            let records = ((try? document.typedResourceIdentifiers(at: index)) ?? []).filter { $0.role == .sourceRecord }
+            guard records.count == 1, let fullURL = entry.fullUrl?.value?.url.absoluteString else {
+                // The kit fails this without a rule (graphs.py:30-38), so it reports mobile-exchange.unclassified.
+                throw .invalidEntries("An adapter-profiled entry carries no single typed source-record identity")
+            }
+            if let existing = groups.firstIndex(where: { $0.source == records[0] }) {
+                groups[existing].fullURLs.insert(fullURL)
+            } else {
+                groups.append((source: records[0], fullURLs: [fullURL]))
+            }
+        }
+        return groups
+    }
+
+    /// The entry resource's `meta.profile` exactly as written, read from the parsed Bundle as the kit reads it.
+    private static func directProfiles(at index: Int, document: ValidationDocument) throws(ExchangeGraphError) -> Set<String> {
+        do {
+            let object = try document.resourceObject(at: index) as? [String: Any]
+            return Set((object?["meta"] as? [String: Any])?["profile"] as? [String] ?? [])
+        } catch {
+            throw .invalidEntries(String(reflecting: type(of: error)))
         }
     }
 

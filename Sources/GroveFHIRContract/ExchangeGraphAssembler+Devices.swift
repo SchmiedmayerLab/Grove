@@ -58,7 +58,20 @@ extension ExchangeGraphAssembler {
     }
 
     func resolveDevices(for draft: ExchangeGraphDraft) throws -> Devices {
-        let converter = try converterSnapshots(event: draft.event, repositoryIDs: draft.repositoryIDs, role: draft.converterRole)
+        // The guide defines observation-gatewayDevice for Observations only; a gateway snapshot that no
+        // Observation names would connect to nothing (mobile-support.connected).
+        let statesGateway = draft.outputs.contains { output in
+            guard case .observation = output.resource else {
+                return false
+            }
+            return output.links.contains(.gateway)
+        }
+        let converter = try converterSnapshots(
+            event: draft.event,
+            repositoryIDs: draft.repositoryIDs,
+            role: draft.converterRole,
+            statesGateway: statesGateway
+        )
         let recording = try recordingSnapshot(draft.recordingDevice, event: draft.event, repositoryIDs: draft.repositoryIDs)
         let writer = try writerSnapshots(draft.writer, event: draft.event, repositoryIDs: draft.repositoryIDs, converter: converter)
         if draft.repositoryIDs[.recordingDevice] != nil, recording == nil {
@@ -82,7 +95,8 @@ extension ExchangeGraphAssembler {
     private func converterSnapshots(
         event: ExchangeEventIdentifier,
         repositoryIDs: [ExchangeGraphNode: RepositoryID],
-        role: ConverterRole
+        role: ConverterRole,
+        statesGateway: Bool
     ) throws -> ConverterSnapshots {
         let host = try hostSnapshot(envelope.host, event: event, repositoryID: repositoryIDs[.hostDevice])
         let application = try applicationSnapshot(
@@ -98,6 +112,9 @@ extension ExchangeGraphAssembler {
         case .gateway:
             return ConverterSnapshots(host: host, application: application, applicationURL: applicationURL, gateway: nil, gatewayURL: applicationURL)
         case .gatewayApplication(let gatewayApplication):
+            guard statesGateway else {
+                return ConverterSnapshots(host: host, application: application, applicationURL: applicationURL, gateway: nil, gatewayURL: nil)
+            }
             let gateway = try applicationSnapshot(gatewayApplication, event: event, parentURL: nil, repositoryID: nil)
             return ConverterSnapshots(
                 host: host,

@@ -205,7 +205,7 @@ extension HealthKitFHIRExporter {
                 sequence: reservation.sequence
             ),
             instant: reservation.instant,
-            converterRole: options.role.converterRole(for: source, application: producer.application),
+            converterRole: options.role.converterRole(for: sample.sourceRevision, application: producer.application),
             repositoryIDs: try legacyRepositoryIDs(for: sample.uuid),
             options: HealthKitConversionOptions(
                 writer: options.writer.classification(of: source),
