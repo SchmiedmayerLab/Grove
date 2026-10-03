@@ -9,6 +9,10 @@
 public import Foundation
 
 
+/// The identity of a ledger whose storage is not a class instance.
+private final class LedgerIdentity: Sendable {}
+
+
 /// The exchange-event ledger of one installation: it hands out event sequences and keeps what each
 /// event is rebuilt from until the caller releases it.
 ///
@@ -65,8 +69,13 @@ public final class ExchangeEventSequencer: Sendable {
     }
 
     let storage: any Storage
-    /// Which reservations live calls in this process still hold.
+    /// Which reservations live calls in this process still hold, and which keys a reserve is in flight for.
     let holds: HoldRegistry
+    /// The ledger in ``holds``: the storage object, so sequencers over one storage share their reserves in flight.
+    /// A storage that is not a class instance is identified by this sequencer alone.
+    let ledger: ObjectIdentifier
+    /// Keeps the identity of a value-type storage's ledger alive as long as this sequencer.
+    private let identity: LedgerIdentity
 
     /// Creates a sequencer over the application's storage.
     ///
@@ -76,8 +85,11 @@ public final class ExchangeEventSequencer: Sendable {
     }
 
     init(storage: any Storage, holds: HoldRegistry) {
+        let identity = LedgerIdentity()
         self.storage = storage
         self.holds = holds
+        self.identity = identity
+        self.ledger = type(of: storage) is AnyClass ? ObjectIdentifier(storage as AnyObject) : ObjectIdentifier(identity)
     }
 
     /// A sequencer over a fresh ``InMemoryStorage``, for tests, previews and single-process tools.
@@ -157,11 +169,19 @@ extension ExchangeEventSequencer {
             throw ExchangeIdentityError.invalidInstant
         }
         let ordered = Set(requests).sorted { ($0.key.rawValue, $0.fingerprint) < ($1.key.rawValue, $1.fingerprint) }
+        let keys = Set(ordered.map(\.key))
+        // In flight from before the transaction until its holds are taken, so no release removes a reservation
+        // this call may be reusing in between.
+        holds.beginReserving(keys, in: ledger)
+        var acquired: [ExchangeEventReservation.Handle] = []
+        defer {
+            holds.endReserving(keys, in: ledger, acquiring: acquired)
+        }
         let reserved = try storage.transaction { transaction in
             var reserving = ReserveCall(transaction: transaction, current: current, instantMilliseconds: instantMilliseconds)
             return try reserving.reserve(ordered)
         }
-        holds.acquire(reserved.values.map(\.handle))
+        acquired = reserved.values.map(\.handle)
         return reserved
     }
 
@@ -169,8 +189,10 @@ extension ExchangeEventSequencer {
     ///
     /// `released` says the caller's output is durably handed off. When the last live holder of a
     /// reservation in this process finishes and any holder released it, the reservation is removed, but
-    /// only while the key still holds exactly that reservation. `keys` are forgotten whatever they hold,
-    /// and only when `released` is true. Opens one transaction when anything is to be removed, none otherwise.
+    /// only while the key still holds exactly that reservation and, checked inside the removing transaction,
+    /// no live call holds it and no reserve of its key is in flight on this storage. `keys` are forgotten
+    /// whatever they hold, and only when `released` is true. Opens one transaction when anything is to be
+    /// removed, none otherwise.
     package func finish(
         _ held: [ExchangeEventReservation.Handle],
         released: Bool,
@@ -182,7 +204,9 @@ extension ExchangeEventSequencer {
             return
         }
         try storage.transaction { transaction in
-            for handle in removable {
+            // A reserve that registered before this check may reuse the reservation, so it stays; one that registers
+            // later starts its transaction after this one, as a storage runs a process's transactions one at a time.
+            for handle in removable where !holds.mayBeReused(handle, in: ledger) {
                 let key = LedgerKey.event(handle.key)
                 guard let value = try transaction.read(key) else {
                     continue

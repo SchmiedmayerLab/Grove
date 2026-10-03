@@ -9,17 +9,26 @@
 import Foundation
 
 
-/// Which reservations the live calls of this process still hold, and whether any holder released one.
+/// Which reservations the live calls of this process still hold, whether any holder released one, and which keys
+/// of which ledger a reserve is in flight for.
 ///
 /// The ledger's entries hold no per-call state: a reservation is removed when the last live holder in this
 /// process finishes and any holder released it, so overlapping exports of one record never remove each
-/// other's reservation, and a call that throws leaves its reservations for the redelivery. Handles include
-/// the producer instance, which every ledger mints for itself, so one registry serves every storage.
-/// Holds do not span processes; the lock is never held across I/O.
-final class HoldRegistry: @unchecked Sendable { // `holds` is guarded by `lock`.
+/// other's reservation, and a call that throws leaves its reservations for the redelivery. A reserve registers
+/// its keys before its transaction and turns them into holds in one step after it, so a reservation it may reuse
+/// is never seen unused in between. Handles include the producer instance, which every ledger mints for itself,
+/// so holds need no ledger; keys in flight are scoped to their ledger. One registry serves every storage. Holds
+/// do not span processes; the lock is never held across I/O.
+final class HoldRegistry: @unchecked Sendable { // `holds` and `reserving` are guarded by `lock`.
     private struct Hold {
         var live: Int
         var released: Bool
+    }
+
+    /// One event key of one ledger.
+    private struct LedgerEventKey: Hashable {
+        let ledger: ObjectIdentifier
+        let key: ExchangeEventKey
     }
 
     /// The registry every sequencer of this process shares.
@@ -27,33 +36,37 @@ final class HoldRegistry: @unchecked Sendable { // `holds` is guarded by `lock`.
 
     private let lock = NSLock()
     private var holds: [ExchangeEventReservation.Handle: Hold] = [:]
+    private var reserving: [LedgerEventKey: Int] = [:]
 
-    /// The number of reservations some live call holds.
-    var count: Int {
+    /// Marks a reserve of `keys` in `ledger` as in flight; called before its transaction.
+    func beginReserving(_ keys: some Sequence<ExchangeEventKey>, in ledger: ObjectIdentifier) {
         lock.lock()
         defer {
             lock.unlock()
         }
-        return holds.count
-    }
-
-    /// Whether no live call holds any reservation.
-    var isEmpty: Bool {
-        lock.lock()
-        defer {
-            lock.unlock()
+        for key in keys {
+            reserving[LedgerEventKey(ledger: ledger, key: key), default: 0] += 1
         }
-        return holds.isEmpty
     }
 
-    /// Takes one hold per handle; called only after the reserving transaction committed.
-    func acquire(_ handles: some Sequence<ExchangeEventReservation.Handle>) {
+    /// Ends a reserve begun for `keys` in `ledger` and takes one hold per handle it returned, in one step; `handles`
+    /// is empty when the reserving transaction did not commit.
+    func endReserving(
+        _ keys: some Sequence<ExchangeEventKey>,
+        in ledger: ObjectIdentifier,
+        acquiring handles: some Sequence<ExchangeEventReservation.Handle>
+    ) {
         lock.lock()
         defer {
             lock.unlock()
         }
         for handle in handles {
             holds[handle, default: Hold(live: 0, released: false)].live += 1
+        }
+        for key in keys {
+            let scoped = LedgerEventKey(ledger: ledger, key: key)
+            let remaining = (reserving[scoped] ?? 1) - 1
+            reserving[scoped] = remaining > 0 ? remaining : nil
         }
     }
 
@@ -79,5 +92,14 @@ final class HoldRegistry: @unchecked Sendable { // `holds` is guarded by `lock`.
             }
         }
         return removable
+    }
+
+    /// Whether a live call holds `handle`, or a reserve of its key in `ledger` is in flight and may reuse it.
+    func mayBeReused(_ handle: ExchangeEventReservation.Handle, in ledger: ObjectIdentifier) -> Bool {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+        return holds[handle] != nil || reserving[LedgerEventKey(ledger: ledger, key: handle.key)] != nil
     }
 }

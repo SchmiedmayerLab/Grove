@@ -63,6 +63,11 @@ enum LedgerFixtures {
         ExchangeEventSequencer(storage: storage, holds: HoldRegistry())
     }
 
+    /// Whether a live call on `sequencer` holds `handle`, or a reserve of its key is in flight on its storage.
+    static func mayBeReused(_ handle: ExchangeEventReservation.Handle?, by sequencer: ExchangeEventSequencer) -> Bool {
+        handle.map { sequencer.holds.mayBeReused($0, in: sequencer.ledger) } ?? false
+    }
+
     /// The raw value stored under `key`.
     static func stored(_ key: String, in storage: any ExchangeEventSequencer.Storage) throws -> Data? {
         try storage.transaction { try $0.read(key) }

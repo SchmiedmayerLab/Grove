@@ -74,6 +74,7 @@ Both the cutoff and the stored instants are on the caller's clock, so choose one
 
 The entries hold no per-call state.
 Live calls are tracked in process memory: when the last call in the process that holds an event finishes and any of them released it, the event's reservation is removed, and otherwise it stays for the redelivery.
+A reserve registers its keys before its transaction, and the removing transaction checks them, so a release never removes a reservation that a call on the same storage object in the same process is about to reuse; this relies on the storage running one process's transactions one at a time, as every backend above does.
 A release only ever removes the exact reservation its call made, never a successor's or one from before a reset.
 Holds do not span processes; when two live processes share one storage, a release in one can remove a reservation the other still holds, and the other's redelivery then becomes a new event, a duplicate and never a reuse.
 

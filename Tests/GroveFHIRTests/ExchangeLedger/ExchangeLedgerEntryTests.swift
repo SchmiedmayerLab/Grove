@@ -231,7 +231,7 @@ struct ExchangeLedgerEntryTests {
     func failuresAreAtomic() throws {
         let storage = FaultyStorage()
         let sequencer = Fixtures.sequencer(storage)
-        _ = try sequencer.reserve([Fixtures.request("a")], at: Fixtures.instant, facts: Fixtures.facts())
+        let first = try sequencer.reserve([Fixtures.request("a")], at: Fixtures.instant, facts: Fixtures.facts())
         let before = try Fixtures.keys("", in: storage.base)
         let requests = ["b", "c", "d"].map { Fixtures.request($0) }
         for write in 1...4 {
@@ -247,7 +247,9 @@ struct ExchangeLedgerEntryTests {
         }
         storage.failAtCommit(false)
         #expect(try Fixtures.keys("", in: storage.base) == before)
-        #expect(sequencer.holds.count == 1, "only the first call's hold")
+        #expect(Fixtures.mayBeReused(first.values.first?.handle, by: sequencer), "the first call still holds its reservation")
+        let unheld = requests.map { ExchangeEventReservation.Handle(key: $0.key, instance: UUID(), sequence: 1) }
+        #expect(!unheld.contains { Fixtures.mayBeReused($0, by: sequencer) }, "a failed reserve leaves no key in flight")
         let retried = try sequencer.reserve(requests, at: Fixtures.instant, facts: Fixtures.facts(build: "200"))
         #expect(Set(retried.values.map(\.sequence.rawValue)) == ["2", "3", "4"])
     }

@@ -32,7 +32,7 @@ struct ExchangeEventHoldTests {
         #expect(again == first)
         try sequencer.finish(again.values.map(\.handle), released: true, forgetting: [])
         #expect(try !Self.isReserved(request, in: storage))
-        #expect(sequencer.holds.isEmpty)
+        #expect(!Fixtures.mayBeReused(again[request]?.handle, by: sequencer))
     }
 
     @Test("G8: after a crash between reserve and release, the next process reuses and removes the reservation")
@@ -74,7 +74,7 @@ struct ExchangeEventHoldTests {
         try sequencer.finish(winner.values.map(\.handle), released: true, forgetting: [])
         try sequencer.finish(loser.values.map(\.handle), released: false, forgetting: [])
         #expect(try !Self.isReserved(request, in: storage))
-        #expect(sequencer.holds.isEmpty)
+        #expect(!Fixtures.mayBeReused(winner[request]?.handle, by: sequencer))
     }
 
     @Test("G10: a handle from before a reset releases nothing, and a replaced reservation is not removed")
