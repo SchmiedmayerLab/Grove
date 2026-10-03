@@ -41,7 +41,7 @@ extension ExchangeGraph {
     }
 
     static func validateEntryResourcePolicy(
-        kind: ExchangeGraphKind,
+        kind: Kind,
         entries: [BundleEntry],
         document: ValidationDocument
     ) throws(ExchangeGraphError) {

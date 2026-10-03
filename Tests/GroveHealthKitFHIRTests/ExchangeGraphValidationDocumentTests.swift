@@ -104,7 +104,7 @@ struct ExchangeGraphValidationDocumentTests {
         let entries = try #require(graph.bundle.entry)
         #expect(entries.count > 1)
         let documents = [
-            ExchangeGraph.ValidationDocument(bundle: graph.bundle, jsonData: graph.jsonData),
+            ExchangeGraph.ValidationDocument(bundle: graph.bundle, jsonData: graph.json),
             ExchangeGraph.ValidationDocument(bundle: graph.bundle, jsonData: nil)
         ]
         for document in documents {
@@ -150,7 +150,7 @@ struct ExchangeGraphValidationDocumentTests {
         let converter = HealthKitConverter()
         let context = Self.context()
         let sample = Self.heartRateSample()
-        let stored = try converter.convert(sample, context: context).primary.graph.jsonData
+        let stored = try converter.convert(sample, context: context).primary.graph.json
         let iterations = 500
         let round = { () throws -> Int in
             try autoreleasepool {

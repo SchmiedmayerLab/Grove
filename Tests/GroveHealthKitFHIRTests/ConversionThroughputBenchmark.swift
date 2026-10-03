@@ -316,7 +316,7 @@ struct ConversionThroughputBenchmark {
         run.report.line("scenario=\(run.name) phase=encode-bundle(sortedKeys+withoutEscapingSlashes) \(run.rate(stagedSeconds)) "
             + "bytesPerBundle=\(stagedBytes / run.count)")
         // The graph's stored bytes are the encoder's bytes, so (b) is exactly what the graph already holds.
-        #expect(run.conversions[0].graph.jsonData.count == encoded[0].count)
+        #expect(run.conversions[0].graph.json.count == encoded[0].count)
 
         run.graphInitSeconds = try Stopwatch.seconds {
             for conversion in run.conversions {

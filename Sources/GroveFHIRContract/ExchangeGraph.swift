@@ -10,20 +10,9 @@ public import Foundation
 public import ModelsR4
 
 
-/// The semantic kind of a complete Grove exchange graph.
-public enum ExchangeGraphKind: Hashable, Sendable {
-    case active
-    case retraction
-
-    var profile: FHIRPrimitive<Canonical> {
-        switch self {
-        case .active:
-            Profile.groveMobileExchangeBundle
-        case .retraction:
-            GroveLifecycleContract.retractionBundleProfile
-        }
-    }
-}
+/// The semantic kind of a complete Grove exchange graph; the kind now lives at ``ExchangeGraph/Kind``.
+@available(*, deprecated, renamed: "ExchangeGraph.Kind", message: "Compatibility spelling; removed with the exporter rework's final cleanup.")
+public typealias ExchangeGraphKind = ExchangeGraph.Kind
 
 
 /// The one authoritative, validated value emitted by a Grove producer.
@@ -31,22 +20,54 @@ public enum ExchangeGraphKind: Hashable, Sendable {
 /// Entries are owned only by the Bundle. Producers may expose stable entry keys, but do not retain
 /// independent mutable resource copies that can drift from what is serialized and uploaded.
 /// The graph keeps the JSON it was validated from, so ``isSemanticallyEqual(to:)`` decides over
-/// lossless tokens rather than over a model that has already normalized decimal lexemes.
+/// lossless tokens rather than over a model that has already normalized decimal lexemes, and so a
+/// consumer uploads exactly what was validated: ``json``.
 public struct ExchangeGraph: Sendable {
-    public let kind: ExchangeGraphKind
+    /// The semantic kind of a complete Grove exchange graph.
+    public enum Kind: Hashable, Sendable {
+        case active
+        case retraction
+
+        var profile: FHIRPrimitive<Canonical> {
+            switch self {
+            case .active:
+                Profile.groveMobileExchangeBundle
+            case .retraction:
+                GroveLifecycleContract.retractionBundleProfile
+            }
+        }
+    }
+
+    /// Sorted members and unescaped slashes: the same tokens the default encoder emits, in one
+    /// member order in every process, so a retry reproduces the bytes and a stored graph diffs by content.
+    private static var wireEncoder: JSONEncoder {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        return encoder
+    }
+
+    public let kind: Kind
     public let eventIdentifier: ExchangeEventIdentifier
     public let bundle: ModelsR4.Bundle
-    let jsonData: Data
+    /// The serialized graph exactly as it was validated.
+    ///
+    /// A graph built from a model holds that model's canonical encoding (sorted members, slashes
+    /// unescaped); a graph re-validated from stored bytes holds those bytes unchanged. Upload and
+    /// persist these bytes, not a re-encoding of ``bundle``.
+    public let json: Data
+
+    /// The event's business identifier, as `Bundle.identifier` states it.
+    public var event: BusinessIdentifier { eventIdentifier.identifier.identifier }
 
     public init(
-        kind: ExchangeGraphKind,
+        kind: Kind,
         eventIdentifier: ExchangeEventIdentifier,
         bundle: ModelsR4.Bundle
     ) throws(ExchangeGraphError) {
-        self.jsonData = try Self.drainingTemporaries { () throws(ExchangeGraphError) in
-            let jsonData: Data
+        self.json = try Self.drainingTemporaries { () throws(ExchangeGraphError) in
+            let json: Data
             do {
-                jsonData = try JSONEncoder().encode(bundle)
+                json = try Self.wireEncoder.encode(bundle)
             } catch {
                 throw .invalidEntries(String(reflecting: type(of: error)))
             }
@@ -54,33 +75,42 @@ public struct ExchangeGraph: Sendable {
                 kind: kind,
                 eventIdentifier: eventIdentifier,
                 bundle: bundle,
-                document: ValidationDocument(bundle: bundle, jsonData: jsonData)
+                document: ValidationDocument(bundle: bundle, jsonData: json)
             )
-            return jsonData
+            return json
         }
         self.kind = kind
         self.eventIdentifier = eventIdentifier
         self.bundle = bundle
     }
 
-    /// Re-validates stored or received JSON before it is trusted again.
+    /// Re-validates stored or received JSON before it is trusted again, and keeps exactly those bytes as ``json``.
     ///
     /// Serialized checks run first, because Foundation keeps only one of duplicate members and
     /// decoding through `Foundation.URL` could normalize an identity system or collapse a
     /// prohibited resource type before the model sees it.
     public init(
-        kind: ExchangeGraphKind,
-        jsonData: Data
+        validating json: Data,
+        kind: Kind
     ) throws(ExchangeGraphError) {
         (self.eventIdentifier, self.bundle) = try Self.drainingTemporaries { () throws(ExchangeGraphError) in
-            try Self.decodeValidated(kind: kind, jsonData: jsonData)
+            try Self.decodeValidated(kind: kind, jsonData: json)
         }
         self.kind = kind
-        self.jsonData = jsonData
+        self.json = json
+    }
+
+    /// ``init(validating:kind:)`` under its earlier spelling.
+    @available(*, deprecated, renamed: "init(validating:kind:)", message: "Compatibility spelling; removed with the exporter rework's final cleanup.")
+    public init(
+        kind: Kind,
+        jsonData: Data
+    ) throws(ExchangeGraphError) {
+        try self.init(validating: jsonData, kind: kind)
     }
 
     private static func decodeValidated(
-        kind: ExchangeGraphKind,
+        kind: Kind,
         jsonData: Data
     ) throws(ExchangeGraphError) -> (ExchangeEventIdentifier, ModelsR4.Bundle) {
         do {
@@ -140,7 +170,7 @@ public struct ExchangeGraph: Sendable {
     }
 
     private static func validate(
-        kind: ExchangeGraphKind,
+        kind: Kind,
         eventIdentifier: ExchangeEventIdentifier,
         bundle: ModelsR4.Bundle,
         document: ValidationDocument
@@ -187,7 +217,7 @@ public struct ExchangeGraph: Sendable {
 
     private static func validatedEntries(
         _ bundle: ModelsR4.Bundle,
-        kind: ExchangeGraphKind
+        kind: Kind
     ) throws(ExchangeGraphError) -> [BundleEntry] {
         let profiles = bundle.meta?.profile ?? []
         let exchangeProfiles = [Profile.groveMobileExchangeBundle, GroveLifecycleContract.retractionBundleProfile]
@@ -221,7 +251,7 @@ public struct ExchangeGraph: Sendable {
     }
 
     private static func validateLifecycle(
-        kind: ExchangeGraphKind,
+        kind: Kind,
         entries: [BundleEntry],
         document: ValidationDocument
     ) throws(ExchangeGraphError) {

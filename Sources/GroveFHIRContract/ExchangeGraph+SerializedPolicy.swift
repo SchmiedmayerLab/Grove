@@ -12,7 +12,7 @@ import ModelsR4
 
 extension ExchangeGraph {
     static func validateSerializedEntryPolicy(
-        kind: ExchangeGraphKind,
+        kind: Kind,
         json: Result<Any, any Error>
     ) throws(ExchangeGraphError) {
         let root = try serializedBundleObject(json)
@@ -49,7 +49,7 @@ extension ExchangeGraph {
 
     private static func validateSerializedEntry(
         _ entry: [String: Any],
-        kind: ExchangeGraphKind,
+        kind: Kind,
         activeTypes: Set<String>
     ) throws(ExchangeGraphError) {
         guard let resource = entry["resource"] as? [String: Any],

@@ -265,8 +265,8 @@ extension ExchangeGraph {
     /// text, so `72` and `72.0` are different content. A retry that is equal under this comparison
     /// is the exact retry the exchange protocol admits.
     public func isSemanticallyEqual(to other: ExchangeGraph) -> Bool {
-        guard let lhs = try? LosslessJSONValue(parsing: jsonData),
-              let rhs = try? LosslessJSONValue(parsing: other.jsonData) else {
+        guard let lhs = try? LosslessJSONValue(parsing: json),
+              let rhs = try? LosslessJSONValue(parsing: other.json) else {
             return false
         }
         return lhs == rhs

@@ -51,6 +51,30 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
         )
     }
 
+    /// Creates the identity scope of one deployment root, with its twelve systems in the exchange
+    /// protocol's recommended form: ``DeploymentIdentifierSystems/derived(root:keyID:epoch:)``
+    /// followed by ``init(systems:keyID:epoch:key:)``.
+    ///
+    /// A key id the systems cannot carry is reported as ``OpaqueIdentityError/invalidKeyID(_:)``;
+    /// a root the recommended form cannot be built under as ``OpaqueIdentityError/invalidDeploymentRoot(_:)``.
+    public init(
+        root: IdentifierSystem,
+        keyID: String,
+        epoch: EventSequence,
+        key: SymmetricKey
+    ) throws(OpaqueIdentityError) {
+        guard Self.isValidKeyID(keyID) else {
+            throw .invalidKeyID(keyID)
+        }
+        let systems: DeploymentIdentifierSystems
+        do {
+            systems = try DeploymentIdentifierSystems.derived(root: root, keyID: keyID, epoch: epoch)
+        } catch {
+            throw .invalidDeploymentRoot(root.rawValue)
+        }
+        try self.init(systems: systems, keyID: keyID, epoch: epoch, key: key)
+    }
+
     private init(
         systems: DeploymentIdentifierSystems,
         keyID: String,

@@ -11,6 +11,8 @@
 /// A component fault names the component by its path, `<identity-kind>.<component>` as the catalog spells them.
 public enum OpaqueIdentityError: Error, Equatable, Sendable {
     case invalidKeyID(String)
+    /// The exchange protocol's recommended identifier systems cannot be formed under this deployment root.
+    case invalidDeploymentRoot(String)
     case keyTooShort(actualBytes: Int)
     case publishedConformanceKeyProhibited
     /// A component the identity kind requires is empty.
@@ -33,8 +35,8 @@ public enum OpaqueIdentityError: Error, Equatable, Sendable {
             ExchangeGraphRule.mobileInputRequiredMetadataMissing.diagnostic(at: path)
         case .nonCanonicalPartIndex(let path):
             ExchangeGraphRule.mobileInputUnclassified.diagnostic(at: path)
-        case .invalidKeyID, .keyTooShort, .publishedConformanceKeyProhibited, .invalidCodeToken, .providerKindRequired,
-             .reusedIdentifierSystem, .componentTooLarge, .invalidComponentCount:
+        case .invalidKeyID, .invalidDeploymentRoot, .keyTooShort, .publishedConformanceKeyProhibited, .invalidCodeToken,
+             .providerKindRequired, .reusedIdentifierSystem, .componentTooLarge, .invalidComponentCount:
             ExchangeGraphRule.mobileInputUnclassified.diagnostic
         }
     }

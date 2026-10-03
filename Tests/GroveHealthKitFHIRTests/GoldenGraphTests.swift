@@ -149,7 +149,7 @@ private enum TokenDiff {
 
 /// Pins the converter's current wire output, token for token, so the refactor can be proven identical.
 ///
-/// Each case converts fixed inputs through the OLD API and compares the graph's stored JSON (`ExchangeGraph.jsonData`,
+/// Each case converts fixed inputs through the OLD API and compares the graph's stored JSON (`ExchangeGraph.json`,
 /// the bytes a consumer uploads) with the checked-in golden over lossless tokens: member order is free, array order
 /// and decimal lexemes are not. A failure names the first differing path.
 @Suite
@@ -157,7 +157,7 @@ struct GoldenGraphTests {
     @Test(.enabled(if: !GoldenStore.isGenerating), arguments: GoldenCase.all)
     func matchesCheckedInGolden(_ goldenCase: GoldenCase) throws {
         let output = try goldenCase.output()
-        let actual = try LosslessJSONValue(parsing: output.graph.jsonData)
+        let actual = try LosslessJSONValue(parsing: output.graph.json)
         let expected = try LosslessJSONValue(parsing: GoldenStore.data(named: goldenCase.name))
         let outline = try #require(GoldenStore.outlines()[goldenCase.name], "no outline is pinned for \(goldenCase.name)")
 
@@ -197,9 +197,9 @@ struct GoldenGraphTests {
         for goldenCase in GoldenCase.all {
             let output = try goldenCase.output()
             let graph = output.graph
-            let wire = try LosslessJSONValue(parsing: graph.jsonData)
+            let wire = try LosslessJSONValue(parsing: graph.json)
             let again = try goldenCase.output()
-            #expect(try LosslessJSONValue(parsing: again.graph.jsonData) == wire, "\(goldenCase.name) is not deterministic")
+            #expect(try LosslessJSONValue(parsing: again.graph.json) == wire, "\(goldenCase.name) is not deterministic")
             #expect(again.warnings == output.warnings, "\(goldenCase.name) does not warn deterministically")
             let sorted = try GoldenStore.encoder.encode(graph.bundle)
             #expect(try LosslessJSONValue(parsing: sorted) == wire, "\(goldenCase.name): a sorted re-encode changes the tokens")
