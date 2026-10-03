@@ -14,6 +14,7 @@ import ModelsR4
 /// Fixtures the ledger tests share.
 enum LedgerFixtures {
     struct InvalidCanonical: Error {}
+    struct UnfreezableFacts: Error {}
 
     static let instant = Date(timeIntervalSince1970: 1_791_023_400.251)
     static let instantMilliseconds: Int64 = 1_791_023_400_251
@@ -26,13 +27,20 @@ enum LedgerFixtures {
         ExchangeEventRequest(key: key(record, kind: kind), fingerprint: fingerprint)
     }
 
-    /// Facts naming application build `build`, so tests can tell facts apart.
-    static func facts(build: String = "100", operatingSystem: String = "26.0", studies: [StudyEnrollment] = []) throws -> ExchangeEventFacts {
-        ExchangeEventFacts(
+    /// Facts naming application build `build`, so tests can tell facts apart, prepared as a producer prepares them.
+    static func facts(build: String = "100", operatingSystem: String = "26.0", studies: [StudyEnrollment] = []) throws -> PreparedFacts {
+        try prepared(ExchangeEventFacts(
             application: try ApplicationDevice(name: "Grove Test", bundleIdentifier: "org.grovealliance.test", version: "1.0", build: build),
             host: try HostDevice(operatingSystemVersion: operatingSystem, name: "Host", manufacturer: "Example", modelNumber: "Phone1"),
             studies: studies
-        )
+        ))
+    }
+
+    static func prepared(_ facts: ExchangeEventFacts) throws -> PreparedFacts {
+        guard let prepared = PreparedFacts(facts) else {
+            throw UnfreezableFacts()
+        }
+        return prepared
     }
 
     static func enrollment(_ name: String, protocolURL: String, version: String = "1") throws -> StudyEnrollment {

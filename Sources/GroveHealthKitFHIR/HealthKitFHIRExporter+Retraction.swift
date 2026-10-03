@@ -32,7 +32,7 @@ extension HealthKitFHIRExporter {
             isRetractable(deletion) ? context.request(for: .retraction(deletion), recordParts: deletion.occurrenceParts) : nil
         }
         let unique = Set(requests.compactMap(\.self))
-        let reserved = unique.isEmpty ? [:] : try producer.sequencer.reserve(unique, at: instant, facts: producer.facts)
+        let reserved = unique.isEmpty ? [:] : try producer.reserve(unique, at: instant)
         // Created before any delivery: when a delivery throws, the receipt is dropped and its holds lapse.
         let receipt = Receipt(
             sequencer: producer.sequencer,

@@ -55,7 +55,7 @@ struct ExchangeLedgerEntryTests {
     /// A ledger holding one reservation for `a` under `instance`, with the current facts stored.
     private static func seededLedger(event: String, producer: String? = nil) throws -> ExchangeEventSequencer.InMemoryStorage {
         let storage = ExchangeEventSequencer.InMemoryStorage()
-        let facts = try PreparedFacts(Fixtures.facts())
+        let facts = try Fixtures.facts()
         try storage.transaction { try $0.write(facts.bytes, for: LedgerKey.facts(facts.digest)) }
         try Fixtures.seed(
             [
@@ -82,17 +82,17 @@ struct ExchangeLedgerEntryTests {
             host: try HostDevice(operatingSystemVersion: "26.0.1"),
             studies: studies
         )
-        let prepared = try PreparedFacts(facts)
+        let prepared = try Fixtures.prepared(facts)
         #expect(prepared.facts == facts)
         #expect(try PreparedFacts.decode(prepared.bytes, key: "facts/x") == facts)
-        #expect(try PreparedFacts(prepared.facts).bytes == prepared.bytes, "encoding is deterministic")
-        #expect(try PreparedFacts(Fixtures.facts(build: "101")).digest != prepared.digest)
+        #expect(try Fixtures.prepared(prepared.facts).bytes == prepared.bytes, "encoding is deterministic")
+        #expect(try Fixtures.facts(build: "101").digest != prepared.digest)
         let current = ExchangeEventFacts(
             application: try ApplicationDevice(name: "Grove Test", bundleIdentifier: "org.grovealliance.test", version: "1.0"),
             host: HostDevice.current(),
             studies: []
         )
-        #expect(try PreparedFacts(current).facts == current)
+        #expect(try Fixtures.prepared(current).facts == current)
     }
 
     @Test("Equal facts are stored once and shared across reservations and instances")
@@ -131,7 +131,7 @@ struct ExchangeLedgerEntryTests {
         let kept = try sequencer.reserve([Fixtures.request("new")], at: start + 120, facts: Fixtures.facts(build: "2"))
         #expect(try sequencer.forgetReservations(madeBefore: start) == 0)
         #expect(try sequencer.forgetReservations(madeBefore: start + 60) == 2)
-        #expect(try Fixtures.keys(LedgerKey.factsPrefix, in: storage) == [LedgerKey.facts(try PreparedFacts(Fixtures.facts(build: "2")).digest)])
+        #expect(try Fixtures.keys(LedgerKey.factsPrefix, in: storage) == [LedgerKey.facts(try Fixtures.facts(build: "2").digest)])
         #expect(try sequencer.forgetReservations(madeBefore: start + 61) == 1)
         #expect(try Fixtures.keys(LedgerKey.eventPrefix, in: storage) == [LedgerKey.event(Fixtures.key("new"))])
         #expect(try sequencer.reserve([Fixtures.request("new")], at: start + 500, facts: Fixtures.facts(build: "3")) == kept)
@@ -167,12 +167,12 @@ struct ExchangeLedgerEntryTests {
         let retired = try Self.seededLedger(event: Self.event(instance: "2eafba7b-4c21-4bf5-ad46-351b0176b25a", sequence: "8"))
         #expect(try Fixtures.sequencer(retired).reserve([request], at: Fixtures.instant, facts: facts)[request]?.sequence.rawValue == "8")
         let missingFacts = try Self.seededLedger(event: Self.event())
-        try missingFacts.transaction { try $0.remove(LedgerKey.facts(try PreparedFacts(facts).digest)) }
+        try missingFacts.transaction { try $0.remove(LedgerKey.facts(facts.digest)) }
         #expect(throws: ExchangeEventSequencer.LedgerError.corruptEntry(key: eventKey)) {
             try Fixtures.sequencer(missingFacts).reserve([request], at: Fixtures.instant, facts: facts)
         }
         let blankName = try Self.seededLedger(event: Self.event())
-        let factsKey = LedgerKey.facts(try PreparedFacts(facts).digest)
+        let factsKey = LedgerKey.facts(facts.digest)
         let stored = String(decoding: try #require(try Fixtures.stored(factsKey, in: blankName)), as: UTF8.self)
         try Fixtures.seed([factsKey: stored.replacingOccurrences(of: #""name":"Grove Test""#, with: #""name":" ""#)], in: blankName)
         #expect(throws: ExchangeEventSequencer.LedgerError.corruptEntry(key: factsKey)) {

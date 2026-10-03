@@ -23,6 +23,8 @@ public final class ExchangeProducer: Sendable {
         case duplicateStudy(BusinessIdentifier)
         /// Two enrollments carry the same enrollment identifier.
         case duplicateEnrollment(BusinessIdentifier)
+        /// The application, host or studies do not survive the ledger's encoding, so no event could freeze them.
+        case unfreezableFacts
 
         /// The registered diagnostic: every configuration fault is a deployment defect.
         public var diagnostic: ProducerDiagnostic {
@@ -42,6 +44,8 @@ public final class ExchangeProducer: Sendable {
     public let studies: [StudyEnrollment]
     /// The ledger the producer's events take their sequences and frozen facts from.
     public let sequencer: ExchangeEventSequencer
+    /// The application, host and studies as the ledger stores them, encoded once here for every reservation.
+    let preparedFacts: PreparedFacts
 
     /// Creates the producer of one installation.
     ///
@@ -51,7 +55,7 @@ public final class ExchangeProducer: Sendable {
     ///   - application: The converting application, as its Device snapshot states it.
     ///   - host: The host the application runs on; captured now, as a later snapshot may differ.
     ///   - studies: The participant's known enrollments, each study once.
-    ///   - sequencer: Where the producer's events take their sequences from.
+    ///   - sequencer: The ledger the producer's events take their sequences and frozen facts from.
     public init(
         identityScope: OpaqueIdentityScope,
         subject: Subject,
@@ -77,11 +81,15 @@ public final class ExchangeProducer: Sendable {
                 throw .duplicateEnrollment(enrollment.enrollment)
             }
         }
+        guard let preparedFacts = PreparedFacts(ExchangeEventFacts(application: application, host: host, studies: studies)) else {
+            throw .unfreezableFacts
+        }
         self.identityScope = identityScope
         self.subject = subject
         self.application = application
         self.host = host
         self.studies = studies
         self.sequencer = sequencer
+        self.preparedFacts = preparedFacts
     }
 }

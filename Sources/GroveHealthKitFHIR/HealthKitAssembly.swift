@@ -80,20 +80,19 @@ struct HealthKitAssembly: Sendable {
         )
     }
 
-    /// The producer's scope; each graph takes its own request's facts.
-    let envelope: ExchangeEnvelope
+    /// The producer's scope. It holds no facts: each graph's envelope takes its own request's frozen facts.
+    let scope: ExchangeEnvelope.Scope
 
-    init(envelope: ExchangeEnvelope) {
-        self.envelope = envelope
+    init(scope: ExchangeEnvelope.Scope) {
+        self.scope = scope
     }
 
     init(context: ExchangeEventContext) {
-        self.init(envelope: ExchangeEnvelope(
+        self.init(scope: ExchangeEnvelope.Scope(
             adapter: Self.adapter,
             identityScope: context.identityScope,
             subject: context.subject,
-            repositoryScope: context.repositoryScope,
-            facts: ExchangeEventFacts(context)
+            repositoryScope: context.repositoryScope
         ))
     }
 
@@ -147,14 +146,14 @@ struct HealthKitAssembly: Sendable {
         let draft = ExchangeGraphDraft(
             event: request.event,
             instant: request.instant,
-            sourceRecord: try envelope.sourceRecord(sourceType: type.rawValue, nativeRecordID: sample.uuid.uuidString.lowercased()),
+            sourceRecord: try scope.sourceRecord(sourceType: type.rawValue, nativeRecordID: sample.uuid.uuidString.lowercased()),
             outputs: outputs,
             recordingDevice: facts.recordingDevice,
             writer: facts.writer,
             converterRole: request.converterRole,
             repositoryIDs: request.repositoryIDs
         )
-        let assembled = try ExchangeGraphAssembler(envelope: envelope.with(request.facts)).assemble(draft)
+        let assembled = try ExchangeGraphAssembler(envelope: ExchangeEnvelope(scope: scope, facts: request.facts)).assemble(draft)
         return HealthKitConversion(
             source: source,
             identifiers: assembled.identifiers,
@@ -200,10 +199,10 @@ extension HealthKitAssembly {
     /// The event context a retraction or a bundled study context is minted from, under the request's facts.
     func eventContext(for request: Request) -> ExchangeEventContext {
         ExchangeEventContext(
-            subject: envelope.subject,
+            subject: scope.subject,
             event: request.event,
-            identityScope: envelope.identityScope,
-            repositoryScope: envelope.repositoryScope,
+            identityScope: scope.identityScope,
+            repositoryScope: scope.repositoryScope,
             application: request.facts.application,
             host: request.facts.host,
             conversionInstant: request.instant,

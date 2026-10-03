@@ -59,12 +59,11 @@ public final class HealthKitFHIRExporter: Sendable {
         self.producer = producer
         self.repositoryScope = repositoryScope
         self.options = options
-        self.assembly = HealthKitAssembly(envelope: ExchangeEnvelope(
+        self.assembly = HealthKitAssembly(scope: ExchangeEnvelope.Scope(
             adapter: HealthKitAssembly.adapter,
             identityScope: producer.identityScope,
             subject: producer.subject,
-            repositoryScope: repositoryScope,
-            facts: producer.facts
+            repositoryScope: repositoryScope
         ))
         self.context = ExportContext(producer: producer, repositoryScope: repositoryScope, options: options, revisions: outputRevisions)
     }
@@ -94,7 +93,7 @@ public final class HealthKitFHIRExporter: Sendable {
         let plans = inputs.map { Plan($0, context: context) }
         let requests = Set(plans.flatMap(\.requests))
         // Nothing reserved means the ledger is never touched; refusals alone need no event.
-        let reserved = requests.isEmpty ? [:] : try producer.sequencer.reserve(requests, at: instant, facts: producer.facts)
+        let reserved = requests.isEmpty ? [:] : try producer.reserve(requests, at: instant)
         // Created before any delivery: when a delivery throws, the receipt is dropped and its holds lapse.
         let receipt = Receipt(sequencer: producer.sequencer, held: reserved.values.map(\.handle), forgetting: [])
         for plan in plans {

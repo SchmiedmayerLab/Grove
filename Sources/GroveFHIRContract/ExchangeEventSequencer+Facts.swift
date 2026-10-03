@@ -19,8 +19,8 @@ import ModelsR4
 ///
 /// The digest is the SHA-256, base64url without padding, of the entry's bytes, so equal facts share one
 /// entry across producer instances; a reservation names its digest, so an encoding that differs on another
-/// platform only misses a deduplication.
-struct PreparedFacts {
+/// platform only misses a deduplication. A producer prepares its facts once, when it is built.
+struct PreparedFacts: Sendable {
     private struct Payload: Codable {
         enum CodingKeys: String, CodingKey {
             case version = "v"
@@ -67,7 +67,9 @@ struct PreparedFacts {
     /// The facts as every graph sees them: decoded from ``bytes``, never the caller's values.
     let facts: ExchangeEventFacts
 
-    init(_ facts: ExchangeEventFacts) throws {
+    /// Encodes `facts` and decodes them back the way a redelivery decodes the stored entry; `nil` when they do
+    /// not survive that round trip, so no event could freeze them.
+    init?(_ facts: ExchangeEventFacts) {
         let payload = Payload(
             version: LedgerEntryCoding.version,
             application: ApplicationPayload(
@@ -93,54 +95,69 @@ struct PreparedFacts {
                 )
             }
         )
-        let bytes = try LedgerEntryCoding.encode(payload)
+        guard let bytes = try? LedgerEntryCoding.encode(payload) else {
+            return nil
+        }
         let digest = Data(SHA256.hash(data: bytes)).base64URLEncodedStringWithoutPadding
+        guard let decoded = try? Self.decode(bytes, key: LedgerKey.facts(digest)) else {
+            return nil
+        }
         self.bytes = bytes
         self.digest = digest
-        self.facts = try Self.decode(bytes, key: LedgerKey.facts(digest))
+        self.facts = decoded
     }
 
     /// Rebuilds stored facts through the validating initializers; any fault makes the entry corrupt.
     static func decode(_ value: Data, key: String) throws -> ExchangeEventFacts {
         let payload = try LedgerEntryCoding.decode(Payload.self, from: value, key: key)
-        do {
-            let application = try ApplicationDevice(
-                name: payload.application.name,
-                bundleIdentifier: payload.application.bundleIdentifier,
-                version: payload.application.version,
-                build: payload.application.build
-            )
-            let host = try HostDevice(
-                operatingSystemVersion: payload.host.operatingSystemVersion,
-                name: payload.host.name,
-                manufacturer: payload.host.manufacturer,
-                modelNumber: payload.host.modelNumber
-            )
-            let studies = try payload.studies.map { study in
-                try StudyEnrollment(
-                    study: try identifier(study.study),
-                    protocolURL: try protocolURL(study.protocolURL),
-                    protocolVersion: study.protocolVersion,
-                    enrollment: try identifier(study.enrollment)
-                )
-            }
-            return ExchangeEventFacts(application: application, host: host, studies: studies)
-        } catch {
+        guard let facts = facts(from: payload) else {
             throw ExchangeEventSequencer.LedgerError.corruptEntry(key: key)
         }
+        return facts
     }
 
-    private static func identifier(_ payload: IdentifierPayload) throws -> BusinessIdentifier {
-        try BusinessIdentifier(system: IdentifierSystem(payload.system), value: payload.value)
+    /// The facts a payload states, or `nil` when any validating initializer refuses a value.
+    private static func facts(from payload: Payload) -> ExchangeEventFacts? {
+        guard let application = try? ApplicationDevice(
+            name: payload.application.name,
+            bundleIdentifier: payload.application.bundleIdentifier,
+            version: payload.application.version,
+            build: payload.application.build
+        ), let host = try? HostDevice(
+            operatingSystemVersion: payload.host.operatingSystemVersion,
+            name: payload.host.name,
+            manufacturer: payload.host.manufacturer,
+            modelNumber: payload.host.modelNumber
+        ) else {
+            return nil
+        }
+        var studies: [StudyEnrollment] = []
+        for study in payload.studies {
+            guard let studyIdentifier = identifier(study.study),
+                  let enrollmentIdentifier = identifier(study.enrollment),
+                  let canonical = protocolURL(study.protocolURL),
+                  let rebuilt = try? StudyEnrollment(
+                      study: studyIdentifier,
+                      protocolURL: canonical,
+                      protocolVersion: study.protocolVersion,
+                      enrollment: enrollmentIdentifier
+                  ) else {
+                return nil
+            }
+            studies.append(rebuilt)
+        }
+        return ExchangeEventFacts(application: application, host: host, studies: studies)
     }
 
-    private static func protocolURL(_ text: String?) throws -> FHIRPrimitive<Canonical> {
+    private static func identifier(_ payload: IdentifierPayload) -> BusinessIdentifier? {
+        try? BusinessIdentifier(system: IdentifierSystem(payload.system), value: payload.value)
+    }
+
+    /// The canonical as written; an absent one is an empty primitive, text that is no canonical is `nil`.
+    private static func protocolURL(_ text: String?) -> FHIRPrimitive<Canonical>? {
         guard let text else {
             return FHIRPrimitive<Canonical>()
         }
-        guard let canonical = text.asFHIRCanonicalPrimitive() else {
-            throw ExchangeEventSequencer.LedgerError.corruptEntry(key: text)
-        }
-        return canonical
+        return text.asFHIRCanonicalPrimitive()
     }
 }

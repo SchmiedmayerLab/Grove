@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-import Foundation
+package import Foundation
 
 
 /// What an event states about the converting application, its host and the participant's studies,
@@ -29,8 +29,20 @@ package struct ExchangeEventFacts: Hashable, Sendable {
 
 
 extension ExchangeProducer {
-    /// The facts a new reservation is minted under: this producer's, as captured when it was built.
+    /// The facts a new reservation is minted under: this producer's, as captured when it was built and decoded
+    /// back from the ledger's encoding, exactly as every graph states them.
     package var facts: ExchangeEventFacts {
-        ExchangeEventFacts(application: application, host: host, studies: studies)
+        preparedFacts.facts
+    }
+
+    /// One reservation per distinct request in one ledger transaction, new ones under this producer's facts.
+    ///
+    /// See ``ExchangeEventSequencer`` for what a reservation keeps; each returned reservation is held for the
+    /// caller until it finishes it through the sequencer.
+    package func reserve(
+        _ requests: some Collection<ExchangeEventRequest>,
+        at instant: Date
+    ) throws -> [ExchangeEventRequest: ExchangeEventReservation] {
+        try sequencer.reserve(requests, at: instant, facts: preparedFacts)
     }
 }

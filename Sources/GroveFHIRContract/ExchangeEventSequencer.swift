@@ -140,13 +140,13 @@ extension ExchangeEventSequencer {
     /// request takes the next sequence at `instant` (millisecond precision) under `facts`, replacing what
     /// the key held. New sequences follow the requests' sorted order; a counter that would overflow mints
     /// a new producer instance. A sequence is never handed out twice. Each returned reservation is held
-    /// for the caller until ``finish(_:released:forgetting:)``.
-    package func reserve(
+    /// for the caller until ``finish(_:released:forgetting:)``. Exporters reach it through
+    /// `ExchangeProducer.reserve(_:at:)`, which passes the facts the producer prepared once.
+    func reserve(
         _ requests: some Collection<ExchangeEventRequest>,
         at instant: Date,
-        facts: ExchangeEventFacts
+        facts current: PreparedFacts
     ) throws -> [ExchangeEventRequest: ExchangeEventReservation] {
-        let current = try PreparedFacts(facts)
         let ordered = Set(requests).sorted { ($0.key.rawValue, $0.fingerprint) < ($1.key.rawValue, $1.fingerprint) }
         let instantMilliseconds = ExchangeInstant.millisecondsSinceEpoch(instant)
         let reserved = try storage.transaction { transaction in

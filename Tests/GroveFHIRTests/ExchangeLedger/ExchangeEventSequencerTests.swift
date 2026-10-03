@@ -45,7 +45,7 @@ struct ExchangeEventSequencerTests {
         _ = storage.takeCounts()
         let again = try sequencer.reserve([request], at: Fixtures.instant.addingTimeInterval(3600), facts: Fixtures.facts(build: "110"))
         #expect(again == first)
-        #expect(again[request]?.facts == (try Fixtures.facts(build: "100")))
+        #expect(again[request]?.facts == (try Fixtures.facts(build: "100").facts))
         let counts = storage.takeCounts()
         #expect(counts.writes == 0 && counts.removals == 0)
         #expect(counts.transactions == 1)
@@ -135,7 +135,7 @@ struct ExchangeEventSequencerTests {
         let producer = try #require(try Fixtures.stored(LedgerKey.producer, in: storage))
         #expect(String(decoding: producer, as: UTF8.self) == #"{"instance":"\#(instance)","next":"2","v":1}"#)
         let event = try #require(try Fixtures.stored(LedgerKey.event(request.key), in: storage))
-        let digest = try PreparedFacts(Fixtures.facts()).digest
+        let digest = try Fixtures.facts().digest
         #expect(String(decoding: event, as: UTF8.self)
             == #"{"facts":"\#(digest)","fingerprint":"context-a","instance":"\#(instance)","instant":1791023400251,"sequence":"1","v":1}"#)
         #expect(try Fixtures.keys("", in: storage) == [LedgerKey.producer, LedgerKey.event(request.key), LedgerKey.facts(digest)])

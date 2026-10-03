@@ -34,55 +34,58 @@ package struct ExchangeAdapterContract: Sendable {
 }
 
 
-/// What one graph states about its producer and source repository beside the record itself.
+/// What one graph states about its producer and source repository beside the record itself: the scope every
+/// event of one producer shares, and the facts frozen with this event.
 ///
-/// The scope half (adapter, identity scope, subject, repository scope) is the same for every event a
-/// producer emits; the facts (application, host, studies) are each event's own, frozen at its reservation,
-/// and ``with(_:)`` swaps them in per event.
+/// An envelope is built per event from its reservation's facts, so no graph can state a producer's live
+/// application, host or studies; whatever outlives one event holds only the ``Scope``.
 package struct ExchangeEnvelope: Sendable {
-    package let adapter: ExchangeAdapterContract
-    package let identityScope: OpaqueIdentityScope
-    package let subject: Subject
-    package let repositoryScope: BusinessIdentifier
+    /// What every event of one producer states identically: the adapter, the identity scope, the subject and
+    /// the repository scope. It carries no application, host or studies.
+    package struct Scope: Sendable {
+        package let adapter: ExchangeAdapterContract
+        package let identityScope: OpaqueIdentityScope
+        package let subject: Subject
+        package let repositoryScope: BusinessIdentifier
+
+        package init(
+            adapter: ExchangeAdapterContract,
+            identityScope: OpaqueIdentityScope,
+            subject: Subject,
+            repositoryScope: BusinessIdentifier
+        ) {
+            self.adapter = adapter
+            self.identityScope = identityScope
+            self.subject = subject
+            self.repositoryScope = repositoryScope
+        }
+
+        /// The source-record identity of one native record in this repository.
+        package func sourceRecord(sourceType: String, nativeRecordID: String) throws(OpaqueIdentityError) -> SourceRecordIdentity {
+            try identityScope.sourceRecord(
+                adapterID: adapter.adapterID,
+                sourceType: sourceType,
+                repositoryScope: repositoryScope,
+                nativeRecordID: nativeRecordID
+            )
+        }
+    }
+
+    package let scope: Scope
+    /// The application, host and studies the event states, as its reservation froze them.
     package let facts: ExchangeEventFacts
 
+    package var adapter: ExchangeAdapterContract { scope.adapter }
+    package var identityScope: OpaqueIdentityScope { scope.identityScope }
+    package var subject: Subject { scope.subject }
+    package var repositoryScope: BusinessIdentifier { scope.repositoryScope }
     package var application: ApplicationDevice { facts.application }
     package var host: HostDevice { facts.host }
     package var studies: [StudyEnrollment] { facts.studies }
 
-    package init(
-        adapter: ExchangeAdapterContract,
-        identityScope: OpaqueIdentityScope,
-        subject: Subject,
-        repositoryScope: BusinessIdentifier,
-        facts: ExchangeEventFacts
-    ) {
-        self.adapter = adapter
-        self.identityScope = identityScope
-        self.subject = subject
-        self.repositoryScope = repositoryScope
+    package init(scope: Scope, facts: ExchangeEventFacts) {
+        self.scope = scope
         self.facts = facts
-    }
-
-    /// The same scope under one event's facts.
-    package func with(_ facts: ExchangeEventFacts) -> ExchangeEnvelope {
-        ExchangeEnvelope(
-            adapter: adapter,
-            identityScope: identityScope,
-            subject: subject,
-            repositoryScope: repositoryScope,
-            facts: facts
-        )
-    }
-
-    /// The source-record identity of one native record in this repository.
-    package func sourceRecord(sourceType: String, nativeRecordID: String) throws(OpaqueIdentityError) -> SourceRecordIdentity {
-        try identityScope.sourceRecord(
-            adapterID: adapter.adapterID,
-            sourceType: sourceType,
-            repositoryScope: repositoryScope,
-            nativeRecordID: nativeRecordID
-        )
     }
 }
 
