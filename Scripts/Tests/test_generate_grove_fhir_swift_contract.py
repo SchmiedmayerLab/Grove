@@ -933,6 +933,43 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not a catalog measurement"):
             self.generate(catalogs)
 
+    def test_rejects_a_body_mass_index_claim_in_another_mode(self):
+        catalogs = self.catalogs()
+        catalogs["healthkit-adapter.json"]["standardAdapterClaims"]["body-mass-index"]["claimMode"] = (
+            "exactly-shared-plus-adapter"
+        )
+
+        with self.assertRaisesRegex(ValueError, "registered standard-plus-adapter claim"):
+            self.generate(catalogs)
+
+    def test_names_the_body_mass_index_contract_whatever_its_claim_states(self):
+        catalogs = self.catalogs()
+        catalogs["healthkit-adapter.json"]["standardAdapterClaims"]["body-mass-index"]["id"] = "bmi"
+        generated = self.generate(catalogs)
+
+        self.assertIn('    package static let bodyMassIndex = MeasurementContract(\n        id: "body-mass-index",', generated)
+        self.assertNotIn("let bmi =", generated)
+
+    def test_rejects_adapter_claims_the_generator_does_not_read(self):
+        catalogs = self.catalogs()
+        catalogs["healthkit-adapter.json"]["standardAdapterClaims"]["blood-pressure"] = {}
+
+        with self.assertRaisesRegex(ValueError, r"standard adapter claims \['blood-pressure', 'body-mass-index'\]"):
+            self.generate(catalogs)
+
+        catalogs = self.catalogs()
+        catalogs["healthkit-adapter.json"]["sensorAdapterClaims"]["audiogram"] = {}
+
+        with self.assertRaisesRegex(ValueError, r"sensor adapter claims \['audiogram', 'electrocardiogram'\]"):
+            self.generate(catalogs)
+
+    def test_rejects_a_category_without_system_and_code(self):
+        catalogs = self.catalogs()
+        catalogs["measurement-catalog.json"]["measurements"][0]["category"] = {}
+
+        with self.assertRaisesRegex(ValueError, "a coding must state its system and code: {}"):
+            self.generate(catalogs)
+
     def test_places_each_measurement_profile_under_its_owners_package(self):
         catalogs = self.catalogs()
         catalogs["package-graph.json"]["packages"][0]["canonical"] = "https://example.org/fhir/mobile"

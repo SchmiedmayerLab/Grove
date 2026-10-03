@@ -354,9 +354,12 @@ def coding_contract_expression(coding: dict) -> str:
     )
 
 
-def measurement_lines(measurement: dict, access: str = "public", profile: str | None = None) -> list[str]:
-    """`profile` renders the measurement's profile; by default the generated `Profile` member it names."""
-    rendered_profile = profile or f"Profile.{swift_name(measurement['profile'])}"
+def measurement_lines(
+    measurement: dict, access: str = "public", profile_expression: str | None = None
+) -> list[str]:
+    """`profile_expression` is the Swift expression of the measurement's profile; by default the generated
+    `Profile` member it names."""
+    rendered_profile = profile_expression or f"Profile.{swift_name(measurement['profile'])}"
     lines = [
         f"    {access} static let {swift_name(measurement['id'])} = MeasurementContract(",
         f"        id: {swift_string(measurement['id'])},",
@@ -451,7 +454,7 @@ def measurement_lines(measurement: dict, access: str = "public", profile: str | 
         )
     lines.append(f"        effective: .{effective},")
     category = measurement.get("category")
-    lines.append(f"        category: {coding_contract_expression(category) if category else 'nil'}")
+    lines.append(f"        category: {coding_contract_expression(category) if category is not None else 'nil'}")
     lines.extend(["    )", ""])
     return lines
 
@@ -1028,6 +1031,11 @@ def generate(catalog_directory: Path) -> str:
         raise ValueError(
             "HealthKit clinical-record admission must preserve exact DSTU2 or R4 in an R4 DocumentReference"
         )
+    if set(healthkit_catalog["sensorAdapterClaims"]) != {"electrocardiogram"}:
+        raise ValueError(
+            f"HealthKit sensor adapter claims {sorted(healthkit_catalog['sensorAdapterClaims'])} are not exactly "
+            "['electrocardiogram']"
+        )
     ecg_claim = healthkit_catalog["sensorAdapterClaims"]["electrocardiogram"]
     if len(ecg_claim["profiles"]) != profile_claims["observationAdapterClaim"]["cardinality"]:
         raise ValueError("HealthKit ECG claim has the wrong direct profile cardinality")
@@ -1041,6 +1049,11 @@ def generate(catalog_directory: Path) -> str:
     body_mass_index_profiles = body_mass_index_rows[0]["profiles"]
     if len(body_mass_index_profiles) != profile_claims["observationAdapterClaim"]["cardinality"]:
         raise ValueError("HealthKit body-mass-index row has the wrong direct profile cardinality")
+    if set(healthkit_catalog["standardAdapterClaims"]) != {"body-mass-index"}:
+        raise ValueError(
+            f"HealthKit standard adapter claims {sorted(healthkit_catalog['standardAdapterClaims'])} are not exactly "
+            "['body-mass-index']"
+        )
     body_mass_index_claim = healthkit_catalog["standardAdapterClaims"]["body-mass-index"]
     if (
         body_mass_index_claim["claimMode"] != "exactly-standard-plus-adapter"
@@ -1108,9 +1121,9 @@ def generate(catalog_directory: Path) -> str:
         "    /// healthkit-adapter.json standardAdapterClaims; no measurement catalog lists it.",
     ])
     lines.extend(measurement_lines(
-        {"id": "body-mass-index", **body_mass_index_claim},
+        {**body_mass_index_claim, "id": "body-mass-index"},
         access="package",
-        profile=profile_reference(body_mass_index_profiles[0]),
+        profile_expression=profile_reference(body_mass_index_profiles[0]),
     ))
     lines.append("    public static let rows: [HealthKitContractRow] = [")
     healthkit_rows = healthkit_catalog["rows"]
