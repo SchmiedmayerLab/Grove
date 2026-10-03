@@ -106,7 +106,7 @@ struct GoldenOutline: Codable, Equatable {
 
 
 /// Names the first path where two token trees differ.
-private enum TokenDiff {
+enum TokenDiff {
     /// The first path where two token trees differ, or nil when they are equal.
     static func firstDifference(expected: LosslessJSONValue, actual: LosslessJSONValue, at path: String = "$") -> String? {
         switch (expected, actual) {

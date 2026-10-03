@@ -36,13 +36,13 @@ struct HealthKitEffectiveTimeTests {
     /// checked one at a time, each in its own pool, so a large sweep does not grow the heap concurrent suites measure.
     private static let sweepCount = ProcessInfo.processInfo.environment["GROVE_EFFECTIVE_TIME_SWEEP"].flatMap { Int($0) } ?? 3_000
 
-    /// Named zones with odd, LMT, non-hour and DST offsets, plus both ±18 h extremes.
+    /// Named zones with odd, LMT, non-hour and DST offsets, plus both ±18 h extremes and a 37-second offset.
     private static let namedZones: [TimeZone] = [
         "America/Los_Angeles", "Asia/Kolkata", "Asia/Kathmandu", "America/St_Johns", "Europe/Amsterdam",
         "Africa/Monrovia", "Australia/Lord_Howe", "Pacific/Chatham", "Pacific/Kiritimati"
     ].compactMap { TimeZone(identifier: $0) } + [64_800, -64_800, 37].compactMap { TimeZone(secondsFromGMT: $0) }
 
-    /// Twelve sweep zones: none (UTC) and every named or fixed zone above.
+    /// Thirteen sweep zones: none (UTC) and every named or fixed zone above.
     private static let zones: [TimeZone?] = [nil] + namedZones
 
     /// Ties, fractions, a repeated DST hour, the year 0 and 9999 boundaries, the 1582 reform, Foundation's
