@@ -78,14 +78,9 @@ enum LedgerEntryCoding {
 
     /// A producer instance: a UUID stating an RFC 4122 version and variant, as every event identifier requires.
     static func instance(_ text: String) -> UUID? {
-        guard let uuid = UUID(uuidString: text), (1...5).contains(uuid.uuid.6 >> 4), uuid.uuid.8 >> 6 == 0b10 else {
+        guard let uuid = UUID(uuidString: text), ExchangeEventIdentifier.statesRFC4122Version(uuid.uuidString.lowercased()) else {
             return nil
         }
         return uuid
-    }
-
-    /// The form of a SHA-256 digest in base64url without padding.
-    static func isDigest(_ text: String) -> Bool {
-        text.utf8.count == 43 && text.utf8.allSatisfy { $0.isASCIIAlphaNumeric || $0 == 0x2D || $0 == 0x5F }
     }
 }

@@ -75,14 +75,14 @@ struct EventEntry: Equatable {
     /// Whole milliseconds since 1970-01-01T00:00:00Z.
     let instantMilliseconds: Int64
     /// The digest naming the `facts/<digest>` entry.
-    let facts: String
+    let factsDigest: String
     let fingerprint: String
 
-    init(instance: UUID, sequence: UInt64, instantMilliseconds: Int64, facts: String, fingerprint: String) {
+    init(instance: UUID, sequence: UInt64, instantMilliseconds: Int64, factsDigest: String, fingerprint: String) {
         self.instance = instance
         self.sequence = sequence
         self.instantMilliseconds = instantMilliseconds
-        self.facts = facts
+        self.factsDigest = factsDigest
         self.fingerprint = fingerprint
     }
 
@@ -90,14 +90,14 @@ struct EventEntry: Equatable {
         let payload = try LedgerEntryCoding.decode(Payload.self, from: value, key: key)
         guard let instance = LedgerEntryCoding.instance(payload.instance),
               let sequence = LedgerEntryCoding.positiveInteger(payload.sequence),
-              LedgerEntryCoding.isDigest(payload.facts) else {
+              ExchangeIdentity.isUnpaddedBase64URLDigest(payload.facts) else {
             throw ExchangeEventSequencer.LedgerError.corruptEntry(key: key)
         }
         self.init(
             instance: instance,
             sequence: sequence,
             instantMilliseconds: payload.instant,
-            facts: payload.facts,
+            factsDigest: payload.facts,
             fingerprint: payload.fingerprint
         )
     }
@@ -108,7 +108,7 @@ struct EventEntry: Equatable {
             instance: instance.uuidString.lowercased(),
             sequence: String(sequence),
             instant: instantMilliseconds,
-            facts: facts,
+            facts: factsDigest,
             fingerprint: fingerprint
         ))
     }
@@ -120,7 +120,6 @@ extension ExchangeEventReservation {
     init(key: ExchangeEventKey, entry: EventEntry, facts: ExchangeEventFacts) {
         self.init(
             handle: Handle(key: key, instance: entry.instance, sequence: entry.sequence),
-            sequence: EventSequence(entry.sequence),
             instant: ExchangeInstant.date(millisecondsSinceEpoch: entry.instantMilliseconds),
             facts: facts
         )
@@ -131,7 +130,7 @@ extension ExchangeEventReservation {
 extension ExchangeEventSequencer {
     /// One `reserve` call inside its transaction: it reads only the entries of its own keys, the producer,
     /// and each distinct facts entry once, and writes only what it mints.
-    struct ReserveTransaction {
+    struct ReserveCall {
         private let transaction: any Transaction
         private let current: PreparedFacts
         private let instantMilliseconds: Int64
@@ -157,7 +156,7 @@ extension ExchangeEventSequencer {
                     throw LedgerError.corruptEntry(key: key)
                 }
                 if let event, event.fingerprint == request.fingerprint {
-                    reserved[request] = ExchangeEventReservation(key: request.key, entry: event, facts: try facts(event.facts, of: key))
+                    reserved[request] = ExchangeEventReservation(key: request.key, entry: event, facts: try facts(event.factsDigest, of: key))
                     continue
                 }
                 if producer.next == .max {
@@ -167,7 +166,7 @@ extension ExchangeEventSequencer {
                     instance: producer.instance,
                     sequence: producer.next,
                     instantMilliseconds: instantMilliseconds,
-                    facts: current.digest,
+                    factsDigest: current.digest,
                     fingerprint: request.fingerprint
                 )
                 producer.next += 1

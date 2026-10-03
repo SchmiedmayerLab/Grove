@@ -148,7 +148,7 @@ struct ExchangeLedgerPropertyTests {
             group.addTask {
                 for _ in 0..<20 {
                     try sequencer.reset()
-                    try await Task.sleep(for: .milliseconds(5))
+                    try await Task.sleep(nanoseconds: 5_000_000)
                 }
             }
             try await group.waitForAll()

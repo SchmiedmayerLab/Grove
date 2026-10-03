@@ -41,7 +41,6 @@ package struct ExchangeEventReservation: Hashable, Sendable {
     }
 
     package let handle: Handle
-    package let sequence: EventSequence
     /// The instant of the first reservation, at millisecond precision, the same on every return of the key.
     package let instant: Date
     /// Always decoded from the ledger's stored facts entry.
@@ -49,12 +48,14 @@ package struct ExchangeEventReservation: Hashable, Sendable {
 
     /// The producer instance the sequence was handed out under.
     package var producerInstance: UUID { handle.instance }
+    /// The event sequence, as the handle states it.
+    package var sequence: EventSequence { EventSequence(handle.sequence) }
 }
 
 
 /// The key one exchange event is reserved under: deterministic for one source-record version, and
 /// opaque, so the ledger holds no clear record identity.
-package struct ExchangeEventKey: Hashable, Codable, Sendable {
+package struct ExchangeEventKey: Hashable, Sendable {
     package let rawValue: String
 }
 

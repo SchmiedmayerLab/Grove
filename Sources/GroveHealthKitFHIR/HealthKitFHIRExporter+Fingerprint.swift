@@ -45,8 +45,7 @@ extension HealthKitFHIRExporter {
     /// never reuses an event identifier for other bytes. A custom ``RecordingDevicePolicy`` resolver enters
     /// by its presence only; its behaviour is not fingerprinted.
     struct ExportContext: Sendable {
-        /// The parts every request of this exporter starts with, in order.
-        let callParts: [String]
+        /// The length-framed parts every request of this exporter starts with, in order.
         private let framedCallParts: Data
 
         init(producer: ExchangeProducer, repositoryScope: BusinessIdentifier, options: Options, revisions: OutputRevisions) {
@@ -61,7 +60,6 @@ extension HealthKitFHIRExporter {
             for option in options.fingerprintParts {
                 parts += [option.property] + option.parts
             }
-            self.callParts = parts
             self.framedCallParts = Self.framed(parts)
         }
 
@@ -115,8 +113,9 @@ extension Subject: ExchangeContextFingerprinted {
         case let .bundled(identifier, patient):
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-            // A Patient that cannot be encoded cannot be emitted either; a unique part keeps any reservation unreused.
-            let patientJSON = (try? encoder.encode(patient)).map { String(decoding: $0, as: UTF8.self) } ?? "unencodable:\(UUID())"
+            // A Patient that cannot be encoded cannot be emitted either, so its events never carry a graph; no JSON
+            // text equals the constant, so it never matches an encodable Patient's fingerprint.
+            let patientJSON = (try? encoder.encode(patient)).map { String(decoding: $0, as: UTF8.self) } ?? "unencodable"
             return ["bundled", identifier.system.rawValue, identifier.value, patientJSON]
         }
     }

@@ -119,7 +119,7 @@ public final class ExchangeEventSequencer: Sendable {
                     try transaction.remove(key)
                     forgotten += 1
                 } else {
-                    referenced.insert(event.facts)
+                    referenced.insert(event.factsDigest)
                 }
             }
             for key in try transaction.keys(prefixedBy: LedgerKey.factsPrefix)
@@ -150,7 +150,7 @@ extension ExchangeEventSequencer {
         let ordered = Set(requests).sorted { ($0.key.rawValue, $0.fingerprint) < ($1.key.rawValue, $1.fingerprint) }
         let instantMilliseconds = ExchangeInstant.millisecondsSinceEpoch(instant)
         let reserved = try storage.transaction { transaction in
-            var reserving = ReserveTransaction(transaction: transaction, current: current, instantMilliseconds: instantMilliseconds)
+            var reserving = ReserveCall(transaction: transaction, current: current, instantMilliseconds: instantMilliseconds)
             return try reserving.reserve(ordered)
         }
         holds.acquire(reserved.values.map(\.handle))

@@ -10,7 +10,8 @@ import Foundation
 import GroveFHIRContract
 
 
-/// Counts the transactions a storage runs and the reads, writes, removals and listings inside them.
+/// Counts the transactions a storage runs and the reads, writes, removals and listings inside them, in total over
+/// every key: the cost bounds the tests state are totals.
 final class CountingStorage: ExchangeEventSequencer.Storage, @unchecked Sendable { // `counts` is guarded by `lock`.
     struct Counts: Equatable {
         var transactions = 0
@@ -48,14 +49,6 @@ final class CountingStorage: ExchangeEventSequencer.Storage, @unchecked Sendable
     let base: any ExchangeEventSequencer.Storage
     private let lock = NSLock()
     private var counts = Counts()
-
-    var snapshot: Counts {
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
-        return counts
-    }
 
     init(_ base: any ExchangeEventSequencer.Storage = ExchangeEventSequencer.InMemoryStorage()) {
         self.base = base

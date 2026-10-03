@@ -175,12 +175,14 @@ package enum ExchangeIdentity {
               components[0] == "v0",
               OpaqueIdentityScope.isValidKeyID(String(components[1])),
               (try? EventSequence(String(components[2]))) != nil,
-              components[3].utf8.count == 43,
-              components[3].utf8.allSatisfy({
-                  $0.isASCIIAlphaNumeric || $0 == 0x2D || $0 == 0x5F
-              }) else {
+              isUnpaddedBase64URLDigest(components[3]) else {
             return false
         }
         return true
+    }
+
+    /// Whether `text` has the form of a SHA-256 digest in base64url without padding: 43 characters of `[A-Za-z0-9_-]`.
+    static func isUnpaddedBase64URLDigest(_ text: some StringProtocol) -> Bool {
+        text.utf8.count == 43 && text.utf8.allSatisfy { $0.isASCIIAlphaNumeric || $0 == 0x2D || $0 == 0x5F }
     }
 }

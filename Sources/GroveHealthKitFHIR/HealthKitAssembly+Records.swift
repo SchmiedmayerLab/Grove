@@ -96,10 +96,9 @@ extension HealthKitAssembly {
         let symptoms = try HealthKitConverter.validatedSymptomSamples(correlatedSymptoms, status: source.symptomsStatus)
         return try symptoms.map { symptom in
             guard let request = requestsBySample[symptom.uuid] else {
-                throw HealthKitConversionError.ecgEvidence(.symptomContextCountMismatch(
-                    symptoms: correlatedSymptoms.count,
-                    contexts: requestsBySample.count
-                ))
+                // The positional shape keys every symptom; the keyed shape keys every symptom of a registered type,
+                // and validation admits only symptom types that are registered.
+                preconditionFailure("Every validated symptom has a request in both shapes.")
             }
             return try convert(symptom, request: request).primary
         }
