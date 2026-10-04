@@ -8,14 +8,19 @@
 
 #if canImport(HealthKit)
 
+import CoreLocation
+import CryptoKit
+import Foundation
 import GroveFHIRContract
+import HealthKit
 import ModelsR4
 
 
-/// The parts of a source type's recording or clinical document that every document of the type shares.
+/// The parts of a source type's recording or clinical document that every document of the type shares, and the
+/// builders that carry one record's bytes in it.
 ///
-/// The bytes are carried exactly as HealthKit delivered them; the guide: "Do not parse and reserialize, relabel,
-/// upgrade, downgrade, or otherwise rewrite those bytes."
+/// The bytes are carried exactly as HealthKit delivered them, or as the registry's column schema writes a series;
+/// the guide: "Do not parse and reserialize, relabel, upgrade, downgrade, or otherwise rewrite those bytes."
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct DocumentPlan: Sendable {
     /// The registered format of the carried bytes.
@@ -48,6 +53,112 @@ struct DocumentPlan: Sendable {
         self.formatCoding = formatCoding
         self.title = title
     }
+
+    /// CoreLocation reports an unavailable reading as a negative value; the registry writes such a column empty
+    /// rather than carrying a sentinel a reader would take for a measurement.
+    private static func reported(_ value: Double) -> RecordingCSVWriter.Field {
+        value < 0 ? .absent : .number(value)
+    }
+
+    /// The document of a heartbeat series: one row per beat, its instant in epoch seconds and whether a gap preceded
+    /// it. A series without beats is refused.
+    func document(_ record: HealthKitHeartbeatSeriesRecord) throws -> DocumentReference {
+        guard !record.heartbeats.isEmpty else {
+            throw HealthKitValueFailure.emptyRecordingSeries
+        }
+        var writer = try RecordingCSVWriter(format: format)
+        // Composed in epoch seconds rather than by offsetting the start: `Date` counts from 2001, so offsetting one
+        // and reading it back as epoch seconds rounds twice and moves the beat.
+        let start = record.series.startDate.timeIntervalSince1970
+        for beat in record.heartbeats {
+            try writer.append([.number(start + beat.timeSinceSeriesStart), .integer(beat.precededByGap ? 1 : 0)])
+        }
+        return try document(writer.data(), title: title, contentType: format.registeredContentType)
+    }
+
+    /// The document of a workout route: one row per fix in the registry's column order. A route without fixes is
+    /// refused.
+    func document(_ record: HealthKitWorkoutRouteRecord) throws -> DocumentReference {
+        guard !record.locations.isEmpty else {
+            throw HealthKitValueFailure.emptyRecordingSeries
+        }
+        var writer = try RecordingCSVWriter(format: format)
+        for fix in record.locations {
+            try writer.append([
+                .timestamp(fix.timestamp),
+                .number(fix.coordinate.latitude),
+                .number(fix.coordinate.longitude),
+                .number(fix.altitude),
+                .number(fix.horizontalAccuracy),
+                Self.reported(fix.verticalAccuracy),
+                Self.reported(fix.speed),
+                Self.reported(fix.speedAccuracy),
+                Self.reported(fix.course),
+                Self.reported(fix.courseAccuracy)
+            ])
+        }
+        return try document(writer.data(), title: title, contentType: format.registeredContentType)
+    }
+
+    /// The document carrying `payload` under `title`, with its SHA-1 hash and size.
+    private func document(_ payload: Data, title: String, contentType: String?) throws(HealthKitValueFailure) -> DocumentReference {
+        guard let size = Int32(exactly: payload.count) else {
+            throw .recordingPayloadTooLarge(byteCount: payload.count)
+        }
+        let attachment = Attachment(
+            contentType: contentType?.asFHIRStringPrimitive(),
+            data: FHIRPrimitive(Base64Binary(with: payload)),
+            hash: FHIRPrimitive(Base64Binary(with: Data(Insecure.SHA1.hash(data: payload)))),
+            size: FHIRPrimitive(FHIRUnsignedInteger(size)),
+            title: title.asFHIRStringPrimitive()
+        )
+        var document = skeleton
+        document.content = [DocumentReferenceContent(attachment: attachment, format: formatCoding)]
+        return document
+    }
 }
+
+
+#if !os(watchOS)
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension DocumentPlan {
+    /// The release code of a FHIR release the guide may admit, or `nil` for any other.
+    private static func releaseCode(_ release: HKFHIRRelease) -> String? {
+        switch release {
+        case .dstu2: "dstu2"
+        case .r4: "r4"
+        default: nil
+        }
+    }
+
+    /// The document carrying a clinical record's provider-issued FHIR resource: one JSON resource of an admitted
+    /// release, typed by that release's media type. Grove never converts or claims conformance over it.
+    func document(_ record: HKClinicalRecord) throws -> DocumentReference {
+        guard let resource = record.fhirResource else {
+            throw HealthKitConversionError.clinicalRecord(.empty)
+        }
+        guard let release = Self.releaseCode(resource.fhirVersion.fhirRelease),
+              HealthKitContract.admittedClinicalFHIRReleaseCodes.contains(release) else {
+            throw HealthKitConversionError.clinicalRecord(.unsupportedRelease)
+        }
+        do {
+            try FHIRJSONResourcePayload.validate(resource.data)
+        } catch {
+            throw HealthKitConversionError.clinicalRecord(.undecodable)
+        }
+        return try document(resource.data, title: title, contentType: HealthKitContract.clinicalFHIRContentTypeByRelease[release])
+    }
+
+    /// The document carrying a CDA document, under the title it states, else the plan's. Only an `HKDocumentQuery`
+    /// that asked for document data fills one in, so a sample from any other query is refused as empty.
+    func document(_ sample: HKCDADocumentSample) throws -> DocumentReference {
+        guard let document = sample.document, let data = document.documentData, !data.isEmpty else {
+            throw HealthKitConversionError.clinicalRecord(.empty)
+        }
+        let stated = document.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return try self.document(data, title: stated.isEmpty ? title : stated, contentType: format.registeredContentType)
+    }
+}
+#endif
 
 #endif
