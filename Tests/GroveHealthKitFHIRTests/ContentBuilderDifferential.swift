@@ -22,14 +22,6 @@ enum ContentBuilderOutcome: Equatable {
     /// The thrown error, with its type and payload.
     case threw(String)
 
-    /// Whether the builder refused the record.
-    var isRefusal: Bool {
-        if case .threw = self {
-            return true
-        }
-        return false
-    }
-
     /// The outcome as tokens: the built content's, or an object naming the error.
     var tokens: LosslessJSONValue {
         switch self {

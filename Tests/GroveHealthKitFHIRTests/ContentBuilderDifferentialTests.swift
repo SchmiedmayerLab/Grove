@@ -17,7 +17,7 @@ import Testing
 
 
 /// The content plans' builders against today's builders (oracle O4): every content-corpus record, and seeded random
-/// records whose faults are drawn independently so most refused ones state several, builds to the same JSON tokens or
+/// records whose faults are drawn independently so many refused ones state several, builds to the same JSON tokens or
 /// is refused with the same error by both; every corpus Observation and seeded random variant of one projects back to
 /// the same sample, or is refused the same way, by both reverse projections.
 ///
@@ -27,6 +27,51 @@ import Testing
 struct ContentBuilderDifferentialTests {
     /// The corpus splits into this many shards, which run in parallel.
     static let shards = 8
+
+    /// How many random records at least must be refused for each refusal the draw reaches.
+    private static let minimumRefusals = 5
+
+    /// Every refusal the random draw reaches, by case (see `refusalCase(_:)`), in the order the checks run: an
+    /// Observation's, an ECG's, then a document's.
+    private static let drawnRefusals: Set<String> = [
+        "HealthKitValueFailure.unsupportedMetadataValue(HealthKitMetadataField.timeZone)",
+        "HealthKitValueFailure.effectivePeriodInvalid",
+        "HealthKitValueFailure.shapeInvalid",
+        "HealthKitValueFailure.unsupportedValue(#)",
+        "HealthKitValueFailure.missingNormativeCode",
+        "HealthKitValueFailure.unsupportedMetadataValue(HealthKitMetadataField.sexualActivityProtectionUsed)",
+        "HealthKitValueFailure.requiredComponentMissing(component: \"systolic\")",
+        "HealthKitValueFailure.requiredComponentMissing(component: \"diastolic\")",
+        "HealthKitValueFailure.unsupportedMetadataValue(HealthKitMetadataField.heartRateMotionContext)",
+        "HealthKitValueFailure.requiredMetadataMissing(HealthKitMetadataField.insulinDeliveryReason)",
+        "HealthKitValueFailure.unsupportedMetadataValue(HealthKitMetadataField.insulinDeliveryReason)",
+        "HealthKitValueFailure.requiredMetadataMissing(HealthKitMetadataField.menstrualCycleStart)",
+        "HealthKitValueFailure.unsupportedMetadataValue(HealthKitMetadataField.menstrualCycleStart)",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.missingLeadVoltage(index: #))",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.invalidReportedVoltageCount(#))",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.voltageCountMismatch(reported: #, supplied: #))",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.insufficientVoltageMeasurements)",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.invalidOffset(index: #))",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.nonUniformOffset(index: #))",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.invalidSamplingFrequency)",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.samplingFrequencyMismatch)",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.invalidLeadVoltage(index: #))",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.unsupportedSymptomsStatus(#))",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.symptomsRequired)",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.unexpectedSymptoms)",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.unsupportedSymptomType(\"HKCategoryTypeIdentifierHeadache\"))",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.duplicateSymptomSource(<uuid>))",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.invalidSourcePeriod)",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.unsupportedClassification(#))",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.unsupportedAlgorithmVersion(#))",
+        "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.invalidAverageHeartRate)",
+        "HealthKitValueFailure.emptyRecordingSeries",
+        "RecordingCSVWriter.WriterError.nonFiniteNumber(column: \"timestamp\")",
+        "RecordingCSVWriter.WriterError.nonFiniteNumber(column: \"latitude\")",
+        "HealthKitConversionError.clinicalRecord(HealthKitClinicalRecordFailure.empty)",
+        "HealthKitConversionError.clinicalRecord(HealthKitClinicalRecordFailure.unsupportedRelease)",
+        "HealthKitConversionError.clinicalRecord(HealthKitClinicalRecordFailure.undecodable)"
+    ]
 
     /// The plans' reverse projection.
     private static let plannedProjection: ContentCorpusRecorder.Projection = { observation throws(HealthKitSampleProjectionError) in
@@ -55,10 +100,11 @@ struct ContentBuilderDifferentialTests {
         #expect(differences.isEmpty, "\(differences.count) corpus vectors build differently: \(differences.prefix(10))")
     }
 
-    @Test("Seeded random records, most with several faults, build as today's builders build them or refuse them alike")
+    @Test("Seeded random records, many with several faults, build as today's builders build them or refuse them alike")
     func seededRandomRecordsBuildAsToday() throws {
         var records = ContentBuilderRandomRecords(seed: 0x4F34_2D42_7569_6C64)
         var differences: [String] = []
+        var refusals: [String: Int] = [:]
         var refusedWithSeveralFaults = 0
         var compared = 0
         for index in 0..<ContentBuilderRandomRecords.count {
@@ -70,13 +116,18 @@ struct ContentBuilderDifferentialTests {
                 compared += 1
                 if let difference = Self.difference(outcomes.today, outcomes.planned) {
                     differences.append("record \(index) (\(try ContentCorpusStore.inputText(.convert(source: source)))): \(difference)")
-                } else if outcomes.today.isRefusal, faults > 1 {
-                    refusedWithSeveralFaults += 1
+                } else if case .threw(let error) = outcomes.today {
+                    refusals[Self.refusalCase(error), default: 0] += 1
+                    refusedWithSeveralFaults += faults > 1 ? 1 : 0
                 }
             }
         }
         #expect(compared > ContentBuilderRandomRecords.count * 9 / 10, "only \(compared) random records reach a builder")
         #expect(refusedWithSeveralFaults > ContentBuilderRandomRecords.count / 6, "only \(refusedWithSeveralFaults) multi-fault refusals")
+        let rare = Self.drawnRefusals.filter { refusals[$0, default: 0] < Self.minimumRefusals }
+        #expect(rare.isEmpty, "refused fewer than \(Self.minimumRefusals) times: \(rare)")
+        let unlisted = refusals.keys.filter { !Self.drawnRefusals.contains($0) }.sorted()
+        #expect(unlisted.isEmpty, "refusals the draw is not known to reach: \(unlisted.map { "\($0) x\(refusals[$0, default: 0])" })")
         #expect(differences.isEmpty, "\(differences.count) random records build differently: \(differences.prefix(5))")
     }
 
@@ -133,6 +184,13 @@ extension ContentBuilderDifferentialTests {
         } catch ContentCorpusSamples.RebuildError.unavailableHere {
             return nil
         }
+    }
+
+    /// The case of a refusal: its error without module names, UUIDs and numbers.
+    private static func refusalCase(_ error: String) -> String {
+        error.replacingOccurrences(of: "Grove(HealthKitFHIR|FHIRContract)\\.", with: "", options: .regularExpression)
+            .replacingOccurrences(of: "[0-9A-F]{8}(-[0-9A-F]{4}){3}-[0-9A-F]{12}", with: "<uuid>", options: .regularExpression)
+            .replacingOccurrences(of: "-?[0-9]+", with: "#", options: .regularExpression)
     }
 
     /// How two outcomes differ, or `nil` when they are equal.
