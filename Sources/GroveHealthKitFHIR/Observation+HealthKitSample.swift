@@ -148,8 +148,9 @@ enum HealthKitSampleProjection {
         )
     }
 
-    /// The instant and metadata the observation states: its effective instant and zone, manual entry, and the sync
-    /// identifier and version a re-projected reading replaces its earlier sample by.
+    /// The instant and metadata the observation states: its effective instant (in the proleptic Gregorian calendar, as
+    /// the converter states it) and zone, manual entry, and the sync identifier and version a re-projected reading
+    /// replaces its earlier sample by.
     private static func envelope(
         of observation: ModelsR4.Observation,
         measurementID: String,
@@ -157,7 +158,7 @@ enum HealthKitSampleProjection {
     ) throws(HealthKitSampleProjectionError) -> SampleEnvelope {
         guard case .dateTime(let effective)? = observation.effective,
               let dateTime = effective.value,
-              let date = try? dateTime.asNSDate() else {
+              let date = HealthKitEffectiveTime.instant(of: dateTime) else {
             throw HealthKitSampleProjectionError.effectiveMissing(id: measurementID)
         }
         var metadata: [String: Any] = [:]
@@ -237,6 +238,9 @@ extension Observation {
     /// plans: the code selects the measurement contract, the contract selects the one HealthKit
     /// quantity type whose plan reads it, and the published unit bindings read the value's UCUM unit.
     /// A measurement read by several HealthKit types, or by none, refuses rather than guessing.
+    ///
+    /// The effective instant is read in the proleptic Gregorian calendar the converter states it in,
+    /// so a reading from before the 1582 calendar reform lands on its own instant.
     ///
     /// A manual-entry recording method becomes `HKMetadataKeyWasUserEntered`, the effective
     /// instant's zone `HKMetadataKeyTimeZone`, and the minted source-output identity

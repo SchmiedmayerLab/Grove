@@ -48,7 +48,7 @@ enum EffectiveRule: Hashable, Sendable {
 ///
 /// Dates are proleptic Gregorian, as ISO 8601 and FHIR define them, also before the 1582 reform where
 /// Foundation's Gregorian calendar switches to Julian dates. A local year outside 0001 through 9999 has
-/// no FHIR date-time and is refused.
+/// no FHIR date-time and is refused. ``instant(of:)`` reads a date-time back in the same calendar.
 @available(iOS 18, macOS 15, watchOS 11, *)
 enum HealthKitEffectiveTime {
     /// Wall-clock fields of one local second.
@@ -128,6 +128,38 @@ enum HealthKitEffectiveTime {
             time: FHIRTime(hour: hour, minute: minute, second: Decimal(civil.second) + fraction),
             timezone: fixedZone
         )
+    }
+
+    /// The instant a FHIR date-time states, the inverse of ``dateTime(_:zone:)`` and ``exactDateTime(_:offset:zone:)``:
+    /// its fields as a proleptic Gregorian wall-clock time at its offset, a partial date at its first instant, and no
+    /// offset read as UTC. The seconds, fraction included, are added to the whole minute in binary64, as FHIRModels'
+    /// `asNSDate()` adds them. `nil` for a local year outside 0001 through 9999, which no FHIR date-time states.
+    static func instant(of dateTime: DateTime) -> Date? {
+        let date = dateTime.date
+        guard statableYears.contains(date.year) else {
+            return nil
+        }
+        let days = ExchangeInstant.days(fromYear: Int64(date.year), month: Int64(date.month ?? 1), day: Int64(date.day ?? 1))
+        let time = dateTime.time
+        let wallClock = days * 86_400 + Int64(time?.hour ?? 0) * 3_600 + Int64(time?.minute ?? 0) * 60
+        let minute = Date(timeIntervalSince1970: TimeInterval(wallClock - offset(of: dateTime.timeZone, atWallClock: wallClock)))
+        return minute.addingTimeInterval(NSDecimalNumber(decimal: time?.second ?? 0).doubleValue)
+    }
+
+    /// The offset from UTC in seconds at which `zone` states the wall-clock time `wallClock` (seconds since 1970 as if
+    /// it were UTC), or 0 without a zone. A parsed date-time's zone is a fixed offset. A named zone, which only a
+    /// date-time built in memory carries, follows Foundation's calendar at a transition within a day: a repeated
+    /// wall-clock time reads as its first occurrence, and a skipped one at the offset before the change.
+    private static func offset(of zone: TimeZone?, atWallClock wallClock: Int64) -> Int64 {
+        guard let zone else {
+            return 0
+        }
+        func secondsFromUTC(at seconds: Int64) -> Int64 {
+            Int64(zone.secondsFromGMT(for: Date(timeIntervalSince1970: TimeInterval(seconds))))
+        }
+        let former = secondsFromUTC(at: wallClock - 86_400)
+        let latter = secondsFromUTC(at: wallClock - former)
+        return latter != former && secondsFromUTC(at: wallClock - latter) == latter ? latter : former
     }
 
     /// The Mobile lexeme `YYYY-MM-DDThh:mm:ss[.mmm](Z|±hh:mm)`, or `nil` when the instant has none:
