@@ -16,6 +16,9 @@ import ModelsR4
 
 
 extension ExchangeGraph {
+    /// The system of the Android package name a Health Connect data origin is identified by (health-connect guide).
+    static let androidPackageNameSystem = "https://grovealliance.org/fhir/health-connect/NamingSystem/android-package-name"
+
     /// Every adapter conversion claim in the pinned catalog's `adapterConversionProvenanceClaims` order, with the adapter
     /// output profiles its Provenance governs. The generator lists the source-neutral profile first, which has no targets.
     static let adapterConversionClaims: [(provenanceProfile: String, outputProfiles: Set<String>)] =
@@ -90,6 +93,7 @@ extension ExchangeGraph {
                 rule: .mobileSupportQuestionnaireResponseProfile
             )
         case .provenance(let provenance):
+            try validateAdapterProvenanceClaim(at: entryIndex, document: validationDocument)
             try validateActiveProvenanceProfile(provenance)
             return provenance
         default:
@@ -208,6 +212,17 @@ extension ExchangeGraph {
         }
     }
 
+    /// A Provenance claiming an adapter's conversion profile claims it alone, exactly as written: the kit refuses any
+    /// other claim beside it without a rule (profiles.py, validate_adapter_conversion_provenance), so Grove reports
+    /// `mobile-exchange.unclassified`, before the profile-count rule.
+    static func validateAdapterProvenanceClaim(at index: Int, document: ValidationDocument) throws(ExchangeGraphError) {
+        let profiles = try writtenProfiles(at: index, document: document)
+        let claimed = adapterConversionClaims.filter { profiles.contains($0.provenanceProfile) }
+        guard claimed.isEmpty || (claimed.count == 1 && profiles == [claimed[0].provenanceProfile]) else {
+            throw .invalidEntries("An adapter conversion Provenance claims more than its adapter's profile")
+        }
+    }
+
     static func validateActiveProvenanceProfile(
         _ provenance: Provenance
     ) throws(ExchangeGraphError) {
@@ -292,30 +307,41 @@ extension ExchangeGraph {
 
     /// The entry resource's `meta.profile` exactly as written, read from the parsed Bundle as the kit reads it.
     private static func directProfiles(at index: Int, document: ValidationDocument) throws(ExchangeGraphError) -> Set<String> {
+        Set(try writtenProfiles(at: index, document: document))
+    }
+
+    /// The entry resource's `meta.profile` exactly as written and in order, read from the parsed Bundle.
+    private static func writtenProfiles(at index: Int, document: ValidationDocument) throws(ExchangeGraphError) -> [String] {
         do {
             let object = try document.resourceObject(at: index) as? [String: Any]
-            return Set((object?["meta"] as? [String: Any])?["profile"] as? [String] ?? [])
+            return (object?["meta"] as? [String: Any])?["profile"] as? [String] ?? []
         } catch {
             throw .invalidEntries(String(reflecting: type(of: error)))
         }
     }
 
-    /// A Health Connect conversion names its data origin as one identifier-only enterer Device agent.
+    /// A Health Connect conversion names its data origin as the source entity's one agent: typed enterer and nothing
+    /// else, an identifier-only Device reference to a non-blank Android package name. Each fault is located where
+    /// the kit locates it (profiles.py:663-707): the agent list, its `who`, or that reference's identifier.
     static func validateDataOriginAgent(_ provenance: Provenance) throws(ExchangeGraphError) {
         guard provenance.meta?.profile?.contains(Profile.healthConnectConversionProvenance) == true else {
             return
         }
-        let enterers = (provenance.entity?.first?.agent ?? []).filter { agent in
-            agent.type?.coding?.contains {
-                $0.system?.value?.url.absoluteString == participantSystem && $0.code?.value?.string == "enterer"
-            } == true
+        let location = "Provenance.entity[0].agent"
+        guard let agents = provenance.entity?.first?.agent, agents.count == 1, let agent = agents.first else {
+            throw diagnostic(.healthConnectProvenanceDataOriginAgent, location: location)
         }
-        guard enterers.count == 1,
-              let who = enterers.first?.who,
-              who.reference == nil,
-              who.identifier != nil,
-              who.type?.value?.url.absoluteString == ResourceType.device.rawValue else {
-            throw diagnostic(.healthConnectProvenanceDataOriginAgent, location: "Provenance.entity[0].agent")
+        let participantCodes = (agent.type?.coding ?? [])
+            .filter { $0.system?.value?.url.absoluteString == participantSystem }
+            .map { $0.code?.value?.string }
+        guard participantCodes == ["enterer"],
+              agent.who.reference == nil,
+              agent.who.type?.value?.url.absoluteString == ResourceType.device.rawValue else {
+            throw diagnostic(.healthConnectProvenanceDataOriginAgent, location: location + "[0].who")
+        }
+        guard agent.who.identifier?.system?.value?.url.absoluteString == androidPackageNameSystem,
+              agent.who.identifier?.value?.value?.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
+            throw diagnostic(.healthConnectProvenanceDataOriginAgent, location: location + "[0].who.identifier")
         }
     }
 

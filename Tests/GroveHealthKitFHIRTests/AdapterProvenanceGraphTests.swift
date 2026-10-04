@@ -72,8 +72,74 @@ struct AdapterProvenanceGraphTests {
                     resource["meta"] = ["profile": ["https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-observation"]]
                 }
             }
+        },
+        // A Provenance claiming an adapter's conversion profile beside another; the kit fails it without a rule.
+        Vector("a Provenance claiming two conversion profiles", golden: "heart-rate-minimal", expected: ("mobile-exchange.unclassified", "Bundle")) { bundle in
+            try edit(&bundle, entry: 3) { entry in
+                try edit(&entry, member: "resource") { resource in
+                    let healthKit = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-conversion-provenance"
+                    resource["meta"] = ["profile": [healthKit, provenanceProfiles["mobile"] ?? ""]]
+                }
+            }
+        }
+    ] + dataOriginVectors
+
+    /// `health-connect-provenance.data-origin-agent`, located where the kit finds each fault (profiles.py:663-707).
+    static let dataOriginVectors: [Vector] = [
+        dataOrigin("an author agent", golden: "writer-foreign-application", agents: nil, at: ".agent[0].who"),
+        dataOrigin("an enterer under another system", agents: { _ in [enterer(system: "https://grovealliance.org/fhir/testing/identifiers/package")] }, at: ".agent[0].who.identifier"),
+        dataOrigin("an enterer with a blank package name", agents: { _ in [enterer(value: "  ")] }, at: ".agent[0].who.identifier"),
+        dataOrigin("an enterer and an author", agents: { converter in [enterer(), ["type": participant("author"), "who": ["reference": converter]]] }, at: ".agent"),
+        dataOrigin("an enterer referencing a Device", agents: { converter in [["type": participant("enterer"), "who": ["reference": converter, "type": "Device"]]] }, at: ".agent[0].who"),
+        // A complete data origin passes the rule; the HealthKit outputs then fail the graph rule.
+        Vector("a complete data origin over HealthKit outputs", golden: "heart-rate-minimal", expected: (graphRule, "Bundle.entry")) { bundle in
+            try governedByHealthConnect(&bundle) { _ in [enterer()] }
         }
     ]
+
+    private static func participant(_ code: String) -> [String: Any] {
+        ["coding": [["system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type", "code": code]]]
+    }
+
+    private static func enterer(
+        system: String = "https://grovealliance.org/fhir/health-connect/NamingSystem/android-package-name",
+        value: String = "com.example.scale"
+    ) -> [String: Any] {
+        ["type": participant("enterer"), "who": ["type": "Device", "identifier": ["system": system, "value": value]]]
+    }
+
+    private static func dataOrigin(
+        _ description: String,
+        golden: String = "heart-rate-minimal",
+        agents: (@Sendable (_ converter: String) -> [[String: Any]])?,
+        at location: String
+    ) -> Vector {
+        let expected = ("health-connect-provenance.data-origin-agent", "Provenance.entity[0]" + location)
+        return Vector("Health Connect Provenance with \(description)", golden: golden, expected: expected) { bundle in
+            try governedByHealthConnect(&bundle, agents: agents)
+        }
+    }
+
+    /// The graph's Provenance claiming Health Connect's conversion profile, its source entity naming the agents
+    /// `agents` builds from the converter's resolving reference, when given.
+    private static func governedByHealthConnect(
+        _ bundle: inout [String: Any],
+        agents: (@Sendable (_ converter: String) -> [[String: Any]])?
+    ) throws {
+        let entries = try #require(bundle["entry"] as? [[String: Any]])
+        let index = try #require(entries.firstIndex { ($0["resource"] as? [String: Any])?["resourceType"] as? String == "Provenance" })
+        try edit(&bundle, entry: index) { entry in
+            try edit(&entry, member: "resource") { resource in
+                resource["meta"] = ["profile": [provenanceProfiles["health-connect"] ?? ""]]
+                guard let agents else {
+                    return
+                }
+                let assembler = try #require((resource["agent"] as? [[String: Any]])?.first?["who"] as? [String: Any])
+                let converter = try #require(assembler["reference"] as? String)
+                try edit(&resource, member: "entity", index: 0) { $0["agent"] = agents(converter) }
+            }
+        }
+    }
 
     /// heart-rate-minimal with its Provenance claiming `adapter`'s conversion profile instead of HealthKit's.
     private static func governing(_ adapter: String, expected: (code: String, location: String)) -> Vector {
