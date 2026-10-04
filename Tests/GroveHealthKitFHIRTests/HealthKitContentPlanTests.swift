@@ -106,8 +106,9 @@ struct HealthKitContentPlanTests {
             case .bloodPressure(let members):
                 for member in members {
                     let quantityType = try #require(HKObjectType.quantityType(forIdentifier: member.quantityType))
-                    #expect(quantityType.is(compatibleWith: member.unit), "\(member.quantityType.rawValue)")
-                    read.formUnion([member.template.quantity.empty.code?.value?.string].compactMap(\.self))
+                    #expect(quantityType.is(compatibleWith: member.binding.unit), "\(member.quantityType.rawValue)")
+                    #expect(member.template.quantity.empty.code?.value?.string == member.binding.ucumCode)
+                    read.insert(member.binding.ucumCode)
                 }
             case .workout(let workout):
                 read.formUnion(try Self.workoutUnits(workout))
@@ -130,12 +131,12 @@ extension HealthKitContentPlanTests {
         #endif
     }
 
-    /// The UCUM codes a workout's statistics are read in, each checked against the quantity types it reads.
+    /// The UCUM codes a workout's statistics are read in, each checked against every quantity type it reads.
     private static func workoutUnits(_ workout: HealthKitWorkoutContent) throws -> Set<String> {
-        let distances = Set(workout.distanceTypes.values).union([.distanceWalkingRunning])
+        let activities = Array(workout.activities.values) + [workout.otherActivity]
         var read: Set<String> = []
-        for statistic in workout.totals + workout.heartRate {
-            for identifier in statistic.quantityType.map({ [$0] }) ?? Array(distances) {
+        for statistic in workout.statistics {
+            for identifier in Set(activities.map(statistic.quantityType(of:))) {
                 let quantityType = try #require(HKObjectType.quantityType(forIdentifier: identifier))
                 #expect(quantityType.is(compatibleWith: statistic.unit), "\(identifier.rawValue) in \(statistic.unit.unitString)")
             }

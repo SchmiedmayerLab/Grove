@@ -192,13 +192,14 @@ extension ContentPlanEquivalenceTests {
             return
         }
         #expect(members.map(\.quantityType) == [.bloodPressureSystolic, .bloodPressureDiastolic])
+        #expect(members.map(\.component) == ["systolic", "diastolic"])
         let sample = try ContentPlanSamples.bloodPressure(systolic: 15.9987, diastolic: 10.6658, facts: ContentPlanSamples.facts())
         let binding = try #require(HealthKitCatalog.binding(for: sample))
         let today = try HealthKitConverter.observation(for: sample, binding: binding)
         let readings = [HKQuantityTypeIdentifier.bloodPressureSystolic: 15.9987, .bloodPressureDiastolic: 10.6658]
         let planned = try members.map { member in
             let reading = HKQuantity(unit: .millimeterOfMercury(), doubleValue: readings[member.quantityType] ?? 0)
-            return try member.template.component(reading.doubleValue(for: member.unit))
+            return try member.template.component(reading.doubleValue(for: member.binding.unit))
         }
         #expect(today.component == planned)
         #expect(today.value == nil)

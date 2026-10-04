@@ -25,13 +25,16 @@ enum QuantityRead: Sendable {
 }
 
 
-/// One member of a blood-pressure correlation: the quantity type it is stated as and the component it becomes.
+/// One member of a blood-pressure correlation: the contract component it becomes, the quantity type it is stated as
+/// and the unit it is read in.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct BloodPressureMember: Sendable {
-    /// The member's quantity type; a correlation without one misses the component.
+    /// The contract component's id, which a correlation without the member misses.
+    let component: String
+    /// The member's quantity type.
     let quantityType: HKQuantityTypeIdentifier
-    /// The unit the member is read in.
-    let unit: HKUnit
+    /// The component's UCUM code and display unit, and the HealthKit unit the member is read in.
+    let binding: HealthKitUnitBinding
     /// The component the member's reading becomes.
     let template: ComponentTemplate
 }
@@ -89,12 +92,7 @@ struct ObservationPlan: Sendable {
         observation.meta = Meta(profile: profiles)
         observation.category = category.map { [CodeableConcept(coding: [Coding($0)])] }
         observation.method = method.map { method in
-            let coding = Coding(
-                code: method.code.asFHIRStringPrimitive(),
-                display: method.display.asFHIRStringPrimitive(),
-                system: Canonicals.aggregationMethodCodeSystem
-            )
-            return CodeableConcept(coding: [coding])
+            CodeableConcept(coding: [Coding(method.code, display: method.display, system: Canonicals.aggregationMethodCodeSystem)])
         }
         return observation
     }

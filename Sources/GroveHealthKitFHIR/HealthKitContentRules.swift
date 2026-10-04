@@ -278,4 +278,43 @@ extension HealthKitContentRules {
     ]
 }
 
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension QuantityContract {
+    /// The quantity's unit binding: its UCUM code and display unit, and the HealthKit unit the rules state for the
+    /// code. A code the rules state no unit for is a defect.
+    func binding() throws(HealthKitContentDefect) -> HealthKitUnitBinding {
+        guard let healthKitUnit = HealthKitContentRules.ucumUnits[code] else {
+            throw HealthKitContentDefect("reads \(code), which has no HealthKit unit")
+        }
+        return HealthKitUnitBinding(ucumCode: code, displayUnit: unit, unit: healthKitUnit)
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension MeasurementContract {
+    /// The quantity component `id`: the component it becomes and its quantity.
+    func quantityComponent(_ id: String) throws(HealthKitContentDefect) -> (template: ComponentTemplate, quantity: QuantityContract) {
+        guard let component = components.first(where: { $0.id == id }),
+              let quantity = component.quantity,
+              let template = ComponentTemplate(component) else {
+            throw HealthKitContentDefect("states no quantity component \(id)")
+        }
+        return (template, quantity)
+    }
+}
+
+
+extension [ResultCodeContract] {
+    /// The concept of the published result `code`, with its display, in `system`; a code the list does not publish
+    /// is a defect.
+    func concept(_ code: String, system: String) throws(HealthKitContentDefect) -> CodeableConcept {
+        guard let result = first(where: { $0.code == code }) else {
+            throw HealthKitContentDefect("admits no result code \(code)")
+        }
+        return CodeableConcept(coding: [Coding(result.code, display: result.display, system: system)])
+    }
+}
+
 #endif

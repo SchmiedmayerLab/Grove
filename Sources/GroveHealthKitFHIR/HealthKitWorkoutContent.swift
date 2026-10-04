@@ -13,15 +13,127 @@ import HealthKit
 import ModelsR4
 
 
-/// The parts of a workout session's Observation that every workout shares, compiled from the workout contract: the
-/// value of each activity, and the components of the statistics HealthKit keeps.
+/// The parts of a workout session's Observation that every workout shares, compiled from the workout contract: what
+/// each activity reports, and the components of the statistics HealthKit keeps.
 ///
-/// A session reports its active duration first, then the totals HealthKit recorded, in a fixed order, then its
-/// heart-rate statistics; a statistic HealthKit did not record is absent, never zero.
+/// A session reports its active duration first, then each statistic HealthKit recorded, in a fixed order: the totals,
+/// then the heart-rate statistics. A statistic HealthKit did not record is absent, never zero.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct HealthKitWorkoutContent: Sendable {
-    /// One HealthKit workout activity.
+    /// What a workout of one activity reports.
     struct Activity: Sendable {
+        /// The value: the shared activity's coding, then the exact HealthKit case's, or the shared `other` alone for
+        /// a case the table does not name.
+        let value: CodeableConcept
+        /// The distance type HealthKit records the activity's distance under.
+        let distance: HKQuantityTypeIdentifier
+    }
+
+    /// One statistic HealthKit keeps for a workout, what it reads, and the component it becomes.
+    struct Statistic: Sendable {
+        /// Which quantity type's statistics a statistic reads.
+        enum Source: Sendable {
+            /// The statistics of this quantity type.
+            case quantityType(HKQuantityTypeIdentifier)
+            /// The statistics of the distance type the workout's activity records.
+            case activityDistance
+        }
+
+        /// Which of those statistics a statistic reads.
+        enum Reading: Sendable {
+            /// The total.
+            case sum
+            /// The average.
+            case average
+            /// The maximum.
+            case maximum
+            /// The minimum.
+            case minimum
+
+            /// The quantity read from `statistics`, or `nil` when HealthKit kept none.
+            func quantity(of statistics: HKStatistics?) -> HKQuantity? {
+                switch self {
+                case .sum: statistics?.sumQuantity()
+                case .average: statistics?.averageQuantity()
+                case .maximum: statistics?.maximumQuantity()
+                case .minimum: statistics?.minimumQuantity()
+                }
+            }
+        }
+
+        /// The quantity type whose statistics it reads.
+        let source: Source
+        /// The statistic it reads of them.
+        let reading: Reading
+        /// The component.
+        let template: ComponentTemplate
+        /// The unit the statistic is read in.
+        let unit: HKUnit
+
+        /// The quantity type the statistic reads for a workout of `activity`.
+        func quantityType(of activity: Activity) -> HKQuantityTypeIdentifier {
+            switch source {
+            case .quantityType(let quantityType): quantityType
+            case .activityDistance: activity.distance
+            }
+        }
+    }
+
+    /// The statistics a session reports, in order, by contract component: the totals, then the heart-rate average,
+    /// maximum and minimum.
+    private static let statisticReadings: KeyValuePairs<String, (source: Statistic.Source, reading: Statistic.Reading)> = [
+        "distance-sum": (.activityDistance, .sum),
+        "active-energy-sum": (.quantityType(.activeEnergyBurned), .sum),
+        "step-count-sum": (.quantityType(.stepCount), .sum),
+        "flights-climbed-sum": (.quantityType(.flightsClimbed), .sum),
+        "swimming-stroke-count-sum": (.quantityType(.swimmingStrokeCount), .sum),
+        "heart-rate-avg": (.quantityType(.heartRate), .average),
+        "heart-rate-max": (.quantityType(.heartRate), .maximum),
+        "heart-rate-min": (.quantityType(.heartRate), .minimum)
+    ]
+
+    /// What each activity the table names reports, by raw value.
+    let activities: [UInt: Activity]
+    /// What an activity the table does not name reports: the shared `other`, and walking and running distance.
+    let otherActivity: Activity
+    /// The active duration's component, always reported.
+    let activeDuration: ComponentTemplate
+    /// The statistics, in the order the session reports them.
+    let statistics: [Statistic]
+
+    /// The content of the workout contract.
+    init(_ contract: MeasurementContract) throws(HealthKitContentDefect) {
+        guard let system = contract.resultCodeSystem else {
+            throw HealthKitContentDefect("states no activity CodeSystem")
+        }
+        var activities: [UInt: Activity] = [:]
+        for row in Self.activityTable {
+            let shared = Coding(row.shared, system: system)
+            let platform = Coding(row.name, system: Canonicals.healthKitWorkoutActivity)
+            activities[row.raw] = Activity(value: CodeableConcept(coding: [shared, platform]), distance: row.distance)
+        }
+        self.activities = activities
+        let other = Coding("other", system: system)
+        otherActivity = Activity(value: CodeableConcept(coding: [other]), distance: .distanceWalkingRunning)
+        activeDuration = try contract.quantityComponent("active-duration").template
+        statistics = try Self.statisticReadings.map { id, read throws(HealthKitContentDefect) in
+            let (template, quantity) = try contract.quantityComponent(id)
+            return Statistic(source: read.source, reading: read.reading, template: template, unit: try quantity.binding().unit)
+        }
+    }
+
+    /// What a workout of the activity with raw value `raw` reports.
+    func activity(_ raw: UInt) -> Activity {
+        activities[raw] ?? otherActivity
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitWorkoutContent {
+    /// One row of the activity table: a HealthKit case, its exact name, the shared activity it reports as and the
+    /// distance type it records.
+    struct ActivityRow: Sendable {
         /// The raw value.
         let raw: UInt
         /// The exact HealthKit case name, kept beside the shared code so nothing the shared vocabulary collapses is lost.
@@ -34,15 +146,15 @@ struct HealthKitWorkoutContent: Sendable {
         /// A current activity.
         init(
             _ activity: HKWorkoutActivityType,
-            _ name: String,
-            _ shared: String = "other",
+            name: String,
+            shared: String = "other",
             distance: HKQuantityTypeIdentifier = .distanceWalkingRunning
         ) {
             self.init(raw: activity.rawValue, name: name, shared: shared, distance: distance)
         }
 
         /// An activity HealthKit deprecated but keeps readable in older workouts, by its raw value.
-        init(deprecated raw: UInt, _ name: String, _ shared: String = "other") {
+        init(deprecated raw: UInt, name: String, shared: String = "other") {
             self.init(raw: raw, name: name, shared: shared, distance: .distanceWalkingRunning)
         }
 
@@ -55,186 +167,93 @@ struct HealthKitWorkoutContent: Sendable {
         }
     }
 
-    /// One statistic HealthKit keeps for a workout: the component it becomes and how HealthKit states it.
-    struct Statistic: Sendable {
-        /// The component.
-        let template: ComponentTemplate
-        /// The statistic's quantity type, or `nil` for the distance, whose type is the activity's.
-        let quantityType: HKQuantityTypeIdentifier?
-        /// The unit the statistic is read in.
-        let unit: HKUnit
-    }
-
-    /// The totals a session reports, in order, each with the quantity type HealthKit keeps it under.
-    private static let totalTypes: KeyValuePairs<String, HKQuantityTypeIdentifier?> = [
-        "distance-sum": nil,
-        "active-energy-sum": .activeEnergyBurned,
-        "step-count-sum": .stepCount,
-        "flights-climbed-sum": .flightsClimbed,
-        "swimming-stroke-count-sum": .swimmingStrokeCount
-    ]
-
-    /// The heart-rate statistics a session reports, in order: average, maximum and minimum.
-    private static let heartRateStatistics = ["heart-rate-avg", "heart-rate-max", "heart-rate-min"]
-
-    /// The value of each activity the table names: the shared coding, then the HealthKit case's coding.
-    let activities: [UInt: CodeableConcept]
-    /// The value of an activity the table does not name: the shared `other` alone.
-    let otherActivity: CodeableConcept
-    /// The distance type of each activity the table names; any other records walking and running distance.
-    let distanceTypes: [UInt: HKQuantityTypeIdentifier]
-    /// The active duration's component, always reported.
-    let activeDuration: ComponentTemplate
-    /// The totals, in order.
-    let totals: [Statistic]
-    /// The heart-rate statistics, in order: average, maximum and minimum.
-    let heartRate: [Statistic]
-
-    /// The content of the workout contract.
-    init(_ contract: MeasurementContract) throws(HealthKitContentDefect) {
-        guard let system = contract.resultCodeSystem else {
-            throw HealthKitContentDefect("states no activity CodeSystem")
-        }
-        var activities: [UInt: CodeableConcept] = [:]
-        var distanceTypes: [UInt: HKQuantityTypeIdentifier] = [:]
-        for activity in Self.activityTable {
-            let platform = Coding(code: activity.name.asFHIRStringPrimitive(), system: Canonicals.healthKitWorkoutActivity)
-            activities[activity.raw] = CodeableConcept(coding: [Coding(activity.shared, system: system), platform])
-            distanceTypes[activity.raw] = activity.distance
-        }
-        self.activities = activities
-        self.distanceTypes = distanceTypes
-        otherActivity = CodeableConcept(coding: [Coding("other", system: system)])
-        activeDuration = try Self.component("active-duration", of: contract).template
-        var totals: [Statistic] = []
-        for (id, quantityType) in Self.totalTypes {
-            totals.append(try Self.statistic(id, quantityType: quantityType, of: contract))
-        }
-        self.totals = totals
-        var heartRate: [Statistic] = []
-        for id in Self.heartRateStatistics {
-            heartRate.append(try Self.statistic(id, quantityType: .heartRate, of: contract))
-        }
-        self.heartRate = heartRate
-    }
-
-    /// The statistic of the contract's component `id`, read in the HealthKit unit of its UCUM code.
-    private static func statistic(
-        _ id: String,
-        quantityType: HKQuantityTypeIdentifier?,
-        of contract: MeasurementContract
-    ) throws(HealthKitContentDefect) -> Statistic {
-        let component = try component(id, of: contract)
-        guard let unit = HealthKitContentRules.ucumUnits[component.code] else {
-            throw HealthKitContentDefect("reads component \(id) in \(component.code), which has no HealthKit unit")
-        }
-        return Statistic(template: component.template, quantityType: quantityType, unit: unit)
-    }
-
-    /// The contract's quantity component `id`, and its UCUM code.
-    private static func component(
-        _ id: String,
-        of contract: MeasurementContract
-    ) throws(HealthKitContentDefect) -> (template: ComponentTemplate, code: String) {
-        guard let component = contract.components.first(where: { $0.id == id }),
-              let quantity = component.quantity,
-              let template = ComponentTemplate(component) else {
-            throw HealthKitContentDefect("states no quantity component \(id)")
-        }
-        return (template, quantity.code)
-    }
-}
-
-
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension HealthKitWorkoutContent {
     /// Every HealthKit workout activity, by case name. The shared vocabulary names 28 activities and HealthKit 84, so
     /// related cases collapse onto one shared code and the rest report as `other`.
     static let activityTable = [
-        Activity(.americanFootball, "americanFootball", "american-football"),
-        Activity(.archery, "archery"),
-        Activity(.australianFootball, "australianFootball"),
-        Activity(.badminton, "badminton", "badminton"),
-        Activity(.barre, "barre", "dancing"),
-        Activity(.baseball, "baseball", "baseball"),
-        Activity(.basketball, "basketball", "basketball"),
-        Activity(.bowling, "bowling"),
-        Activity(.boxing, "boxing", "boxing"),
-        Activity(.cardioDance, "cardioDance", "dancing"),
-        Activity(.climbing, "climbing"),
-        Activity(.cooldown, "cooldown"),
-        Activity(.coreTraining, "coreTraining", "strength-training"),
-        Activity(.cricket, "cricket"),
-        Activity(.crossCountrySkiing, "crossCountrySkiing", "skiing", distance: .distanceCrossCountrySkiing),
-        Activity(.crossTraining, "crossTraining"),
-        Activity(.curling, "curling"),
-        Activity(.cycling, "cycling", "cycling", distance: .distanceCycling),
-        Activity(deprecated: 14, "dance", "dancing"),
-        Activity(deprecated: 15, "danceInspiredTraining", "dancing"),
-        Activity(.discSports, "discSports"),
-        Activity(.downhillSkiing, "downhillSkiing", "skiing", distance: .distanceDownhillSnowSports),
-        Activity(.elliptical, "elliptical", "elliptical"),
-        Activity(.equestrianSports, "equestrianSports"),
-        Activity(.fencing, "fencing"),
-        Activity(.fishing, "fishing"),
-        Activity(.fitnessGaming, "fitnessGaming"),
-        Activity(.flexibility, "flexibility"),
-        Activity(.functionalStrengthTraining, "functionalStrengthTraining", "strength-training"),
-        Activity(.golf, "golf", "golf"),
-        Activity(.gymnastics, "gymnastics"),
-        Activity(.handCycling, "handCycling", "cycling", distance: .distanceCycling),
-        Activity(.handball, "handball"),
-        Activity(.highIntensityIntervalTraining, "highIntensityIntervalTraining", "high-intensity-interval-training"),
-        Activity(.hiking, "hiking", "hiking"),
-        Activity(.hockey, "hockey"),
-        Activity(.hunting, "hunting"),
-        Activity(.jumpRope, "jumpRope"),
-        Activity(.kickboxing, "kickboxing", "boxing"),
-        Activity(.lacrosse, "lacrosse"),
-        Activity(.martialArts, "martialArts", "martial-arts"),
-        Activity(.mindAndBody, "mindAndBody"),
-        Activity(.mixedCardio, "mixedCardio"),
-        Activity(deprecated: 30, "mixedMetabolicCardioTraining"),
-        Activity(.other, "other"),
-        Activity(.paddleSports, "paddleSports", distance: .distancePaddleSports),
-        Activity(.pickleball, "pickleball"),
-        Activity(.pilates, "pilates", "pilates"),
-        Activity(.play, "play"),
-        Activity(.preparationAndRecovery, "preparationAndRecovery"),
-        Activity(.racquetball, "racquetball"),
-        Activity(.rowing, "rowing", "rowing", distance: .distanceRowing),
-        Activity(.rugby, "rugby"),
-        Activity(.running, "running", "running"),
-        Activity(.sailing, "sailing", distance: .distancePaddleSports),
-        Activity(.skatingSports, "skatingSports", distance: .distanceSkatingSports),
-        Activity(.snowboarding, "snowboarding", "snowboarding", distance: .distanceDownhillSnowSports),
-        Activity(.snowSports, "snowSports", distance: .distanceDownhillSnowSports),
-        Activity(.soccer, "soccer", "soccer"),
-        Activity(.socialDance, "socialDance", "dancing"),
-        Activity(.softball, "softball", "baseball"),
-        Activity(.squash, "squash", "squash"),
-        Activity(.stairClimbing, "stairClimbing", "stair-climbing"),
-        Activity(.stairs, "stairs", "stair-climbing"),
-        Activity(.stepTraining, "stepTraining", "stair-climbing"),
-        Activity(.surfingSports, "surfingSports", distance: .distancePaddleSports),
-        Activity(.swimBikeRun, "swimBikeRun"),
-        Activity(.swimming, "swimming", "swimming", distance: .distanceSwimming),
-        Activity(.tableTennis, "tableTennis", "table-tennis"),
-        Activity(.taiChi, "taiChi", "martial-arts"),
-        Activity(.tennis, "tennis", "tennis"),
-        Activity(.trackAndField, "trackAndField"),
-        Activity(.traditionalStrengthTraining, "traditionalStrengthTraining", "strength-training"),
-        Activity(.transition, "transition"),
-        Activity(.underwaterDiving, "underwaterDiving"),
-        Activity(.volleyball, "volleyball", "volleyball"),
-        Activity(.walking, "walking", "walking"),
-        Activity(.waterFitness, "waterFitness", "swimming"),
-        Activity(.waterPolo, "waterPolo"),
-        Activity(.waterSports, "waterSports", "swimming"),
-        Activity(.wheelchairRunPace, "wheelchairRunPace", "running", distance: .distanceWheelchair),
-        Activity(.wheelchairWalkPace, "wheelchairWalkPace", "walking", distance: .distanceWheelchair),
-        Activity(.wrestling, "wrestling", "martial-arts"),
-        Activity(.yoga, "yoga", "yoga")
+        ActivityRow(.americanFootball, name: "americanFootball", shared: "american-football"),
+        ActivityRow(.archery, name: "archery"),
+        ActivityRow(.australianFootball, name: "australianFootball"),
+        ActivityRow(.badminton, name: "badminton", shared: "badminton"),
+        ActivityRow(.barre, name: "barre", shared: "dancing"),
+        ActivityRow(.baseball, name: "baseball", shared: "baseball"),
+        ActivityRow(.basketball, name: "basketball", shared: "basketball"),
+        ActivityRow(.bowling, name: "bowling"),
+        ActivityRow(.boxing, name: "boxing", shared: "boxing"),
+        ActivityRow(.cardioDance, name: "cardioDance", shared: "dancing"),
+        ActivityRow(.climbing, name: "climbing"),
+        ActivityRow(.cooldown, name: "cooldown"),
+        ActivityRow(.coreTraining, name: "coreTraining", shared: "strength-training"),
+        ActivityRow(.cricket, name: "cricket"),
+        ActivityRow(.crossCountrySkiing, name: "crossCountrySkiing", shared: "skiing", distance: .distanceCrossCountrySkiing),
+        ActivityRow(.crossTraining, name: "crossTraining"),
+        ActivityRow(.curling, name: "curling"),
+        ActivityRow(.cycling, name: "cycling", shared: "cycling", distance: .distanceCycling),
+        ActivityRow(deprecated: 14, name: "dance", shared: "dancing"),
+        ActivityRow(deprecated: 15, name: "danceInspiredTraining", shared: "dancing"),
+        ActivityRow(.discSports, name: "discSports"),
+        ActivityRow(.downhillSkiing, name: "downhillSkiing", shared: "skiing", distance: .distanceDownhillSnowSports),
+        ActivityRow(.elliptical, name: "elliptical", shared: "elliptical"),
+        ActivityRow(.equestrianSports, name: "equestrianSports"),
+        ActivityRow(.fencing, name: "fencing"),
+        ActivityRow(.fishing, name: "fishing"),
+        ActivityRow(.fitnessGaming, name: "fitnessGaming"),
+        ActivityRow(.flexibility, name: "flexibility"),
+        ActivityRow(.functionalStrengthTraining, name: "functionalStrengthTraining", shared: "strength-training"),
+        ActivityRow(.golf, name: "golf", shared: "golf"),
+        ActivityRow(.gymnastics, name: "gymnastics"),
+        ActivityRow(.handCycling, name: "handCycling", shared: "cycling", distance: .distanceCycling),
+        ActivityRow(.handball, name: "handball"),
+        ActivityRow(.highIntensityIntervalTraining, name: "highIntensityIntervalTraining", shared: "high-intensity-interval-training"),
+        ActivityRow(.hiking, name: "hiking", shared: "hiking"),
+        ActivityRow(.hockey, name: "hockey"),
+        ActivityRow(.hunting, name: "hunting"),
+        ActivityRow(.jumpRope, name: "jumpRope"),
+        ActivityRow(.kickboxing, name: "kickboxing", shared: "boxing"),
+        ActivityRow(.lacrosse, name: "lacrosse"),
+        ActivityRow(.martialArts, name: "martialArts", shared: "martial-arts"),
+        ActivityRow(.mindAndBody, name: "mindAndBody"),
+        ActivityRow(.mixedCardio, name: "mixedCardio"),
+        ActivityRow(deprecated: 30, name: "mixedMetabolicCardioTraining"),
+        ActivityRow(.other, name: "other"),
+        ActivityRow(.paddleSports, name: "paddleSports", distance: .distancePaddleSports),
+        ActivityRow(.pickleball, name: "pickleball"),
+        ActivityRow(.pilates, name: "pilates", shared: "pilates"),
+        ActivityRow(.play, name: "play"),
+        ActivityRow(.preparationAndRecovery, name: "preparationAndRecovery"),
+        ActivityRow(.racquetball, name: "racquetball"),
+        ActivityRow(.rowing, name: "rowing", shared: "rowing", distance: .distanceRowing),
+        ActivityRow(.rugby, name: "rugby"),
+        ActivityRow(.running, name: "running", shared: "running"),
+        ActivityRow(.sailing, name: "sailing", distance: .distancePaddleSports),
+        ActivityRow(.skatingSports, name: "skatingSports", distance: .distanceSkatingSports),
+        ActivityRow(.snowboarding, name: "snowboarding", shared: "snowboarding", distance: .distanceDownhillSnowSports),
+        ActivityRow(.snowSports, name: "snowSports", distance: .distanceDownhillSnowSports),
+        ActivityRow(.soccer, name: "soccer", shared: "soccer"),
+        ActivityRow(.socialDance, name: "socialDance", shared: "dancing"),
+        ActivityRow(.softball, name: "softball", shared: "baseball"),
+        ActivityRow(.squash, name: "squash", shared: "squash"),
+        ActivityRow(.stairClimbing, name: "stairClimbing", shared: "stair-climbing"),
+        ActivityRow(.stairs, name: "stairs", shared: "stair-climbing"),
+        ActivityRow(.stepTraining, name: "stepTraining", shared: "stair-climbing"),
+        ActivityRow(.surfingSports, name: "surfingSports", distance: .distancePaddleSports),
+        ActivityRow(.swimBikeRun, name: "swimBikeRun"),
+        ActivityRow(.swimming, name: "swimming", shared: "swimming", distance: .distanceSwimming),
+        ActivityRow(.tableTennis, name: "tableTennis", shared: "table-tennis"),
+        ActivityRow(.taiChi, name: "taiChi", shared: "martial-arts"),
+        ActivityRow(.tennis, name: "tennis", shared: "tennis"),
+        ActivityRow(.trackAndField, name: "trackAndField"),
+        ActivityRow(.traditionalStrengthTraining, name: "traditionalStrengthTraining", shared: "strength-training"),
+        ActivityRow(.transition, name: "transition"),
+        ActivityRow(.underwaterDiving, name: "underwaterDiving"),
+        ActivityRow(.volleyball, name: "volleyball", shared: "volleyball"),
+        ActivityRow(.walking, name: "walking", shared: "walking"),
+        ActivityRow(.waterFitness, name: "waterFitness", shared: "swimming"),
+        ActivityRow(.waterPolo, name: "waterPolo"),
+        ActivityRow(.waterSports, name: "waterSports", shared: "swimming"),
+        ActivityRow(.wheelchairRunPace, name: "wheelchairRunPace", shared: "running", distance: .distanceWheelchair),
+        ActivityRow(.wheelchairWalkPace, name: "wheelchairWalkPace", shared: "walking", distance: .distanceWheelchair),
+        ActivityRow(.wrestling, name: "wrestling", shared: "martial-arts"),
+        ActivityRow(.yoga, name: "yoga", shared: "yoga")
     ]
 }
 

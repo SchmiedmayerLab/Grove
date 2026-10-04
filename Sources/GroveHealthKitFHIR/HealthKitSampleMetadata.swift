@@ -66,7 +66,7 @@ struct MetadataComponentRule: Sendable {
 
     /// A component coded by the metadata key itself in the adapter's metadata-key CodeSystem.
     private init(field: HealthKitMetadataField, reading: Reading, display: String, vocabulary: MetadataVocabulary) {
-        let code = Coding(code: field.key.asFHIRStringPrimitive(), display: display.asFHIRStringPrimitive(), system: Canonicals.healthKitMetadataKey)
+        let code = Coding(field.key, display: display, system: Canonicals.healthKitMetadataKey)
         self.init(
             field: field,
             reading: reading,
@@ -89,14 +89,8 @@ struct MetadataComponentRule: Sendable {
               let system = component.resultCodeSystem else {
             throw HealthKitContentDefect("states no coded cycleStart component")
         }
-        func value(_ code: String) throws(HealthKitContentDefect) -> CodeableConcept {
-            guard let result = component.resultCodes.first(where: { $0.code == code }) else {
-                throw HealthKitContentDefect("admits no cycleStart \(code)")
-            }
-            return CodeableConcept(coding: [Coding(result.code, display: result.display, system: system)])
-        }
-        let started = try value("cycle-start")
-        let notStarted = try value("not-cycle-start")
+        let started = try component.resultCodes.concept("cycle-start", system: system)
+        let notStarted = try component.resultCodes.concept("not-cycle-start", system: system)
         return MetadataComponentRule(
             field: .menstrualCycleStart,
             reading: .requiredBoolean,

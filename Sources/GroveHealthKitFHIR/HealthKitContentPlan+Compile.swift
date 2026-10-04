@@ -202,7 +202,7 @@ struct HealthKitContentCompiler {
             let document = DocumentPlan(sourceType: type, format: .clinicalDocument, profiles: Self.recordingProfiles(of: row), title: title)
             return Self.clinical(document, type: type, entry: entry)
         case .clinicalRecord(let typeCode):
-            let typeCoding = Coding(code: typeCode.asFHIRStringPrimitive(), system: HealthKitContentRules.clinicalRecordTypeSystem)
+            let typeCoding = Coding(typeCode, system: HealthKitContentRules.clinicalRecordTypeSystem)
             let document = DocumentPlan(sourceType: type, format: .fhirResource, profiles: row.profiles, typeCoding: typeCoding, title: row.title)
             return Self.clinical(document, type: type, entry: entry)
         }
@@ -264,10 +264,8 @@ extension HealthKitContentCompiler {
         let template = QuantityTemplate(quantity)
         switch source {
         case .contractUnit:
-            guard let unit = HealthKitContentRules.ucumUnits[quantity.code] else {
-                throw HealthKitContentDefect("reads its quantity in \(quantity.code), which has no HealthKit unit")
-            }
-            return (.quantity(template, .unit(unit)), HealthKitUnitBinding(ucumCode: quantity.code, displayUnit: quantity.unit, unit: unit))
+            let binding = try quantity.binding()
+            return (.quantity(template, .unit(binding.unit)), binding)
         case .percent:
             return (.quantity(template, .percent), nil)
         case .platformRate:
@@ -290,33 +288,27 @@ extension HealthKitContentCompiler {
     /// Whether protection was used, as the contract's unknown, protected and unprotected result codes.
     private static func protection(_ contract: MeasurementContract) throws(HealthKitContentDefect) -> ValueRule {
         let system = try resultCodeSystem(of: contract)
-        func value(_ code: String) throws(HealthKitContentDefect) -> CodeableConcept {
-            guard let result = contract.resultCodes.first(where: { $0.code == code }) else {
-                throw HealthKitContentDefect("admits no result code \(code)")
-            }
-            return CodeableConcept(coding: [Coding(result.code, display: result.display, system: system)])
-        }
-        return .protection(unknown: try value("unknown"), protected: try value("protected"), unprotected: try value("unprotected"))
+        let results = contract.resultCodes
+        return .protection(
+            unknown: try results.concept("unknown", system: system),
+            protected: try results.concept("protected", system: system),
+            unprotected: try results.concept("unprotected", system: system)
+        )
     }
 
     /// The panel's members, in the contract's component order, each read in the HealthKit unit of its UCUM code.
     private static func bloodPressureMembers(_ contract: MeasurementContract) throws(HealthKitContentDefect) -> [BloodPressureMember] {
-        var members: [BloodPressureMember] = []
-        for component in contract.components {
+        guard !contract.components.isEmpty else {
+            throw HealthKitContentDefect("states no components")
+        }
+        return try contract.components.map { component throws(HealthKitContentDefect) in
             guard let member = HealthKitContentRules.bloodPressureMembers.first(where: { $0.key == component.id })?.value else {
                 throw HealthKitContentDefect("states component \(component.id), which no correlation member states")
             }
-            guard let quantity = component.quantity,
-                  let template = ComponentTemplate(component),
-                  let unit = HealthKitContentRules.ucumUnits[quantity.code] else {
-                throw HealthKitContentDefect("reads component \(component.id) in no HealthKit unit")
-            }
-            members.append(BloodPressureMember(quantityType: HKQuantityTypeIdentifier(rawValue: member.rawValue), unit: unit, template: template))
+            let (template, quantity) = try contract.quantityComponent(component.id)
+            let quantityType = HKQuantityTypeIdentifier(rawValue: member.rawValue)
+            return BloodPressureMember(component: component.id, quantityType: quantityType, binding: try quantity.binding(), template: template)
         }
-        guard !members.isEmpty else {
-            throw HealthKitContentDefect("states no components")
-        }
-        return members
     }
 
     /// How an Observation's value is read, compiled against its contract, and the unit binding of a quantity read in
@@ -366,18 +358,14 @@ extension HealthKitContentCompiler {
             guard values[raw] == nil, !unresolved.contains(raw) else {
                 throw HealthKitContentDefect("maps value \(raw) twice")
             }
-            guard let display = row.sharedDisplay ?? published[row.shared], admitted.contains(row.shared) else {
+            guard let display = row.display ?? published[row.shared], admitted.contains(row.shared) else {
                 unresolved.insert(raw)
                 defects.append("\(type.rawValue): value \(raw) reports as \(row.shared), which the contract does not admit")
                 continue
             }
             var codings = [Coding(row.shared, display: display, system: system)]
             if let sourceSystem = table.sourceSystem, let source = row.source {
-                codings.append(Coding(
-                    code: source.asFHIRStringPrimitive(),
-                    display: row.sourceDisplay?.asFHIRStringPrimitive(),
-                    system: sourceSystem
-                ))
+                codings.append(Coding(source, display: row.sourceDisplay, system: sourceSystem))
             }
             values[raw] = CodeableConcept(coding: codings)
         }

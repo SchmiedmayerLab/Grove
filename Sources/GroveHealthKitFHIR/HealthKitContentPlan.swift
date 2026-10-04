@@ -165,12 +165,13 @@ final class HealthKitContentPlan: Sendable {
 
 extension Coding {
     /// A coding of `code` in `system`, with `display` when one is given.
+    init(_ code: String, display: String? = nil, system: FHIRPrimitive<FHIRURI>) {
+        self.init(code: code.asFHIRStringPrimitive(), display: display?.asFHIRStringPrimitive(), system: system)
+    }
+
+    /// A coding of `code` in the CodeSystem `system` names, with `display` when one is given.
     init(_ code: String, display: String? = nil, system: String) {
-        self.init(
-            code: code.asFHIRStringPrimitive(),
-            display: display?.asFHIRStringPrimitive(),
-            system: FHIRPrimitive(FHIRURI(stringLiteral: system))
-        )
+        self.init(code, display: display, system: FHIRPrimitive(FHIRURI(stringLiteral: system)))
     }
 
     /// The coding a contract states.

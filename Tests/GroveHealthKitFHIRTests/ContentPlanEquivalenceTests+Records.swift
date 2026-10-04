@@ -28,8 +28,8 @@ extension ContentPlanEquivalenceTests {
             guard let activity = HKWorkoutActivityType(rawValue: UInt(raw)) else {
                 continue
             }
-            #expect(try HealthKitConverter.workoutValue(activityType: activity) == content.activities[activity.rawValue] ?? content.otherActivity)
-            #expect(HealthKitConverter.distanceType(for: activity) == content.distanceTypes[activity.rawValue] ?? .distanceWalkingRunning)
+            #expect(try HealthKitConverter.workoutValue(activityType: activity) == content.activity(activity.rawValue).value)
+            #expect(HealthKitConverter.distanceType(for: activity) == content.activity(activity.rawValue).distance)
         }
         // Every statistic in a unit other than the one it is read in, so reading it in another unit would show.
         let statistics = [
@@ -148,25 +148,17 @@ extension ContentPlanEquivalenceTests {
         StoredSampleFixtures.WorkoutStatistic(type: HKQuantityType(type), unit: unit, sum: sum, average: nil, minimum: nil, maximum: nil)
     }
 
-    /// The components of a workout as the workout content states them.
+    /// The components of a workout as the workout content states them: each statistic reads what it says it reads,
+    /// so the helper encodes no order, quantity type or fallback of its own.
     private static func components(_ content: HealthKitWorkoutContent, of workout: HKWorkout) throws -> [ObservationComponent] {
         var components = [try content.activeDuration.component(workout.duration)]
-        let distance = content.distanceTypes[workout.workoutActivityType.rawValue] ?? .distanceWalkingRunning
-        for total in content.totals {
-            guard let sum = workout.statistics(for: HKQuantityType(total.quantityType ?? distance))?.sumQuantity() else {
+        let activity = content.activity(workout.workoutActivityType.rawValue)
+        for statistic in content.statistics {
+            let statistics = workout.statistics(for: HKQuantityType(statistic.quantityType(of: activity)))
+            guard let quantity = statistic.reading.quantity(of: statistics) else {
                 continue
             }
-            components.append(try total.template.component(sum.doubleValue(for: total.unit)))
-        }
-        guard let heartRate = workout.statistics(for: HKQuantityType(.heartRate)) else {
-            return components
-        }
-        let readings = [heartRate.averageQuantity(), heartRate.maximumQuantity(), heartRate.minimumQuantity()]
-        for (statistic, reading) in zip(content.heartRate, readings) {
-            guard let reading else {
-                continue
-            }
-            components.append(try statistic.template.component(reading.doubleValue(for: statistic.unit)))
+            components.append(try statistic.template.component(quantity.doubleValue(for: statistic.unit)))
         }
         return components
     }

@@ -26,7 +26,7 @@ struct MetadataVocabulary: Sendable {
         codes: KeyValuePairs<Value, (code: String, display: String)>
     ) where Value.RawValue == Int {
         let codings = codes.map { value, code in
-            (value.rawValue, Coding(code: code.code.asFHIRStringPrimitive(), display: code.display.asFHIRStringPrimitive(), system: system))
+            (value.rawValue, Coding(code.code, display: code.display, system: system))
         }
         self.codings = Dictionary(codings) { first, _ in first }
     }
@@ -46,16 +46,16 @@ struct CodedTable: Sendable {
         let shared: String
         /// The shared code's display where the contract lists the code without one (severity, presence and sleep,
         /// whose contracts publish allowed values but no result codes); otherwise the contract's display is stated.
-        let sharedDisplay: String?
+        let display: String?
         /// The HealthKit case's code in the table's source CodeSystem.
         let source: String?
         /// The HealthKit case's display.
         let sourceDisplay: String?
 
         /// The codes of one value.
-        init(_ shared: String, _ sharedDisplay: String? = nil, source: String? = nil, _ sourceDisplay: String? = nil) {
+        init(_ shared: String, display: String? = nil, source: String? = nil, sourceDisplay: String? = nil) {
             self.shared = shared
-            self.sharedDisplay = sharedDisplay
+            self.display = display
             self.source = source
             self.sourceDisplay = sourceDisplay
         }
@@ -85,11 +85,11 @@ extension CodedTable {
         HKCategoryValueSeverity.self,
         sourceSystem: Canonicals.healthKitSymptomSeverity,
         rows: [
-            .unspecified: Row("present", "Present, severity unspecified", source: "unspecified", "Unspecified"),
-            .notPresent: Row("not-present", "Not present", source: "notPresent", "Not present"),
-            .mild: Row("mild", "Mild", source: "mild", "Mild"),
-            .moderate: Row("moderate", "Moderate", source: "moderate", "Moderate"),
-            .severe: Row("severe", "Severe", source: "severe", "Severe")
+            .unspecified: Row("present", display: "Present, severity unspecified", source: "unspecified", sourceDisplay: "Unspecified"),
+            .notPresent: Row("not-present", display: "Not present", source: "notPresent", sourceDisplay: "Not present"),
+            .mild: Row("mild", display: "Mild", source: "mild", sourceDisplay: "Mild"),
+            .moderate: Row("moderate", display: "Moderate", source: "moderate", sourceDisplay: "Moderate"),
+            .severe: Row("severe", display: "Severe", source: "severe", sourceDisplay: "Severe")
         ]
     )
 
@@ -98,8 +98,8 @@ extension CodedTable {
         HKCategoryValuePresence.self,
         sourceSystem: Canonicals.healthKitPresence,
         rows: [
-            .present: Row("present", "Present, severity unspecified", source: "present", "Present"),
-            .notPresent: Row("not-present", "Not present", source: "notPresent", "Not present")
+            .present: Row("present", display: "Present, severity unspecified", source: "present", sourceDisplay: "Present"),
+            .notPresent: Row("not-present", display: "Not present", source: "notPresent", sourceDisplay: "Not present")
         ]
     )
 
@@ -108,12 +108,14 @@ extension CodedTable {
         HKCategoryValueSleepAnalysis.self,
         sourceSystem: Canonicals.healthKitSleepAnalysis,
         rows: [
-            .inBed: Row("in-bed", "In bed", source: "inBed", "In bed"),
-            .asleepUnspecified: Row("asleep-unspecified", "Asleep, unspecified stage", source: "asleepUnspecified", "Asleep, unspecified"),
-            .awake: Row("awake", "Awake", source: "awake", "Awake"),
-            .asleepCore: Row("light", "Light sleep", source: "asleepCore", "Asleep, core"),
-            .asleepDeep: Row("deep", "Deep sleep", source: "asleepDeep", "Asleep, deep"),
-            .asleepREM: Row("rem", "REM sleep", source: "asleepREM", "Asleep, REM")
+            .inBed: Row("in-bed", display: "In bed", source: "inBed", sourceDisplay: "In bed"),
+            .asleepUnspecified: Row(
+                "asleep-unspecified", display: "Asleep, unspecified stage", source: "asleepUnspecified", sourceDisplay: "Asleep, unspecified"
+            ),
+            .awake: Row("awake", display: "Awake", source: "awake", sourceDisplay: "Awake"),
+            .asleepCore: Row("light", display: "Light sleep", source: "asleepCore", sourceDisplay: "Asleep, core"),
+            .asleepDeep: Row("deep", display: "Deep sleep", source: "asleepDeep", sourceDisplay: "Asleep, deep"),
+            .asleepREM: Row("rem", display: "REM sleep", source: "asleepREM", sourceDisplay: "Asleep, REM")
         ]
     )
 
@@ -122,10 +124,10 @@ extension CodedTable {
         HKCategoryValueAppetiteChanges.self,
         sourceSystem: Canonicals.healthKitAppetiteChanges,
         rows: [
-            .unspecified: Row("change-unspecified", source: "unspecified", "Unspecified"),
-            .noChange: Row("no-change", source: "noChange", "No change"),
-            .decreased: Row("decreased", source: "decreased", "Decreased"),
-            .increased: Row("increased", source: "increased", "Increased")
+            .unspecified: Row("change-unspecified", source: "unspecified", sourceDisplay: "Unspecified"),
+            .noChange: Row("no-change", source: "noChange", sourceDisplay: "No change"),
+            .decreased: Row("decreased", source: "decreased", sourceDisplay: "Decreased"),
+            .increased: Row("increased", source: "increased", sourceDisplay: "Increased")
         ]
     )
 
@@ -134,8 +136,8 @@ extension CodedTable {
         HKCategoryValueAppleStandHour.self,
         sourceSystem: Canonicals.healthKitAppleStandHourValue,
         rows: [
-            .stood: Row("stood", source: "stood", "Stood"),
-            .idle: Row("idle", source: "idle", "Idle")
+            .stood: Row("stood", source: "stood", sourceDisplay: "Stood"),
+            .idle: Row("idle", source: "idle", sourceDisplay: "Idle")
         ]
     )
 
@@ -144,11 +146,11 @@ extension CodedTable {
         HKCategoryValueCervicalMucusQuality.self,
         sourceSystem: Canonicals.healthKitCervicalMucusQuality,
         rows: [
-            .dry: Row("dry", source: "dry", "Dry"),
-            .sticky: Row("sticky", source: "sticky", "Sticky"),
-            .creamy: Row("creamy", source: "creamy", "Creamy"),
-            .watery: Row("watery", source: "watery", "Watery"),
-            .eggWhite: Row("egg-white", source: "eggWhite", "Egg white")
+            .dry: Row("dry", source: "dry", sourceDisplay: "Dry"),
+            .sticky: Row("sticky", source: "sticky", sourceDisplay: "Sticky"),
+            .creamy: Row("creamy", source: "creamy", sourceDisplay: "Creamy"),
+            .watery: Row("watery", source: "watery", sourceDisplay: "Watery"),
+            .eggWhite: Row("egg-white", source: "eggWhite", sourceDisplay: "Egg white")
         ]
     )
 
@@ -157,13 +159,13 @@ extension CodedTable {
         HKCategoryValueContraceptive.self,
         sourceSystem: Canonicals.healthKitContraceptive,
         rows: [
-            .unspecified: Row("unspecified", source: "unspecified", "Unspecified"),
-            .implant: Row("implant", source: "implant", "Implant"),
-            .injection: Row("injection", source: "injection", "Injection"),
-            .intrauterineDevice: Row("intrauterine-device", source: "intrauterineDevice", "Intrauterine device"),
-            .intravaginalRing: Row("intravaginal-ring", source: "intravaginalRing", "Intravaginal ring"),
-            .oral: Row("oral", source: "oral", "Oral"),
-            .patch: Row("patch", source: "patch", "Patch")
+            .unspecified: Row("unspecified", source: "unspecified", sourceDisplay: "Unspecified"),
+            .implant: Row("implant", source: "implant", sourceDisplay: "Implant"),
+            .injection: Row("injection", source: "injection", sourceDisplay: "Injection"),
+            .intrauterineDevice: Row("intrauterine-device", source: "intrauterineDevice", sourceDisplay: "Intrauterine device"),
+            .intravaginalRing: Row("intravaginal-ring", source: "intravaginalRing", sourceDisplay: "Intravaginal ring"),
+            .oral: Row("oral", source: "oral", sourceDisplay: "Oral"),
+            .patch: Row("patch", source: "patch", sourceDisplay: "Patch")
         ]
     )
 
@@ -172,10 +174,10 @@ extension CodedTable {
         HKCategoryValueOvulationTestResult.self,
         sourceSystem: Canonicals.healthKitOvulationTestResult,
         rows: [
-            .negative: Row("negative", source: "negative", "Negative"),
-            .luteinizingHormoneSurge: Row("luteinizing-hormone-surge", source: "luteinizingHormoneSurge", "Luteinizing hormone surge"),
-            .indeterminate: Row("indeterminate", source: "indeterminate", "Indeterminate"),
-            .estrogenSurge: Row("high-fertility", source: "estrogenSurge", "Estrogen surge")
+            .negative: Row("negative", source: "negative", sourceDisplay: "Negative"),
+            .luteinizingHormoneSurge: Row("luteinizing-hormone-surge", source: "luteinizingHormoneSurge", sourceDisplay: "Luteinizing hormone surge"),
+            .indeterminate: Row("indeterminate", source: "indeterminate", sourceDisplay: "Indeterminate"),
+            .estrogenSurge: Row("high-fertility", source: "estrogenSurge", sourceDisplay: "Estrogen surge")
         ]
     )
 
@@ -184,9 +186,9 @@ extension CodedTable {
         HKCategoryValuePregnancyTestResult.self,
         sourceSystem: Canonicals.healthKitTestResult,
         rows: [
-            .negative: Row("negative", source: "negative", "Negative"),
-            .positive: Row("positive", source: "positive", "Positive"),
-            .indeterminate: Row("indeterminate", source: "indeterminate", "Indeterminate")
+            .negative: Row("negative", source: "negative", sourceDisplay: "Negative"),
+            .positive: Row("positive", source: "positive", sourceDisplay: "Positive"),
+            .indeterminate: Row("indeterminate", source: "indeterminate", sourceDisplay: "Indeterminate")
         ]
     )
 
@@ -195,11 +197,11 @@ extension CodedTable {
         HKCategoryValueVaginalBleeding.self,
         sourceSystem: Canonicals.healthKitVaginalBleeding,
         rows: [
-            .unspecified: Row("unspecified", source: "unspecified", "Unspecified"),
-            .light: Row("light", source: "light", "Light"),
-            .medium: Row("medium", source: "medium", "Medium"),
-            .heavy: Row("heavy", source: "heavy", "Heavy"),
-            .none: Row("none", source: "none", "None")
+            .unspecified: Row("unspecified", source: "unspecified", sourceDisplay: "Unspecified"),
+            .light: Row("light", source: "light", sourceDisplay: "Light"),
+            .medium: Row("medium", source: "medium", sourceDisplay: "Medium"),
+            .heavy: Row("heavy", source: "heavy", sourceDisplay: "Heavy"),
+            .none: Row("none", source: "none", sourceDisplay: "None")
         ]
     )
 }

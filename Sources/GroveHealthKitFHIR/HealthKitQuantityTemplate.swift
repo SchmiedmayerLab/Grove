@@ -26,9 +26,7 @@ struct ComponentTemplate: Sendable {
         guard let quantity = contract.quantity else {
             return nil
         }
-        code = CodeableConcept(coding: [
-            Coding(code: contract.code.asFHIRStringPrimitive(), system: FHIRPrimitive(FHIRURI(stringLiteral: contract.system)))
-        ])
+        code = CodeableConcept(coding: [Coding(contract.code, system: contract.system)])
         self.quantity = QuantityTemplate(quantity)
     }
 

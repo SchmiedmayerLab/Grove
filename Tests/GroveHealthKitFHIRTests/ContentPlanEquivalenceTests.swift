@@ -100,10 +100,7 @@ struct ContentPlanEquivalenceTests {
             guard case .bloodPressure(let members) = plan.value else {
                 return []
             }
-            return members.map { member in
-                let empty = member.template.quantity.empty
-                return HealthKitUnitBinding(ucumCode: empty.code?.value?.string ?? "", displayUnit: empty.unit?.value?.string ?? "", unit: member.unit)
-            }
+            return members.map(\.binding)
         }
         var seen: Set<String> = []
         let derived = (HealthKitContentPlan.all.compactMap(\.unitBinding) + (members ?? [])).filter { binding in
