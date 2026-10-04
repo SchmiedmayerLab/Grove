@@ -111,8 +111,8 @@ extension HealthKitAssembly.SourceFacts {
             }
             let version = revision.version?.nonBlank
             do {
-                return .application(
-                    try ApplicationDevice(name: name, bundleIdentifier: bundleIdentifier, version: version ?? "unknown"),
+                return ExchangeWriterDraft(
+                    application: try ApplicationDevice(name: name, bundleIdentifier: bundleIdentifier, version: version ?? "unknown"),
                     host: try HostDevice(
                         operatingSystemVersion: operatingSystemVersion(revision.operatingSystemVersion),
                         modelNumber: revision.productType?.nonBlank

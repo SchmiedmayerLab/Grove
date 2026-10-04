@@ -184,11 +184,19 @@ package struct ExchangeRecordingDeviceDraft: Sendable {
 }
 
 
-/// Who wrote the record into the source store, as the Provenance author; a draft without one names no author.
-package enum ExchangeWriterDraft: Sendable {
-    /// An application and the host it ran on, stated as snapshots of their own; `statesVersion` is
-    /// false when the source named no version, so the Device carries none.
-    case application(ApplicationDevice, host: HostDevice, statesVersion: Bool)
+/// The application that wrote the record into the source store, and the host it ran on, stated as snapshots of their
+/// own and as the Provenance author; a draft without one names no author.
+package struct ExchangeWriterDraft: Sendable {
+    package let application: ApplicationDevice
+    package let host: HostDevice
+    /// False when the source named no version, so the application Device carries none.
+    package let statesVersion: Bool
+
+    package init(application: ApplicationDevice, host: HostDevice, statesVersion: Bool) {
+        self.application = application
+        self.host = host
+        self.statesVersion = statesVersion
+    }
 }
 
 

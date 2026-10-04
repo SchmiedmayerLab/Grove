@@ -148,17 +148,17 @@ extension ExchangeGraphAssembler {
         repositoryIDs: [ExchangeGraphNode: RepositoryID],
         converter: ConverterSnapshots
     ) throws -> WriterSnapshots? {
-        guard case let .application(application, hostDevice, statesVersion) = writer else {
+        guard let writer else {
             return nil
         }
-        let host = try hostSnapshot(hostDevice, event: event, repositoryID: repositoryIDs[.writerHost])
+        let host = try hostSnapshot(writer.host, event: event, repositoryID: repositoryIDs[.writerHost])
         var snapshot = try applicationSnapshot(
-            application,
+            writer.application,
             event: event,
             parentURL: try host.identity.fullURLString,
             repositoryID: repositoryIDs[.writer]
         )
-        if !statesVersion {
+        if !writer.statesVersion {
             var resource = snapshot.resource
             resource.version = nil
             snapshot = IdentifiedDevice(resource: resource, identity: snapshot.identity)
