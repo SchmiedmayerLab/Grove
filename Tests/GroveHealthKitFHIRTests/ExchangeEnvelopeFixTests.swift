@@ -182,7 +182,7 @@ struct ExchangeEnvelopeFixTests {
     @Test("A retraction refuses an occurrence or a recording no FHIR dateTime can state")
     func retractionRefusesUnstatableInstants() throws {
         let record = try Self.base.identityScope.sourceRecord(
-            adapterID: HealthKitConverter.adapterID,
+            adapterID: HealthKitAssembly.adapter.adapterID,
             sourceType: HealthKitSourceType.heartRate.rawValue,
             repositoryScope: Self.base.repositoryScope,
             nativeRecordID: GoldenFixtures.uuid(96).uuidString.lowercased()

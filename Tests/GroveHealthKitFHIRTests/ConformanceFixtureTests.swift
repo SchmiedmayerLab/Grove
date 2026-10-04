@@ -499,6 +499,7 @@ struct ConformanceFixtureTests {
         let ecgConversion = HealthKitConversionSet(primary: try HealthKitAssembly(context: ecgContext.event).graph(
             for: ecgEnvelopeSource,
             type: .heartRate,
+            metadata: HealthKitSampleMetadata(ecgEnvelopeSource, rule: HealthKitContentPlan[.heartRate].metadata),
             outputs: ecgOutputs,
             request: .init(context: ecgContext)
         ))

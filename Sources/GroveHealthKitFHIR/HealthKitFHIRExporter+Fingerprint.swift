@@ -41,7 +41,7 @@ extension HealthKitFHIRExporter {
     ///
     /// A request's fingerprint is the SHA-256, base64url without padding, of the length-framed call parts
     /// followed by the record's own parts: what the writer and recording-device policies answered for its
-    /// sample (`ResolvedPolicies`) and its companion data (`Input.companionParts`). A stored reservation is
+    /// sample (`ResolvedPolicies`) and its companion data (`Record.companionParts(evidence:)`). A stored reservation is
     /// reused only under an equal fingerprint, so a Grove update that changes output, any option change, a
     /// policy closure that answers otherwise, other companion data, or another participant over the same
     /// ledger never reuses an event identifier for other bytes.
@@ -129,48 +129,51 @@ extension HealthKitFHIRExporter {
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
-extension HealthKitFHIRExporter.Input {
-    /// The record content its event key does not version but its graph serializes: an ECG's symptom set (its
-    /// Observation references their outputs) and voltages, a heartbeat series' beats and a route's locations. Each
-    /// kind enters as a tag and the digest of exactly what the assembly serializes from it.
-    var companionParts: [String] {
-        switch self {
-        case .record(.sample):
-            return []
-        case let .electrocardiogramEvidence(_, evidence, symptoms):
-            return Self.symptomParts(symptoms) + ["voltages", Self.digest { try evidence.waveform.serialized() }]
-        case let .record(.electrocardiogram(ecg, voltages, symptoms)):
-            // A planned input still carries raw voltages only when they do not validate, and the record is refused.
-            let record = HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: voltages)
-            return Self.symptomParts(symptoms) + ["voltages", Self.digest { try HealthKitECGEvidence(record).waveform.serialized() }]
-        case let .record(.heartbeatSeries(series, beats)):
-            return ["beats", Self.digest { try HealthKitConverter.beatIntervalPayload(seriesStart: series.startDate, heartbeats: beats) }]
-        case let .record(.workoutRoute(_, locations)):
-            return ["locations", Self.digest { try HealthKitConverter.locationTrackPayload(locations) }]
-        }
-    }
+extension HealthKitFHIRExporter.Record {
+    /// The part of companion data the assembly cannot serialize: it throws the same, so the record is refused and no
+    /// graph ever carries the part.
+    private static let unserializable = "unserializable"
 
     /// The symptom count, then their lowercase UUIDs, sorted.
     private static func symptomParts(_ symptoms: [HKCategorySample]) -> [String] {
         ["symptoms", String(symptoms.count)] + symptoms.map { $0.uuid.uuidString.lowercased() }.sorted()
     }
 
-    /// The SHA-256, base64url without padding, of `serialized`, or `unserializable` when it throws: the assembly
-    /// throws the same, so the record is refused and no graph ever carries the part.
+    /// The SHA-256, base64url without padding, of `serialized`, or ``unserializable`` when it throws.
     private static func digest(_ serialized: () throws -> Data) -> String {
         guard let bytes = try? serialized() else {
-            return "unserializable"
+            return unserializable
         }
         return Data(SHA256.hash(data: bytes)).base64URLEncodedStringWithoutPadding
+    }
+
+    /// The record content its event key does not version but its graph serializes: an ECG's symptom set (its
+    /// Observation references their outputs) and voltages, a heartbeat series' beats and a route's locations. Each
+    /// kind enters as a tag and the digest of exactly what the assembly serializes from it. An ECG's voltages are
+    /// read from its `evidence`, validated when the record was planned; without it they do not validate, and the
+    /// record is refused.
+    func companionParts(evidence: HealthKitECGContent.Evidence?) -> [String] {
+        switch self {
+        case .sample:
+            return []
+        case .electrocardiogram(_, _, let symptoms):
+            let voltages = evidence.map { evidence in Self.digest { try evidence.waveform.serialized() } } ?? Self.unserializable
+            return Self.symptomParts(symptoms) + ["voltages", voltages]
+        case let .heartbeatSeries(series, beats):
+            return ["beats", Self.digest { try HealthKitConverter.beatIntervalPayload(seriesStart: series.startDate, heartbeats: beats) }]
+        case let .workoutRoute(_, locations):
+            return ["locations", Self.digest { try HealthKitConverter.locationTrackPayload(locations) }]
+        }
     }
 }
 
 
-extension HealthKitECGValidatedWaveform {
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitECGContent.Waveform {
     /// What the ECG Observation's SampledData and effective period state from the voltages, length-framed: the
     /// first and last offsets, the period and the data.
     func serialized() throws -> Data {
-        try LengthFramedUTF8.encode([firstOffsetSeconds.description, lastOffsetSeconds.description, periodMilliseconds.description, data])
+        try LengthFramedUTF8.encode([firstOffset.description, lastOffset.description, period.description, data])
     }
 }
 

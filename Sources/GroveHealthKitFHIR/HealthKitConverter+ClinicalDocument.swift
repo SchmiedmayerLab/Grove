@@ -31,7 +31,7 @@ extension HealthKitConverter {
     ) throws(HealthKitConversionError) -> HealthKitConversionSet {
         do {
             try Self.validate(context: context)
-            return try HealthKitAssembly(context: context.event).convertClinicalRecord(record, request: .init(context: context))
+            return try HealthKitAssembly(context: context.event).convert(record, request: .init(context: context))
         } catch {
             throw HealthKitConversionError(conversionFailure: error, source: HealthKitSourceType(record))
         }
@@ -91,7 +91,7 @@ extension HealthKitConverter {
     ) throws(HealthKitConversionError) -> HealthKitConversionSet {
         do {
             try Self.validate(context: context)
-            return try HealthKitAssembly(context: context.event).convertClinicalDocument(sample, request: .init(context: context))
+            return try HealthKitAssembly(context: context.event).convert(sample, request: .init(context: context))
         } catch {
             throw HealthKitConversionError(conversionFailure: error, source: .cda)
         }

@@ -255,7 +255,7 @@ struct HealthKitFHIRExporterLedgerTests {
         let last = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xA3), type: .fatigue)
         #expect(HealthKitSourceType(unregistered) == nil)
         let input = try Fixtures.electrocardiogram(uuid: 0xA0, symptoms: [first, unregistered, last])
-        let plan = HealthKitFHIRExporter.Plan(.record(input), exporter: exporter)
+        let plan = HealthKitFHIRExporter.Plan(input, exporter: exporter)
         #expect(plan.symptoms.map { $0?.request.key } == [ExchangeEventKey.active(first), nil, ExchangeEventKey.active(last)])
         let (exports, _) = try Fixtures.collect(exporter, [input])
         guard case .refused(let reason) = exports[0].outcome else {

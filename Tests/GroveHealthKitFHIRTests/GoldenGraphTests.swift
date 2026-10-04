@@ -206,7 +206,7 @@ struct GoldenGraphTests {
         let provenance = try #require(retraction.graph.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
         let child = try context.identityScope
             .sourceRecord(
-                adapterID: HealthKitConverter.adapterID,
+                adapterID: HealthKitAssembly.adapter.adapterID,
                 sourceType: HealthKitSourceType.electrocardiogram.rawValue,
                 repositoryScope: context.repositoryScope,
                 nativeRecordID: ecg.uuid.uuidString.lowercased()

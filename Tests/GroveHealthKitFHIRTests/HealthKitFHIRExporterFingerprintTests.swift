@@ -122,7 +122,7 @@ struct HealthKitFHIRExporterFingerprintTests {
         let key = try #require(ExchangeEventKey.active(sample))
         let (original, _) = try Fixtures.collect(contexts[0].1, samples: [sample])
         let stored = try #require(try storage.transaction { try $0.read(LedgerKey.event(key)) })
-        let planned = HealthKitFHIRExporter.Plan(.record(.sample(sample)), exporter: contexts[0].1).primary?.request
+        let planned = HealthKitFHIRExporter.Plan(.sample(sample), exporter: contexts[0].1).primary?.request
         #expect(planned?.key == key)
         #expect(try EventEntry(decoding: stored, key: LedgerKey.event(key)).fingerprint == planned?.fingerprint)
         let (unchanged, _) = try Fixtures.collect(try Fixtures.exporter(try Fixtures.producer(sequencer: ExchangeEventSequencer(storage: storage))), samples: [sample])
@@ -198,7 +198,7 @@ struct HealthKitFHIRExporterFingerprintTests {
             "writer", "application",
             "recordingDevice", "unit", "6C4B1D1E-0000-4000-8000-000000000001", "some", "Apple Watch", "some", "Apple Inc.", "some", "Watch7,12"
         ])
-        let planned = try #require(HealthKitFHIRExporter.Plan(.record(.sample(sample)), exporter: exporter).primary?.request)
+        let planned = try #require(HealthKitFHIRExporter.Plan(.sample(sample), exporter: exporter).primary?.request)
         #expect(planned.fingerprint == exporter.context.request(for: planned.key, recordParts: policies.fingerprintParts).fingerprint)
         #expect(planned.fingerprint == "4ViljxvhC5STfq5O5V-a8ML-YL42xAqmwAycm0BO414")
     }

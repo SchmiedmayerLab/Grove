@@ -35,11 +35,12 @@ extension HealthKitConverter {
             for symptomContext in symptomContexts {
                 try Self.validateSymptomConversionContext(symptomContext, expectedContext: context)
             }
-            let evidence = try HealthKitECGEvidence(record)
+            let plan = HealthKitContentPlan[.electrocardiogram]
+            let evidence = try plan.ecgEvidence(record)
             return try HealthKitAssembly(context: context.event).convertECG(
-                record.electrocardiogram,
-                evidence: evidence,
+                evidence,
                 symptoms: record.correlatedSymptoms,
+                plan: plan,
                 request: .init(context: context),
                 symptomRequests: try Self.symptomRequests(symptomContexts, for: record.correlatedSymptoms)
             )

@@ -27,7 +27,7 @@ enum ContentCorpusInvariants {
         let context = try ContentCorpusRecorder.context(for: source)
         return try set.all.flatMap { conversion -> [String] in
             let record = try context.identityScope.sourceRecord(
-                adapterID: HealthKitConverter.adapterID,
+                adapterID: HealthKitAssembly.adapter.adapterID,
                 sourceType: conversion.source.type.rawValue,
                 repositoryScope: context.event.repositoryScope,
                 nativeRecordID: conversion.source.uuid.uuidString.lowercased()

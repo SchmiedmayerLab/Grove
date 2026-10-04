@@ -128,6 +128,15 @@ final class HealthKitContentPlan: Sendable {
         return binding
     }
 
+    /// Why a record the plan's route cannot convert is refused: a refused type's own error, else not yet convertible,
+    /// which only a record whose kind the type's rule does not compile to meets.
+    var refusal: HealthKitConversionError {
+        guard case .refused(let error) = route else {
+            return .notYetConvertible(sourceType)
+        }
+        return error
+    }
+
     /// The plan of `sourceType`.
     init(
         _ sourceType: HealthKitSourceType,

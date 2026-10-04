@@ -65,7 +65,7 @@ extension HealthKitFHIRExporter {
     /// and a workout route is exported only under ``Options/route`` `.authorized`: retracting an undisclosed route
     /// would name a node that never existed and disclose that the route did.
     private func isRetractable(_ deletion: Deletion) -> Bool {
-        guard !HealthKitCatalog.outputs(for: deletion.sourceType).isEmpty else {
+        guard !HealthKitContentPlan[deletion.sourceType].outputs.isEmpty else {
             return false
         }
         return deletion.sourceType != .workoutRoute || options.route == .authorized
@@ -119,7 +119,7 @@ extension ExchangeEventKey {
     static func retraction(_ deletion: HealthKitFHIRExporter.Deletion) -> ExchangeEventKey {
         ExchangeEventKey(
             kind: .retraction,
-            adapterID: HealthKitConverter.adapterID,
+            adapterID: HealthKitAssembly.adapter.adapterID,
             sourceRecord: "\(deletion.sourceType.rawValue)|\(deletion.uuid.uuidString.lowercased())",
             // Decimal milliseconds or empty, so the separator is unambiguous.
             revision: deletion.occurrenceParts.joined(separator: "|")

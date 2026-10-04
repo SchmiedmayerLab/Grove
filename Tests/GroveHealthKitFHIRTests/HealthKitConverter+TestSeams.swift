@@ -42,17 +42,30 @@ extension HealthKitConverter {
         try HealthKitAssembly(context: context.event).retraction(of: record, request: .init(context: context), occurred: occurred)
     }
 
-    /// One recording document under `sample`'s envelope, whatever the sample's own type.
+    /// One recording document of today's builder under `sample`'s envelope, whatever the sample's own type.
     static func assembleDocumentGraph(
         for sample: HKSample,
         evidence: HealthKitRecordingEvidence,
         context: HealthKitConversionContext
     ) throws -> HealthKitConversionSet {
         try validate(context: context)
-        guard let type = HealthKitSourceType(sample) else {
+        guard let plan = HealthKitContentPlan.plan(for: sample) else {
             throw HealthKitConversionError.unregisteredSourceType(sample.sampleType.identifier)
         }
-        return try HealthKitAssembly(context: context.event).documentGraph(for: sample, type: type, evidence: evidence, request: .init(context: context))
+        let output = ExchangeOutputDraft(
+            role: evidence.outputRole,
+            resource: .document(try recordingDocument(evidence: evidence, sourceTypeIdentifier: sample.sampleType.identifier)),
+            links: [.subject, .recordingDevice, .studies],
+            artifactFormatCode: evidence.format.rawValue
+        )
+        let conversion = try HealthKitAssembly(context: context.event).graph(
+            for: sample,
+            type: plan.sourceType,
+            metadata: HealthKitSampleMetadata(sample, rule: plan.metadata),
+            outputs: [output],
+            request: .init(context: context)
+        )
+        return HealthKitConversionSet(primary: conversion)
     }
 
     /// The route's track, or `nil` when the context does not authorize disclosing one.

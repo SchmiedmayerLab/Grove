@@ -89,19 +89,17 @@ public final class HealthKitFHIRExporter: Sendable {
     }
 
     /// ``export(_:at:receive:)`` for records that carry companion data.
+    ///
+    /// Each record is planned first, then one reserve transaction covers every event the records need, then each
+    /// record is delivered in order.
     public func export(
         records: some Collection<Record>,
         at instant: Date = .now,
         receive: (Export) throws -> Void
     ) throws -> Receipt {
-        try export(inputs: records.map(Input.record), at: instant, receive: receive)
-    }
-
-    /// One reserve transaction for every event the inputs need, then each input's delivery in order.
-    func export(inputs: [Input], at instant: Date, receive: (Export) throws -> Void) throws -> Receipt {
-        let plans = inputs.map { input in
+        let plans = records.map { record in
             autoreleasepool {
-                Plan(input, exporter: self)
+                Plan(record, exporter: self)
             }
         }
         // One fingerprint per key and call, the first in input order: a key reserved under two would keep only the
@@ -124,42 +122,10 @@ public final class HealthKitFHIRExporter: Sendable {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter {
-    /// What one delivery converts: a record, or, below the public API, an ECG whose evidence is already validated.
-    enum Input {
-        case record(Record)
-        /// An ECG with prebuilt evidence: the seam tests use, as `HKElectrocardiogram.VoltageMeasurement`
-        /// cannot be constructed with values outside HealthKit.
-        case electrocardiogramEvidence(HKSample, evidence: HealthKitECGEvidence, symptoms: [HKCategorySample])
-
-        var sample: HKSample {
-            switch self {
-            case .record(let record): record.sample
-            case .electrocardiogramEvidence(let ecg, _, _): ecg
-            }
-        }
-
-        /// The correlated symptoms, each its own event.
-        var symptoms: [HKCategorySample] {
-            switch self {
-            case .record(.electrocardiogram(_, _, let symptoms)), .electrocardiogramEvidence(_, _, let symptoms): symptoms
-            case .record: []
-            }
-        }
-
-        /// An ECG record with its voltages validated into evidence, once, before the reservation; every other input,
-        /// and an ECG whose evidence does not validate, as given: the latter is refused when it is delivered.
-        var validated: Input {
-            guard case let .record(.electrocardiogram(ecg, voltages, symptoms)) = self,
-                  let evidence = try? HealthKitECGEvidence(HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: voltages)) else {
-                return self
-            }
-            return .electrocardiogramEvidence(ecg, evidence: evidence, symptoms: symptoms)
-        }
-    }
-
-    /// One input prepared before the reservation: its ECG evidence validated, and one event per sample it converts,
-    /// its record and each registered ECG symptom, under what the policies resolved for that sample. Each event's
-    /// fingerprint covers those answers and the record's companion data, and its graph is built from exactly them.
+    /// One record prepared before the reservation: its type's content plan, an ECG's evidence validated, and one event
+    /// per sample it converts, its record and each registered ECG symptom, under what the policies resolved for that
+    /// sample. Each event's fingerprint covers those answers and the record's companion data, and its graph is built
+    /// from exactly them.
     struct Plan {
         /// One sample's request and what the policies answered for it.
         struct Event {
@@ -167,7 +133,14 @@ extension HealthKitFHIRExporter {
             let policies: ResolvedPolicies
         }
 
-        let input: Input
+        /// The record.
+        let record: Record
+        /// The plan of the record's type, or `nil` for a type the inventory does not list.
+        let content: HealthKitContentPlan?
+        /// An ECG record's evidence, validated once here; `nil` for any other record, and for an ECG whose evidence
+        /// does not validate, which its delivery refuses for that reason.
+        let evidence: HealthKitECGContent.Evidence?
+        /// The record's own event, or `nil` for a type the inventory does not list.
         let primary: Event?
         /// One entry per correlated symptom, in the record's order; `nil` for a symptom of an unregistered type.
         let symptoms: [Event?]
@@ -177,24 +150,36 @@ extension HealthKitFHIRExporter {
         }
 
         var source: Export.Source {
-            Export.Source(uuid: input.sample.uuid, typeIdentifier: input.sample.sampleType.identifier)
+            Export.Source(uuid: record.sample.uuid, typeIdentifier: record.sample.sampleType.identifier)
         }
 
-        init(_ input: Input, exporter: HealthKitFHIRExporter) {
-            let input = input.validated
-            let primary = Self.event(for: input.sample, exporter: exporter) { input.companionParts }
-            self.input = input
+        init(_ record: Record, exporter: HealthKitFHIRExporter) {
+            let sample = record.sample
+            let content = HealthKitContentPlan.plan(for: sample)
+            let evidence = content.flatMap { content in record.electrocardiogram.flatMap { try? content.ecgEvidence($0) } }
+            let primary = content.map { content in
+                Self.event(for: sample, key: .active(type: content.sourceType, uuid: sample.uuid), exporter: exporter) {
+                    record.companionParts(evidence: evidence)
+                }
+            }
+            self.record = record
+            self.content = content
+            self.evidence = evidence
             self.primary = primary
             // A record that is refused outright reserves nothing for its symptoms either.
-            self.symptoms = primary == nil ? [] : input.symptoms.map { Self.event(for: $0, exporter: exporter) { [] } }
+            self.symptoms = primary == nil ? [] : record.symptoms.map { symptom in
+                ExchangeEventKey.active(symptom).map { Self.event(for: symptom, key: $0, exporter: exporter) { [] } }
+            }
         }
 
-        /// The event of a sample of a registered type: its key, fingerprinted with what the policies answer for the
-        /// sample and with `companionParts`, computed only for such a sample.
-        private static func event(for sample: HKSample, exporter: HealthKitFHIRExporter, companionParts: () -> [String]) -> Event? {
-            guard let key = ExchangeEventKey.active(sample) else {
-                return nil
-            }
+        /// The event of `sample` under `key`: fingerprinted with what the policies answer for the sample and with
+        /// `companionParts`.
+        private static func event(
+            for sample: HKSample,
+            key: ExchangeEventKey,
+            exporter: HealthKitFHIRExporter,
+            companionParts: () -> [String]
+        ) -> Event {
             let policies = ResolvedPolicies(sample, options: exporter.options)
             return Event(request: exporter.context.request(for: key, recordParts: policies.fingerprintParts + companionParts()), policies: policies)
         }
@@ -205,8 +190,8 @@ extension HealthKitFHIRExporter {
         reserved: [ExchangeEventRequest: ExchangeEventReservation],
         receive: (Export) throws -> Void
     ) throws {
-        guard let primary = plan.primary else {
-            let refusal = HealthKitConversionError.unregisteredSourceType(plan.input.sample.sampleType.identifier)
+        guard let primary = plan.primary, let content = plan.content else {
+            let refusal = HealthKitConversionError.unregisteredSourceType(plan.record.sample.sampleType.identifier)
             try receive(Export(source: plan.source, outcome: .refused(refusal), warnings: []))
             return
         }
@@ -219,7 +204,7 @@ extension HealthKitFHIRExporter {
         // standalone export of the same record in this call keeps its event.
         let set: HealthKitConversionSet?
         do {
-            set = try convert(plan, primary: primary, reserved: reserved)
+            set = try convert(plan, content: content, primary: primary, reserved: reserved)
         } catch {
             let failure = HealthKitConversionError(conversionFailure: error, source: plan.source.sourceType)
             try receive(Export(source: plan.source, outcome: .refused(failure), warnings: []))
@@ -250,34 +235,29 @@ extension HealthKitFHIRExporter {
 
     private func convert(
         _ plan: Plan,
+        content: HealthKitContentPlan,
         primary: Plan.Event,
         reserved: [ExchangeEventRequest: ExchangeEventReservation]
     ) throws -> HealthKitConversionSet? {
-        let request = try request(for: plan.input.sample, policies: primary.policies, reservation: reservation(for: primary.request, in: reserved))
-        switch plan.input {
-        case .record(.sample(let sample)):
-            return try assembly.convert(sample, request: request)
-        case let .record(.electrocardiogram(ecg, voltages, symptoms)):
-            // Its evidence did not validate when it was planned: validating it again refuses it for the same reason.
+        let request = try request(for: plan.record.sample, policies: primary.policies, reservation: reservation(for: primary.request, in: reserved))
+        switch plan.record {
+        case .sample(let sample):
+            return try assembly.convert(sample, plan: content, request: request)
+        case let .electrocardiogram(ecg, voltages, symptoms):
+            // An ECG whose evidence did not validate when it was planned is refused now, for the same reason.
+            let evidence = try plan.evidence ?? content.ecgEvidence(HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: voltages))
             return try assembly.convertECG(
-                ecg,
-                evidence: HealthKitECGEvidence(HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: voltages)),
+                evidence,
                 symptoms: symptoms,
+                plan: content,
                 request: request,
                 symptomRequests: symptomRequests(plan, reserved: reserved)
             )
-        case let .record(.heartbeatSeries(series, beats)):
-            return try assembly.convertHeartbeatSeries(HealthKitHeartbeatSeriesRecord(series: series, heartbeats: beats), request: request)
-        case let .record(.workoutRoute(route, locations)):
-            return try assembly.convertWorkoutRoute(HealthKitWorkoutRouteRecord(route: route, locations: locations), request: request)
-        case let .electrocardiogramEvidence(ecg, evidence, symptoms):
-            return try assembly.convertECG(
-                ecg,
-                evidence: evidence,
-                symptoms: symptoms,
-                request: request,
-                symptomRequests: symptomRequests(plan, reserved: reserved)
-            )
+        case let .heartbeatSeries(series, beats):
+            let record = HealthKitHeartbeatSeriesRecord(series: series, heartbeats: beats)
+            return try assembly.convertHeartbeatSeries(record, plan: content, request: request)
+        case let .workoutRoute(route, locations):
+            return try assembly.convertWorkoutRoute(HealthKitWorkoutRouteRecord(route: route, locations: locations), plan: content, request: request)
         }
     }
 
@@ -287,7 +267,7 @@ extension HealthKitFHIRExporter {
         reserved: [ExchangeEventRequest: ExchangeEventReservation]
     ) throws -> [UUID: HealthKitAssembly.Request] {
         var requests: [UUID: HealthKitAssembly.Request] = [:]
-        for (symptom, event) in zip(plan.input.symptoms, plan.symptoms) {
+        for (symptom, event) in zip(plan.record.symptoms, plan.symptoms) {
             guard let event, requests[symptom.uuid] == nil else {
                 continue
             }
@@ -346,17 +326,37 @@ extension HealthKitFHIRExporter {
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitFHIRExporter.Record {
+    /// The correlated symptoms, each its own event.
+    var symptoms: [HKCategorySample] {
+        guard case .electrocardiogram(_, _, let symptoms) = self else {
+            return []
+        }
+        return symptoms
+    }
+
+    /// An ECG record's ECG and voltages; its symptoms convert as events of their own.
+    var electrocardiogram: HealthKitECGRecord? {
+        guard case let .electrocardiogram(ecg, voltages, _) = self else {
+            return nil
+        }
+        return HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: voltages)
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ExchangeEventKey {
     /// The active-event key of a HealthKit sample: its source type and UUID, nothing else.
     static func active(_ sample: HKSample) -> ExchangeEventKey? {
-        HealthKitSourceType(sample).map { active(type: $0, uuid: sample.uuid) }
+        HealthKitContentPlan.plan(for: sample).map { active(type: $0.sourceType, uuid: sample.uuid) }
     }
 
     /// The active-event key of the record of `type` with `uuid`.
     static func active(type: HealthKitSourceType, uuid: UUID) -> ExchangeEventKey {
         ExchangeEventKey(
             kind: .active,
-            adapterID: HealthKitConverter.adapterID,
+            adapterID: HealthKitAssembly.adapter.adapterID,
             sourceRecord: "\(type.rawValue)|\(uuid.uuidString.lowercased())"
         )
     }

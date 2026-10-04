@@ -64,8 +64,10 @@ struct HealthKitAssembly: Sendable {
     /// older revision is never redelivered under the same identifier with different bytes.
     static let outputRevision: UInt = 3
 
+    /// The HealthKit adapter: its closed token, which every HealthKit identity preimage and event key carries, and the
+    /// profiles and application identifier its envelopes state.
     static let adapter = ExchangeAdapterContract(
-        adapterID: HealthKitConverter.adapterID,
+        adapterID: "healthkit",
         provenanceProfile: HealthKitContract.conversionProvenanceProfile,
         applicationDeviceProfile: HealthKitContract.applicationDeviceProfile
     ) { application in
@@ -98,38 +100,41 @@ struct HealthKitAssembly: Sendable {
 
     /// Converts one sample only when the closed catalog admits its exact published contract.
     func convert(_ sample: HKSample, request: Request) throws -> HealthKitConversionSet {
-        guard let type = HealthKitSourceType(sample) else {
+        guard let plan = HealthKitContentPlan.plan(for: sample) else {
             throw HealthKitConversionError.unregisteredSourceType(sample.sampleType.identifier)
         }
-        if sample is HKElectrocardiogram {
+        return try convert(sample, plan: plan, request: request)
+    }
+
+    /// Converts one sample through its type's plan. An ECG or a recording needs the caller's companion data, so its
+    /// bare sample is refused.
+    func convert(_ sample: HKSample, plan: HealthKitContentPlan, request: Request) throws -> HealthKitConversionSet {
+        switch plan.route {
+        case .observation(let observation):
+            let metadata = HealthKitSampleMetadata(sample, rule: plan.metadata)
+            // A workout exports its session alone: the pinned guide defines no HealthKit segment output, and a
+            // deletion could not name segments it never saw (healthkit-adapter.json workout row).
+            let primary = plan.outputs[0].draft(.observation(try observation.observation(sample, metadata: metadata)))
+            let conversion = try graph(for: sample, type: plan.sourceType, metadata: metadata, outputs: [primary], request: request)
+            return HealthKitConversionSet(primary: conversion)
+        case .clinical(let document):
+            let carried = try clinicalDocument(sample, plan: plan, document: document)
+            return try documentGraph(for: sample, plan: plan, document: carried, request: request)
+        case .electrocardiogram:
             throw HealthKitConversionError.ecgEvidence(.evidenceRequired)
+        case .recording:
+            // The inventory admits the type only as a document of the caller's series, which a bare sample lacks.
+            throw HealthKitConversionError.platformExclusiveSourceType(plan.sourceType)
+        case .refused(let error):
+            throw error
         }
-        #if !os(watchOS)
-        if let record = sample as? HKClinicalRecord {
-            return try convertClinicalRecord(record, request: request)
-        }
-        if let document = sample as? HKCDADocumentSample {
-            return try convertClinicalDocument(document, request: request)
-        }
-        #endif
-        guard let binding = HealthKitCatalog.binding(for: sample),
-              let output = HealthKitCatalog.primaryOutput(for: type) else {
-            throw HealthKitConverter.unconvertibleSampleError(for: type)
-        }
-        let primary = ExchangeOutputDraft(
-            role: output.role,
-            discriminator: output.discriminator,
-            resource: .observation(try HealthKitConverter.observation(for: sample, binding: binding))
-        )
-        // A workout exports its session alone: the pinned guide defines no HealthKit segment output, and a
-        // deletion could not name segments it never saw (healthkit-adapter.json workout row).
-        return HealthKitConversionSet(primary: try graph(for: sample, type: type, outputs: [primary], request: request))
     }
 
     /// One source record's graph: the outputs under the sample's envelope, with what the graph does not carry.
     func graph(
         for sample: HKSample,
         type: HealthKitSourceType,
+        metadata: HealthKitSampleMetadata,
         outputs: [ExchangeOutputDraft],
         request: Request
     ) throws -> HealthKitConversion {
@@ -137,7 +142,7 @@ struct HealthKitAssembly: Sendable {
             throw ExchangeAssemblyError.noOutputs
         }
         let source = HealthKitSourceRecord(uuid: sample.uuid, type: type)
-        let facts = try SourceFacts(sample, options: request.options)
+        let facts = try SourceFacts(sample, metadata: metadata, options: request.options)
         var outputs = outputs
         outputs[0].clearIdentifiers = facts.nativeIdentifiers
         // One record states one entry method: the sample's own metadata decides it for every output it yields.
@@ -164,13 +169,13 @@ struct HealthKitAssembly: Sendable {
             source: source,
             identifiers: assembled.identifiers,
             graph: assembled.graph,
-            warnings: facts.warnings + sourceOffsetWarnings(for: sample, outputs: outputs)
+            warnings: facts.warnings + sourceOffsetWarnings(for: metadata, outputs: outputs)
         )
     }
 
     /// The effective elements the outputs serialized in UTC because the sample named no time zone, each once.
-    private func sourceOffsetWarnings(for sample: HKSample, outputs: [ExchangeOutputDraft]) -> [HealthKitConversionWarning] {
-        guard sample.metadata?[HKMetadataKeyTimeZone] == nil else {
+    private func sourceOffsetWarnings(for metadata: HealthKitSampleMetadata, outputs: [ExchangeOutputDraft]) -> [HealthKitConversionWarning] {
+        guard !metadata.statesTimeZone else {
             return []
         }
         var fields: [String] = []

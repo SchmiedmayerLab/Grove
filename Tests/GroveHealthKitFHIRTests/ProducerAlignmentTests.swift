@@ -413,7 +413,7 @@ struct ProducerSurfaceTests {
         #expect(disclosed.map(\.identifier) == omitted.map(\.identifier))
 
         let sourceRecord = try context.event.identityScope.sourceRecord(
-            adapterID: HealthKitConverter.adapterID,
+            adapterID: HealthKitAssembly.adapter.adapterID,
             sourceType: HealthKitSourceType.heartRate.rawValue,
             repositoryScope: context.event.repositoryScope,
             nativeRecordID: native.value

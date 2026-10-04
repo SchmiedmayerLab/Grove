@@ -319,7 +319,7 @@ extension GoldenOutput {
         let entries: [LosslessJSONValue] = try LosslessJSONValue(parsing: graph.json)["entry"]?.elements ?? []
         let minted = try source.map { source in
             try identityScope.sourceRecord(
-                adapterID: HealthKitConverter.adapterID,
+                adapterID: HealthKitAssembly.adapter.adapterID,
                 sourceType: source.type.rawValue,
                 repositoryScope: repositoryScope,
                 nativeRecordID: source.uuid.uuidString.lowercased()

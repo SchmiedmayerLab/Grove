@@ -80,7 +80,7 @@ struct ContentCorpusExporterTests {
     /// on its own first, in the facade's order, numbers them as the facade does; the export then finds every
     /// reservation under its own request and reuses it.
     private static func reserveFacadeEvents(of record: HealthKitFHIRExporter.Record, through exporter: HealthKitFHIRExporter) throws {
-        let requests = HealthKitFHIRExporter.Plan(.record(record), exporter: exporter).requests
+        let requests = HealthKitFHIRExporter.Plan(record, exporter: exporter).requests
         guard requests.count > 1 else {
             return
         }

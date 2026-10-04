@@ -36,6 +36,8 @@ struct HealthKitECGContent: Sendable {
         let waveform: Waveform
         /// The algorithm version its metadata states, if any.
         let algorithmVersion: Int?
+        /// The ECG's metadata, bridged once: the graph's source facts read it too.
+        let metadata: HealthKitSampleMetadata
     }
 
     /// An ECG's validated voltages: offsets that rise by one exact uniform period from the first to the last, and
@@ -144,7 +146,8 @@ struct HealthKitECGContent: Sendable {
             electrocardiogram: record.electrocardiogram,
             zone: zone,
             waveform: try Waveform(record, unit: voltageUnit),
-            algorithmVersion: (metadata.values[HKMetadataKeyAppleECGAlgorithmVersion] as? NSNumber)?.intValue
+            algorithmVersion: (metadata.values[HKMetadataKeyAppleECGAlgorithmVersion] as? NSNumber)?.intValue,
+            metadata: metadata
         )
     }
 

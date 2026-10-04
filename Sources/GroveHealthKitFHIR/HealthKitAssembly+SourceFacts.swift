@@ -27,9 +27,9 @@ extension HealthKitAssembly {
         let wasUserEntered: Bool
         let warnings: [HealthKitConversionWarning]
 
-        init(_ sample: HKSample, options: HealthKitConversionOptions) throws {
+        /// The facts of `sample`, whose metadata `metadata` bridged once.
+        init(_ sample: HKSample, metadata: HealthKitSampleMetadata, options: HealthKitConversionOptions) throws {
             let revision = sample.sourceRevision
-            let metadata = sample.metadata
             var warnings: [HealthKitConversionWarning] = []
             var recordingDevice: ExchangeRecordingDeviceDraft?
             if let healthKitDevice = sample.device {
@@ -44,11 +44,10 @@ extension HealthKitAssembly {
             self.recordingDevice = recordingDevice
             self.writer = try Self.writer(revision, classification: options.writer)
             self.nativeIdentifiers = [options.nativeIdentifierDisclosure.identifier(for: sample.uuid.uuidString.lowercased())].compactMap(\.self)
-            self.writerRecord = try Self.writerRecord(metadata: metadata, writerApplication: revision.source.bundleIdentifier)
-            self.wasUserEntered = (metadata?[HKMetadataKeyWasUserEntered] as? Bool) == true
-            let unmodeled = (metadata ?? [:]).keys.filter { !HealthKitMetadataField.keys.contains($0) }.sorted()
-            if !unmodeled.isEmpty {
-                warnings.append(.unmodeledMetadataWithheld(keys: unmodeled))
+            self.writerRecord = try Self.writerRecord(metadata: metadata.values, writerApplication: revision.source.bundleIdentifier)
+            self.wasUserEntered = metadata.wasUserEntered
+            if !metadata.withheldKeys.isEmpty {
+                warnings.append(.unmodeledMetadataWithheld(keys: metadata.withheldKeys))
             }
             self.warnings = warnings
         }
@@ -135,15 +134,11 @@ extension HealthKitAssembly.SourceFacts {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitAssembly.SourceFacts {
-    // HealthKit itself models the metadata dictionary as absent when an object has no metadata.
     /// Apple's paired sync metadata, validated independently of source attribution. A valid pair
     /// without an attributable writer stays omitted rather than being assigned to an invented writer.
-    static func writerRecord(
-        metadata: [String: Any]?, // swiftlint:disable:this discouraged_optional_collection
-        writerApplication: String
-    ) throws -> ExchangeOutputDraft.WriterRecord? {
-        let identifierValue = metadata?[HKMetadataKeySyncIdentifier]
-        let versionValue = metadata?[HKMetadataKeySyncVersion]
+    static func writerRecord(metadata: [String: Any], writerApplication: String) throws -> ExchangeOutputDraft.WriterRecord? {
+        let identifierValue = metadata[HKMetadataKeySyncIdentifier]
+        let versionValue = metadata[HKMetadataKeySyncVersion]
         guard identifierValue != nil || versionValue != nil else {
             return nil
         }

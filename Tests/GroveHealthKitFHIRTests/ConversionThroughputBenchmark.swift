@@ -363,7 +363,8 @@ struct ConversionThroughputBenchmark {
     private func measureConstruction(_ run: ScenarioRun) throws {
         let factsSeconds = try Stopwatch.seconds {
             for index in 0..<run.count {
-                _ = try HealthKitAssembly.SourceFacts(run.samples[index], options: run.contexts[index].options)
+                let sample = run.samples[index]
+                _ = try HealthKitAssembly.SourceFacts(sample, metadata: HealthKitSampleMetadata(sample, rule: .allowlist), options: run.contexts[index].options)
             }
         }
         run.report.line("scenario=\(run.name) phase=source-facts(devices+writer+identifiers) \(run.rate(factsSeconds))")

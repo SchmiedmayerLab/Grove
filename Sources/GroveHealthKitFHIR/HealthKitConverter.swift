@@ -75,9 +75,6 @@ public struct HealthKitConverter: Sendable {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitConverter {
-    /// The closed adapter token every HealthKit identity preimage carries.
-    static let adapterID = "healthkit"
-
     /// The catalog-driven reason a sample without a binding fails closed.
     static func unconvertibleSampleError(for type: HealthKitSourceType) -> HealthKitConversionError {
         if type == .bloodPressureSystolic || type == .bloodPressureDiastolic {

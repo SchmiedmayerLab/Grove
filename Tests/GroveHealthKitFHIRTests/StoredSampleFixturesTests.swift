@@ -191,7 +191,7 @@ struct StoredSampleFixturesTests {
 
         #expect(conversion.source.uuid == Self.uuid)
         let expectedRecord = try context.event.identityScope.sourceRecord(
-            adapterID: HealthKitConverter.adapterID,
+            adapterID: HealthKitAssembly.adapter.adapterID,
             sourceType: HealthKitSourceType.heartRate.rawValue,
             repositoryScope: context.event.repositoryScope,
             nativeRecordID: Self.uuid.uuidString.lowercased()

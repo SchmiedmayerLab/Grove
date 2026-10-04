@@ -17,46 +17,39 @@ import ModelsR4
 // MARK: - Electrocardiogram
 
 @available(iOS 18, macOS 15, watchOS 11, *)
-extension HealthKitECGEvidence {
-    /// The validated evidence of an already-fetched ECG and its voltages.
-    init(_ record: HealthKitECGRecord) throws {
-        let source = try HealthKitConverter.ecgSourceEvidence(record.electrocardiogram)
-        self.init(source: source, waveform: try HealthKitConverter.validatedWaveform(for: record, source: source))
+extension HealthKitContentPlan {
+    /// An ECG record's evidence under this plan, read once and validated: its zone, voltages and algorithm version,
+    /// beside the sample's metadata, bridged once for the graph. It is the first step of an ECG's conversion; the
+    /// exporter takes it when it plans the record, as the record's fingerprint covers the voltages.
+    func ecgEvidence(_ record: HealthKitECGRecord) throws -> HealthKitECGContent.Evidence {
+        guard case .electrocardiogram(let content) = route else {
+            throw refusal
+        }
+        return try content.evidence(record, metadata: HealthKitSampleMetadata(record.electrocardiogram, rule: metadata))
     }
 }
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitAssembly {
-    /// Converts an ECG and every correlated symptom as independently exchangeable source events, each symptom under
-    /// the request keyed by its sample's UUID. `ecg` supplies only the envelope's identity, device and source facts;
-    /// the evidence is given.
+    /// Converts an ECG whose evidence is read and validated (``HealthKitContentPlan/ecgEvidence(_:)``) and every
+    /// correlated symptom as independently exchangeable source events, each symptom under the request keyed by its
+    /// sample's UUID: the symptoms are validated first, each converting as its own graph, then the waveform and its
+    /// average heart rate are built.
     func convertECG(
-        _ ecg: HKSample,
-        evidence: HealthKitECGEvidence,
+        _ evidence: HealthKitECGContent.Evidence,
         symptoms: [HKCategorySample],
+        plan: HealthKitContentPlan = HealthKitContentPlan[.electrocardiogram],
         request: Request,
         symptomRequests: [UUID: Request]
     ) throws -> HealthKitConversionSet {
-        let companions = try symptomConversions(symptoms, source: evidence.source, symptomRequests: symptomRequests)
-        let input = HealthKitECGObservationInput(
-            source: evidence.source,
-            waveform: evidence.waveform,
-            symptomOutputIdentifiers: try validatedSymptomOutputIdentifiers(companions)
-        )
-        guard let output = HealthKitCatalog.primaryOutput(for: .electrocardiogram) else {
-            throw HealthKitConversionError.unsupportedSourceType(.electrocardiogram)
+        guard case .electrocardiogram(let content) = plan.route else {
+            throw plan.refusal
         }
-        let waveform = ExchangeOutputDraft(
-            role: output.role,
-            discriminator: output.discriminator,
-            resource: .observation(try HealthKitConverter.ecgObservation(input: input))
-        )
-        var outputs = [waveform]
-        if let averageHeartRate = try HealthKitConverter.ecgAverageHeartRateChild(input: input) {
-            outputs.append(averageHeartRate)
-        }
-        let primary = try graph(for: ecg, type: .electrocardiogram, outputs: outputs, request: request)
+        let ecg = evidence.electrocardiogram
+        let companions = try symptomConversions(symptoms, status: ecg.symptomsStatus, symptomRequests: symptomRequests)
+        let outputs = try content.outputs(evidence, symptoms: try validatedSymptomOutputIdentifiers(companions))
+        let primary = try graph(for: ecg, type: plan.sourceType, metadata: evidence.metadata, outputs: outputs, request: request)
         let events = [primary.identifiers.event] + companions.map(\.identifiers.event)
         guard Set(events).count == events.count else {
             throw HealthKitConversionError.ecgEvidence(.duplicateSymptomEventIdentity)
@@ -67,11 +60,11 @@ extension HealthKitAssembly {
     /// Each correlated symptom under its own event, in the deterministic order the ECG references them.
     private func symptomConversions(
         _ correlatedSymptoms: [HKCategorySample],
-        source: HealthKitECGSourceEvidence,
+        status: HKElectrocardiogram.SymptomsStatus,
         symptomRequests: [UUID: Request]
     ) throws -> [HealthKitConversion] {
         // Validation comes first, so an unsupported or duplicated symptom is refused as such.
-        let symptoms = try HealthKitConverter.validatedSymptomSamples(correlatedSymptoms, status: source.symptomsStatus)
+        let symptoms = try HealthKitECGContent.validatedSymptoms(correlatedSymptoms, status: status)
         return try symptoms.map { symptom in
             guard let request = symptomRequests[symptom.uuid] else {
                 // Both callers key every symptom of a registered type, and validation admits only registered types.
@@ -100,91 +93,58 @@ extension HealthKitAssembly {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitAssembly {
     /// Converts a heartbeat series into the recording document that carries its beats.
-    func convertHeartbeatSeries(_ record: HealthKitHeartbeatSeriesRecord, request: Request) throws -> HealthKitConversionSet {
-        try documentGraph(
-            for: record.series,
-            type: .heartbeatSeries,
-            evidence: HealthKitRecordingEvidence(
-                outputRole: "native-recording",
-                format: .beatIntervalSeries,
-                title: "Heartbeat series beat intervals",
-                payload: try HealthKitConverter.beatIntervalPayload(seriesStart: record.series.startDate, heartbeats: record.heartbeats)
-            ),
-            request: request
-        )
+    func convertHeartbeatSeries(
+        _ record: HealthKitHeartbeatSeriesRecord,
+        plan: HealthKitContentPlan = HealthKitContentPlan[.heartbeatSeries],
+        request: Request
+    ) throws -> HealthKitConversionSet {
+        guard case .recording(let document) = plan.route else {
+            throw plan.refusal
+        }
+        return try documentGraph(for: record.series, plan: plan, document: try document.document(record), request: request)
     }
 
     /// Converts a workout route into the recording document that carries its track, or `nil` under
     /// `RouteDisclosurePolicy.omit`: omitting the route drops an addition rather than rejecting anything.
-    func convertWorkoutRoute(_ record: HealthKitWorkoutRouteRecord, request: Request) throws -> HealthKitConversionSet? {
+    func convertWorkoutRoute(
+        _ record: HealthKitWorkoutRouteRecord,
+        plan: HealthKitContentPlan = HealthKitContentPlan[.workoutRoute],
+        request: Request
+    ) throws -> HealthKitConversionSet? {
         guard request.options.routeDisclosure == .authorized else {
             return nil
         }
-        return try documentGraph(
-            for: record.route,
-            type: .workoutRoute,
-            evidence: HealthKitRecordingEvidence(
-                outputRole: "native-recording",
-                format: .locationTrackSamples,
-                title: "Workout route locations",
-                payload: try HealthKitConverter.locationTrackPayload(record.locations)
-            ),
-            request: request
-        )
+        guard case .recording(let document) = plan.route else {
+            throw plan.refusal
+        }
+        return try documentGraph(for: record.route, plan: plan, document: try document.document(record), request: request)
     }
 
-    #if !os(watchOS)
-    /// Carries the exact provider-issued DSTU2 or R4 JSON bytes surfaced by HealthKit in one validated
-    /// R4 Grove exchange graph; Grove never converts, re-encodes, or claims conformance over them.
-    func convertClinicalRecord(_ record: HKClinicalRecord, request: Request) throws -> HealthKitConversionSet {
-        guard let fhirResource = record.fhirResource else {
-            throw HealthKitConversionError.clinicalRecord(.empty)
+    /// The document carrying a clinical record's provider-issued FHIR resource or a CDA document's bytes, exactly as
+    /// HealthKit delivered them. A sample of another class carries neither, so it is refused as the inventory refuses a
+    /// bare sample of a platform-exclusive type; watchOS has no clinical records, and its plans refuse these types.
+    func clinicalDocument(_ sample: HKSample, plan: HealthKitContentPlan, document: DocumentPlan) throws -> DocumentReference {
+        #if !os(watchOS)
+        if let record = sample as? HKClinicalRecord {
+            return try document.document(record)
         }
-        guard let type = HealthKitSourceType(record) else {
-            throw HealthKitConversionError.unregisteredSourceType(record.sampleType.identifier)
+        if let cda = sample as? HKCDADocumentSample {
+            return try document.document(cda)
         }
-        let evidence = try HealthKitConverter.clinicalRecordingEvidence(
-            data: fhirResource.data,
-            release: fhirResource.fhirVersion.fhirRelease,
-            sourceTypeIdentifier: record.sampleType.identifier
-        )
-        return try documentGraph(for: record, type: type, evidence: evidence, request: request)
+        #endif
+        throw HealthKitConversionError.platformExclusiveSourceType(plan.sourceType)
     }
 
-    /// Carries a CDA document's bytes; `HKCDADocumentSample.document` is populated only by an
-    /// `HKDocumentQuery` that asked for document data, so any other sample fails closed.
-    func convertClinicalDocument(_ sample: HKCDADocumentSample, request: Request) throws -> HealthKitConversionSet {
-        guard let document = sample.document, let data = document.documentData, !data.isEmpty else {
-            throw HealthKitConversionError.clinicalRecord(.empty)
-        }
-        let title = document.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return try documentGraph(
-            for: sample,
-            type: .cda,
-            evidence: HealthKitRecordingEvidence(
-                outputRole: "clinical-record",
-                format: .clinicalDocument,
-                title: title.isEmpty ? "Clinical document" : title,
-                payload: data
-            ),
-            request: request
-        )
-    }
-    #endif
-
+    /// One document's graph under `sample`'s envelope.
     func documentGraph(
         for sample: HKSample,
-        type: HealthKitSourceType,
-        evidence: HealthKitRecordingEvidence,
+        plan: HealthKitContentPlan,
+        document: DocumentReference,
         request: Request
     ) throws -> HealthKitConversionSet {
-        let output = ExchangeOutputDraft(
-            role: evidence.outputRole,
-            resource: .document(try HealthKitConverter.recordingDocument(evidence: evidence, sourceTypeIdentifier: sample.sampleType.identifier)),
-            links: [.subject, .recordingDevice, .studies],
-            artifactFormatCode: evidence.format.rawValue
-        )
-        return HealthKitConversionSet(primary: try graph(for: sample, type: type, outputs: [output], request: request))
+        let metadata = HealthKitSampleMetadata(sample, rule: plan.metadata)
+        let output = plan.outputs[0].draft(.document(document))
+        return HealthKitConversionSet(primary: try graph(for: sample, type: plan.sourceType, metadata: metadata, outputs: [output], request: request))
     }
 }
 
@@ -218,16 +178,16 @@ extension HealthKitAssembly {
     /// and output roles yield the same identifiers the addition minted. The sample's UUID rides along
     /// as each target's native record identifier exactly when the disclosure policy authorizes it.
     func retractionTargets(of record: HealthKitSourceRecord, request: Request) throws(HealthKitConversionError) -> [RetractionTarget] {
-        let outputs = HealthKitCatalog.outputs(for: record.type)
-        guard !outputs.isEmpty else {
-            throw HealthKitConverter.unconvertibleSampleError(for: record.type)
+        let plan = HealthKitContentPlan[record.type]
+        guard !plan.outputs.isEmpty else {
+            throw plan.refusal
         }
         let nativeRecordIdentifier = request.options.nativeIdentifierDisclosure.nativeRecordIdentifier(
             for: record.uuid.uuidString.lowercased()
         )
         let sourceRecord = try sourceRecordIdentity(of: record)
         var targets: [RetractionTarget] = []
-        for output in outputs {
+        for output in plan.outputs.map(\.output) {
             let identity: RoledIdentifier
             do {
                 identity = try sourceRecord.output(role: output.role, discriminator: output.discriminator)

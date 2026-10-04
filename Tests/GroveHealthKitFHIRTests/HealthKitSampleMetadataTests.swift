@@ -50,14 +50,10 @@ struct HealthKitSampleMetadataTests {
             #expect(planned == today, "\(String(describing: metadata))")
             #expect(bridged.statesTimeZone == (sample.metadata?[HKMetadataKeyTimeZone] != nil))
             #expect(bridged.values.isEmpty == metadata.isEmpty)
-            let facts = try HealthKitAssembly.SourceFacts(sample, options: .default)
-            #expect(bridged.wasUserEntered == facts.wasUserEntered, "\(String(describing: metadata))")
-            let withheld = facts.warnings.flatMap { warning in
-                guard case .unmodeledMetadataWithheld(let keys) = warning else {
-                    return [String]()
-                }
-                return keys
-            }
+            // Today's source facts read both from the sample's own metadata.
+            let todaysUserEntered = (sample.metadata?[HKMetadataKeyWasUserEntered] as? Bool) == true
+            #expect(bridged.wasUserEntered == todaysUserEntered, "\(String(describing: metadata))")
+            let withheld = (sample.metadata ?? [:]).keys.filter { !HealthKitMetadataField.keys.contains($0) }.sorted()
             #expect(withheld == bridged.withheldKeys, "\(String(describing: metadata))")
         }
     }
