@@ -10,12 +10,16 @@ public import Foundation
 
 
 /// How the converting application relates to the measurement it converts.
+///
+/// Recording and clinical documents carry no gateway link under any role: the guide defines
+/// `observation-gatewayDevice` for Observations only.
 public enum ConverterRole: Hashable, Sendable {
     /// The application assembled the graph from a record it did not mediate.
     case assembler
     /// The converting application itself mediated the measurement.
     case gateway
-    /// A distinct application mediated the measurement; it travels as a second application snapshot.
+    /// A distinct application mediated the measurement; graphs whose Observation outputs name it through
+    /// `observation-gatewayDevice` carry it as a second application snapshot, and document-only graphs carry none.
     case gatewayApplication(ApplicationDevice)
 }
 

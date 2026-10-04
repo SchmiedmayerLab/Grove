@@ -164,7 +164,8 @@ enum SampleFactory {
         }
     }
 
-    /// A one-hour run with a pause, a resume, eight laps and two generic segments: twelve segment children.
+    /// A one-hour run with a pause, a resume, eight laps and two generic segments; the converter withholds these events
+    /// and exports the session only (the scenario keeps its name so runs stay comparable).
     static func workouts(count: Int, withEvents: Bool) -> [HKSample] {
         (0..<count).map { index in
             let begin = start.addingTimeInterval(Double(index) * 7_200)

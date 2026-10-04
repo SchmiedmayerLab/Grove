@@ -40,29 +40,31 @@ See Pausing and Recovery below for checkpoint failures and restoration behavior.
 
 ### Example 1: Bulk-Upload of Historical Health Data to Firebase
 
-This example implements a custom ``BatchProcessor``, which uploads the exported HealthKit samples received from the ``BulkHealthExporter`` into Firebase. 
-In this case, we implicitly define the Batch Processor's `Output` type as `Void`, since we're just interested in the uploading, and don't want to perform any additional on-device operations using the results of the individual batches. 
-The `conversionContext` closure both examples take mints one durable conversion context per sample; how to build it is documented in [GroveHealthKitFHIR](../../GroveHealthKitFHIR/GroveHealthKitFHIR.docc/ConfiguringAConversion.md).
+This example implements a custom ``BatchProcessor``, which uploads the exported HealthKit samples received from the ``BulkHealthExporter`` into Firebase.
+Both examples convert through one `HealthKitFHIRExporter`, built as [GroveHealthKitFHIR](../../GroveHealthKitFHIR/GroveHealthKitFHIR.docc/GroveHealthKitFHIR.md) describes; it mints every event through its producer's ledger.
+The processor's `Output` is the exporter's `Receipt`: ``BatchProcessor/didPersist(_:)`` releases it once the session has durably recorded the batch, so a batch processed again after a crash reproduces the same events, byte for byte.
+Each graph is stored as its validated `json` bytes, under its event identifier; the HealthKit UUID never names a stored object.
 
 ```swift
 struct FirebaseUploader: BatchProcessor {
     let participantID: String
-    /// One durable conversion context per sample: a conversion event is never shared between samples.
-    let contextForSample: @Sendable (HKSample) throws -> HealthKitConversionContext
-    let converter = HealthKitConverter()
+    let exporter: HealthKitFHIRExporter
 
-    func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) async throws {
+    func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) async throws -> HealthKitFHIRExporter.Receipt {
         let db = Firestore.firestore()
         let healthData = db.collection("participants").document(participantID).collection("healthData")
         let batch = db.batch()
-        for sample in samples {
-            let conversions = try converter.convert(sample, context: contextForSample(sample))
-            for conversion in conversions.all {
-                let document = healthData.document(conversion.source.uuid.uuidString)
-                try batch.setData(from: conversion.bundle, for: document)
+        let receipt = try exporter.export(samples.map { $0 as HKSample }) { export in
+            if let graph = export.graph {
+                batch.setData(["graph": graph.json], forDocument: healthData.document(graph.event.value))
             }
         }
         try await batch.commit()
+        return receipt
+    }
+
+    func didPersist(_ receipt: HealthKitFHIRExporter.Receipt) async {
+        receipt.release()
     }
 }
 ```
@@ -78,7 +80,7 @@ let session = try await bulkExporter.session(
     withId: .backgroundExport,
     for: [SampleType.activeEnergyBurned, SampleType.heartRate, SampleType.stepCount],
     startDate: .oldestSample,
-    using: FirebaseUploader(participantID: participantID, contextForSample: conversionContext)
+    using: FirebaseUploader(participantID: participantID, exporter: exporter)
 )
 
 // start the session
@@ -87,7 +89,7 @@ try session.start()
 
 This Bulk Export Session will, in the background, go through all historical Health data for the Active Energy, Heart Rate, and Step Count quantity types, fetch the data from HealthKit, and pass it to the Batch Processor, which will then upload it to Firebase. Firebase is only the destination chosen by this example; `GroveHealthKitFHIR` neither depends on Firebase nor reads from it.
 
-In this example, since the `FirebaseUploader`'s `Output` type is `Void`, we simply can call ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` and don't need to do anything beyond that.
+In this example the `FirebaseUploader`'s outputs are receipts its own `didPersist` releases, so we simply call ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` and need nothing beyond that.
 
 
 
@@ -100,18 +102,30 @@ extension BulkExportSessionIdentifier {
 }
 
 struct FHIREncodedJSONExporter: BatchProcessor {
-    let contextForSample: @Sendable (HKSample) throws -> HealthKitConversionContext
+    /// One batch's file of graphs, and the receipt to release once the session recorded the batch.
+    struct ExportedFile: Sendable {
+        let url: URL
+        let receipt: HealthKitFHIRExporter.Receipt
+    }
 
-    func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) throws -> URL {
-        let healthKitSamples = samples.map { $0 as HKSample }
-        let result = HealthKitConverter().convert(healthKitSamples, context: contextForSample)
-        if let failure = result.failures.first {
-            throw failure
+    let exporter: HealthKitFHIRExporter
+
+    func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) throws -> ExportedFile {
+        var graphs: [Data] = []
+        let receipt = try exporter.export(samples.map { $0 as HKSample }) { export in
+            if let graph = export.graph {
+                graphs.append(graph.json)
+            }
         }
-        let encoded = try JSONEncoder().encode(result.conversions.flatMap(\.all).map(\.bundle))
+        // A JSON array of the validated graph bytes, spliced verbatim rather than re-encoded.
+        let file = Data("[".utf8) + graphs.joined(separator: Data(",".utf8)) + Data("]".utf8)
         let url = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString, conformingTo: .json)
-        try encoded.write(to: url)
-        return url
+        try file.write(to: url)
+        return ExportedFile(url: url, receipt: receipt)
+    }
+
+    func didPersist(_ output: ExportedFile) async {
+        output.receipt.release()
     }
 }
 
@@ -120,7 +134,7 @@ let session = try await bulkExporter.session(
     withId: .backgroundFHIRExport,
     for: [SampleType.activeEnergyBurned, SampleType.heartRate, SampleType.stepCount],
     startDate: .oldestSample,
-    using: FHIREncodedJSONExporter(contextForSample: conversionContext)
+    using: FHIREncodedJSONExporter(exporter: exporter)
 )
 
 // start the session
@@ -128,13 +142,13 @@ let results = try session.start()
 
 // await the results
 Task {
-    for await url in results {
-        // process the JSON file at `url` in some way
+    for await file in results {
+        // process the JSON file at `file.url` in some way
     }
 }
 ```
 
-Since the `FHIREncodedJSONExporter` returns a `URL` (rather than `Void`, as with the `FirebaseUploader`), the ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` function's return type will be an `AsyncStream<URL>` which gives us access to the individual batch processing results (in this case the urls of the exported JSON files).
+Since the `FHIREncodedJSONExporter` returns an `ExportedFile`, the ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` function's return type will be an `AsyncStream<ExportedFile>`, which gives us access to the individual batch processing results (in this case the urls of the exported JSON files).
 
 
 ### Pausing and Recovery

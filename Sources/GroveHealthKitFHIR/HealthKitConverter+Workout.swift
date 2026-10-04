@@ -172,8 +172,7 @@ extension HealthKitConverter {
         try workoutValue(activityType: workout.workoutActivityType)
     }
 
-    /// The shared and platform codings for one activity type, used by a session and by each of its
-    /// per-activity segments.
+    /// The shared and platform codings for one activity type.
     static func workoutValue(activityType: HKWorkoutActivityType) throws -> CodeableConcept {
         var codings = [Coding(
             code: FHIRPrimitive(FHIRString(stringLiteral: sharedWorkoutActivity(activityType))),

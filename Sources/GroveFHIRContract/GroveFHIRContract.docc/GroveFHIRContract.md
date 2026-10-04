@@ -129,7 +129,7 @@ Every disclosure policy defaults to omission.
 
 A ``RepositoryID`` per ``ExchangeGraphNode`` gives a graph node the logical id your repository assigned, and nothing else in the graph changes.
 
-``ConverterRole/gatewayApplication(_:)`` names a distinct application that mediated the measurement; it travels as a second application snapshot.
+``ConverterRole/gatewayApplication(_:)`` names a distinct application that mediated the measurement; it travels as a second application snapshot when an Observation output names it through `observation-gatewayDevice`, and document-only graphs carry none.
 
 A retry is exact when ``ExchangeGraph/isSemanticallyEqual(to:)`` says so: member order, whitespace and escaping do not matter, but `72` and `72.0` are different content.
 

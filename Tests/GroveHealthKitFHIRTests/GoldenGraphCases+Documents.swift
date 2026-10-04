@@ -200,10 +200,12 @@ extension GoldenCase {
         )
     }
 
-    /// The sinus-rhythm ECG sample and the validated evidence its voltages would yield, with symptoms present or none.
+    /// The sinus-rhythm ECG sample and the validated evidence its voltages would yield, with symptoms present or none,
+    /// and the average heart rate the ECG states, if any.
     static func electrocardiogramEvidence(
         uuid ordinal: UInt8,
-        symptomsPresent: Bool
+        symptomsPresent: Bool,
+        averageHeartRate: Double? = 72
     ) throws -> (sample: HKElectrocardiogram, evidence: HealthKitECGEvidence) {
         let ecg = try StoredSampleFixtures.seriesSample(
             HKElectrocardiogram.self,
@@ -221,7 +223,7 @@ extension GoldenCase {
             classification: .sinusRhythm,
             symptomsStatus: symptomsPresent ? .present : .none,
             numberOfVoltageMeasurements: 4,
-            averageHeartRate: 72,
+            averageHeartRate: averageHeartRate,
             samplingFrequency: 500,
             algorithmVersion: HKAppleECGAlgorithmVersion.version2.rawValue
         )

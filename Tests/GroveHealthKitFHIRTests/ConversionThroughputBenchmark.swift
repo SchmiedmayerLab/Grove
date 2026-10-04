@@ -41,7 +41,7 @@
 //   GROVE_FHIR_BENCH_RUN=1        enable
 //   GROVE_FHIR_BENCH_N=5000       samples per quantity scenario (workouts use N/10, at least 100)
 //   GROVE_FHIR_BENCH_RUNS=3       timed repetitions of the convert() loop
-//   GROVE_FHIR_BENCH_ONLY=name    run only the scenario with this name ("concurrent", or "workout-diagnose")
+//   GROVE_FHIR_BENCH_ONLY=name    run only the scenario with this name, or "concurrent"
 //   GROVE_FHIR_BENCH_OUT=path     also append the result lines to this file
 //   GROVE_FHIR_BENCH_DUMP=dir     write each scenario's first Bundle JSON there and report per-entry sizes
 //   GROVE_FHIR_BENCH_PROFILE=convert|graph-init   loop one phase (deployment heart rate) for an external profiler
@@ -130,7 +130,7 @@ struct ConversionThroughputBenchmark {
         ]
     }
 
-    @Test(.enabled(if: BenchEnvironment.only != "workout-diagnose"))
+    @Test
     func baselineThroughput() throws {
         let report = BenchReport()
         defer { report.flush() }
@@ -167,32 +167,6 @@ struct ConversionThroughputBenchmark {
         }
         let end = Memory.footprint()
         report.line("done footprintMB=\(Memory.megabytes(end.current)) lifetimePeakMB=\(Memory.megabytes(end.peak))")
-    }
-
-    /// Why the converter refuses a synthetic workout: prints the claims the validator compares.
-    @Test(.enabled(if: BenchEnvironment.only == "workout-diagnose"))
-    func workoutDiagnose() throws {
-        let scope = BenchScope()
-        for withEvents in [false, true] {
-            let sample = SampleFactory.workouts(count: 1, withEvents: withEvents)[0]
-            let context = scope.context(for: sample, sequence: 1, style: .deployment)
-            let type = try #require(HealthKitSourceType(sample))
-            let output = try #require(HealthKitCatalog.primaryOutput(for: type))
-            let binding = try #require(HealthKitCatalog.binding(for: sample))
-            let observation = try HealthKitConverter.observation(for: sample, binding: binding)
-            let profiles = ExchangeGraph.canonicalStrings(observation.meta?.profile ?? [])
-            let admitted = Set(ExchangeGraph.canonicalStrings(
-                ProfileClaims.adapterProvenanceTargetProfiles[HealthKitContract.conversionProvenanceProfile.value!.url.absoluteString] ?? []
-            ))
-            print("BENCH diagnose withEvents=\(withEvents) type=\(type.rawValue) role=\(output.role)/\(output.discriminator) "
-                + "primaryProfiles=\(profiles) admittedCount=\(admitted.count) primaryAdmitted=\(!admitted.isDisjoint(with: profiles))")
-            do {
-                _ = try HealthKitConverter().convert(sample, context: context)
-                print("BENCH diagnose withEvents=\(withEvents) convert=OK")
-            } catch {
-                print("BENCH diagnose withEvents=\(withEvents) convert=REFUSED \(error)")
-            }
-        }
     }
 
     /// First-use costs (catalog statics, Foundation coder caches) are reported, not averaged in. Returns false
@@ -305,8 +279,9 @@ struct ConversionThroughputBenchmark {
         }
         run.report.line("scenario=\(run.name) phase=encode-bundle(sortedKeys+withoutEscapingSlashes) \(run.rate(stagedSeconds)) "
             + "bytesPerBundle=\(stagedBytes / run.count)")
-        // The graph's stored bytes are the encoder's bytes, so (b) is exactly what the graph already holds.
-        #expect(run.conversions[0].graph.json.count == encoded[0].count)
+        // The graph's stored bytes are the staging encoding (sorted members, unescaped slashes): a consumer that stores
+        // graph.json verbatim skips that second encode entirely.
+        #expect(try run.conversions[0].graph.json == stagingEncoder.encode(run.conversions[0].bundle))
 
         run.graphInitSeconds = try Stopwatch.seconds {
             for conversion in run.conversions {

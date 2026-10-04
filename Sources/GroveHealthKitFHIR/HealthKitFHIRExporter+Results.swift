@@ -61,7 +61,8 @@ extension HealthKitFHIRExporter {
     /// What one record produced: an exchange graph, or the reason it produced none.
     public struct Export: Sendable {
         /// The record's coordinate in the HealthKit store. It stays on the device and is never on the wire
-        /// unless ``Options/nativeIdentifier`` discloses it.
+        /// unless ``Options/nativeIdentifier`` discloses it, or ``Options/legacyBundleID`` repeats its UUID as
+        /// `Bundle.id`.
         public struct Source: Hashable, Sendable {
             public let uuid: UUID
             /// The HealthKit type identifier, such as `HKQuantityTypeIdentifierHeartRate`.
@@ -76,7 +77,8 @@ extension HealthKitFHIRExporter {
             /// The record was refused; nothing was emitted and the export continued. Refusals are
             /// deterministic, so an exact redelivery refuses identically.
             case refused(HealthKitConversionError)
-            /// A deletion of a source type that never emits outputs.
+            /// A deletion that names no output this exporter can have emitted: a source type without outputs, or a
+            /// workout route while ``Options/route`` is `.omit`. No event is reserved for it.
             case nothingToRetract
         }
 

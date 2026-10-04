@@ -12,11 +12,13 @@ package import ModelsR4
 
 /// Converter clock instants as the wire states them: UTC, millisecond precision, ASCII.
 ///
-/// The lexeme is computed from the instant's own binary64 value with integer arithmetic over the
-/// proleptic Gregorian calendar, never through a `Formatter`, `Calendar` or `Locale`, so the same
-/// instant yields the same bytes in every process, on every platform, under every locale.
-/// Milliseconds are rounded half to even, trailing fraction zeros are dropped, and a whole second
-/// carries no fraction: `2026-10-03T10:30:00Z`, `…:00.5Z`, `…:00.251Z`.
+/// The lexeme is computed with integer arithmetic over the proleptic Gregorian calendar, never through a
+/// `Formatter`, `Calendar` or `Locale`, so the same instant yields the same bytes in every process, on every
+/// platform, under every locale. The millisecond is the binary64 product of the instant's seconds and 1000,
+/// rounded half to even; that product is itself rounded, so an instant within half a binary64 step of a
+/// millisecond tie can land on the neighbouring millisecond (`809_059_935.6065` prints `.606`). Trailing
+/// fraction zeros are dropped, and a whole second carries no fraction: `2026-10-03T10:30:00Z`, `…:00.5Z`,
+/// `…:00.251Z`.
 package enum ExchangeInstant {
     private struct CivilDate {
         let year: Int64
@@ -68,7 +70,8 @@ package enum ExchangeInstant {
         try DateTime(utcLexeme(date))
     }
 
-    /// Milliseconds since 1970-01-01T00:00:00Z, rounded half to even from the instant's own binary64 value.
+    /// Milliseconds since 1970-01-01T00:00:00Z: the binary64 product of the seconds since 2001 and 1000, rounded half
+    /// to even, then shifted to 1970 in integers.
     ///
     /// A non-finite or out-of-range instant saturates; its lexeme then names no FHIR-representable year.
     package static func millisecondsSinceEpoch(_ date: Date) -> Int64 {

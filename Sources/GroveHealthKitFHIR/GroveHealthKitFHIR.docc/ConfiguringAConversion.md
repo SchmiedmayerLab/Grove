@@ -81,7 +81,8 @@ let host = HostDevice.current()
 ```
 
 `ConverterRole` states how the application relates to the measurement.
-`.assembler` is the default; `.gateway` marks the converting application as the one that mediated the measurement, and `.gatewayApplication` names a distinct application that did, emitted as a second application snapshot referenced by `observation-gatewayDevice`.
+`.assembler` is the default; `.gateway` marks the converting application as the one that mediated the measurement, and `.gatewayApplication` names a distinct application that did, emitted as a second application snapshot when an Observation references it through `observation-gatewayDevice`.
+Recording and clinical documents carry no gateway link under any role.
 
 ## Persisting the event identity
 
@@ -119,9 +120,9 @@ FHIR separates when a measurement happened from when a record was published; the
 
 This converter keeps the distinct clocks explicit:
 
-- `Observation.effective` is read from each sample's own `HKSample.startDate` and `endDate`, in the sample's own time zone when `HKMetadataKeyTimeZone` names one and in UTC with ``HealthKitConversionWarning/sourceOffsetUnavailable(field:)`` naming each effective element otherwise; a workout's segments follow the workout's zone the same way, and no effective value ever takes the phone's current zone.
+- `Observation.effective` is read from each sample's own `HKSample.startDate` and `endDate`, in the sample's own time zone when `HKMetadataKeyTimeZone` names one and in UTC with ``HealthKitConversionWarning/sourceOffsetUnavailable(field:)`` naming each effective element otherwise, and no effective value ever takes the phone's current zone.
 - `Observation.issued` is absent because HealthKit exposes no object availability/modification instant.
-- `Provenance.occurred`, `Provenance.recorded`, and `Bundle.timestamp` take the event's persisted `conversionInstant`, always in UTC, so a retry after the phone changed time zone rebuilds the same bytes.
+- `Provenance.occurred`, `Provenance.recorded`, `Bundle.timestamp` and `DocumentReference.date` take the event's persisted `conversionInstant`, always in UTC at millisecond precision with ASCII digits, so a retry after the phone changed time zone or locale rebuilds the same bytes.
 - A retry reuses that instant; a later source version receives a new event and instant.
 
 The converter never reads the clock.

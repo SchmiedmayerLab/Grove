@@ -258,6 +258,32 @@ struct GoldenGraphTests {
         #expect(provenance.target.compactMap { $0.identifier?.value?.value?.string } == emitted)
     }
 
+    /// The pinned guide has no source-record retraction scope (an IG gap; owner decision: keep): a deletion cannot tell
+    /// whether an ECG stated an average heart rate, so its retraction always names the child, emitted or not.
+    @Test
+    func ecgRetractionNamesTheAverageHeartRateChildAlways() throws {
+        let (ecg, evidence) = try GoldenCase.electrocardiogramEvidence(uuid: 0xA4, symptomsPresent: false, averageHeartRate: nil)
+        let context = try GoldenFixtures.context(sequence: 204)
+        let conversion = try HealthKitConverter.convertECG(ecg, evidence: evidence, symptoms: [], context: context, symptomContexts: [])
+        #expect(conversion.identifiers.childOutputs.isEmpty, "an ECG without an average emits no child")
+        let retraction = try HealthKitConverter().retraction(
+            for: HealthKitSourceRecord(uuid: ecg.uuid, type: .electrocardiogram),
+            context: GoldenFixtures.context(sequence: 205),
+            occurred: .instant(GoldenFixtures.conversionInstant)
+        )
+        let provenance = try #require(retraction.graph.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
+        let child = try context.identityScope
+            .sourceRecord(
+                adapterID: HealthKitConverter.adapterID,
+                sourceType: HealthKitSourceType.electrocardiogram.rawValue,
+                repositoryScope: context.repositoryScope,
+                nativeRecordID: ecg.uuid.uuidString.lowercased()
+            )
+            .output(role: "average-heart-rate", discriminator: "single")
+        let targets = provenance.target.compactMap { $0.identifier?.value?.value?.string }
+        #expect(targets == [conversion.identifiers.primaryOutput.identifier.value, child.identifier.value])
+    }
+
     /// A writer classified as an application whose bundle identifier is not one is a refusal; a writer with a blank
     /// name is merely no writer (`writer-blank-name-with-sync-identity` pins that graph).
     @Test

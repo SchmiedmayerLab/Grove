@@ -8,7 +8,6 @@
 
 #if canImport(HealthKit)
 
-public import Foundation
 public import GroveFHIRContract
 public import HealthKit
 
@@ -33,12 +32,20 @@ extension HealthKitFHIRExporter {
         public var recordingDevice: RecordingDevicePolicy = .localIdentifier
         /// How the converting application relates to each measurement. See ``RolePolicy``.
         public var role: RolePolicy = .assembler
-        /// The only way the clear HealthKit UUID reaches the wire: as an identifier under a system the
-        /// deployment owns, on the primary output and on retraction targets.
+        /// Discloses the clear HealthKit UUID as an identifier under a system the deployment owns, on the primary
+        /// output and on retraction targets. Besides ``LegacyBundleID/healthKitUUID``, which repeats it as
+        /// `Bundle.id`, this is the only way it reaches the wire.
         public var nativeIdentifier: GovernedSourceIdentifierDisclosurePolicy = .omit
         /// Whether a recording Device carries the UDI HealthKit supplies.
         public var udi: Disclosure = .omit
         /// Whether a workout route becomes a recording document; a route re-identifies readily.
+        ///
+        /// A route deletion is retracted only while this is `.authorized`: retraction follows the policy in force
+        /// when the deletion is retracted, not the one a route was exported under. Switching from `.authorized` to
+        /// `.omit` therefore leaves routes exported earlier live at the receiver, and switching to `.authorized`
+        /// retracts routes deleted afterwards that were never exported, naming nodes the receiver never received.
+        /// The guide asks a retraction to name the exact prior graph (HealthKit guide `implementation.md`,
+        /// retracting a source record); keep one route policy for an installation's ledger to keep that true.
         public var route: Disclosure = .omit
         /// A deployment that still keys its receiver on `Bundle.id` can keep the old value there for the
         /// transition. See ``LegacyBundleID``.
@@ -121,7 +128,9 @@ extension HealthKitFHIRExporter {
         case gatewayForOwnWrites
         /// The converting application mediated every measurement.
         case gateway
-        /// A distinct application mediated every measurement; it travels as a second application snapshot.
+        /// A distinct application mediated every measurement; an Observation names it through
+        /// `observation-gatewayDevice`, so its graph carries it as a second application snapshot. Recording and
+        /// clinical documents carry no gateway link under any role, so their graphs state no gateway application.
         case gatewayApplication(ApplicationDevice)
 
         /// The role for one sample under this policy.

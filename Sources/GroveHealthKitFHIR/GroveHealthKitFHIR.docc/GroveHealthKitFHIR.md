@@ -146,7 +146,8 @@ let disclosing = HealthKitConversionContext(event: event, options: options)
 
 A `RepositoryID` per `ExchangeGraphNode` in `repositoryIDs` gives a graph node the logical id your repository assigned.
 
-`ConverterRole.gatewayApplication` names a distinct application that mediated the measurement; it travels as a second application snapshot.
+`ConverterRole.gatewayApplication` names a distinct application that mediated the measurement; it travels as a second application snapshot when an Observation output names it through `observation-gatewayDevice`.
+Heartbeat series, workout route, clinical record and CDA graphs state no gateway application.
 
 ``HealthKitConversion/warnings`` lists what a graph does not carry although its record did; log them with that graph's event.
 ``HealthKitConversionSet/warnings`` flattens them over every graph of the set, so an ECG's list includes its symptoms'.
