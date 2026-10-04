@@ -119,6 +119,38 @@ struct QuestionnaireFHIRExporterTests {
         #expect(Self.sequences(first + amended + retitled) == ["1", "2", "3"])
     }
 
+    /// A response built in memory can carry a named zone, while its JSON, which the request fingerprints, states only
+    /// the offset the authored value had. Both forms are one request, so they must state one graph, even when the
+    /// zone's offset at the conversion instant differs from the authored one.
+    @Test("A response with a named zone and its decoded JSON restate one event byte for byte across a daylight-saving change")
+    func namedZoneAndItsJSONRestateOneEvent() throws {
+        let berlin = try #require(TimeZone(identifier: "Europe/Berlin"))
+        // Authored in summer time, at +02:00; converted in December, when the zone is at +01:00.
+        let authored = try DateTime(date: Date(timeIntervalSince1970: 1_787_931_120), timeZone: berlin)
+        let named = try Fixtures.guideRecord { $0.authored = FHIRPrimitive(authored) }
+        let decoded = QuestionnaireFHIRExporter.Record(
+            questionnaire: named.questionnaire,
+            response: try JSONDecoder().decode(ModelsR4.QuestionnaireResponse.self, from: JSONEncoder().encode(named.response))
+        )
+        try #require(decoded.response.authored?.value?.description == "2026-08-28T17:32:00+02:00")
+        try #require(decoded.response.authored?.value?.timeZone != berlin, "decoding keeps only the stated offset")
+        let exporter = try Fixtures.exporter(Fixtures.producer())
+        let december = Date(timeIntervalSince1970: 1_796_139_125)
+        let (first, _) = try Fixtures.collect(exporter, [named], at: december)
+        let (again, _) = try Fixtures.collect(exporter, [decoded], at: december.addingTimeInterval(60))
+        let graph = try #require(first.first?.graph)
+        #expect(Self.sequences(again) == ["1"])
+        #expect(again.first?.graph?.json == graph.json)
+        let provenance = try #require(graph.bundle.entry?.lazy.compactMap { entry -> ModelsR4.Provenance? in
+            if case .provenance(let provenance)? = entry.resource { provenance } else { nil }
+        }.first)
+        guard case .dateTime(let occurred)? = provenance.occurred else {
+            Issue.record("the Provenance states no occurred time")
+            return
+        }
+        #expect(occurred.value?.description == "2026-12-01T17:32:05+02:00", "the conversion instant at the authored offset")
+    }
+
     @Test("A logical subject bundles a Patient stating only the pseudonym")
     func logicalSubjectBundlesThePseudonym() throws {
         let exporter = try Fixtures.exporter(Fixtures.producer(subject: .logical(Fixtures.pseudonym)))
