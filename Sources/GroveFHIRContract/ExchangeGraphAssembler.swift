@@ -72,7 +72,9 @@ package struct ExchangeGraphAssembler: Sendable {
         guard !draft.outputs.isEmpty else {
             throw ExchangeAssemblyError.noOutputs
         }
-        let studyContext = try eventContext(for: draft).studyContext()
+        let studyContext = try StudyContext(
+            subject: envelope.subject, studies: envelope.studies, event: draft.event, identityScope: envelope.identityScope
+        )
         let devices = try resolveDevices(for: draft)
         let surroundings = Surroundings(
             subject: studyContext.subjectReference,
@@ -131,22 +133,6 @@ package struct ExchangeGraphAssembler: Sendable {
         )
         bundle.id = draft.repositoryIDs[.bundle]?.primitive
         return try ExchangeGraph(kind: .active, eventIdentifier: draft.event, bundle: bundle)
-    }
-
-    /// The context the study entries are minted from; the subject and enrollments never vary per event.
-    private func eventContext(for draft: ExchangeGraphDraft) -> ExchangeEventContext {
-        ExchangeEventContext(
-            subject: envelope.subject,
-            event: draft.event,
-            identityScope: envelope.identityScope,
-            repositoryScope: envelope.repositoryScope,
-            application: envelope.application,
-            host: envelope.host,
-            conversionInstant: draft.instant,
-            converterRole: draft.converterRole,
-            studies: envelope.studies,
-            repositoryIDs: draft.repositoryIDs
-        )
     }
 }
 
@@ -253,7 +239,10 @@ extension ExchangeGraphAssembler {
             }
         }
         if links.contains(.studies), !surroundings.studyReferences.isEmpty {
-            document.context = DocumentReferenceContext(related: surroundings.studyReferences)
+            // The studies follow whatever context the adapter stated, such as a period or its own related outputs.
+            var context = document.context ?? DocumentReferenceContext()
+            context.related = (context.related ?? []) + surroundings.studyReferences
+            document.context = context
         }
     }
 
