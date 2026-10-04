@@ -31,9 +31,19 @@ struct ContentBuilderDifferentialTests {
     /// How many random records at least must be refused for each refusal the draw reaches.
     private static let minimumRefusals = 5
 
-    /// Every refusal the random draw reaches, by case (see `refusalCase(_:)`), in the order the checks run: an
-    /// Observation's, an ECG's, then a document's.
-    private static let drawnRefusals: Set<String> = [
+    /// Every refusal the random draw reaches on this platform: watchOS has no clinical record or CDA document, so it
+    /// reaches none of theirs.
+    private static var drawnRefusals: Set<String> {
+        #if os(watchOS)
+        sampleRefusals
+        #else
+        sampleRefusals.union(clinicalRefusals)
+        #endif
+    }
+
+    /// Every refusal the random draw reaches on every platform, by case (see `refusalCase(_:)`), in the order the
+    /// checks run: an Observation's, an ECG's, then a recording document's.
+    private static let sampleRefusals: Set<String> = [
         "HealthKitValueFailure.unsupportedMetadataValue(HealthKitMetadataField.timeZone)",
         "HealthKitValueFailure.effectivePeriodInvalid",
         "HealthKitValueFailure.shapeInvalid",
@@ -67,7 +77,11 @@ struct ContentBuilderDifferentialTests {
         "HealthKitConversionError.ecgEvidence(HealthKitECGEvidenceFailure.invalidAverageHeartRate)",
         "HealthKitValueFailure.emptyRecordingSeries",
         "RecordingCSVWriter.WriterError.nonFiniteNumber(column: \"timestamp\")",
-        "RecordingCSVWriter.WriterError.nonFiniteNumber(column: \"latitude\")",
+        "RecordingCSVWriter.WriterError.nonFiniteNumber(column: \"latitude\")"
+    ]
+
+    /// The refusals only a clinical record or CDA document reaches.
+    private static let clinicalRefusals: Set<String> = [
         "HealthKitConversionError.clinicalRecord(HealthKitClinicalRecordFailure.empty)",
         "HealthKitConversionError.clinicalRecord(HealthKitClinicalRecordFailure.unsupportedRelease)",
         "HealthKitConversionError.clinicalRecord(HealthKitClinicalRecordFailure.undecodable)"
@@ -79,15 +93,17 @@ struct ContentBuilderDifferentialTests {
     }
 
     /// Compares both builders on one shard of the corpus: every record a builder runs for, every reverse projection
-    /// and every round trip. A record this platform cannot rebuild is skipped, as the corpus skips it.
+    /// and every round trip. A record this platform cannot rebuild is skipped, as the corpus skips it; retractions and
+    /// catalog projections run no builder.
     @Test(arguments: 0..<shards)
     func everyCorpusRecordBuildsAsToday(shard: Int) throws {
         var differences: [String] = []
+        var eligible = 0
         var compared = 0
         let vectors = try ContentCorpusStore.vectors(in: ContentCorpusStore.checkedIn())
         for (index, vector) in vectors.enumerated() where index % Self.shards == shard {
             try autoreleasepool {
-                guard let outcomes = try Self.outcomes(of: vector.input) else {
+                guard let outcomes = try Self.outcomes(of: vector.input, eligible: &eligible) else {
                     return
                 }
                 compared += 1
@@ -96,7 +112,7 @@ struct ContentBuilderDifferentialTests {
                 }
             }
         }
-        #expect(compared > 300, "shard \(shard) compares only \(compared) vectors")
+        #expect(compared > eligible * 3 / 4, "shard \(shard) compares only \(compared) of the \(eligible) vectors it can rebuild")
         #expect(differences.isEmpty, "\(differences.count) corpus vectors build differently: \(differences.prefix(10))")
     }
 
@@ -106,11 +122,12 @@ struct ContentBuilderDifferentialTests {
         var differences: [String] = []
         var refusals: [String: Int] = [:]
         var refusedWithSeveralFaults = 0
+        var eligible = 0
         var compared = 0
         for index in 0..<ContentBuilderRandomRecords.count {
             try autoreleasepool {
                 let (source, faults) = records.next()
-                guard let outcomes = try Self.outcomes(of: .convert(source: source)) else {
+                guard let outcomes = try Self.outcomes(of: .convert(source: source), eligible: &eligible) else {
                     return
                 }
                 compared += 1
@@ -122,8 +139,8 @@ struct ContentBuilderDifferentialTests {
                 }
             }
         }
-        #expect(compared > ContentBuilderRandomRecords.count * 9 / 10, "only \(compared) random records reach a builder")
-        #expect(refusedWithSeveralFaults > ContentBuilderRandomRecords.count / 6, "only \(refusedWithSeveralFaults) multi-fault refusals")
+        #expect(compared > eligible * 9 / 10, "only \(compared) of the \(eligible) random records this platform rebuilds reach a builder")
+        #expect(refusedWithSeveralFaults > eligible / 6, "only \(refusedWithSeveralFaults) multi-fault refusals")
         let rare = Self.drawnRefusals.filter { refusals[$0, default: 0] < Self.minimumRefusals }
         #expect(rare.isEmpty, "refused fewer than \(Self.minimumRefusals) times: \(rare)")
         let unlisted = refusals.keys.filter { !Self.drawnRefusals.contains($0) }.sorted()
@@ -158,30 +175,39 @@ struct ContentBuilderDifferentialTests {
 
 
 extension ContentBuilderDifferentialTests {
-    /// Both sides' outcomes for one corpus input, or `nil` when no builder or projection runs for it here.
-    private static func outcomes(of input: ContentCorpusInput) throws -> ContentBuilderPair.Outcomes? {
+    /// Both sides' outcomes for one corpus input, or `nil` when no builder or projection runs for it here. `eligible`
+    /// counts the inputs this platform can rebuild; one it cannot (watchOS has no clinical record or CDA document) is
+    /// skipped, as the corpus skips it, and compared on the other platforms.
+    private static func outcomes(of input: ContentCorpusInput, eligible: inout Int) throws -> ContentBuilderPair.Outcomes? {
         do {
-            switch input {
-            case .convert(let source):
-                return try ContentBuilderPair.outcomes(of: source)
-            case .roundTrip(let source):
-                let builders = try ContentBuilderPair.outcomes(of: source)
-                let today = ContentBuilderOutcome {
-                    .object(["record": builders?.today.tokens ?? .null, "roundTrip": try ContentCorpusRecorder.roundTrip(source)])
-                }
-                let planned = ContentBuilderOutcome {
-                    let roundTrip = try ContentCorpusRecorder.roundTrip(source, projection: plannedProjection)
-                    return .object(["record": builders?.planned.tokens ?? .null, "roundTrip": roundTrip])
-                }
-                return (today, planned)
-            case .reverse(let observation):
-                let decoded = try observation.decoded(as: Observation.self)
-                let today = ContentCorpusRecorder.reverse(decoded)
-                return (.built(today), .built(ContentCorpusRecorder.reverse(decoded, projection: plannedProjection)))
-            case .retract, .catalog:
-                return nil
-            }
+            let outcomes = try outcomes(of: input)
+            eligible += 1
+            return outcomes
         } catch ContentCorpusSamples.RebuildError.unavailableHere {
+            return nil
+        }
+    }
+
+    /// Both sides' outcomes for one corpus input, or `nil` when no builder or projection runs for it.
+    private static func outcomes(of input: ContentCorpusInput) throws -> ContentBuilderPair.Outcomes? {
+        switch input {
+        case .convert(let source):
+            return try ContentBuilderPair.outcomes(of: source)
+        case .roundTrip(let source):
+            let builders = try ContentBuilderPair.outcomes(of: source)
+            let today = ContentBuilderOutcome {
+                .object(["record": builders?.today.tokens ?? .null, "roundTrip": try ContentCorpusRecorder.roundTrip(source)])
+            }
+            let planned = ContentBuilderOutcome {
+                let roundTrip = try ContentCorpusRecorder.roundTrip(source, projection: plannedProjection)
+                return .object(["record": builders?.planned.tokens ?? .null, "roundTrip": roundTrip])
+            }
+            return (today, planned)
+        case .reverse(let observation):
+            let decoded = try observation.decoded(as: Observation.self)
+            let today = ContentCorpusRecorder.reverse(decoded)
+            return (.built(today), .built(ContentCorpusRecorder.reverse(decoded, projection: plannedProjection)))
+        case .retract, .catalog:
             return nil
         }
     }
