@@ -133,7 +133,7 @@ struct HealthKitContentCompilerTests {
         let mild = HKCategoryValueSeverity.mild.rawValue
         let compilation = try Self.compile(.acne) { $0.allowedValues.removeAll { $0 == "mild" } }
         let defect = "\(HealthKitSourceType.acne.rawValue): value \(mild) reports as mild, which the contract does not admit"
-        #expect(compilation.defects.filter { !HealthKitContentPlanTests.knownDefects.contains($0) } == [defect])
+        #expect(Self.ownDefects(of: compilation) == [defect])
         guard case .observation(let observation)? = compilation.byIdentifier[HealthKitSourceType.acne.rawValue]?.route,
               case let .coded(values, unresolved) = observation.value else {
             Issue.record("Acne no longer converts through its coded values")
@@ -170,6 +170,12 @@ struct HealthKitContentCompilerTests {
 
 
 extension HealthKitContentCompilerTests {
+    /// The defects `compilation` names beyond the adapter's own compilation's: a defect in the real rules or
+    /// contracts fails the tests that pin those (`HealthKitContentPlanTests`), never these.
+    private static func ownDefects(of compilation: HealthKitContentCompiler.Compilation) -> [String] {
+        compilation.defects.filter { !HealthKitContentPlan.compileDefects.contains($0) }
+    }
+
     /// The adapter's rule groups without the one listing `type`.
     private static func groups(without type: HealthKitSourceType) -> [HealthKitContentRules.RuleGroup] {
         HealthKitContentRules.groups.filter { !$0.types.contains(type) }
@@ -200,7 +206,7 @@ extension HealthKitContentCompilerTests {
     }
 
     /// Checks that `compilation` refuses `type` with `refusal`, by default as not yet convertible, mints none of its
-    /// outputs, and names `defect` as its only defect beyond the known ones.
+    /// outputs, and names `defect` as its only defect beyond the adapter's own compilation's.
     private static func expectRefused(
         _ type: HealthKitSourceType,
         _ defect: String,
@@ -215,8 +221,7 @@ extension HealthKitContentCompilerTests {
         }
         #expect(refused == refusal ?? .notYetConvertible(type), sourceLocation: sourceLocation)
         #expect(plan?.outputs.isEmpty == true, sourceLocation: sourceLocation)
-        let defects = compilation.defects.filter { !HealthKitContentPlanTests.knownDefects.contains($0) }
-        #expect(defects == ["\(type.rawValue): \(defect)"], sourceLocation: sourceLocation)
+        #expect(ownDefects(of: compilation) == ["\(type.rawValue): \(defect)"], sourceLocation: sourceLocation)
     }
 }
 

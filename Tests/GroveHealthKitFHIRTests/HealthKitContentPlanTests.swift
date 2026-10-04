@@ -22,7 +22,7 @@ import Testing
 struct HealthKitContentPlanTests {
     /// The walking-steadiness notification values, whose codes the contract does not admit: today's mapping states
     /// the guide's value and occurrence as one code.
-    static let knownDefects = [
+    private static let knownDefects = [
         "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent: value 1 reports as initial-low, which the contract does not admit",
         "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent: value 2 reports as initial-very-low, which the contract does not admit",
         "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent: value 3 reports as repeat-low, which the contract does not admit",
