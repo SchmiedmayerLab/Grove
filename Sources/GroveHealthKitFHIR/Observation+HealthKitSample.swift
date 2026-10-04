@@ -96,13 +96,13 @@ enum HealthKitSampleProjection {
 
     static func envelope(
         of observation: ModelsR4.Observation,
-        contract: HealthKitFHIRObservationContract,
+        measurementID: String,
         syncIdentifier: String?
     ) throws(HealthKitSampleProjectionError) -> SampleEnvelope {
         guard case .dateTime(let effective)? = observation.effective,
               let dateTime = effective.value,
               let date = try? dateTime.asNSDate() else {
-            throw HealthKitSampleProjectionError.effectiveMissing(id: contract.id)
+            throw HealthKitSampleProjectionError.effectiveMissing(id: measurementID)
         }
         var metadata: [String: Any] = [:]
         if let zone = dateTime.timeZone {
@@ -213,6 +213,95 @@ enum HealthKitSampleProjection {
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitSampleProjection {
+    /// Every generated measurement by its code's system and code, the first catalog stating one winning. Body-mass
+    /// index, which no catalog lists, is unknown.
+    static let measurements: [[String]: MeasurementContract] = Dictionary(
+        (MeasurementCatalog.all + HealthKitMeasurementCatalog.all).map { ([$0.code.system, $0.code.code], $0) }
+    ) { first, _ in first }
+
+    /// The quantity type each measurement lands on: the one quantity type whose plan reads the measurement in its
+    /// contract's unit. A measurement several types read, or none, has none, so it refuses rather than guessing.
+    static let quantityTypes: [String: HKQuantityTypeIdentifier] = {
+        let readers = HealthKitContentPlan.all.compactMap { plan -> (String, [HealthKitSourceType])? in
+            guard plan.unitBinding != nil, plan.sourceType.rawValue.hasPrefix("HKQuantityTypeIdentifier"),
+                  let measurement = plan.entry.measurements.first else {
+                return nil
+            }
+            return (measurement.id, [plan.sourceType])
+        }
+        return Dictionary(readers, uniquingKeysWith: +).compactMapValues { types in
+            types.count == 1 ? HKQuantityTypeIdentifier(rawValue: types[0].rawValue) : nil
+        }
+    }()
+
+    /// The one sample `observation` describes, read from the content plans: its code names the measurement, the
+    /// measurement the quantity type whose plan reads it, and the published unit bindings the value's unit; a
+    /// blood-pressure panel becomes a correlation of its members.
+    static func sample(of observation: ModelsR4.Observation, syncIdentifier: String?) throws(HealthKitSampleProjectionError) -> HKSample {
+        let coding = observation.code.coding?.first
+        let system = coding?.system?.value?.url.absoluteString ?? ""
+        let code = coding?.code?.value?.string ?? ""
+        guard let contract = measurements[[system, code]] else {
+            throw .measurementUnknown(system: system, code: code)
+        }
+        let envelope = try envelope(of: observation, measurementID: contract.id, syncIdentifier: syncIdentifier)
+        if contract.code.code == MeasurementCatalog.bloodPressure.code.code {
+            return try correlation(of: observation, contract: contract, envelope: envelope)
+        }
+        guard case .quantity(let quantity)? = observation.value else {
+            throw .valueMissing(id: contract.id)
+        }
+        guard let type = quantityTypes[contract.id] else {
+            throw .measurementNotMappable(id: contract.id)
+        }
+        return HKQuantitySample(
+            type: HKQuantityType(type),
+            quantity: try healthKitQuantity(quantity, contract: contract.quantity, measurementID: contract.id),
+            start: envelope.date,
+            end: envelope.date,
+            metadata: envelope.metadata
+        )
+    }
+
+    /// The correlation a blood-pressure panel describes: one member per correlation member the content rules state,
+    /// in their order, each from the panel's component the contract codes it as.
+    private static func correlation(
+        of observation: ModelsR4.Observation,
+        contract: MeasurementContract,
+        envelope: SampleEnvelope
+    ) throws(HealthKitSampleProjectionError) -> HKCorrelation {
+        let members = try HealthKitContentRules.bloodPressureMembers.map { id, type throws(HealthKitSampleProjectionError) -> HKSample in
+            guard let declared = contract.components.first(where: { $0.id == id }) else {
+                throw .componentMissing(id: contract.id, code: id)
+            }
+            let stated = observation.component?.first { component in
+                component.code.coding?.contains { coding in
+                    coding.system?.value?.url.absoluteString == declared.system && coding.code?.value?.string == declared.code
+                } ?? false
+            }
+            guard let stated, case .quantity(let quantity) = stated.value else {
+                throw .componentMissing(id: contract.id, code: declared.code)
+            }
+            return HKQuantitySample(
+                type: HKQuantityType(HKQuantityTypeIdentifier(rawValue: type.rawValue)),
+                quantity: try healthKitQuantity(quantity, contract: declared.quantity, measurementID: contract.id),
+                start: envelope.date,
+                end: envelope.date
+            )
+        }
+        return HKCorrelation(
+            type: HKCorrelationType(.bloodPressure),
+            start: envelope.date,
+            end: envelope.date,
+            objects: Set(members),
+            metadata: envelope.metadata
+        )
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Observation {
     /// The one sample this observation describes.
     ///
@@ -229,7 +318,7 @@ extension Observation {
     /// - Parameter syncIdentifier: A stable per-reading discriminator in place of the source-output identity.
     public func healthKitSample(syncIdentifier: String? = nil) throws(HealthKitSampleProjectionError) -> HKSample {
         let contract = try HealthKitSampleProjection.contract(for: self)
-        let envelope = try HealthKitSampleProjection.envelope(of: self, contract: contract, syncIdentifier: syncIdentifier)
+        let envelope = try HealthKitSampleProjection.envelope(of: self, measurementID: contract.id, syncIdentifier: syncIdentifier)
         if contract.code.code == MeasurementCatalog.bloodPressure.code.code {
             return try HealthKitSampleProjection.bloodPressureCorrelation(for: self, contract: contract, envelope: envelope)
         }
