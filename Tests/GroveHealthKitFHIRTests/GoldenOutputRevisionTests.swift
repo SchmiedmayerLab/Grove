@@ -77,7 +77,7 @@ struct GoldenOutputRevisionTests {
         GoldenRevision("heartbeat-series", digest: "fB3bdqSnBH2vJxBfzQQDFFeItPoT6Bs8Yom7uFbYS98", assembler: 1, healthKit: 2),
         GoldenRevision("insulin-delivery-bolus", digest: "fCw3-HgNHCW_r1bQ8bY5WiGz52iekzNbJ0-AKZp59yc", assembler: 1, healthKit: 1),
         GoldenRevision("native-identifier-disclosure", digest: "d0cEPkdGfs7W8CYbUpS-GDKoc64jN21WjgkWSibIAAM", assembler: 1, healthKit: 2),
-        GoldenRevision("outlines", digest: "or-B8OvQNkNJiAxCq0QlnncggMjKm4bvv_Wc7DDgMwE", assembler: 1, healthKit: 7),
+        GoldenRevision("outlines", digest: "eRBPTDIcCxdXUWyEDRH7M4p9yS62e3ye75NQR78Eduo", assembler: 1, healthKit: 8),
         GoldenRevision("retraction-blood-pressure", digest: "x4muVgyjqh8AfgVGhaS55MeMVmxJ58UR0hsghhedkEA", assembler: 1, healthKit: 1),
         GoldenRevision("retraction-electrocardiogram", digest: "XFJkq-0BWgfo5MhNXqP9JwSGXIOG95KoG3MctJesT3w", assembler: 1, healthKit: 1),
         GoldenRevision("retraction-heart-rate-native-identifier", digest: "2nx6odq_wixvjnzRfksJPRgR_UcNs4LkE2l3El_38r4", assembler: 1, healthKit: 1),

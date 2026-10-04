@@ -117,7 +117,7 @@
       }
     ],
     "warnings" : [
-      "mobile-omission.unmodeled-metadata@Observation.extension"
+      "mobile-omission.unmodeled-metadata@HKSample.metadata"
     ]
   },
   "body-fat-percentage-fraction" : {
@@ -336,7 +336,7 @@
       }
     ],
     "warnings" : [
-
+      "mobile-omission.unmodeled-metadata@HKSample.metadata"
     ]
   },
   "electrocardiogram" : {
@@ -409,7 +409,7 @@
       }
     ],
     "warnings" : [
-
+      "mobile-omission.unmodeled-metadata@HKSample.metadata"
     ]
   },
   "electrocardiogram-symptom-companion" : {
@@ -542,7 +542,7 @@
       }
     ],
     "warnings" : [
-
+      "mobile-omission.unmodeled-metadata@HKSample.metadata"
     ]
   },
   "exporter-clinical-record-dstu2" : {
@@ -603,7 +603,7 @@
       }
     ],
     "warnings" : [
-
+      "mobile-omission.unmodeled-metadata@HKSample.metadata"
     ]
   },
   "exporter-clinical-record-r4" : {
@@ -664,7 +664,7 @@
       }
     ],
     "warnings" : [
-
+      "mobile-omission.unmodeled-metadata@HKSample.metadata"
     ]
   },
   "exporter-default-apple-watch-heart-rate" : {
@@ -971,7 +971,7 @@
       }
     ],
     "warnings" : [
-
+      "mobile-omission.unmodeled-metadata@HKSample.metadata"
     ]
   },
   "exporter-deployment-electrocardiogram-symptom" : {
@@ -1925,7 +1925,7 @@
       }
     ],
     "warnings" : [
-
+      "mobile-omission.unmodeled-metadata@HKSample.metadata"
     ]
   },
   "insulin-delivery-bolus" : {
@@ -2615,7 +2615,7 @@
       }
     ],
     "warnings" : [
-
+      "mobile-omission.unmodeled-metadata@HKSample.metadata"
     ]
   },
   "workout-session" : {

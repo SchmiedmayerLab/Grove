@@ -59,6 +59,9 @@ struct HealthKitAssembly: Sendable {
         let graph: ExchangeGraph
         /// Each one registered `mobile-omission` rule; empty when the graph carries everything its record supplied.
         let warnings: [ProducerDiagnostic]
+        /// The metadata keys the record, or an object it contains, carried that the graph does not represent, each once
+        /// and sorted. The `mobile-omission.unmodeled-metadata` warning states only that there are some.
+        let withheldMetadataKeys: [String]
 
         /// The export that delivers this graph.
         var export: HealthKitFHIRExporter.Export {
@@ -69,7 +72,7 @@ struct HealthKitAssembly: Sendable {
     /// The revision of the graphs this adapter's assembly builds. Bump it whenever the bytes it emits can
     /// change for equal inputs: it enters every exporter's context fingerprint, so an event reserved under an
     /// older revision is never redelivered under the same identifier with different bytes.
-    static let outputRevision: UInt = 7
+    static let outputRevision: UInt = 8
 
     /// The HealthKit adapter: its closed token, which every HealthKit identity preimage and event key carries, and the
     /// profiles and application identifier its envelopes state.
@@ -164,19 +167,28 @@ struct HealthKitAssembly: Sendable {
             bundleID: request.bundleID
         )
         let assembled = try ExchangeGraphAssembler(envelope: ExchangeEnvelope(scope: scope, facts: request.facts)).assemble(draft)
+        let withheld = metadata.withheldKeys(in: outputs)
         return Conversion(
             source: HealthKitFHIRExporter.Export.Source(uuid: sample.uuid, typeIdentifier: type.rawValue),
             identifiers: assembled.identifiers,
             graph: assembled.graph,
-            warnings: facts.warnings + sourceOffsetWarnings(for: metadata, outputs: outputs)
+            warnings: facts.warnings + metadataWarnings(for: metadata, outputs: outputs, withheld: withheld),
+            withheldMetadataKeys: withheld
         )
     }
 
-    /// The effective elements the outputs serialized in UTC because the record named no time zone, each once, as the
-    /// registered `mobile-omission.source-offset` warning located at the element.
-    private func sourceOffsetWarnings(for metadata: HealthKitSampleMetadata, outputs: [ExchangeOutputDraft]) -> [ProducerDiagnostic] {
+    /// What the decorated `outputs` do not carry of the record's metadata: the `withheld` keys, as the registered
+    /// `mobile-omission.unmodeled-metadata` warning located at the source's metadata, then each effective element they
+    /// serialized in UTC because the record named no time zone, each once, as the registered
+    /// `mobile-omission.source-offset` warning located at the element.
+    private func metadataWarnings(
+        for metadata: HealthKitSampleMetadata,
+        outputs: [ExchangeOutputDraft],
+        withheld: [String]
+    ) -> [ProducerDiagnostic] {
+        let unmodeled = withheld.isEmpty ? [] : [ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic(at: "HKSample.metadata")]
         guard !metadata.statesTimeZone else {
-            return []
+            return unmodeled
         }
         var fields: [String] = []
         for output in outputs {
@@ -190,7 +202,7 @@ struct HealthKitAssembly: Sendable {
             }
             fields += elements.filter { !fields.contains($0) }
         }
-        return fields.map(ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at:))
+        return unmodeled + fields.map(ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at:))
     }
 }
 

@@ -112,7 +112,7 @@ struct ProducerDefaultsTests {
 struct ProducerWarningTests {
     private static let recordingDeviceOmitted = ExchangeGraphRule.mobileOmissionRecordingDevice.diagnostic
     private static let effectiveDateTimeOffsetUnavailable = ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectiveDateTime")
-    private static let unmodeledMetadataWithheld = ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic
+    private static let unmodeledMetadataWithheld = ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic(at: "HKSample.metadata")
 
     private static let warnings = [recordingDeviceOmitted, effectiveDateTimeOffsetUnavailable, unmodeledMetadataWithheld]
 
@@ -143,6 +143,7 @@ struct ProducerWarningTests {
             #expect(warning.severity == .warning)
         }
         #expect(Self.warnings[1].location == "Observation.effectiveDateTime")
+        #expect(Self.warnings[2].location == "HKSample.metadata")
         #expect(Set(ExchangeGraphRule.allCases.filter { $0.severity == .warning }.map(\.rawValue)) == Set(codes))
     }
 

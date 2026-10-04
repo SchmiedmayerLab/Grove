@@ -128,9 +128,6 @@ extension HealthKitConversionError {
         case sexualActivityProtectionUsed
         case appleECGAlgorithmVersion
 
-        /// The typed allowlist: every key the adapter models.
-        static let keys = Set(allCases.map(\.key))
-
         public var key: String {
             switch self {
             case .timeZone: HKMetadataKeyTimeZone
@@ -142,6 +139,19 @@ extension HealthKitConversionError {
             case .menstrualCycleStart: HKMetadataKeyMenstrualCycleStart
             case .sexualActivityProtectionUsed: HKMetadataKeySexualActivityProtectionUsed
             case .appleECGAlgorithmVersion: HKMetadataKeyAppleECGAlgorithmVersion
+            }
+        }
+
+        /// Whether a graph that was built carries `value` under this key, where the content reads it: the heart-rate
+        /// motion context (a metadata component) and the ECG algorithm version (the waveform's method) are read only
+        /// from a number and dropped otherwise; every other reader refuses a value it does not carry.
+        func readerAccepts(_ value: Any) -> Bool {
+            switch self {
+            case .heartRateMotionContext, .appleECGAlgorithmVersion:
+                (value as? NSNumber) != nil
+            case .timeZone, .syncIdentifier, .syncVersion, .wasUserEntered, .insulinDeliveryReason, .menstrualCycleStart,
+                 .sexualActivityProtectionUsed:
+                true
             }
         }
     }

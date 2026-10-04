@@ -138,8 +138,8 @@ final class HealthKitContentPlan: Sendable {
     /// apart, and the pinned guide has no source-record retraction scope yet (an IG gap; a draft exists); a receiver
     /// resolves the extra target to nothing.
     let outputs: [HealthKitOutputSlot]
-    /// Which metadata keys the conversion consumes, and whether the record also holds its correlation's members'
-    /// metadata: only blood pressure's rule reads the members, for the time zone, manual entry and the withheld keys.
+    /// The metadata keys of its own the type's content carries, and whether the record also holds its correlation's
+    /// members' metadata: only blood pressure's rule reads the members, for the time zone and manual entry.
     let metadata: MetadataRule
 
     /// The unit binding of a quantity read in its contract's unit, or `nil` for any other type.
@@ -165,7 +165,7 @@ final class HealthKitContentPlan: Sendable {
         entry: HealthKitCatalog.Entry,
         route: Route,
         outputs: [HealthKitOutputSlot] = [],
-        metadata: MetadataRule = .allowlist
+        metadata: MetadataRule = .noContentKeys
     ) {
         self.sourceType = sourceType
         self.entry = entry
