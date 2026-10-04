@@ -139,6 +139,18 @@ package enum ExchangeInstant {
         return CivilDate(year: yearOfEra + era * 400 + (month <= 2 ? 1 : 0), month: month, day: day)
     }
 
+    /// A proleptic Gregorian date to days since 1970-01-01 (Howard Hinnant's `days_from_civil`), the inverse of
+    /// ``civilDate(fromDays:)``. A field past its range carries over as a calendar's would: day 0 is the previous
+    /// month's last day, February 31 a day in March, and month 0 the previous year's December.
+    package static func days(fromYear year: Int64, month: Int64, day: Int64) -> Int64 {
+        let shiftedYear = month <= 2 ? year - 1 : year
+        let era = (shiftedYear >= 0 ? shiftedYear : shiftedYear - 399) / 400
+        let yearOfEra = shiftedYear - era * 400
+        let dayOfYear = (153 * (month > 2 ? month - 3 : month + 9) + 2) / 5 + day - 1
+        let dayOfEra = 365 * yearOfEra + yearOfEra / 4 - yearOfEra / 100 + dayOfYear
+        return era * 146_097 + dayOfEra - 719_468
+    }
+
     /// ASCII decimal digits, zero-padded to `width`; `String(_:)` never consults the locale.
     package static func padded(_ value: Int64, width: Int) -> String {
         let digits = String(value.magnitude)
