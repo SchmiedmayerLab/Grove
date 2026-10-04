@@ -98,7 +98,7 @@ struct ContentPlanEquivalenceTests {
         }
     }
 
-    @Test("The plans' unit bindings, in row order with the blood-pressure members', are today's, and so is the reverse map")
+    @Test("The plans' unit bindings, in row order with the blood-pressure members', are today's, and so is the shipped reverse map")
     func unitBindingsAreTodays() {
         let members = Self.observationPlan(.bloodPressure).flatMap { plan -> [HealthKitUnitBinding] in
             guard case .bloodPressure(let members) = plan.value else {
@@ -111,15 +111,13 @@ struct ContentPlanEquivalenceTests {
             seen.insert("\(binding.ucumCode)\u{0}\(binding.displayUnit)").inserted
         }
         #expect(derived.map(Self.strings) == HealthKitCatalog.unitBindings.map(Self.strings))
-        var candidates: [String: [HKQuantityTypeIdentifier]] = [:]
-        for plan in HealthKitContentPlan.all where plan.unitBinding != nil && plan.sourceType.rawValue.hasPrefix("HKQuantityTypeIdentifier") {
-            candidates[plan.outputs[0].output.role, default: []].append(HKQuantityTypeIdentifier(rawValue: plan.sourceType.rawValue))
-        }
-        for contract in MeasurementCatalog.all + HealthKitMeasurementCatalog.all + [HealthKitContract.bodyMassIndex] {
+        let contracts = MeasurementCatalog.all + HealthKitMeasurementCatalog.all + [HealthKitContract.bodyMassIndex]
+        for contract in contracts {
             let today = try? HealthKitSampleProjection.quantityTypeIdentifier(for: contract.id)
-            let planned = candidates[contract.id].flatMap { $0.count == 1 ? $0[0] : nil }
-            #expect(planned == today, "\(contract.id)")
+            #expect(HealthKitSampleProjection.quantityTypes[contract.id] == today, "\(contract.id)")
         }
+        let stray = Set(HealthKitSampleProjection.quantityTypes.keys).subtracting(contracts.map(\.id))
+        #expect(stray.isEmpty, "the reverse map names measurements no contract states: \(stray.sorted())")
     }
 }
 
