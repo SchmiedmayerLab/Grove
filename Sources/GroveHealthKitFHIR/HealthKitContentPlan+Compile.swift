@@ -200,9 +200,9 @@ struct HealthKitContentCompiler {
         switch rule {
         case .observation(let rule):
             let contract = try contract(of: row)
-            let (observation, unitBinding) = try self.observation(rule, contract: contract, type: type)
+            let observation = try self.observation(rule, contract: contract, type: type)
             let outputs = [HealthKitOutputSlot.primary(role: contract.id)]
-            return HealthKitContentPlan(type, entry: entry, route: .observation(observation), outputs: outputs, unitBinding: unitBinding)
+            return HealthKitContentPlan(type, entry: entry, route: .observation(observation), outputs: outputs)
         case .electrocardiogram:
             let content = try HealthKitECGContent(sourceType: type)
             let outputs = [content.waveformSlot, content.averageHeartRateSlot]
@@ -221,12 +221,12 @@ struct HealthKitContentCompiler {
         }
     }
 
-    /// The Observation plan of a measurement, and the unit binding of a quantity read in the contract's unit.
+    /// The Observation plan of a measurement.
     private mutating func observation(
         _ rule: HealthKitContentRules.ObservationRule,
         contract: MeasurementContract,
         type: HealthKitSourceType
-    ) throws(HealthKitContentDefect) -> (ObservationPlan, HealthKitUnitBinding?) {
+    ) throws(HealthKitContentDefect) -> ObservationPlan {
         guard let display = contract.code.display ?? HealthKitTerminology.displays[contract.code] else {
             throw HealthKitContentDefect("states no display for code \(contract.code.code)")
         }
@@ -238,14 +238,12 @@ struct HealthKitContentCompiler {
             category: HealthKitContentRules.category(of: contract),
             method: contract.method
         )
-        let (value, unitBinding) = try self.value(rule, contract: contract, type: type)
-        let plan = ObservationPlan(
+        return ObservationPlan(
             skeleton: skeleton,
             effective: Self.effective(of: contract),
-            value: value,
+            value: try value(rule, contract: contract, type: type),
             metadataComponent: try HealthKitContentRules.metadataComponent(of: type, contract: contract)
         )
-        return (plan, unitBinding)
     }
 }
 
@@ -268,24 +266,19 @@ extension HealthKitContentCompiler {
         return system
     }
 
-    /// A quantity read from `source`, and the unit binding of one read in the contract's unit. HealthKit keeps a
-    /// percentage as a fraction, so a contract stated in percent reads the fraction and states it in percent.
+    /// A quantity read from `source`. HealthKit keeps a percentage as a fraction, so a contract stated in percent reads
+    /// the fraction and states it in percent.
     private static func quantity(
         _ source: HealthKitContentRules.QuantitySource,
         contract: MeasurementContract
-    ) throws(HealthKitContentDefect) -> (ValueRule, HealthKitUnitBinding?) {
+    ) throws(HealthKitContentDefect) -> ValueRule {
         let quantity = try quantity(of: contract)
         let template = QuantityTemplate(quantity)
-        switch source {
-        case .contract where quantity.code == "%":
-            return (.quantity(template, .percent), nil)
-        case .contract:
-            let binding = try quantity.binding()
-            return (.quantity(template, .unit(binding.unit)), binding)
-        case .platformRate:
-            return (.quantity(template, .unit(.count())), nil)
-        case .score:
-            return (.quantity(template, .score), nil)
+        return switch source {
+        case .contract where quantity.code == "%": .quantity(template, .percent)
+        case .contract: .quantity(template, .unit(try quantity.binding()))
+        case .platformRate: .quantity(template, .platformRate)
+        case .score: .quantity(template, .score)
         }
     }
 
@@ -325,34 +318,33 @@ extension HealthKitContentCompiler {
         }
     }
 
-    /// How an Observation's value is read, compiled against its contract, and the unit binding of a quantity read in
-    /// the contract's unit.
+    /// How an Observation's value is read, compiled against its contract.
     private mutating func value(
         _ rule: HealthKitContentRules.ObservationRule,
         contract: MeasurementContract,
         type: HealthKitSourceType
-    ) throws(HealthKitContentDefect) -> (ValueRule, HealthKitUnitBinding?) {
+    ) throws(HealthKitContentDefect) -> ValueRule {
         switch rule {
         case .quantity(let source):
             return try Self.quantity(source, contract: contract)
         case .coded(let table):
-            return (try coded(table, contract: contract, type: type), nil)
+            return try coded(table, contract: contract, type: type)
         case .occurrence:
-            return (try Self.occurrence(contract), nil)
+            return try Self.occurrence(contract)
         case .duration:
             let quantity = try Self.quantity(of: contract)
             guard let secondsPerUnit = HealthKitContentRules.durationUnits[quantity.code] else {
                 throw HealthKitContentDefect("states its duration in \(quantity.code), neither seconds nor minutes")
             }
-            return (.duration(QuantityTemplate(quantity), secondsPerUnit: secondsPerUnit), nil)
+            return .duration(QuantityTemplate(quantity), secondsPerUnit: secondsPerUnit)
         case .protection:
-            return (try Self.protection(contract), nil)
+            return try Self.protection(contract)
         case .bloodPressure:
-            return (.bloodPressure(try Self.bloodPressureMembers(contract)), nil)
+            return .bloodPressure(try Self.bloodPressureMembers(contract))
         case .workout:
-            return (.workout(try HealthKitWorkoutContent(contract)), nil)
+            return .workout(try HealthKitWorkoutContent(contract))
         case .stateOfMind:
-            return (.stateOfMind(try HealthKitStateOfMindContent(contract)), nil)
+            return .stateOfMind(try HealthKitStateOfMindContent(contract))
         }
     }
 

@@ -119,8 +119,14 @@ final class HealthKitContentPlan: Sendable {
     let outputs: [HealthKitOutputSlot]
     /// Which metadata keys the conversion consumes.
     let metadata: MetadataRule
-    /// The unit a quantity read in its contract's unit is bound to.
-    let unitBinding: HealthKitUnitBinding?
+
+    /// The unit binding of a quantity read in its contract's unit, or `nil` for any other type.
+    var unitBinding: HealthKitUnitBinding? {
+        guard case .observation(let observation) = route, case .quantity(_, .unit(let binding)) = observation.value else {
+            return nil
+        }
+        return binding
+    }
 
     /// The plan of `sourceType`.
     init(
@@ -128,15 +134,13 @@ final class HealthKitContentPlan: Sendable {
         entry: HealthKitCatalogEntry,
         route: Route,
         outputs: [HealthKitOutputSlot] = [],
-        metadata: MetadataRule = .allowlist,
-        unitBinding: HealthKitUnitBinding? = nil
+        metadata: MetadataRule = .allowlist
     ) {
         self.sourceType = sourceType
         self.entry = entry
         self.route = route
         self.outputs = outputs
         self.metadata = metadata
-        self.unitBinding = unitBinding
     }
 
     /// The plan of a sample's type, or `nil` for a type the inventory does not list: one hashed lookup.

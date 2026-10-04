@@ -187,8 +187,10 @@ extension ContentBuilderRandomRecords {
             value = pick([.nan, .infinity, -.infinity, 1e300, low - 1, high + 1, low + 0.5])
         }
         switch read {
-        case .unit(let unit):
-            return .quantity(type: type.rawValue, value: value, unit: unit.unitString)
+        case .unit(let binding):
+            return .quantity(type: type.rawValue, value: value, unit: binding.unit.unitString)
+        case .platformRate:
+            return .quantity(type: type.rawValue, value: value, unit: HKUnit.count().unitString)
         case .percent:
             return .quantity(type: type.rawValue, value: value / 100, unit: "%")
         case .score:

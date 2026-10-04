@@ -162,10 +162,10 @@ extension ContentPlanEquivalenceTests {
             return false
         }
         switch (binding, read) {
-        case let (.quantity(_, unit), .unit(planUnit)):
-            return planUnit == unit && plan.unitBinding.map(strings) == [quantity?.code ?? "", quantity?.unit ?? "", unit.unitString]
-        case (.sessionRate, .unit(let planUnit)):
-            return planUnit == .count() && plan.unitBinding == nil
+        case let (.quantity(_, unit), .unit(planBinding)):
+            return planBinding.unit == unit && plan.unitBinding.map(strings) == [quantity?.code ?? "", quantity?.unit ?? "", unit.unitString]
+        case (.sessionRate, .platformRate):
+            return plan.unitBinding == nil
         case (.percent, .percent), (.assessmentScore, .score):
             return plan.unitBinding == nil
         default:

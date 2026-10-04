@@ -98,7 +98,8 @@ enum ContentPlanSamples {
         facts: StoredSampleFixtures.SampleFacts
     ) throws -> HKSample? {
         switch read {
-        case .unit(let unit):
+        case .unit, .platformRate:
+            let unit = if case .unit(let binding) = read { binding.unit } else { HKUnit.count() }
             let value = [1, 50, 100, 1_000, 0.5, 0].first { template.domain?.contains(Decimal($0)) != false } ?? 1
             return try StoredSampleFixtures.quantitySample(try ContentCorpusSamples.quantityType(identifier), value: value, unit: unit, facts: facts)
         case .percent:

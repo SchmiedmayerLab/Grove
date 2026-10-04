@@ -16,8 +16,11 @@ import ModelsR4
 /// How a quantity value is read from its sample.
 @available(iOS 18, macOS 15, watchOS 11, *)
 enum QuantityRead: Sendable {
-    /// The sample's quantity in this unit.
-    case unit(HKUnit)
+    /// The sample's quantity in the HealthKit unit its contract's unit binds to, which the public catalog and the
+    /// reverse projection state.
+    case unit(HealthKitUnitBinding)
+    /// A per-session rate HealthKit already computed, read as a plain count and bound to no unit.
+    case platformRate
     /// The sample's quantity as a fraction, stated in percent.
     case percent
     /// A scored assessment's score.
@@ -174,10 +177,11 @@ extension ValueRule {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension QuantityRead {
-    /// The value read from `sample`: a quantity in its unit, a fraction in percent, or a score.
+    /// The value read from `sample`: a quantity in its unit or as a count, a fraction in percent, or a score.
     func value(of sample: HKSample) throws(HealthKitValueFailure) -> Double {
         switch self {
-        case .unit(let unit): try sample.cast(to: HKQuantitySample.self).quantity.doubleValue(for: unit)
+        case .unit(let binding): try sample.cast(to: HKQuantitySample.self).quantity.doubleValue(for: binding.unit)
+        case .platformRate: try sample.cast(to: HKQuantitySample.self).quantity.doubleValue(for: .count())
         case .percent: try sample.cast(to: HKQuantitySample.self).quantity.doubleValue(for: .percent()) * 100
         case .score: Double(try sample.cast(to: HKScoredAssessment.self).score)
         }

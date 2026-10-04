@@ -115,14 +115,15 @@ struct HealthKitContentPlanTests {
             }
             let type = HKQuantityTypeIdentifier(rawValue: plan.sourceType.rawValue)
             switch observation.value {
-            case let .quantity(template, .unit(unit)):
+            case let .quantity(template, .unit(binding)):
                 let quantityType = try #require(HKObjectType.quantityType(forIdentifier: type))
-                #expect(quantityType.is(compatibleWith: unit), "\(type.rawValue) cannot be read in \(unit.unitString)")
-                if let binding = plan.unitBinding {
-                    #expect(HealthKitContentRules.ucumUnits[binding.ucumCode] == unit, "\(type.rawValue)")
-                    #expect(template.empty.code?.value?.string == binding.ucumCode, "\(type.rawValue)")
-                    read.insert(binding.ucumCode)
-                }
+                #expect(quantityType.is(compatibleWith: binding.unit), "\(type.rawValue) cannot be read in \(binding.unit.unitString)")
+                #expect(HealthKitContentRules.ucumUnits[binding.ucumCode] == binding.unit, "\(type.rawValue)")
+                #expect(template.empty.code?.value?.string == binding.ucumCode, "\(type.rawValue)")
+                read.insert(binding.ucumCode)
+            case .quantity(_, .platformRate):
+                let quantityType = try #require(HKObjectType.quantityType(forIdentifier: type))
+                #expect(quantityType.is(compatibleWith: .count()), "\(type.rawValue) cannot be read as a count")
             case .quantity(let template, .percent):
                 #expect(template.empty.code?.value?.string == "%", "\(type.rawValue) is read as a fraction but not stated in percent")
             case .bloodPressure(let members):
