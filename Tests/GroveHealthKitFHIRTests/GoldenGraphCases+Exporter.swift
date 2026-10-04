@@ -193,15 +193,19 @@ extension GoldenCase {
 
 
 extension GoldenOutput {
-    /// What one export delivered: its graph and, as the outline spells them, the diagnostics it reported.
+    /// What one export delivered: its graph, the record it reported the graph for, which the golden test checks
+    /// against the graph's source identity, and, as the outline spells them, the diagnostics it reported.
     init(_ export: HealthKitFHIRExporter.Export) throws {
         guard let graph = export.graph else {
             throw GoldenCaseError.notExported(String(describing: export.outcome))
         }
+        guard let type = export.source.sourceType else {
+            throw GoldenCaseError.notExported("a graph reported for the unregistered type \(export.source.typeIdentifier)")
+        }
         self.init(
             graph: graph,
             renderedWarnings: export.warnings.map { "\($0.code)@\($0.location)" },
-            source: export.source.sourceType.map { HealthKitSourceRecord(uuid: export.source.uuid, type: $0) },
+            source: HealthKitSourceRecord(uuid: export.source.uuid, type: type),
             identifiers: nil
         )
     }

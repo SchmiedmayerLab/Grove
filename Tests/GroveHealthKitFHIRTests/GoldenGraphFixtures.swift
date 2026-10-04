@@ -22,7 +22,7 @@ struct GoldenOutput: Sendable {
     let graph: ExchangeGraph
     /// Each warning as the outline spells it: the registry code, then the field, device name or keys it names.
     let renderedWarnings: [String]
-    /// The record the conversion names; `nil` for a retraction, which names its record through its targets.
+    /// The record the API reported the graph for; `nil` for a converter retraction, which reports none.
     let source: HealthKitSourceRecord?
     /// The identities the conversion reported; `nil` where the API reports none.
     let identifiers: ExchangeGraphIdentifiers?
@@ -298,27 +298,58 @@ enum GoldenFixtures {
 
 
 extension GoldenOutput {
-    /// Where what the conversion reported disagrees with the graph it reported it for, read from the graph's own
-    /// tokens: each reported output and Device is the entry its fullUrl names and carries that identity, the
-    /// Provenance is the one entry at its entry-node fullUrl, the source record and artifact identities are on the
-    /// primary output, every output and Device entry is reported (a distinct gateway application aside, which no
-    /// identity names), and the source is the record the graph's source identity is minted from. Empty for a
+    /// An identifier as the system and value its identity rests on.
+    private static func key(_ identifier: LosslessJSONValue?) -> String {
+        "\(identifier?["system"]?.text ?? "")|\(identifier?["value"]?.text ?? "")"
+    }
+
+    private static func key(_ identity: RoledIdentifier) -> String {
+        "\(identity.identifier.system.rawValue)|\(identity.identifier.value)"
+    }
+
+    /// Where what the API reported disagrees with the graph it reported it for, read from the graph's own tokens.
+    ///
+    /// A reported source is the record the Provenance's source entity names; an export reports one for its
+    /// retractions too. Reported identities: each output and Device is the entry its fullUrl names and carries that
+    /// identity, the Provenance is the one entry at its entry-node fullUrl, the primary output carries the source
+    /// record identity minted from the source and exactly the reported source-artifact identity, and every output and
+    /// Device entry is reported (a distinct gateway application aside, which no identity names). Empty for a converter
     /// retraction, which reports neither.
     func reportMismatches(identityScope: OpaqueIdentityScope, repositoryScope: BusinessIdentifier) throws -> [String] {
-        guard let identifiers, let source else {
-            return []
-        }
         let entries: [LosslessJSONValue] = try LosslessJSONValue(parsing: graph.json)["entry"]?.elements ?? []
+        let minted = try source.map { source in
+            try identityScope.sourceRecord(
+                adapterID: HealthKitConverter.adapterID,
+                sourceType: source.type.rawValue,
+                repositoryScope: repositoryScope,
+                nativeRecordID: source.uuid.uuidString.lowercased()
+            ).identifier
+        }
+        var mismatches: [String] = []
+        let sourceEntities = entries
+            .filter { $0["resource"]?["resourceType"]?.text == "Provenance" }
+            .flatMap { $0["resource"]?["entity"]?.elements ?? [] }
+            .filter { $0["role"]?.text == "source" }
+        if let minted, sourceEntities.map({ Self.key($0["what"]?["identifier"]) }) != [Self.key(minted)] {
+            mismatches.append("source")
+        }
+        guard let identifiers else {
+            return mismatches
+        }
+        if minted != identifiers.sourceRecord {
+            mismatches.append("source record identity")
+        }
+        return mismatches + (try identityMismatches(identifiers, entries: entries))
+    }
+
+    /// Where the reported identities disagree with the graph's entries.
+    private func identityMismatches(_ identifiers: ExchangeGraphIdentifiers, entries: [LosslessJSONValue]) throws -> [String] {
         var byURL: [String: LosslessJSONValue] = [:]
         for entry in entries {
             byURL[entry["fullUrl"]?.text ?? ""] = entry
         }
-        func carries(_ url: String, _ identity: RoledIdentifier?) -> Bool {
-            guard let identity else {
-                return true
-            }
-            let stated: [LosslessJSONValue] = byURL[url]?["resource"]?["identifier"]?.elements ?? []
-            return stated.contains { $0["system"]?.text == identity.identifier.system.rawValue && $0["value"]?.text == identity.identifier.value }
+        func stated(_ url: String) -> [LosslessJSONValue] {
+            byURL[url]?["resource"]?["identifier"]?.elements ?? []
         }
         func urls(ofTypes types: Set<String>) -> Set<String> {
             Set(entries.filter { types.contains($0["resource"]?["resourceType"]?.text ?? "") }.compactMap { $0["fullUrl"]?.text })
@@ -329,19 +360,23 @@ extension GoldenOutput {
         let devices: [RoledIdentifier] = [identifiers.applicationSnapshot, identifiers.hostSnapshot] + optionalDevices
         let outputs: [RoledIdentifier] = [identifiers.primaryOutput] + identifiers.childOutputs
         var mismatches: [String] = []
-        for node in outputs + devices where !carries(try node.fullURLString, node) {
+        for node in outputs + devices where !stated(try node.fullURLString).contains(where: { Self.key($0) == Self.key(node) }) {
             mismatches.append("node \(node.identifier.value)")
         }
         // A Provenance carries no identifier; its entry-node key is its fullUrl.
         if urls(ofTypes: ["Provenance"]) != [try identifiers.provenance.fullURLString] {
             mismatches.append("provenance")
         }
-        let primaryURL = try identifiers.primaryOutput.fullURLString
         if identifiers.event != graph.eventIdentifier.identifier {
             mismatches.append("event")
         }
-        if !carries(primaryURL, identifiers.sourceRecord) || !carries(primaryURL, identifiers.sourceArtifact) {
-            mismatches.append("source record or artifact identity")
+        let primary = stated(try identifiers.primaryOutput.fullURLString)
+        if !primary.contains(where: { Self.key($0) == Self.key(identifiers.sourceRecord) }) {
+            mismatches.append("source record on the primary output")
+        }
+        let artifacts = primary.filter { $0["type"]?["coding"]?.elements?.first?["code"]?.text == GroveIdentifierRole.sourceArtifact.rawValue }
+        if artifacts.map({ Self.key($0) }) != [identifiers.sourceArtifact].compactMap(\.self).map({ Self.key($0) }) {
+            mismatches.append("source artifact")
         }
         if urls(ofTypes: ["Observation", "DocumentReference"]) != Set(try outputs.map { try $0.fullURLString }) {
             mismatches.append("outputs")
@@ -352,15 +387,6 @@ extension GoldenOutput {
             .compactMap { $0["valueReference"]?["reference"]?.text })
         if urls(ofTypes: ["Device"]).subtracting(gatewayURLs.subtracting(deviceURLs)) != deviceURLs {
             mismatches.append("devices")
-        }
-        let minted = try identityScope.sourceRecord(
-            adapterID: HealthKitConverter.adapterID,
-            sourceType: source.type.rawValue,
-            repositoryScope: repositoryScope,
-            nativeRecordID: source.uuid.uuidString.lowercased()
-        )
-        if minted.identifier != identifiers.sourceRecord {
-            mismatches.append("source")
         }
         return mismatches
     }
