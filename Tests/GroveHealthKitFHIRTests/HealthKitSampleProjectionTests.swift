@@ -68,6 +68,28 @@ struct HealthKitSampleProjectionTests {
         #expect(sample.metadata?[HKMetadataKeySyncIdentifier] == nil)
     }
 
+    /// Foundation's calendar would read this lexeme as the Julian date, nine days later.
+    @Test("A reading from before the 1582 calendar reform lands on its proleptic Gregorian instant")
+    func preReformInstantIsProleptic() throws {
+        var observation = try Self.observation(contract: MeasurementCatalog.bodyWeight, value: 72.5)
+        observation.effective = .dateTime(FHIRPrimitive(try DateTime("1500-01-01T00:00:00Z")))
+        let sample = try observation.healthKitSample()
+        #expect(sample.startDate == Date(timeIntervalSince1970: -14_831_769_600))
+        #expect(sample.endDate == sample.startDate)
+    }
+
+    @Test("A sample from before the 1582 calendar reform converts and projects back onto its own instant")
+    func preReformSampleRoundTrips() throws {
+        let start = Date(timeIntervalSince1970: -14_831_769_600)
+        let sample = try StoredSampleFixtures.stored(
+            HKQuantitySample(type: HKQuantityType(.bodyMass), quantity: HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: 70), start: start, end: start),
+            uuid: GoldenFixtures.uuid(1)
+        )
+        let projected = try ExporterFixtures.export(sample).graph.healthKitSamples()
+        #expect(projected.failures.isEmpty)
+        #expect(projected.conversions.map(\.startDate) == [start])
+    }
+
     @Test("A sync identifier makes re-projection replace, and an amendment outrank the original")
     func syncIdentityFollowsTheObservation() throws {
         var observation = try Self.observation(contract: MeasurementCatalog.bodyWeight, value: 72.5)

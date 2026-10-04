@@ -31,7 +31,8 @@ private struct ExactInstant: Equatable, CustomStringConvertible {
 
 
 /// The civil-arithmetic effective-time kernel against Foundation's Gregorian calendar where that calendar is
-/// proleptic, its proleptic dates before the 1582 reform, and the behaviour each builder keeps.
+/// proleptic, its proleptic dates before the 1582 reform, the behaviour each builder keeps, and the date-times it
+/// reads back to the instants they state.
 @Suite
 struct HealthKitEffectiveTimeTests {
     /// SplitMix64, so a failing sweep replays exactly.
@@ -277,6 +278,83 @@ struct HealthKitEffectiveTimeTests {
         }
         #expect(throws: HealthKitConversionError.ecgEvidence(.invalidSourcePeriod)) {
             try HealthKitEffectiveTime.exactDateTime(yearZero, offset: 0, zone: .gmt)
+        }
+    }
+
+    @Test("Mobile date-times read back to the millisecond they state over the seeded sweep and the edge list, also before the reform")
+    func mobileRoundTrips() {
+        let milliseconds = { (instant: Date) in (instant.timeIntervalSince1970 * 1_000).rounded(.toNearestOrEven) }
+        var generator = SeededGenerator(state: 0x4D32_5265_7665_7273)
+        var mismatches: [String] = []
+        for zone in Self.zones {
+            for index in 0..<(Self.edges.count + Self.sweepCount) {
+                let date = index < Self.edges.count ? Self.edges[index] : Self.sweepInstant(&generator)
+                guard let stated = try? HealthKitEffectiveTime.dateTime(date, zone: zone).value else {
+                    continue
+                }
+                let read = HealthKitEffectiveTime.instant(of: stated)
+                if read.map(milliseconds) != milliseconds(date) {
+                    mismatches.append("\(date.timeIntervalSince1970) \(zone?.identifier ?? "none"): \(stated) reads \(read.map { "\($0.timeIntervalSince1970)" } ?? "nothing")")
+                }
+            }
+        }
+        #expect(mismatches.isEmpty, "\(mismatches.count) mismatches: \(mismatches.prefix(20))")
+    }
+
+    @Test("ECG date-times read back to their instant to binary64 precision, also before the reform")
+    func ecgRoundTrips() throws {
+        func stated(_ since1970: TimeInterval, plus offset: Decimal, in zone: TimeZone = .gmt) throws -> DateTime {
+            try HealthKitEffectiveTime.exactDateTime(Date(timeIntervalSince1970: since1970), offset: offset, zone: zone)
+        }
+        let losAngeles = try #require(TimeZone(identifier: "America/Los_Angeles"))
+        let indiaStandardTime = try #require(TimeZone(secondsFromGMT: 19_800))
+        let instants: [(DateTime, TimeInterval)] = [
+            (try stated(1_793_525_400, plus: 0.25, in: losAngeles), 1_793_525_400.25),
+            (try stated(-12_219_292_801, plus: 0.25), -12_219_292_800.75),
+            (try stated(-14_831_769_600, plus: 1.5, in: indiaStandardTime), -14_831_769_598.5),
+            (try stated(-62_135_596_800, plus: 0.004), -62_135_596_799.996),
+            (try stated(253_402_300_799, plus: 0.999), 253_402_300_799.999)
+        ]
+        for (dateTime, since1970) in instants {
+            let read = try #require(HealthKitEffectiveTime.instant(of: dateTime))
+            #expect(abs(read.timeIntervalSince1970 - since1970) < 0.000_1, "\(dateTime)")
+        }
+    }
+
+    @Test("A date-time reads back in the proleptic Gregorian calendar: a partial date at its first instant, no offset as UTC")
+    func readsProlepticInstants() throws {
+        let pinned: [(String, TimeInterval)] = [
+            ("1582-10-14T23:59:59Z", -12_219_292_801), ("1582-10-15T00:00:00Z", -12_219_292_800),
+            ("1582-10-04T23:59:59.250+01:00", -12_220_160_400.75), ("1500-01-01T00:00:00Z", -14_831_769_600),
+            ("0001-01-01T00:00:00Z", -62_135_596_800), ("2026-08-17T15:30:00.250-07:00", 1_787_005_800.25),
+            ("9999-12-31T23:59:59Z", 253_402_300_799), ("2026", 1_767_225_600), ("2026-08", 1_785_542_400),
+            ("2026-08-17", 1_786_924_800), ("1500-01-01", -14_831_769_600)
+        ]
+        for (lexeme, since1970) in pinned {
+            #expect(HealthKitEffectiveTime.instant(of: try DateTime(lexeme))?.timeIntervalSince1970 == since1970, "\(lexeme)")
+        }
+        let withoutOffset = DateTime(date: FHIRDate(year: 2026, month: 8, day: 17), time: FHIRTime(hour: 22, minute: 30, second: 0))
+        #expect(HealthKitEffectiveTime.instant(of: withoutOffset)?.timeIntervalSince1970 == 1_787_005_800)
+        for year in [0, -1, 10_000] {
+            #expect(HealthKitEffectiveTime.instant(of: DateTime(date: FHIRDate(year: year, month: 1, day: 1))) == nil, "\(year)")
+        }
+    }
+
+    /// Only a date-time built in memory names a zone; Foundation's calendar is proleptic here, so it checks the policy.
+    @Test("A named zone reads a repeated wall-clock time as its first occurrence and a skipped one at the earlier offset")
+    func namedZonesFollowFoundationAtTransitions() throws {
+        func halfPast(_ hour: UInt8, on day: FHIRDate, in identifier: String) throws -> DateTime {
+            DateTime(date: day, time: FHIRTime(hour: hour, minute: 30, second: 0), timezone: try #require(TimeZone(identifier: identifier)))
+        }
+        let pinned: [(DateTime, TimeInterval)] = [
+            (try halfPast(1, on: FHIRDate(year: 2026, month: 11, day: 1), in: "America/Los_Angeles"), 1_793_521_800),
+            (try halfPast(2, on: FHIRDate(year: 2026, month: 3, day: 8), in: "America/Los_Angeles"), 1_772_965_800),
+            (try halfPast(2, on: FHIRDate(year: 2026, month: 10, day: 25), in: "Europe/Amsterdam"), 1_792_888_200),
+            (try halfPast(2, on: FHIRDate(year: 2026, month: 3, day: 29), in: "Europe/Amsterdam"), 1_774_747_800)
+        ]
+        for (dateTime, since1970) in pinned {
+            #expect(HealthKitEffectiveTime.instant(of: dateTime)?.timeIntervalSince1970 == since1970, "\(dateTime)")
+            #expect(HealthKitEffectiveTime.instant(of: dateTime) == (try dateTime.asNSDate()), "\(dateTime)")
         }
     }
 
