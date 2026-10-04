@@ -29,12 +29,11 @@ package struct ExchangeGraphAssembler: Sendable {
         let converterURL: String
     }
 
-    /// The device snapshots of one graph and who the Provenance names as author.
+    /// The device snapshots of one graph.
     struct Devices {
         let converter: ConverterSnapshots
         let recording: RecordingSnapshot?
         let writer: WriterSnapshots?
-        let authorURL: String?
 
         /// Every Device entry, in its fixed order.
         var entries: [IdentifiedDevice] {
@@ -93,7 +92,8 @@ package struct ExchangeGraphAssembler: Sendable {
             sourceIdentifier: draft.sourceRecord.identifier.fhirIdentifier,
             targetURLs: outputs.map(\.url),
             converterURL: devices.converter.applicationURL,
-            authorURL: devices.authorURL,
+            // The writer application is the Provenance author; without one the Provenance names none.
+            authorURL: devices.writer?.applicationURL,
             recordedAt: draft.instant
         )
         provenance.id = draft.repositoryIDs[.provenance]?.primitive
