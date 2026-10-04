@@ -122,6 +122,24 @@ struct HealthKitEffectiveIntervalTests {
         #expect(conversion.warnings.isEmpty)
     }
 
+    @Test("Exactly the plans whose profile fixes an instant state a sample's start alone, withholding its end")
+    func instantOnlyMeasurementsWithholdTheirEnd() {
+        /// Whether the type's Observation states only its start, so the wire carries no `endDate`.
+        func withholdsEndDate(_ type: HealthKitSourceType) -> Bool {
+            guard case .observation(let plan) = HealthKitContentPlan[type].route else {
+                return false
+            }
+            return plan.effective == .instant
+        }
+        #expect(!withholdsEndDate(.heartRate))
+        #expect(!withholdsEndDate(.stepCount))
+        #expect(withholdsEndDate(.respiratoryRate))
+        #expect(withholdsEndDate(.bloodPressure))
+        #expect(!withholdsEndDate(.electrocardiogram))
+        #expect(!withholdsEndDate(.workout))
+        #expect(!withholdsEndDate(.stateOfMind))
+    }
+
     @Test("A non-zero Period is judged on the wire: endpoints that round to one millisecond are refused")
     func nonZeroPeriodIsJudgedOnWireMilliseconds() throws {
         #expect(throws: HealthKitConversionError.invalidValue(.stepCount, .effectivePeriodInvalid)) {
