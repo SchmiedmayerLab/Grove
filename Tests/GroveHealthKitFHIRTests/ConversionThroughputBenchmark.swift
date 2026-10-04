@@ -62,6 +62,31 @@ import ModelsR4
 import Testing
 
 
+/// A scenario's Observation plan, as the rewired assembly runs it: the metadata bridged once, then the content.
+private struct ObservationContent {
+    /// The type's plan.
+    let plan: HealthKitContentPlan
+    /// Its Observation content.
+    let content: ObservationPlan
+
+    init(_ plan: HealthKitContentPlan) throws {
+        guard case .observation(let content) = plan.route else {
+            throw plan.refusal
+        }
+        self.plan = plan
+        self.content = content
+    }
+
+    func metadata(_ sample: HKSample) -> HealthKitSampleMetadata {
+        HealthKitSampleMetadata(sample, rule: plan.metadata)
+    }
+
+    func observation(_ sample: HKSample) throws -> Observation {
+        try content.observation(sample, metadata: metadata(sample))
+    }
+}
+
+
 /// The measured state of one scenario, carried from phase to phase.
 private struct ScenarioRun {
     let scenario: Scenario
@@ -341,7 +366,7 @@ struct ConversionThroughputBenchmark {
     private func measureFoundationWork(_ run: ScenarioRun) throws {
         let revalidateSeconds = try Stopwatch.seconds {
             for data in run.encoded {
-                _ = try ExchangeGraph(kind: .active, jsonData: data)
+                _ = try ExchangeGraph(validating: data, kind: .active)
             }
         }
         run.report.line("scenario=\(run.name) phase=revalidate-jsonData \(run.rate(revalidateSeconds))")
@@ -359,19 +384,21 @@ struct ConversionThroughputBenchmark {
         run.report.line("scenario=\(run.name) phase=JSONDecoder-decode-bundle \(run.rate(decodeSeconds))")
     }
 
-    /// Construction pieces: the source facts (devices, writer, identifiers), then the clinical content alone.
+    /// Construction pieces: the source facts (devices, writer, identifiers), then the clinical content alone. The
+    /// scenario's plan is looked up once, outside the loops; each phase bridges the sample's metadata itself, as each
+    /// read the metadata before the plans.
     private func measureConstruction(_ run: ScenarioRun) throws {
+        let content = try ObservationContent(try #require(HealthKitContentPlan.plan(for: run.samples[0])))
         let factsSeconds = try Stopwatch.seconds {
             for index in 0..<run.count {
                 let sample = run.samples[index]
-                _ = try HealthKitAssembly.SourceFacts(sample, metadata: HealthKitSampleMetadata(sample, rule: .allowlist), options: run.contexts[index].options)
+                _ = try HealthKitAssembly.SourceFacts(sample, metadata: content.metadata(sample), options: run.contexts[index].options)
             }
         }
         run.report.line("scenario=\(run.name) phase=source-facts(devices+writer+identifiers) \(run.rate(factsSeconds))")
-        let binding = HealthKitCatalog.binding(for: run.samples[0])!
         let observationSeconds = try Stopwatch.seconds {
             for index in 0..<run.count {
-                _ = try HealthKitConverter.observation(for: run.samples[index], binding: binding)
+                _ = try content.observation(run.samples[index])
             }
         }
         run.report.line("scenario=\(run.name) phase=observation-content \(run.rate(observationSeconds))")
