@@ -18,21 +18,13 @@ import ModelsR4
 /// The retractions and the reverse projections: the targets a deletion names, and the sample an Observation
 /// projects back to, alone or straight from a conversion's wire bytes.
 extension ContentCorpusRecorder {
-    /// How an Observation projects back to a sample.
-    typealias Projection = @Sendable (Observation) throws(HealthKitSampleProjectionError) -> HKSample
-
     /// The instant from which HealthKit raises an uncatchable exception for any sample it is asked to create.
     private static let healthKitHorizon = Date(timeIntervalSince1970: 64_092_211_200) // 4000-01-01T00:00:00Z
 
-    /// The public reverse projection, which the corpus pins.
-    static let publicProjection: Projection = { observation throws(HealthKitSampleProjectionError) in
-        try observation.healthKitSample()
-    }
-
-    /// The sample `observation` projects back to through `projection`, or why it does not.
-    static func reverse(_ observation: Observation, projection: Projection = publicProjection) -> LosslessJSONValue {
+    /// The sample `observation` projects back to, or why it does not.
+    static func reverse(_ observation: Observation) -> LosslessJSONValue {
         do {
-            return sample(try projection(observation), units: statedUnits(of: observation))
+            return sample(try observation.healthKitSample(), units: statedUnits(of: observation))
         } catch {
             let refusal = LosslessJSONValue.object([
                 "code": .string(error.diagnostic.code),
@@ -43,11 +35,11 @@ extension ContentCorpusRecorder {
     }
 
     /// Converts `source`, then projects every Observation of its graphs, decoded from the wire bytes as a consumer
-    /// reads them, back to a sample through `projection`; a refusal or omission renders as the conversion's own.
+    /// reads them, back to a sample; a refusal or omission renders as the conversion's own.
     ///
     /// HealthKit raises an uncatchable exception when asked to create a sample after 4000 or shorter than its type's
     /// minimum duration, so such a source is refused here instead of projected.
-    static func roundTrip(_ source: ContentCorpusSource, projection: Projection = publicProjection) throws -> LosslessJSONValue {
+    static func roundTrip(_ source: ContentCorpusSource) throws -> LosslessJSONValue {
         try requireProjectable(source)
         let outcome = try outcome(of: source)
         guard case .converted(let set) = outcome else {
@@ -56,7 +48,7 @@ extension ContentCorpusRecorder {
         let graphs = try set.all.map { conversion in
             let resources = (try LosslessJSONValue(parsing: conversion.graph.json)["entry"]?.elements ?? []).compactMap { $0["resource"] }
             let samples = try resources.filter { $0["resourceType"]?.text == ResourceType.observation.rawValue }.map { resource in
-                reverse(try JSONDecoder().decode(Observation.self, from: Data(resource.canonicalText.utf8)), projection: projection)
+                reverse(try JSONDecoder().decode(Observation.self, from: Data(resource.canonicalText.utf8)))
             }
             return LosslessJSONValue.object(["samples": .array(samples)])
         }

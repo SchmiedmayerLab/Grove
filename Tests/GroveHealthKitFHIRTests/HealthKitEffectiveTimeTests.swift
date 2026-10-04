@@ -35,7 +35,7 @@ private struct ExactInstant: Equatable, CustomStringConvertible {
 @Suite
 struct HealthKitEffectiveTimeTests {
     /// SplitMix64, so a failing sweep replays exactly.
-    struct SeededGenerator: RandomNumberGenerator {
+    private struct SeededGenerator: RandomNumberGenerator {
         var state: UInt64
 
         mutating func next() -> UInt64 {
