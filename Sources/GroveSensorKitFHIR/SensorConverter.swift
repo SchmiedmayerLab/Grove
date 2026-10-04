@@ -220,7 +220,6 @@ extension SensorConverter {
         let converterHostURL = try converterHostIdentity.fullURLString
         let recordingDeviceURL = try recordingDeviceSnapshot.map { try $0.fullURLString }
         let studyContext = try context.event.studyContext()
-        let gateway = try gatewayApplication(context: context)
 
         var converterApplication = applicationDevice(context.event.application)
         converterApplication.id = context.repositoryID(.applicationDevice)?.primitive
@@ -246,6 +245,9 @@ extension SensorConverter {
             recordingDeviceURL: recordingDeviceURL,
             converterURL: converterURL
         )
+        // The guide defines observation-gatewayDevice for Observations only; a recording document names no gateway, so
+        // a gateway snapshot beside one would connect to nothing (mobile-support.connected).
+        let gateway: IdentifiedDevice? = if case .observation = primaryResource { try gatewayApplication(context: context) } else { nil }
         // The repository id is applied once; the proxy and the retained value are the same resource.
         let retainedPrimary: SensorPrimaryResource
         let primaryProxy: ResourceProxy
@@ -343,8 +345,8 @@ extension SensorConverter {
         return ["Observation.effectivePeriod.start", "Observation.effectivePeriod.end"].map { .sourceOffsetUnavailable(field: $0) }
     }
 
-    /// A distinct gateway application travels as a second application snapshot; the converter
-    /// itself as gateway needs no further entry.
+    /// A distinct gateway application travels as a second application snapshot when the primary is an Observation,
+    /// which names it; the converter itself as gateway needs no further entry.
     static func gatewayApplication(context: SensorConversionContext) throws -> IdentifiedDevice? {
         guard case .gatewayApplication(let application) = context.event.converterRole else {
             return nil

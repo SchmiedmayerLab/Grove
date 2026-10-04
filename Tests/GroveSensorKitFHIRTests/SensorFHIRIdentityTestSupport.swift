@@ -143,6 +143,25 @@ extension RoledIdentifier {
 }
 
 
+extension ExchangeEventContext {
+    /// The same event under another converter role.
+    func with(converterRole: ConverterRole) -> ExchangeEventContext {
+        ExchangeEventContext(
+            subject: subject,
+            event: event,
+            identityScope: identityScope,
+            repositoryScope: repositoryScope,
+            application: application,
+            host: host,
+            conversionInstant: conversionInstant,
+            converterRole: converterRole,
+            studies: studies,
+            repositoryIDs: repositoryIDs
+        )
+    }
+}
+
+
 /// Keeps the fixtures concise while production callers build the shared event context themselves.
 extension SensorConversionContext {
     init(

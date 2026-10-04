@@ -495,6 +495,41 @@ struct GroveSensorKitFHIRConverterTests {
         #expect(period.start == period.end)
     }
 
+    /// Spec F2 in the SensorKit adapter: only an Observation names a gateway, so a raw-only graph under a gateway
+    /// application carries no gateway Device, while a hybrid ECG graph, whose Observation names it, does.
+    @Test("A gateway application travels only with an Observation that names it")
+    func gatewayApplicationTravelsOnlyWithAnObservation() throws {
+        let base = try Self.context
+        let gateway = ApplicationDevice.test(name: "Cuff Companion", bundleIdentifier: "com.example.cuff", version: "3.1")
+        let context = SensorKitConversionContext(
+            event: base.event.with(converterRole: .gatewayApplication(gateway)),
+            visitLocationIdentifierSystem: base.visitLocationIdentifierSystem,
+            recordingDevice: base.recordingDevice,
+            sourceTimeZone: base.sourceTimeZone
+        )
+        let snapshot = try context.identityScope.deviceSnapshot(event: context.eventIdentifier, role: .application, sourceDeviceToken: gateway.sourceDeviceToken)
+        let raw = try SensorKitRawRecord(
+            sourceRecordID: try Self.sourceID,
+            sourceToken: "SRSensor.heartRate",
+            effectivePeriod: DateInterval(start: Self.start, duration: 1),
+            nativeRecording: try Self.native(format: .heartRateSamples)
+        )
+        let rawOnly = try SensorKitConverter().convert(.raw(raw), context: context)
+        #expect(rawOnly.graph.entry(fullURL: try snapshot.fullURL) == nil)
+        let ecg = SensorKitECGRecord(
+            sourceRecordID: try Self.sourceID,
+            startDate: Self.start,
+            durationSeconds: 0.006,
+            frequencyHertz: 500,
+            lead: .leftArmMinusRightArm,
+            guidance: .guided,
+            batches: [.init(offsetSeconds: 0, millivolts: [0.011, 0.023]), .init(offsetSeconds: 0.004, millivolts: [-0.005, 0.014])],
+            nativeRecording: try Self.native()
+        )
+        let hybrid = try SensorKitConverter().convert(.electrocardiogram(ecg), context: context)
+        #expect(hybrid.graph.entry(fullURL: try snapshot.fullURL) != nil)
+    }
+
     @Test("A raw-only source discloses its governed ID on the sole DocumentReference")
     func governedNativeIDOnRawOnlyPrimary() throws {
         let record = try SensorKitRawRecord(

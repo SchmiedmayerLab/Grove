@@ -272,7 +272,6 @@ extension SensorKitConverter {
         let converterURL = try converterApplicationIdentity.fullURLString
         let converterHostURL = try converterHostIdentity.fullURLString
         let studyContext = try context.event.studyContext()
-        let gateway = try gatewayApplication(context: context)
         let recordingDeviceIdentity = try context.recordingDevice.map {
             try context.identityScope.recordingDevice(
                 adapterID: Self.adapterID,
@@ -300,6 +299,8 @@ extension SensorKitConverter {
             recordingDeviceURL: recordingDeviceURL,
             converterURL: converterURL
         )
+        // Only an Observation names a gateway (observation-gatewayDevice): a raw-only graph carries none.
+        let gateway = try observations.isEmpty ? nil : gatewayApplication(context: context)
         var document = try buildDocument(
             record,
             sourceIdentifier: sourceRecord.identifier,
@@ -499,7 +500,7 @@ extension SensorKitConverter {
         try validateCatalogContract(record)
     }
 
-    /// A distinct gateway application travels as a second application snapshot.
+    /// A distinct gateway application travels as a second application snapshot when the graph emits an Observation.
     static func gatewayApplication(context: SensorKitConversionContext) throws -> IdentifiedDevice? {
         guard case .gatewayApplication(let application) = context.event.converterRole else {
             return nil

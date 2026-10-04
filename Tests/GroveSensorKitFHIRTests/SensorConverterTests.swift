@@ -129,6 +129,24 @@ struct SensorFHIRConverterTests {
         #expect(value.data?.value?.string == "0.1 0.2 0.3 0.4 0.5 0.6")
     }
 
+    /// Spec F2 in the generic sensor adapter: the guide defines observation-gatewayDevice for Observations only, so a
+    /// recording document under a gateway application carries no gateway Device, while an Observation names it.
+    @Test
+    func gatewayApplicationTravelsOnlyWithAnObservation() throws {
+        let base = try Self.context
+        let gateway = ApplicationDevice.test(name: "Cuff Companion", bundleIdentifier: "com.example.cuff", version: "3.1")
+        let context = SensorConversionContext(
+            event: base.event.with(converterRole: .gatewayApplication(gateway)),
+            adapterID: base.adapterID,
+            recordingDevice: base.recordingDevice
+        )
+        let snapshot = try context.identityScope.deviceSnapshot(event: context.eventIdentifier, role: .application, sourceDeviceToken: gateway.sourceDeviceToken)
+        let document = try SensorConverter().convert(.recordingDocument(Self.recordingDocument()), context: context)
+        #expect(document.graph.entry(fullURL: try snapshot.fullURL) == nil)
+        let observation = try SensorConverter().convert(.sampledData(Self.sampledData()), context: context)
+        #expect(observation.graph.entry(fullURL: try snapshot.fullURL) != nil)
+    }
+
     @Test
     func repositoryIDsAreAppliedOnlyWhenExplicitlyAssigned() throws {
         let base = try Self.context
