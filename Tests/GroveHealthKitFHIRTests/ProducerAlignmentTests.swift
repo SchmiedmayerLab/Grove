@@ -321,17 +321,20 @@ struct ProducerSurfaceTests {
         let converterApplication = try device("org.grovealliance.test|1.0|1", role: .application)
         let stated: Set = [converterHost.identity, converterApplication.identity]
 
-        let sameHost = HealthKitConverter.WriterDevices(
-            application: try device("com.apple.Health|26.0", role: .application),
-            host: try device("iPhone17,1|26.0.0", role: .host)
+        let health = try device("com.apple.Health|26.0", role: .application)
+        let sameHost = ExchangeGraphAssembler.writerEntries(
+            application: health,
+            host: try device("iPhone17,1|26.0.0", role: .host),
+            stated: stated
         )
-        #expect(sameHost.entries(excluding: stated).map(\.identity) == [sameHost.application.identity])
+        #expect(sameHost.map(\.identity) == [health.identity])
 
-        let converterItself = HealthKitConverter.WriterDevices(
+        let converterItself = ExchangeGraphAssembler.writerEntries(
             application: try device("org.grovealliance.test|1.0|1", role: .application),
-            host: try device("iPhone16,2|25.4.0", role: .host)
+            host: try device("iPhone16,2|25.4.0", role: .host),
+            stated: stated
         )
-        #expect(converterItself.entries(excluding: stated).isEmpty)
+        #expect(converterItself.isEmpty)
     }
 
     @Test("A gateway application is its own snapshot: never the writer and never given a repository id")

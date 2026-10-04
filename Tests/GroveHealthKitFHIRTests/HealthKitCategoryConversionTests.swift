@@ -268,22 +268,30 @@ struct HealthKitFHIRCategoryConversionTests {
     }
 
     // HealthKit rejects a menstrual-flow sample without cycle-start metadata at construction, so the
-    // converter's own guard is reachable only below the sample surface.
+    // samples are stored ones, built past that check.
     @Test("Menstrual flow without HealthKit's mandatory cycle-start metadata fails closed")
     func menstrualCycleStartIsRequired() throws {
-        let contract = HealthKitFHIRObservationContract(shared: MeasurementCatalog.menstruationFlow)
-
-        #expect(throws: HealthKitValueFailure.requiredMetadataMissing(.menstrualCycleStart)) {
-            try HealthKitConverter.menstrualCycleStartComponent(
-                metadata: [:],
-                contract: contract
+        let failures: [([String: any Sendable], HealthKitValueFailure)] = [
+            ([:], .requiredMetadataMissing(.menstrualCycleStart)),
+            ([HKMetadataKeyMenstrualCycleStart: "yes"], .unsupportedMetadataValue(.menstrualCycleStart))
+        ]
+        for (metadata, failure) in failures {
+            let facts = StoredSampleFixtures.SampleFacts(
+                uuid: GoldenFixtures.uuid(0xF5),
+                start: timestamp,
+                end: timestamp.addingTimeInterval(1_800),
+                device: nil,
+                metadata: metadata.isEmpty ? nil : metadata,
+                writer: .unattributed
             )
-        }
-        #expect(throws: HealthKitValueFailure.unsupportedMetadataValue(.menstrualCycleStart)) {
-            try HealthKitConverter.menstrualCycleStartComponent(
-                metadata: [HKMetadataKeyMenstrualCycleStart: "yes"],
-                contract: contract
+            let sample = try StoredSampleFixtures.categorySample(
+                HKCategoryType(.menstrualFlow),
+                value: HKCategoryValueVaginalBleeding.light.rawValue,
+                facts: facts
             )
+            #expect(throws: HealthKitConversionError.invalidValue(.menstrualFlow, failure)) {
+                try converter.convert(sample, context: context)
+            }
         }
     }
 

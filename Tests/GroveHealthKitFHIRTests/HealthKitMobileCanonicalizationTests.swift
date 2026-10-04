@@ -9,6 +9,7 @@
 #if canImport(HealthKit)
 
 import Foundation
+import GroveFHIRContract
 @testable import GroveHealthKitFHIR
 import Testing
 
@@ -53,18 +54,19 @@ struct HealthKitFHIRMobileCanonicalizationTests {
 
     @Test("Scalar quantities use the shortest round-trip decimal representation")
     func scalarDecimal() throws {
-        let value = try HealthKitMobileCanonicalization.scalarDecimal(36.52)
+        let template = QuantityTemplate(try #require(MeasurementCatalog.bodyTemperature.quantity))
 
-        #expect(value.value?.decimal.description == "36.52")
+        #expect(try template.quantity(36.52).value?.value?.decimal.description == "36.52")
     }
 
     @Test("Non-finite effective instants and quantities fail closed")
     func nonFiniteValues() throws {
+        let template = QuantityTemplate(try #require(MeasurementCatalog.bodyTemperature.quantity))
         #expect(throws: HealthKitValueFailure.shapeInvalid) {
-            try HealthKitMobileCanonicalization.scalarDecimal(.infinity)
+            try template.quantity(.infinity)
         }
         #expect(throws: HealthKitValueFailure.shapeInvalid) {
-            try HealthKitMobileCanonicalization.scalarDecimal(.nan)
+            try template.quantity(.nan)
         }
         #expect(throws: HealthKitValueFailure.shapeInvalid) {
             try HealthKitEffectiveTime.dateTime(Date(timeIntervalSince1970: .infinity), zone: nil)

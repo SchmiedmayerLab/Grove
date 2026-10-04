@@ -455,54 +455,34 @@ struct ConformanceFixtureTests {
         let quantityStudies = studyQuantity.observation.extension?.filter { $0.url == Canonicals.researchStudy } ?? []
         #expect(quantityStudies.count == 2)
         #expect(studyQuantity.observation.extension?.contains { $0.url == Canonicals.instantiatesCanonical } != true)
-        let ecgSource = HealthKitECGSourceEvidence(
-            sourceTypeIdentifier: HealthKitContract.electrocardiogramSourceTypeIdentifier,
-            startDate: ecgStart,
-            endDate: ecgStart.addingTimeInterval(30),
-            timeZone: try #require(TimeZone(identifier: Self.sourceTimeZoneIdentifier)),
+        // HKElectrocardiogram has no public synthetic initializer, so the stored-sample fixtures state the ECG's
+        // reading, and its voltages travel beside it as the caller supplies them.
+        let ecgFacts = StoredSampleFixtures.SampleFacts(
+            uuid: GoldenFixtures.uuid(0xF6),
+            start: ecgStart,
+            end: ecgStart.addingTimeInterval(30),
+            device: Self.device,
+            metadata: [
+                HKMetadataKeyTimeZone: Self.sourceTimeZoneIdentifier,
+                HKMetadataKeyAppleECGAlgorithmVersion: HKAppleECGAlgorithmVersion.version2.rawValue
+            ],
+            writer: .unattributed
+        )
+        let ecg = try StoredSampleFixtures.electrocardiogram(facts: ecgFacts, reading: StoredElectrocardiogram.Reading(
             classification: .sinusRhythm,
             symptomsStatus: .none,
             numberOfVoltageMeasurements: 4,
-            averageHeartRate: 72,
-            samplingFrequency: 500,
-            algorithmVersion: HKAppleECGAlgorithmVersion.version2.rawValue
-        )
-        let ecgWaveform = try HealthKitECGEvidenceValidator.validateWaveform(
-            reportedCount: ecgSource.numberOfVoltageMeasurements,
-            samplingFrequencyHertz: ecgSource.samplingFrequency,
-            points: [
-                .init(timeSinceSampleStart: 0.250, millivolts: 0.125),
-                .init(timeSinceSampleStart: 0.252, millivolts: 0.250),
-                .init(timeSinceSampleStart: 0.254, millivolts: -0.125),
-                .init(timeSinceSampleStart: 0.256, millivolts: 0)
-            ]
-        )
-        let ecgInput = HealthKitECGObservationInput(
-            source: ecgSource,
-            waveform: ecgWaveform,
-            symptomOutputIdentifiers: []
-        )
-        // HKElectrocardiogram has no public synthetic initializer. This already-fetched
-        // HealthKit sample supplies only the graph envelope's UUID/device/source-revision
-        // evidence; the ECG Observation itself is built from the exact ECG input above.
-        let ecgEnvelopeSource = try quantity(
-            .heartRate,
-            .count().unitDivided(by: .minute()),
-            72,
-            effective: .dateTime("2026-08-20T08:20:00-07:00")
-        )
-        let ecgPrimary = ExchangeOutputDraft(
-            role: "electrocardiogram",
-            resource: .observation(try HealthKitConverter.ecgObservation(input: ecgInput))
-        )
-        let ecgOutputs = [ecgPrimary] + [try HealthKitConverter.ecgAverageHeartRateChild(input: ecgInput)].compactMap(\.self)
-        let ecgConversion = HealthKitConversionSet(primary: try HealthKitAssembly(context: ecgContext.event).graph(
-            for: ecgEnvelopeSource,
-            type: .heartRate,
-            metadata: HealthKitSampleMetadata(ecgEnvelopeSource, rule: HealthKitContentPlan[.heartRate].metadata),
-            outputs: ecgOutputs,
-            request: .init(context: ecgContext)
+            averageHeartRate: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 72),
+            samplingFrequency: HKQuantity(unit: .hertz(), doubleValue: 500)
         ))
+        let voltages = try [(0.250, 0.125), (0.252, 0.250), (0.254, -0.125), (0.256, 0)].map { offset, millivolts in
+            try StoredSampleFixtures.voltageMeasurement(offset: offset, millivolts: millivolts)
+        }
+        let ecgConversion = try converter.convert(
+            HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: voltages),
+            context: ecgContext,
+            symptomContexts: []
+        )
         let ecgObservation = ecgConversion.observation
         let ecgStudies = ecgObservation.extension?.filter { $0.url == Canonicals.researchStudy } ?? []
         #expect(ecgStudies.map(\.value) == quantityStudies.map(\.value))

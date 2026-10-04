@@ -139,8 +139,8 @@ struct ContentInvariantTests {
         }
         var mismatches: [String] = []
         for contract in MeasurementCatalog.all + HealthKitMeasurementCatalog.all {
-            // Today's map, read without building a sample: HealthKit raises on samples it refuses to create.
-            let projected = (try? HealthKitSampleProjection.quantityTypeIdentifier(for: contract.id))?.rawValue
+            // The projection's map, read without building a sample: HealthKit raises on samples it refuses to create.
+            let projected = HealthKitSampleProjection.quantityTypes[contract.id]?.rawValue
             let expected = forward[contract.id].flatMap { $0.count == 1 ? $0.first : nil }
             if projected != expected {
                 mismatches.append("\(contract.id): \(projected ?? "refused") != \(expected ?? "refused")")

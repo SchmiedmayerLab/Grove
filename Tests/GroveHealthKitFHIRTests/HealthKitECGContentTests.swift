@@ -16,22 +16,73 @@ import ModelsR4
 import Testing
 
 
+/// The ECG content's checks of what a caller supplies: the voltages, the symptoms and their contexts, and the facts the
+/// ECG's metadata states.
 @Suite
-struct HealthKitECGEvidenceValidatorTests {
+struct HealthKitECGContentTests {
+    /// One voltage of the lead.
+    struct VoltagePoint: Sendable {
+        /// Its offset from the ECG's start, in seconds.
+        let offset: TimeInterval
+        /// Its value.
+        let millivolts: Double
+    }
+
     struct InvalidCase: CustomTestStringConvertible, Sendable {
         let testDescription: String
         let reportedCount: Int
         let samplingFrequencyHertz: Double?
-        let points: [HealthKitECGVoltagePoint]
+        let points: [VoltagePoint]
         let expected: HealthKitECGEvidenceFailure
     }
 
     private static let validPoints = [
-        HealthKitECGVoltagePoint(timeSinceSampleStart: 0.250, millivolts: 0),
-        HealthKitECGVoltagePoint(timeSinceSampleStart: 0.252, millivolts: 1),
-        HealthKitECGVoltagePoint(timeSinceSampleStart: 0.254, millivolts: -2),
-        HealthKitECGVoltagePoint(timeSinceSampleStart: 0.256, millivolts: 3)
+        VoltagePoint(offset: 0.250, millivolts: 0),
+        VoltagePoint(offset: 0.252, millivolts: 1),
+        VoltagePoint(offset: 0.254, millivolts: -2),
+        VoltagePoint(offset: 0.256, millivolts: 3)
     ]
+
+    /// A stored ECG reporting `reportedCount` voltages sampled at `samplingFrequencyHertz`, supplying `points` and
+    /// stating `metadata`.
+    private static func record(
+        reportedCount: Int,
+        samplingFrequencyHertz: Double?,
+        points: [VoltagePoint],
+        metadata: [String: any Sendable] = [:]
+    ) throws -> HealthKitECGRecord {
+        let start = GoldenFixtures.sampleStart
+        let facts = StoredSampleFixtures.SampleFacts(
+            uuid: GoldenFixtures.uuid(0xC0),
+            start: start,
+            end: start.addingTimeInterval(30),
+            device: nil,
+            metadata: metadata.isEmpty ? nil : metadata,
+            writer: .unattributed
+        )
+        let reading = StoredElectrocardiogram.Reading(
+            classification: .sinusRhythm,
+            symptomsStatus: .none,
+            numberOfVoltageMeasurements: reportedCount,
+            averageHeartRate: nil,
+            samplingFrequency: samplingFrequencyHertz.map { HKQuantity(unit: .hertz(), doubleValue: $0) }
+        )
+        return HealthKitECGRecord(
+            electrocardiogram: try StoredSampleFixtures.electrocardiogram(facts: facts, reading: reading),
+            voltageMeasurements: try points.map { try StoredSampleFixtures.voltageMeasurement(offset: $0.offset, millivolts: $0.millivolts) }
+        )
+    }
+
+    /// The waveform of a stored ECG reporting `reportedCount` voltages sampled at `samplingFrequencyHertz`, supplying
+    /// `points`.
+    private static func waveform(
+        reportedCount: Int,
+        samplingFrequencyHertz: Double?,
+        points: [VoltagePoint]
+    ) throws -> HealthKitECGContent.Waveform {
+        let record = try record(reportedCount: reportedCount, samplingFrequencyHertz: samplingFrequencyHertz, points: points)
+        return try HealthKitECGContent.Waveform(record, unit: .voltUnit(with: .milli))
+    }
 
     @Test("ECG symptom companions must share the exact patient and repository scope")
     func symptomCompanionScopeValidation() throws {
@@ -72,28 +123,21 @@ struct HealthKitECGEvidenceValidatorTests {
 
     @Test
     func completeUniformEnumerationRetainsFirstOffsetAndExactPeriod() throws {
-        let waveform = try HealthKitECGEvidenceValidator.validateWaveform(
-            reportedCount: 4,
-            samplingFrequencyHertz: 500,
-            points: Self.validPoints
-        )
+        let waveform = try Self.waveform(reportedCount: 4, samplingFrequencyHertz: 500, points: Self.validPoints)
 
-        #expect(waveform.firstOffsetSeconds == Decimal(string: "0.250"))
-        #expect(waveform.lastOffsetSeconds == Decimal(string: "0.256"))
-        #expect(waveform.periodMilliseconds == 2)
+        #expect(waveform.firstOffset == Decimal(string: "0.250"))
+        #expect(waveform.lastOffset == Decimal(string: "0.256"))
+        #expect(waveform.period == 2)
         #expect(waveform.data == "0 1 -2 3")
     }
 
     @Test
     func sampledDataUsesPlainRoundTripDecimals() throws {
         let values = [0.123_456_789_012_345_66, 1e-16]
-        let waveform = try HealthKitECGEvidenceValidator.validateWaveform(
+        let waveform = try Self.waveform(
             reportedCount: 2,
             samplingFrequencyHertz: 2,
-            points: [
-                .init(timeSinceSampleStart: 0, millivolts: values[0]),
-                .init(timeSinceSampleStart: 0.5, millivolts: values[1])
-            ]
+            points: [VoltagePoint(offset: 0, millivolts: values[0]), VoltagePoint(offset: 0.5, millivolts: values[1])]
         )
         let encoded = waveform.data.split(separator: " ")
 
@@ -106,46 +150,28 @@ struct HealthKitECGEvidenceValidatorTests {
     @Test("Reported ECG frame counts are not constrained by a removed wire integer field")
     func reportedCountHasNoArtificialInt32Limit() throws {
         let count = Int(Int32.max) + 1
-        try HealthKitECGEvidenceValidator.validateCount(reported: count, supplied: count)
-        #expect(throws: HealthKitConversionError.ecgEvidence(.voltageCountMismatch(
-            reported: count,
-            supplied: count - 1
-        ))) {
-            try HealthKitECGEvidenceValidator.validateCount(reported: count, supplied: count - 1)
+        #expect(throws: HealthKitConversionError.ecgEvidence(.voltageCountMismatch(reported: count, supplied: Self.validPoints.count))) {
+            try Self.waveform(reportedCount: count, samplingFrequencyHertz: 500, points: Self.validPoints)
         }
     }
 
-    /// The facts the public record path reads off an `HKElectrocardiogram` beside its voltages, field by field.
-    @Test("An ECG's source evidence states the sample's own classification, symptoms, rate, algorithm and zone")
-    func sourceEvidenceReadsTheSample() throws {
-        let start = GoldenFixtures.sampleStart
-        let facts = StoredSampleFixtures.SampleFacts(
-            uuid: GoldenFixtures.uuid(0xC0),
-            start: start,
-            end: start.addingTimeInterval(30),
-            device: GoldenFixtures.watch,
-            metadata: [HKMetadataKeyTimeZone: GoldenFixtures.timeZone, HKMetadataKeyAppleECGAlgorithmVersion: HKAppleECGAlgorithmVersion.version2.rawValue],
-            writer: GoldenFixtures.foreignWriter
-        )
-        let ecg = try StoredSampleFixtures.electrocardiogram(facts: facts, reading: StoredElectrocardiogram.Reading(
-            classification: .atrialFibrillation,
-            symptomsStatus: .present,
-            numberOfVoltageMeasurements: 0,
-            averageHeartRate: HKQuantity(unit: GoldenFixtures.beatsPerMinute, doubleValue: 112),
-            samplingFrequency: nil
-        ))
-        let evidence = try HealthKitConverter.ecgSourceEvidence(ecg)
-        #expect(evidence.sourceTypeIdentifier == HealthKitContract.electrocardiogramSourceTypeIdentifier)
-        #expect(evidence.startDate == start)
-        #expect(evidence.endDate == start.addingTimeInterval(30))
-        #expect(evidence.timeZone.identifier == GoldenFixtures.timeZone)
-        #expect(evidence.classification == .atrialFibrillation)
-        #expect(evidence.symptomsStatus == .present)
-        #expect(evidence.averageHeartRate == 112)
+    /// What the record path reads off an `HKElectrocardiogram`'s metadata beside its voltages.
+    @Test("An ECG's evidence states the zone and algorithm version its metadata names, else UTC and none")
+    func evidenceReadsTheMetadata() throws {
+        let plan = HealthKitContentPlan[.electrocardiogram]
+        let metadata: [String: any Sendable] = [
+            HKMetadataKeyTimeZone: GoldenFixtures.timeZone,
+            HKMetadataKeyAppleECGAlgorithmVersion: HKAppleECGAlgorithmVersion.version2.rawValue
+        ]
+        let stated = try Self.record(reportedCount: 4, samplingFrequencyHertz: 500, points: Self.validPoints, metadata: metadata)
+        let evidence = try plan.ecgEvidence(stated)
+        #expect(evidence.electrocardiogram === stated.electrocardiogram)
+        #expect(evidence.zone.identifier == GoldenFixtures.timeZone)
         #expect(evidence.algorithmVersion == HKAppleECGAlgorithmVersion.version2.rawValue)
-        // A reading without voltages reports no measurements and no sampling frequency.
-        #expect(evidence.numberOfVoltageMeasurements == 0)
-        #expect(evidence.samplingFrequency == nil)
+        #expect(evidence.waveform.data == "0 1 -2 3")
+        let bare = try plan.ecgEvidence(try Self.record(reportedCount: 4, samplingFrequencyHertz: 500, points: Self.validPoints))
+        #expect(bare.zone.secondsFromGMT(for: GoldenFixtures.sampleStart) == 0)
+        #expect(bare.algorithmVersion == nil)
     }
 
     /// Every HealthKit classification states its code of the guide's closed code system
@@ -214,7 +240,7 @@ struct HealthKitECGEvidenceValidatorTests {
                 testDescription: "negative first offset",
                 reportedCount: 2,
                 samplingFrequencyHertz: 500,
-                points: [.init(timeSinceSampleStart: -0.002, millivolts: 0), validPoints[0]],
+                points: [VoltagePoint(offset: -0.002, millivolts: 0), validPoints[0]],
                 expected: .invalidOffset(index: 0)
             ),
             InvalidCase(
@@ -235,7 +261,7 @@ struct HealthKitECGEvidenceValidatorTests {
                 testDescription: "nonuniform third offset",
                 reportedCount: 3,
                 samplingFrequencyHertz: nil,
-                points: [validPoints[0], validPoints[1], .init(timeSinceSampleStart: 0.255, millivolts: 2)],
+                points: [validPoints[0], validPoints[1], VoltagePoint(offset: 0.255, millivolts: 2)],
                 expected: .nonUniformOffset(index: 2)
             ),
             InvalidCase(
@@ -256,14 +282,14 @@ struct HealthKitECGEvidenceValidatorTests {
                 testDescription: "nonfinite voltage",
                 reportedCount: 2,
                 samplingFrequencyHertz: 500,
-                points: [validPoints[0], .init(timeSinceSampleStart: 0.252, millivolts: .nan)],
+                points: [validPoints[0], VoltagePoint(offset: 0.252, millivolts: .nan)],
                 expected: .invalidLeadVoltage(index: 1)
             )
         ]
     )
     func rejectsInvalidEvidence(testCase: InvalidCase) {
         #expect(throws: HealthKitConversionError.ecgEvidence(testCase.expected)) {
-            try HealthKitECGEvidenceValidator.validateWaveform(
+            try Self.waveform(
                 reportedCount: testCase.reportedCount,
                 samplingFrequencyHertz: testCase.samplingFrequencyHertz,
                 points: testCase.points
@@ -275,7 +301,7 @@ struct HealthKitECGEvidenceValidatorTests {
     func correlatedSymptomRelationshipPreservesDistinctSourceSamples() throws {
         let first = symptom(.dizziness)
         let second = symptom(.dizziness)
-        let validated = try HealthKitConverter.validatedSymptomSamples(
+        let validated = try HealthKitECGContent.validatedSymptoms(
             [second, first],
             status: .present
         )
@@ -292,25 +318,43 @@ struct HealthKitECGEvidenceValidatorTests {
         let unsupported = symptom(.sleepAnalysis)
 
         #expect(throws: HealthKitConversionError.ecgEvidence(.symptomsRequired)) {
-            try HealthKitConverter.validatedSymptomSamples([], status: .present)
+            try HealthKitECGContent.validatedSymptoms([], status: .present)
         }
         #expect(throws: HealthKitConversionError.ecgEvidence(.unexpectedSymptoms)) {
-            try HealthKitConverter.validatedSymptomSamples([first], status: .none)
+            try HealthKitECGContent.validatedSymptoms([first], status: .none)
         }
         #expect(throws: HealthKitConversionError.ecgEvidence(.duplicateSymptomSource(first.uuid))) {
-            try HealthKitConverter.validatedSymptomSamples([first, first], status: .present)
+            try HealthKitECGContent.validatedSymptoms([first, first], status: .present)
         }
         #expect(throws: HealthKitConversionError.ecgEvidence(
             .unsupportedSymptomType(HKCategoryTypeIdentifier.sleepAnalysis.rawValue)
         )) {
-            try HealthKitConverter.validatedSymptomSamples([unsupported], status: .present)
+            try HealthKitECGContent.validatedSymptoms([unsupported], status: .present)
         }
         let repeatedTypeSamples = (0..<8).map { _ in symptom(.dizziness) }
-        let repeatedTypeValidated = try HealthKitConverter.validatedSymptomSamples(
+        let repeatedTypeValidated = try HealthKitECGContent.validatedSymptoms(
             repeatedTypeSamples,
             status: .present
         )
         #expect(repeatedTypeValidated.count == repeatedTypeSamples.count)
+    }
+
+    @Test("The symptom check admits exactly the claim's symptom source types among every category type")
+    func correlatedSymptomTypesAreTheClaims() throws {
+        let start = GoldenFixtures.sampleStart
+        var admitted: Set<HealthKitSourceType> = []
+        for type in HealthKitSourceType.allCases {
+            guard let categoryType = HKObjectType.categoryType(forIdentifier: HKCategoryTypeIdentifier(rawValue: type.rawValue)) else {
+                continue
+            }
+            let facts = StoredSampleFixtures.SampleFacts(uuid: UUID(), start: start, end: start, device: nil, metadata: nil, writer: .unattributed)
+            let sample = try StoredSampleFixtures.categorySample(categoryType, value: 0, facts: facts)
+            if (try? HealthKitECGContent.validatedSymptoms([sample], status: .present)) != nil {
+                admitted.insert(type)
+            }
+        }
+        #expect(!admitted.isEmpty)
+        #expect(admitted == HealthKitElectrocardiogramClaim.correlatedSymptomSourceTypes)
     }
 
     @Test("A symptom's warnings stay with its own graph and reach the set")
@@ -334,7 +378,7 @@ struct HealthKitECGEvidenceValidatorTests {
         let record = HealthKitECGRecord(
             electrocardiogram: try StoredSampleFixtures.electrocardiogram(facts: facts, reading: reading),
             voltageMeasurements: try Self.validPoints.map { point in
-                try StoredSampleFixtures.voltageMeasurement(offset: point.timeSinceSampleStart, millivolts: point.millivolts)
+                try StoredSampleFixtures.voltageMeasurement(offset: point.offset, millivolts: point.millivolts)
             },
             correlatedSymptoms: [symptom(.dizziness)]
         )

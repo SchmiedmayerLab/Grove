@@ -60,7 +60,7 @@ struct HealthKitFHIRExporterTests {
             ),
             options: options
         )
-        return try HealthKitConverter.convertSample(sample, context: context).primary
+        return try HealthKitAssembly.convert(sample, context: context).primary
     }
 
     private static func collect(
@@ -248,8 +248,8 @@ struct HealthKitFHIRExporterTests {
                 host: Self.base.host,
                 conversionInstant: detectedAt
             ))
-            let reference = try HealthKitConverter.retraction(
-                for: HealthKitSourceRecord(uuid: deletion.uuid, type: deletion.sourceType),
+            let reference = try HealthKitAssembly.retraction(
+                of: HealthKitSourceRecord(uuid: deletion.uuid, type: deletion.sourceType),
                 context: context,
                 occurred: .period(start: deletion.deletedAfter, end: detectedAt)
             )

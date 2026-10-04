@@ -124,27 +124,27 @@ struct HealthKitFHIRConverterTests {
             }
         }
 
-        var contract: HealthKitFHIRObservationContract {
+        var contract: MeasurementContract {
             switch self {
-            case .activeEnergy: .init(shared: MeasurementCatalog.activeEnergy)
-            case .basalBodyTemperature: .init(shared: MeasurementCatalog.basalBodyTemperature)
-            case .bodyFatPercentage: .init(shared: MeasurementCatalog.bodyFatPercentage)
-            case .bodyHeight: .init(shared: MeasurementCatalog.bodyHeight)
-            case .bodyMassIndex: .bodyMassIndex
-            case .bodyTemperature: .init(shared: MeasurementCatalog.bodyTemperature)
-            case .bodyWeight: .init(shared: MeasurementCatalog.bodyWeight)
-            case .dietaryEnergy: .init(shared: MeasurementCatalog.dietaryEnergy)
+            case .activeEnergy: MeasurementCatalog.activeEnergy
+            case .basalBodyTemperature: MeasurementCatalog.basalBodyTemperature
+            case .bodyFatPercentage: MeasurementCatalog.bodyFatPercentage
+            case .bodyHeight: MeasurementCatalog.bodyHeight
+            case .bodyMassIndex: HealthKitContract.bodyMassIndex
+            case .bodyTemperature: MeasurementCatalog.bodyTemperature
+            case .bodyWeight: MeasurementCatalog.bodyWeight
+            case .dietaryEnergy: MeasurementCatalog.dietaryEnergy
             case .distanceCrossCountrySkiing, .distanceCycling, .distanceDownhillSnowSports,
                  .distancePaddleSports, .distanceRowing, .distanceSkatingSports,
                  .distanceSwimming, .distanceWalkingRunning, .distanceWheelchair:
-                .init(shared: MeasurementCatalog.distance)
-            case .heartRate: .init(shared: MeasurementCatalog.heartRate)
-            case .heartRateVariabilitySDNN: .init(shared: MeasurementCatalog.heartRateVariabilitySdnn)
-            case .oxygenSaturation: .init(shared: MeasurementCatalog.oxygenSaturation)
-            case .respiratoryRate: .init(shared: MeasurementCatalog.respiratoryRate)
-            case .stepCount: .init(shared: MeasurementCatalog.stepCount)
-            case .vo2Max: .init(shared: MeasurementCatalog.vo2Max)
-            case .walkingSpeed: .init(shared: HealthKitMeasurementCatalog.walkingSpeed)
+                MeasurementCatalog.distance
+            case .heartRate: MeasurementCatalog.heartRate
+            case .heartRateVariabilitySDNN: MeasurementCatalog.heartRateVariabilitySdnn
+            case .oxygenSaturation: MeasurementCatalog.oxygenSaturation
+            case .respiratoryRate: MeasurementCatalog.respiratoryRate
+            case .stepCount: MeasurementCatalog.stepCount
+            case .vo2Max: MeasurementCatalog.vo2Max
+            case .walkingSpeed: HealthKitMeasurementCatalog.walkingSpeed
             }
         }
     }
@@ -318,6 +318,18 @@ struct HealthKitFHIRConverterTests {
         )
     }
 
+    #if !os(watchOS)
+    /// The document carrying a stored lab result that HealthKit reports in `version`, stating `payload`.
+    private func clinicalDocument(_ payload: Data, version: HKFHIRVersion) throws -> DocumentReference {
+        let plan = HealthKitContentPlan[.labResultRecord]
+        guard case .clinical(let document) = plan.route else {
+            throw plan.refusal
+        }
+        let facts = GoldenCase.seriesFacts(uuid: 0xF3, duration: 0)
+        return try document.document(try StoredSampleFixtures.clinicalRecord(HKClinicalType(.labResultRecord), fhirVersion: version, resource: payload, facts: facts))
+    }
+    #endif
+
     /// The full-catalog matrix proves the profile, code, and lineage facts for every row; this
     /// hand-picked set exists for the source units it converts from and its exact decimal scaling.
     @Test("Every source unit normalizes to its contract unit and exact decimal", arguments: QuantityCase.allCases)
@@ -336,7 +348,7 @@ struct HealthKitFHIRConverterTests {
         }())
 
         let profileClaims = try #require(conversion.observation.meta?.profile)
-        #expect(profileClaims == testCase.contract.profiles)
+        #expect(profileClaims == testCase.contract.healthKitProfiles)
         if profileClaims.count == 1 {
             #expect(ProfileClaims.singleObservationProfiles.contains(profileClaims[0]))
         } else {
@@ -759,23 +771,6 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func healthKitTimeZoneMetadataIsTypedAndFailClosed() throws {
-        let missing = try HealthKitConverter.healthKitTimeZone(metadata: [:])
-        #expect(missing.secondsFromGMT(for: timestamp) == 0)
-
-        let identifier = "America/Los_Angeles"
-        let explicit = try HealthKitConverter.healthKitTimeZone(metadata: [HKMetadataKeyTimeZone: identifier])
-        #expect(explicit.identifier == identifier)
-
-        #expect(throws: HealthKitValueFailure.unsupportedMetadataValue(.timeZone)) {
-            try HealthKitConverter.healthKitTimeZone(metadata: [HKMetadataKeyTimeZone: "Not/A-Time-Zone"])
-        }
-        #expect(throws: HealthKitValueFailure.unsupportedMetadataValue(.timeZone)) {
-            try HealthKitConverter.healthKitTimeZone(metadata: [HKMetadataKeyTimeZone: 42])
-        }
-    }
-
-    @Test
     func glucoseConvertsWithoutSpecimenAndWithoutHealthConnectOnlyProfiles() throws {
         let sample = quantitySample(
             .bloodGlucose,
@@ -806,23 +801,15 @@ struct HealthKitFHIRConverterTests {
         let dstu2JSON = Data("  {\"resourceType\":\"Observation\",\"id\":\"dstu2\"}\n".utf8)
         let r4JSON = Data("{\n  \"resourceType\": \"Observation\", \"id\": \"r4\"\n}\n".utf8)
 
-        let dstu2 = try HealthKitConverter.clinicalRecordingEvidence(
-            data: dstu2JSON,
-            release: .dstu2,
-            sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord"
-        )
-        let r4Evidence = try HealthKitConverter.clinicalRecordingEvidence(
-            data: r4JSON,
-            release: .r4,
-            sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord"
-        )
+        let dstu2 = try clinicalDocument(dstu2JSON, version: .primaryDSTU2())
+        let r4Document = try clinicalDocument(r4JSON, version: .primaryR4())
 
-        #expect(dstu2.payload == dstu2JSON)
-        #expect(dstu2.format.rawValue == HealthKitContract.clinicalFHIRPayloadFormatCode)
-        #expect(dstu2.clinicalFHIRReleaseCode == "dstu2")
-        #expect(r4Evidence.payload == r4JSON)
-        #expect(r4Evidence.format.rawValue == HealthKitContract.clinicalFHIRPayloadFormatCode)
-        #expect(r4Evidence.clinicalFHIRReleaseCode == "r4")
+        for (document, payload, release) in [(dstu2, dstu2JSON, "dstu2"), (r4Document, r4JSON, "r4")] {
+            let content = try #require(document.content.first)
+            #expect(content.attachment.data?.value?.data() == payload)
+            #expect(content.format?.code?.value?.string == HealthKitContract.clinicalFHIRPayloadFormatCode)
+            #expect(content.attachment.contentType?.value?.string == HealthKitContract.clinicalFHIRContentTypeByRelease[release])
+        }
     }
 
     @Test("Unknown clinical releases fail before Grove creates an exchange document")
@@ -831,11 +818,7 @@ struct HealthKitFHIRConverterTests {
         let payload = Data(#"{"resourceType":"Observation"}"#.utf8)
 
         #expect(throws: HealthKitConversionError.clinicalRecord(.unsupportedRelease)) {
-            _ = try HealthKitConverter.clinicalRecordingEvidence(
-                data: payload,
-                release: .unknown,
-                sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord"
-            )
+            _ = try clinicalDocument(payload, version: try HKFHIRVersion(fromVersionString: "3.0.1"))
         }
     }
 
@@ -850,11 +833,7 @@ struct HealthKitFHIRConverterTests {
     @available(iOS 18, macOS 15, *)
     func invalidClinicalResourceSyntaxFailsClosed(payload: Data) throws {
         #expect(throws: HealthKitConversionError.clinicalRecord(.undecodable)) {
-            _ = try HealthKitConverter.clinicalRecordingEvidence(
-                data: payload,
-                release: .r4,
-                sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord"
-            )
+            _ = try clinicalDocument(payload, version: .primaryR4())
         }
     }
 
@@ -927,10 +906,10 @@ struct HealthKitFHIRConverterTests {
         #expect(rows.filter { $0.implementationStatus == .intentionallyUnsupported }
         .allSatisfy { $0.requirement?.isEmpty == false })
 
-        // Supported rows the sample-driven binding table intentionally does not serve: the ECG
-        // evidence path, the characteristic reads that are not HKSamples, and the panel components
-        // admitted only inside the correlation. Workouts are served now, so they are not exempt.
-        let sampleBindingExemptions: Set<String> = [
+        // Supported rows that convert through no Observation of their sample: the ECG evidence
+        // path, the characteristic reads that are not HKSamples, and the panel components admitted
+        // only inside the correlation. Workouts are served now, so they are not exempt.
+        let sampleObservationExemptions: Set<String> = [
             HKObjectType.electrocardiogramType().identifier,
             HKDataTypeIdentifierHeartbeatSeries,
             HKWorkoutRouteTypeIdentifier,
@@ -952,21 +931,15 @@ struct HealthKitFHIRConverterTests {
             HKQuantityTypeIdentifier.bloodPressureSystolic.rawValue,
             HKQuantityTypeIdentifier.bloodPressureDiastolic.rawValue
         ]
-        for row in rows where row.implementationStatus == .supported {
-            let identifier = row.sourceTypeIdentifier
-            let binding = HealthKitCatalog.binding(forSourceTypeIdentifier: identifier)
-            if sampleBindingExemptions.contains(identifier) {
-                #expect(binding == nil, "\(identifier) is served outside the sample binding table")
+        for row in rows {
+            let plan = HealthKitSourceType(rawValue: row.sourceTypeIdentifier).map { HealthKitContentPlan[$0] }
+            let observes = if case .observation = plan?.route { true } else { false }
+            if row.implementationStatus != .supported || sampleObservationExemptions.contains(row.sourceTypeIdentifier) {
+                #expect(!observes, "\(row.sourceTypeIdentifier) converts to an Observation of its sample")
             } else {
-                #expect(binding != nil, "\(identifier) is supported but has no binding")
-                #expect(binding?.contract.id == row.measurements.first?.id)
+                #expect(observes, "\(row.sourceTypeIdentifier) is supported but converts to no Observation")
+                #expect(plan?.outputs.first?.output.role == row.measurements.first?.id)
             }
-        }
-        for row in rows where row.implementationStatus != .supported {
-            #expect(
-                HealthKitCatalog.binding(forSourceTypeIdentifier: row.sourceTypeIdentifier) == nil,
-                "\(row.sourceTypeIdentifier) is not supported but has a binding"
-            )
         }
     }
 
@@ -1005,15 +978,16 @@ struct HealthKitFHIRConverterTests {
     @Test
     func reversedIntervalsAreNeverAnEffectivePeriod() throws {
         // HealthKit does not build a reversed sample, so the rule is checked directly.
-        let contract = try #require(
-            HealthKitCatalog.binding(forSourceTypeIdentifier: HKQuantityTypeIdentifier.dietaryEnergyConsumed.rawValue)
-        ).contract
-        #expect(HealthKitConverter.admitsEffectivePeriod(start: timestamp, end: timestamp, contract: contract))
-        #expect(!HealthKitConverter.admitsEffectivePeriod(
-            start: timestamp,
-            end: timestamp.addingTimeInterval(-1),
-            contract: contract
-        ))
+        guard case .observation(let plan) = HealthKitContentPlan[.dietaryEnergyConsumed].route else {
+            Issue.record("Dietary energy converts to no Observation")
+            return
+        }
+        #expect(throws: Never.self) {
+            try plan.effective.value(start: timestamp, end: timestamp, zone: nil)
+        }
+        #expect(throws: HealthKitValueFailure.effectivePeriodInvalid) {
+            try plan.effective.value(start: timestamp, end: timestamp.addingTimeInterval(-1), zone: nil)
+        }
     }
 
     @Test("Generated quantity domains reject invalid values and retain inclusive zero")
@@ -1022,28 +996,28 @@ struct HealthKitFHIRConverterTests {
         let percentage = try #require(MeasurementCatalog.oxygenSaturation.quantity)
         let valence = try #require(HealthKitMeasurementCatalog.stateOfMind.quantity)
 
-        let zero = try HealthKitConverter.fhirQuantity(value: 0, contract: steps)
+        let zero = try QuantityTemplate(steps).quantity(0)
         #expect(zero.value?.value?.decimal == 0)
         #expect(throws: HealthKitValueFailure.shapeInvalid) {
-            try HealthKitConverter.fhirQuantity(value: 1.5, contract: steps)
+            try QuantityTemplate(steps).quantity(1.5)
         }
         #expect(throws: HealthKitValueFailure.shapeInvalid) {
-            try HealthKitConverter.fhirQuantity(value: -1, contract: steps)
+            try QuantityTemplate(steps).quantity(-1)
         }
         #expect(throws: HealthKitValueFailure.shapeInvalid) {
-            try HealthKitConverter.fhirQuantity(value: 100.01, contract: percentage)
+            try QuantityTemplate(percentage).quantity(100.01)
         }
         #expect(throws: HealthKitValueFailure.shapeInvalid) {
-            try HealthKitConverter.fhirQuantity(value: -0.01, contract: percentage)
+            try QuantityTemplate(percentage).quantity(-0.01)
         }
         #expect(throws: Never.self) {
-            try HealthKitConverter.fhirQuantity(value: 100, contract: percentage)
+            try QuantityTemplate(percentage).quantity(100)
         }
         #expect(throws: HealthKitValueFailure.shapeInvalid) {
-            try HealthKitConverter.fhirQuantity(value: 1.01, contract: valence)
+            try QuantityTemplate(valence).quantity(1.01)
         }
         #expect(throws: Never.self) {
-            try HealthKitConverter.fhirQuantity(value: -1, contract: valence)
+            try QuantityTemplate(valence).quantity(-1)
         }
     }
 

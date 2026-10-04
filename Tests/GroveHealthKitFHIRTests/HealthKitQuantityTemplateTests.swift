@@ -15,68 +15,65 @@ import ModelsR4
 import Testing
 
 
-/// Quantity and component templates against the per-sample builders they replace.
+/// Quantity and component templates: a contract's quantity built once, each sample stating only its value as the
+/// shortest round-trip decimal inside the contract's domain.
 @Suite
 struct HealthKitQuantityTemplateTests {
-    /// Zero, fractions, negatives, binary64 artifacts, integers, the smallest and largest finite values, and non-finite values.
-    private static let values: [Double] = [
-        0, -0.0, 0.5, 1.5, -1, 1e-7, 36.52, 0.1 + 0.2, 7.000000000000001, 28.199999999999996, 98, 100, 100.5, 120, 250,
-        1_000, 1e21, 5e-324, .greatestFiniteMagnitude, -.greatestFiniteMagnitude, .nan, .infinity, -.infinity
-    ]
-
     /// Every quantity contract in both generated catalogs, measurement and component alike.
-    private static let contracts: [MeasurementContract] = MeasurementCatalog.all + HealthKitMeasurementCatalog.all
-
-    /// Whether both builders yield equal values that also print alike, or throw the same failure.
-    private static func agree<Value: Equatable>(_ legacy: Result<Value, any Error>, _ kernel: Result<Value, HealthKitValueFailure>) -> Bool {
-        switch (legacy, kernel) {
-        case let (.success(lhs), .success(rhs)):
-            lhs == rhs && String(describing: lhs) == String(describing: rhs)
-        case let (.failure(lhs), .failure(rhs)):
-            lhs as? HealthKitValueFailure == rhs
-        default:
-            false
-        }
+    private static let quantities: [QuantityContract] = (MeasurementCatalog.all + HealthKitMeasurementCatalog.all).flatMap { contract in
+        [contract.quantity].compactMap(\.self) + contract.components.compactMap(\.quantity)
     }
 
-    @Test("A quantity template yields the builder's quantity or its error for every contract and value")
-    func quantitiesMatchTheBuilder() {
-        var mismatches: [String] = []
-        let quantities = Self.contracts.flatMap { contract in
-            [contract.quantity].compactMap(\.self) + contract.components.compactMap(\.quantity)
-        }
-        for contract in quantities {
+    /// Every quantity component in both generated catalogs.
+    private static let components: [ComponentContract] = (MeasurementCatalog.all + HealthKitMeasurementCatalog.all)
+        .flatMap(\.components)
+        .filter { $0.quantity != nil }
+
+    @Test("A quantity template states its contract's code, system, unit and domain, and no value")
+    func templatesStateTheirContract() {
+        #expect(!Self.quantities.isEmpty)
+        for contract in Self.quantities {
             let template = QuantityTemplate(contract)
-            for value in Self.values {
-                let legacy = Result { try HealthKitConverter.fhirQuantity(value: value, contract: contract) }
-                let kernel = Result { () throws(HealthKitValueFailure) in try template.quantity(value) }
-                if !Self.agree(legacy, kernel) {
-                    mismatches.append("\(contract.code) \(value): \(legacy) != \(kernel)")
-                }
-            }
-        }
-        #expect(!quantities.isEmpty)
-        #expect(mismatches.isEmpty, "\(mismatches)")
-    }
-
-    @Test("A component template yields the workout statistic builder's component for every workout component")
-    func workoutComponentsMatchTheBuilder() throws {
-        let components = MeasurementCatalog.workout.components.filter { $0.quantity != nil }
-        #expect(!components.isEmpty)
-        for component in components {
-            let template = try #require(ComponentTemplate(component))
-            for value in Self.values {
-                let legacy = Result { try HealthKitConverter.component(component.id, value: value) }
-                let kernel = Result { () throws(HealthKitValueFailure) in try template.component(value) }
-                #expect(Self.agree(legacy, kernel), "\(component.id) \(value)")
-            }
+            #expect(template.empty.code?.value?.string == contract.code)
+            #expect(template.empty.system?.value?.url.absoluteString == contract.system)
+            #expect(template.empty.unit?.value?.string == contract.unit)
+            #expect(template.empty.value == nil)
+            #expect(template.domain == contract.valueDomain, "\(contract.code)")
         }
     }
 
-    /// The blood-pressure builder's coding, written out as it builds it, for every component with a quantity.
+    @Test("A quantity states the value's shortest round-trip decimal and refuses a non-finite value")
+    func quantitiesStateTheShortestDecimal() throws {
+        let template = QuantityTemplate(try #require(MeasurementCatalog.bodyTemperature.quantity))
+        let lexemes: [(Double, String)] = [(36.52, "36.52"), (0.1 + 0.2, "0.30000000000000004"), (98, "98"), (-1, "-1"), (1.5, "1.5")]
+        for (value, lexeme) in lexemes {
+            let quantity = try template.quantity(value)
+            #expect(quantity.value?.value?.decimal.description == lexeme)
+            #expect(quantity.code == template.empty.code && quantity.system == template.empty.system && quantity.unit == template.empty.unit)
+        }
+        for value in [Double.nan, .infinity, -.infinity] {
+            #expect(throws: HealthKitValueFailure.shapeInvalid) {
+                try template.quantity(value)
+            }
+        }
+    }
+
+    @Test("A component template states its code and its quantity of the value for every quantity component")
+    func componentsStateTheirQuantity() throws {
+        #expect(!Self.components.isEmpty)
+        for contract in Self.components {
+            // Every generated domain admits zero.
+            let template = try #require(ComponentTemplate(contract))
+            let component = try template.component(0)
+            #expect(component.code == template.code)
+            #expect(component.value == .quantity(try template.quantity.quantity(0)), "\(contract.id)")
+        }
+    }
+
+    /// The coding a component states, written out, for every component with a quantity.
     @Test("A component template's code is the contract's code and system, without a display")
     func componentCodes() throws {
-        for component in Self.contracts.flatMap(\.components) {
+        for component in (MeasurementCatalog.all + HealthKitMeasurementCatalog.all).flatMap(\.components) {
             guard let template = ComponentTemplate(component) else {
                 #expect(component.quantity == nil)
                 continue

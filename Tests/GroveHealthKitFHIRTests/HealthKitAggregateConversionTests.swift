@@ -175,29 +175,19 @@ struct HealthKitFHIRAggregateConversionTests {
 
     @Test("Rows outside this converter's Observation surface fail closed with their catalog reason")
     func unconvertibleRowsFailClosedWithTheirCatalogReason() throws {
-        #expect(
-            HealthKitConverter.unconvertibleSampleError(for: .labResultRecord)
-                == .platformExclusiveSourceType(.labResultRecord)
-        )
-        #expect(HealthKitConverter.unconvertibleSampleError(for: .workout) == .notYetConvertible(.workout))
-        #expect(
-            HealthKitConverter.unconvertibleSampleError(for: .bloodPressureSystolic)
-                == .componentRequiresCorrelation(.bloodPressureSystolic)
-        )
         let reason = try #require(HealthKitCatalog[.nikeFuel].requirement)
-        #expect(
-            HealthKitConverter.unconvertibleSampleError(for: .nikeFuel)
-                == .intentionallyUnsupported(.nikeFuel, reason: reason)
+        #expect(HealthKitContentPlan[.bloodPressureSystolic].refusal == .componentRequiresCorrelation(.bloodPressureSystolic))
+        #expect(HealthKitContentPlan[.nikeFuel].refusal == .intentionallyUnsupported(.nikeFuel, reason: reason))
+        // A heartbeat series converts only with the beats its caller enumerated, so its bare sample is refused.
+        let series = try StoredSampleFixtures.seriesSample(
+            HKHeartbeatSeriesSample.self,
+            sampleType: HKSeriesType.heartbeat(),
+            facts: GoldenCase.seriesFacts(uuid: 0xF4, duration: 2)
         )
-        #expect(
-            HealthKitConverter.unconvertibleSampleError(for: .heartbeatSeries)
-                == .platformExclusiveSourceType(.heartbeatSeries)
-        )
-        for error in [
-            HealthKitConverter.unconvertibleSampleError(for: .labResultRecord),
-            HealthKitConverter.unconvertibleSampleError(for: .workout),
-            HealthKitConverter.unconvertibleSampleError(for: .nikeFuel)
-        ] {
+        #expect(throws: HealthKitConversionError.platformExclusiveSourceType(.heartbeatSeries)) {
+            try converter.convert(series, context: context)
+        }
+        for error in [HealthKitConversionError.intentionallyUnsupported(.nikeFuel, reason: reason), .platformExclusiveSourceType(.heartbeatSeries)] {
             #expect(ExchangeGraphRule(rawValue: error.diagnostic.code) != nil)
             #expect(error.diagnostic.code.hasPrefix("mobile-input."))
         }

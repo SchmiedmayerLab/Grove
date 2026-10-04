@@ -21,20 +21,17 @@ import Testing
 /// reaching a producer's conformance lane.
 @Suite
 struct HealthKitFHIRCatalogConversionTests {
-    /// Rows whose value is not a plain quantity sample: they are covered by the ECG, category,
-    /// correlation, and aggregate suites, which supply the evidence those shapes require.
-    static let identifiers: [String] = HealthKitCatalog.entries
-        .filter { $0.implementationStatus == .supported }
-        .map(\.sourceTypeIdentifier)
-        .filter { identifier in
-            guard let binding = HealthKitCatalog.binding(forSourceTypeIdentifier: identifier) else {
-                return false
-            }
-            if case .quantity = binding {
-                return true
-            }
-            return false
-        }
+    /// The supported rows whose quantity is read in its contract's unit. Rows whose value is not a plain quantity
+    /// sample are covered by the ECG, category, correlation, and aggregate suites, which supply the evidence those
+    /// shapes require.
+    static let identifiers: [String] = HealthKitContentPlan.all
+        .filter { $0.entry.implementationStatus == .supported && $0.unitBinding != nil }
+        .map(\.sourceType.rawValue)
+
+    /// Every generated measurement contract by id, and body-mass index, which no catalog lists.
+    private static let contracts = Dictionary(
+        (MeasurementCatalog.all + HealthKitMeasurementCatalog.all + [HealthKitContract.bodyMassIndex]).map { ($0.id, $0) }
+    ) { first, _ in first }
 
     private let converter = HealthKitConverter()
     private let timestamp = Date(timeIntervalSince1970: 1_787_148_600)
@@ -65,9 +62,10 @@ struct HealthKitFHIRCatalogConversionTests {
 
     @Test("Every supported quantity row converts to its exact catalog contract", arguments: identifiers)
     func supportedQuantityRowConverts(identifier: String) throws {
-        guard case .quantity(let contract, let unit)? =
-                HealthKitCatalog.binding(forSourceTypeIdentifier: identifier) else {
-            Issue.record("\(identifier) lost its quantity binding")
+        let plan = HealthKitContentPlan[try #require(HealthKitSourceType(rawValue: identifier))]
+        let contract = try #require(plan.entry.measurements.first.flatMap { Self.contracts[$0.id] }, "\(identifier) names no contract")
+        guard let unit = plan.unitBinding?.unit else {
+            Issue.record("\(identifier) lost its quantity unit")
             return
         }
         // HealthKit traps rather than throws on a mismatched unit, so the binding is checked
@@ -92,7 +90,7 @@ struct HealthKitFHIRCatalogConversionTests {
 
         let observation = try converter.convert(sample, context: context).observation
 
-        #expect(observation.meta?.profile == contract.profiles, "\(identifier) profile claim")
+        #expect(observation.meta?.profile == contract.healthKitProfiles, "\(identifier) profile claim")
         let codings = try #require(observation.code.coding, "\(identifier) has no code")
         let code = try #require(codings.first)
         #expect(code.system?.value?.url.absoluteString == contract.code.system, "\(identifier) code system")
@@ -110,7 +108,7 @@ struct HealthKitFHIRCatalogConversionTests {
 
     private func assertSourceAndValue(
         _ observation: Observation,
-        contract: HealthKitFHIRObservationContract,
+        contract: MeasurementContract,
         identifier: String
     ) {
         let sourceType = observation.extension?.filter {
@@ -134,9 +132,21 @@ struct HealthKitFHIRCatalogConversionTests {
 
     @Test("The matrix covers every quantity-bound row the catalog admits")
     func matrixIsNotSilentlyEmpty() {
-        // A refactor that stopped resolving bindings would make the parameterized test vacuous.
+        // A refactor that stopped resolving units would make the parameterized test vacuous.
         #expect(Self.identifiers.count > 90, "only \(Self.identifiers.count) quantity rows were collected")
         #expect(Set(Self.identifiers).count == Self.identifiers.count)
+    }
+}
+
+
+extension MeasurementContract {
+    /// The direct profiles a HealthKit Observation of the measurement claims: a measurement whose profile stands alone
+    /// claims only it, every other one its shared profile and HealthKit's.
+    var healthKitProfiles: [FHIRPrimitive<Canonical>] {
+        if ProfileClaims.singleObservationProfiles.contains(profile) {
+            return [profile]
+        }
+        return ProfileClaims.observation(sharedMeasurement: profile, adapter: Profile.healthkitObservation)
     }
 }
 

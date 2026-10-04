@@ -129,7 +129,7 @@ struct HealthKitFHIRExporterWriterTests {
     private static func defaultConversion(_ ordinal: UInt8, device: HKDevice?) throws -> HealthKitConversion {
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(ordinal), device: device, writer: watchSource)
         let context = HealthKitConversionContext(event: try GoldenFixtures.context(sequence: 300).event)
-        return try HealthKitConverter.convertSample(sample, context: context).primary
+        return try HealthKitAssembly.convert(sample, context: context).primary
     }
 
     @Test("W1: by default an Apple per-device source states no writer, no author and no recording Device of its own")
@@ -202,7 +202,7 @@ struct HealthKitFHIRExporterWriterTests {
             ),
             options: HealthKitConversionOptions(writer: .application)
         )
-        let reference = try HealthKitConverter.convertSample(listed, context: context).primary
+        let reference = try HealthKitAssembly.convert(listed, context: context).primary
         #expect(listedExport.graph?.json == reference.graph.json)
     }
 
