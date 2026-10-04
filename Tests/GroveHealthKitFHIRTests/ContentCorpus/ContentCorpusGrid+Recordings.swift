@@ -86,6 +86,7 @@ extension ContentCorpusGrid {
             + [0, 99].map { status in ("symptoms-status/\(status)", reading { $0.symptomsStatus = status }) }
             + averages.map { label, rate in ("average-heart-rate/\(label)", reading { $0.averageHeartRate = rate }) }
             + frequencies.map { label, rate in ("sampling-frequency/\(label)", reading { $0.samplingFrequency = rate }) }
+            + reciprocalFrequencies
             + waveformEdges
             + symptomRelationships
         return readings.map { label, reading in electrocardiogram(label, reading) } + electrocardiogramFacts
@@ -204,15 +205,22 @@ extension ContentCorpusGrid {
         ]
     }
 
+    /// Sampling frequencies the guide compares with 1000 / period as shortest round-trip decimals: 1000/3 Hz at a 3 ms
+    /// period, though no decimal times 3 is 1000, and the binary64 one step above it; and 762.939453125 Hz at
+    /// 1.31072 ms, the exact quotient, which dividing by the period's own binary64 misses.
+    static var reciprocalFrequencies: [(String, ContentCorpusElectrocardiogram)] {
+        let threeMilliseconds = reading(offsets: [0.25, 0.253, 0.256, 0.259])
+        return [
+            ("sampling-frequency/reciprocal", reading(threeMilliseconds) { $0.samplingFrequency = 1_000.0 / 3 }),
+            ("sampling-frequency/reciprocal-next", reading(threeMilliseconds) { $0.samplingFrequency = (1_000.0 / 3).nextUp }),
+            ("sampling-frequency/exact-quotient", reading(reading(offsets: [0.25, 0.251_310_72, 0.252_621_44, 0.253_932_16])) { reading in
+                reading.samplingFrequency = 762.939_453_125
+            })
+        ]
+    }
+
     /// Waveform refusals: counts, offsets, voltages and lead presence.
     static var waveformEdges: [(String, ContentCorpusElectrocardiogram)] {
-        func offsets(_ values: [Double]) -> ContentCorpusElectrocardiogram {
-            reading { reading in
-                reading.voltages = zip(values, reading.voltages).map { offset, voltage in
-                    ContentCorpusElectrocardiogram.Voltage(offset: offset, millivolts: voltage.millivolts)
-                }
-            }
-        }
         func voltage(at index: Int, _ millivolts: Double?) -> ContentCorpusElectrocardiogram {
             reading { $0.voltages[index].millivolts = millivolts }
         }
@@ -223,10 +231,10 @@ extension ContentCorpusGrid {
                 reading.reportedCount = 1
                 reading.voltages = Array(reading.voltages.prefix(1))
             }),
-            ("offsets/negative", offsets([-0.002, 0, 0.002, 0.004])),
-            ("offsets/repeated", offsets([0.25, 0.25, 0.252, 0.254])),
-            ("offsets/non-uniform", offsets([0.25, 0.252, 0.255, 0.256])),
-            ("offsets/nan", offsets([0.25, .nan, 0.254, 0.256])),
+            ("offsets/negative", reading(offsets: [-0.002, 0, 0.002, 0.004])),
+            ("offsets/repeated", reading(offsets: [0.25, 0.25, 0.252, 0.254])),
+            ("offsets/non-uniform", reading(offsets: [0.25, 0.252, 0.255, 0.256])),
+            ("offsets/nan", reading(offsets: [0.25, .nan, 0.254, 0.256])),
             ("voltages/nan", voltage(at: 1, .nan)),
             ("voltages/missing-lead", voltage(at: 2, nil)),
             ("voltages/tiny", voltage(at: 1, 1e-7)),
@@ -331,6 +339,15 @@ extension ContentCorpusGrid {
         var reading = base
         change(&reading)
         return reading
+    }
+
+    /// The base reading with its voltages at `offsets`, in seconds.
+    static func reading(offsets: [Double]) -> ContentCorpusElectrocardiogram {
+        reading { reading in
+            reading.voltages = zip(offsets, reading.voltages).map { offset, voltage in
+                ContentCorpusElectrocardiogram.Voltage(offset: offset, millivolts: voltage.millivolts)
+            }
+        }
     }
 
     /// The base reading under `status`, with `samples` correlated.
