@@ -17,11 +17,13 @@ import ModelsR4
 /// The parts of an ECG's two Observations that every ECG shares, compiled once from the generated ECG claim, and the
 /// builders that complete them from one ECG record.
 ///
-/// A record converts in two steps, between which its symptoms convert as graphs of their own: ``Evidence`` reads and
-/// validates the record, then ``outputs(_:symptoms:)`` builds the waveform and its average heart rate. Each check is
-/// its own statement, so a record with several faults is refused for the first one checked: the zone, the lead's
-/// voltages, their count, offsets, period, sampling frequency and finiteness; then the source period, the symptoms
-/// status, the classification, the algorithm version and the average heart rate.
+/// A record converts in three steps: ``evidence(_:metadata:)`` reads and validates the record,
+/// ``validatedSymptoms(_:status:)`` checks its symptoms (the assembly then converts each symptom as a graph of its
+/// own), and ``outputs(_:symptoms:)`` builds the waveform and its average heart rate. Each check is its own statement,
+/// so a record with several faults is refused for the first one checked, in this order: the zone; the lead's voltages,
+/// their count, offsets, period, sampling frequency and finiteness; the symptoms status, then the symptoms; the ECG's
+/// end not before its start; the effective Period (the offsets' order, then its end and start instants); the source
+/// period's end and start instants; the classification; the algorithm version; the average heart rate.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct HealthKitECGContent: Sendable {
     /// An ECG record read once and validated: what the outputs state beside the sample's own facts.
@@ -45,7 +47,7 @@ struct HealthKitECGContent: Sendable {
         let lastOffset: Decimal
         /// The period between voltages, in milliseconds.
         let period: Decimal
-        /// The voltages in millivolts, as SampledData data.
+        /// The voltages in the claim's unit, as SampledData data.
         let data: String
     }
 
@@ -54,17 +56,19 @@ struct HealthKitECGContent: Sendable {
     /// The average heart rate's output, derived from the waveform.
     let averageHeartRateSlot: HealthKitOutputSlot
     /// The waveform Observation before its effective time, ECG extensions, interpretation, method, voltages and members.
-    let waveform: Observation
+    let waveformSkeleton: Observation
     /// The code of the waveform's voltage component: the lead the claim reads.
     let lead: CodeableConcept
     /// The origin of the voltage SampledData: zero in the claim's voltage unit.
     let voltageOrigin: Quantity
+    /// The HealthKit unit of the claim's voltage unit, which the voltages are read in.
+    let voltageUnit: HKUnit
     /// The interpretation of each classification the claim admits.
     let classifications: [HKElectrocardiogram.Classification: CodeableConcept]
     /// The method of each algorithm version the claim admits.
     let algorithmVersions: [Int: CodeableConcept]
     /// The average heart rate's Observation before its effective time and value.
-    let averageHeartRate: Observation
+    let averageHeartRateSkeleton: Observation
     /// The average heart rate's quantity, in its measurement's unit.
     let averageHeartRateQuantity: QuantityTemplate
     /// The HealthKit unit of that measurement's unit, which the ECG's average heart rate is read in.
@@ -79,7 +83,7 @@ struct HealthKitECGContent: Sendable {
         }
         waveformSlot = .primary(role: claim.waveform.role, discriminator: claim.waveform.discriminator)
         averageHeartRateSlot = .derived(role: claim.averageHeartRate.role, discriminator: claim.averageHeartRate.discriminator)
-        waveform = ObservationPlan.skeleton(
+        waveformSkeleton = ObservationPlan.skeleton(
             code: CodeableConcept(coding: [Coding(claim.waveformCode)]),
             sourceType: sourceType,
             profiles: claim.waveform.profiles
@@ -88,9 +92,10 @@ struct HealthKitECGContent: Sendable {
         var origin = QuantityTemplate(claim.voltageQuantity).empty
         origin.value = FHIRPrimitive(FHIRDecimal(0))
         voltageOrigin = origin
+        voltageUnit = try claim.voltageQuantity.binding().unit
         classifications = claim.classificationCodes.mapValues { CodeableConcept(coding: [Coding($0, system: claim.classificationSystem)]) }
         algorithmVersions = claim.algorithmVersionCodes.mapValues { CodeableConcept(coding: [Coding($0, system: claim.algorithmVersionSystem)]) }
-        averageHeartRate = ObservationPlan.skeleton(
+        averageHeartRateSkeleton = ObservationPlan.skeleton(
             code: CodeableConcept(coding: [Coding(claim.averageHeartRateCode)]),
             sourceType: sourceType,
             profiles: claim.averageHeartRate.profiles,
@@ -131,6 +136,18 @@ struct HealthKitECGContent: Sendable {
         return symptoms.sorted { order($0) < order($1) }
     }
 
+    /// What `record` states, read once and validated: the zone its metadata names (else UTC), then its voltages in the
+    /// claim's unit, then the algorithm version the same metadata states.
+    func evidence(_ record: HealthKitECGRecord, metadata: HealthKitSampleMetadata) throws -> Evidence {
+        let zone = try metadata.timeZone() ?? .utc
+        return Evidence(
+            electrocardiogram: record.electrocardiogram,
+            zone: zone,
+            waveform: try Waveform(record, unit: voltageUnit),
+            algorithmVersion: (metadata.values[HKMetadataKeyAppleECGAlgorithmVersion] as? NSNumber)?.intValue
+        )
+    }
+
     /// The waveform's draft, then the average heart rate's when the ECG states one. The waveform references each
     /// symptom by its output identifier; the average heart rate states the waveform's effective Period. The assembly
     /// states the ECG's entry method on both, as on every output of one record.
@@ -147,7 +164,7 @@ struct HealthKitECGContent: Sendable {
         guard beatsPerMinute.isFinite else {
             throw HealthKitConversionError.ecgEvidence(.invalidAverageHeartRate)
         }
-        var heartRate = averageHeartRate
+        var heartRate = averageHeartRateSkeleton
         heartRate.effective = .period(effective)
         heartRate.value = .quantity(try averageHeartRateQuantity.quantity(beatsPerMinute))
         return drafts + [averageHeartRateSlot.draft(.observation(heartRate))]
@@ -169,7 +186,7 @@ struct HealthKitECGContent: Sendable {
         guard let interpretation = classifications[ecg.classification] else {
             throw .ecgEvidence(.unsupportedClassification(ecg.classification.rawValue))
         }
-        var observation = waveform
+        var observation = waveformSkeleton
         if let version = evidence.algorithmVersion {
             guard let method = algorithmVersions[version] else {
                 throw .ecgEvidence(.unsupportedAlgorithmVersion(version))
@@ -199,32 +216,26 @@ struct HealthKitECGContent: Sendable {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitECGContent.Evidence {
-    /// What `record` states, read once and validated: the zone its metadata names, then its voltages.
-    init(_ record: HealthKitECGRecord, metadata: HealthKitSampleMetadata) throws {
-        let zone = try metadata.timeZone() ?? .utc
-        self.init(
-            electrocardiogram: record.electrocardiogram,
-            zone: zone,
-            waveform: try HealthKitECGContent.Waveform(record),
-            algorithmVersion: (metadata.values[HKMetadataKeyAppleECGAlgorithmVersion] as? NSNumber)?.intValue
-        )
-    }
-
     /// The waveform's effective Period: the ECG's start plus the first voltage's offset, to its start plus the last
-    /// one's, each added exactly; the end is stated first, as its failure takes precedence.
+    /// one's, each added exactly.
     func effectivePeriod() throws(HealthKitConversionError) -> Period {
         guard waveform.lastOffset > waveform.firstOffset else {
             throw .ecgEvidence(.invalidSourcePeriod)
         }
-        let end = try HealthKitEffectiveTime.exactDateTime(electrocardiogram.startDate, offset: waveform.lastOffset, zone: zone)
-        let start = try HealthKitEffectiveTime.exactDateTime(electrocardiogram.startDate, offset: waveform.firstOffset, zone: zone)
-        return Period(end: FHIRPrimitive(end), start: FHIRPrimitive(start))
+        let start = electrocardiogram.startDate
+        return try period(start: start, plus: waveform.firstOffset, end: start, plus: waveform.lastOffset)
     }
 
-    /// The ECG's own start and end, end first.
+    /// The ECG's own start and end.
     func sourcePeriod() throws(HealthKitConversionError) -> Period {
-        let end = try HealthKitEffectiveTime.exactDateTime(electrocardiogram.endDate, offset: 0, zone: zone)
-        let start = try HealthKitEffectiveTime.exactDateTime(electrocardiogram.startDate, offset: 0, zone: zone)
+        try period(start: electrocardiogram.startDate, plus: 0, end: electrocardiogram.endDate, plus: 0)
+    }
+
+    /// The Period from `start` plus `startOffset` seconds to `end` plus `endOffset`, each instant exact in the zone;
+    /// the end is stated first, as its failure takes precedence.
+    private func period(start: Date, plus startOffset: Decimal, end: Date, plus endOffset: Decimal) throws(HealthKitConversionError) -> Period {
+        let end = try HealthKitEffectiveTime.exactDateTime(end, offset: endOffset, zone: zone)
+        let start = try HealthKitEffectiveTime.exactDateTime(start, offset: startOffset, zone: zone)
         return Period(end: FHIRPrimitive(end), start: FHIRPrimitive(start))
     }
 }
@@ -232,23 +243,22 @@ extension HealthKitECGContent.Evidence {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitECGContent.Waveform {
-    /// The waveform of `record`'s voltages: each states the claim's lead, they are exactly as many as the ECG reports
-    /// and at least two, their offsets rise by one exact uniform period that agrees with the ECG's sampling
-    /// frequency, and each voltage is finite.
-    init(_ record: HealthKitECGRecord) throws(HealthKitConversionError) {
-        let millivolts = try record.voltageMeasurements.enumerated().map { index, measurement throws(HealthKitConversionError) in
+    /// The waveform of `record`'s voltages, read in `unit`: each states the claim's lead, they are exactly as many as
+    /// the ECG reports and at least two, their offsets rise by one exact uniform period that agrees with the ECG's
+    /// sampling frequency, and each voltage is finite.
+    init(_ record: HealthKitECGRecord, unit: HKUnit) throws(HealthKitConversionError) {
+        let voltages = try record.voltageMeasurements.enumerated().map { index, measurement throws(HealthKitConversionError) in
             guard let voltage = measurement.quantity(for: HealthKitElectrocardiogramClaim.sourceLead) else {
                 throw .ecgEvidence(.missingLeadVoltage(index: index))
             }
-            // The claim states its voltages in mV.
-            return voltage.doubleValue(for: .voltUnit(with: .milli))
+            return voltage.doubleValue(for: unit)
         }
         let ecg = record.electrocardiogram
-        try Self.requireCount(ecg.numberOfVoltageMeasurements, supplied: millivolts.count)
+        try Self.requireCount(ecg.numberOfVoltageMeasurements, supplied: voltages.count)
         let offsets = try Self.offsets(record.voltageMeasurements)
         let period = try Self.period(offsets)
         try Self.requireFrequency(ecg.samplingFrequency?.doubleValue(for: .hertz()), period: period)
-        let data = try millivolts.enumerated().map { index, voltage throws(HealthKitConversionError) in
+        let data = try voltages.enumerated().map { index, voltage throws(HealthKitConversionError) in
             guard voltage.isFinite else {
                 throw .ecgEvidence(.invalidLeadVoltage(index: index))
             }

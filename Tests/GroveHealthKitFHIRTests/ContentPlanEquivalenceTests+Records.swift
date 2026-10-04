@@ -81,9 +81,9 @@ extension ContentPlanEquivalenceTests {
             return
         }
         let waveform = try HealthKitConverter.ecgObservation(input: try Self.ecgInput())
-        #expect(waveform.code == content.waveform.code && waveform.status == content.waveform.status)
-        #expect(waveform.meta == content.waveform.meta && waveform.category == content.waveform.category)
-        #expect(waveform.extension?.first == content.waveform.extension?.first && content.waveform.extension?.count == 1)
+        #expect(waveform.code == content.waveformSkeleton.code && waveform.status == content.waveformSkeleton.status)
+        #expect(waveform.meta == content.waveformSkeleton.meta && waveform.category == content.waveformSkeleton.category)
+        #expect(waveform.extension?.first == content.waveformSkeleton.extension?.first && content.waveformSkeleton.extension?.count == 1)
         let voltages = try #require(waveform.component?.first)
         #expect(voltages.code == content.lead)
         guard case .sampledData(let data)? = voltages.value else {
@@ -91,6 +91,7 @@ extension ContentPlanEquivalenceTests {
             return
         }
         #expect(data.origin == content.voltageOrigin)
+        #expect(content.voltageUnit == .voltUnit(with: .milli), "today reads the voltages in mV")
         for raw in -1...255 {
             if let classification = HKElectrocardiogram.Classification(rawValue: raw) {
                 let today = try? HealthKitConverter.ecgObservation(input: try Self.ecgInput(classification: classification))
@@ -104,7 +105,7 @@ extension ContentPlanEquivalenceTests {
             Issue.record("The ECG's average heart rate states no Quantity")
             return
         }
-        let skeleton = content.averageHeartRate
+        let skeleton = content.averageHeartRateSkeleton
         #expect(heartRate.code == skeleton.code && heartRate.status == skeleton.status && heartRate.meta == skeleton.meta)
         #expect(heartRate.category == skeleton.category && heartRate.extension == skeleton.extension)
         quantity.value = nil

@@ -108,7 +108,7 @@ struct HealthKitContentPlanTests {
 
     @Test("Every unit a plan reads measures the quantity it reads, and every UCUM code the rules bind is read")
     func quantityUnitsAreCompatible() throws {
-        var read: Set<String> = []
+        var read = Self.electrocardiogramUnits()
         for plan in HealthKitContentPlan.all {
             guard case .observation(let observation) = plan.route else {
                 continue
@@ -168,6 +168,18 @@ extension HealthKitContentPlanTests {
         default:
             Issue.record("\(type) claims a document profile, yet converts through \(plan.route)")
         }
+    }
+
+    /// The UCUM codes the ECG reads its voltages and average heart rate in, each checked against the unit it is read in.
+    private static func electrocardiogramUnits() -> Set<String> {
+        guard case .electrocardiogram(let content) = HealthKitContentPlan[.electrocardiogram].route else {
+            Issue.record("ECGs convert through no ECG content")
+            return []
+        }
+        let claim = HealthKitElectrocardiogramClaim.self
+        #expect(content.voltageUnit == HealthKitContentRules.ucumUnits[claim.voltageQuantity.code])
+        #expect(content.averageHeartRateUnit == claim.averageHeartRateMeasurement.quantity.flatMap { HealthKitContentRules.ucumUnits[$0.code] })
+        return Set([claim.voltageQuantity.code, claim.averageHeartRateMeasurement.quantity?.code].compactMap(\.self))
     }
 
     /// The UCUM codes a workout's statistics are read in, each checked against every quantity type it reads.

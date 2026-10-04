@@ -104,7 +104,8 @@ enum HealthKitContentRules {
     /// The HealthKit unit each UCUM code the adapter reads is read in.
     ///
     /// HealthKit cannot parse UCUM (`HKUnit(from: "Cel")` raises), so the correspondence is stated, once per code: a
-    /// quantity contract whose code is missing here does not compile. Body-mass index is a plain ratio in HealthKit.
+    /// quantity contract whose code is missing here does not compile. Body-mass index is a plain ratio in HealthKit;
+    /// `mV` is the ECG claim's voltage unit.
     static let ucumUnits: [String: HKUnit] = [
         "/min": .count().unitDivided(by: .minute()),
         "Cel": .degreeCelsius(),
@@ -123,6 +124,7 @@ enum HealthKitContentRules {
         "m/s": .meter().unitDivided(by: .second()),
         "mL": .literUnit(with: .milli),
         "mL/kg/min": .literUnit(with: .milli).unitDivided(by: .gramUnit(with: .kilo)).unitDivided(by: .minute()),
+        "mV": .voltUnit(with: .milli),
         "mg": .gramUnit(with: .milli),
         "mg/dL": .gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci)),
         "min": .minute(),

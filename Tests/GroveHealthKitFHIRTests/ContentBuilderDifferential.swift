@@ -174,7 +174,7 @@ extension ContentBuilderPair {
             throw NoBuilder(type: .electrocardiogram)
         }
         let ecg = record.electrocardiogram
-        let evidence = try HealthKitECGContent.Evidence(record, metadata: HealthKitSampleMetadata(ecg, rule: plan.metadata))
+        let evidence = try content.evidence(record, metadata: HealthKitSampleMetadata(ecg, rule: plan.metadata))
         let symptoms = try HealthKitECGContent.validatedSymptoms(record.correlatedSymptoms, status: ecg.symptomsStatus)
         return try render(symptoms, drafts: try content.outputs(evidence, symptoms: try identifiers(of: symptoms)))
     }
