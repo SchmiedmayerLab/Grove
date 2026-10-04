@@ -110,7 +110,7 @@ extension GraphFrame {
                 assemblerURL: applicationURL,
                 profile: Profile.groveMobileConversionProvenance,
                 at: context.conversionInstant,
-                occurredOffset: extracted.authored.timeZone ?? .utc
+                occurredOffset: try Self.statedOffset(of: extracted.authored)
             ))
         )
     }
@@ -158,6 +158,19 @@ extension GraphFrame {
             date: try authored.asNSDate(),
             timeZone: authored.timeZone ?? .utc
         ))
+    }
+
+    /// The offset `authored` states, as a fixed zone; `Provenance.occurred` states the conversion instant at it.
+    ///
+    /// A response built in memory can carry a named zone, whose offset at the conversion instant can differ across a
+    /// daylight-saving change, while its JSON, which the request fingerprints, keeps only the stated offset. Following
+    /// the stated offset keeps `occurred` a function of those bytes, so either form of one response restates its event
+    /// byte for byte.
+    static func statedOffset(of authored: DateTime) throws -> TimeZone {
+        guard let zone = authored.timeZone else {
+            return .utc
+        }
+        return TimeZone(secondsFromGMT: zone.secondsFromGMT(for: try authored.asNSDate())) ?? zone
     }
 
     static func codeableConcept(_ coding: CodingContract) -> CodeableConcept {
