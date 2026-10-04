@@ -74,19 +74,11 @@ public struct HealthKitConversionContext: Sendable {
     public let options: HealthKitConversionOptions
 
     var identityScope: OpaqueIdentityScope { event.identityScope }
-    var eventIdentifier: ExchangeEventIdentifier { event.event }
     var repositoryScope: BusinessIdentifier { event.repositoryScope }
-    var entryNodeIdentifierSystem: IdentifierSystem { event.entryNodeIdentifierSystem }
-    var conversionInstant: Date { event.conversionInstant }
-    var subjectIdentifier: BusinessIdentifier { event.subject.identifier }
 
     public init(event: ExchangeEventContext, options: HealthKitConversionOptions = .default) {
         self.event = event
         self.options = options
-    }
-
-    func repositoryID(_ node: ExchangeGraphNode) -> RepositoryID? {
-        event.repositoryIDs[node]
     }
 }
 

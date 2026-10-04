@@ -38,15 +38,15 @@ struct ExchangeGraphOrdinalTests {
             context: context
         )
         let misnumbered = try EntryNodeKey(
-            system: context.entryNodeIdentifierSystem,
-            event: context.eventIdentifier,
+            system: context.event.entryNodeIdentifierSystem,
+            event: context.event.event,
             nodeRole: "conversion-provenance",
             ordinal: 1
         )
         // The mint is genuine, so nothing but the ordinal itself is out of place.
         #expect(try EntryNodeKey(
             misnumbered.identifier,
-            event: context.eventIdentifier
+            event: context.event.event
         ).ordinal == misnumbered.ordinal)
 
         var bundle = conversion.bundle
