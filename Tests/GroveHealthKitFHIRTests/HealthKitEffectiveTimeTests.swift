@@ -78,6 +78,13 @@ struct HealthKitEffectiveTimeTests {
     /// Foundation's Gregorian calendar is proleptic Gregorian, so the only ones it can check the kernel at.
     private static let foundationWindow: Swift.Range<Int64> = -12_219_292_800 ..< 253_402_300_800
 
+    /// Local mean times no FHIR date-time states: Sitka's +14:58:47 and Guam's −14:21 in 1800, and Los Angeles's
+    /// −07:52:58 in 1500.
+    private static let unstatableLocalMeanTimes: [(instant: TimeInterval, zone: TimeZone?)] = [
+        (-5_364_662_400, TimeZone(identifier: "America/Sitka")), (-5_364_662_400, TimeZone(identifier: "Pacific/Guam")),
+        (-14_831_769_600, TimeZone(identifier: "America/Los_Angeles"))
+    ]
+
     /// A third each: years −90 through 10200, the decades around the 1582 reform, and 1970 through 2039;
     /// a ±0.5 ms jitter puts exact and near half-millisecond ties in every range.
     private static func sweepInstant(_ generator: inout SeededGenerator) -> Date {
@@ -139,7 +146,8 @@ struct HealthKitEffectiveTimeTests {
 
     /// `date` plus `offset` as Foundation's fields state it: the exact sum of the decimal `date`'s shortest text
     /// states and the offset, floored in Decimal to its whole second; the fields Foundation reads for that second at
-    /// the offset the zone has then, with the remainder added to the second. `nil` where Foundation cannot check it.
+    /// the offset the zone has then, with the remainder added to the second. `nil` where Foundation cannot check it,
+    /// and for an offset no FHIR date-time states, whose refusal is pinned separately.
     private static func foundationInstant(_ date: Date, offset: Decimal, zone: TimeZone) -> ExactInstant? {
         let since1970 = date.timeIntervalSince1970
         guard since1970.isFinite, var exact = Decimal(string: since1970.description, locale: Locale(identifier: "en_US_POSIX")) else {
@@ -153,7 +161,7 @@ struct HealthKitEffectiveTimeTests {
         }
         let zoneOffset = zone.secondsFromGMT(for: Date(timeIntervalSince1970: TimeInterval(seconds)))
         let fields = foundationFields(seconds: seconds, offset: zoneOffset)
-        guard fields.count == 6 else {
+        guard fields.count == 6, zoneOffset.isMultiple(of: 60), abs(zoneOffset) <= 50_400 else {
             return nil
         }
         return ExactInstant(fields: Array(fields.prefix(5)), second: Decimal(fields[5]) + (exact - whole), offset: zoneOffset)
@@ -249,9 +257,9 @@ struct HealthKitEffectiveTimeTests {
         let seconds = try #require(TimeZone(secondsFromGMT: 37))
         let kiritimati = try #require(TimeZone(identifier: "Pacific/Kiritimati"))
         let refused: [(TimeInterval, TimeZone?)] = [
-            (.infinity, nil), (.nan, nil), (1e21, nil), (1_787_148_600, seconds),
-            (253_402_300_799.9995, nil), (253_402_290_000, kiritimati), (1_787_148_600, TimeZone(secondsFromGMT: 64_800))
-        ]
+            (.infinity, nil), (.nan, nil), (1e21, nil), (1_787_148_600, seconds), (253_402_300_799.9995, nil),
+            (253_402_290_000, kiritimati), (1_787_148_600, TimeZone(secondsFromGMT: 64_800)), (1_787_148_600, TimeZone(secondsFromGMT: 50_460))
+        ] + Self.unstatableLocalMeanTimes.map { ($0.instant, $0.zone) }
         for (since1970, zone) in refused {
             #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
                 try HealthKitEffectiveTime.dateTime(Date(timeIntervalSince1970: since1970), zone: zone)
@@ -410,6 +418,22 @@ struct HealthKitEffectiveTimeTests {
         }
         #expect(throws: HealthKitConversionError.ValueFailure.effectivePeriodInvalid) {
             try EffectiveRule.interval(nonZero: false).value(start: end, end: start, zone: nil)
+        }
+    }
+
+    /// FHIRModels prints a fixed zone's offset truncated to whole minutes, so stating it would shift the time.
+    @Test("ECG instants in a zone whose offset no FHIR date-time states are refused, and ±14:00 is stated")
+    func ecgUnstatableOffsets() throws {
+        let fixed = [37, 50_460, -50_460, 64_800].map { (instant: TimeInterval(1_787_148_600), zone: TimeZone(secondsFromGMT: $0)) }
+        for (instant, zone) in Self.unstatableLocalMeanTimes + fixed {
+            let zone = try #require(zone)
+            #expect(throws: HealthKitConversionError.ecgEvidence(.invalidSourcePeriod)) {
+                try HealthKitEffectiveTime.exactDateTime(Date(timeIntervalSince1970: instant), offset: 0.25, zone: zone)
+            }
+        }
+        for (seconds, expected) in [(50_400, "2026-08-20T04:10:00.25+14:00"), (-50_400, "2026-08-19T00:10:00.25-14:00")] {
+            let zone = try #require(TimeZone(secondsFromGMT: seconds))
+            #expect(try HealthKitEffectiveTime.exactDateTime(Date(timeIntervalSince1970: 1_787_148_600), offset: 0.25, zone: zone).description == expected)
         }
     }
 

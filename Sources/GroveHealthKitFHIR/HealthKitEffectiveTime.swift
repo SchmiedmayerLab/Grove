@@ -8,7 +8,6 @@
 
 #if canImport(HealthKit)
 
-import FHIRModelsExtensions
 import Foundation
 import GroveFHIRContract
 import ModelsR4
@@ -45,6 +44,7 @@ enum EffectiveRule: Hashable, Sendable {
 /// ``ExchangeInstant``, whose milliseconds count from `Date`'s 2001 reference and so round other ties.
 /// They keep the source zone's offset at the unrounded instant, print `.mmm` untrimmed, and write a
 /// zero offset as `Z`. ECG timing instead keeps exact Decimal seconds (``exactDateTime(_:offset:zone:)``).
+/// Both refuse a zone offset no FHIR date-time states: one with seconds (a local mean time) or beyond ±14:00.
 ///
 /// Dates are proleptic Gregorian, as ISO 8601 and FHIR define them, also before the 1582 reform where
 /// Foundation's Gregorian calendar switches to Julian dates. A local year outside 0001 through 9999 has
@@ -64,8 +64,8 @@ enum HealthKitEffectiveTime {
     /// The years a FHIR date-time can state.
     private static let statableYears: ClosedRange<Int> = 1...9_999
 
-    /// The widest UTC offset Foundation represents, ±18 hours.
-    private static let maximumOffsetSeconds = 64_800
+    /// The widest UTC offset a FHIR date-time states, ±14:00.
+    private static let maximumOffsetSeconds = 50_400
 
     /// An effective instant in the source's own zone, which also travels as the `timezone` extension,
     /// or in UTC when the source names none.
@@ -88,11 +88,13 @@ enum HealthKitEffectiveTime {
         return Period(end: end, start: try dateTime(start, zone: zone))
     }
 
-    /// An ECG instant: `date` plus an exact Decimal offset, at the zone's fixed offset for that second.
+    /// An ECG instant: `date` plus an exact Decimal offset, at the fixed offset the zone has at that instant.
     ///
     /// The seconds stay exact Decimals — adding the offset through `Date` would round a second time and can
     /// break SampledData's period arithmetic — and print trimmed (`00.25`). No `timezone` extension is
     /// added; a fixed-offset zone keeps the second occurrence of a repeated DST hour from printing as the first.
+    /// Zone offsets change only on whole seconds, so the instant's whole second has its offset. An offset no FHIR
+    /// date-time states is refused like an unstatable year, never truncated to minutes, which would shift the time.
     static func exactDateTime(_ date: Date, offset: Decimal, zone: TimeZone) throws(HealthKitConversionError) -> DateTime {
         let epochSeconds = date.timeIntervalSince1970
         guard epochSeconds.isFinite,
@@ -113,10 +115,10 @@ enum HealthKitEffectiveTime {
             wholeSeconds += 1
             fraction -= 1
         }
-        let wholeSecondDate = Date(timeIntervalSince1970: TimeInterval(wholeSeconds))
-        let fixedZone = zone.fixedOffset(at: wholeSecondDate)
-        let fixedOffset = fixedZone.secondsFromGMT(for: wholeSecondDate)
-        guard let civil = civilTime(seconds: wholeSeconds, offset: fixedOffset),
+        let zoneOffset = zone.secondsFromGMT(for: Date(timeIntervalSince1970: TimeInterval(wholeSeconds)))
+        guard isStatable(offset: zoneOffset),
+              let fixedZone = TimeZone(secondsFromGMT: zoneOffset),
+              let civil = civilTime(seconds: wholeSeconds, offset: zoneOffset),
               let month = UInt8(exactly: civil.month),
               let day = UInt8(exactly: civil.day),
               let hour = UInt8(exactly: civil.hour),
@@ -163,18 +165,15 @@ enum HealthKitEffectiveTime {
     }
 
     /// The Mobile lexeme `YYYY-MM-DDThh:mm:ss[.mmm](Z|±hh:mm)`, or `nil` when the instant has none:
-    /// non-finite, beyond Int64 milliseconds, an offset that is not whole minutes within ±18 h, or a
-    /// local year outside 1…9999.
+    /// non-finite, beyond Int64 milliseconds, an offset no FHIR date-time states, or a local year
+    /// outside 1…9999.
     private static func mobileLexeme(_ date: Date, zone: TimeZone?) -> String? {
         guard let milliseconds = Int64(exactly: (date.timeIntervalSince1970 * 1_000).rounded(.toNearestOrEven)) else {
             return nil
         }
         let offset = zone?.secondsFromGMT(for: date) ?? 0
-        guard offset.isMultiple(of: 60), abs(offset) <= maximumOffsetSeconds else {
-            return nil
-        }
         let (wholeSeconds, millisecond) = ExchangeInstant.floorDivide(milliseconds, by: 1_000)
-        guard let civil = civilTime(seconds: wholeSeconds, offset: offset) else {
+        guard isStatable(offset: offset), let civil = civilTime(seconds: wholeSeconds, offset: offset) else {
             return nil
         }
         var lexeme = ExchangeInstant.padded(Int64(civil.year), width: 4)
@@ -188,6 +187,11 @@ enum HealthKitEffectiveTime {
         }
         let magnitude = Int(offset.magnitude)
         return lexeme + (offset < 0 ? "-" : "+") + twoDigits(magnitude / 3_600) + ":" + twoDigits(magnitude % 3_600 / 60)
+    }
+
+    /// Whether a FHIR date-time states this UTC offset: whole minutes within ±14:00.
+    private static func isStatable(offset: Int) -> Bool {
+        offset.isMultiple(of: 60) && abs(offset) <= maximumOffsetSeconds
     }
 
     /// A field of at most two digits, zero-padded to two.
