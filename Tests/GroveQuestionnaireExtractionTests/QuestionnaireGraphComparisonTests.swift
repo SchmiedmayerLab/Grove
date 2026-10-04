@@ -129,7 +129,8 @@ struct QuestionnaireGraphComparisonTests {
         for index in codings.indices {
             let code = try #require(codings[index]["code"] as? String)
             #expect(codings[index]["display"] == nil)
-            codings[index]["display"] = try #require(displays[code])
+            let display: String = try #require(displays[code], "no display for version code \(code)")
+            codings[index]["display"] = display
         }
         type["coding"] = codings
         version["type"] = type

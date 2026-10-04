@@ -106,17 +106,34 @@ struct QuestionnaireFHIRExporterTests {
         #expect(repeated[0].graph?.json == repeated[1].graph?.json)
     }
 
-    @Test("Other content under a reserved response mints a new event instead of restating the reserved one")
+    @Test("Another response or another revision of the instrument under a reserved response mints a new event")
     func contentChangesMintNewEvents() throws {
-        let exporter = try Fixtures.exporter(Fixtures.producer())
-        let (first, _) = try Fixtures.collect(exporter, [try Fixtures.guideRecord()])
-        let (amended, _) = try Fixtures.collect(exporter, [try Self.amended()])
-        var revised = try Fixtures.guideRecord()
-        var questionnaire = revised.questionnaire
+        let guide = try Fixtures.guideRecord()
+        var questionnaire = guide.questionnaire
         questionnaire.title = "Home Vitals, revised wording"
-        revised = QuestionnaireFHIRExporter.Record(questionnaire: questionnaire, response: revised.response)
-        let (retitled, _) = try Fixtures.collect(exporter, [revised])
-        #expect(Self.sequences(first + amended + retitled) == ["1", "2", "3"])
+        let retitled = QuestionnaireFHIRExporter.Record(questionnaire: questionnaire, response: guide.response)
+        // Each change alone against the guide's reserved pair, so neither masks the other.
+        for changed in [try Self.amended(), retitled] {
+            let exporter = try Fixtures.exporter(Fixtures.producer())
+            let (first, _) = try Fixtures.collect(exporter, [guide])
+            let (again, _) = try Fixtures.collect(exporter, [changed])
+            #expect(Self.sequences(first + again) == ["1", "2"])
+        }
+    }
+
+    /// A reservation keeps the fingerprint it was made under, and every later export compares against it, across launches
+    /// and app updates: a build that derives the same request's fingerprint differently gives every pending reservation a
+    /// new sequence on redelivery, so the derivation, call parts and record parts alike, changes only on purpose, as
+    /// with an output revision.
+    @Test("The guide's pair fingerprints to a known answer")
+    func requestFingerprintIsAKnownAnswer() throws {
+        try #require(
+            ExchangeGraphAssembler.outputRevision == 1 && QuestionnaireExchangeProjection.outputRevision == 1,
+            "a revision bump restates the answer"
+        )
+        let plan = QuestionnaireFHIRExporter.Plan(try Fixtures.guideRecord(), exporter: try Fixtures.exporter(Fixtures.producer()))
+        let request = try plan.content.get().request
+        #expect(request.fingerprint == "N47uKqCVhHJ4Ea_fglb8zkHHQyF690pjJxs7t4YcmC8")
     }
 
     /// A response built in memory can carry a named zone, while its JSON, which the request fingerprints, states only
