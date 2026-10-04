@@ -21,7 +21,7 @@ enum QuantityRead: Sendable {
     case unit(HealthKitCatalog.UnitBinding)
     /// A per-session rate HealthKit already computed, read as a plain count and bound to no unit.
     case platformRate
-    /// The sample's quantity as a fraction, stated in percent.
+    /// The sample's quantity as a fraction, stated in percent by a decimal shift (``percent(ofFraction:)``).
     case percent
     /// A scored assessment's score.
     case score
@@ -177,12 +177,27 @@ extension ValueRule {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension QuantityRead {
+    /// `fraction`, where 1 means 100 %, stated in percent without multiplying in binary64.
+    ///
+    /// The fraction's shortest round-trip text is parsed back with its exponent raised by two: one correctly rounded
+    /// conversion of the exact decimal product, so 0.282 becomes 28.2 rather than the 28.199999999999996 that
+    /// `fraction * 100` yields. The quantity template then states the result as its own shortest round-trip decimal,
+    /// which never has more significant digits than the fraction's text. A non-finite fraction is returned unchanged,
+    /// so the template refuses it as it refuses any other non-finite value.
+    static func percent(ofFraction fraction: Double) -> Double {
+        guard fraction.isFinite else {
+            return fraction
+        }
+        // Plain decimal text always parses, so the fallback is unreachable; it fails closed in the template.
+        return Double(String(groveFHIRPlainDecimal: fraction) + "e2") ?? .nan
+    }
+
     /// The value read from `sample`: a quantity in its unit or as a count, a fraction in percent, or a score.
     func value(of sample: HKSample) throws(HealthKitConversionError.ValueFailure) -> Double {
         switch self {
         case .unit(let binding): try sample.cast(to: HKQuantitySample.self).quantity.doubleValue(for: binding.unit)
         case .platformRate: try sample.cast(to: HKQuantitySample.self).quantity.doubleValue(for: .count())
-        case .percent: try sample.cast(to: HKQuantitySample.self).quantity.doubleValue(for: .percent()) * 100
+        case .percent: Self.percent(ofFraction: try sample.cast(to: HKQuantitySample.self).quantity.doubleValue(for: .percent()))
         case .score: Double(try sample.cast(to: HKScoredAssessment.self).score)
         }
     }

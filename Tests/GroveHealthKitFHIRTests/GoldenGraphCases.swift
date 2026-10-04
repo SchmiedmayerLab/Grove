@@ -135,6 +135,14 @@ extension GoldenCase {
             inputs.options.role = .gatewayApplication(.test(name: "Cuff Companion", bundleIdentifier: "com.example.cuff", version: "3.1"))
             let workout = GoldenFixtures.workout(withEvents: false, device: GoldenFixtures.watch, userEntered: true)
             return try GoldenFixtures.export(StoredSampleFixtures.stored(workout, uuid: GoldenFixtures.uuid(16)), sequence: sequence, inputs)
+        },
+        // HealthKit keeps the fraction 0.282, stated as 28.2 % (spec F4-percent), never as the binary64 product
+        // 28.199999999999996.
+        GoldenCase("body-fat-percentage-fraction", sequence: 17) { sequence in
+            try GoldenFixtures.export(
+                GoldenFixtures.quantity(.bodyFatPercentage, HKQuantity(unit: .percent(), doubleValue: 0.282), uuid: GoldenFixtures.uuid(17)),
+                sequence: sequence
+            )
         }
     ]
 
