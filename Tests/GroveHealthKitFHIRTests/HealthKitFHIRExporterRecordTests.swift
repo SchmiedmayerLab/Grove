@@ -63,9 +63,13 @@ struct HealthKitFHIRExporterRecordTests {
     func electrocardiogramRecord() throws {
         let storage = LedgerCountingStorage()
         let exporter = try Fixtures.exporter(sequencer: ExchangeEventSequencer(storage: storage))
-        // `HKElectrocardiogram.VoltageMeasurement` cannot be built outside HealthKit, and the fixture ECG reports no
-        // voltage count, so the record path refuses it; the evidence seam (E2) covers the converted ECG.
-        let (ecg, _) = try GoldenCase.electrocardiogramEvidence(uuid: 0xE0, symptomsPresent: true)
+        // The fixture ECG states no reading, so it reports no voltage count and the record path refuses it; E2 covers
+        // a converted ECG.
+        let ecg = try StoredSampleFixtures.seriesSample(
+            HKElectrocardiogram.self,
+            sampleType: HKObjectType.electrocardiogramType(),
+            facts: GoldenCase.seriesFacts(uuid: 0xE0, duration: 30)
+        )
         let symptom = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xE1))
         let (exports, receipt) = try Self.exports([.electrocardiogram(ecg, voltages: [], symptoms: [symptom])], exporter)
         try #require(exports.count == 1)
@@ -153,8 +157,8 @@ struct HealthKitFHIRExporterRecordTests {
     /// The ECG and its average-heart-rate child both state an effective Period; the omission names each field once.
     @Test("An ECG without a time zone reports each effective field it states in UTC once, though its child states them too")
     func electrocardiogramReportsEachOffsetOmissionOnce() throws {
-        let (ecg, evidence) = try GoldenCase.electrocardiogramEvidence(uuid: 0xE8, symptomsPresent: false, timeZoned: false)
-        let (exports, _) = try Fixtures.collect(Fixtures.exporter(), [.electrocardiogramEvidence(ecg, evidence: evidence, symptoms: [])])
+        let record = try GoldenCase.electrocardiogramRecord(uuid: 0xE8, symptoms: [], timeZoned: false)
+        let (exports, _) = try Fixtures.collect(Fixtures.exporter(), [Fixtures.electrocardiogram(record, symptoms: [])])
         try #require(exports.count == 1)
         let observations = exports[0].graph?.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
         #expect(observations.count == 2, "the ECG and its average heart rate")

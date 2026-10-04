@@ -42,23 +42,6 @@ extension HealthKitConverter {
         try HealthKitAssembly(context: context.event).retraction(of: record, request: .init(context: context), occurred: occurred)
     }
 
-    /// `ecg` supplies only the envelope's identity, device and source facts; the evidence is given.
-    static func convertECG(
-        _ ecg: HKSample,
-        evidence: HealthKitECGEvidence,
-        symptoms: [HKCategorySample],
-        context: HealthKitConversionContext,
-        symptomContexts: [HealthKitConversionContext]
-    ) throws -> HealthKitConversionSet {
-        try HealthKitAssembly(context: context.event).convertECG(
-            ecg,
-            evidence: evidence,
-            symptoms: symptoms,
-            request: .init(context: context),
-            symptomRequests: try symptomRequests(symptomContexts, for: symptoms)
-        )
-    }
-
     /// One recording document under `sample`'s envelope, whatever the sample's own type.
     static func assembleDocumentGraph(
         for sample: HKSample,

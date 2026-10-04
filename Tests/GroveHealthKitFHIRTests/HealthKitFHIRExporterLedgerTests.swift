@@ -47,8 +47,8 @@ struct HealthKitFHIRExporterLedgerTests {
         under producer: ExchangeProducer
     ) throws -> (exports: [HealthKitFHIRExporter.Export], receipts: [HealthKitFHIRExporter.Receipt]) {
         let exporter = try Fixtures.exporter(producer)
-        let records: [HealthKitFHIRExporter.Input] = [
-            .record(.sample(try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(1)))),
+        let records: [HealthKitFHIRExporter.Record] = [
+            .sample(try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(1))),
             try Fixtures.electrocardiogram(uuid: 2, symptoms: [try GoldenCase.symptom(uuid: GoldenFixtures.uuid(3))])
         ]
         let (exports, receipt) = try Fixtures.collect(exporter, records)
@@ -155,12 +155,9 @@ struct HealthKitFHIRExporterLedgerTests {
         let storage = LedgerCountingStorage()
         let exporter = try Fixtures.exporter(sequencer: ExchangeEventSequencer(storage: storage))
         let symptom = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0x71))
-        // Symptoms present but the evidence says none: the ECG is refused, its companion with it.
-        let (ecg, evidence) = try GoldenCase.electrocardiogramEvidence(uuid: 0x70, symptomsPresent: false)
-        let (first, receipt) = try Fixtures.collect(exporter, [
-            .electrocardiogramEvidence(ecg, evidence: evidence, symptoms: [symptom]),
-            .record(.sample(symptom))
-        ])
+        // Symptoms present but the ECG states none: the ECG is refused, its companion with it.
+        let ecg = try GoldenCase.electrocardiogramRecord(uuid: 0x70, symptoms: [])
+        let (first, receipt) = try Fixtures.collect(exporter, [Fixtures.electrocardiogram(ecg, symptoms: [symptom]), .sample(symptom)])
         guard case .refused = first[0].outcome else {
             Issue.record("expected the ECG to be refused, got \(first[0].outcome)")
             return
@@ -258,7 +255,7 @@ struct HealthKitFHIRExporterLedgerTests {
         let last = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xA3), type: .fatigue)
         #expect(HealthKitSourceType(unregistered) == nil)
         let input = try Fixtures.electrocardiogram(uuid: 0xA0, symptoms: [first, unregistered, last])
-        let plan = HealthKitFHIRExporter.Plan(input, exporter: exporter)
+        let plan = HealthKitFHIRExporter.Plan(.record(input), exporter: exporter)
         #expect(plan.symptoms.map { $0?.request.key } == [ExchangeEventKey.active(first), nil, ExchangeEventKey.active(last)])
         let (exports, _) = try Fixtures.collect(exporter, [input])
         guard case .refused(let reason) = exports[0].outcome else {
@@ -282,9 +279,9 @@ struct HealthKitFHIRExporterLedgerTests {
         let (again, _) = try Fixtures.collect(exporter, [input])
         #expect(again.map(\.graph?.json) == first.map(\.graph?.json))
         // A refused record holds its keys until the receipt is released.
-        let (refusedECG, refusedEvidence) = try GoldenCase.electrocardiogramEvidence(uuid: 0xB2, symptomsPresent: false)
-        let refusedKey = try #require(ExchangeEventKey.active(refusedECG))
-        let (refused, refusedReceipt) = try Fixtures.collect(exporter, [.electrocardiogramEvidence(refusedECG, evidence: refusedEvidence, symptoms: [symptom])])
+        let refusedECG = try GoldenCase.electrocardiogramRecord(uuid: 0xB2, symptoms: [])
+        let refusedKey = try #require(ExchangeEventKey.active(refusedECG.electrocardiogram))
+        let (refused, refusedReceipt) = try Fixtures.collect(exporter, [Fixtures.electrocardiogram(refusedECG, symptoms: [symptom])])
         guard case .refused = refused[0].outcome else {
             Issue.record("expected a refusal, got \(refused[0].outcome)")
             return

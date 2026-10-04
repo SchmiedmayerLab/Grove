@@ -26,12 +26,9 @@ enum GoldenCaseError: Error {
 extension GoldenCase {
     /// Sequences 60-79: graphs whose source has no public initializer, built on stored-sample fixtures.
     ///
-    /// The ECG goes through `HealthKitConverter.convertECG(_:evidence:symptoms:context:symptomContexts:)`, the
-    /// internal seam that takes the ECG's evidence as given; the envelope sample is a real `HKElectrocardiogram`
-    /// nonetheless. These goldens predate `StoredSampleFixtures.electrocardiogram(facts:reading:)`, which states a
-    /// whole reading, so the content corpus converts its ECGs through the public record entry point instead. Both
-    /// state the same reading (`ContentCorpusGrid.electrocardiogramReading`), as the series and route state the
-    /// corpus's beats and fixes.
+    /// The ECG states the content corpus's reading (`ContentCorpusGrid.electrocardiogramReading`) through
+    /// `StoredSampleFixtures.electrocardiogram(facts:reading:)` and converts through the record entry point, as the
+    /// series and route state the corpus's beats and fixes.
     static let documents: [GoldenCase] = [
         GoldenCase("electrocardiogram", sequence: 60) { sequence in
             try GoldenOutput(primaryOf: electrocardiogram(uuid: 60, sequence: sequence, symptom: nil))
@@ -158,53 +155,46 @@ extension GoldenCase {
     ///
     /// The symptom's own event takes `sequence + 100`, the only second sequence any case states.
     static func electrocardiogram(uuid ordinal: UInt8, sequence: UInt64, symptom: UUID?) throws -> HealthKitConversionSet {
-        let (ecg, evidence) = try electrocardiogramEvidence(uuid: ordinal, symptomsPresent: symptom != nil)
         var symptoms: [HKCategorySample] = []
         var symptomContexts: [HealthKitConversionContext] = []
         if let symptom {
             symptoms = [try Self.symptom(uuid: symptom)]
             symptomContexts = [try GoldenFixtures.context(sequence: sequence + 100)]
         }
-        return try HealthKitConverter.convertECG(
-            ecg,
-            evidence: evidence,
-            symptoms: symptoms,
+        return try HealthKitConverter().convert(
+            try electrocardiogramRecord(uuid: ordinal, symptoms: symptoms),
             context: GoldenFixtures.context(sequence: sequence),
             symptomContexts: symptomContexts
         )
     }
 
-    /// The sinus-rhythm ECG sample and the validated evidence its voltages would yield, with symptoms present or none,
-    /// and the average heart rate the ECG states, if any. The sample's metadata states the golden time zone unless
-    /// `timeZoned` is false; the evidence reads it from there, as the public path does.
-    static func electrocardiogramEvidence(
+    /// An ECG record of the corpus's reading under Apple's second algorithm version, recorded by the watch and written
+    /// by the foreign application: sinus rhythm unless `classification` says otherwise, in the goldens' zone unless
+    /// `timeZoned` is false, stating `averageHeartRate` (by default the reading's), its symptoms present exactly when it
+    /// has any.
+    static func electrocardiogramRecord(
         uuid ordinal: UInt8,
-        symptomsPresent: Bool,
+        symptoms: [HKCategorySample],
+        classification: HKElectrocardiogram.Classification = .sinusRhythm,
         averageHeartRate: Double? = ContentCorpusGrid.electrocardiogramReading.averageHeartRate,
         timeZoned: Bool = true
-    ) throws -> (sample: HKElectrocardiogram, evidence: HealthKitECGEvidence) {
-        var facts = seriesFacts(uuid: ordinal, duration: 30)
-        facts.metadata = timeZoned ? facts.metadata : [:]
-        let ecg = try StoredSampleFixtures.seriesSample(HKElectrocardiogram.self, sampleType: HKObjectType.electrocardiogramType(), facts: facts)
+    ) throws -> HealthKitECGRecord {
         let reading = ContentCorpusGrid.electrocardiogramReading
-        let source = HealthKitECGSourceEvidence(
-            sourceTypeIdentifier: HealthKitContract.electrocardiogramSourceTypeIdentifier,
-            startDate: GoldenFixtures.sampleStart,
-            endDate: GoldenFixtures.sampleStart.addingTimeInterval(30),
-            timeZone: try HealthKitConverter.healthKitTimeZone(for: ecg),
-            classification: .sinusRhythm,
-            symptomsStatus: symptomsPresent ? .present : .none,
+        var facts = seriesFacts(uuid: ordinal, duration: 30)
+        facts.metadata = (timeZoned ? GoldenFixtures.timeZoneMetadata : [:]).merging([
+            HKMetadataKeyAppleECGAlgorithmVersion: HKAppleECGAlgorithmVersion.version2.rawValue
+        ]) { _, new in new }
+        let ecg = try StoredSampleFixtures.electrocardiogram(facts: facts, reading: StoredElectrocardiogram.Reading(
+            classification: classification,
+            symptomsStatus: symptoms.isEmpty ? .none : .present,
             numberOfVoltageMeasurements: reading.reportedCount,
-            averageHeartRate: averageHeartRate,
-            samplingFrequency: reading.samplingFrequency,
-            algorithmVersion: HKAppleECGAlgorithmVersion.version2.rawValue
-        )
-        let waveform = try HealthKitECGEvidenceValidator.validateWaveform(
-            reportedCount: source.numberOfVoltageMeasurements,
-            samplingFrequencyHertz: source.samplingFrequency,
-            points: reading.voltages.map { HealthKitECGVoltagePoint(timeSinceSampleStart: $0.offset, millivolts: $0.millivolts ?? .nan) }
-        )
-        return (ecg, HealthKitECGEvidence(source: source, waveform: waveform))
+            averageHeartRate: averageHeartRate.map { HKQuantity(unit: GoldenFixtures.beatsPerMinute, doubleValue: $0) },
+            samplingFrequency: reading.samplingFrequency.map { HKQuantity(unit: .hertz(), doubleValue: $0) }
+        ))
+        let voltages = try reading.voltages.map { voltage in
+            try StoredSampleFixtures.voltageMeasurement(offset: voltage.offset, millivolts: voltage.millivolts)
+        }
+        return HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: voltages, correlatedSymptoms: symptoms)
     }
 
     /// A symptom recorded by the watch and written by the foreign application; by default mild chest tightness.

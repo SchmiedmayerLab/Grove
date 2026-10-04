@@ -59,9 +59,9 @@ struct ExporterCompanionFingerprintTests {
     /// The primary export of one call; the receipt is dropped without release, so the reservation stays.
     private static func primary(
         _ exporter: HealthKitFHIRExporter,
-        _ input: HealthKitFHIRExporter.Input
+        _ record: HealthKitFHIRExporter.Record
     ) throws -> HealthKitFHIRExporter.Export {
-        let (exports, _) = try Fixtures.collect(exporter, [input])
+        let (exports, _) = try Fixtures.collect(exporter, [record])
         return try #require(exports.first)
     }
 
@@ -94,9 +94,9 @@ struct ExporterCompanionFingerprintTests {
         )
         var changedBeats = Self.beats
         changedBeats[1] = HealthKitHeartbeat(timeSinceSeriesStart: 0.85, precededByGap: false)
-        let original = try Self.primary(exporter, .record(.heartbeatSeries(series, beats: Self.beats)))
-        let exact = try Self.primary(exporter, .record(.heartbeatSeries(series, beats: Self.beats)))
-        let changed = try Self.primary(exporter, .record(.heartbeatSeries(series, beats: changedBeats)))
+        let original = try Self.primary(exporter, .heartbeatSeries(series, beats: Self.beats))
+        let exact = try Self.primary(exporter, .heartbeatSeries(series, beats: Self.beats))
+        let changed = try Self.primary(exporter, .heartbeatSeries(series, beats: changedBeats))
         try Self.expectNoReuse(original: original, exact: exact, changed: changed)
     }
 
@@ -121,32 +121,23 @@ struct ExporterCompanionFingerprintTests {
             speedAccuracy: moved.speedAccuracy,
             timestamp: moved.timestamp
         )
-        let original = try Self.primary(exporter, .record(.workoutRoute(route, locations: GoldenCase.routeLocations)))
-        let exact = try Self.primary(exporter, .record(.workoutRoute(route, locations: GoldenCase.routeLocations)))
-        let changed = try Self.primary(exporter, .record(.workoutRoute(route, locations: changedLocations)))
+        let original = try Self.primary(exporter, .workoutRoute(route, locations: GoldenCase.routeLocations))
+        let exact = try Self.primary(exporter, .workoutRoute(route, locations: GoldenCase.routeLocations))
+        let changed = try Self.primary(exporter, .workoutRoute(route, locations: changedLocations))
         try Self.expectNoReuse(original: original, exact: exact, changed: changed)
     }
 
-    /// `HKElectrocardiogram.VoltageMeasurement` cannot be built outside HealthKit, so the voltages arrive through the
-    /// evidence seam, whose record parts are the same as the public `.electrocardiogram` record's: the symptoms only.
+    /// The stored-sample fixtures state the voltages, so the ECG arrives as the public `.electrocardiogram` record, whose
+    /// record parts state its symptoms and voltages.
     @Test("Voltages: one changed voltage under a reserved ECG takes a new sequence")
     func changedVoltageTakesANewSequence() throws {
         let exporter = try Fixtures.exporter()
-        let (ecg, evidence) = try GoldenCase.electrocardiogramEvidence(uuid: 0xF2, symptomsPresent: false)
-        let changedWaveform = try HealthKitECGEvidenceValidator.validateWaveform(
-            reportedCount: evidence.source.numberOfVoltageMeasurements,
-            samplingFrequencyHertz: evidence.source.samplingFrequency,
-            points: [
-                HealthKitECGVoltagePoint(timeSinceSampleStart: 0.250, millivolts: 0.125),
-                HealthKitECGVoltagePoint(timeSinceSampleStart: 0.252, millivolts: 0.375),
-                HealthKitECGVoltagePoint(timeSinceSampleStart: 0.254, millivolts: -0.125),
-                HealthKitECGVoltagePoint(timeSinceSampleStart: 0.256, millivolts: 0)
-            ]
-        )
-        let changedEvidence = HealthKitECGEvidence(source: evidence.source, waveform: changedWaveform)
-        let original = try Self.primary(exporter, .electrocardiogramEvidence(ecg, evidence: evidence, symptoms: []))
-        let exact = try Self.primary(exporter, .electrocardiogramEvidence(ecg, evidence: evidence, symptoms: []))
-        let changed = try Self.primary(exporter, .electrocardiogramEvidence(ecg, evidence: changedEvidence, symptoms: []))
+        let record = try GoldenCase.electrocardiogramRecord(uuid: 0xF2, symptoms: [])
+        var changedVoltages = record.voltageMeasurements
+        changedVoltages[1] = try StoredSampleFixtures.voltageMeasurement(offset: changedVoltages[1].timeSinceSampleStart, millivolts: 0.375)
+        let original = try Self.primary(exporter, Fixtures.electrocardiogram(record, symptoms: []))
+        let exact = try Self.primary(exporter, Fixtures.electrocardiogram(record, symptoms: []))
+        let changed = try Self.primary(exporter, .electrocardiogram(record.electrocardiogram, voltages: changedVoltages, symptoms: []))
         try Self.expectNoReuse(original: original, exact: exact, changed: changed)
     }
 
@@ -157,9 +148,9 @@ struct ExporterCompanionFingerprintTests {
         let before = try Fixtures.exporter(sequencer: sequencer) { $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-a")) }
         let after = try Fixtures.exporter(sequencer: sequencer) { $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-b")) }
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xF3), device: GoldenFixtures.watch, writer: GoldenFixtures.foreignWriter)
-        let original = try Self.primary(before, .record(.sample(sample)))
-        let exact = try Self.primary(before, .record(.sample(sample)))
-        let changed = try Self.primary(after, .record(.sample(sample)))
+        let original = try Self.primary(before, .sample(sample))
+        let exact = try Self.primary(before, .sample(sample))
+        let changed = try Self.primary(after, .sample(sample))
         try Self.expectNoReuse(original: original, exact: exact, changed: changed)
     }
 
@@ -171,9 +162,9 @@ struct ExporterCompanionFingerprintTests {
             $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-a", name: "Left Wrist"))
         }
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xF4), device: GoldenFixtures.watch)
-        let original = try Self.primary(before, .record(.sample(sample)))
-        let exact = try Self.primary(before, .record(.sample(sample)))
-        let changed = try Self.primary(after, .record(.sample(sample)))
+        let original = try Self.primary(before, .sample(sample))
+        let exact = try Self.primary(before, .sample(sample))
+        let changed = try Self.primary(after, .sample(sample))
         try Self.expectNoReuse(original: original, exact: exact, changed: changed)
     }
 
@@ -183,9 +174,9 @@ struct ExporterCompanionFingerprintTests {
         let before = try Fixtures.exporter(sequencer: sequencer) { $0.writer = .classify { _ in .application } }
         let after = try Fixtures.exporter(sequencer: sequencer) { $0.writer = .classify { _ in .omit } }
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xF5), writer: GoldenFixtures.foreignWriter)
-        let original = try Self.primary(before, .record(.sample(sample)))
-        let exact = try Self.primary(before, .record(.sample(sample)))
-        let changed = try Self.primary(after, .record(.sample(sample)))
+        let original = try Self.primary(before, .sample(sample))
+        let exact = try Self.primary(before, .sample(sample))
+        let changed = try Self.primary(after, .sample(sample))
         try Self.expectNoReuse(original: original, exact: exact, changed: changed)
     }
 
@@ -197,8 +188,8 @@ struct ExporterCompanionFingerprintTests {
         let changing = try Fixtures.exporter(sequencer: sequencer) { $0.recordingDevice = .custom(FirstAnswerResolver()) }
         let fixed = try Fixtures.exporter(sequencer: sequencer) { $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-a")) }
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xF6), device: GoldenFixtures.watch)
-        let first = try Self.primary(changing, .record(.sample(sample)))
-        let again = try Self.primary(fixed, .record(.sample(sample)))
+        let first = try Self.primary(changing, .sample(sample))
+        let again = try Self.primary(fixed, .sample(sample))
         #expect(again.event == first.event, "both fingerprint unit-a")
         #expect(again.graph?.json == first.graph?.json, "the first graph states unit-a, the device it was fingerprinted under")
     }

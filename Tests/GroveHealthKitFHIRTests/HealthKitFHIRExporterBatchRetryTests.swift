@@ -113,7 +113,7 @@ struct HealthKitFHIRExporterBatchRetryTests {
         #expect(classifier.count == 2)
         #expect(twice.exports.count == 2 && twice.exports[0].event == twice.exports[1].event)
         let symptom = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xC7))
-        let named = try Fixtures.collect(exporter, [Fixtures.electrocardiogram(uuid: 0xC6, symptoms: [symptom]), .record(.sample(symptom))])
+        let named = try Fixtures.collect(exporter, [Fixtures.electrocardiogram(uuid: 0xC6, symptoms: [symptom]), .sample(symptom)])
         // The ECG, its symptom inside the ECG's input, and the standalone symptom.
         #expect(classifier.count == 5)
         let symptomEvents = named.exports.filter { $0.source.uuid == symptom.uuid }.map(\.event)
@@ -129,10 +129,10 @@ struct HealthKitFHIRExporterBatchRetryTests {
         let classifier = CountingClassifier(flips: true)
         let exporter = try Fixtures.exporter { $0.writer = .classify { classifier.classify($0) } }
         let symptom = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xC9))
-        let later: HealthKitFHIRExporter.Input = try throughElectrocardiogram
+        let later: HealthKitFHIRExporter.Record = try throughElectrocardiogram
             ? Fixtures.electrocardiogram(uuid: 0xC8, symptoms: [symptom])
-            : .record(.sample(symptom))
-        let (exports, receipt) = try Fixtures.collect(exporter, [.record(.sample(symptom)), later])
+            : .sample(symptom)
+        let (exports, receipt) = try Fixtures.collect(exporter, [.sample(symptom), later])
         try #require(exports.count == 2)
         #expect(exports[0].graph != nil)
         guard case .refused(let reason) = exports[1].outcome else {

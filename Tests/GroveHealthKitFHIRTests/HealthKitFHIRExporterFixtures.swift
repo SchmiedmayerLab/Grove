@@ -121,11 +121,11 @@ enum ExporterFixtures {
     /// Every export of one call, and its receipt.
     static func collect(
         _ exporter: HealthKitFHIRExporter,
-        _ inputs: [HealthKitFHIRExporter.Input],
+        _ records: [HealthKitFHIRExporter.Record],
         at instant: Date = GoldenFixtures.conversionInstant
     ) throws -> (exports: [HealthKitFHIRExporter.Export], receipt: HealthKitFHIRExporter.Receipt) {
         var exports: [HealthKitFHIRExporter.Export] = []
-        let receipt = try exporter.export(inputs: inputs, at: instant) { exports.append($0) }
+        let receipt = try exporter.export(records: records, at: instant) { exports.append($0) }
         return (exports, receipt)
     }
 
@@ -134,7 +134,7 @@ enum ExporterFixtures {
         samples: [HKSample],
         at instant: Date = GoldenFixtures.conversionInstant
     ) throws -> (exports: [HealthKitFHIRExporter.Export], receipt: HealthKitFHIRExporter.Receipt) {
-        try collect(exporter, samples.map { .record(.sample($0)) }, at: instant)
+        try collect(exporter, samples.map { .sample($0) }, at: instant)
     }
 
     static func retract(
@@ -147,10 +147,14 @@ enum ExporterFixtures {
         return (exports, receipt)
     }
 
-    /// An ECG with prebuilt evidence and its correlated symptoms, through the exporter's internal seam.
-    static func electrocardiogram(uuid ordinal: UInt8, symptoms: [HKCategorySample]) throws -> HealthKitFHIRExporter.Input {
-        let (ecg, evidence) = try GoldenCase.electrocardiogramEvidence(uuid: ordinal, symptomsPresent: !symptoms.isEmpty)
-        return .electrocardiogramEvidence(ecg, evidence: evidence, symptoms: symptoms)
+    /// The goldens' ECG record with its correlated symptoms, which it states present exactly when there are any.
+    static func electrocardiogram(uuid ordinal: UInt8, symptoms: [HKCategorySample]) throws -> HealthKitFHIRExporter.Record {
+        try electrocardiogram(GoldenCase.electrocardiogramRecord(uuid: ordinal, symptoms: symptoms), symptoms: symptoms)
+    }
+
+    /// `record`'s ECG and voltages with `symptoms`, whatever symptoms status the ECG states.
+    static func electrocardiogram(_ record: HealthKitECGRecord, symptoms: [HKCategorySample]) -> HealthKitFHIRExporter.Record {
+        .electrocardiogram(record.electrocardiogram, voltages: record.voltageMeasurements, symptoms: symptoms)
     }
 
     static func deletion(_ ordinal: UInt8, deletedAfter: Date? = nil, detectedAt: Date = GoldenFixtures.conversionInstant) -> HealthKitFHIRExporter.Deletion {

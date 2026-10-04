@@ -193,9 +193,10 @@ struct GoldenGraphTests {
     /// whether an ECG stated an average heart rate, so its retraction always names the child, emitted or not.
     @Test
     func ecgRetractionNamesTheAverageHeartRateChildAlways() throws {
-        let (ecg, evidence) = try GoldenCase.electrocardiogramEvidence(uuid: 0xA4, symptomsPresent: false, averageHeartRate: nil)
+        let record = try GoldenCase.electrocardiogramRecord(uuid: 0xA4, symptoms: [], averageHeartRate: nil)
+        let ecg = record.electrocardiogram
         let context = try GoldenFixtures.context(sequence: 204)
-        let conversion = try HealthKitConverter.convertECG(ecg, evidence: evidence, symptoms: [], context: context, symptomContexts: [])
+        let conversion = try HealthKitConverter().convert(record, context: context, symptomContexts: []).primary
         #expect(conversion.identifiers.childOutputs.isEmpty, "an ECG without an average emits no child")
         let retraction = try HealthKitConverter().retraction(
             for: HealthKitSourceRecord(uuid: ecg.uuid, type: .electrocardiogram),

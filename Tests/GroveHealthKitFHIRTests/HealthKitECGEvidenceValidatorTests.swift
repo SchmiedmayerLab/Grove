@@ -161,46 +161,24 @@ struct HealthKitECGEvidenceValidatorTests {
         (.unrecognized, "unrecognized")
     ])
     func classificationsStateTheGuideCodes(_ classification: HKElectrocardiogram.Classification, _ code: String) throws {
-        let (_, evidence) = try GoldenCase.electrocardiogramEvidence(uuid: 0xC1, symptomsPresent: false)
-        let source = evidence.source
-        let observation = try HealthKitConverter.ecgObservation(input: HealthKitECGObservationInput(
-            source: HealthKitECGSourceEvidence(
-                sourceTypeIdentifier: source.sourceTypeIdentifier,
-                startDate: source.startDate,
-                endDate: source.endDate,
-                timeZone: source.timeZone,
-                classification: classification,
-                symptomsStatus: source.symptomsStatus,
-                numberOfVoltageMeasurements: source.numberOfVoltageMeasurements,
-                averageHeartRate: source.averageHeartRate,
-                samplingFrequency: source.samplingFrequency,
-                algorithmVersion: source.algorithmVersion
-            ),
-            waveform: evidence.waveform,
-            symptomOutputIdentifiers: []
-        ))
-        #expect(observation.interpretation?.first?.coding?.map { $0.code?.value?.string } == [code])
+        let record = try GoldenCase.electrocardiogramRecord(uuid: 0xC1, symptoms: [], classification: classification)
+        let conversion = try HealthKitConverter().convert(record, context: HealthKitConversionContext(), symptomContexts: [])
+        let observations = conversion.primary.graph.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
+        #expect(observations.compactMap(\.interpretation).map { $0.first?.coding?.map { $0.code?.value?.string } } == [[code]])
     }
 
     /// One record states one entry method: the ECG's own metadata marks its waveform and its average heart rate alike.
     @Test("A user-entered ECG states manual entry on the waveform and on its average heart rate")
     func userEnteredECGMarksEveryOutput() throws {
-        let start = GoldenFixtures.sampleStart
-        let ecg = try StoredSampleFixtures.seriesSample(
-            HKElectrocardiogram.self,
-            sampleType: HKObjectType.electrocardiogramType(),
-            facts: StoredSampleFixtures.SampleFacts(
-                uuid: GoldenFixtures.uuid(0xC2),
-                start: start,
-                end: start.addingTimeInterval(30),
-                device: GoldenFixtures.watch,
-                metadata: [HKMetadataKeyTimeZone: GoldenFixtures.timeZone, HKMetadataKeyWasUserEntered: true],
-                writer: GoldenFixtures.foreignWriter
-            )
+        let record = try GoldenCase.electrocardiogramRecord(uuid: 0xC2, symptoms: [])
+        let metadata = (record.electrocardiogram.metadata ?? [:]).merging([HKMetadataKeyWasUserEntered: true]) { _, new in new }
+        let ecg = try StoredSampleFixtures.withMetadata(record.electrocardiogram, metadata)
+        let conversion = try HealthKitConverter().convert(
+            HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: record.voltageMeasurements),
+            context: HealthKitConversionContext(),
+            symptomContexts: []
         )
-        let (_, evidence) = try GoldenCase.electrocardiogramEvidence(uuid: 0xC2, symptomsPresent: false)
-        let conversion = try HealthKitConverter.convertECG(ecg, evidence: evidence, symptoms: [], context: HealthKitConversionContext(), symptomContexts: [])
-        let observations = conversion.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
+        let observations = conversion.primary.graph.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
         #expect(observations.count == 2)
         for observation in observations {
             let methods = observation.extension?.filter { $0.url == Canonicals.recordingMethod } ?? []
@@ -338,35 +316,30 @@ struct HealthKitECGEvidenceValidatorTests {
     @Test("A symptom's warnings stay with its own graph and reach the set")
     func symptomWarningsReachTheSet() throws {
         let start = Date(timeIntervalSince1970: 1_787_148_600)
-        let source = HealthKitECGSourceEvidence(
-            sourceTypeIdentifier: HealthKitContract.electrocardiogramSourceTypeIdentifier,
-            startDate: start,
-            endDate: start.addingTimeInterval(30),
-            timeZone: try #require(TimeZone(identifier: "America/Los_Angeles")),
+        let facts = StoredSampleFixtures.SampleFacts(
+            uuid: UUID(),
+            start: start,
+            end: start.addingTimeInterval(30),
+            device: nil,
+            metadata: [HKMetadataKeyTimeZone: "America/Los_Angeles"],
+            writer: .unattributed
+        )
+        let reading = StoredElectrocardiogram.Reading(
             classification: .sinusRhythm,
             symptomsStatus: .present,
             numberOfVoltageMeasurements: Self.validPoints.count,
             averageHeartRate: nil,
-            samplingFrequency: 500,
-            algorithmVersion: nil
+            samplingFrequency: HKQuantity(unit: .hertz(), doubleValue: 500)
         )
-        let waveform = try HealthKitECGEvidenceValidator.validateWaveform(
-            reportedCount: Self.validPoints.count,
-            samplingFrequencyHertz: 500,
-            points: Self.validPoints
+        let record = HealthKitECGRecord(
+            electrocardiogram: try StoredSampleFixtures.electrocardiogram(facts: facts, reading: reading),
+            voltageMeasurements: try Self.validPoints.map { point in
+                try StoredSampleFixtures.voltageMeasurement(offset: point.timeSinceSampleStart, millivolts: point.millivolts)
+            },
+            correlatedSymptoms: [symptom(.dizziness)]
         )
-        // HKElectrocardiogram has no public initializer; this sample stands in for its envelope only.
-        let envelope = HKQuantitySample(
-            type: HKQuantityType(.heartRate),
-            quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 72),
-            start: start,
-            end: start,
-            metadata: [HKMetadataKeyTimeZone: "America/Los_Angeles"]
-        )
-        let set = try HealthKitConverter.convertECG(
-            envelope,
-            evidence: HealthKitECGEvidence(source: source, waveform: waveform),
-            symptoms: [symptom(.dizziness)],
+        let set = try HealthKitConverter().convert(
+            record,
             context: HealthKitConversionContext(),
             symptomContexts: [HealthKitConversionContext(conversionInstant: ExchangeEventContext.testInstant.addingTimeInterval(1))]
         )
@@ -381,13 +354,15 @@ struct HealthKitECGEvidenceValidatorTests {
 
     @Test("The context API refuses a symptom-context count other than the symptoms' before it validates the symptoms")
     func symptomContextCountIsCheckedBeforeTheSymptoms() throws {
-        // Symptoms the evidence says are absent: the count mismatch is still the fault reported.
-        let (ecg, evidence) = try GoldenCase.electrocardiogramEvidence(uuid: 0x60, symptomsPresent: false)
+        // Symptoms the ECG says are absent: the count mismatch is still the fault reported.
+        let record = try GoldenCase.electrocardiogramRecord(uuid: 0x60, symptoms: [])
         #expect(throws: HealthKitConversionError.ecgEvidence(.symptomContextCountMismatch(symptoms: 1, contexts: 0))) {
-            try HealthKitConverter.convertECG(
-                ecg,
-                evidence: evidence,
-                symptoms: [symptom(.dizziness)],
+            try HealthKitConverter().convert(
+                HealthKitECGRecord(
+                    electrocardiogram: record.electrocardiogram,
+                    voltageMeasurements: record.voltageMeasurements,
+                    correlatedSymptoms: [symptom(.dizziness)]
+                ),
                 context: HealthKitConversionContext(),
                 symptomContexts: []
             )
