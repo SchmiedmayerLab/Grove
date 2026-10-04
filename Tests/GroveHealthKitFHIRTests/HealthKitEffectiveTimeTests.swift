@@ -20,7 +20,7 @@ import Testing
 @Suite
 struct HealthKitEffectiveTimeTests {
     /// SplitMix64, so a failing sweep replays exactly.
-    private struct SeededGenerator: RandomNumberGenerator {
+    struct SeededGenerator: RandomNumberGenerator {
         var state: UInt64
 
         mutating func next() -> UInt64 {
